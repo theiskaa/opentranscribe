@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 /// A single timed span of recognized text.
 @immutable
-class TranscriptSegment {
+final class TranscriptSegment {
   const TranscriptSegment({
     required this.text,
     required this.start,
@@ -44,14 +44,19 @@ class TranscriptSegment {
 /// The output of a transcription: full text plus timed segments, tagged with the
 /// engine and locale that produced it so a re-transcription is traceable.
 @immutable
-class Transcript {
-  const Transcript({
+final class Transcript {
+  /// [createdAt] is normalized to UTC here, so round-trip equality through JSON
+  /// (which stores UTC) holds no matter what clock an engine passed in. [segments]
+  /// is wrapped unmodifiable so a shared reference cannot be mutated under
+  /// ==/hashCode.
+  Transcript({
     required this.fullText,
-    required this.segments,
+    required List<TranscriptSegment> segments,
     required this.localeId,
     required this.engineId,
-    required this.createdAt,
-  });
+    required DateTime createdAt,
+  }) : segments = List.unmodifiable(segments),
+       createdAt = createdAt.toUtc();
 
   final String fullText;
   final List<TranscriptSegment> segments;

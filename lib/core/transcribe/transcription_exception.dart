@@ -21,9 +21,22 @@ class OnDeviceUnavailable extends TranscriptionException {
   const OnDeviceUnavailable([super.message]);
 }
 
-/// Audio capture failed to start or write.
+/// Audio capture failed to start or write. [code] carries the native error code
+/// (e.g. no_input vs capture_failed) so callers can branch without matching text.
 class CaptureFailed extends TranscriptionException {
-  const CaptureFailed([super.message]);
+  const CaptureFailed([super.message, this.code]);
+
+  final String? code;
+
+  @override
+  String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
+}
+
+/// The engine's on-device model could not be downloaded or installed. Distinct from
+/// [TranscriptionFailed]: almost always transient (network), with a different retry
+/// story than a broken transcription.
+class ModelInstallFailed extends TranscriptionException {
+  const ModelInstallFailed([super.message]);
 }
 
 /// The engine failed to produce a transcript.

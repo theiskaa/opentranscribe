@@ -48,6 +48,19 @@ void main() {
       expect(Transcript.fromJson(transcript.toJson()), transcript);
     });
 
+    test('normalizes a local createdAt to UTC so round-trip equality holds', () {
+      final local = Transcript(
+        fullText: 'x',
+        segments: const [],
+        localeId: 'en-US',
+        engineId: 'fake',
+        createdAt: DateTime(2026, 3, 4, 12), // local, not UTC
+      );
+
+      expect(local.createdAt.isUtc, isTrue);
+      expect(Transcript.fromJson(local.toJson()), local);
+    });
+
     test('empty full text reports isEmpty', () {
       final empty = Transcript(
         fullText: '',

@@ -5,7 +5,7 @@ import 'package:opentranscribe/core/transcribe/transcript.dart';
 /// A live transcription update from a streaming engine. Text grows as you speak;
 /// [isFinal] marks the last event, whose text is the settled transcription.
 @immutable
-class TranscriptEvent {
+final class TranscriptEvent {
   const TranscriptEvent({required this.text, required this.isFinal, this.segments = const []});
 
   final String text;
