@@ -1,0 +1,65 @@
+import 'package:flutter/foundation.dart';
+
+import 'package:opentranscribe/core/transcribe/transcript.dart';
+
+/// One journal entry: a kept recording and, once transcribed, its transcript.
+/// The audio is the source of truth and is kept so the entry can be re-transcribed
+/// by a better engine later. The transcript is null until transcription completes.
+@immutable
+class Entry {
+  const Entry({
+    required this.id,
+    required this.createdAt,
+    required this.audioPath,
+    required this.duration,
+    this.transcript,
+  });
+
+  final String id;
+  final DateTime createdAt;
+  final String audioPath;
+  final Duration duration;
+  final Transcript? transcript;
+
+  bool get isTranscribed => transcript != null;
+
+  /// Returns a copy carrying a new transcript. Used after (re-)transcription.
+  Entry withTranscript(Transcript transcript) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    // Store UTC so timestamps survive travel and DST unchanged.
+    'createdAt': createdAt.toUtc().toIso8601String(),
+    'audioPath': audioPath,
+    'durationMs': duration.inMilliseconds,
+    if (transcript != null) 'transcript': transcript!.toJson(),
+  };
+
+  factory Entry.fromJson(Map<String, dynamic> json) => Entry(
+    id: json['id'] as String,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    audioPath: json['audioPath'] as String,
+    duration: Duration(milliseconds: json['durationMs'] as int),
+    transcript: json['transcript'] == null
+        ? null
+        : Transcript.fromJson(json['transcript'] as Map<String, dynamic>),
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is Entry &&
+      other.id == id &&
+      other.createdAt == createdAt &&
+      other.audioPath == audioPath &&
+      other.duration == duration &&
+      other.transcript == transcript;
+
+  @override
+  int get hashCode => Object.hash(id, createdAt, audioPath, duration, transcript);
+}

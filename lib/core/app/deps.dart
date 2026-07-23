@@ -1,5 +1,13 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
+import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
+
+const _devStorageKey = 'opentranscribe-dev-storage-key-0';
 
 /// Compile-time storage encryption key.
 ///
@@ -11,10 +19,7 @@ import 'package:opentranscribe/core/routes/app_router.dart';
 ///
 /// The fallback below is a development-only default so the app runs out of the
 /// box. Nothing here ever leaves the device.
-const _storageKey = String.fromEnvironment(
-  'STORAGE_KEY',
-  defaultValue: 'opentranscribe-dev-storage-key-0',
-);
+const _storageKey = String.fromEnvironment('STORAGE_KEY', defaultValue: _devStorageKey);
 
 /// The app's dependency composition root.
 ///
@@ -31,22 +36,42 @@ const _storageKey = String.fromEnvironment(
 /// plain, type-safe fields. Add a new dependency by giving it a field here and
 /// constructing it in [init].
 class Deps {
-  const Deps._({required this.localService, required this.router});
+  const Deps._({
+    required this.localService,
+    required this.transcriptionService,
+    required this.router,
+  });
 
   /// The singleton instance. Valid only after [init] has completed.
   static late final Deps i;
 
   final LocalService localService;
+
+  /// The one boundary the app talks to for recording and transcription. The
+  /// recorder, engine, and store stay private inside it so the entry lifecycle
+  /// has one owner and callers cannot bypass the on-device guard it enforces.
+  final TranscriptionService transcriptionService;
   final AppRouter router;
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
   static Future<void> init() async {
+    // Refuse to ship a release build that would encrypt journal data with the
+    // committed development key. Provide a real key via --dart-define=STORAGE_KEY.
+    if (kReleaseMode && _storageKey == _devStorageKey) {
+      throw StateError('STORAGE_KEY must be supplied via --dart-define for a release build');
+    }
+
     final localService = LocalService();
     await localService.init(encryptionKey: _storageKey);
 
     i = Deps._(
       localService: localService,
+      transcriptionService: TranscriptionService(
+        recorder: PlatformAudioRecorder(),
+        engine: AppleSpeechEngine(),
+        store: EntryStore(localService),
+      ),
       router: AppRouter(),
     );
   }

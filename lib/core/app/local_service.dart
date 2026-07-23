@@ -87,18 +87,6 @@ class LocalService {
     return _prefs.setString(key, _encrypt(jsonString));
   }
 
-  /// Reads a value from local storage.
-  ///
-  /// String values and `List<String>` elements are decrypted after reading.
-  /// Returns `null` if the key doesn't exist.
-  T? read<T>(String key) {
-    final value = _prefs.get(key);
-    if (value == null) return null;
-    if (value is String) return _decrypt(value) as T;
-    if (value is List<String>) return value.map(_decrypt).toList() as T;
-    return value as T;
-  }
-
   /// Reads an encrypted string from local storage.
   String? readString(String key) {
     final value = _prefs.getString(key);
@@ -118,17 +106,6 @@ class LocalService {
     return fromJson(decoded);
   }
 
-  /// Reads a JSON list from local storage (decrypted).
-  ///
-  /// Returns `null` if the key doesn't exist.
-  List<T>? readJsonList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
-    final encrypted = _prefs.getString(key);
-    if (encrypted == null) return null;
-    final jsonString = _decrypt(encrypted);
-    final decoded = jsonDecode(jsonString) as List<dynamic>;
-    return decoded.map((e) => fromJson(e as Map<String, dynamic>)).toList();
-  }
-
   /// Checks if a key exists in local storage.
   bool containsKey(String key) => _prefs.containsKey(key);
 
@@ -138,19 +115,8 @@ class LocalService {
   /// Clears all data from local storage.
   Future<bool> clear() => _prefs.clear();
 
-  /// Returns all keys in local storage.
-  Set<String> getKeys() => _prefs.getKeys();
-
   /// Finds all keys that start with the given prefix.
   Set<String> findKeysWithPrefix(String prefix) {
     return _prefs.getKeys().where((key) => key.startsWith(prefix)).toSet();
-  }
-
-  /// Deletes all keys that start with the given prefix.
-  Future<void> deleteWithPrefix(String prefix) async {
-    final keys = findKeysWithPrefix(prefix);
-    for (final key in keys) {
-      await delete(key);
-    }
   }
 }
