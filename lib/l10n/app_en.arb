@@ -31,5 +31,49 @@
   "settingsLanguage": "Language",
   "@settingsLanguage": {
     "description": "Label for the language setting"
+  },
+  "settingsOffline": "Everything stays on this device. No account, no cloud, no network.",
+  "@settingsOffline": {
+    "description": "Settings note describing the offline promise"
+  },
+  "recordHint": "Tap to record",
+  "@recordHint": {
+    "description": "Hint under the idle record button"
+  },
+  "entryTitle": "Entry",
+  "@entryTitle": {
+    "description": "Title of the single entry screen"
+  },
+  "entryUntranscribed": "Untranscribed",
+  "@entryUntranscribed": {
+    "description": "Shown when an entry has no transcript yet"
+  },
+  "retranscribe": "Re-transcribe",
+  "@retranscribe": {
+    "description": "Button to transcribe a kept recording again"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Button to delete an entry"
+  },
+  "deleteConfirmTitle": "Delete entry?",
+  "@deleteConfirmTitle": {
+    "description": "Title of the delete confirmation dialog"
+  },
+  "deleteConfirmMessage": "This removes the recording and its transcript from this device.",
+  "@deleteConfirmMessage": {
+    "description": "Body of the delete confirmation dialog"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel action"
+  },
+  "recordErrorTitle": "Couldn't record",
+  "@recordErrorTitle": {
+    "description": "Title of the recording error dialog"
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "Dismiss action"
   }
 }

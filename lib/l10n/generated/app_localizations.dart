@@ -139,6 +139,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language'**
   String get settingsLanguage;
+
+  /// Settings note describing the offline promise
+  ///
+  /// In en, this message translates to:
+  /// **'Everything stays on this device. No account, no cloud, no network.'**
+  String get settingsOffline;
+
+  /// Hint under the idle record button
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to record'**
+  String get recordHint;
+
+  /// Title of the single entry screen
+  ///
+  /// In en, this message translates to:
+  /// **'Entry'**
+  String get entryTitle;
+
+  /// Shown when an entry has no transcript yet
+  ///
+  /// In en, this message translates to:
+  /// **'Untranscribed'**
+  String get entryUntranscribed;
+
+  /// Button to transcribe a kept recording again
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribe'**
+  String get retranscribe;
+
+  /// Button to delete an entry
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// Title of the delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete entry?'**
+  String get deleteConfirmTitle;
+
+  /// Body of the delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the recording and its transcript from this device.'**
+  String get deleteConfirmMessage;
+
+  /// Cancel action
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Title of the recording error dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t record'**
+  String get recordErrorTitle;
+
+  /// Dismiss action
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

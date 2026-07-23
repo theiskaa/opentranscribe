@@ -31,4 +31,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsOffline =>
+      'Everything stays on this device. No account, no cloud, no network.';
+
+  @override
+  String get recordHint => 'Tap to record';
+
+  @override
+  String get entryTitle => 'Entry';
+
+  @override
+  String get entryUntranscribed => 'Untranscribed';
+
+  @override
+  String get retranscribe => 'Re-transcribe';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get deleteConfirmTitle => 'Delete entry?';
+
+  @override
+  String get deleteConfirmMessage =>
+      'This removes the recording and its transcript from this device.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get recordErrorTitle => 'Couldn\'t record';
+
+  @override
+  String get ok => 'OK';
 }
