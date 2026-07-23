@@ -1,0 +1,35 @@
+{
+  "@@locale": "en",
+  "appTitle": "opentranscribe",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "recordStart": "Record",
+  "@recordStart": {
+    "description": "Label for the button that starts a new voice entry"
+  },
+  "recordStop": "Done",
+  "@recordStop": {
+    "description": "Label for the button that stops recording"
+  },
+  "entriesTitle": "Entries",
+  "@entriesTitle": {
+    "description": "Title of the journal entries list"
+  },
+  "entriesEmpty": "Nothing here yet. Speak your mind.",
+  "@entriesEmpty": {
+    "description": "Empty state shown when there are no journal entries"
+  },
+  "reflectionTitle": "This week",
+  "@reflectionTitle": {
+    "description": "Title of the weekly reflection view"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the settings screen"
+  },
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Label for the language setting"
+  }
+}
