@@ -2,9 +2,12 @@ import 'package:flutter/foundation.dart';
 
 /// A finished recording: a kept audio file on disk and how long it runs.
 @immutable
-class Recording {
+final class Recording {
   const Recording({required this.path, required this.duration});
 
+  /// The file reference: a bare filename from the native recorder (resolved
+  /// against [AudioRecorder.recordingsDirectory]), or an absolute path from a
+  /// test double. Consumers resolve, never assume, the shape.
   final String path;
   final Duration duration;
 
@@ -22,5 +25,5 @@ class Recording {
 enum CaptureStatus { recording, interrupted, stopped }
 
 /// Microphone permission state, distinct from speech-recognition authorization
-/// (which the engine reports through [Availability]). Two separate iOS grants.
+/// (which the engine reports through [Availability]). Two separate platform grants.
 enum PermissionStatus { granted, denied, restricted, undetermined }

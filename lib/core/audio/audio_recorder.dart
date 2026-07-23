@@ -1,12 +1,13 @@
 import 'package:opentranscribe/core/audio/recording.dart';
 
-/// App-owned audio capture. Produces a kept file (via [Recording]) and a capture
-/// lifecycle stream. It deliberately knows nothing about any transcription
-/// engine: it captures and writes audio, nothing more.
+/// App-owned audio capture and custody of the files it writes. Produces a kept
+/// file (via [Recording]) and a capture lifecycle stream, and owns where those
+/// files live ([recordingsDirectory]) and whether they ride the device backup
+/// ([setBackupExcluded]). It stays engine-agnostic: it knows nothing about any
+/// transcription engine, only how to capture, write, and keep audio.
 ///
 /// A streaming engine taps the same native capture session directly, so no audio
-/// crosses into Dart. The native implementation arrives later; the contract is
-/// fixed here so the service and its tests can be built against it now.
+/// crosses into Dart.
 abstract interface class AudioRecorder {
   /// Requests microphone permission if not already decided, and reports the result.
   Future<PermissionStatus> ensurePermission();
@@ -14,9 +15,29 @@ abstract interface class AudioRecorder {
   /// Begins capture to a fresh file.
   Future<void> start();
 
-  /// Capture lifecycle: recording, interruption, stopped.
+  /// Capture lifecycle: recording, interruption, stopped. Contract for every
+  /// implementation: past events are NOT replayed, but each new listener receives
+  /// the current live state on subscribe (so a screen attaching mid-capture is not
+  /// stale). Callers should subscribe before [start] to observe the whole session.
   Stream<CaptureStatus> get status;
 
-  /// Finalizes the file and returns its path and duration.
+  /// Finalizes the file and returns its reference and duration. The reference is
+  /// a bare filename, stable across a backup/restore that would move the app's
+  /// container; resolve it against [recordingsDirectory] to read the file.
+  /// Throws only when no audio was captured at all, in which case no kept file
+  /// remains behind; a throw never strands audio on disk.
   Future<Recording> stop();
+
+  /// Absolute path of the durable directory where kept recordings live, used to
+  /// resolve a stored filename to a full path for reading, deleting, or playback.
+  Future<String> recordingsDirectory();
+
+  /// Whether the kept file named [name] is a readable recording, and how long it
+  /// runs; null when it cannot be opened (e.g. an unfinalized container after a
+  /// mid-recording kill). Powers the orphan-reconciliation sweep.
+  Future<Duration?> probeRecording(String name);
+
+  /// Includes or excludes kept audio from the platform backup. Excluded by
+  /// default, so nothing leaves the device until the user opts in.
+  Future<void> setBackupExcluded(bool excluded);
 }
