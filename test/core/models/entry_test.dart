@@ -28,6 +28,18 @@ void main() {
     expect(Entry.fromJson(entry.toJson()), entry);
   });
 
+  test('normalizes a local createdAt to UTC so round-trip equality holds', () {
+    final entry = Entry(
+      id: 'l',
+      createdAt: DateTime(2026, 3, 4, 9), // local, not UTC
+      audioPath: 'l.m4a',
+      duration: Duration.zero,
+    );
+
+    expect(entry.createdAt.isUtc, isTrue);
+    expect(Entry.fromJson(entry.toJson()), entry);
+  });
+
   test('round-trips through JSON with a transcript', () {
     final entry = baseEntry().withTranscript(transcript);
 

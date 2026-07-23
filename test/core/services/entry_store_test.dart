@@ -63,6 +63,19 @@ void main() {
     expect(store.read('bad'), isNull);
   });
 
+  test('an undecryptable raw value is skipped, not fatal', () async {
+    // Raw garbage under the entry prefix (a key change or disk corruption): the
+    // decrypt throws inside the store, which must skip it like corrupt JSON.
+    SharedPreferences.setMockInitialValues({'entry:junk': 'not-fernet-ciphertext'});
+    storage = LocalService();
+    await storage.init(encryptionKey: key);
+    store = EntryStore(storage);
+    await store.save(entry('good', DateTime.utc(2026, 3, 5)));
+
+    expect(store.all().map((e) => e.id).toList(), ['good']);
+    expect(store.read('junk'), isNull);
+  });
+
   test('all() breaks createdAt ties by id', () async {
     final tied = DateTime.utc(2026, 5, 6);
     await store.save(entry('b', tied));

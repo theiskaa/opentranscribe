@@ -1,8 +1,3 @@
-// ignore_for_file: prefer_initializing_formals
-// The injected collaborators are private (a service coordinates them, it does not
-// expose them), and sibling params carry defaults, so initializing formals do not
-// apply here.
-
 import 'dart:async';
 import 'dart:io';
 
@@ -27,23 +22,18 @@ import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 /// kept untranscribed rather than lost, and can be re-transcribed later.
 class TranscriptionService {
   TranscriptionService({
-    required AudioRecorder recorder,
-    required TranscriptionEngine engine,
-    required EntryStore store,
-    String localeId = 'en-US',
-    Duration batchTimeout = const Duration(minutes: 2),
+    required this._recorder,
+    required this._engine,
+    required this._store,
+    this._localeId = 'en-US',
+    this._batchTimeout = const Duration(minutes: 2),
     DateTime Function()? clock,
     String Function()? idGenerator,
-  }) : _recorder = recorder,
-       _engine = engine,
-       _store = store,
-       _localeId = localeId,
-       _batchTimeout = batchTimeout,
-       _clock = clock ?? DateTime.now,
+  }) : _clock = clock ?? DateTime.now,
        _newId = idGenerator ?? _defaultId {
     // The one rule, enforced in code: only on-device engines are allowed.
-    if (!engine.onDeviceOnly) {
-      throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
+    if (!_engine.onDeviceOnly) {
+      throw ArgumentError('TranscriptionService requires an on-device engine: ${_engine.id}');
     }
   }
 
@@ -56,8 +46,28 @@ class TranscriptionService {
   final String Function() _newId;
 
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
+  final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
+  StreamSubscription<CaptureStatus>? _statusSub;
   bool _recording = false;
+
+  /// Claimed synchronously at the top of [startRecording], before its awaits, so
+  /// two concurrent starts cannot both proceed (and leak a status subscription).
+  bool _starting = false;
+
+  /// An `interrupted` event that arrived while `await _recorder.start()` was still
+  /// in flight (before `_recording` was true). Latched and replayed once the start
+  /// settles, so the auto-finalize is never silently dropped.
+  bool _pendingInterruption = false;
+
+  /// The entry saved by an interruption's auto-finalize, so a stop that races it
+  /// (arriving after it completed) returns it instead of throwing. Deliberately NOT
+  /// set on a user stop: a plain double-stop must keep throwing.
+  Entry? _lastFinalized;
+
+  /// The finalize in flight right now, so a stop that races it (arriving while the
+  /// interruption is still saving) awaits the result instead of throwing.
+  Future<Entry?>? _finalizing;
 
   /// Live partial/final events while recording, for real-time UI. Errors on the
   /// underlying live stream are forwarded here; they do not affect the persisted
@@ -67,6 +77,13 @@ class TranscriptionService {
   /// Capture lifecycle (interruptions, stop) surfaced from the recorder.
   Stream<CaptureStatus> get captureStatus => _recorder.status;
 
+  /// Entries saved automatically because capture was interrupted (a phone call),
+  /// rather than by an awaited [stopRecording]. Lets the UI react without a caller.
+  /// In the rare stop-races-interruption case the same entry may also be returned by
+  /// [stopRecording], so a consumer that both awaits stop and listens here should
+  /// dedupe by [Entry.id]. Save failures surface here as stream errors.
+  Stream<Entry> get autoFinalized => _autoFinalized.stream;
+
   bool get isRecording => _recording;
 
   /// All saved entries, newest first. The store is the service's private detail;
@@ -74,71 +91,234 @@ class TranscriptionService {
   /// lifecycle (audio file + record) has one owner.
   List<Entry> entries() => _store.all();
 
+  /// Preflight: whether transcription can run for [localeId] (defaults to the
+  /// service locale). The probe downloads nothing; a managed engine fetches its
+  /// model once on first use or via [installModel]. Delegates to the engine.
+  Future<Availability> checkAvailability({String? localeId}) =>
+      _engine.checkAvailability(localeId: localeId ?? _localeId);
+
+  /// Whether the model is downloaded so transcription runs with no wait. An engine
+  /// with no downloadable model is always ready.
+  Future<bool> isModelInstalled({String? localeId}) async {
+    final engine = _engine;
+    return engine is ManagedModelEngine
+        ? engine.isModelInstalled(localeId: localeId ?? _localeId)
+        : true;
+  }
+
+  /// Downloads the model, streaming progress to completion. An engine with no
+  /// downloadable model completes instantly.
+  Stream<ModelInstallProgress> installModel({String? localeId}) {
+    final engine = _engine;
+    return engine is ManagedModelEngine
+        ? engine.installModel(localeId: localeId ?? _localeId)
+        : Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+  }
+
+  /// Begins a capture. Throws [StateError] if one is already recording or
+  /// starting, and [PermissionDenied] if the microphone grant is missing. On a
+  /// streaming engine, live text flows on [liveEvents] until the stop.
   Future<void> startRecording() async {
-    if (_recording) {
+    if (_recording || _starting) {
       throw StateError('already recording');
     }
-    final permission = await _recorder.ensurePermission();
-    if (permission != PermissionStatus.granted) {
-      throw const PermissionDenied('microphone permission not granted');
-    }
-    await _recorder.start();
-    _recording = true;
+    // Claimed before the first await: without this, two concurrent starts would
+    // both pass the _recording check, double-subscribe, and double-start capture.
+    _starting = true;
+    try {
+      final permission = await _recorder.ensurePermission();
+      if (permission != PermissionStatus.granted) {
+        throw const PermissionDenied('microphone permission not granted');
+      }
+      // React to a native interruption (a phone call): finalize and save the entry
+      // ourselves so the recording is never left on disk without a record. Only
+      // `interrupted` matters; `stopped` is our own stop() echo, already handled.
+      // Subscribe before start(): the recorder's status stream does not replay, so a
+      // listener attached after start could miss an early event. An event landing
+      // before `_recording` is true is latched and replayed below.
+      _pendingInterruption = false;
+      _statusSub = _recorder.status.listen((status) {
+        if (status != CaptureStatus.interrupted) return;
+        if (_recording) {
+          unawaited(_handleInterruption());
+        } else {
+          _pendingInterruption = true;
+        }
+      });
+      try {
+        await _recorder.start();
+      } catch (_) {
+        await _statusSub?.cancel();
+        _statusSub = null;
+        rethrow;
+      }
+      _recording = true;
+      // Cleared only after start succeeds: a failed start (mic busy during the very
+      // call that interrupted us) must not lose the entry a prior finalize saved.
+      _lastFinalized = null;
+      _finalizing = null;
+      // Replay an interruption that landed while start() was in flight; the capture
+      // it killed is real and must be finalized like any other.
+      if (_pendingInterruption) {
+        _pendingInterruption = false;
+        unawaited(_handleInterruption());
+      }
 
-    final engine = _engine;
-    // The type is the source of truth for streaming; there is no separate flag.
-    if (engine is StreamingTranscriptionEngine) {
-      _liveSub = engine
-          .transcribeLive(localeId: _localeId)
-          .listen(
-            (event) {
-              if (!_live.isClosed) _live.add(event);
-            },
-            onError: (Object error, StackTrace stack) {
-              if (!_live.isClosed) _live.addError(error, stack);
-            },
-            cancelOnError: false,
-          );
+      final engine = _engine;
+      // The type is the source of truth for streaming; there is no separate flag.
+      if (engine is StreamingTranscriptionEngine) {
+        _liveSub = engine
+            .transcribeLive(localeId: _localeId)
+            .listen(
+              (event) {
+                if (!_live.isClosed) _live.add(event);
+              },
+              onError: (Object error, StackTrace stack) {
+                if (!_live.isClosed) _live.addError(error, stack);
+              },
+              cancelOnError: false,
+            );
+      }
+    } finally {
+      _starting = false;
     }
   }
 
+  /// Ends the capture and returns the saved entry. The intricate parts of the
+  /// contract: a stop racing an interruption's auto-finalize returns the entry the
+  /// interruption saved (in flight or completed) instead of throwing; a plain
+  /// double-stop throws [StateError]; a persistence failure throws
+  /// [EntrySaveFailed] carrying the entry, recoverable via [retrySave]; a
+  /// transcription failure does NOT throw, the entry is saved untranscribed.
   Future<Entry> stopRecording() async {
-    if (!_recording) {
-      throw StateError('not recording');
+    if (_recording) {
+      // We were recording, so this call produces the entry. _finalizing is set only
+      // for the in-flight window (so a concurrent caller shares the result) and
+      // cleared after: a later double-stop must still throw, not replay.
+      final future = _stopAndPersist(transcribe: true);
+      _finalizing = future;
+      try {
+        return (await future)!;
+      } finally {
+        if (identical(_finalizing, future)) _finalizing = null;
+      }
     }
+    // Not recording: an interruption may be finalizing right now, or may already
+    // have saved the entry. Await the in-flight finalize before giving up, so a
+    // stop landing mid-save returns the entry instead of throwing.
+    final pending = _finalizing;
+    if (pending != null) {
+      try {
+        final entry = await pending;
+        if (entry != null) return entry;
+      } on EntrySaveFailed {
+        // The audio was finalized but its record was not saved; this caller needs
+        // the entry (carried by the error) to retrySave. Never downgrade this to
+        // "not recording": for a concurrent user stop the error surfaced nowhere
+        // else, and orphaning would follow.
+        rethrow;
+      } catch (_) {
+        // CaptureFailed etc.: nothing was captured, nothing to return.
+      }
+    }
+    final last = _lastFinalized;
+    if (last != null) return last;
+    throw StateError('not recording');
+  }
+
+  /// Finalizes a capture exactly once: stops the recorder, optionally runs the batch
+  /// pass, and persists the entry. The guard is a synchronous early-return followed
+  /// by claiming `_recording = false`, with no await between, so a user stop racing an
+  /// interruption cannot both proceed; the loser returns early. `_statusSub` is
+  /// cancelled up front, before the first await, so a second `interrupted` event
+  /// during `_recorder.stop()` cannot re-enter `_handleInterruption`. Returns null
+  /// only when nothing was recording.
+  Future<Entry?> _stopAndPersist({required bool transcribe}) async {
+    if (!_recording) return _lastFinalized;
+    _recording = false;
+    // Claim the session's subscriptions synchronously with the claim above: a new
+    // recording may start while this finalize is still awaiting, and its fresh
+    // _liveSub must not be cancelled by this (older) finalize's teardown.
+    final liveSub = _liveSub;
+    _liveSub = null;
+    await _statusSub?.cancel();
+    _statusSub = null;
     try {
       final recording = await _recorder.stop();
 
-      // The settled transcript is a batch pass over the kept file.
+      // The recording reference is a filename; resolve it to an absolute path to open
+      // the file, but persist the reference verbatim so it survives a backup/restore.
       Transcript? transcript;
-      try {
-        transcript = await _batch(_engine, File(recording.path), recording.duration);
-      } catch (_) {
-        // Any failure keeps the recording untranscribed rather than losing it; it
-        // can be re-transcribed later. Never let a transcription error orphan audio.
-        transcript = null;
+      if (transcribe) {
+        try {
+          final audioFile = File(await _resolveAudioPath(recording.path));
+          transcript = await _batch(_engine, audioFile, recording.duration);
+        } catch (_) {
+          // Any failure keeps the recording untranscribed rather than losing it; it
+          // can be re-transcribed later. Never let a transcription error orphan audio.
+          transcript = null;
+        }
       }
 
       final entry = Entry(
         id: _newId(),
-        createdAt: _clock().toUtc(),
+        createdAt: _clock(),
         audioPath: recording.path,
         duration: recording.duration,
         transcript: transcript,
       );
-      await _store.save(entry);
+      try {
+        await _store.save(entry);
+      } catch (error) {
+        // A failed save is the one real hole in "audio never orphaned": the file is
+        // finalized but no record points at it. Throw the entry with the failure so
+        // the caller can retry via [retrySave] instead of losing the reference.
+        throw EntrySaveFailed(entry, error);
+      }
       return entry;
     } finally {
-      _recording = false;
-      await _liveSub?.cancel();
-      _liveSub = null;
+      await liveSub?.cancel();
+    }
+  }
+
+  /// Retries persisting an entry whose save failed ([EntrySaveFailed]). The entry
+  /// already references its kept audio, so a successful retry fully recovers it.
+  Future<void> retrySave(Entry entry) => _store.save(entry);
+
+  /// Auto-finalizes on a native interruption. Saves untranscribed, unlike a user
+  /// stop: an interruption often means the app is backgrounding (and may be suspended
+  /// within seconds), so the audio is persisted first and can be re-transcribed
+  /// later. A no-audio interruption makes stop() throw [CaptureFailed] (nothing to
+  /// save); a real save failure is surfaced on [autoFinalized] as an
+  /// [EntrySaveFailed] carrying the entry, so a listener can [retrySave] it rather
+  /// than orphan the audio this feature exists to protect.
+  Future<void> _handleInterruption() async {
+    if (!_recording) return;
+    final future = _stopAndPersist(transcribe: false);
+    _finalizing = future;
+    try {
+      final entry = await future;
+      if (entry == null) return;
+      // Stamp only while this finalize still owns the session: a new recording may
+      // have started (clearing _finalizing), and its later double-stop contract
+      // must not be broken by this stale entry. The emit still happens: the save
+      // is real either way.
+      if (identical(_finalizing, future)) _lastFinalized = entry;
+      if (!_autoFinalized.isClosed) _autoFinalized.add(entry);
+    } on CaptureFailed {
+      // No audio was captured before the interruption; nothing to save.
+    } catch (error, stack) {
+      if (!_autoFinalized.isClosed) _autoFinalized.addError(error, stack);
+    } finally {
+      // In-flight only: the completed result lives in _lastFinalized.
+      if (identical(_finalizing, future)) _finalizing = null;
     }
   }
 
   /// Deletes an entry and its kept audio file. The audio is the source of truth,
   /// so removing the record removes the recording with it.
   Future<void> deleteEntry(Entry entry) async {
-    final file = File(entry.audioPath);
+    final file = File(await _resolveAudioPath(entry.audioPath));
     if (file.existsSync()) {
       try {
         await file.delete();
@@ -152,38 +332,151 @@ class TranscriptionService {
   /// Re-transcribes a kept recording, optionally with a different engine. This is
   /// the whole payoff of keeping raw audio: a sharper engine re-reads your history
   /// with no re-recording and no network. Unlike stop, a failure here throws.
-  Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using}) async {
+  /// Defaults to the entry's original transcript locale, so an app-language change
+  /// does not silently re-read old entries in the wrong language. (Note the pin:
+  /// an entry first transcribed in the WRONG locale keeps that locale on re-runs
+  /// until a caller passes [localeId] explicitly.)
+  Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     final engine = using ?? _engine;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
     }
-    final transcript = await _batch(engine, File(entry.audioPath), entry.duration);
+    final audioFile = File(await _resolveAudioPath(entry.audioPath));
+    final locale = localeId ?? entry.transcript?.localeId ?? _localeId;
+    final transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
+    // The batch pass can run minutes; the user may have deleted the entry
+    // meanwhile. Never resurrect it as a ghost pointing at a deleted file. The
+    // read-then-save pair is synchronous, so no await can interleave a delete.
+    if (_store.read(entry.id) == null) {
+      throw StateError('entry ${entry.id} was deleted during retranscribe');
+    }
     final updated = entry.withTranscript(transcript);
     await _store.save(updated);
     return updated;
   }
 
-  Future<Transcript> _batch(TranscriptionEngine engine, File file, Duration duration) {
+  /// The absolute path of an entry's kept audio, for playback. The service owns
+  /// where entry audio lives, so a caller (e.g. a player) resolves through here
+  /// rather than reaching into storage itself.
+  Future<String> resolveAudioPath(Entry entry) => _resolveAudioPath(entry.audioPath);
+
+  /// Resolves a stored audio reference to an absolute path. Real entries store a
+  /// bare filename, stable across a backup/restore that would move the app's
+  /// container; an already-absolute path (tests, legacy) is returned unchanged.
+  Future<String> _resolveAudioPath(String stored) async {
+    if (stored.startsWith('/')) return stored;
+    var dir = await _recorder.recordingsDirectory();
+    if (dir.endsWith('/')) dir = dir.substring(0, dir.length - 1);
+    return '$dir/$stored';
+  }
+
+  Future<Transcript> _batch(
+    TranscriptionEngine engine,
+    File file,
+    Duration duration, {
+    String? localeId,
+  }) {
     // Scale the timeout by audio length so a long entry is not cut off, while still
     // bounding a hung native call.
     final timeout = _batchTimeout + duration * 2;
     return engine
-        .transcribeFile(file, localeId: _localeId)
+        .transcribeFile(file, localeId: localeId ?? _localeId)
         .timeout(
           timeout,
           onTimeout: () => throw const TranscriptionFailed('transcription timed out'),
         );
   }
 
+  /// Recovers audio files in the recordings directory that no entry references:
+  /// readable ones (an interruption finalized them but the app died before the
+  /// record landed) become untranscribed entries; unreadable ones (an unfinalized
+  /// header after a mid-recording kill) are deleted. Without this sweep such files
+  /// would persist invisibly forever, undeletable by any UI, holding the user's
+  /// voice after they believe it is gone. Skipped while a capture is live (its
+  /// in-progress file has no entry yet by design). Returns the number recovered.
+  Future<int> reconcileOrphans() async {
+    if (_recording || _starting) return 0;
+    final dirPath = await _recorder.recordingsDirectory();
+    if (dirPath.isEmpty) return 0;
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) return 0;
+
+    final referenced = _store.all().map((e) => e.audioPath.split('/').last).toSet();
+    var recovered = 0;
+    await for (final item in dir.list(followLinks: false)) {
+      if (item is! File) continue;
+      final name = item.uri.pathSegments.last;
+      if (referenced.contains(name)) continue;
+      // A capture may have started while this sweep awaited; its file has no entry
+      // yet and must not be touched.
+      if (_recording || _starting) break;
+      final duration = await _recorder.probeRecording(name);
+      try {
+        if (duration == null) {
+          await item.delete();
+        } else {
+          await _store.save(
+            Entry(
+              id: _newId(),
+              createdAt: item.statSync().modified,
+              audioPath: name,
+              duration: duration,
+            ),
+          );
+          recovered++;
+        }
+      } catch (_) {
+        // Best effort per file; the next sweep retries whatever failed.
+      }
+    }
+    return recovered;
+  }
+
   Future<void> dispose() async {
+    // Never abandon a live capture: finalize and save it (untranscribed) first, or
+    // the native session would keep running and the audio would never get a record.
+    // No autoFinalized emit here (dispose is not an interruption, and the controller
+    // is about to close). On success the entry is reachable via entries(); if even
+    // the retry below fails, the reconcile sweep recovers the file next launch.
+    if (_recording) {
+      try {
+        await _stopAndPersist(transcribe: false);
+      } on EntrySaveFailed catch (e) {
+        // The typed error would vanish with the closing controller; retry once
+        // instead of silently dropping the only handle to the recording.
+        try {
+          await retrySave(e.entry);
+        } catch (_) {
+          // The sweep recovers it next launch.
+        }
+      } catch (_) {
+        // CaptureFailed etc.: nothing was captured.
+      }
+    }
     await _liveSub?.cancel();
     _liveSub = null;
+    await _statusSub?.cancel();
+    _statusSub = null;
     await _live.close();
+    await _autoFinalized.close();
   }
 
   static int _idSequence = 0;
 
   static String _defaultId() =>
       '${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}-${_idSequence++}';
+}
+
+/// Persisting a finalized entry failed. Carries the [entry] (which already
+/// references its kept audio) so the caller can [TranscriptionService.retrySave]
+/// instead of losing the only handle to the recording.
+final class EntrySaveFailed implements Exception {
+  const EntrySaveFailed(this.entry, this.cause);
+
+  final Entry entry;
+  final Object cause;
+
+  @override
+  String toString() => 'EntrySaveFailed(${entry.id}): $cause';
 }

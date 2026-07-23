@@ -6,14 +6,16 @@ import 'package:opentranscribe/core/transcribe/transcript.dart';
 /// The audio is the source of truth and is kept so the entry can be re-transcribed
 /// by a better engine later. The transcript is null until transcription completes.
 @immutable
-class Entry {
-  const Entry({
+final class Entry {
+  /// [createdAt] is normalized to UTC here, so round-trip equality through JSON
+  /// (which stores UTC) holds no matter what clock a caller passed in.
+  Entry({
     required this.id,
-    required this.createdAt,
+    required DateTime createdAt,
     required this.audioPath,
     required this.duration,
     this.transcript,
-  });
+  }) : createdAt = createdAt.toUtc();
 
   final String id;
   final DateTime createdAt;
