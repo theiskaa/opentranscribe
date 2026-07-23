@@ -9,9 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// process: the selected locale, theme, feature toggles, and any lightweight
 /// user setting. Everything lives on the device and never leaves it.
 ///
-/// All string and JSON values are encrypted on disk using Fernet
-/// (symmetric AES-CBC + HMAC). Plaintext keys stay in the clear, so do not
-/// encode sensitive information into the key string itself.
+/// All string and JSON values are encrypted on disk using AES-256-CBC with a
+/// random IV per record. Plaintext keys stay in the clear, so do not encode
+/// sensitive information into the key string itself. (No MAC: corruption
+/// surfaces as a decrypt/parse failure, which readers already treat as a
+/// skippable record; a real integrity story arrives with the Keychain key.)
 ///
 /// ## Initialization
 ///
@@ -25,20 +27,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// from a build-time `--dart-define` secret, not a literal in source.
 class LocalService {
   late final SharedPreferences _prefs;
-  late final Encrypter _encrypter;
+  late final Encrypter _aes;
+  late final Encrypter _legacyFernet;
+
+  // New records are 'v2:<iv>:<ciphertext>'. AES-CBC with a fresh random IV per
+  // record, NOT Fernet: Fernet is a token format whose decrypt rejects any token
+  // stamped more than a minute in the future, so a device clock rollback would
+  // render the whole journal unreadable. At-rest storage must not depend on the
+  // wall clock. Old Fernet records (no prefix) remain readable.
+  static const _formatPrefix = 'v2:';
 
   /// Opens the underlying `SharedPreferences` and configures encryption.
   ///
   /// Must be called before any other method. [encryptionKey] is padded or
-  /// truncated to 32 characters internally; an empty string disables
-  /// encryption setup (string reads will throw — use only in tests).
+  /// truncated to 32 characters internally (counted in code units: prefer plain
+  /// ASCII keys); an empty string disables encryption setup (string reads will
+  /// throw; use only in tests).
   Future<void> init({required String encryptionKey}) async {
     _prefs = await SharedPreferences.getInstance();
 
     if (encryptionKey.isNotEmpty) {
+      // All 32 padded characters feed the AES-256 key directly.
       final key = Key.fromUtf8(_padKey(encryptionKey));
-      final fernet = Fernet(Key.fromUtf8(base64Url.encode(key.bytes).substring(0, 32)));
-      _encrypter = Encrypter(fernet);
+      _aes = Encrypter(AES(key, mode: AESMode.cbc));
+      _legacyFernet = Encrypter(Fernet(Key.fromUtf8(base64Url.encode(key.bytes).substring(0, 32))));
     }
   }
 
@@ -48,30 +60,39 @@ class LocalService {
     return key.padRight(32, '0');
   }
 
-  /// Encrypts a string value.
+  /// Encrypts a string value with a fresh random IV.
   ///
-  /// Empty strings short-circuit because Fernet's PKCS7 padding does not
-  /// accept 0-byte input. An encrypted empty string round-trips as the
-  /// literal empty string, which is unambiguous since real Fernet
-  /// ciphertext is never empty.
+  /// Empty strings short-circuit because PKCS7 padding does not accept 0-byte
+  /// input. An encrypted empty string round-trips as the literal empty string,
+  /// which is unambiguous since real ciphertext is never empty.
   String _encrypt(String value) {
     if (value.isEmpty) return '';
-    return _encrypter.encrypt(value).base64;
+    final iv = IV.fromSecureRandom(16);
+    return '$_formatPrefix${iv.base64}:${_aes.encrypt(value, iv: iv).base64}';
   }
 
-  /// Decrypts an encrypted string value.
+  /// Decrypts a stored value, accepting both the current format and legacy
+  /// Fernet records written before the format change.
   String _decrypt(String encrypted) {
     if (encrypted.isEmpty) return '';
-    return _encrypter.decrypt64(encrypted);
+    if (encrypted.startsWith(_formatPrefix)) {
+      final separator = encrypted.indexOf(':', _formatPrefix.length);
+      if (separator < 0) throw const FormatException('malformed encrypted record');
+      final iv = IV.fromBase64(encrypted.substring(_formatPrefix.length, separator));
+      return _aes.decrypt64(encrypted.substring(separator + 1), iv: iv);
+    }
+    return _legacyFernet.decrypt64(encrypted);
   }
 
   /// Writes a value to local storage.
   ///
   /// String values are encrypted before storing. Supports [String], [int],
   /// [double], [bool], and `List<String>`. For complex objects, use
-  /// [writeJson] instead.
-  Future<bool> write<T>(String key, T value) async {
-    return switch (value) {
+  /// [writeJson] instead. Throws [StateError] when the platform reports the
+  /// write failed: persistence failures must surface, never pass silently
+  /// (the in-memory cache would show the value until relaunch, then lose it).
+  Future<void> write<T>(String key, T value) async {
+    final ok = await switch (value) {
       final String v => _prefs.setString(key, _encrypt(v)),
       final int v => _prefs.setInt(key, v),
       final double v => _prefs.setDouble(key, v),
@@ -79,12 +100,15 @@ class LocalService {
       final List<String> v => _prefs.setStringList(key, v.map(_encrypt).toList()),
       _ => throw ArgumentError('Unsupported type: ${value.runtimeType}'),
     };
+    if (!ok) throw StateError('persist failed: $key');
   }
 
-  /// Writes a JSON-serializable object to local storage (encrypted).
-  Future<bool> writeJson(String key, Object value) async {
+  /// Writes a JSON-serializable object to local storage (encrypted). Throws
+  /// [StateError] when the platform reports the write failed; see [write].
+  Future<void> writeJson(String key, Object value) async {
     final jsonString = jsonEncode(value);
-    return _prefs.setString(key, _encrypt(jsonString));
+    final ok = await _prefs.setString(key, _encrypt(jsonString));
+    if (!ok) throw StateError('persist failed: $key');
   }
 
   /// Reads an encrypted string from local storage.
