@@ -25,7 +25,7 @@ class TranscriptionService {
     required this._recorder,
     required this._engine,
     required this._store,
-    this._localeId = 'en-US',
+    this.localeId = 'en-US',
     this._batchTimeout = const Duration(minutes: 2),
     DateTime Function()? clock,
     String Function()? idGenerator,
@@ -40,7 +40,13 @@ class TranscriptionService {
   final AudioRecorder _recorder;
   final TranscriptionEngine _engine;
   final EntryStore _store;
-  final String _localeId;
+
+  /// The transcription language (a BCP-47 tag), pushed by TranscriptionSettings.
+  /// Mutable: a change takes effect on the NEXT recording; a session in flight
+  /// keeps the locale it started with, so its live stream and its settled batch
+  /// can never diverge.
+  String localeId;
+
   final Duration _batchTimeout;
   final DateTime Function() _clock;
   final String Function() _newId;
@@ -59,6 +65,11 @@ class TranscriptionService {
   /// in flight (before `_recording` was true). Latched and replayed once the start
   /// settles, so the auto-finalize is never silently dropped.
   bool _pendingInterruption = false;
+
+  /// The locale captured at [startRecording], driving both the live stream and the
+  /// stop-path batch for that session (claimed into a local at finalize, so a new
+  /// session starting mid-finalize cannot re-language the old one).
+  String? _sessionLocaleId;
 
   /// The entry saved by an interruption's auto-finalize, so a stop that races it
   /// (arriving after it completed) returns it instead of throwing. Deliberately NOT
@@ -86,6 +97,9 @@ class TranscriptionService {
 
   bool get isRecording => _recording;
 
+  /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
+  Future<List<String>> supportedLocales() => _engine.supportedLocales();
+
   /// All saved entries, newest first. The store is the service's private detail;
   /// callers read and mutate entries only through the service, so the entry
   /// lifecycle (audio file + record) has one owner.
@@ -95,14 +109,14 @@ class TranscriptionService {
   /// service locale). The probe downloads nothing; a managed engine fetches its
   /// model once on first use or via [installModel]. Delegates to the engine.
   Future<Availability> checkAvailability({String? localeId}) =>
-      _engine.checkAvailability(localeId: localeId ?? _localeId);
+      _engine.checkAvailability(localeId: localeId ?? this.localeId);
 
   /// Whether the model is downloaded so transcription runs with no wait. An engine
   /// with no downloadable model is always ready.
   Future<bool> isModelInstalled({String? localeId}) async {
     final engine = _engine;
     return engine is ManagedModelEngine
-        ? engine.isModelInstalled(localeId: localeId ?? _localeId)
+        ? engine.isModelInstalled(localeId: localeId ?? this.localeId)
         : true;
   }
 
@@ -111,7 +125,7 @@ class TranscriptionService {
   Stream<ModelInstallProgress> installModel({String? localeId}) {
     final engine = _engine;
     return engine is ManagedModelEngine
-        ? engine.installModel(localeId: localeId ?? _localeId)
+        ? engine.installModel(localeId: localeId ?? this.localeId)
         : Stream.value(const ModelInstallProgress(fraction: 1, done: true));
   }
 
@@ -153,6 +167,9 @@ class TranscriptionService {
         rethrow;
       }
       _recording = true;
+      // Snapshot the locale for the whole session: live and the stop-path batch
+      // must agree even if the setting changes mid-recording.
+      _sessionLocaleId = localeId;
       // Cleared only after start succeeds: a failed start (mic busy during the very
       // call that interrupted us) must not lose the entry a prior finalize saved.
       _lastFinalized = null;
@@ -168,7 +185,7 @@ class TranscriptionService {
       // The type is the source of truth for streaming; there is no separate flag.
       if (engine is StreamingTranscriptionEngine) {
         _liveSub = engine
-            .transcribeLive(localeId: _localeId)
+            .transcribeLive(localeId: _sessionLocaleId ?? localeId)
             .listen(
               (event) {
                 if (!_live.isClosed) _live.add(event);
@@ -236,13 +253,15 @@ class TranscriptionService {
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
     if (!_recording) return _lastFinalized;
     _recording = false;
-    // Claim the session's subscriptions synchronously with the claim above: a new
-    // recording may start while this finalize is still awaiting, and its fresh
-    // _liveSub must not be cancelled by this (older) finalize's teardown.
+    // Claim ALL session state synchronously with the claim above: a new recording
+    // may start while this finalize is still awaiting, and this (older) finalize
+    // must neither cancel the new session's subscriptions nor read its locale.
     final liveSub = _liveSub;
     _liveSub = null;
-    await _statusSub?.cancel();
+    final statusSub = _statusSub;
     _statusSub = null;
+    final sessionLocale = _sessionLocaleId;
+    await statusSub?.cancel();
     try {
       final recording = await _recorder.stop();
 
@@ -252,7 +271,12 @@ class TranscriptionService {
       if (transcribe) {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
-          transcript = await _batch(_engine, audioFile, recording.duration);
+          transcript = await _batch(
+            _engine,
+            audioFile,
+            recording.duration,
+            localeId: sessionLocale,
+          );
         } catch (_) {
           // Any failure keeps the recording untranscribed rather than losing it; it
           // can be re-transcribed later. Never let a transcription error orphan audio.
@@ -343,7 +367,7 @@ class TranscriptionService {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
     }
     final audioFile = File(await _resolveAudioPath(entry.audioPath));
-    final locale = localeId ?? entry.transcript?.localeId ?? _localeId;
+    final locale = localeId ?? entry.transcript?.localeId ?? this.localeId;
     final transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
     // The batch pass can run minutes; the user may have deleted the entry
     // meanwhile. Never resurrect it as a ghost pointing at a deleted file. The
@@ -381,7 +405,7 @@ class TranscriptionService {
     // bounding a hung native call.
     final timeout = _batchTimeout + duration * 2;
     return engine
-        .transcribeFile(file, localeId: localeId ?? _localeId)
+        .transcribeFile(file, localeId: localeId ?? this.localeId)
         .timeout(
           timeout,
           onTimeout: () => throw const TranscriptionFailed('transcription timed out'),

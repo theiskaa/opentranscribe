@@ -394,6 +394,59 @@ void main() {
     expect(svc.entries().single.transcript, isNull);
   });
 
+  test('a locale change mid-recording lands on the next session, not this one', () async {
+    late FakeStreamingEngine engine;
+    final svc = build((rec) {
+      return engine = FakeStreamingEngine(batchText: 'x', stopSignal: rec.stopped);
+    });
+
+    await svc.startRecording();
+    await Future<void>.delayed(Duration.zero); // let the lazy live generator start
+    expect(engine.lastLiveLocaleId, 'en-US'); // live got the session snapshot
+    svc.localeId = 'de-DE'; // the setting changes while a session is live
+    final first = await svc.stopRecording();
+    expect(first.transcript?.localeId, 'en-US'); // batch agrees with live
+
+    await svc.startRecording();
+    await Future<void>.delayed(Duration.zero);
+    expect(engine.lastLiveLocaleId, 'de-DE');
+    final second = await svc.stopRecording();
+    expect(second.transcript?.localeId, 'de-DE'); // next session uses the change
+
+    await svc.dispose();
+  });
+
+  test('a new session starting mid-finalize cannot re-language the old batch', () async {
+    // Session N stops (finalize parked on the slow recorder stop); the locale
+    // changes and session N+1 starts before N's batch runs. N's transcript must
+    // still carry N's locale.
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 20));
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    await svc.startRecording();
+    final stopping = svc.stopRecording(); // finalize in flight
+    svc.localeId = 'de-DE';
+    await svc.startRecording(); // session N+1 overwrites the snapshot field
+    final first = await stopping;
+
+    expect(first.transcript?.localeId, 'en-US'); // N kept its own locale
+
+    final second = await svc.stopRecording();
+    expect(second.transcript?.localeId, 'de-DE');
+
+    await svc.dispose();
+  });
+
+  test('supportedLocales delegates to the engine', () async {
+    final svc = build(
+      (_) => FakeBatchEngine(supportedLocaleTags: const ['en-US', 'de-DE', 'az-AZ']),
+    );
+
+    expect(await svc.supportedLocales(), ['en-US', 'de-DE', 'az-AZ']);
+
+    await svc.dispose();
+  });
+
   test('retranscribe defaults to the transcript original locale', () async {
     final svc = build((_) => FakeBatchEngine());
     final entry = Entry(
@@ -844,6 +897,9 @@ class _ThrowingStore extends EntryStore {
 class _CloudEngine implements TranscriptionEngine {
   @override
   String get id => 'cloud';
+
+  @override
+  Future<List<String>> supportedLocales() async => const [];
 
   @override
   bool get onDeviceOnly => false;

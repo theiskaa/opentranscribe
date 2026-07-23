@@ -30,6 +30,7 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
     this.failLive = false,
     this.failBatch = false,
     this.availability = const Availability.available(),
+    this.supportedLocaleTags = const ['en-US'],
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
@@ -39,10 +40,14 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   final bool failLive;
   final bool failBatch;
   final Availability availability;
+  final List<String> supportedLocaleTags;
   final DateTime Function() _clock;
 
   @override
   String get id => 'fake.streaming';
+
+  @override
+  Future<List<String>> supportedLocales() async => supportedLocaleTags;
 
   @override
   bool get onDeviceOnly => true;
@@ -63,8 +68,12 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
     return _cannedTranscript(batchText ?? cannedText, localeId, id, _clock());
   }
 
+  /// The locale the most recent [transcribeLive] was asked for, for assertions.
+  String? lastLiveLocaleId;
+
   @override
   Stream<TranscriptEvent> transcribeLive({required String localeId}) async* {
+    lastLiveLocaleId = localeId;
     final words = cannedText.split(' ');
     final buffer = StringBuffer();
     for (var i = 0; i < words.length; i++) {
@@ -94,10 +103,14 @@ class FakeBatchEngine implements TranscriptionEngine {
     this.failBatch = false,
     this.throwGeneric = false,
     this.delay,
+    this.supportedLocaleTags = const ['en-US'],
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
   final String cannedText;
+
+  /// The picker list this fake reports.
+  final List<String> supportedLocaleTags;
 
   /// Throws a [TranscriptionFailed] (the mapped taxonomy).
   final bool failBatch;
@@ -112,6 +125,9 @@ class FakeBatchEngine implements TranscriptionEngine {
 
   @override
   String get id => 'fake.batch';
+
+  @override
+  Future<List<String>> supportedLocales() async => supportedLocaleTags;
 
   @override
   bool get onDeviceOnly => true;
@@ -140,10 +156,12 @@ class FakeManagedEngine implements ManagedModelEngine {
     this.installSteps = const [0.5],
     this.failInstall = false,
     this.availability = const Availability.available(),
+    this.supportedLocaleTags = const ['en-US'],
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
   final String cannedText;
+  final List<String> supportedLocaleTags;
   bool installed;
   final List<double> installSteps;
   final bool failInstall;
@@ -152,6 +170,9 @@ class FakeManagedEngine implements ManagedModelEngine {
 
   @override
   String get id => 'fake.managed';
+
+  @override
+  Future<List<String>> supportedLocales() async => supportedLocaleTags;
 
   @override
   bool get onDeviceOnly => true;

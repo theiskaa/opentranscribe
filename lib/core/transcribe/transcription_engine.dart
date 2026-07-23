@@ -64,6 +64,15 @@ abstract interface class TranscriptionEngine {
   /// unavailable" UI.
   Future<Availability> checkAvailability({required String localeId});
 
+  /// The BCP-47 tags this engine can transcribe on-device, for a language picker.
+  /// Membership means supported, not installed ([ManagedModelEngine.isModelInstalled]
+  /// answers readiness). Engines may accept near variants of a listed tag (de-AT
+  /// resolving to de-DE); an unlisted language fails honestly via
+  /// [checkAvailability], never by silently transcribing as something else. A
+  /// preflight: implementations never throw, returning an empty list when the
+  /// engine cannot answer.
+  Future<List<String>> supportedLocales();
+
   /// Transcribes a kept audio file. The re-transcription seam.
   Future<Transcript> transcribeFile(File audio, {required String localeId});
 }

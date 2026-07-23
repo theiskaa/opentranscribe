@@ -205,16 +205,17 @@ private func makeTimedTranscriber(locale: Locale, volatileResults: Bool = false)
     attributeOptions: [.audioTimeRange])
 }
 
-/// Whether the on-device model for a locale is supported here (installed or
-/// installable). Compared by BCP-47 so locale-identifier spelling does not matter.
+/// The nearest supported model locale for a requested tag (de-AT finds de-DE), or
+/// the request unchanged when nothing matches, so an unsupported language fails
+/// honestly downstream instead of silently becoming another language.
 @available(iOS 26.0, *)
-private func modelLocaleSupported(_ localeId: String) async -> Bool {
-  let target = Locale(identifier: localeId).identifier(.bcp47)
-  let supported = await SpeechTranscriber.supportedLocales
-  return supported.contains { $0.identifier(.bcp47) == target }
+private func resolvedLocale(_ localeId: String) async -> Locale {
+  let requested = Locale(identifier: localeId)
+  return await SpeechTranscriber.supportedLocale(equivalentTo: requested) ?? requested
 }
 
 /// Whether the on-device model for a locale is downloaded and ready now.
+/// Callers pass the RESOLVED locale's tag so a near variant counts as installed.
 @available(iOS 26.0, *)
 private func modelLocaleInstalled(_ localeId: String) async -> Bool {
   let target = Locale(identifier: localeId).identifier(.bcp47)
@@ -233,8 +234,10 @@ final class SpeechAnalyzerLiveSession {
   private let emit: ([String: Any]) -> Void
   private let emitError: (SpeechErrorCode, String) -> Void
 
-  private let transcriber: SpeechTranscriber
-  private let analyzer: SpeechAnalyzer
+  // Built in run(), not init: the locale must first resolve (async) to the
+  // nearest supported model. Guarded by the lock like the other streaming state.
+  private var transcriber: SpeechTranscriber?
+  private var analyzer: SpeechAnalyzer?
 
   // Guards the streaming state shared between setup, the realtime tap thread
   // (feed), the collector task, and teardown (finish/stop).
@@ -257,9 +260,6 @@ final class SpeechAnalyzerLiveSession {
     self.localeId = localeId
     self.emit = emit
     self.emitError = emitError
-    self.transcriber = makeTimedTranscriber(
-      locale: Locale(identifier: localeId), volatileResults: true)
-    self.analyzer = SpeechAnalyzer(modules: [transcriber])
   }
 
   func start() {
@@ -267,12 +267,24 @@ final class SpeechAnalyzerLiveSession {
   }
 
   private func run() async {
-    let locale = Locale(identifier: localeId)
     do {
       guard await requestSpeechAuthorization() == .authorized else {
         emitError(.permissionDenied, speechNotAuthorizedMessage)
         return
       }
+      // Resolve to the nearest supported model, then build the pipeline for it.
+      let locale = await resolvedLocale(localeId)
+      let transcriber = makeTimedTranscriber(locale: locale, volatileResults: true)
+      let analyzer = SpeechAnalyzer(modules: [transcriber])
+      lock.lock()
+      if finished {
+        lock.unlock()
+        return
+      }
+      self.transcriber = transcriber
+      self.analyzer = analyzer
+      lock.unlock()
+
       do {
         try await installTranscriptionModel(transcriber, locale: locale)
       } catch is CancellationError {
@@ -346,9 +358,13 @@ final class SpeechAnalyzerLiveSession {
   private func makeCollector() -> Task<Void, Never> {
     Task { [weak self] in
       guard let self = self else { return }
+      self.lock.lock()
+      let transcriber = self.transcriber
+      self.lock.unlock()
+      guard let transcriber = transcriber else { return }
       var finalized = AttributedString()
       do {
-        for try await result in self.transcriber.results {
+        for try await result in transcriber.results {
           // result.isFinal marks a finalized chunk, not the end of the session; every
           // in-stream event is a partial (isFinal: false) to Dart. The session-final
           // event is emitted once the results stream ends, below.
@@ -447,7 +463,11 @@ final class SpeechAnalyzerLiveSession {
   private func finish() {
     let (already, _) = detach()
     guard !already else { return }
-    Task { [analyzer] in try? await analyzer.finalizeAndFinishThroughEndOfInput() }
+    lock.lock()
+    let analyzer = self.analyzer
+    lock.unlock()
+    guard let analyzer = analyzer else { return }
+    Task { try? await analyzer.finalizeAndFinishThroughEndOfInput() }
   }
 
   /// Tears down now without waiting for a final event, cancelling the collector.
@@ -462,7 +482,11 @@ final class SpeechAnalyzerLiveSession {
     // finalize flush run to completion would burn CPU and memory producing results
     // nobody consumes (or stall on framework backpressure). SpeechAnalyzer
     // serializes its operations; cancel supersedes an in-flight finish.
-    Task { [analyzer] in try? await analyzer.cancelAndFinishNow() }
+    lock.lock()
+    let analyzer = self.analyzer
+    lock.unlock()
+    guard let analyzer = analyzer else { return }
+    Task { try? await analyzer.cancelAndFinishNow() }
   }
 
   /// Cancel from outside: Dart unsubscribed, or a newer session started. Named
@@ -682,11 +706,16 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         // supported (the model downloads once on first use if not yet installed).
         Task {
           let authorized = await requestSpeechAuthorization() == .authorized
+          // Supported means a model exists for the language, including near
+          // variants (de-AT counts via de-DE); a wholly unsupported language
+          // reports unavailable rather than ever falling back silently.
+          let supported =
+            await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: localeId))
+            != nil
           let status =
             !authorized
             ? SpeechErrorCode.permissionDenied.rawValue
-            : (await modelLocaleSupported(localeId)
-              ? "available" : SpeechErrorCode.onDeviceUnavailable.rawValue)
+            : (supported ? "available" : SpeechErrorCode.onDeviceUnavailable.rawValue)
           DispatchQueue.main.async { result(["status": status]) }
         }
       } else {
@@ -698,12 +727,30 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       let localeId = (call.arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
       if #available(iOS 26.0, *) {
         Task {
-          let installed = await modelLocaleInstalled(localeId)
+          let resolved = await resolvedLocale(localeId)
+          let installed = await modelLocaleInstalled(resolved.identifier(.bcp47))
           DispatchQueue.main.async { result(installed) }
         }
       } else {
         // No app-managed model before iOS 26; treat the system recognizer as the model.
         result(onDeviceRecognizer(localeId) != nil)
+      }
+    case "supportedLocales":
+      if #available(iOS 26.0, *) {
+        Task {
+          let tags = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+          DispatchQueue.main.async { result(tags.sorted()) }
+        }
+      } else {
+        // Approximation: the classic API cannot cheaply report per-locale on-device
+        // support (that needs a recognizer instance per locale), so this lists all
+        // recognizer locales; availability still gates the honest answer per tag.
+        // The manual underscore-to-dash mapping is deliberate: .identifier(.bcp47)
+        // needs iOS 16, and this branch must run down to the 13.0 target.
+        result(
+          SFSpeechRecognizer.supportedLocales()
+            .map { $0.identifier.replacingOccurrences(of: "_", with: "-") }
+            .sorted())
       }
     case "transcribeFile":
       guard let args = call.arguments as? [String: Any],
@@ -805,7 +852,6 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     path: String, localeId: String, result: @escaping FlutterResult
   ) {
     let url = URL(fileURLWithPath: path)
-    let locale = Locale(identifier: localeId)
     Task {
       func reply(_ value: Any) { DispatchQueue.main.async { result(value) } }
       // Consumes transcriber.results; cancelled on any failure so it does not hang
@@ -817,9 +863,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           return
         }
 
-        // supportedLocales is empty on the simulator, so we do not gate on it. Install
-        // the model for the requested locale directly; if no asset exists the download
-        // or the analysis below surfaces the real error.
+        // Nearest supported model for the requested tag; an unsupported language
+        // passes through and the download/analysis below surfaces the real error.
+        let locale = await resolvedLocale(localeId)
         let transcriber = makeTimedTranscriber(locale: locale)
         do {
           try await installTranscriptionModel(transcriber, locale: locale)
@@ -915,9 +961,11 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
 
   @available(iOS 26.0, *)
   private func install(localeId: String, generation gen: Int) async {
-    let locale = Locale(identifier: localeId)
-    let transcriber = SpeechTranscriber(
-      locale: locale, transcriptionOptions: [], reportingOptions: [], attributeOptions: [])
+    // Install the nearest supported model for the requested tag, using the SAME
+    // transcriber shape as the transcribe paths, so the install request can never
+    // under-install relative to what transcription will actually need.
+    let locale = await resolvedLocale(localeId)
+    let transcriber = makeTimedTranscriber(locale: locale)
     do {
       // The explicit install flow is the one place other locales' reservations are
       // released, so language switches cannot exhaust the reservation cap.

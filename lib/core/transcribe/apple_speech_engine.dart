@@ -56,6 +56,18 @@ class AppleSpeechEngine implements StreamingTranscriptionEngine, ManagedModelEng
   }
 
   @override
+  Future<List<String>> supportedLocales() async {
+    try {
+      return await _methods.invokeListMethod<String>('supportedLocales') ?? const [];
+    } on PlatformException {
+      // A picker with no data beats a throw in a preflight.
+      return const [];
+    } on MissingPluginException {
+      return const [];
+    }
+  }
+
+  @override
   Future<bool> isModelInstalled({required String localeId}) async {
     try {
       return await _methods.invokeMethod<bool>('isModelInstalled', {'localeId': localeId}) ?? false;

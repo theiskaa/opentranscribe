@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
@@ -45,6 +46,7 @@ class Deps {
     required this.localService,
     required this.transcriptionService,
     required this.audioStorageSettings,
+    required this.transcriptionSettings,
     required this.audioPlayer,
     required this.router,
   });
@@ -61,6 +63,9 @@ class Deps {
 
   /// The audio-backup preference (excluded from iCloud/local backup by default).
   final AudioStorageSettings audioStorageSettings;
+
+  /// The transcription language (device locale by default, user-overridable).
+  final TranscriptionSettings transcriptionSettings;
 
   /// Plays back a kept recording. Pure playback; resolve an entry to a path with
   /// [TranscriptionService.resolveAudioPath] first.
@@ -85,14 +90,23 @@ class Deps {
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
     await audioStorageSettings.apply();
 
+    final transcriptionService = TranscriptionService(
+      recorder: recorder,
+      engine: AppleSpeechEngine(),
+      store: EntryStore(localService),
+    );
+    final transcriptionSettings = TranscriptionSettings(
+      storage: localService,
+      service: transcriptionService,
+    );
+    // Pushes the stored (or device-default) language before anything records.
+    transcriptionSettings.apply();
+
     i = Deps._(
       localService: localService,
-      transcriptionService: TranscriptionService(
-        recorder: recorder,
-        engine: AppleSpeechEngine(),
-        store: EntryStore(localService),
-      ),
+      transcriptionService: transcriptionService,
       audioStorageSettings: audioStorageSettings,
+      transcriptionSettings: transcriptionSettings,
       audioPlayer: PlatformAudioPlayer(),
       router: AppRouter(),
     );

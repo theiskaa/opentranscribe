@@ -92,6 +92,22 @@ void main() {
     });
   });
 
+  group('supportedLocales', () {
+    test('decodes the tag list, empty on error or missing plugin', () async {
+      mockMethods((call) async {
+        expect(call.method, 'supportedLocales');
+        return ['de-DE', 'en-US'];
+      });
+      expect(await engine.supportedLocales(), ['de-DE', 'en-US']);
+
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      expect(await engine.supportedLocales(), isEmpty);
+
+      messenger.setMockMethodCallHandler(methods, null); // missing plugin
+      expect(await engine.supportedLocales(), isEmpty);
+    });
+  });
+
   group('missing plugin', () {
     // No handlers registered at all: every method must stay inside its contract
     // rather than leaking a raw MissingPluginException.
