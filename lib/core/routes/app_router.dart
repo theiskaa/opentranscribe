@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/view/layouts/entries/screens/entries_screen.dart';
+import 'package:opentranscribe/view/layouts/entries/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/settings_screen.dart';
 
 /// Owns the app's [GoRouter] instance.
@@ -27,6 +28,11 @@ class AppRouter {
             path: 'settings',
             name: Routes.settingsName,
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: Routes.entry,
+            name: Routes.entryName,
+            builder: (context, state) => EntryDetailScreen(entryId: state.pathParameters['id']!),
           ),
         ],
       ),

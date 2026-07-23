@@ -6,4 +6,8 @@ abstract final class Routes {
 
   static const settings = '/settings';
   static const settingsName = 'settings';
+
+  /// Entry detail. Relative to [entries]; navigate by name with an `id` param.
+  static const entry = 'entry/:id';
+  static const entryName = 'entry';
 }
