@@ -15,6 +15,12 @@ final class AudioCaptureSession {
   private var fileWriteError: String?
   private var startedAt: Date?
   private var isRunning = false
+  private var isPaused = false
+
+  // Input-level aggregation across tap buffers. Written on the tap thread;
+  // reset from the main thread in start(), before the tap is installed.
+  private var levelSumSquares: Float = 0
+  private var levelFrames = 0
 
   // Results of the last finished capture, so stop() stays correct even when an
   // interruption already tore the session down. That replay is load-bearing: the
@@ -38,21 +44,36 @@ final class AudioCaptureSession {
     let onStop: () -> Void
   }
 
-  /// Capture lifecycle strings sent to Dart: recording / interrupted / stopped.
-  /// These strings must match _statusFrom in platform_audio_recorder.dart.
+  /// Capture lifecycle strings sent to Dart: recording / paused / interrupted /
+  /// stopped. These strings must match _statusFrom in platform_audio_recorder.dart.
   var onStatus: ((String) -> Void)?
+
+  /// Normalized input level (0..1) while capturing, for the live waveform.
+  /// Fired on the main thread at roughly 20 Hz; silent while paused or idle.
+  var onLevel: ((Double) -> Void)?
 
   /// Whether a capture is live now. Lets the plugin replay status to a late listener.
   var isCapturing: Bool { isRunning }
 
+  /// Whether the live capture is paused, so the replay can say so.
+  var isCapturePaused: Bool { isPaused }
+
   enum CaptureError: LocalizedError {
     case alreadyRunning
     case noInput
+    case notRunning
+    case alreadyPaused
+    case notPaused
+    case routeChanged
 
     var code: String {
       switch self {
       case .alreadyRunning: return "already_running"
       case .noInput: return "no_input"
+      case .notRunning: return "not_running"
+      case .alreadyPaused: return "already_paused"
+      case .notPaused: return "not_paused"
+      case .routeChanged: return "route_changed"
       }
     }
 
@@ -60,6 +81,10 @@ final class AudioCaptureSession {
       switch self {
       case .alreadyRunning: return "capture already running"
       case .noInput: return "no audio input available"
+      case .notRunning: return "no capture running"
+      case .alreadyPaused: return "capture already paused"
+      case .notPaused: return "capture not paused"
+      case .routeChanged: return "audio route changed during pause"
       }
     }
   }
@@ -182,6 +207,14 @@ final class AudioCaptureSession {
     fileWriteError = nil
     lock.unlock()
 
+    // Before the tap exists, which is the only moment nothing else can be
+    // writing these: a previous session may have ended mid-aggregation, and its
+    // residue must not color this session's first level emission. Reset after
+    // installTap (or after engine.start()) and the tap thread is already
+    // accumulating into them.
+    levelSumSquares = 0
+    levelFrames = 0
+
     // 1024 frames per buffer: ~21ms at 48kHz, small enough for responsive live
     // partials, large enough to keep per-buffer overhead trivial.
     input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
@@ -203,6 +236,27 @@ final class AudioCaptureSession {
         }
       }
       for onBuffer in onBuffers { onBuffer(buffer) }
+
+      // Input level for the live waveform: RMS over the buffer, to dBFS, then
+      // normalized so -60dB..0dB maps to 0..1. Aggregated by frame count, not
+      // buffer count: the tap's 1024-frame request is advisory and devices
+      // deliver larger buffers, so ~2048 frames keeps the cadence near 20 Hz
+      // regardless of what the hardware hands us.
+      if let data = buffer.floatChannelData?[0] {
+        let frames = Int(buffer.frameLength)
+        var sum: Float = 0
+        for i in 0..<frames { sum += data[i] * data[i] }
+        self.levelSumSquares += sum
+        self.levelFrames += frames
+        if self.levelFrames >= 2048 {
+          let rms = sqrt(self.levelSumSquares / Float(self.levelFrames))
+          let db = 20 * log10(max(rms, 1e-6))
+          let level = min(max((Double(db) + 60) / 60, 0), 1)
+          self.levelSumSquares = 0
+          self.levelFrames = 0
+          DispatchQueue.main.async { [weak self] in self?.onLevel?(level) }
+        }
+      }
     }
 
     engine.prepare()
@@ -236,6 +290,7 @@ final class AudioCaptureSession {
     lock.unlock()
 
     isRunning = true
+    isPaused = false
     startedAt = Date()
     NotificationCenter.default.addObserver(
       self, selector: #selector(handleInterruption(_:)),
@@ -268,6 +323,52 @@ final class AudioCaptureSession {
     return Outcome(name: lastName, durationMs: lastDurationMs, writeError: lastWriteError)
   }
 
+  /// Suspends capture without ending it: the engine pauses, so the tap goes
+  /// silent, the file stays open, and consumers stay attached. Resume continues
+  /// into the same file; seal-time duration stays honest because it counts
+  /// frames written, not wall clock. The mic is genuinely off while paused.
+  func pause() throws {
+    guard isRunning else { throw CaptureError.notRunning }
+    guard !isPaused else { throw CaptureError.alreadyPaused }
+    engine.pause()
+    isPaused = true
+    onStatus?("paused")
+  }
+
+  /// Resumes a paused capture. A failure leaves the session paused, never
+  /// half-running, so the caller can still stop or cancel cleanly. A route
+  /// change during the pause (earbuds died, headphones plugged) can swap the
+  /// input format out from under the open file; resuming then would either
+  /// crash in CoreAudio or write-fail every buffer while status says
+  /// recording. Detect it and finalize as an interruption instead: the
+  /// pre-pause audio is kept and auto-saved.
+  func resume() throws {
+    guard isRunning, isPaused else { throw CaptureError.notPaused }
+    let input = engine.inputNode.outputFormat(forBus: 0)
+    lock.lock()
+    let fileFormat = audioFile?.processingFormat
+    lock.unlock()
+    if let fileFormat = fileFormat,
+      input.sampleRate != fileFormat.sampleRate || input.channelCount != fileFormat.channelCount
+    {
+      teardown()
+      onStatus?("interrupted")
+      throw CaptureError.routeChanged
+    }
+    try engine.start()
+    isPaused = false
+    onStatus?("recording")
+  }
+
+  /// Ends capture and deletes its audio: the discard path for a recording the
+  /// user never wanted. Quiet when idle so Dart can cancel defensively.
+  func cancel() {
+    let endedCapture = isRunning
+    teardown()
+    discardLastRecording()
+    if endedCapture { onStatus?("stopped") }
+  }
+
   /// Removes the last capture's file. Called when a stop produced no audio, so a
   /// header-only m4a does not sit in the durable directory forever, unreferenced by
   /// any entry and invisible to deletion.
@@ -276,8 +377,23 @@ final class AudioCaptureSession {
     let url = lastURL
     lastURL = nil
     lastName = ""
+    lastDurationMs = 0
+    lastWriteError = nil
     lock.unlock()
     if let url = url { try? FileManager.default.removeItem(at: url) }
+  }
+
+  /// Forgets the last outcome once Dart has taken custody of the file: an entry
+  /// now references it, so a later defensive cancel must not be able to delete
+  /// it. An unconsumed interruption outcome (torn down natively, not yet
+  /// processed by Dart) deliberately stays discardable.
+  func consumeLastOutcome() {
+    lock.lock()
+    lastName = ""
+    lastURL = nil
+    lastDurationMs = 0
+    lastWriteError = nil
+    lock.unlock()
   }
 
   /// Finalizes the file and engine exactly once. Idempotent so a stop() after an
@@ -286,8 +402,11 @@ final class AudioCaptureSession {
   private func teardown() {
     guard isRunning else { return }
     isRunning = false
+    isPaused = false
 
-    if engine.isRunning { engine.stop() }
+    // Unconditional: a paused engine reports isRunning false but still holds
+    // prepared resources; stop() is harmless on an already-stopped engine.
+    engine.stop()
     engine.inputNode.removeTap(onBus: 0)
 
     lock.lock()
@@ -377,7 +496,11 @@ final class AudioCaptureSession {
   /// unplugged). Same outcome as an interruption: finalize and keep the audio.
   @objc private func handleConfigurationChange(_ note: Notification) {
     DispatchQueue.main.async { [weak self] in
-      guard let self = self, self.isRunning, !self.engine.isRunning else { return }
+      // While paused the engine is legitimately not running, so a benign route
+      // change (headphones in) must not read as engine death. A route lost
+      // during a pause surfaces at resume, which fails and leaves the session
+      // paused for a clean stop or cancel.
+      guard let self = self, self.isRunning, !self.isPaused, !self.engine.isRunning else { return }
       self.teardown()
       self.onStatus?("interrupted")
     }
@@ -436,11 +559,30 @@ enum CaptureHub {
   static let session = AudioCaptureSession()
 }
 
-/// Bridges the capture session to Dart: MethodChannel for control, EventChannel
-/// for capture status.
+/// Sink holder for the input-level EventChannel. Levels are ephemeral, so there
+/// is no replay: a listener simply starts receiving the next emission.
+final class LevelStreamHandler: NSObject, FlutterStreamHandler {
+  var sink: FlutterEventSink?
+
+  func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    sink = eventSink
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    sink = nil
+    return nil
+  }
+}
+
+/// Bridges the capture session to Dart: MethodChannel for control, EventChannels
+/// for capture status and input level.
 final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private let session = CaptureHub.session
   private var statusSink: FlutterEventSink?
+  private let levelHandler = LevelStreamHandler()
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let instance = AudioRecorderPlugin()
@@ -449,10 +591,17 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       name: "opentranscribe/audio", binaryMessenger: registrar.messenger())
     let events = FlutterEventChannel(
       name: "opentranscribe/audio/status", binaryMessenger: registrar.messenger())
+    let levels = FlutterEventChannel(
+      name: "opentranscribe/audio/level", binaryMessenger: registrar.messenger())
     events.setStreamHandler(instance)
+    levels.setStreamHandler(instance.levelHandler)
     registrar.addMethodCallDelegate(instance, channel: methods)
     instance.session.onStatus = { [weak instance] status in
       DispatchQueue.main.async { instance?.statusSink?(status) }
+    }
+    // onLevel already fires on main.
+    instance.session.onLevel = { [weak instance] level in
+      instance?.levelHandler.sink?(level)
     }
   }
 
@@ -461,7 +610,7 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   {
     statusSink = eventSink
     // Replay the live state so a listener that subscribed after start() is not stale.
-    if session.isCapturing { eventSink("recording") }
+    if session.isCapturing { eventSink(session.isCapturePaused ? "paused" : "recording") }
     return nil
   }
 
@@ -483,12 +632,36 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       } catch {
         result(FlutterError(code: "capture_failed", message: "\(error)", details: nil))
       }
+    case "pause":
+      do {
+        try session.pause()
+        result(nil)
+      } catch let error as AudioCaptureSession.CaptureError {
+        result(FlutterError(code: error.code, message: error.errorDescription, details: nil))
+      } catch {
+        result(FlutterError(code: "capture_failed", message: "\(error)", details: nil))
+      }
+    case "resume":
+      do {
+        try session.resume()
+        result(nil)
+      } catch let error as AudioCaptureSession.CaptureError {
+        result(FlutterError(code: error.code, message: error.errorDescription, details: nil))
+      } catch {
+        result(FlutterError(code: "capture_failed", message: "\(error)", details: nil))
+      }
+    case "cancel":
+      session.cancel()
+      result(nil)
     case "stop":
       let outcome = session.stop()
       if outcome.durationMs > 0 {
         // Keep the recording even if a write error truncated it: partial audio is
         // better than losing it, and it can be re-transcribed. Any write error was
-        // already logged; we never fail a capture that produced audio.
+        // already logged; we never fail a capture that produced audio. Dart takes
+        // custody of the file here, so the outcome is consumed: a later defensive
+        // cancel must not be able to delete what an entry now references.
+        session.consumeLastOutcome()
         result(["name": outcome.name, "durationMs": outcome.durationMs])
       } else {
         // No audio at all (e.g. the file could not be created). This is a real
