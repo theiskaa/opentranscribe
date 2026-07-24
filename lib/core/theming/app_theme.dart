@@ -176,7 +176,13 @@ final class AppTheme {
             chevronColor: textSecondary.withValues(alpha: 0.7),
             dividerColor: hairline,
             sectionLabelColor: textSecondary,
-            toggleActive: accent,
+            // The one hue in an ink app: a switch's on-state is green because
+            // that is what a switch's on-state IS on iOS, and the native glass
+            // toggle draws itself this green anyway - the drawn fallback matches
+            // it rather than inventing an ink switch nobody would read as "on".
+            toggleActive: brightness == Brightness.dark
+                ? const Color(0xFF30D158)
+                : const Color(0xFF34C759),
           ),
       onboarding:
           onboarding ??

@@ -47,7 +47,9 @@ void main() {
       expect(theme.player.progress, theme.accent);
       expect(theme.player.waveRemaining, theme.text.withValues(alpha: 0.16));
       expect(theme.settings.cardBackground, theme.surface);
-      expect(theme.settings.toggleActive, theme.accent);
+      // A switch's on-state is green, the one hue in the ink app; light gives
+      // the iOS system green.
+      expect(theme.settings.toggleActive, const Color(0xFF34C759));
       expect(theme.recorder.waveformBar, theme.accent);
       expect(theme.topBar.background, theme.background);
       expect(theme.onboarding.bodyColor, theme.textSecondary);
