@@ -23,10 +23,8 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// control along. One number for both, so the chrome reads as a single rhythm.
 const double _edgeInset = AppSpacing.md;
 
-/// How much faster than the fold a folding bottom slot pulls itself up. It
-/// slides under the title row either way; the lead is what makes it read as
-/// retreating under there rather than waiting to be cut off by it. Small: past
-/// a hint it stops being a slot leaving and starts being a thing thrown.
+/// How much faster than the fold a folding bottom slot pulls itself up, so it
+/// reads as retreating under the title row rather than waiting to be cut off.
 const double _foldLead = 0.22;
 
 class AppTopBar extends StatelessWidget {
@@ -41,6 +39,8 @@ class AppTopBar extends StatelessWidget {
     this.bottom,
     this.bottomHeight = 0,
     this.bottomFold,
+    this.frosted = false,
+    this.automaticLeading = true,
     super.key,
   });
 
@@ -80,6 +80,18 @@ class AppTopBar extends StatelessWidget {
   /// the bar's frame rebuilds per frame, never the row or the slot's contents.
   final ValueListenable<double>? bottomFold;
 
+  /// The SECONDARY bar (reeed's): a translucent frost that content shows
+  /// through, fading from its midpoint, rather than home's opaque material.
+  /// Every screen that is not home (settings and its sub-screens, the gallery)
+  /// wears it - the home bar stays as it was.
+  final bool frosted;
+
+  /// Whether a poppable route auto-grows a back chevron in an empty leading
+  /// slot. Home turns this OFF: it is the base of the stack, but mid-pop of a
+  /// route above it `canPop` is briefly true, and without this a phantom back
+  /// button flickers in on the way back.
+  final bool automaticLeading;
+
   /// Status inset + the default compact row, for content padding.
   static double heightOf(BuildContext context) =>
       MediaQuery.paddingOf(context).top + context.theme.topBar.height;
@@ -95,7 +107,9 @@ class AppTopBar extends StatelessWidget {
     final topInset = MediaQuery.paddingOf(context).top;
     final rowHeight = barHeight ?? bar.height;
 
-    final leading = this.leading ?? (Navigator.of(context).canPop() ? const AppBackButton() : null);
+    final leading =
+        this.leading ??
+        (automaticLeading && Navigator.of(context).canPop() ? const AppBackButton() : null);
 
     Widget? titleBlock = title;
     if (titleBlock != null && subtitle != null) {
@@ -162,15 +176,24 @@ class AppTopBar extends StatelessWidget {
               top: 0,
               left: 0,
               right: 0,
-              child: EdgeFade(
-                height: chromeHeight + bar.fadeTail,
-                color: bar.background,
-                sigma: bar.blurSigma,
-                // Opaque through the whole chrome (title row AND the bottom
-                // slot); only the tail fades, so nothing stays legible under
-                // the title and the bottom slot is never washed.
-                fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
-              ),
+              child: frosted
+                  // reeed's material: a translucent tint over the blur, faded
+                  // from the midpoint, so content shows through as frost.
+                  ? EdgeFade(
+                      height: chromeHeight + bar.fadeTail,
+                      color: bar.background.withValues(alpha: 0.55),
+                      sigma: bar.blurSigma,
+                    )
+                  : EdgeFade(
+                      height: chromeHeight + bar.fadeTail,
+                      color: bar.background,
+                      sigma: bar.blurSigma,
+                      // Opaque through the whole chrome (title row AND the
+                      // bottom slot); only the tail fades, so nothing stays
+                      // legible under the title and the bottom slot is never
+                      // washed.
+                      fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
+                    ),
             ),
             // Content scrolled under the bar is invisible behind the wash; it
             // must not stay tappable through it. The row and the bottom slot

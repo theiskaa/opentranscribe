@@ -1,64 +1,63 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
 
-import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 
-/// A minimal page scaffold with an iOS-style large title and an optional back
-/// chevron and trailing action. No Material.
+/// A page whose title floats in an [AppTopBar] overlay while [child] runs
+/// behind it: scrollables pad their top by [topPaddingOf] and wash out under
+/// the bar's material instead of hitting a band. Screens pass their
+/// `ScreenColors` token as [background]; the base background is a fallback.
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
-    required this.title,
     required this.child,
-    this.trailing,
+    this.title,
+    this.background,
+    this.actions = const [],
     this.onBack,
     super.key,
   });
 
-  final String title;
+  /// The bar's large title, or null for a bare bar (just the back control over
+  /// the material) - a screen whose own content carries the heading.
+  final String? title;
   final Widget child;
-  final Widget? trailing;
+  final Color? background;
+  final List<Widget> actions;
   final VoidCallback? onBack;
+
+  /// Where a scrollable behind the bar should start at rest: past the COMPACT
+  /// bar (these screens carry no title, so the tall title row was dead space)
+  /// plus a breath. Content peeks under the frosted tail as it scrolls, which is
+  /// the point; nothing under the bar is a platform view, so the blur composites
+  /// it cleanly.
+  static double topPaddingOf(BuildContext context) => AppTopBar.heightOf(context) + AppSpacing.lg;
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = context.theme;
     return ColoredBox(
-      color: colors.background,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 44,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Row(
-                  children: [
-                    if (onBack != null)
-                      CupertinoButton(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        minimumSize: Size.zero,
-                        onPressed: onBack,
-                        child: Icon(CupertinoIcons.back, color: colors.text, size: 26),
-                      ),
-                    const Spacer(),
-                    ?trailing,
-                  ],
-                ),
-              ),
+      color: background ?? theme.background,
+      child: Stack(
+        children: [
+          Positioned.fill(child: child),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            // Compact bar: just the back chevron over the frost, no tall title
+            // row. A title, if ever passed, rides the same compact row.
+            child: AppTopBar(
+              frosted: true,
+              leading: onBack != null ? AppBackButton(onBack: onBack) : null,
+              title: title == null
+                  ? null
+                  : Text(title!, style: AppType.headline.copyWith(color: theme.topBar.titleColor)),
+              actions: actions,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.xs,
-                AppSpacing.md,
-                AppSpacing.md,
-              ),
-              child: Text(title, style: AppText.largeTitle(context)),
-            ),
-            Expanded(child: child),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

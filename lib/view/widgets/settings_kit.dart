@@ -1,0 +1,365 @@
+import 'package:flutter/widgets.dart';
+
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_toggle.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// The scroll every settings screen shares: the same insets under the frosted
+/// bar and clear of the home indicator. One place, so the five screens cannot
+/// drift apart (one used to miss the bottom safe-area inset).
+class SettingsList extends StatelessWidget {
+  const SettingsList({required this.children, super.key});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppScaffold.topPaddingOf(context),
+        AppSpacing.md,
+        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+      ),
+      children: children,
+    );
+  }
+}
+
+/// A grouped settings card: surface squircle with rows joined by inset
+/// dividers. Rows are whatever widgets the caller passes, normally
+/// [SettingsRow]s.
+class SettingsCard extends StatelessWidget {
+  const SettingsCard({required this.children, super.key});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.settings;
+    return DecoratedBox(
+      decoration: SuperellipseDecoration(
+        borderRadius: tokens.cardRadius,
+        color: tokens.cardBackground,
+        border: BorderSide(color: tokens.cardBorder),
+      ),
+      child: Column(
+        children: [
+          for (final (i, child) in children.indexed) ...[
+            if (i > 0)
+              Padding(
+                padding: EdgeInsets.only(left: tokens.dividerInset),
+                child: Container(height: 1, color: tokens.dividerColor),
+              ),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One settings row: monochrome icon tile, title, and a trailing value and/or
+/// chevron (or any custom trailing). Color is earned: only destructive rows
+/// pass [danger].
+class SettingsRow extends StatelessWidget {
+  const SettingsRow({
+    required this.title,
+    this.icon,
+    this.iconWidget,
+    this.value,
+    this.chevron = false,
+    this.external = false,
+    this.trailing,
+    this.danger = false,
+    this.onTap,
+    super.key,
+  }) : assert(icon != null || iconWidget != null, 'a row needs an icon or an iconWidget');
+
+  /// The leading glyph: an [AppIcons] symbol, or [iconWidget] for a custom mark.
+  final IconData? icon;
+  final Widget? iconWidget;
+  final String title;
+  final String? value;
+
+  /// A trailing chevron: this row pushes another screen.
+  final bool chevron;
+
+  /// A trailing outward arrow: this row leaves the app (opens a link).
+  final bool external;
+  final Widget? trailing;
+  final bool danger;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+
+    return Touchable(
+      onTap: onTap,
+      haptic: onTap != null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: danger ? tokens.dangerIconTint : tokens.iconTileBackground,
+              ),
+              child: Center(
+                child:
+                    iconWidget ??
+                    AppIcon(icon!, size: 16, color: danger ? theme.danger : tokens.iconColor),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                title,
+                style: AppType.subhead.copyWith(color: danger ? theme.danger : theme.text),
+              ),
+            ),
+            if (value != null) ...[
+              Text(value!, style: AppType.subhead.copyWith(color: theme.textSecondary)),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            ?trailing,
+            if (chevron)
+              AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: tokens.chevronColor)
+            else if (external)
+              AppIcon(AppIcons.arrowUpRight, size: tokens.chevronSize, color: tokens.chevronColor),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A settings row whose trailing is the drawn toggle.
+class SettingsToggle extends StatelessWidget {
+  const SettingsToggle({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsRow(
+      icon: icon,
+      title: title,
+      // A breath off the edge: the switch crowds the row's 14 inset otherwise.
+      trailing: Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.xs),
+        child: AppToggle(value: value, onChanged: onChanged),
+      ),
+      onTap: onChanged == null ? null : () => onChanged!(!value),
+    );
+  }
+}
+
+/// A language row you pick from a list, reeed's shape: a tinted flag chip, the
+/// language in its own name, and a checkmark on the current one. The selected
+/// row inks and bolds; the rest stay quiet. Tapping the current one is a no-op.
+class SelectableRow extends StatelessWidget {
+  const SelectableRow({
+    required this.label,
+    required this.flag,
+    required this.selected,
+    required this.onTap,
+    this.dimmed = false,
+    super.key,
+  });
+
+  final String label;
+
+  /// The leading chip's flag emoji (see `localeFlag`).
+  final String flag;
+  final bool selected;
+
+  /// A kept-but-unavailable choice (an unsupported language): shown honestly,
+  /// quieter than the rest.
+  final bool dimmed;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final active = selected && !dimmed;
+    return Touchable(
+      onTap: onTap,
+      haptic: onTap != null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+              ),
+              // height: 1 collapses the line leading a flag emoji otherwise
+              // carries below its glyph, so Center actually centres the mark
+              // rather than the taller line box it sits in.
+              child: Text(
+                flag,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18, height: 1),
+                textScaler: TextScaler.noScaling,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: AppType.subhead.copyWith(
+                  color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            if (active) AppIcon(AppIcons.checkmark, size: 14, color: theme.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A theme choice as reeed draws it: a card painted in the theme's OWN colours -
+/// its background, three "text line" bars and its name, all in the theme's ink -
+/// so the card is a tiny preview of the app in that theme. Selected takes a 2px
+/// ink border and bolds its name; the rest sit behind a faint hairline. No
+/// checkmark: the card IS the swatch.
+class ThemeModeCard extends StatelessWidget {
+  const ThemeModeCard({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.background,
+    required this.foreground,
+    super.key,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: onTap,
+      pressedScale: theme.motion.pressIconScale,
+      haptic: true,
+      child: AspectRatio(
+        aspectRatio: 64 / 82,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(AppRadius.chip),
+            border: Border.all(
+              color: selected ? theme.accent : theme.hairline,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final (i, w) in const [1.0, 0.7, 0.45].indexed) ...[
+                  if (i > 0) const SizedBox(height: 5),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: w,
+                    child: Container(
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: foreground.withValues(alpha: 1 - i * 0.28),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  style: AppType.caption.copyWith(
+                    color: foreground,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A paragraph of explanation, above or below a card (reeed's description text):
+/// footnote, secondary, generously leaded so it reads as help rather than a row.
+class SectionInfo extends StatelessWidget {
+  const SectionInfo(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
+      child: Text(
+        text,
+        style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.4),
+      ),
+    );
+  }
+}
+
+/// The uppercase group label above a card.
+class SectionLabel extends StatelessWidget {
+  const SectionLabel(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.settings;
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: AppSpacing.sm,
+        top: AppSpacing.xxl,
+        bottom: AppSpacing.sm,
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: AppType.eyebrow.copyWith(color: tokens.sectionLabelColor),
+      ),
+    );
+  }
+}
