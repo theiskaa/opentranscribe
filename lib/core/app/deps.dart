@@ -6,11 +6,13 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
+import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
@@ -49,6 +51,7 @@ class Deps {
     required this.transcriptionSettings,
     required this.audioPlayer,
     required this.router,
+    required this.engineDescriptors,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -72,6 +75,11 @@ class Deps {
   final AudioPlayer audioPlayer;
   final AppRouter router;
 
+  /// The engines this build ships, as presentation facts for surfaces that list
+  /// them. Built here because the composition root is the one place allowed to
+  /// name an engine.
+  final List<EngineDescriptor> engineDescriptors;
+
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
   static Future<void> init() async {
@@ -87,12 +95,19 @@ class Deps {
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.
     final recorder = PlatformAudioRecorder();
+    // End any capture the NATIVE session is still running. Dart's state can
+    // restart while the platform singleton does not (a hot restart in
+    // development), and a session left hot fails every later start with
+    // "already recording" until the app is relaunched. Quiet when idle, which
+    // is every real launch.
+    unawaited(recorder.cancel().catchError((Object _) {}));
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
     await audioStorageSettings.apply();
 
+    final engine = AppleSpeechEngine();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
-      engine: AppleSpeechEngine(),
+      engine: engine,
       store: EntryStore(localService),
     );
     final transcriptionSettings = TranscriptionSettings(
@@ -109,6 +124,13 @@ class Deps {
       transcriptionSettings: transcriptionSettings,
       audioPlayer: PlatformAudioPlayer(),
       router: AppRouter(),
+      engineDescriptors: [
+        EngineDescriptor(
+          engineId: engine.id,
+          displayName: 'Apple Speech',
+          logo: AppIcons.appleLogo,
+        ),
+      ],
     );
 
     // Recover or remove audio files no entry references (a kill mid-recording, a

@@ -21,8 +21,8 @@ final class Recording {
 
 /// Lifecycle of a capture session, so callers can react to interruptions. An
 /// interruption ends the capture (there is no auto-resume), so there is no
-/// resumed state.
-enum CaptureStatus { recording, interrupted, stopped }
+/// resumed state; a user resume after [paused] re-emits [recording].
+enum CaptureStatus { recording, paused, interrupted, stopped }
 
 /// Microphone permission state, distinct from speech-recognition authorization
 /// (which the engine reports through [Availability]). Two separate platform grants.

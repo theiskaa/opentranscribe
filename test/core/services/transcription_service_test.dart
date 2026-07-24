@@ -874,6 +874,271 @@ void main() {
 
     await svc.dispose();
   });
+
+  test('pause and resume flip isPaused and only in legal states', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    expect(() => svc.pauseRecording(), throwsStateError);
+    expect(() => svc.resumeRecording(), throwsStateError);
+
+    await svc.startRecording();
+    expect(svc.isPaused, isFalse);
+    expect(() => svc.resumeRecording(), throwsStateError);
+
+    await svc.pauseRecording();
+    expect(svc.isPaused, isTrue);
+    expect(rec.paused, isTrue);
+    expect(() => svc.pauseRecording(), throwsStateError);
+
+    await svc.resumeRecording();
+    expect(svc.isPaused, isFalse);
+    expect(rec.paused, isFalse);
+
+    await svc.stopRecording();
+    await svc.dispose();
+  });
+
+  test('a recorder pause failure leaves the session running and unpaused', () async {
+    final rec = FakeAudioRecorder(throwOnPause: true);
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    await svc.startRecording();
+    await expectLater(svc.pauseRecording(), throwsA(isA<CaptureFailed>()));
+    expect(svc.isPaused, isFalse);
+    expect(svc.isRecording, isTrue);
+
+    await svc.stopRecording();
+    await svc.dispose();
+  });
+
+  test('stop while paused persists a normal entry and clears the pause', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'paused then stopped'));
+
+    await svc.startRecording();
+    await svc.pauseRecording();
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'paused then stopped');
+    expect(svc.isPaused, isFalse);
+    expect(store.read(entry.id), entry);
+
+    await svc.dispose();
+  });
+
+  test('an interruption while paused auto-finalizes and clears the pause', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final saved = <Entry>[];
+    final sub = svc.autoFinalized.listen(saved.add);
+
+    await svc.startRecording();
+    await svc.pauseRecording();
+    rec.interrupt();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(saved, hasLength(1));
+    expect(svc.isPaused, isFalse);
+    expect(svc.isRecording, isFalse);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('cancel persists nothing and a later stop throws', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    await svc.startRecording();
+    await svc.cancelRecording();
+
+    expect(rec.cancelled, isTrue);
+    expect(svc.isRecording, isFalse);
+    expect(svc.entries(), isEmpty);
+    await expectLater(svc.stopRecording(), throwsStateError);
+
+    await svc.dispose();
+  });
+
+  test('cancel while idle is quiet; cancel during a start throws', () async {
+    final rec = FakeAudioRecorder(startDelay: const Duration(milliseconds: 20));
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    await svc.cancelRecording(); // idle: no-op
+
+    final starting = svc.startRecording();
+    await expectLater(svc.cancelRecording(), throwsStateError);
+    await starting;
+
+    await svc.stopRecording();
+    await svc.dispose();
+  });
+
+  test('cancel while paused discards without saving', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+
+    await svc.startRecording();
+    await svc.pauseRecording();
+    await svc.cancelRecording();
+
+    expect(svc.isPaused, isFalse);
+    expect(svc.entries(), isEmpty);
+
+    await svc.dispose();
+  });
+
+  test('inputLevel passes the recorder levels through', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final levels = <double>[];
+    final sub = svc.inputLevel.listen(levels.add);
+
+    rec.levelController.add(0.2);
+    rec.levelController.add(0.8);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(levels, [0.2, 0.8]);
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('renameEntry sets, trims, and clears the title on the stored entry', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final renamed = await svc.renameEntry(entry, '  Morning pages  ');
+    expect(renamed.title, 'Morning pages');
+    expect(store.read(entry.id)?.title, 'Morning pages');
+
+    final cleared = await svc.renameEntry(renamed, '   ');
+    expect(cleared.title, isNull);
+    expect(store.read(entry.id)?.title, isNull);
+
+    await svc.dispose();
+  });
+
+  test('renameEntry applies to the stored entry, not a stale caller copy', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final stale = await svc.stopRecording();
+
+    // The stored entry moves on (a re-transcription) after the caller's copy.
+    final fresher = await svc.retranscribe(stale, using: FakeBatchEngine(cannedText: 'second'));
+    final renamed = await svc.renameEntry(stale, 'kept');
+
+    expect(renamed.title, 'kept');
+    expect(renamed.transcript?.fullText, fresher.transcript?.fullText);
+
+    await svc.dispose();
+  });
+
+  test('renameEntry throws for a deleted entry', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    await svc.deleteEntry(entry);
+
+    await expectLater(svc.renameEntry(entry, 'ghost'), throwsStateError);
+    await svc.dispose();
+  });
+
+  test('a rename landing mid-retranscribe survives the retranscribe save', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    // The slow batch opens the window; the rename lands inside it. The
+    // retranscribe must save onto the stored (renamed) entry, not its stale
+    // untitled argument.
+    final slow = svc.retranscribe(
+      entry,
+      using: FakeBatchEngine(cannedText: 'second', delay: const Duration(milliseconds: 30)),
+    );
+    await svc.renameEntry(entry, 'kept title');
+    final updated = await slow;
+
+    expect(updated.title, 'kept title');
+    expect(updated.transcript?.fullText, 'second');
+    expect(store.read(entry.id)?.title, 'kept title');
+
+    await svc.dispose();
+  });
+
+  test('a stop landing during an in-flight pause leaves no stale pause flag', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+
+    // Do not await the pause: the stop claims the session while the pause's
+    // continuation is still pending, and that continuation must not stamp
+    // paused chrome onto an idle service.
+    final pausing = svc.pauseRecording();
+    await svc.stopRecording();
+    await pausing.catchError((_) {});
+
+    expect(svc.isRecording, isFalse);
+    expect(svc.isPaused, isFalse);
+
+    await svc.dispose();
+  });
+
+  test('a concurrent second pause loses as CaptureFailed, state stays coherent', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+
+    final results = await Future.wait([
+      svc.pauseRecording().then((_) => 'ok').catchError((Object e) => e.runtimeType.toString()),
+      svc.pauseRecording().then((_) => 'ok').catchError((Object e) => e.runtimeType.toString()),
+    ]);
+
+    expect(results.where((r) => r == 'ok'), hasLength(1));
+    expect(svc.isPaused, isTrue);
+
+    await svc.stopRecording();
+    await svc.dispose();
+  });
+
+  test('cancel racing a stop: exactly one wins in either order', () async {
+    // Stop first: the entry is saved and the cancel is quiet.
+    var svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final stopped = svc.stopRecording();
+    await svc.cancelRecording();
+    final entry = await stopped;
+    expect(store.read(entry.id), isNotNull);
+    await svc.dispose();
+
+    // Cancel first: nothing is saved and the stop throws.
+    svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final cancelled = svc.cancelRecording();
+    await expectLater(svc.stopRecording(), throwsStateError);
+    await cancelled;
+    await svc.dispose();
+  });
+
+  test('cancel during an in-flight interruption finalize discards the auto-save', () async {
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 20));
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final autoSaved = <Entry>[];
+    final sub = svc.autoFinalized.listen(autoSaved.add);
+
+    await svc.startRecording();
+    rec.interrupt();
+    // Let the interruption claim the session, then discard while it saves.
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await svc.cancelRecording();
+
+    // The auto-save happened (the stream is honest about it), but the discard
+    // won: no entry remains.
+    expect(autoSaved, hasLength(1));
+    expect(svc.entries(), isEmpty);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
 }
 
 /// A store whose save fails [failures] times (-1: always), to prove save failures

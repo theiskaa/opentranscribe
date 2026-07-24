@@ -15,6 +15,8 @@ class FakeAudioRecorder implements AudioRecorder {
     this.recordingsDir = '/tmp',
     this.throwOnSetBackup = false,
     this.throwOnStart = false,
+    this.throwOnPause = false,
+    this.throwOnResume = false,
     this.stopDelay,
     this.startDelay,
     this.probe,
@@ -39,11 +41,26 @@ class FakeAudioRecorder implements AudioRecorder {
   /// Answers [probeRecording] per name; null (the default) probes nothing readable.
   final Duration? Function(String name)? probe;
 
+  /// When true, [pause] / [resume] throw, to exercise failure paths.
+  final bool throwOnPause;
+  final bool throwOnResume;
+
   /// The last value passed to [setBackupExcluded], for assertions.
   bool? backupExcluded;
 
+  /// True after [cancel] ran on a live capture, for assertions that the audio
+  /// was discarded rather than kept.
+  bool cancelled = false;
+
+  /// Whether the fake capture is currently paused, for assertions.
+  bool paused = false;
+
+  /// Push values here to feed [level] in tests.
+  final StreamController<double> levelController = StreamController<double>.broadcast();
+
   final StreamController<CaptureStatus> _status = StreamController<CaptureStatus>.broadcast();
   final Completer<void> _stopped = Completer<void>();
+  bool _capturing = false;
 
   /// Completes when [stop] is called. Wire this into a FakeStreamingEngine's
   /// stopSignal so its final event lands when capture stops.
@@ -60,21 +77,56 @@ class FakeAudioRecorder implements AudioRecorder {
   final Duration? startDelay;
 
   @override
+  Stream<double> get level => levelController.stream;
+
+  @override
   Future<void> start() async {
     if (throwOnStart) throw const CaptureFailed('fake start failure');
     if (startDelay != null) await Future<void>.delayed(startDelay!);
+    _capturing = true;
+    paused = false;
     _status.add(CaptureStatus.recording);
+  }
+
+  @override
+  Future<void> pause() async {
+    if (throwOnPause) throw const CaptureFailed('fake pause failure', 'capture_failed');
+    if (!_capturing) throw const CaptureFailed('not recording', 'not_running');
+    if (paused) throw const CaptureFailed('already paused', 'already_paused');
+    paused = true;
+    _status.add(CaptureStatus.paused);
+  }
+
+  @override
+  Future<void> resume() async {
+    if (throwOnResume) throw const CaptureFailed('fake resume failure', 'capture_failed');
+    if (!_capturing || !paused) throw const CaptureFailed('not paused', 'not_paused');
+    paused = false;
+    _status.add(CaptureStatus.recording);
+  }
+
+  @override
+  Future<void> cancel() async {
+    if (!_capturing) return;
+    _capturing = false;
+    paused = false;
+    cancelled = true;
+    _status.add(CaptureStatus.stopped);
   }
 
   /// Simulates a native interruption (a phone call), so a test can exercise the
   /// service's auto-finalize. [stop] still returns a [Recording] afterward.
   void interrupt() {
+    _capturing = false;
+    paused = false;
     _status.add(CaptureStatus.interrupted);
   }
 
   @override
   Future<Recording> stop() async {
     if (stopDelay != null) await Future<void>.delayed(stopDelay!);
+    _capturing = false;
+    paused = false;
     _status.add(CaptureStatus.stopped);
     if (!_stopped.isCompleted) _stopped.complete();
     return Recording(path: path, duration: duration);
@@ -90,5 +142,12 @@ class FakeAudioRecorder implements AudioRecorder {
   Future<void> setBackupExcluded(bool excluded) async {
     if (throwOnSetBackup) throw Exception('backup set failed');
     backupExcluded = excluded;
+  }
+
+  /// Closes the fake's controllers. Optional: tests that leak a broadcast
+  /// controller do not hang, but tidy tests can call this.
+  Future<void> dispose() async {
+    await _status.close();
+    await levelController.close();
   }
 }

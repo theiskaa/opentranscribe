@@ -8,6 +8,13 @@ import 'package:opentranscribe/core/models/entry.dart';
 ///
 /// Reads are defensive: a single corrupt or schema-incompatible record is
 /// skipped, never allowed to hide the rest of the journal.
+///
+/// Load-bearing invariant for the service's read-then-save races (rename,
+/// retranscribe): visible state mutates synchronously. SharedPreferences
+/// updates its in-memory cache inside the call, so a read issued after a save
+/// or delete returns sees that mutation even though the disk flush is async. A
+/// replacement backend whose reads lag its writes would silently reopen the
+/// ghost-entry hole those call sites guard against.
 class EntryStore {
   EntryStore(this._storage);
 

@@ -56,6 +56,7 @@ class TranscriptionService {
   StreamSubscription<TranscriptEvent>? _liveSub;
   StreamSubscription<CaptureStatus>? _statusSub;
   bool _recording = false;
+  bool _paused = false;
 
   /// Claimed synchronously at the top of [startRecording], before its awaits, so
   /// two concurrent starts cannot both proceed (and leak a status subscription).
@@ -80,6 +81,11 @@ class TranscriptionService {
   /// interruption is still saving) awaits the result instead of throwing.
   Future<Entry?>? _finalizing;
 
+  /// The subset of [_finalizing] owned by an interruption, so a racing cancel can
+  /// tell an auto-save (which its discard must undo) from a user stop's finalize
+  /// (whose caller was promised the entry).
+  Future<Entry?>? _interruptionFinalize;
+
   /// Live partial/final events while recording, for real-time UI. Errors on the
   /// underlying live stream are forwarded here; they do not affect the persisted
   /// transcript, which comes from the batch pass on stop.
@@ -96,6 +102,13 @@ class TranscriptionService {
   Stream<Entry> get autoFinalized => _autoFinalized.stream;
 
   bool get isRecording => _recording;
+
+  /// Whether the live capture is paused. False whenever [isRecording] is false.
+  bool get isPaused => _paused;
+
+  /// Input level while capturing (0..1, ~20 Hz), for a live waveform. Ephemeral:
+  /// silent while paused or idle, nothing replayed, nothing persisted.
+  Stream<double> get inputLevel => _recorder.level;
 
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
   Future<List<String>> supportedLocales() => _engine.supportedLocales();
@@ -167,6 +180,7 @@ class TranscriptionService {
         rethrow;
       }
       _recording = true;
+      _paused = false;
       // Snapshot the locale for the whole session: live and the stop-path batch
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = localeId;
@@ -253,6 +267,7 @@ class TranscriptionService {
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
     if (!_recording) return _lastFinalized;
     _recording = false;
+    _paused = false;
     // Claim ALL session state synchronously with the claim above: a new recording
     // may start while this finalize is still awaiting, and this (older) finalize
     // must neither cancel the new session's subscriptions nor read its locale.
@@ -305,6 +320,80 @@ class TranscriptionService {
     }
   }
 
+  /// Suspends the capture: the mic goes silent, the file stays open, and the
+  /// session (including its live transcription) survives to [resumeRecording]
+  /// or a normal stop. Throws [StateError] when nothing is recording or already
+  /// paused; a lost race against a concurrent pause/resume surfaces as the
+  /// recorder's [CaptureFailed] instead. The paused flag flips only after the
+  /// recorder confirms, and only if the session is still alive: a stop or
+  /// interruption landing during the await must not leave paused chrome on an
+  /// idle screen.
+  Future<void> pauseRecording() async {
+    if (!_recording || _paused) {
+      throw StateError(_recording ? 'already paused' : 'not recording');
+    }
+    await _recorder.pause();
+    if (_recording) _paused = true;
+  }
+
+  /// Resumes a paused capture into the same recording. Throws [StateError] when
+  /// not paused; a recorder failure propagates and leaves the session paused,
+  /// still stoppable and cancellable.
+  Future<void> resumeRecording() async {
+    if (!_recording || !_paused) {
+      throw StateError(_recording ? 'not paused' : 'not recording');
+    }
+    await _recorder.resume();
+    if (_recording) _paused = false;
+  }
+
+  /// Ends the capture and discards it: no entry, no kept audio. The claim
+  /// discipline mirrors [_stopAndPersist] (synchronous flips, status
+  /// subscription cancelled before the first await) so a racing interruption
+  /// cannot double-finalize. Quiet when nothing is recording, except one case:
+  /// an interruption that claimed the session first auto-saves it, and a
+  /// discard must win over that save, so the finalize is awaited and its entry
+  /// deleted. Throws [StateError] during an in-flight start, which cannot be
+  /// safely undone from here.
+  Future<void> cancelRecording() async {
+    if (_starting) throw StateError('start in flight');
+    if (!_recording) {
+      // The capture this cancel meant to discard may just have been claimed by
+      // an interruption's auto-finalize. The save is real, but the user's
+      // intent is discard: wait it out and take the entry back. A user-stop's
+      // finalize is deliberately NOT touched; its caller was promised the entry.
+      final pending = _interruptionFinalize;
+      if (pending != null) {
+        Entry? saved;
+        try {
+          saved = await pending;
+        } catch (_) {
+          // Nothing was captured or the save failed: nothing kept to discard.
+        }
+        if (saved != null) {
+          if (identical(_lastFinalized, saved)) _lastFinalized = null;
+          await deleteEntry(saved);
+        }
+      }
+      return;
+    }
+    _recording = false;
+    _paused = false;
+    final liveSub = _liveSub;
+    _liveSub = null;
+    final statusSub = _statusSub;
+    _statusSub = null;
+    _sessionLocaleId = null;
+    await statusSub?.cancel();
+    try {
+      await _recorder.cancel();
+    } on CaptureFailed {
+      // Nothing captured or capture already dead: discarding was the goal.
+    } finally {
+      await liveSub?.cancel();
+    }
+  }
+
   /// Retries persisting an entry whose save failed ([EntrySaveFailed]). The entry
   /// already references its kept audio, so a successful retry fully recovers it.
   Future<void> retrySave(Entry entry) => _store.save(entry);
@@ -320,6 +409,7 @@ class TranscriptionService {
     if (!_recording) return;
     final future = _stopAndPersist(transcribe: false);
     _finalizing = future;
+    _interruptionFinalize = future;
     try {
       final entry = await future;
       if (entry == null) return;
@@ -336,6 +426,7 @@ class TranscriptionService {
     } finally {
       // In-flight only: the completed result lives in _lastFinalized.
       if (identical(_finalizing, future)) _finalizing = null;
+      if (identical(_interruptionFinalize, future)) _interruptionFinalize = null;
     }
   }
 
@@ -369,13 +460,34 @@ class TranscriptionService {
     final audioFile = File(await _resolveAudioPath(entry.audioPath));
     final locale = localeId ?? entry.transcript?.localeId ?? this.localeId;
     final transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
-    // The batch pass can run minutes; the user may have deleted the entry
-    // meanwhile. Never resurrect it as a ghost pointing at a deleted file. The
-    // read-then-save pair is synchronous, so no await can interleave a delete.
-    if (_store.read(entry.id) == null) {
+    // The batch pass can run minutes; the user may have deleted the entry or
+    // renamed it meanwhile. Never resurrect a deleted entry as a ghost, and
+    // never clobber a fresher title: the transcript is applied to the STORED
+    // entry, not the caller's stale copy. Safe against an interleaved delete
+    // because the store's visible state mutates synchronously (see EntryStore).
+    final stored = _store.read(entry.id);
+    if (stored == null) {
       throw StateError('entry ${entry.id} was deleted during retranscribe');
     }
-    final updated = entry.withTranscript(transcript);
+    final updated = stored.withTranscript(transcript);
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// Renames an entry; a null or blank [title] clears it back to untitled. The
+  /// title is applied to the STORED entry, not the caller's copy, so a rename
+  /// racing a re-transcription cannot clobber the fresher transcript. Throws
+  /// [StateError] when the entry was deleted meanwhile (same ghost rule as
+  /// [retranscribe]); safe against an interleaved delete because the store's
+  /// visible state mutates synchronously (see EntryStore).
+  Future<Entry> renameEntry(Entry entry, String? title) async {
+    final trimmed = title?.trim();
+    final normalized = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during rename');
+    }
+    final updated = stored.withTitle(normalized);
     await _store.save(updated);
     return updated;
   }

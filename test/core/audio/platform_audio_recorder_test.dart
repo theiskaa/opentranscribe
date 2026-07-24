@@ -11,6 +11,7 @@ void main() {
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   const methods = MethodChannel('opentranscribe/audio');
   const statusEvents = EventChannel('opentranscribe/audio/status');
+  const levelEvents = EventChannel('opentranscribe/audio/level');
 
   late PlatformAudioRecorder recorder;
 
@@ -21,6 +22,7 @@ void main() {
   tearDown(() {
     messenger.setMockMethodCallHandler(methods, null);
     messenger.setMockStreamHandler(statusEvents, null);
+    messenger.setMockStreamHandler(levelEvents, null);
   });
 
   void mockMethods(Future<Object?> Function(MethodCall call) handler) {
@@ -80,15 +82,134 @@ void main() {
         onListen: (arguments, sink) {
           sink.success('recording');
           sink.success('mystery');
+          sink.success('paused');
           sink.success('interrupted');
           sink.success('stopped');
         },
       ),
     );
 
-    final statuses = await recorder.status.take(3).toList();
+    final statuses = await recorder.status.take(4).toList();
 
-    expect(statuses, [CaptureStatus.recording, CaptureStatus.interrupted, CaptureStatus.stopped]);
+    expect(statuses, [
+      CaptureStatus.recording,
+      CaptureStatus.paused,
+      CaptureStatus.interrupted,
+      CaptureStatus.stopped,
+    ]);
+  });
+
+  test('pause, resume, and cancel invoke their methods and map errors', () async {
+    final called = <String>[];
+    mockMethods((call) async {
+      called.add(call.method);
+      return null;
+    });
+
+    await recorder.pause();
+    await recorder.resume();
+    await recorder.cancel();
+    expect(called, ['pause', 'resume', 'cancel']);
+
+    mockMethods(
+      (call) async => throw PlatformException(code: 'not_paused', message: 'capture not paused'),
+    );
+    await expectLater(
+      recorder.resume(),
+      throwsA(isA<CaptureFailed>().having((e) => e.code, 'code', 'not_paused')),
+    );
+  });
+
+  test('level decodes doubles from its channel', () async {
+    messenger.setMockStreamHandler(
+      levelEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          sink.success(0.0);
+          sink.success(0.42);
+          sink.success(1);
+        },
+      ),
+    );
+
+    final levels = await recorder.level.take(3).toList();
+
+    expect(levels, [0.0, 0.42, 1.0]);
+  });
+
+  test('a terminal status is not replayed to the next listener', () async {
+    // Emit only on the first native listen: native replays nothing terminal,
+    // so a re-listen must be served purely from the Dart cache under test.
+    var firstListen = true;
+    messenger.setMockStreamHandler(
+      statusEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          if (!firstListen) return;
+          firstListen = false;
+          sink.success('recording');
+          sink.success('interrupted');
+        },
+      ),
+    );
+
+    // Drive the pipeline so the terminal event lands and clears the cache.
+    final first = recorder.status.take(2).toList();
+    await first;
+
+    // A fresh listener must not see the dead session's interruption: replaying
+    // it would auto-finalize the next recording the instant it starts.
+    var replayed = false;
+    final sub = recorder.status.listen((_) => replayed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(replayed, isFalse);
+
+    await sub.cancel();
+  });
+
+  test('two concurrent level listeners share one pipeline', () async {
+    var listens = 0;
+    messenger.setMockStreamHandler(
+      levelEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          listens += 1;
+          sink.success(0.5);
+        },
+      ),
+    );
+
+    final a = <double>[];
+    final b = <double>[];
+    final subA = recorder.level.listen(a.add);
+    final subB = recorder.level.listen(b.add);
+    await Future<void>.delayed(Duration.zero);
+
+    // One native subscription; cancelling one listener must not kill the other.
+    expect(listens, 1);
+    await subA.cancel();
+    expect(a, isNotEmpty);
+
+    await subB.cancel();
+  });
+
+  test('a paused status replays to a second listener via the cache', () async {
+    messenger.setMockStreamHandler(
+      statusEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          sink.success('paused');
+        },
+      ),
+    );
+
+    final first = recorder.status.listen((_) {});
+    await Future<void>.delayed(Duration.zero);
+
+    final replayed = await recorder.status.first.timeout(const Duration(seconds: 1));
+    expect(replayed, CaptureStatus.paused);
+
+    await first.cancel();
   });
 
   test('a second concurrent listener receives the cached current state', () async {

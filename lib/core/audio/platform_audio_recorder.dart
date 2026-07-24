@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 // Channel identifiers. Must match AudioCapture.swift.
 const _controlChannel = 'opentranscribe/audio';
 const _statusChannel = 'opentranscribe/audio/status';
+const _levelChannel = 'opentranscribe/audio/level';
 
 /// The iOS-native [AudioRecorder]: an AVAudioEngine capture session reached over
 /// platform channels. Control on a MethodChannel, capture status on an
@@ -14,9 +15,13 @@ const _statusChannel = 'opentranscribe/audio/status';
 /// status cross into Dart. Channel failures are mapped to the transcription
 /// exception taxonomy, so callers never see a raw PlatformException.
 class PlatformAudioRecorder implements AudioRecorder {
-  PlatformAudioRecorder({MethodChannel? methods, EventChannel? statusEvents})
-    : _methods = methods ?? const MethodChannel(_controlChannel),
-      _statusEvents = statusEvents ?? const EventChannel(_statusChannel) {
+  PlatformAudioRecorder({
+    MethodChannel? methods,
+    EventChannel? statusEvents,
+    EventChannel? levelEvents,
+  }) : _methods = methods ?? const MethodChannel(_controlChannel),
+       _statusEvents = statusEvents ?? const EventChannel(_statusChannel),
+       _levelEvents = levelEvents ?? const EventChannel(_levelChannel) {
     // Build the shared pipeline once so listeners share a single native
     // subscription rather than clobbering each other's sink. Native replays the
     // live state only on the 0->1 listener transition, so the Dart side caches the
@@ -27,7 +32,19 @@ class PlatformAudioRecorder implements AudioRecorder {
         .map((event) => _statusFrom(event as String?))
         .where((status) => status != null)
         .cast<CaptureStatus>()
-        .map((status) => _lastStatus = status);
+        .map((status) {
+          // Cache only live states. Replaying a terminal state to the next
+          // session's fresh listener would read as a brand-new interruption
+          // and auto-finalize a capture that just started.
+          _lastStatus = switch (status) {
+            CaptureStatus.interrupted || CaptureStatus.stopped => null,
+            _ => status,
+          };
+          return status;
+        });
+    // One shared pipeline for levels too: a second receiveBroadcastStream on
+    // the same channel would clobber the first listener's native sink.
+    _level = _levelEvents.receiveBroadcastStream().map((event) => (event as num).toDouble());
     _status = Stream<CaptureStatus>.multi((controller) {
       final last = _lastStatus;
       if (last != null) controller.add(last);
@@ -42,8 +59,14 @@ class PlatformAudioRecorder implements AudioRecorder {
 
   final MethodChannel _methods;
   final EventChannel _statusEvents;
+  final EventChannel _levelEvents;
   late final Stream<CaptureStatus> _status;
+  late final Stream<double> _level;
   CaptureStatus? _lastStatus;
+
+  /// Levels are ephemeral, so no cache and no replay: just decoded doubles.
+  @override
+  Stream<double> get level => _level;
 
   @override
   Future<PermissionStatus> ensurePermission() async {
@@ -66,6 +89,39 @@ class PlatformAudioRecorder implements AudioRecorder {
   Future<void> start() async {
     try {
       await _methods.invokeMethod<void>('start');
+    } on PlatformException catch (e) {
+      throw CaptureFailed(e.message, e.code);
+    } on MissingPluginException catch (e) {
+      throw CaptureFailed(e.message);
+    }
+  }
+
+  @override
+  Future<void> pause() async {
+    try {
+      await _methods.invokeMethod<void>('pause');
+    } on PlatformException catch (e) {
+      throw CaptureFailed(e.message, e.code);
+    } on MissingPluginException catch (e) {
+      throw CaptureFailed(e.message);
+    }
+  }
+
+  @override
+  Future<void> resume() async {
+    try {
+      await _methods.invokeMethod<void>('resume');
+    } on PlatformException catch (e) {
+      throw CaptureFailed(e.message, e.code);
+    } on MissingPluginException catch (e) {
+      throw CaptureFailed(e.message);
+    }
+  }
+
+  @override
+  Future<void> cancel() async {
+    try {
+      await _methods.invokeMethod<void>('cancel');
     } on PlatformException catch (e) {
       throw CaptureFailed(e.message, e.code);
     } on MissingPluginException catch (e) {
@@ -131,6 +187,7 @@ class PlatformAudioRecorder implements AudioRecorder {
 
   CaptureStatus? _statusFrom(String? raw) => switch (raw) {
     'recording' => CaptureStatus.recording,
+    'paused' => CaptureStatus.paused,
     'interrupted' => CaptureStatus.interrupted,
     'stopped' => CaptureStatus.stopped,
     _ => null,

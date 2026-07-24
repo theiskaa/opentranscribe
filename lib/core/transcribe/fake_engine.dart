@@ -163,8 +163,9 @@ class FakeManagedEngine implements ManagedModelEngine {
   final String cannedText;
   final List<String> supportedLocaleTags;
   bool installed;
-  final List<double> installSteps;
-  final bool failInstall;
+  // Mutable: a test flips install behavior after construction.
+  List<double> installSteps;
+  bool failInstall;
   final Availability availability;
   final DateTime Function() _clock;
 

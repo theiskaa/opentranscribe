@@ -15,6 +15,24 @@ abstract interface class AudioRecorder {
   /// Begins capture to a fresh file.
   Future<void> start();
 
+  /// Suspends capture without ending it: the mic goes silent, the file stays
+  /// open, and [stop] later seals one continuous recording. Throws when nothing
+  /// is capturing or already paused.
+  Future<void> pause();
+
+  /// Resumes a paused capture into the same file. Throws when not paused; a
+  /// failure leaves the capture paused, never half-running.
+  Future<void> resume();
+
+  /// Ends capture and deletes its audio: nothing is kept and nothing is
+  /// returned. Quiet when nothing is capturing, so callers can cancel
+  /// defensively.
+  Future<void> cancel();
+
+  /// Input level while capturing, normalized 0..1, around 20 Hz. Ephemeral: no
+  /// replay, silent while paused or idle. Feeds a live waveform, never storage.
+  Stream<double> get level;
+
   /// Capture lifecycle: recording, interruption, stopped. Contract for every
   /// implementation: past events are NOT replayed, but each new listener receives
   /// the current live state on subscribe (so a screen attaching mid-capture is not

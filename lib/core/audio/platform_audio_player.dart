@@ -84,15 +84,18 @@ class PlatformAudioPlayer implements AudioPlayer {
     final key = '$path#$buckets';
     final pending = _peaks[key];
     if (pending != null) return pending;
-    final read = _read(path, buckets);
     if (_peaks.length >= _peakCacheLimit) _peaks.remove(_peaks.keys.first);
-    _peaks[key] = read;
+    // The cache eviction rides on the RETURNED future, not a second one. A
+    // separate `read.onError(...) { throw }` chain rethrows into nothing, and
+    // its error surfaces as unhandled even when the caller catches the real one
+    // (a file that will not open - a 0-byte take, a codec the decoder refuses).
     // A failed read is not worth remembering: the file may be readable next
-    // time (a transient decode failure, a file still settling on disk).
-    read.onError<Object>((error, _) {
+    // time (a transient failure, a file still settling on disk).
+    final read = _read(path, buckets).catchError((Object error) {
       _peaks.remove(key);
       throw error;
     });
+    _peaks[key] = read;
     return read;
   }
 

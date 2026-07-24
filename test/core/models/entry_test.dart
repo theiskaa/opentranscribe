@@ -72,4 +72,35 @@ void main() {
     expect(updated.duration, original.duration);
     expect(updated.transcript, transcript);
   });
+
+  test('title round-trips through JSON and is omitted when null', () {
+    final untitled = baseEntry();
+    expect(untitled.toJson().containsKey('title'), isFalse);
+
+    final titled = untitled.withTitle('Morning pages');
+    expect(titled.title, 'Morning pages');
+    expect(Entry.fromJson(titled.toJson()), titled);
+  });
+
+  test('a record written before titles existed loads as untitled', () {
+    final json = baseEntry().toJson()..remove('title');
+    expect(Entry.fromJson(json).title, isNull);
+  });
+
+  test('withTranscript preserves the title; withTitle(null) clears it', () {
+    final titled = baseEntry().withTitle('Standup thoughts');
+
+    expect(titled.withTranscript(transcript).title, 'Standup thoughts');
+    expect(titled.withTitle(null).title, isNull);
+  });
+
+  test('equality and hashCode include the title', () {
+    final a = baseEntry().withTitle('x');
+    final b = baseEntry().withTitle('x');
+    final c = baseEntry().withTitle('y');
+
+    expect(a, b);
+    expect(a.hashCode, b.hashCode);
+    expect(a == c, isFalse);
+  });
 }
