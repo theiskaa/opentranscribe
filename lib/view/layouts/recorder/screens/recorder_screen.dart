@@ -15,7 +15,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/recorder_controls.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
-import 'package:opentranscribe/view/widgets/app_dialog.dart';
+import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
@@ -117,23 +117,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
     return ColoredBox(
       color: theme.screens.recorder,
       child: BlocConsumer<RecorderCubit, RecorderState>(
-        // A permission failure is a persistent state the builder renders; only
-        // the transient kinds surface as a dialog and clear. The other thing
-        // worth answering is the microphone actually opening.
-        listenWhen: (previous, current) =>
-            (current.error == RecorderError.generic && previous.error != current.error) ||
-            (current.live && !previous.live),
+        // Errors are rendered, not announced: permission-denied as a persistent
+        // state, a generic failure as an inline notice (below). The one thing
+        // worth a one-shot reaction is the microphone actually opening.
+        listenWhen: (previous, current) => current.live && !previous.live,
         listener: (context, state) {
-          if (state.error == RecorderError.generic) {
-            context.read<RecorderCubit>().clearError();
-            showAppDialog<void>(
-              context,
-              title: l10n.recordErrorTitle,
-              message: l10n.recordErrorMessage,
-              action: AppDialogAction(label: l10n.ok),
-            );
-            return;
-          }
           // Capture began. Since it now opens after the sheet lands, this tick
           // is the only thing that says so at the moment it happens.
           Haptics.light();
@@ -200,6 +188,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
                   child: _LiveText(),
                 ),
                 const Spacer(flex: 42),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                  child: AppNotice(
+                    message: state.error == RecorderError.generic ? l10n.recordErrorMessage : null,
+                    onDismiss: () => context.read<RecorderCubit>().clearError(),
+                  ),
+                ),
                 SafeArea(
                   top: false,
                   minimum: const EdgeInsets.fromLTRB(_columnInset, 0, _columnInset, 42),

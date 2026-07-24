@@ -101,6 +101,10 @@ double pullBarSwell(int index, double phase, double alive) {
 /// on and not a frame before.
 const double _wavePull = _wakeFrom / 1.4;
 
+/// The seven bar heights the app's small waveforms share, so the pull hint and
+/// the empty-state glyph read as the same wave.
+const kWavePattern = [0.35, 0.65, 1.0, 0.7, 0.5, 0.85, 0.4];
+
 /// The affordance in the gap a record pull opens: a small waveform whose bars
 /// grow with the pull beside a quiet label, riding into the gap at half the
 /// pull's speed (the reeed indicator), both darkening to ink at the threshold.
@@ -171,8 +175,7 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
     final l10n = AppLocalizations.of(context)!;
     final barWidth = theme.recorder.waveformBarWidth;
     final gap = theme.recorder.waveformGap;
-    final width =
-        _PullWavePainter.pattern.length * barWidth + (_PullWavePainter.pattern.length - 1) * gap;
+    final width = kWavePattern.length * barWidth + (kWavePattern.length - 1) * gap;
     return ValueListenableBuilder<double>(
       valueListenable: widget.pull,
       builder: (context, px, _) {
@@ -229,8 +232,6 @@ class _PullWavePainter extends CustomPainter {
   final double barWidth;
   final double gap;
 
-  static const pattern = [0.35, 0.65, 1.0, 0.7, 0.5, 0.85, 0.4];
-
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -240,12 +241,12 @@ class _PullWavePainter extends CustomPainter {
     var x = barWidth / 2;
     final mid = size.height / 2;
     final now = phase();
-    for (var i = 0; i < pattern.length; i++) {
+    for (var i = 0; i < kWavePattern.length; i++) {
       // Each bar rises in its own slightly offset window, so the wave builds
       // across the row as the pull deepens; as a bar tops out the swell takes
       // over from the drag and keeps travelling.
       final local = (progress * 1.4 - i * 0.06).clamp(0.0, 1.0);
-      final scrubbed = size.height * pattern[i] * Curves.easeOutCubic.transform(local);
+      final scrubbed = size.height * kWavePattern[i] * Curves.easeOutCubic.transform(local);
       final h = math.max(barWidth, scrubbed * pullBarSwell(i, now, pullBarAlive(local)));
       canvas.drawLine(Offset(x, mid - h / 2), Offset(x, mid + h / 2), paint);
       x += barWidth + gap;

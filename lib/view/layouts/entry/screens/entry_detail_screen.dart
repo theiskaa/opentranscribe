@@ -14,8 +14,8 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
-import 'package:opentranscribe/view/widgets/app_dialog.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
+import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
@@ -81,28 +81,12 @@ class _DetailViewState extends State<_DetailView> {
     }
   }
 
-  void _showError(String message) {
-    final l10n = AppLocalizations.of(context)!;
-    showAppDialog<void>(
-      context,
-      title: l10n.genericErrorTitle,
-      message: message,
-      action: AppDialogAction(label: l10n.ok),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
 
-    return BlocConsumer<EntriesCubit, EntriesState>(
-      listenWhen: (previous, current) => current.error != null && previous.error != current.error,
-      listener: (context, state) {
-        final message = state.error;
-        context.read<EntriesCubit>().clearError();
-        if (message != null) _showError(message);
-      },
+    return BlocBuilder<EntriesCubit, EntriesState>(
       builder: (context, state) {
         final matches = state.entries.where((e) => e.id == widget.entryId);
         final entry = matches.isEmpty ? null : matches.first;
@@ -137,6 +121,13 @@ class _DetailViewState extends State<_DetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // A failure the screen could not prevent (a delete or
+                      // rename that did not take), inline at the top and gone on
+                      // its own - no dialog.
+                      AppNotice(
+                        message: state.error,
+                        onDismiss: () => context.read<EntriesCubit>().clearError(),
+                      ),
                       _TitleField(entry: entry, focusNode: _titleFocus),
                       const SizedBox(height: AppSpacing.sm),
                       Text(

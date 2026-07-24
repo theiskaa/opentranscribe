@@ -21,8 +21,10 @@ import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart'
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/strip_fold.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
+import 'package:opentranscribe/view/widgets/app_icon_button_group.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
@@ -212,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.only(top: _contentTop),
                   child: Center(
                     child: EmptyState(
-                      icon: AppIcons.micFill,
+                      visual: const WaveGlyph(),
                       title: l10n.homeEmptyTitle,
                       message: l10n.homeEmptyMessage,
                     ),
@@ -328,9 +330,40 @@ class _HomeChromeState extends State<_HomeChrome> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
     return AppTopBar(
+      // Home is the base of the stack; never a back chevron, not even the
+      // phantom one that flickers in while a pushed route pops off above it.
+      automaticLeading: false,
       barHeight: theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
+      // Settings and search hang off the bar's trailing edge - the home is the
+      // app, so this is how you leave it. Search is inert for now: present, so
+      // the row is what it will be, but doing nothing until search exists.
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.md),
+          child: AppIconButtonGroup(
+            color: theme.topBar.iconColor,
+            items: [
+              AppIconButtonGroupItem(
+                icon: AppIcons.magnifyingglass,
+                onTap: null,
+                semanticLabel: l10n.navSearch,
+              ),
+              AppIconButtonGroupItem(
+                icon: AppIcons.gearshape,
+                // Pushed over home, not a branch switch: settings slides in on
+                // the base transition and pops back. The glass group hides
+                // itself for the push via the platform view's cover detection,
+                // so no manual navigation guard - that guard was the lag.
+                onTap: () => context.pushNamed(Routes.settingsName),
+                semanticLabel: l10n.navSettings,
+              ),
+            ],
+          ),
+        ),
+      ],
       // The top padding settles the block lower in the row, off the status
       // area.
       title: Padding(
