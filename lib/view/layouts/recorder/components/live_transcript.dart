@@ -5,16 +5,19 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 
-/// Greedy line packing over [words], returning the LAST [maxLines] lines as
-/// absolute word indices. Packing runs forward from the first word so a line's
-/// breaks are settled once decided: a newly spoken word only ever extends the
-/// last line or starts a new one, and the block above it holds still.
-List<List<int>> tailLines(
+/// How deep each edge of the window dissolves, in lines. Under half a line the
+/// cut is still a cut; much over one and the window loses a line to softness.
+const double _edgeFade = 0.7;
+
+/// Greedy line packing over [words], as absolute word indices per line.
+/// Packing runs forward from the first word so a line's breaks are settled once
+/// decided: a newly spoken word only ever extends the last line or starts a new
+/// one, and the block above it holds still.
+List<List<int>> packLines(
   List<String> words,
   double Function(String) widthOf, {
   required double spaceWidth,
   required double maxWidth,
-  required int maxLines,
 }) {
   final lines = <List<int>>[];
   var current = <int>[];
@@ -34,15 +37,15 @@ List<List<int>> tailLines(
     }
   }
   if (current.isNotEmpty) lines.add(current);
-  return lines.length <= maxLines ? lines : lines.sublist(lines.length - maxLines);
+  return lines;
 }
 
-/// The ambient live transcript: the TAIL of what is being said, exactly two
-/// lines, bottom-anchored so every motion is upward. Each newly heard word
-/// fades and rises into place, a revision dissolves in the word it corrects,
-/// and when a line rolls off the top the block lifts by one line. This is
-/// feedback, not the record; the persisted transcript comes from the batch
-/// pass on stop.
+/// The live transcript: a four-line window on what is being said, anchored at
+/// the bottom so every motion is upward, and SCROLLABLE back through the whole
+/// take. Each newly heard word fades and rises into place, a revision dissolves
+/// in the word it corrects, and a new line lifts the block by gliding the
+/// scroll rather than by moving the text under it. This is feedback, not the
+/// record; the persisted transcript comes from the batch pass on stop.
 class LiveTranscript extends StatefulWidget {
   const LiveTranscript({required this.text, super.key});
 
@@ -53,7 +56,15 @@ class LiveTranscript extends StatefulWidget {
 }
 
 class _LiveTranscriptState extends State<LiveTranscript> {
-  static const _lines = 2;
+  static const _lines = 4;
+
+  /// Reversed: offset 0 is the NEWEST line, so the window stays on the latest
+  /// speech for free and scrolling back is scrolling forward.
+  final ScrollController _scroll = ScrollController();
+
+  /// Lines packed at the last build, to know how far a new one displaced what
+  /// was already on screen.
+  int _lineCount = 0;
 
   /// Measured word widths, so a long take does not re-measure its history on
   /// every partial. Dropped when the style or text scale changes under it.
@@ -84,6 +95,53 @@ class _LiveTranscriptState extends State<LiveTranscript> {
   double _spaceWidth(TextStyle style, TextScaler scaler) =>
       _widths[' '] ??= _measure('x x', style, scaler) - _measure('xx', style, scaler);
 
+  /// Each edge's dissolve, as a FRACTION of the window, for a [fade] that deep.
+  /// An edge only softens when there is speech being cut off behind it: the
+  /// newest line must never be dimmed while it is the thing being read, and a
+  /// take shorter than the window has nothing hidden at either end. Both ramp
+  /// in over the fade's own depth, so scrolling away from an edge grows its
+  /// dissolve rather than switching it on.
+  (double, double) _cutOff(double fade) {
+    if (!_scroll.hasClients || fade <= 0) return (0, 0);
+    final position = _scroll.position;
+    // Reversed axis: pixels measures back from the NEWEST line, so it is
+    // exactly how much is hidden below the window, and what is left above is
+    // the rest of the take.
+    final below = (position.pixels / fade).clamp(0.0, 1.0);
+    final above = ((position.maxScrollExtent - position.pixels) / fade).clamp(0.0, 1.0);
+    final span = fade / position.viewportDimension;
+    return (above * span, below * span);
+  }
+
+  /// Keeps the window where the reader left it as lines arrive. On the reversed
+  /// axis a new line pushes everything already there one line further from the
+  /// bottom, so jumping by that much holds the same words in place. From the
+  /// bottom that jump lands on the frame BEFORE the new line, and gliding back
+  /// to zero is the lift.
+  void _absorbNewLines(int count, double lineHeight, Duration lift) {
+    final delta = count - _lineCount;
+    _lineCount = count;
+    if (delta == 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      final position = _scroll.position;
+      final wasAtNewest = position.pixels <= 0.5;
+      final held = (position.pixels + delta * lineHeight).clamp(0.0, position.maxScrollExtent);
+      if (held != position.pixels) _scroll.jumpTo(held);
+      // Only the reader at the bottom is following the speech; anyone scrolled
+      // back is reading, and must not be dragged forward.
+      if (wasAtNewest && held > 0) {
+        _scroll.animateTo(0, duration: lift, curve: Curves.easeInOut);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -103,6 +161,7 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       // Only an emptied text is a fresh take; nothing has been shown under the
       // new numbering.
       _shownThrough = -1;
+      _lineCount = 0;
       return SizedBox(height: boxHeight);
     }
     // A shortening revision ("recognise it" -> "recognized") must not make
@@ -120,65 +179,91 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final spaceWidth = _spaceWidth(style, scaler);
-          final lines = tailLines(
+          final lines = packLines(
             words,
             (word) => _widthOf(word, style, scaler),
             spaceWidth: spaceWidth,
             maxWidth: constraints.maxWidth,
-            maxLines: _lines,
           );
-          final first = lines.first.first;
+          _absorbNewLines(lines.length, lineHeight, theme.motion.lineShift);
 
           // Stagger runs over the words arriving in THIS frame, so a partial
-          // that lands several at once reads as one cascade.
-          var arriving = 0;
-          final rows = <Widget>[
-            for (final line in lines)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final (position, index) in line.indexed) ...[
-                    if (position > 0) SizedBox(width: spaceWidth),
-                    _Word(
-                      key: ValueKey(index),
-                      text: words[index],
-                      style: style,
-                      entering: index > shownBefore,
-                      order: index > shownBefore ? arriving++ : 0,
-                    ),
-                  ],
-                ],
-              ),
-          ];
+          // that lands several at once reads as one cascade. Counted over the
+          // packing, not the build, so a line scrolled out of the viewport
+          // cannot renumber the words that are actually appearing.
+          final arrivalOrder = <int, int>{};
+          for (final line in lines) {
+            for (final index in line) {
+              if (index > shownBefore) arrivalOrder[index] = arrivalOrder.length;
+            }
+          }
 
-          return ClipRect(
-            child: ShaderMask(
-              // The older line reads as already spoken.
-              shaderCallback: (rect) => LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [tokens.liveTextFadedColor, tokens.liveTextColor],
-                stops: const [0.0, 0.6],
-              ).createShader(rect),
-              blendMode: BlendMode.srcIn,
-              child: Align(
-                alignment: AlignmentDirectional.bottomStart,
-                child: TweenAnimationBuilder<double>(
-                  // A roll-off changes the first visible word, which remounts
-                  // this and plays the lift once. Before the first roll-off
-                  // there is nothing above to rise from.
-                  key: ValueKey(first),
-                  tween: Tween(begin: first == 0 ? 0.0 : lineHeight, end: 0),
-                  duration: theme.motion.lineShift,
-                  curve: Curves.easeInOut,
-                  builder: (context, dy, child) =>
-                      Transform.translate(offset: Offset(0, dy), child: child),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: rows,
-                  ),
+          // The window is only as tall as it has speech to hold, pinned to the
+          // TOP of the reserved block: a first line sits right under the band
+          // rather than at the foot of four lines of nothing, and each new one
+          // arrives BELOW it without moving what is already there. The block
+          // itself keeps its full height, so the page never reflows. Once the
+          // window is full it stops growing and starts scrolling, which is the
+          // point the lift takes over.
+          final window = math.min(lines.length, _lines) * lineHeight;
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              height: window,
+              child: AnimatedBuilder(
+                animation: _scroll,
+                child: ListView.builder(
+                  controller: _scroll,
+                  // Bottom-anchored by construction: a take shorter than the window
+                  // rests on the floor, and a longer one holds the newest line
+                  // there without anything having to chase it.
+                  reverse: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: lines.length,
+                  itemBuilder: (context, row) {
+                    final line = lines[lines.length - 1 - row];
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final (position, index) in line.indexed) ...[
+                          if (position > 0) SizedBox(width: spaceWidth),
+                          _Word(
+                            key: ValueKey(index),
+                            text: words[index],
+                            style: style,
+                            entering: index > shownBefore,
+                            order: arrivalOrder[index] ?? 0,
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
+                builder: (context, child) {
+                  final fade = lineHeight * _edgeFade;
+                  final (top, bottom) = _cutOff(fade);
+                  return ShaderMask(
+                    // srcIn takes the shader's OWN color, so these are the text's
+                    // colors and the gradient is what dissolves it: speech leaves
+                    // the window rather than meeting a cut. The top ramp passes
+                    // through the faded ink on its way in, so what is about to go
+                    // reads as already spoken.
+                    shaderCallback: (rect) => LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        tokens.liveTextColor.withValues(alpha: 0),
+                        tokens.liveTextFadedColor,
+                        tokens.liveTextColor,
+                        tokens.liveTextColor,
+                        tokens.liveTextColor.withValues(alpha: 0),
+                      ],
+                      stops: [0, top / 2, top, 1 - bottom, 1],
+                    ).createShader(rect),
+                    blendMode: BlendMode.srcIn,
+                    child: child,
+                  );
+                },
               ),
             ),
           );
@@ -223,6 +308,18 @@ class _WordState extends State<_Word> {
     final motion = context.theme.motion;
     final Widget word = AnimatedSwitcher(
       duration: motion.crossfade,
+      // The CURRENT word alone sizes the slot; the word it replaced dissolves
+      // out over the top of it. The default stack sizes to the LARGER of the
+      // two, so a revision to a shorter word ("recognise it" -> "recognized")
+      // would hold the old, wider layout for the length of the crossfade - and
+      // the line was packed for the new one, so the row overflowed.
+      layoutBuilder: (current, previous) => Stack(
+        alignment: AlignmentDirectional.centerStart,
+        children: [
+          for (final child in previous) Positioned(left: 0, child: child),
+          ?current,
+        ],
+      ),
       child: Text(widget.text, key: ValueKey(widget.text), style: widget.style),
     );
     if (!_entering) return word;

@@ -1,18 +1,24 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// The recorder's controls: three circles, the middle one twice the weight of
-/// its flanks. Circles because this is a machine you operate, not a form you
-/// submit - restart and pause flank the one button that ends the take.
+/// The recorder's controls: four circles of one size, split into what you do
+/// to the take and what ENDS it. Close, restart and pause group at the left;
+/// complete sits alone on the right behind a short rule, because it is the only
+/// one of the four that cannot be undone by tapping again. Circles because this
+/// is a machine you operate, not a form you submit, and every way out of the
+/// screen is here, under the thumb - which is why the top bar carries nothing
+/// but the clock.
 class RecorderControls extends StatelessWidget {
   const RecorderControls({
     required this.paused,
     required this.saving,
+    required this.onClose,
     required this.onRestart,
     required this.onComplete,
     required this.onTogglePause,
@@ -21,6 +27,7 @@ class RecorderControls extends StatelessWidget {
 
   final bool paused;
   final bool saving;
+  final VoidCallback onClose;
   final VoidCallback onRestart;
   final VoidCallback onComplete;
   final VoidCallback onTogglePause;
@@ -29,21 +36,46 @@ class RecorderControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.recorder;
+    final size = tokens.controlSize;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Flank(
-          icon: AppIcons.arrowCounterclockwise,
-          onTap: saving ? null : onRestart,
-          size: tokens.controlSize,
-        ),
-        _CompleteButton(size: tokens.completeSize, saving: saving, onTap: onComplete),
+        _Flank(icon: AppIcons.xmark, onTap: saving ? null : onClose, size: size),
+        const SizedBox(width: AppSpacing.md),
+        _Flank(icon: AppIcons.arrowCounterclockwise, onTap: saving ? null : onRestart, size: size),
+        const SizedBox(width: AppSpacing.md),
         _Flank(
           icon: paused ? AppIcons.playFill : AppIcons.pauseFill,
           onTap: saving ? null : onTogglePause,
-          size: tokens.controlSize,
+          size: size,
         ),
+        // Wider than the gaps inside the group, and no wider: the rule is what
+        // separates the two, so the air only has to confirm it. Measured, not
+        // whatever is left over - pushing complete to the screen's edge opens a
+        // gulf the eye reads as a missing button.
+        const SizedBox(width: AppSpacing.xl),
+        _Seam(height: size / 2),
+        const SizedBox(width: AppSpacing.xl),
+        _CompleteButton(size: size, saving: saving, onTap: onComplete),
       ],
+    );
+  }
+}
+
+/// The rule between the take's controls and the one that ends it. Short: it
+/// divides two groups on one row, and a full-height rule would read as a border
+/// around the button it sits beside.
+class _Seam extends StatelessWidget {
+  const _Seam({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 1,
+      height: height,
+      child: ColoredBox(color: context.theme.hairline),
     );
   }
 }

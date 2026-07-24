@@ -4,8 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/routes/routes.dart';
-import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -19,19 +17,21 @@ import 'package:opentranscribe/view/layouts/recorder/components/recorder_control
 import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
 import 'package:opentranscribe/view/widgets/app_dialog.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
-import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// The one margin this screen repeats: the band, the transcript and the
 /// controls all sit on it, so a single edge runs down the page.
 const double _columnInset = AppSpacing.xxxl + AppSpacing.sm;
 
-/// The recording surface: timer in the top bar, live waveform and transcript
-/// centered, discard/complete/pause along the bottom. Recording starts when the
-/// sheet opens; every exit is explicit (complete saves, close and restart
-/// discard through their confirms). A denied microphone renders as a persistent
-/// in-screen state, not a dialog.
+/// The recording surface: the clock alone in the top bar, live waveform and
+/// transcript centered, and one row of four circles along the bottom carrying
+/// every way out - close, restart, complete, pause. Recording starts when the
+/// sheet opens. Both exits keep the take and close onto the journal without
+/// waiting for the save; only restart, which throws speech away, confirms
+/// first. A denied microphone renders as a persistent in-screen state, not a
+/// dialog.
 class RecorderScreen extends StatefulWidget {
   const RecorderScreen({super.key});
 
@@ -75,58 +75,34 @@ class _RecorderScreenState extends State<RecorderScreen> {
     if (!cubit.state.isBusy) cubit.start();
   }
 
-  Future<void> _complete() async {
+  /// Leave, keeping what was said. The sheet closes onto the journal it came
+  /// from, never onto the new entry: someone who just stopped talking asked to
+  /// stop, not to be handed a screen.
+  ///
+  /// [keepSilence] is what separates the two ways out. Complete is a deliberate
+  /// save and keeps the audio whatever was heard - the batch pass may still read
+  /// what the live engine could not. Closing is not: nothing heard means nothing
+  /// worth filing, so an X on a silent take discards it.
+  void _close({required bool keepSilence}) {
     final cubit = context.read<RecorderCubit>();
     final home = context.read<HomeCubit>();
-    final entry = await cubit.stop();
-    if (!mounted || entry == null) return;
-    // The sheet closes into the new entry's detail; the detail reads
-    // EntriesCubit, and home refreshes when the detail pops, since a delete
-    // or rename may have happened there.
-    context.read<EntriesCubit>().load();
+    final state = cubit.state;
+    final heardSomething = state.liveText.trim().isNotEmpty;
+    // LEAVE FIRST. Persisting runs the batch pass over the whole take, seconds
+    // of it, and nothing on this screen is waiting on the answer: the cubit
+    // outlives the route, so the save finishes behind the closing sheet. Home's
+    // own refresh fires on the pop, too early to see the new record, so this
+    // reloads it again once the save has actually landed.
     context.pop();
-    unawaited(
-      context
-          .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
-          .then((_) => home.load()),
-    );
+    if (!state.isBusy) return;
+    final ending = heardSomething || keepSilence ? cubit.stop() : cubit.cancel();
+    unawaited(ending.then((_) => home.load()));
   }
 
   @override
   void dispose() {
     _entrance?.removeStatusListener(_onEntrance);
     super.dispose();
-  }
-
-  void _confirmClose() {
-    final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<RecorderCubit>();
-    if (!cubit.state.isBusy) {
-      context.pop();
-      return;
-    }
-    showAppDialog<void>(
-      context,
-      title: l10n.recordDiscardTitle,
-      message: l10n.recordDiscardMessage,
-      cancelLabel: l10n.cancel,
-      action: AppDialogAction(
-        label: l10n.recordDiscard,
-        destructive: true,
-        // Leave first: tearing the session down is another blocking platform
-        // call, and nothing here waits on its answer. The cubit lives above
-        // this route, so the discard still completes. The pop waits for the
-        // frame the dialog closes on: the dialog is a raw navigator route
-        // and this sheet is a router page, and reconciling both in one tick
-        // makes the navigator finalize a route it is still animating out.
-        onPressed: () {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) context.pop();
-          });
-          unawaited(cubit.cancel());
-        },
-      ),
-    );
   }
 
   void _confirmRestart() {
@@ -187,11 +163,17 @@ class _RecorderScreenState extends State<RecorderScreen> {
             children: [
               AppTopBar(
                 centerTitle: true,
-                leading: AppGlassIconButton(
-                  icon: AppIcons.xmark,
-                  color: theme.topBar.iconColor,
-                  onTap: saving ? null : _confirmClose,
-                ),
+                // Nothing but the clock: every way out lives on the control
+                // row. Except when the microphone was refused - that screen has
+                // no control row, so the way out comes back up here, in the
+                // same circle the row would have used.
+                leading: denied
+                    ? AppIconButton(
+                        icon: AppIcons.xmark,
+                        size: theme.topBar.largeHeight - AppSpacing.md,
+                        onTap: () => _close(keepSilence: false),
+                      )
+                    : const SizedBox.shrink(),
                 title: denied ? null : _Timer(paused: state.isPaused),
                 subtitle: denied
                     ? null
@@ -224,20 +206,21 @@ class _RecorderScreenState extends State<RecorderScreen> {
                     active: state.isRecording,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxxl),
+                const SizedBox(height: AppSpacing.lg),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: _columnInset),
                   child: _LiveText(),
                 ),
-                const Spacer(flex: 55),
+                const Spacer(flex: 42),
                 SafeArea(
                   top: false,
                   minimum: const EdgeInsets.fromLTRB(_columnInset, 0, _columnInset, 42),
                   child: RecorderControls(
                     paused: state.isPaused,
                     saving: saving,
+                    onClose: () => _close(keepSilence: false),
                     onRestart: _confirmRestart,
-                    onComplete: _complete,
+                    onComplete: () => _close(keepSilence: true),
                     onTogglePause: () {
                       final cubit = context.read<RecorderCubit>();
                       state.isPaused ? cubit.resume() : cubit.pause();
