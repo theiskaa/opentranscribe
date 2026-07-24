@@ -71,8 +71,12 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
   void _start() {
     if (!mounted) return;
-    final cubit = context.read<RecorderCubit>();
-    if (!cubit.state.isBusy) cubit.start();
+    // Unconditionally: the cubit outlives this screen, and it is the only thing
+    // that can tell a take genuinely in flight from a state left busy by a
+    // previous screen (a save still running behind a popped sheet). Guarding on
+    // isBusy here refused to start on exactly the states it knows how to heal,
+    // and the screen sat dead with the last take's clock and text on it.
+    context.read<RecorderCubit>().start();
   }
 
   /// Leave, keeping what was said. The sheet closes onto the journal it came

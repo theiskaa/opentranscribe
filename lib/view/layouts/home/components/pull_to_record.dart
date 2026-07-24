@@ -35,14 +35,19 @@ class PullToRecordGesture {
   /// Feed every vertical scroll update through here.
   void update({required double pixels, required bool dragging}) {
     // The finger lifted: an armed pull commits now, before the spring-back.
-    if (_wasDragging && !dragging && _armed && !_fired) {
+    final committed = _wasDragging && !dragging && _armed && !_fired;
+    if (committed) {
       _fired = true;
-      pull.value = 0;
       onFire();
     }
     _wasDragging = dragging;
 
-    pull.value = pixels < 0 ? -pixels : 0.0;
+    // A committed pull reads zero for the rest of the gesture: the recorder is
+    // already rising, and the hint riding the spring-back up behind it belongs
+    // to a gesture that is over. (Assigning zero before the line below would do
+    // nothing - listeners rebuild on the next frame, so only the last value in
+    // a turn is ever painted.)
+    pull.value = committed || pixels >= 0 ? 0.0 : -pixels;
     if (dragging && !_armed && pull.value >= threshold) {
       _armed = true;
       onArm();
