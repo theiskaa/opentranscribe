@@ -17,6 +17,11 @@ final class AudioCaptureSession {
   private var isRunning = false
   private var isPaused = false
 
+  /// The input format the open file was created for. A configuration change that
+  /// keeps it is recoverable; one that moves it is not, because the file cannot
+  /// take buffers of a different shape.
+  private var captureFormat: AVAudioFormat?
+
   // Input-level aggregation across tap buffers. Written on the tap thread;
   // reset from the main thread in start(), before the tap is installed.
   private var levelSumSquares: Float = 0
@@ -215,55 +220,15 @@ final class AudioCaptureSession {
     levelSumSquares = 0
     levelFrames = 0
 
-    // 1024 frames per buffer: ~21ms at 48kHz, small enough for responsive live
-    // partials, large enough to keep per-buffer overhead trivial.
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-      guard let self = self else { return }
-      self.lock.lock()
-      let file = self.audioFile
-      let canWrite = self.fileWriteError == nil
-      let onBuffers = self.consumers.values.map { $0.onBuffer }
-      self.lock.unlock()
-
-      if let file = file, canWrite {
-        do {
-          try file.write(from: buffer)
-        } catch {
-          self.lock.lock()
-          self.fileWriteError = "\(error)"
-          self.lock.unlock()
-          NSLog("AudioCaptureSession write error: \(error)")
-        }
-      }
-      for onBuffer in onBuffers { onBuffer(buffer) }
-
-      // Input level for the live waveform: RMS over the buffer, to dBFS, then
-      // normalized so -60dB..0dB maps to 0..1. Aggregated by frame count, not
-      // buffer count: the tap's 1024-frame request is advisory and devices
-      // deliver larger buffers, so ~2048 frames keeps the cadence near 20 Hz
-      // regardless of what the hardware hands us.
-      if let data = buffer.floatChannelData?[0] {
-        let frames = Int(buffer.frameLength)
-        var sum: Float = 0
-        for i in 0..<frames { sum += data[i] * data[i] }
-        self.levelSumSquares += sum
-        self.levelFrames += frames
-        if self.levelFrames >= 2048 {
-          let rms = sqrt(self.levelSumSquares / Float(self.levelFrames))
-          let db = 20 * log10(max(rms, 1e-6))
-          let level = min(max((Double(db) + 60) / 60, 0), 1)
-          self.levelSumSquares = 0
-          self.levelFrames = 0
-          DispatchQueue.main.async { [weak self] in self?.onLevel?(level) }
-        }
-      }
-    }
+    captureFormat = format
+    installCaptureTap(on: input, format: format)
 
     engine.prepare()
     do {
       try engine.start()
     } catch {
       input.removeTap(onBus: 0)
+      captureFormat = nil
       lock.lock()
       audioFile = nil
       let orphan = fileURL
@@ -403,6 +368,7 @@ final class AudioCaptureSession {
     guard isRunning else { return }
     isRunning = false
     isPaused = false
+    captureFormat = nil
 
     // Unconditional: a paused engine reports isRunning false but still holds
     // prepared resources; stop() is harmless on an already-stopped engine.
@@ -492,17 +458,104 @@ final class AudioCaptureSession {
     }
   }
 
-  /// The engine stopped because the audio route changed (earbuds died, mic
-  /// unplugged). Same outcome as an interruption: finalize and keep the audio.
+  /// Installs the capture tap: writes every buffer to the kept file, fans it out
+  /// to consumers, and aggregates the input level.
+  ///
+  /// Separate from [start] because a configuration change TEARS TAPS DOWN, and
+  /// the engine does not tell anyone: it keeps reporting isRunning while nothing
+  /// arrives. Reinstalling is the only way back.
+  private func installCaptureTap(on input: AVAudioInputNode, format: AVAudioFormat) {
+    // 1024 frames per buffer: ~21ms at 48kHz, small enough for responsive live
+    // partials, large enough to keep per-buffer overhead trivial.
+    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+      guard let self = self else { return }
+      self.lock.lock()
+      let file = self.audioFile
+      let canWrite = self.fileWriteError == nil
+      let onBuffers = self.consumers.values.map { $0.onBuffer }
+      self.lock.unlock()
+
+      if let file = file, canWrite {
+        do {
+          try file.write(from: buffer)
+        } catch {
+          self.lock.lock()
+          self.fileWriteError = "\(error)"
+          self.lock.unlock()
+          NSLog("AudioCaptureSession write error: \(error)")
+        }
+      }
+      for onBuffer in onBuffers { onBuffer(buffer) }
+
+      // Input level for the live waveform: RMS over the buffer, to dBFS, then
+      // normalized so -60dB..0dB maps to 0..1. Aggregated by frame count, not
+      // buffer count: the tap's 1024-frame request is advisory and devices
+      // deliver larger buffers, so ~2048 frames keeps the cadence near 20 Hz
+      // regardless of what the hardware hands us.
+      if let data = buffer.floatChannelData?[0] {
+        let frames = Int(buffer.frameLength)
+        var sum: Float = 0
+        for i in 0..<frames { sum += data[i] * data[i] }
+        self.levelSumSquares += sum
+        self.levelFrames += frames
+        if self.levelFrames >= 2048 {
+          let rms = sqrt(self.levelSumSquares / Float(self.levelFrames))
+          let db = 20 * log10(max(rms, 1e-6))
+          let level = min(max((Double(db) + 60) / 60, 0), 1)
+          self.levelSumSquares = 0
+          self.levelFrames = 0
+          DispatchQueue.main.async { [weak self] in self?.onLevel?(level) }
+        }
+      }
+    }
+  }
+
+  /// The engine reconfigured under us - a charger or headset plugged in, a
+  /// Bluetooth device connecting, the system moving the input.
+  ///
+  /// This does NOT require the engine to have stopped. A configuration change
+  /// invalidates the installed TAP whether or not the engine keeps running, and
+  /// nothing reports that: buffers simply stop arriving. The file stops growing,
+  /// the waveform freezes, live transcription freezes - and Dart, which is told
+  /// nothing, keeps counting and keeps saying "recording". Reinstalling the tap
+  /// is the only way back, and it has to happen on every configuration change,
+  /// not just the ones that killed the engine.
   @objc private func handleConfigurationChange(_ note: Notification) {
     DispatchQueue.main.async { [weak self] in
       // While paused the engine is legitimately not running, so a benign route
       // change (headphones in) must not read as engine death. A route lost
       // during a pause surfaces at resume, which fails and leaves the session
       // paused for a clean stop or cancel.
-      guard let self = self, self.isRunning, !self.isPaused, !self.engine.isRunning else { return }
-      self.teardown()
-      self.onStatus?("interrupted")
+      guard let self = self, self.isRunning, !self.isPaused else { return }
+
+      let input = self.engine.inputNode
+      let format = input.outputFormat(forBus: 0)
+      let opened = self.captureFormat
+      // The kept file was created for one sample rate and channel count and
+      // cannot take anything else, so a format that MOVED ends the take. The
+      // audio up to here is real and is kept; carrying on would either throw on
+      // every write or silently record nothing.
+      let sameShape =
+        format.sampleRate > 0 && format.channelCount > 0 && opened != nil
+        && format.sampleRate == opened!.sampleRate && format.channelCount == opened!.channelCount
+
+      guard sameShape else {
+        self.teardown()
+        self.onStatus?("interrupted")
+        return
+      }
+
+      input.removeTap(onBus: 0)
+      self.installCaptureTap(on: input, format: format)
+      if !self.engine.isRunning {
+        do {
+          try self.engine.start()
+        } catch {
+          NSLog("AudioCaptureSession restart after configuration change failed: \(error)")
+          self.teardown()
+          self.onStatus?("interrupted")
+        }
+      }
     }
   }
 
