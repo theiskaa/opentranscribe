@@ -1,0 +1,4 @@
+include: package:flutter_lints/flutter.yaml
+
+# Vendored code, kept close to how it arrived: the app's own stricter rules are
+# not applied here, so an upstream diff stays readable.

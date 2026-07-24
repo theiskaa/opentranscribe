@@ -205,6 +205,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  liquid:
+    dependency: "direct main"
+    description:
+      path: "packages/liquid"
+      relative: true
+    source: path
+    version: "1.0.0"
   logging:
     dependency: transitive
     description:

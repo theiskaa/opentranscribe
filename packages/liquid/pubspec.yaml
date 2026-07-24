@@ -1,0 +1,28 @@
+name: liquid
+description: Flutter widgets backed by native iOS Liquid Glass components via platform views.
+version: 1.0.0
+publish_to: "none"
+
+# Vendored, not depended on: see README for provenance. It renders UIKit locally
+# through platform views and opens no sockets, which is the only reason it can
+# live in this app at all.
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  collection: ^1.19.1
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: LiquidPlugin
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
