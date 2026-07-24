@@ -109,22 +109,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
     super.dispose();
   }
 
-  void _confirmRestart() {
-    final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<RecorderCubit>();
-    showAppDialog<void>(
-      context,
-      title: l10n.recordRestartTitle,
-      message: l10n.recordRestartMessage,
-      cancelLabel: l10n.cancel,
-      action: AppDialogAction(
-        label: l10n.recordRestart,
-        destructive: true,
-        onPressed: cubit.restart,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -223,7 +207,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
                     paused: state.isPaused,
                     saving: saving,
                     onClose: () => _close(keepSilence: false),
-                    onRestart: _confirmRestart,
+                    onRestart: () => context.read<RecorderCubit>().restart(),
                     onComplete: () => _close(keepSilence: true),
                     onTogglePause: () {
                       final cubit = context.read<RecorderCubit>();

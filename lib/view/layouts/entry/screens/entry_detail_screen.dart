@@ -73,23 +73,12 @@ class _DetailViewState extends State<_DetailView> {
       case 1:
         context.read<EntriesCubit>().retranscribe(entry);
       case 2:
-        _confirmDelete(entry, l10n);
+        // Straight through, no confirm. The menu already took a deliberate tap
+        // to open and a second one to land on a row marked destructive; a sheet
+        // asking the same question again is a tax on every deliberate delete to
+        // catch the accidental one.
+        context.read<EntriesCubit>().delete(entry);
     }
-  }
-
-  void _confirmDelete(Entry entry, AppLocalizations l10n) {
-    final entries = context.read<EntriesCubit>();
-    showAppDialog<void>(
-      context,
-      title: l10n.deleteConfirmTitle,
-      message: l10n.deleteConfirmMessage,
-      cancelLabel: l10n.cancel,
-      action: AppDialogAction(
-        label: l10n.delete,
-        destructive: true,
-        onPressed: () => entries.delete(entry),
-      ),
-    );
   }
 
   void _showError(String message) {

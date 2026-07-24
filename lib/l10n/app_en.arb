@@ -4,26 +4,6 @@
   "@appTitle": {
     "description": "The title of the application"
   },
-  "recordStart": "Record",
-  "@recordStart": {
-    "description": "Label for the button that starts a new voice entry"
-  },
-  "recordStop": "Done",
-  "@recordStop": {
-    "description": "Label for the button that stops recording"
-  },
-  "entriesTitle": "Entries",
-  "@entriesTitle": {
-    "description": "Title of the journal entries list"
-  },
-  "entriesEmpty": "Nothing here yet. Speak your mind.",
-  "@entriesEmpty": {
-    "description": "Empty state shown when there are no journal entries"
-  },
-  "reflectionTitle": "This week",
-  "@reflectionTitle": {
-    "description": "Title of the weekly reflection view"
-  },
   "settingsTitle": "Settings",
   "@settingsTitle": {
     "description": "Title of the settings screen"
@@ -35,14 +15,6 @@
   "settingsOffline": "Everything stays on this device. No account, no cloud, no network.",
   "@settingsOffline": {
     "description": "Settings note describing the offline promise"
-  },
-  "recordHint": "Tap to record",
-  "@recordHint": {
-    "description": "Hint under the idle record button"
-  },
-  "entryTitle": "Entry",
-  "@entryTitle": {
-    "description": "Title of the single entry screen"
   },
   "entryUntranscribed": "Untranscribed",
   "@entryUntranscribed": {
@@ -56,18 +28,6 @@
   "@delete": {
     "description": "Button to delete an entry"
   },
-  "deleteConfirmTitle": "Delete entry?",
-  "@deleteConfirmTitle": {
-    "description": "Title of the delete confirmation dialog"
-  },
-  "deleteConfirmMessage": "This removes the recording and its transcript from this device.",
-  "@deleteConfirmMessage": {
-    "description": "Body of the delete confirmation dialog"
-  },
-  "cancel": "Cancel",
-  "@cancel": {
-    "description": "Cancel action"
-  },
   "recordErrorTitle": "Couldn't record",
   "@recordErrorTitle": {
     "description": "Title of the recording error dialog"
@@ -75,5 +35,141 @@
   "ok": "OK",
   "@ok": {
     "description": "Dismiss action"
+  },
+  "homeEmptyTitle": "Nothing here yet",
+  "@homeEmptyTitle": {
+    "description": "Empty-state title when the journal has no entries"
+  },
+  "homeEmptyMessage": "Speak your mind.",
+  "@homeEmptyMessage": {
+    "description": "Empty-state line under the title when the journal has no entries"
+  },
+  "homePullToRecord": "Pull to record",
+  "@homePullToRecord": {
+    "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
+  },
+  "navRecord": "Record",
+  "@navRecord": {
+    "description": "Accessibility label for the glass mic button beside the tab bar"
+  },
+  "navHome": "Home",
+  "@navHome": {
+    "description": "Bottom navigation label for the home tab"
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom navigation label for the settings tab"
+  },
+  "recordComplete": "Complete",
+  "@recordComplete": {
+    "description": "Primary button that finishes and saves the recording"
+  },
+  "recordStateRecording": "Recording",
+  "@recordStateRecording": {
+    "description": "State line under the recorder's timer while the microphone is open"
+  },
+  "recordStatePaused": "Paused",
+  "@recordStatePaused": {
+    "description": "State line under the recorder's timer while the take is suspended"
+  },
+  "recordRestart": "Start over",
+  "@recordRestart": {
+    "description": "Destructive confirm action that restarts the take"
+  },
+  "recordErrorMessage": "Something went wrong while recording.",
+  "@recordErrorMessage": {
+    "description": "Generic body of the recording error dialog"
+  },
+  "recordPermissionTitle": "Microphone is off",
+  "@recordPermissionTitle": {
+    "description": "Title of the in-screen state when mic permission is denied"
+  },
+  "recordPermissionMessage": "Allow microphone access for opentranscribe in the Settings app, then try again.",
+  "@recordPermissionMessage": {
+    "description": "Body of the mic permission state"
+  },
+  "rename": "Rename",
+  "@rename": {
+    "description": "Action that renames an entry"
+  },
+  "transcribe": "Transcribe",
+  "@transcribe": {
+    "description": "Button that transcribes an untranscribed entry"
+  },
+  "playbackFailed": "Playback isn't available right now.",
+  "@playbackFailed": {
+    "description": "Quiet notice when audio playback fails"
+  },
+  "settingsTranscription": "Transcription",
+  "@settingsTranscription": {
+    "description": "Section label of the transcription settings group"
+  },
+  "settingsModel": "Model",
+  "@settingsModel": {
+    "description": "Row showing the on-device model state"
+  },
+  "settingsModelDownload": "Download",
+  "@settingsModelDownload": {
+    "description": "Action that downloads the transcription model"
+  },
+  "settingsModelInstalled": "Installed",
+  "@settingsModelInstalled": {
+    "description": "Value shown when the model is downloaded"
+  },
+  "settingsModelFailed": "Download failed. Tap to retry.",
+  "@settingsModelFailed": {
+    "description": "Value shown when a model download failed"
+  },
+  "settingsStorage": "Storage",
+  "@settingsStorage": {
+    "description": "Section label of the storage settings group"
+  },
+  "settingsBackup": "Include audio in backups",
+  "@settingsBackup": {
+    "description": "Toggle that includes kept audio in device backups"
+  },
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": {
+    "description": "Section label of the appearance settings group"
+  },
+  "settingsTheme": "Theme",
+  "@settingsTheme": {
+    "description": "Row that picks the theme mode"
+  },
+  "themeSystem": "System",
+  "@themeSystem": {
+    "description": "Theme mode following the device appearance"
+  },
+  "themeLight": "Light",
+  "@themeLight": {
+    "description": "Light theme mode"
+  },
+  "themeDark": "Dark",
+  "@themeDark": {
+    "description": "Dark theme mode"
+  },
+  "settingsAppLanguage": "App language",
+  "@settingsAppLanguage": {
+    "description": "Row that picks the interface language"
+  },
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "Section label of the about group"
+  },
+  "settingsOpenSource": "Open source",
+  "@settingsOpenSource": {
+    "description": "Row that copies the repository address"
+  },
+  "settingsCreatedBy": "Created by @theiskaa",
+  "@settingsCreatedBy": {
+    "description": "Row crediting the author; tap copies the handle"
+  },
+  "copied": "Copied",
+  "@copied": {
+    "description": "Momentary confirmation after copying to the clipboard"
+  },
+  "genericErrorTitle": "Something went wrong",
+  "@genericErrorTitle": {
+    "description": "Neutral title for error dialogs without a more specific one"
   }
 }

@@ -98,36 +98,6 @@ abstract class AppLocalizations {
   /// **'opentranscribe'**
   String get appTitle;
 
-  /// Label for the button that starts a new voice entry
-  ///
-  /// In en, this message translates to:
-  /// **'Record'**
-  String get recordStart;
-
-  /// Label for the button that stops recording
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get recordStop;
-
-  /// Title of the journal entries list
-  ///
-  /// In en, this message translates to:
-  /// **'Entries'**
-  String get entriesTitle;
-
-  /// Empty state shown when there are no journal entries
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing here yet. Speak your mind.'**
-  String get entriesEmpty;
-
-  /// Title of the weekly reflection view
-  ///
-  /// In en, this message translates to:
-  /// **'This week'**
-  String get reflectionTitle;
-
   /// Title of the settings screen
   ///
   /// In en, this message translates to:
@@ -145,18 +115,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everything stays on this device. No account, no cloud, no network.'**
   String get settingsOffline;
-
-  /// Hint under the idle record button
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to record'**
-  String get recordHint;
-
-  /// Title of the single entry screen
-  ///
-  /// In en, this message translates to:
-  /// **'Entry'**
-  String get entryTitle;
 
   /// Shown when an entry has no transcript yet
   ///
@@ -176,24 +134,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
-  /// Title of the delete confirmation dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Delete entry?'**
-  String get deleteConfirmTitle;
-
-  /// Body of the delete confirmation dialog
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the recording and its transcript from this device.'**
-  String get deleteConfirmMessage;
-
-  /// Cancel action
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get cancel;
-
   /// Title of the recording error dialog
   ///
   /// In en, this message translates to:
@@ -205,6 +145,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get ok;
+
+  /// Empty-state title when the journal has no entries
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get homeEmptyTitle;
+
+  /// Empty-state line under the title when the journal has no entries
+  ///
+  /// In en, this message translates to:
+  /// **'Speak your mind.'**
+  String get homeEmptyMessage;
+
+  /// Label beside the waveform hint while pulling the home list down to open the recorder
+  ///
+  /// In en, this message translates to:
+  /// **'Pull to record'**
+  String get homePullToRecord;
+
+  /// Accessibility label for the glass mic button beside the tab bar
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get navRecord;
+
+  /// Bottom navigation label for the home tab
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// Bottom navigation label for the settings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// Primary button that finishes and saves the recording
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get recordComplete;
+
+  /// State line under the recorder's timer while the microphone is open
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get recordStateRecording;
+
+  /// State line under the recorder's timer while the take is suspended
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get recordStatePaused;
+
+  /// Destructive confirm action that restarts the take
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get recordRestart;
+
+  /// Generic body of the recording error dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while recording.'**
+  String get recordErrorMessage;
+
+  /// Title of the in-screen state when mic permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone is off'**
+  String get recordPermissionTitle;
+
+  /// Body of the mic permission state
+  ///
+  /// In en, this message translates to:
+  /// **'Allow microphone access for opentranscribe in the Settings app, then try again.'**
+  String get recordPermissionMessage;
+
+  /// Action that renames an entry
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// Button that transcribes an untranscribed entry
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe'**
+  String get transcribe;
+
+  /// Quiet notice when audio playback fails
+  ///
+  /// In en, this message translates to:
+  /// **'Playback isn\'t available right now.'**
+  String get playbackFailed;
+
+  /// Section label of the transcription settings group
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription'**
+  String get settingsTranscription;
+
+  /// Row showing the on-device model state
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get settingsModel;
+
+  /// Action that downloads the transcription model
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get settingsModelDownload;
+
+  /// Value shown when the model is downloaded
+  ///
+  /// In en, this message translates to:
+  /// **'Installed'**
+  String get settingsModelInstalled;
+
+  /// Value shown when a model download failed
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Tap to retry.'**
+  String get settingsModelFailed;
+
+  /// Section label of the storage settings group
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get settingsStorage;
+
+  /// Toggle that includes kept audio in device backups
+  ///
+  /// In en, this message translates to:
+  /// **'Include audio in backups'**
+  String get settingsBackup;
+
+  /// Section label of the appearance settings group
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearance;
+
+  /// Row that picks the theme mode
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
+  /// Theme mode following the device appearance
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
+
+  /// Light theme mode
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// Dark theme mode
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// Row that picks the interface language
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get settingsAppLanguage;
+
+  /// Section label of the about group
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// Row that copies the repository address
+  ///
+  /// In en, this message translates to:
+  /// **'Open source'**
+  String get settingsOpenSource;
+
+  /// Row crediting the author; tap copies the handle
+  ///
+  /// In en, this message translates to:
+  /// **'Created by @theiskaa'**
+  String get settingsCreatedBy;
+
+  /// Momentary confirmation after copying to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// Neutral title for error dialogs without a more specific one
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get genericErrorTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
