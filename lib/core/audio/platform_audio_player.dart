@@ -48,6 +48,12 @@ class PlatformAudioPlayer implements AudioPlayer {
   late final Stream<PlaybackState> _state;
   PlaybackState? _lastState;
 
+  /// Reads in flight or already done, keyed by file and resolution.
+  /// Insertion-ordered, which is what makes evicting the first entry evict the
+  /// oldest.
+  final Map<String, Future<List<double>>> _peaks = {};
+  static const _peakCacheLimit = 16;
+
   @override
   Stream<PlaybackState> get state => _state;
 
@@ -65,6 +71,44 @@ class PlatformAudioPlayer implements AudioPlayer {
 
   @override
   Future<void> stop() => _invoke('stop');
+
+  @override
+  Future<void> setRate(double rate) => _invoke('setRate', {'rate': rate});
+
+  /// A kept recording never changes once written, so its shape is worth holding.
+  /// The FUTURE is cached, not the result: two screens asking for the same file
+  /// before the first read lands would otherwise both decode it, and a decode is
+  /// the most expensive thing this class does.
+  @override
+  Future<List<double>> peaks(String path, {int buckets = 240}) {
+    final key = '$path#$buckets';
+    final pending = _peaks[key];
+    if (pending != null) return pending;
+    final read = _read(path, buckets);
+    if (_peaks.length >= _peakCacheLimit) _peaks.remove(_peaks.keys.first);
+    _peaks[key] = read;
+    // A failed read is not worth remembering: the file may be readable next
+    // time (a transient decode failure, a file still settling on disk).
+    read.onError<Object>((error, _) {
+      _peaks.remove(key);
+      throw error;
+    });
+    return read;
+  }
+
+  Future<List<double>> _read(String path, int buckets) async {
+    try {
+      final raw = await _methods.invokeMethod<List<Object?>>('peaks', {
+        'path': path,
+        'buckets': buckets,
+      });
+      return [for (final value in raw ?? const []) (value as num).toDouble()];
+    } on PlatformException catch (e) {
+      throw PlaybackException(e.message, e.code);
+    } on MissingPluginException catch (e) {
+      throw PlaybackException(e.message);
+    }
+  }
 
   Future<void> _invoke(String method, [Map<String, dynamic>? args]) async {
     try {

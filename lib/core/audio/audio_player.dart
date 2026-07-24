@@ -28,4 +28,19 @@ abstract interface class AudioPlayer {
   /// Playback state: periodic position ticks while playing, plus every transition
   /// (play, pause, seek, stop, and completion when the file plays to its end).
   Stream<PlaybackState> get state;
+
+  /// Sets the playback speed, 1 being normal. Applies to the current playback
+  /// and to the next one: every play builds a fresh native player, so the rate
+  /// is the player's, not one playback's.
+  Future<void> setRate(double rate);
+
+  /// The amplitude envelope of the file at [path]: [buckets] values in 0..1, one
+  /// per equal slice of the recording, each the loudest sample in its slice.
+  /// Normalized against the file's own loudest sample, so the shape says where
+  /// the sound is and not how close the microphone was.
+  ///
+  /// Independent of playback: reading a file's shape does not touch the audio
+  /// session, so it works while something else is playing and while nothing is.
+  /// Throws [PlaybackException] when the file cannot be read.
+  Future<List<double>> peaks(String path, {int buckets});
 }

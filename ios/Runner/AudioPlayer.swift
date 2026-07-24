@@ -32,6 +32,9 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
   // Position update cadence while playing.
   private let tickInterval: TimeInterval = 0.2
 
+  // Survives each teardown, so a replay keeps the chosen speed.
+  private var rate: Float = 1
+
   /// Whether a player exists (playing or paused). Read by PlaybackHub for capture.
   var isActive: Bool { player != nil }
 
@@ -93,8 +96,44 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
     case "stop":
       stop()
       result(nil)
+    case "setRate":
+      guard let rate = (call.arguments as? [String: Any])?["rate"] as? Double else {
+        result(FlutterError(code: "bad_args", message: "rate required", details: nil))
+        return
+      }
+      setRate(rate)
+      result(nil)
+    case "peaks":
+      guard let args = call.arguments as? [String: Any],
+        let path = args["path"] as? String,
+        let buckets = args["buckets"] as? Int
+      else {
+        result(FlutterError(code: "bad_args", message: "path and buckets required", details: nil))
+        return
+      }
+      peaks(path: path, buckets: buckets, result: result)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// The recording's amplitude envelope, [buckets] values in 0...1, for drawing
+  /// a waveform of a file that is not playing. Reading is decode work measured
+  /// in whole seconds for a long take, and this handler runs on the MAIN thread
+  /// - so it hops straight off it and comes back only to answer.
+  private func peaks(path: String, buckets: Int, result: @escaping FlutterResult) {
+    guard buckets > 0 else {
+      result([Double]())
+      return
+    }
+    DispatchQueue.global(qos: .userInitiated).async {
+      let answer: Any
+      do {
+        answer = try readPeaks(path: path, buckets: buckets)
+      } catch {
+        answer = FlutterError(code: "peaks_failed", message: "\(error)", details: path)
+      }
+      DispatchQueue.main.async { result(answer) }
     }
   }
 
@@ -130,6 +169,10 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
 
       let newPlayer = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
       newPlayer.delegate = self
+      // Before prepareToPlay: rate is only honoured when enabled up front, and
+      // enabling it afterwards leaves the first stretch playing at 1x.
+      newPlayer.enableRate = true
+      newPlayer.rate = rate
       newPlayer.prepareToPlay()
       player = newPlayer
       guard newPlayer.play() else {
@@ -206,6 +249,14 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
     guard let player = player else { return }
     player.currentTime = max(0, min(Double(ms) / 1000, player.duration))
     emitCurrent(status: player.isPlaying ? "playing" : "paused")
+  }
+
+  /// Playback speed. Held on the plugin as well as the player: every play builds
+  /// a NEW AVAudioPlayer, which would otherwise come back at 1x and silently
+  /// drop a speed the user is still looking at.
+  private func setRate(_ value: Double) {
+    rate = Float(max(0.5, min(value, 3)))
+    player?.rate = rate
   }
 
   private func stop() {
@@ -337,4 +388,57 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
     lastPayload = terminal ? nil : payload
     DispatchQueue.main.async { self.stateSink?(payload) }
   }
+}
+
+/// The amplitude envelope of the file at [path]: [buckets] values in 0...1, one per
+/// equal slice of the recording, each the loudest sample in its slice.
+///
+/// PEAK, not average: an average washes speech into a flat band, while the peak keeps
+/// the shape of a voice - the attack of a word against the near-silence between them.
+/// Normalized by the file's OWN loudest sample, so a take recorded at arm's length
+/// still fills the band; the wave says where the sound is, not how close the mic was.
+///
+/// Reads in chunks: a whole recording decoded into one buffer is unbounded memory for
+/// an unbounded take.
+func readPeaks(path: String, buckets: Int) throws -> [Double] {
+  let file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
+  let frames = file.length
+  guard frames > 0, buckets > 0 else { return [] }
+
+  let format = file.processingFormat
+  let channels = Int(format.channelCount)
+  // Capped in absolute terms, not just relative to the file: sized off the take
+  // alone, an hour of 48kHz mono would ask for a single ~70MB float buffer.
+  let chunkCeiling: Int64 = 1 << 18  // ~1MB of float32 mono
+  let perBucket = max(1, Int(Double(frames) / Double(buckets)))
+  let chunkFrames = AVAudioFrameCount(min(Int64(perBucket) * 32, chunkCeiling, frames))
+  guard channels > 0, chunkFrames > 0,
+    let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: chunkFrames)
+  else { return [] }
+
+  var peaks = [Double](repeating: 0, count: buckets)
+  var loudest = 0.0
+  var frame: Int64 = 0
+  while frame < frames {
+    try file.read(into: buffer, frameCount: chunkFrames)
+    let read = Int(buffer.frameLength)
+    if read == 0 { break }
+    guard let samples = buffer.floatChannelData else { break }
+    for i in 0..<read {
+      var level = 0.0
+      for channel in 0..<channels {
+        level = max(level, Double(abs(samples[channel][i])))
+      }
+      // Proportional, not divided by a rounded slice size: rounding the slice up
+      // leaves the last buckets unwritten, which draws a short take with a flat
+      // right edge no matter what is in it.
+      let bucket = min(buckets - 1, Int((frame + Int64(i)) * Int64(buckets) / frames))
+      if level > peaks[bucket] { peaks[bucket] = level }
+      if level > loudest { loudest = level }
+    }
+    frame += Int64(read)
+  }
+
+  guard loudest > 0 else { return peaks }
+  return peaks.map { $0 / loudest }
 }
