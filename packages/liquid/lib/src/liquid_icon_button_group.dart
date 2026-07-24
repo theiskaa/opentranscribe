@@ -90,6 +90,7 @@ class LiquidIconButtonGroup extends StatefulWidget {
     required this.items,
     this.isDark,
     this.height = 44.0,
+    this.slotWidth = buttonSlotWidth,
     this.iconPointSize,
     super.key,
   }) : assert(items.length >= 1, 'At least one item is required');
@@ -97,9 +98,14 @@ class LiquidIconButtonGroup extends StatefulWidget {
   final List<LiquidIconButtonGroupItem> items;
   final bool? isDark;
   final double height;
+
+  /// Width allocated for each button slot inside the pill. Defaults to
+  /// [buttonSlotWidth]; a caller can tighten it so the capsule is not wider than
+  /// the icons need.
+  final double slotWidth;
   final double? iconPointSize;
 
-  /// Width allocated for each button slot inside the pill.
+  /// The default per-slot width.
   static const double buttonSlotWidth = 52.0;
 
   @override
@@ -125,7 +131,7 @@ class _LiquidIconButtonGroupState extends State<LiquidIconButtonGroup> {
 
   @override
   Widget build(BuildContext context) {
-    final width = widget.items.length * LiquidIconButtonGroup.buttonSlotWidth;
+    final width = widget.items.length * widget.slotWidth;
     // RepaintBoundary isolates the Platform View in a separate layer, helping
     // with compositing glitches during route transitions.
     return RepaintBoundary(
