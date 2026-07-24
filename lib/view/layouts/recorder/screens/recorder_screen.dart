@@ -1,0 +1,349 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/state/entries_cubit.dart';
+import 'package:opentranscribe/core/state/home_cubit.dart';
+import 'package:opentranscribe/core/state/recorder_cubit.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
+import 'package:opentranscribe/view/layouts/recorder/components/recorder_controls.dart';
+import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
+import 'package:opentranscribe/view/widgets/app_dialog.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
+import 'package:opentranscribe/view/widgets/rolling_text.dart';
+
+/// The one margin this screen repeats: the band, the transcript and the
+/// controls all sit on it, so a single edge runs down the page.
+const double _columnInset = AppSpacing.xxxl + AppSpacing.sm;
+
+/// The recording surface: timer in the top bar, live waveform and transcript
+/// centered, discard/complete/pause along the bottom. Recording starts when the
+/// sheet opens; every exit is explicit (complete saves, close and restart
+/// discard through their confirms). A denied microphone renders as a persistent
+/// in-screen state, not a dialog.
+class RecorderScreen extends StatefulWidget {
+  const RecorderScreen({super.key});
+
+  @override
+  State<RecorderScreen> createState() => _RecorderScreenState();
+}
+
+class _RecorderScreenState extends State<RecorderScreen> {
+  Animation<double>? _entrance;
+
+  @override
+  void initState() {
+    super.initState();
+    // Opening the microphone is a platform round trip that blocks the UI
+    // thread (session category, activation, engine start), so it waits until
+    // the sheet has LANDED. Done during the rise it eats the frames of the
+    // very transition that is meant to feel instant.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startWhenSettled());
+  }
+
+  void _startWhenSettled() {
+    if (!mounted) return;
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == null || animation.isCompleted) {
+      _start();
+      return;
+    }
+    _entrance = animation..addStatusListener(_onEntrance);
+  }
+
+  void _onEntrance(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    _entrance?.removeStatusListener(_onEntrance);
+    _entrance = null;
+    _start();
+  }
+
+  void _start() {
+    if (!mounted) return;
+    final cubit = context.read<RecorderCubit>();
+    if (!cubit.state.isBusy) cubit.start();
+  }
+
+  Future<void> _complete() async {
+    final cubit = context.read<RecorderCubit>();
+    final home = context.read<HomeCubit>();
+    final entry = await cubit.stop();
+    if (!mounted || entry == null) return;
+    // The sheet closes into the new entry's detail; the detail reads
+    // EntriesCubit, and home refreshes when the detail pops, since a delete
+    // or rename may have happened there.
+    context.read<EntriesCubit>().load();
+    context.pop();
+    unawaited(
+      context
+          .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
+          .then((_) => home.load()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _entrance?.removeStatusListener(_onEntrance);
+    super.dispose();
+  }
+
+  void _confirmClose() {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<RecorderCubit>();
+    if (!cubit.state.isBusy) {
+      context.pop();
+      return;
+    }
+    showAppDialog<void>(
+      context,
+      title: l10n.recordDiscardTitle,
+      message: l10n.recordDiscardMessage,
+      cancelLabel: l10n.cancel,
+      action: AppDialogAction(
+        label: l10n.recordDiscard,
+        destructive: true,
+        // Leave first: tearing the session down is another blocking platform
+        // call, and nothing here waits on its answer. The cubit lives above
+        // this route, so the discard still completes. The pop waits for the
+        // frame the dialog closes on: the dialog is a raw navigator route
+        // and this sheet is a router page, and reconciling both in one tick
+        // makes the navigator finalize a route it is still animating out.
+        onPressed: () {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.pop();
+          });
+          unawaited(cubit.cancel());
+        },
+      ),
+    );
+  }
+
+  void _confirmRestart() {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<RecorderCubit>();
+    showAppDialog<void>(
+      context,
+      title: l10n.recordRestartTitle,
+      message: l10n.recordRestartMessage,
+      cancelLabel: l10n.cancel,
+      action: AppDialogAction(
+        label: l10n.recordRestart,
+        destructive: true,
+        onPressed: cubit.restart,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return ColoredBox(
+      color: theme.screens.recorder,
+      child: BlocConsumer<RecorderCubit, RecorderState>(
+        // A permission failure is a persistent state the builder renders; only
+        // the transient kinds surface as a dialog and clear. The other thing
+        // worth answering is the microphone actually opening.
+        listenWhen: (previous, current) =>
+            (current.error == RecorderError.generic && previous.error != current.error) ||
+            (current.live && !previous.live),
+        listener: (context, state) {
+          if (state.error == RecorderError.generic) {
+            context.read<RecorderCubit>().clearError();
+            showAppDialog<void>(
+              context,
+              title: l10n.recordErrorTitle,
+              message: l10n.recordErrorMessage,
+              action: AppDialogAction(label: l10n.ok),
+            );
+            return;
+          }
+          // Capture began. Since it now opens after the sheet lands, this tick
+          // is the only thing that says so at the moment it happens.
+          Haptics.light();
+        },
+        // Elapsed ticks and live text are consumed by scoped selectors below;
+        // the frame only rebuilds on lifecycle changes.
+        buildWhen: (previous, current) =>
+            previous.status != current.status ||
+            previous.error != current.error ||
+            previous.live != current.live,
+        builder: (context, state) {
+          final saving = state.status == RecorderStatus.saving;
+          final denied = state.error == RecorderError.permissionDenied;
+          return Column(
+            children: [
+              AppTopBar(
+                centerTitle: true,
+                leading: AppGlassIconButton(
+                  icon: AppIcons.xmark,
+                  color: theme.topBar.iconColor,
+                  onTap: saving ? null : _confirmClose,
+                ),
+                title: denied ? null : _Timer(paused: state.isPaused),
+                subtitle: denied
+                    ? null
+                    : _StateLine(
+                        label: state.isPaused
+                            ? l10n.recordStatePaused
+                            : (state.live ? l10n.recordStateRecording : null),
+                      ),
+              ),
+              if (denied)
+                Expanded(
+                  child: Center(
+                    child: EmptyState(
+                      icon: AppIcons.mic,
+                      title: l10n.recordPermissionTitle,
+                      message: l10n.recordPermissionMessage,
+                    ),
+                  ),
+                )
+              else ...[
+                // Mathematical centre reads low; the block settles just above it.
+                const Spacer(flex: 45),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                  child: Waveform(
+                    // A restart discards the take, and its bars with it; a
+                    // pause keeps both.
+                    key: ValueKey(state.takeId),
+                    levels: context.read<RecorderCubit>().inputLevel,
+                    active: state.isRecording,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: _columnInset),
+                  child: _LiveText(),
+                ),
+                const Spacer(flex: 55),
+                SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.fromLTRB(_columnInset, 0, _columnInset, 42),
+                  child: RecorderControls(
+                    paused: state.isPaused,
+                    saving: saving,
+                    onRestart: _confirmRestart,
+                    onComplete: _complete,
+                    onTogglePause: () {
+                      final cubit = context.read<RecorderCubit>();
+                      state.isPaused ? cubit.resume() : cubit.pause();
+                    },
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The elapsed timer, isolated so a tick repaints only this text. Each second
+/// rolls the digit that changed and no other, the quiet metronome: minutes and
+/// hours therefore turn rarely, and a restart rolls the whole value back down
+/// to zero. Paused, it dims: a clock that merely stopped is indistinguishable
+/// from one that hung.
+class _Timer extends StatefulWidget {
+  const _Timer({required this.paused});
+
+  final bool paused;
+
+  @override
+  State<_Timer> createState() => _TimerState();
+}
+
+class _TimerState extends State<_Timer> {
+  Duration _last = Duration.zero;
+  int _direction = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return AnimatedOpacity(
+      // Opacity, not a color tween: RollingText rebuilds its whole glyph spec
+      // when its style changes, and a dim must not churn a hundred layouts.
+      duration: theme.motion.crossfade,
+      opacity: widget.paused ? 0.45 : 1,
+      child: BlocSelector<RecorderCubit, RecorderState, Duration>(
+        selector: (state) => state.elapsed,
+        builder: (context, elapsed) {
+          if (elapsed != _last) {
+            _direction = elapsed > _last ? 1 : -1;
+            _last = elapsed;
+          }
+          return RollingText(
+            text: _formatElapsed(elapsed),
+            style: AppType.timer.copyWith(color: theme.recorder.timerColor),
+            direction: _direction,
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// What the machine is doing, in one word under the timer. Absent until the
+/// microphone is actually open, so the screen never claims to be listening
+/// before it is; its line is reserved either way, so nothing jumps when the
+/// word arrives.
+class _StateLine extends StatelessWidget {
+  const _StateLine({required this.label});
+
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    // The eyebrow's line box, held whether or not there is a word in it, and
+    // scaled: a fixed height would clip the word at large text sizes.
+    final height = MediaQuery.textScalerOf(context).scale(AppType.eyebrow.fontSize!) * 1.3;
+    return SizedBox(
+      height: height,
+      child: AnimatedSwitcher(
+        duration: theme.motion.crossfade,
+        child: label == null
+            ? const SizedBox.shrink()
+            : Text(
+                label!.toUpperCase(),
+                key: ValueKey(label),
+                style: AppType.eyebrow.copyWith(color: theme.textSecondary),
+              ),
+      ),
+    );
+  }
+}
+
+/// The live transcript, isolated so only a text change re-measures it.
+class _LiveText extends StatelessWidget {
+  const _LiveText();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<RecorderCubit, RecorderState, String>(
+      selector: (state) => state.liveText,
+      builder: (context, text) => LiveTranscript(text: text),
+    );
+  }
+}
+
+String _formatElapsed(Duration d) {
+  final hours = d.inHours;
+  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}
