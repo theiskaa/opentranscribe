@@ -4,10 +4,6 @@
   "@appTitle": {
     "description": "The title of the application"
   },
-  "settingsTitle": "Settings",
-  "@settingsTitle": {
-    "description": "Title of the settings screen"
-  },
   "settingsLanguage": "Language",
   "@settingsLanguage": {
     "description": "Label for the language setting"
@@ -28,14 +24,6 @@
   "@delete": {
     "description": "Button to delete an entry"
   },
-  "recordErrorTitle": "Couldn't record",
-  "@recordErrorTitle": {
-    "description": "Title of the recording error dialog"
-  },
-  "ok": "OK",
-  "@ok": {
-    "description": "Dismiss action"
-  },
   "homeEmptyTitle": "Nothing here yet",
   "@homeEmptyTitle": {
     "description": "Empty-state title when the journal has no entries"
@@ -48,21 +36,13 @@
   "@homePullToRecord": {
     "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
   },
-  "navRecord": "Record",
-  "@navRecord": {
-    "description": "Accessibility label for the glass mic button beside the tab bar"
-  },
-  "navHome": "Home",
-  "@navHome": {
-    "description": "Bottom navigation label for the home tab"
-  },
   "navSettings": "Settings",
   "@navSettings": {
-    "description": "Bottom navigation label for the settings tab"
+    "description": "Accessibility label for the settings button on the home bar"
   },
-  "recordComplete": "Complete",
-  "@recordComplete": {
-    "description": "Primary button that finishes and saves the recording"
+  "navSearch": "Search",
+  "@navSearch": {
+    "description": "Accessibility label for the search button on the home bar"
   },
   "recordStateRecording": "Recording",
   "@recordStateRecording": {
@@ -71,10 +51,6 @@
   "recordStatePaused": "Paused",
   "@recordStatePaused": {
     "description": "State line under the recorder's timer while the take is suspended"
-  },
-  "recordRestart": "Start over",
-  "@recordRestart": {
-    "description": "Destructive confirm action that restarts the take"
   },
   "recordErrorMessage": "Something went wrong while recording.",
   "@recordErrorMessage": {
@@ -104,10 +80,6 @@
   "@settingsTranscription": {
     "description": "Section label of the transcription settings group"
   },
-  "settingsModel": "Model",
-  "@settingsModel": {
-    "description": "Row showing the on-device model state"
-  },
   "settingsModelDownload": "Download",
   "@settingsModelDownload": {
     "description": "Action that downloads the transcription model"
@@ -128,17 +100,21 @@
   "@settingsBackup": {
     "description": "Toggle that includes kept audio in device backups"
   },
+  "settingsApp": "App",
+  "@settingsApp": {
+    "description": "Section grouping app-level settings (appearance, language)"
+  },
   "settingsAppearance": "Appearance",
   "@settingsAppearance": {
     "description": "Section label of the appearance settings group"
   },
-  "settingsTheme": "Theme",
-  "@settingsTheme": {
-    "description": "Row that picks the theme mode"
-  },
   "themeSystem": "System",
   "@themeSystem": {
     "description": "Theme mode following the device appearance"
+  },
+  "themeMatchSystem": "Match system",
+  "@themeMatchSystem": {
+    "description": "Toggle that makes the theme follow the device appearance"
   },
   "themeLight": "Light",
   "@themeLight": {
@@ -152,24 +128,32 @@
   "@settingsAppLanguage": {
     "description": "Row that picks the interface language"
   },
+  "settingsLanguageInfo": "The language your recordings are transcribed in. Each language uses its own on-device model.",
+  "@settingsLanguageInfo": {
+    "description": "Explanation on the transcription language picker"
+  },
+  "settingsAppLanguageInfo": "The language the app's own text is shown in. It does not change how recordings are transcribed.",
+  "@settingsAppLanguageInfo": {
+    "description": "Explanation on the app language picker"
+  },
+  "settingsModels": "Models",
+  "@settingsModels": {
+    "description": "Row and screen title for the transcription engines"
+  },
+  "settingsModelsInfo": "opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.",
+  "@settingsModelsInfo": {
+    "description": "Explanation on the models screen"
+  },
   "settingsAbout": "About",
   "@settingsAbout": {
     "description": "Section label of the about group"
   },
-  "settingsOpenSource": "Open source",
+  "settingsOpenSource": "Read the source code",
   "@settingsOpenSource": {
-    "description": "Row that copies the repository address"
+    "description": "Row pointing source code; tap opens link"
   },
   "settingsCreatedBy": "Created by @theiskaa",
   "@settingsCreatedBy": {
-    "description": "Row crediting the author; tap copies the handle"
-  },
-  "copied": "Copied",
-  "@copied": {
-    "description": "Momentary confirmation after copying to the clipboard"
-  },
-  "genericErrorTitle": "Something went wrong",
-  "@genericErrorTitle": {
-    "description": "Neutral title for error dialogs without a more specific one"
+    "description": "Row crediting the author; tap opens link"
   }
 }

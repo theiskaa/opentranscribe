@@ -12,9 +12,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'opentranscribe';
 
   @override
-  String get settingsTitle => 'Settings';
-
-  @override
   String get settingsLanguage => 'Language';
 
   @override
@@ -31,12 +28,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
-  String get recordErrorTitle => 'Couldn\'t record';
-
-  @override
-  String get ok => 'OK';
-
-  @override
   String get homeEmptyTitle => 'Nothing here yet';
 
   @override
@@ -46,25 +37,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePullToRecord => 'Pull to record';
 
   @override
-  String get navRecord => 'Record';
-
-  @override
-  String get navHome => 'Home';
-
-  @override
   String get navSettings => 'Settings';
 
   @override
-  String get recordComplete => 'Complete';
+  String get navSearch => 'Search';
 
   @override
   String get recordStateRecording => 'Recording';
 
   @override
   String get recordStatePaused => 'Paused';
-
-  @override
-  String get recordRestart => 'Start over';
 
   @override
   String get recordErrorMessage => 'Something went wrong while recording.';
@@ -89,9 +71,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTranscription => 'Transcription';
 
   @override
-  String get settingsModel => 'Model';
-
-  @override
   String get settingsModelDownload => 'Download';
 
   @override
@@ -107,13 +86,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBackup => 'Include audio in backups';
 
   @override
+  String get settingsApp => 'App';
+
+  @override
   String get settingsAppearance => 'Appearance';
 
   @override
-  String get settingsTheme => 'Theme';
+  String get themeSystem => 'System';
 
   @override
-  String get themeSystem => 'System';
+  String get themeMatchSystem => 'Match system';
 
   @override
   String get themeLight => 'Light';
@@ -125,17 +107,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppLanguage => 'App language';
 
   @override
+  String get settingsLanguageInfo =>
+      'The language your recordings are transcribed in. Each language uses its own on-device model.';
+
+  @override
+  String get settingsAppLanguageInfo =>
+      'The language the app\'s own text is shown in. It does not change how recordings are transcribed.';
+
+  @override
+  String get settingsModels => 'Models';
+
+  @override
+  String get settingsModelsInfo =>
+      'opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.';
+
+  @override
   String get settingsAbout => 'About';
 
   @override
-  String get settingsOpenSource => 'Open source';
+  String get settingsOpenSource => 'Read the source code';
 
   @override
   String get settingsCreatedBy => 'Created by @theiskaa';
-
-  @override
-  String get copied => 'Copied';
-
-  @override
-  String get genericErrorTitle => 'Something went wrong';
 }

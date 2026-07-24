@@ -98,12 +98,6 @@ abstract class AppLocalizations {
   /// **'opentranscribe'**
   String get appTitle;
 
-  /// Title of the settings screen
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get settingsTitle;
-
   /// Label for the language setting
   ///
   /// In en, this message translates to:
@@ -134,18 +128,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
-  /// Title of the recording error dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t record'**
-  String get recordErrorTitle;
-
-  /// Dismiss action
-  ///
-  /// In en, this message translates to:
-  /// **'OK'**
-  String get ok;
-
   /// Empty-state title when the journal has no entries
   ///
   /// In en, this message translates to:
@@ -164,29 +146,17 @@ abstract class AppLocalizations {
   /// **'Pull to record'**
   String get homePullToRecord;
 
-  /// Accessibility label for the glass mic button beside the tab bar
-  ///
-  /// In en, this message translates to:
-  /// **'Record'**
-  String get navRecord;
-
-  /// Bottom navigation label for the home tab
-  ///
-  /// In en, this message translates to:
-  /// **'Home'**
-  String get navHome;
-
-  /// Bottom navigation label for the settings tab
+  /// Accessibility label for the settings button on the home bar
   ///
   /// In en, this message translates to:
   /// **'Settings'**
   String get navSettings;
 
-  /// Primary button that finishes and saves the recording
+  /// Accessibility label for the search button on the home bar
   ///
   /// In en, this message translates to:
-  /// **'Complete'**
-  String get recordComplete;
+  /// **'Search'**
+  String get navSearch;
 
   /// State line under the recorder's timer while the microphone is open
   ///
@@ -199,12 +169,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paused'**
   String get recordStatePaused;
-
-  /// Destructive confirm action that restarts the take
-  ///
-  /// In en, this message translates to:
-  /// **'Start over'**
-  String get recordRestart;
 
   /// Generic body of the recording error dialog
   ///
@@ -248,12 +212,6 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsTranscription;
 
-  /// Row showing the on-device model state
-  ///
-  /// In en, this message translates to:
-  /// **'Model'**
-  String get settingsModel;
-
   /// Action that downloads the transcription model
   ///
   /// In en, this message translates to:
@@ -284,23 +242,29 @@ abstract class AppLocalizations {
   /// **'Include audio in backups'**
   String get settingsBackup;
 
+  /// Section grouping app-level settings (appearance, language)
+  ///
+  /// In en, this message translates to:
+  /// **'App'**
+  String get settingsApp;
+
   /// Section label of the appearance settings group
   ///
   /// In en, this message translates to:
   /// **'Appearance'**
   String get settingsAppearance;
 
-  /// Row that picks the theme mode
-  ///
-  /// In en, this message translates to:
-  /// **'Theme'**
-  String get settingsTheme;
-
   /// Theme mode following the device appearance
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get themeSystem;
+
+  /// Toggle that makes the theme follow the device appearance
+  ///
+  /// In en, this message translates to:
+  /// **'Match system'**
+  String get themeMatchSystem;
 
   /// Light theme mode
   ///
@@ -320,35 +284,47 @@ abstract class AppLocalizations {
   /// **'App language'**
   String get settingsAppLanguage;
 
+  /// Explanation on the transcription language picker
+  ///
+  /// In en, this message translates to:
+  /// **'The language your recordings are transcribed in. Each language uses its own on-device model.'**
+  String get settingsLanguageInfo;
+
+  /// Explanation on the app language picker
+  ///
+  /// In en, this message translates to:
+  /// **'The language the app\'s own text is shown in. It does not change how recordings are transcribed.'**
+  String get settingsAppLanguageInfo;
+
+  /// Row and screen title for the transcription engines
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get settingsModels;
+
+  /// Explanation on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.'**
+  String get settingsModelsInfo;
+
   /// Section label of the about group
   ///
   /// In en, this message translates to:
   /// **'About'**
   String get settingsAbout;
 
-  /// Row that copies the repository address
+  /// Row pointing source code; tap opens link
   ///
   /// In en, this message translates to:
-  /// **'Open source'**
+  /// **'Read the source code'**
   String get settingsOpenSource;
 
-  /// Row crediting the author; tap copies the handle
+  /// Row crediting the author; tap opens link
   ///
   /// In en, this message translates to:
   /// **'Created by @theiskaa'**
   String get settingsCreatedBy;
-
-  /// Momentary confirmation after copying to the clipboard
-  ///
-  /// In en, this message translates to:
-  /// **'Copied'**
-  String get copied;
-
-  /// Neutral title for error dialogs without a more specific one
-  ///
-  /// In en, this message translates to:
-  /// **'Something went wrong'**
-  String get genericErrorTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
