@@ -161,7 +161,6 @@ final class AppTheme {
             // Present, not decorative: the unplayed wave has to read as the
             // same recording as the played half, just not reached yet.
             waveRemaining: text.withValues(alpha: 0.16),
-            buttonColor: text,
             segmentColor: text,
             activeSegmentHighlight: text.withValues(alpha: 0.12),
           ),

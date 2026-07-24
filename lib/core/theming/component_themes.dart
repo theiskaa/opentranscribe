@@ -231,7 +231,6 @@ final class PlayerTheme {
   const PlayerTheme({
     required this.progress,
     required this.waveRemaining,
-    required this.buttonColor,
     required this.segmentColor,
     required this.activeSegmentHighlight,
     this.waveBarWidth = 3.0,
@@ -244,7 +243,6 @@ final class PlayerTheme {
   /// boundary between them IS the playhead, which is why there is no thumb.
   final Color progress;
   final Color waveRemaining;
-  final Color buttonColor;
 
   /// The transcript reads at ONE weight, whatever is playing; the segment under
   /// the playhead is marked with a wash behind it instead of the rest being
@@ -260,8 +258,7 @@ final class PlayerTheme {
   /// The wave's full height, peak to peak.
   final double waveHeight;
 
-  /// The play circle and the speed chip. One size: they sit on the same row,
-  /// inside the same pill, and nothing about either is more important.
+  /// The speed chip's tap-target height, matched to the wave's height.
   final double controlSize;
 }
 
