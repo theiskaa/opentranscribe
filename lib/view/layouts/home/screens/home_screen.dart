@@ -17,14 +17,13 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
+import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/strip_fold.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/widgets/app_icon_button_group.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
-import 'package:opentranscribe/view/widgets/empty_state.dart';
-import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
@@ -189,7 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
     // The strip gets a breath under the subtitle; resting content starts
     // fully past the fade tail so the first splitter is never washed.
     _stripDepth = AppSpacing.md + WeekCalendar.heightOf(context);
@@ -210,14 +208,14 @@ class _HomeScreenState extends State<HomeScreen> {
           });
 
           final body = state.entries.isEmpty
-              ? Padding(
-                  padding: EdgeInsets.only(top: _contentTop),
-                  child: Center(
-                    child: EmptyState(
-                      visual: const WaveGlyph(),
-                      title: l10n.homeEmptyTitle,
-                      message: l10n.homeEmptyMessage,
-                    ),
+              // A scrollable, not a Center: it overscrolls so the pull-to-record
+              // gesture works with nothing recorded yet, the one way in from here.
+              ? SingleChildScrollView(
+                  controller: _scroll,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: _contentTop),
+                    child: const HomeEmpty(),
                   ),
                 )
               : _RecordsList(

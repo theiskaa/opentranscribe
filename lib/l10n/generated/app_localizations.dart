@@ -128,17 +128,17 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
-  /// Empty-state title when the journal has no entries
+  /// Bold empty-state title on home when the journal has no entries
   ///
   /// In en, this message translates to:
-  /// **'Nothing here yet'**
-  String get homeEmptyTitle;
+  /// **'Speak, and it\'s written down.'**
+  String get homeEmptyHeadline;
 
-  /// Empty-state line under the title when the journal has no entries
+  /// Soft subtitle under the empty-state title, explaining the app and how to start
   ///
   /// In en, this message translates to:
-  /// **'Speak your mind.'**
-  String get homeEmptyMessage;
+  /// **'Everything you say is transcribed and kept on this device. Pull down to record your first entry.'**
+  String get homeEmptySubtitle;
 
   /// Label beside the waveform hint while pulling the home list down to open the recorder
   ///

@@ -28,10 +28,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
-  String get homeEmptyTitle => 'Nothing here yet';
+  String get homeEmptyHeadline => 'Speak, and it\'s written down.';
 
   @override
-  String get homeEmptyMessage => 'Speak your mind.';
+  String get homeEmptySubtitle =>
+      'Everything you say is transcribed and kept on this device. Pull down to record your first entry.';
 
   @override
   String get homePullToRecord => 'Pull to record';

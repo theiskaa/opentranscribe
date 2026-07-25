@@ -24,13 +24,13 @@
   "@delete": {
     "description": "Button to delete an entry"
   },
-  "homeEmptyTitle": "Nothing here yet",
-  "@homeEmptyTitle": {
-    "description": "Empty-state title when the journal has no entries"
+  "homeEmptyHeadline": "Speak, and it's written down.",
+  "@homeEmptyHeadline": {
+    "description": "Bold empty-state title on home when the journal has no entries"
   },
-  "homeEmptyMessage": "Speak your mind.",
-  "@homeEmptyMessage": {
-    "description": "Empty-state line under the title when the journal has no entries"
+  "homeEmptySubtitle": "Everything you say is transcribed and kept on this device. Pull down to record your first entry.",
+  "@homeEmptySubtitle": {
+    "description": "Soft subtitle under the empty-state title, explaining the app and how to start"
   },
   "homePullToRecord": "Pull to record",
   "@homePullToRecord": {
