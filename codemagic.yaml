@@ -1,0 +1,100 @@
+# Codemagic CI for opentranscribe.
+#
+# Security model for this PUBLIC repo:
+#   - Nothing secret lives here. This file only REFERENCES variables and an App
+#     Store Connect integration; every value lives in Codemagic (encrypted env
+#     groups + the Developer Portal integration), never in git.
+#   - The release workflow runs ONLY on version tags, so a pull request (from a
+#     fork or otherwise) can never run with secrets in scope. PR validation runs
+#     in a separate, secret-less workflow.
+#
+# Owner fills two placeholders below (marked TODO): the App Store Connect
+# integration name, and confirming the Flutter version matches the channel.
+
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # TODO: name of the App Store Connect integration created in
+      # Codemagic > Team settings > Integrations > Developer Portal.
+      app_store_connect: opentranscribe_asc
+    environment:
+      groups:
+        # Encrypted group holding STORAGE_KEY (secure, 32 chars) and
+        # APP_STORE_APPLE_ID (the numeric App Store app id; not secret).
+        - app_secrets
+      ios_signing:
+        # Automatic signing: Codemagic fetches/creates the cert + App Store
+        # provisioning profile from the integration's API key. No .p12 by hand.
+        distribution_type: app_store
+        bundle_identifier: xyz.opentranscribe
+      flutter: 3.44.4 # TODO: confirm this matches your channel (custom_stable)
+      xcode: latest
+    # No automatic triggering: this workflow is started ON DEMAND from the
+    # Codemagic UI ("Start new build" -> pick this workflow + the main branch).
+    # Each run queries TestFlight and ships the next build number for the current
+    # pubspec version, so 0.1.0 iterates as (1), (2), (3)... with no version bump
+    # and no git tag. Bump `version:` in pubspec.yaml when you want a new line.
+    # Because nothing here fires on a PR, secrets are never exposed to fork code.
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Analyze
+        script: flutter analyze
+      - name: Test
+        script: flutter test
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          # Version (build-name) is the source of truth in pubspec.yaml, e.g.
+          # "version: 0.1.0+1" -> 0.1.0. Build numbers are scoped PER VERSION:
+          # query the latest build already on TestFlight for THIS version and add
+          # one, so 0.1.0 can ship as build 1, 2, 3... and a new version starts
+          # its own count at 1. The "|| echo 0" handles a version with no builds
+          # yet (the lookup returns nothing) without failing the script.
+          BUILD_NAME=$(grep '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//; s/\+.*//')
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --pre-release-version="$BUILD_NAME" 2>/dev/null || echo 0)
+          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+          echo "Building $BUILD_NAME ($BUILD_NUMBER)"
+          flutter build ipa --release \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=STORAGE_KEY="$STORAGE_KEY" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # beta_groups:            # uncomment and name a group to auto-distribute
+        #   - Internal testers
+
+  pr-checks:
+    name: PR checks (no secrets)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    # Deliberately NO integrations, NO groups, NO ios_signing: this workflow has
+    # zero secrets, so it is safe to run against untrusted pull requests.
+    environment:
+      flutter: 3.44.4 # TODO: keep in sync with the release workflow above
+    triggering:
+      events:
+        - pull_request
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Analyze
+        script: flutter analyze
+      - name: Test
+        script: flutter test

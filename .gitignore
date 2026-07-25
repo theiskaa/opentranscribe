@@ -65,3 +65,7 @@ internal/
 .env.*
 **/fastlane/.env
 **/fastlane/report.xml
+
+# CI-generated signing artifacts (Codemagic writes these during the build)
+ios/ExportOptions.plist
+ios/Runner/export_options.plist
