@@ -12,6 +12,7 @@ import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
 
 /// The root widget, wired to the router with the journal cubits provided above
 /// it. Owns the [ThemeCubit] and feeds it platform brightness changes so the
@@ -25,6 +26,10 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> with WidgetsBindingObserver {
   late final ThemeCubit _themeCubit;
+
+  /// The startup splash sits above the router until its animation finishes, then
+  /// removes itself for good. One cold-start affair, never shown again.
+  bool _splashDone = false;
 
   @override
   void initState() {
@@ -88,9 +93,23 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               routerConfig: Deps.i.router.config,
-              builder: (context, child) => DefaultTextStyle(
-                style: AppType.body.copyWith(color: theme.text),
-                child: child ?? const SizedBox.shrink(),
+              builder: (context, child) => Stack(
+                children: [
+                  DefaultTextStyle(
+                    style: AppType.body.copyWith(color: theme.text),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                  // Above the router so home builds behind the splash and the
+                  // hand-off is a pure fade with nothing to load at the seam.
+                  if (!_splashDone)
+                    Positioned.fill(
+                      child: SplashScreen(
+                        onFinished: () {
+                          if (mounted) setState(() => _splashDone = true);
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
           );
