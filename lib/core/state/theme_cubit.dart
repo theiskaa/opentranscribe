@@ -1,10 +1,11 @@
 import 'dart:ui' show Brightness, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart' show immutable;
-import 'package:flutter/widgets.dart' show BuildContext;
+import 'package:flutter/widgets.dart' show BuildContext, MediaQuery;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 
@@ -89,4 +90,13 @@ class ThemeCubit extends Cubit<ThemeState> {
 /// theme object changes, not on every state emission.
 extension ThemeX on BuildContext {
   AppTheme get theme => select<ThemeCubit, AppTheme>((cubit) => cubit.state.resolved);
+
+  /// The OS "Reduce Motion" setting. A plain read (no select), so it is safe in
+  /// callbacks and initState where [theme] would throw inside a lazy list. Each
+  /// caller decides HOW to honor it; this only names the condition.
+  bool get reduceMotion => MediaQuery.disableAnimationsOf(this);
+
+  /// Motion tokens without a select, for callbacks and settle logic. In build,
+  /// prefer `theme.motion` so the widget re-themes when the theme changes.
+  AppMotion get motionNow => read<ThemeCubit>().state.resolved.motion;
 }
