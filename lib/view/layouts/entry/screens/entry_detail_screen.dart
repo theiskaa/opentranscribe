@@ -209,7 +209,6 @@ class _TranscribeCta extends StatelessWidget {
         ),
         child: AppButton(
           label: l10n.transcribe,
-          icon: AppIcons.textformat,
           onPressed: () => context.read<EntriesCubit>().retranscribe(entry),
         ),
       ),
