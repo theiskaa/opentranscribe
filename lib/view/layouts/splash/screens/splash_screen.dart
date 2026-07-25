@@ -5,9 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 
 /// The startup splash: the brand waveform drawing itself in, holding, then
-/// retracting back to the midline as the app takes over. Rendered as a
-/// full-screen overlay above the router (see `App.build`) so home builds behind
-/// it and the hand-off has nothing to load at the seam.
+/// retracting back to the midline as the app takes over. It REPLACES the app
+/// while it runs (see `App.build`) rather than overlaying it, so home - whose
+/// top-bar buttons are native platform views that composite above any Flutter
+/// overlay - is not in the tree yet and cannot punch through.
 ///
 /// It reads the resolved theme, so it matches the system appearance for free -
 /// paper with ink bars in light, ink with paper bars in dark - and its

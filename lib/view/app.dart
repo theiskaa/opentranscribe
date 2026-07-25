@@ -93,24 +93,26 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               routerConfig: Deps.i.router.config,
-              builder: (context, child) => Stack(
-                children: [
-                  DefaultTextStyle(
-                    style: AppType.body.copyWith(color: theme.text),
-                    child: child ?? const SizedBox.shrink(),
-                  ),
-                  // Above the router so home builds behind the splash and the
-                  // hand-off is a pure fade with nothing to load at the seam.
-                  if (!_splashDone)
-                    Positioned.fill(
-                      child: SplashScreen(
-                        onFinished: () {
-                          if (mounted) setState(() => _splashDone = true);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+              builder: (context, child) {
+                // The splash REPLACES the app while it runs rather than
+                // overlaying it. Home's top-bar buttons are native platform
+                // views, and those composite ABOVE any Flutter overlay (the same
+                // reason AppToggle cannot be blurred under the frosted bar), so
+                // an overlay lets them punch through. Not building home until the
+                // splash is done keeps them out of the tree; the splash shares
+                // home's background colour, so the swap is a seamless cut.
+                if (!_splashDone) {
+                  return SplashScreen(
+                    onFinished: () {
+                      if (mounted) setState(() => _splashDone = true);
+                    },
+                  );
+                }
+                return DefaultTextStyle(
+                  style: AppType.body.copyWith(color: theme.text),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
             ),
           );
         },
