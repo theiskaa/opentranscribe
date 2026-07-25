@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 
@@ -24,7 +23,7 @@ class _EntranceRiseState extends State<EntranceRise> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    final motion = context.read<ThemeCubit>().state.resolved.motion;
+    final motion = context.motionNow;
     _rise = motion.entranceRise;
     _controller = AnimationController(vsync: this, duration: motion.entrance);
   }
@@ -34,7 +33,7 @@ class _EntranceRiseState extends State<EntranceRise> with SingleTickerProviderSt
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (context.reduceMotion) {
       _controller.value = 1;
     } else if (widget.delay == Duration.zero) {
       _controller.forward();

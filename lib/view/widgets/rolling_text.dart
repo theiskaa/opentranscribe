@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 
@@ -79,15 +78,22 @@ class _RollingTextState extends State<RollingText> with SingleTickerProviderStat
   }
 
   Duration _window(BuildContext context) =>
-      widget.window ?? context.read<ThemeCubit>().state.resolved.motion.digitRoll;
+      widget.window ?? context.motionNow.digitRoll;
 
   Duration _stagger(BuildContext context) =>
-      widget.stagger ?? context.read<ThemeCubit>().state.resolved.motion.rollStagger;
+      widget.stagger ?? context.motionNow.rollStagger;
 
   @override
   void didUpdateWidget(RollingText old) {
     super.didUpdateWidget(old);
     if (old.text == widget.text) return;
+    if (context.reduceMotion) {
+      // Reduce Motion: no odometer roll. From == to means no slot rolls, so the
+      // painter simply draws the new text at rest.
+      _from = widget.text;
+      _roll.value = 1;
+      return;
+    }
     _from = old.text;
     final rolling = rollingSlots(_from, widget.text).where((s) => s.rolls).length;
     _roll.duration = _window(context) + _stagger(context) * math.max(rolling - 1, 0);

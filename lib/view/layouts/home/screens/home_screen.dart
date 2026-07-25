@@ -129,7 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _glideTo(double offset) {
-    final motion = context.read<ThemeCubit>().state.resolved.motion;
+    final motion = context.motionNow;
+    final reduce = context.reduceMotion;
     _gliding = true;
     final id = ++_glideId;
     // Outside any notification dispatch; starting an activity from within it
@@ -139,11 +140,13 @@ class _HomeScreenState extends State<HomeScreen> {
         if (id == _glideId) _gliding = false;
         return;
       }
-      await _scroll.animateTo(
-        offset.clamp(0.0, _scroll.position.maxScrollExtent),
-        duration: motion.dayGlide,
-        curve: motion.dayGlideCurve,
-      );
+      final target = offset.clamp(0.0, _scroll.position.maxScrollExtent);
+      // Reduce Motion: land on the day without the travel.
+      if (reduce) {
+        _scroll.jumpTo(target);
+      } else {
+        await _scroll.animateTo(target, duration: motion.dayGlide, curve: motion.dayGlideCurve);
+      }
       // A later glide superseded this one: it owns the guard now.
       if (id != _glideId) return;
       // Arrived (or the user grabbed it mid-flight): geometry rules again.

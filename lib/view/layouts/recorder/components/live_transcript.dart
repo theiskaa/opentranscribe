@@ -322,7 +322,9 @@ class _WordState extends State<_Word> {
       ),
       child: Text(widget.text, key: ValueKey(widget.text), style: widget.style),
     );
-    if (!_entering) return word;
+    // The rise is vestibular motion; under Reduce Motion a heard word just
+    // appears (the switcher above still crossfades revisions, which aids reading).
+    if (!_entering || context.reduceMotion) return word;
 
     final delay = motion.wordStagger * _order;
     final total = delay + motion.wordIn;

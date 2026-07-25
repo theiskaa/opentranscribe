@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -39,7 +38,7 @@ Future<int?> showAppMenu(
   required List<AppMenuItem> items,
 }) {
   // A one-shot read: this runs from tap handlers, where select is illegal.
-  final motion = context.read<ThemeCubit>().state.resolved.motion;
+  final motion = context.motionNow;
   return showGeneralDialog<int>(
     context: context,
     barrierDismissible: true,

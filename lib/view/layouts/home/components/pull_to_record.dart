@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -150,7 +149,11 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
   /// lets go of it. How much of the wave shows is the painter's business, per
   /// bar; nothing ticks before there is a bar to move.
   void _onPull() {
-    final waving = widget.pull.value >= widget.threshold * _wavePull;
+    // Under Reduce Motion the bars still rise with the pull (that is feedback,
+    // not decoration), but the swell never travels across them.
+    final waving =
+        widget.pull.value >= widget.threshold * _wavePull &&
+        !context.reduceMotion;
     if (waving == _waving) return;
     _waving = waving;
     if (!waving) {
@@ -158,7 +161,7 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
       return;
     }
     _phase
-      ..duration = context.read<ThemeCubit>().state.resolved.motion.pullWave
+      ..duration = context.motionNow.pullWave
       ..repeat();
   }
 

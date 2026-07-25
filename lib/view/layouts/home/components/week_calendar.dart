@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -120,8 +119,12 @@ class _WeekCalendarState extends State<WeekCalendar> {
     if (controller == null || !controller.hasClients) return;
     final target = _pageOfWeek(_weekStart(widget.cursorDay));
     if (target == controller.page?.round()) return;
-    final motion = context.read<ThemeCubit>().state.resolved.motion;
-    controller.animateToPage(target, duration: motion.weekSlide, curve: Curves.easeOutCubic);
+    if (context.reduceMotion) {
+      controller.jumpToPage(target);
+    } else {
+      final motion = context.motionNow;
+      controller.animateToPage(target, duration: motion.weekSlide, curve: Curves.easeOutCubic);
+    }
     // The bar's month belongs to the week we are heading to, not the one we
     // are leaving: report it as the slide STARTS, not when onPageChanged
     // fires at the end. Post-frame because this runs inside a build.
