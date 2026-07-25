@@ -110,11 +110,35 @@ abstract class AppLocalizations {
   /// **'Everything stays on this device. No account, no cloud, no network.'**
   String get settingsOffline;
 
-  /// Shown when an entry has no transcript yet
+  /// One-word placeholder for an untranscribed entry's excerpt in the home list
   ///
   /// In en, this message translates to:
   /// **'Untranscribed'**
   String get entryUntranscribed;
+
+  /// Heading on the entry screen when a recording has never been transcribed
+  ///
+  /// In en, this message translates to:
+  /// **'Not transcribed yet'**
+  String get entryUntranscribedTitle;
+
+  /// Explanation under the untranscribed heading; the Transcribe action is the screen's bottom CTA
+  ///
+  /// In en, this message translates to:
+  /// **'Turn this recording into text you can read back. It runs on your device.'**
+  String get entryUntranscribedMessage;
+
+  /// Heading on the entry screen when transcription finished but found no speech
+  ///
+  /// In en, this message translates to:
+  /// **'No words to show'**
+  String get entryNoSpeechTitle;
+
+  /// Explanation when a transcript came back empty
+  ///
+  /// In en, this message translates to:
+  /// **'This recording was transcribed, but no speech was found in it.'**
+  String get entryNoSpeechMessage;
 
   /// Button to transcribe a kept recording again
   ///

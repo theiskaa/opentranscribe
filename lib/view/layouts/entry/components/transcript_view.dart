@@ -4,14 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/audio/playback.dart';
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 
 /// The transcript body. Where the transcript carries timings, it is a second
@@ -64,7 +62,6 @@ class _TranscriptViewState extends State<TranscriptView> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
 
     if (widget.busy) {
       return const Padding(
@@ -76,27 +73,9 @@ class _TranscriptViewState extends State<TranscriptView> {
     final transcript = widget.entry.transcript;
     final text = transcript?.fullText.trim() ?? '';
     if (transcript == null || text.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-        child: Column(
-          children: [
-            Text(
-              l10n.entryUntranscribed,
-              style: AppType.subhead.copyWith(color: theme.textSecondary),
-            ),
-            if (transcript == null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              AppButton(
-                label: l10n.transcribe,
-                variant: AppButtonVariant.secondary,
-                expand: false,
-                height: 44,
-                onPressed: () => context.read<EntriesCubit>().retranscribe(widget.entry),
-              ),
-            ],
-          ],
-        ),
-      );
+      // Two different silences: never transcribed (the action lives in the
+      // screen's bottom CTA) versus transcribed and empty (no speech, no action).
+      return _TranscriptEmpty(untranscribed: transcript == null);
     }
 
     final segments = transcript.segments;
@@ -136,6 +115,37 @@ class _TranscriptViewState extends State<TranscriptView> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The empty transcript, left-aligned in the document flow under the player,
+/// the same "first page of the journal" voice as [HomeEmpty]. Two messages: a
+/// recording never transcribed (its action is the screen's bottom CTA) or one
+/// transcribed to nothing. A smaller type scale than [HomeEmpty] on purpose:
+/// this is nested content below the title, date, and wave, not a full page.
+class _TranscriptEmpty extends StatelessWidget {
+  const _TranscriptEmpty({required this.untranscribed});
+
+  final bool untranscribed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          untranscribed ? l10n.entryUntranscribedTitle : l10n.entryNoSpeechTitle,
+          style: AppType.title.copyWith(color: theme.text),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          untranscribed ? l10n.entryUntranscribedMessage : l10n.entryNoSpeechMessage,
+          style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.4),
+        ),
+      ],
     );
   }
 }

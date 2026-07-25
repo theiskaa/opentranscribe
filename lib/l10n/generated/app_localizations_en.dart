@@ -22,6 +22,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get entryUntranscribed => 'Untranscribed';
 
   @override
+  String get entryUntranscribedTitle => 'Not transcribed yet';
+
+  @override
+  String get entryUntranscribedMessage =>
+      'Turn this recording into text you can read back. It runs on your device.';
+
+  @override
+  String get entryNoSpeechTitle => 'No words to show';
+
+  @override
+  String get entryNoSpeechMessage =>
+      'This recording was transcribed, but no speech was found in it.';
+
+  @override
   String get retranscribe => 'Re-transcribe';
 
   @override

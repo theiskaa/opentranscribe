@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -99,6 +100,10 @@ class _DetailViewState extends State<_DetailView> {
         }
 
         final busy = state.busyId == entry.id;
+        // The bottom CTA only exists for a never-transcribed entry, and not
+        // while a run is in flight (the body shows the spinner then).
+        final showCta = entry.transcript == null && !busy;
+        final bottomInset = MediaQuery.paddingOf(context).bottom;
         return ColoredBox(
           color: theme.screens.entryDetail,
           child: Stack(
@@ -116,7 +121,11 @@ class _DetailViewState extends State<_DetailView> {
                     // content starting inside it would sit under the wash.
                     AppTopBar.heightOf(context) + theme.topBar.fadeTail,
                     AppSpacing.xl,
-                    MediaQuery.paddingOf(context).bottom + AppSpacing.xxxl,
+                    // Clear the pinned CTA when it shows, so the last line can
+                    // never hide behind it; otherwise just the home indicator.
+                    showCta
+                        ? bottomInset + AppSpacing.xl + theme.button.height + AppSpacing.xxxl
+                        : bottomInset + AppSpacing.xxxl,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -165,10 +174,45 @@ class _DetailViewState extends State<_DetailView> {
                   ],
                 ),
               ),
+              // A never-transcribed entry gets its one action as a bottom CTA,
+              // clear of the document above it.
+              if (showCta) _TranscribeCta(entry: entry),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// The never-transcribed entry's one action, pinned to the screen's floor as a
+/// full-width CTA over the scrolling document. The scroll reserves room for it,
+/// so it never covers content.
+class _TranscribeCta extends StatelessWidget {
+  const _TranscribeCta({required this.entry});
+
+  final Entry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+        ),
+        child: AppButton(
+          label: l10n.transcribe,
+          icon: AppIcons.textformat,
+          onPressed: () => context.read<EntriesCubit>().retranscribe(entry),
+        ),
+      ),
     );
   }
 }

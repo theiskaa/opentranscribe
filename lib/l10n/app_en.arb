@@ -14,7 +14,23 @@
   },
   "entryUntranscribed": "Untranscribed",
   "@entryUntranscribed": {
-    "description": "Shown when an entry has no transcript yet"
+    "description": "One-word placeholder for an untranscribed entry's excerpt in the home list"
+  },
+  "entryUntranscribedTitle": "Not transcribed yet",
+  "@entryUntranscribedTitle": {
+    "description": "Heading on the entry screen when a recording has never been transcribed"
+  },
+  "entryUntranscribedMessage": "Turn this recording into text you can read back. It runs on your device.",
+  "@entryUntranscribedMessage": {
+    "description": "Explanation under the untranscribed heading; the Transcribe action is the screen's bottom CTA"
+  },
+  "entryNoSpeechTitle": "No words to show",
+  "@entryNoSpeechTitle": {
+    "description": "Heading on the entry screen when transcription finished but found no speech"
+  },
+  "entryNoSpeechMessage": "This recording was transcribed, but no speech was found in it.",
+  "@entryNoSpeechMessage": {
+    "description": "Explanation when a transcript came back empty"
   },
   "retranscribe": "Re-transcribe",
   "@retranscribe": {
