@@ -49,3 +49,19 @@ app.*.map.json
 
 # Local-only scratch: planning, notes, spikes. Never tracked.
 internal/
+
+# Secrets & code-signing. NEVER commit these (the repo is public). Real keys go
+# in CI secrets and reach the build via --dart-define / the signing step.
+*.p12
+*.p8
+*.pem
+*.key
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.jks
+*.keystore
+.env
+.env.*
+**/fastlane/.env
+**/fastlane/report.xml
