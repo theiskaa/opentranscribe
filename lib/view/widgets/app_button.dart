@@ -89,7 +89,7 @@ class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMix
         button.secondaryForeground,
         BorderSide(color: button.secondaryBorder),
       ),
-      AppButtonVariant.danger => (theme.danger, theme.danger, theme.onAccent, BorderSide.none),
+      AppButtonVariant.danger => (theme.danger, theme.danger, theme.onDanger, BorderSide.none),
     };
     final disabled = widget.onPressed == null && !widget.isLoading;
     final fill = widget.isLoading ? background : (_pressed ? pressed : background);

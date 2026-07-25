@@ -23,6 +23,7 @@ final class AppTheme {
     required this.onAccent,
     required this.record,
     required this.danger,
+    required this.onDanger,
     required this.shadow,
     required this.barrier,
     required this.screens,
@@ -57,6 +58,7 @@ final class AppTheme {
     required Color danger,
     required Color shadow,
     required Color barrier,
+    Color onDanger = const Color(0xFFFFFFFF),
     ScreenColors? screens,
     TopBarTheme? topBar,
     ButtonTheme? button,
@@ -83,6 +85,7 @@ final class AppTheme {
       onAccent: onAccent,
       record: record,
       danger: danger,
+      onDanger: onDanger,
       shadow: shadow,
       barrier: barrier,
       screens:
@@ -224,6 +227,10 @@ final class AppTheme {
   final Color record;
   final Color danger;
 
+  /// Foreground on a [danger] fill (a destructive button or the delete badge).
+  /// White in both themes, since [danger] is a saturated red either way.
+  final Color onDanger;
+
   /// Always applied at low alpha by the consuming token or use site.
   final Color shadow;
   final Color barrier;
@@ -254,7 +261,7 @@ final class AppTheme {
     accentPressed: const Color(0xFF000000),
     onAccent: const Color(0xFFFFFFFF),
     record: const Color(0xFFD64B3F),
-    danger: const Color(0xFFC0392B),
+    danger: const Color(0xFFFF3B30),
     shadow: const Color(0xFF000000),
     barrier: const Color(0x73000000),
   );
@@ -272,7 +279,7 @@ final class AppTheme {
     accentPressed: const Color(0xFFFFFFFF),
     onAccent: const Color(0xFF111111),
     record: const Color(0xFFE4685C),
-    danger: const Color(0xFFE1685A),
+    danger: const Color(0xFFFF453A),
     shadow: const Color(0xFF000000),
     barrier: const Color(0x73000000),
   );
