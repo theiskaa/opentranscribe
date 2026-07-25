@@ -1,0 +1,308 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
+import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// Geometry for the swipe. The reveal runs 0..1 (closed to the disc open at the
+/// action width) and, only from the open state, on to 2 - where the disc has
+/// stretched into a pill filling the row. Swiping it (nearly) all the way, past
+/// [_kCommitReveal], deletes; releasing short of that snaps back to open.
+const double _kActionWidth = 84;
+const double _kBadgeSize = 46;
+const double _kOpenThreshold = 0.5;
+const double _kMaxReveal = 2;
+const double _kCommitReveal = 1.95;
+const double _kFlingVelocity = 320; // px/s
+
+/// Vertical slack for the disc when it is taller than a short row; well under the
+/// gap between rows, so it never reaches a neighbour.
+const double _kOverflow = 40;
+
+/// The disc is tappable only when settled exactly open; this absorbs float error
+/// around a reveal of 1.
+const double _kSettledEpsilon = 1e-3;
+
+/// Swipe-to-reveal delete for one home row. A leftward drag reveals a trailing
+/// Delete disc you tap to remove the entry. From the OPEN state a further drag
+/// stretches the disc into a pill; swiping it fully across (past
+/// [_kCommitReveal]) deletes. Two-stage on purpose: a swipe from closed only
+/// ever opens, so a single swipe cannot delete by accident (not a [Dismissible]).
+///
+/// Scoped: [openId] is the single row allowed open; opening this one claims it
+/// (closing any other), and the home screen clears it on scroll. A tap on an open
+/// row closes it instead of firing [onTap].
+class EntryDeleteSwipe extends StatefulWidget {
+  const EntryDeleteSwipe({
+    required this.id,
+    required this.openId,
+    required this.onTap,
+    required this.onDelete,
+    required this.child,
+    super.key,
+  });
+
+  final String id;
+
+  /// The one row currently open, shared across the list.
+  final ValueNotifier<String?> openId;
+
+  /// Fired by a tap while closed; a tap while open closes instead.
+  final VoidCallback onTap;
+
+  /// Fired by a tap on the disc, or by a full swipe.
+  final VoidCallback onDelete;
+  final Widget child;
+
+  @override
+  State<EntryDeleteSwipe> createState() => _EntryDeleteSwipeState();
+}
+
+class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerProviderStateMixin {
+  // 0 closed, 1 open at the action width, up to 2 as the disc stretches into a
+  // pill. Driven directly by the drag, then settled with the swipe curve.
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    value: 0,
+    upperBound: _kMaxReveal,
+  );
+
+  // The row width, cached from the layout so the drag math and the paint agree.
+  double _width = 0;
+  // Set at each drag's start: only a drag that begins open may expand past 1.
+  bool _canExpand = false;
+  // Latches once the pill is swiped past the commit line, so delete fires once.
+  bool _committed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.openId.addListener(_onOpenIdChanged);
+  }
+
+  @override
+  void didUpdateWidget(EntryDeleteSwipe old) {
+    super.didUpdateWidget(old);
+    if (old.openId != widget.openId) {
+      old.openId.removeListener(_onOpenIdChanged);
+      widget.openId.addListener(_onOpenIdChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.openId.removeListener(_onOpenIdChanged);
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  // Another row claimed the open slot (or a scroll cleared it): close this one.
+  void _onOpenIdChanged() {
+    if (widget.openId.value != widget.id && _reveal.value > 0) {
+      _settle(open: false, claim: false);
+    }
+  }
+
+  void _onDragStart(DragStartDetails _) {
+    _reveal.stop();
+    _canExpand = _reveal.value >= 1;
+    _committed = false;
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (_committed) return;
+    final v = _reveal.value;
+    // Pixel-1:1 in both phases: below open a unit is the action width, above it a
+    // unit is the rest of the row, so the pill tracks the finger exactly.
+    final unit = v < 1 ? _kActionWidth : (_width - _kActionWidth);
+    if (unit <= 0) return;
+    final maxValue = _canExpand ? _kMaxReveal : 1.0;
+    final next = (v - d.primaryDelta! / unit).clamp(0.0, maxValue);
+    _reveal.value = next;
+    // Full swipe: dragged (nearly) all the way across, delete without a release.
+    if (_canExpand && next >= _kCommitReveal) {
+      _committed = true;
+      _commit();
+    }
+  }
+
+  void _onDragEnd(DragEndDetails d) {
+    if (_committed) return;
+    // Released in the expand zone but short of the commit line: back to open.
+    if (_canExpand && _reveal.value >= 1) {
+      _settle(open: true);
+      return;
+    }
+    final velocity = d.primaryVelocity ?? 0;
+    final bool open;
+    if (velocity <= -_kFlingVelocity) {
+      open = true;
+    } else if (velocity >= _kFlingVelocity) {
+      open = false;
+    } else {
+      open = _reveal.value >= _kOpenThreshold;
+    }
+    _settle(open: open);
+  }
+
+  void _commit() => widget.onDelete();
+
+  void _settle({required bool open, bool claim = true}) {
+    final motion = context.read<ThemeCubit>().state.resolved.motion;
+    _reveal.animateTo(open ? 1 : 0, duration: motion.swipeSettle, curve: motion.swipeSettleCurve);
+    if (open) {
+      Haptics.selection();
+      if (claim) widget.openId.value = widget.id;
+    } else if (widget.openId.value == widget.id) {
+      widget.openId.value = null;
+    }
+  }
+
+  void _handleTap() {
+    if (_reveal.value > 0) {
+      _settle(open: false);
+    } else {
+      widget.onTap();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    // Built once; reused each frame via closure, so the text and glyph are never
+    // rebuilt while dragging.
+    final content = Touchable(onTap: _handleTap, child: widget.child);
+    final glyph = AppIcon(AppIcons.trash, color: theme.onDanger);
+    final label = Text(l10n.delete, style: AppType.caption.copyWith(color: theme.textSecondary));
+
+    return GestureDetector(
+      // Opaque, not deferToChild: the drag must be caught across the WHOLE row,
+      // including the blank area right of short text, or it falls through to the
+      // list and scrolls instead of revealing.
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: _onDragStart,
+      onHorizontalDragUpdate: _onDragUpdate,
+      onHorizontalDragEnd: _onDragEnd,
+      child: ClipRect(
+        // Horizontal only: the content slides UNDER the gutter, but the disc is
+        // free to spill into the row's gap on a short row.
+        clipper: const _HorizontalClipper(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            _width = constraints.maxWidth;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [_slidingContent(content), _deleteSurface(theme, glyph, label)],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _slidingContent(Widget content) {
+    return AnimatedBuilder(
+      animation: _reveal,
+      child: content,
+      builder: (context, child) {
+        final open = _reveal.value.clamp(0.0, 1.0);
+        final expand = (_reveal.value - 1).clamp(0.0, 1.0);
+        final dx = _kActionWidth * open + (_width - _kActionWidth) * expand;
+        return Transform.translate(offset: Offset(-dx, 0), child: child);
+      },
+    );
+  }
+
+  // The ONE delete surface: a disc that pops in on open, then the SAME shape
+  // stretches into a pill as the drag continues (only its width grows; height
+  // and the stadium radius hold), not a second layer fading in over it.
+  Widget _deleteSurface(AppTheme theme, Widget glyph, Widget label) {
+    final AppMotion motion = theme.motion;
+    const rightInset = (_kActionWidth - _kBadgeSize) / 2;
+    const radius = _kBadgeSize / 2;
+
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _reveal,
+        builder: (context, _) {
+          final open = _reveal.value.clamp(0.0, 1.0);
+          final expand = (_reveal.value - 1).clamp(0.0, 1.0);
+          // Fade in early, settle at near-full size with a small overshoot.
+          final appear = const Interval(0, 0.5, curve: Curves.easeOutCubic).transform(open);
+          final scale =
+              motion.swipePopMinScale +
+              (1 - motion.swipePopMinScale) * motion.swipePopCurve.transform(open);
+          final w = _kBadgeSize + (_width - _kBadgeSize) * expand;
+
+          return IgnorePointer(
+            ignoring: (_reveal.value - 1).abs() > _kSettledEpsilon,
+            child: Padding(
+              padding: const EdgeInsets.only(right: rightInset),
+              // Relax both axes + centerRight so the pill keeps its natural width
+              // (pushed right, not stretched full and centered) and can spill
+              // into the row's gap on a short row.
+              child: OverflowBox(
+                alignment: Alignment.centerRight,
+                minWidth: 0,
+                maxWidth: double.infinity,
+                minHeight: 0,
+                maxHeight: double.infinity,
+                child: Opacity(
+                  opacity: appear,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Touchable(
+                          onTap: widget.onDelete,
+                          pressedOpacity: 0.6,
+                          child: SizedBox(
+                            width: w,
+                            height: _kBadgeSize,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: theme.danger,
+                                borderRadius: BorderRadius.circular(radius),
+                              ),
+                              child: Center(child: glyph),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.xs),
+                          child: label,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Clips to the box's width but leaves the vertical axis open, so the sliding
+/// content and the off-edge action are hidden while the taller disc can still
+/// overflow into the row's gap without being cropped.
+class _HorizontalClipper extends CustomClipper<Rect> {
+  const _HorizontalClipper();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, -_kOverflow, size.width, size.height + _kOverflow);
+
+  @override
+  bool shouldReclip(CustomClipper<Rect> oldClipper) => false;
+}

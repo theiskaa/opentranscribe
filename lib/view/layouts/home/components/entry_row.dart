@@ -4,17 +4,30 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/home/components/swipe_actions.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
-import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// One record in the home list. There is no card and no border: a day's records
 /// hang off a single hairline RAIL in the left gutter, each marked by a node on
 /// the line. What separates two records is the node and the air around it; what
 /// separates two DAYS is the rail stopping - a break in the ink, which reads at
 /// a glance in a way a wider gap never does.
+///
+/// Swipe a row left to reveal Delete (see [EntryDeleteSwipe]); only the text
+/// column moves and it is clipped at the gutter, so the record slides UNDER the
+/// rail rather than across it. Deleting is immediate - the row leaves the list
+/// the instant the action fires, no exit animation.
 class EntryRow extends StatelessWidget {
-  const EntryRow({required this.entry, required this.last, required this.onTap, super.key});
+  const EntryRow({
+    required this.entry,
+    required this.last,
+    required this.onTap,
+    required this.openId,
+    required this.onDelete,
+    super.key,
+  });
 
   final Entry entry;
 
@@ -23,6 +36,16 @@ class EntryRow extends StatelessWidget {
   /// row simply has no gap, and the rail ends with its text.
   final bool last;
   final VoidCallback onTap;
+
+  /// The one row currently swiped open, shared across the list.
+  final ValueNotifier<String?> openId;
+  final Future<void> Function(Entry) onDelete;
+
+  void _requestDelete() {
+    Haptics.medium();
+    if (openId.value == entry.id) openId.value = null;
+    onDelete(entry);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +59,9 @@ class EntryRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: CustomPaint(
-        // Behind the press, not inside it: the rail and its node are the list's
-        // structure, so they hold still while the record they carry dips.
+        // Behind the record: the rail and its node are the list's structure, so
+        // they hold still while the record slides. The swipe wraps only the text
+        // column (right of the gutter), so the record never reaches the rail.
         painter: _RailPainter(
           railColor: tokens.railColor,
           nodeColor: tokens.nodeColor,
@@ -47,13 +71,16 @@ class EntryRow extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
-          child: Touchable(
-            onTap: onTap,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: tokens.railGutter),
-                Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: tokens.railGutter),
+              Expanded(
+                child: EntryDeleteSwipe(
+                  id: entry.id,
+                  openId: openId,
+                  onTap: onTap,
+                  onDelete: _requestDelete,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -76,14 +103,15 @@ class EntryRow extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        '${formatTime(entry.createdAt)} · ${formatDurationCompact(entry.duration)}',
+                        '${formatTime(entry.createdAt)} · '
+                        '${formatDurationCompact(entry.duration)}',
                         style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

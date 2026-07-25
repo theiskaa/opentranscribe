@@ -30,6 +30,10 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
+    this.swipeSettle = const Duration(milliseconds: 240),
+    this.swipeSettleCurve = Curves.easeOutCubic,
+    this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
+    this.swipePopMinScale = 0.85,
   });
 
   final Duration entrance;
@@ -81,4 +85,13 @@ final class AppMotion {
   /// read as breathing rather than vibration, and it only runs while a finger
   /// is holding the gesture past its threshold.
   final Duration pullWave;
+
+  /// A row's swipe-action reveal settling open or closed after the finger lifts.
+  final Duration swipeSettle;
+  final Curve swipeSettleCurve;
+
+  /// The delete disc's entrance: a gentle overshoot [swipePopCurve] scaling up
+  /// from [swipePopMinScale] to 1 as it reveals (and back down as it hides).
+  final Curve swipePopCurve;
+  final double swipePopMinScale;
 }

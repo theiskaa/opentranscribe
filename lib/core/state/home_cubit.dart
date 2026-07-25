@@ -80,7 +80,30 @@ class HomeCubit extends Cubit<HomeState> {
   final TranscriptionService _service;
   late final StreamSubscription<Entry> _autoSub;
 
-  void load() => emit(HomeState(entries: _service.entries()));
+  /// Ids removed optimistically whose on-device delete is still in flight. Every
+  /// emit filters these out, so a concurrent delete's reconcile (or an
+  /// auto-finalize refresh) can never resurrect a row that is on its way out.
+  final Set<String> _pendingDeletes = {};
+
+  void load() => emit(HomeState(entries: _visible()));
+
+  List<Entry> _visible() =>
+      _service.entries().where((e) => !_pendingDeletes.contains(e.id)).toList();
+
+  /// Deletes an entry (audio and metadata). Reached from a row's swipe-to-delete
+  /// action. Optimistic: the entry leaves the list at once, then the on-device
+  /// delete runs and the list reconciles with the stored truth. Idempotent - a
+  /// second fire for the same entry (a fast double-tap) is ignored.
+  Future<void> delete(Entry entry) async {
+    if (!_pendingDeletes.add(entry.id)) return;
+    emit(HomeState(entries: _visible()));
+    try {
+      await _service.deleteEntry(entry);
+    } finally {
+      _pendingDeletes.remove(entry.id);
+      emit(HomeState(entries: _visible()));
+    }
+  }
 
   @override
   Future<void> close() async {

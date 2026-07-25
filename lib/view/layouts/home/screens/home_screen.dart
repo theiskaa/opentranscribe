@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -64,6 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
   /// scroll, so the fold is exactly as interruptible as the finger driving it.
   final ValueNotifier<double> _fold = ValueNotifier(0);
 
+  /// The id of the one row currently swiped open, or null. Shared across every
+  /// row so opening one closes the rest; scrolling clears it. This is the
+  /// scoping that keeps a swipe-to-delete from firing by accident.
+  final ValueNotifier<String?> _openRow = ValueNotifier(null);
+
   /// Extra tail under the list so its OLDEST day can still be scrolled up to
   /// the reading line. Measured, because it depends on how tall that last day
   /// happens to be.
@@ -85,6 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
     if (notification is ScrollUpdateNotification) {
+      // Scrolling dismisses an open row's actions - the list moving under your
+      // finger should not leave a Delete armed behind it.
+      if (_openRow.value != null) _openRow.value = null;
       _pullGesture.update(
         pixels: notification.metrics.pixels,
         dragging: notification.dragDetails != null,
@@ -182,6 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _sections.dispose();
     _visibleWeek.dispose();
     _fold.dispose();
+    _openRow.dispose();
     super.dispose();
   }
 
@@ -225,6 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
                   tail: _tail,
+                  openRow: _openRow,
+                  onDelete: (entry) => context.read<HomeCubit>().delete(entry),
                 );
 
           return Stack(
@@ -405,6 +417,8 @@ class _RecordsList extends StatelessWidget {
     required this.splitterKeys,
     required this.topPadding,
     required this.tail,
+    required this.openRow,
+    required this.onDelete,
     super.key,
   });
 
@@ -417,6 +431,10 @@ class _RecordsList extends StatelessWidget {
 
   /// Measured room under the last day, so it too can be scrolled to the top.
   final double tail;
+
+  /// The one row allowed swiped-open at a time, shared with every [EntryRow].
+  final ValueNotifier<String?> openRow;
+  final Future<void> Function(Entry) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -459,8 +477,11 @@ class _RecordsList extends StatelessWidget {
           ),
           for (final (i, entry) in section.entries.indexed)
             EntryRow(
+              key: ValueKey(entry.id),
               entry: entry,
               last: i == section.entries.length - 1,
+              openId: openRow,
+              onDelete: onDelete,
               onTap: () {
                 final home = context.read<HomeCubit>();
                 // The detail screen reads EntriesCubit; refresh it before the
