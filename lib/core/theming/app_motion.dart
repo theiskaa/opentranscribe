@@ -30,8 +30,8 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
-    this.swipeSettle = const Duration(milliseconds: 240),
-    this.swipeSettleCurve = Curves.easeOutCubic,
+    this.swipeSpring = const SpringDescription(mass: 1, stiffness: 440, damping: 42),
+    this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
     this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
     this.swipePopMinScale = 0.85,
   });
@@ -87,8 +87,16 @@ final class AppMotion {
   final Duration pullWave;
 
   /// A row's swipe-action reveal settling open or closed after the finger lifts.
-  final Duration swipeSettle;
-  final Curve swipeSettleCurve;
+  /// A spring, not a fixed curve, so the settle continues at the finger's release
+  /// velocity - no seam between dragging and animating. Critically damped
+  /// (damping = 2*sqrt(stiffness*mass)): a fast, no-bounce catch to the target.
+  final SpringDescription swipeSpring;
+
+  /// The drawn toggle's knob settling after a tap or a released drag, seeded
+  /// with the fling velocity. Stiffer than [swipeSpring] (a 24px throw wants to
+  /// feel crisp, not weighty); critically damped, so the knob catches the end
+  /// without a wobble.
+  final SpringDescription toggleSpring;
 
   /// The delete disc's entrance: a gentle overshoot [swipePopCurve] scaling up
   /// from [swipePopMinScale] to 1 as it reveals (and back down as it hides).

@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
@@ -32,9 +31,20 @@ class _WaveGlyphState extends State<WaveGlyph> with SingleTickerProviderStateMix
     // A plain read, not context.theme (a select): this runs outside build, and
     // inside a lazy list a select here throws. The duration is a static token,
     // so reading it once is right anyway.
-    _phase
-      ..duration = context.read<ThemeCubit>().state.resolved.motion.pullWave
-      ..repeat();
+    _phase.duration = context.motionNow.pullWave;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Under Reduce Motion a forever-looping glyph is exactly what the setting is
+    // asking to stop: hold a static wave (phase 0) instead of travelling it.
+    if (context.reduceMotion) {
+      _phase.stop();
+      _phase.value = 0;
+    } else if (!_phase.isAnimating) {
+      _phase.repeat();
+    }
   }
 
   @override
@@ -45,15 +55,21 @@ class _WaveGlyphState extends State<WaveGlyph> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: widget.size,
-      child: CustomPaint(
-        painter: _WaveGlyphPainter(
-          repaint: _phase,
-          phase: () => _phase.value * 2 * math.pi,
-          color: widget.color ?? context.theme.textSecondary,
-          barWidth: widget.barWidth,
-          gap: widget.gap,
+    // The wave repaints every frame, forever. Isolate it so its layer is the
+    // only thing repainting - without this the repaint walks up to the nearest
+    // boundary and redraws whatever sits beside it (the settings footer) each
+    // frame. Same treatment as the recorder waveform.
+    return RepaintBoundary(
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: CustomPaint(
+          painter: _WaveGlyphPainter(
+            repaint: _phase,
+            phase: () => _phase.value * 2 * math.pi,
+            color: widget.color ?? context.theme.textSecondary,
+            barWidth: widget.barWidth,
+            gap: widget.gap,
+          ),
         ),
       ),
     );

@@ -1,5 +1,5 @@
+import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -135,12 +135,12 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
 
   void _onDragEnd(DragEndDetails d) {
     if (_committed) return;
+    final velocity = d.primaryVelocity ?? 0;
     // Released in the expand zone but short of the commit line: back to open.
     if (_canExpand && _reveal.value >= 1) {
-      _settle(open: true);
+      _settle(open: true, pixelVelocity: velocity);
       return;
     }
-    final velocity = d.primaryVelocity ?? 0;
     final bool open;
     if (velocity <= -_kFlingVelocity) {
       open = true;
@@ -149,14 +149,39 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
     } else {
       open = _reveal.value >= _kOpenThreshold;
     }
-    _settle(open: open);
+    _settle(open: open, pixelVelocity: velocity);
   }
 
   void _commit() => widget.onDelete();
 
-  void _settle({required bool open, bool claim = true}) {
-    final motion = context.read<ThemeCubit>().state.resolved.motion;
-    _reveal.animateTo(open ? 1 : 0, duration: motion.swipeSettle, curve: motion.swipeSettleCurve);
+  // Settle the reveal to open (1) or closed (0) with a spring seeded by the
+  // finger's release velocity, so the animation continues at the speed the drag
+  // ended - no seam between dragging and settling.
+  void _settle({required bool open, bool claim = true, double pixelVelocity = 0}) {
+    final start = _reveal.value;
+    final target = open ? 1.0 : 0.0;
+    if (context.reduceMotion) {
+      // Reduce Motion: no settle, no disc pop (both ride _reveal) - jump there.
+      _reveal.stop();
+      _reveal.value = target;
+    } else {
+      final motion = context.motionNow;
+      // px/s to reveal-units/s. A leftward drag (negative pixel velocity) drives
+      // the reveal up, hence the negation; the unit is whichever phase the finger
+      // left in.
+      final unit = start < 1 ? _kActionWidth : (_width - _kActionWidth);
+      final revealVelocity = unit > 0 ? -pixelVelocity / unit : 0.0;
+      // Clamp to the segment being crossed so a fast release can never overshoot
+      // into a neighbouring phase (e.g. briefly flash the pill when snapping open).
+      final spring = SpringSimulation(motion.swipeSpring, start, target, revealVelocity);
+      _reveal.animateWith(
+        ClampedSimulation(
+          spring,
+          xMin: start < target ? start : target,
+          xMax: start < target ? target : start,
+        ),
+      );
+    }
     if (open) {
       Haptics.selection();
       if (claim) widget.openId.value = widget.id;

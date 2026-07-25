@@ -1,3 +1,4 @@
+import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -57,76 +58,140 @@ class _DrawnToggle extends StatefulWidget {
   State<_DrawnToggle> createState() => _DrawnToggleState();
 }
 
-class _DrawnToggleState extends State<_DrawnToggle> {
+class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderStateMixin {
   static const _width = AppToggle._width;
   static const _height = AppToggle._height;
   static const _knob = 27.0;
 
-  /// 0..1 while a finger drives the knob; null when settled on [widget.value].
-  double? _dragFraction;
+  /// The knob's position, 0 (off) to 1 (on). Driven 1:1 by a drag, then settled
+  /// with a velocity-seeded spring; the track colour reads the same value, so
+  /// knob and track move as one object.
+  late final AnimationController _pos = AnimationController.unbounded(
+    vsync: this,
+    value: widget.value ? 1 : 0,
+  );
 
-  double get _fraction => _dragFraction ?? (widget.value ? 1 : 0);
+  /// True between our own commit and the resulting parent rebuild, so
+  /// [didUpdateWidget] does not spring a second time over the one we just began.
+  bool _selfCommit = false;
+  bool _dragging = false;
 
   bool get _enabled => widget.onChanged != null;
 
-  void _commit(bool value) {
-    setState(() => _dragFraction = null);
-    if (value != widget.value) {
-      Haptics.light();
-      widget.onChanged!(value);
+  @override
+  void didUpdateWidget(_DrawnToggle old) {
+    super.didUpdateWidget(old);
+    if (old.value == widget.value) return;
+    // An outside flip (a settings load, a linked control): glide to it. Our own
+    // commit already sprang with the release velocity - leave that momentum be.
+    if (_selfCommit || _dragging) return;
+    _spring(widget.value ? 1 : 0);
+  }
+
+  @override
+  void dispose() {
+    _pos.dispose();
+    super.dispose();
+  }
+
+  void _spring(double target, {double velocity = 0}) {
+    if (context.reduceMotion) {
+      _pos.stop();
+      _pos.value = target;
+      return;
     }
+    final spring = SpringSimulation(
+      context.motionNow.toggleSpring,
+      _pos.value,
+      target,
+      velocity,
+    );
+    // Clamp to the ends so a hard fling cannot push the knob past the track.
+    _pos.animateWith(ClampedSimulation(spring, xMin: 0, xMax: 1));
+  }
+
+  // Settle to [target], firing the change (and a haptic) when it flips the value.
+  void _change(bool target, double fractionVelocity) {
+    // Spring toward the predicted target at once, so the knob answers the release
+    // immediately rather than waiting on the parent to echo the new value back.
+    _spring(target ? 1 : 0, velocity: fractionVelocity);
+    if (target == widget.value) return;
+    Haptics.light();
+    _selfCommit = true;
+    widget.onChanged!(target);
+    // widget.value is the source of truth. An accepted change lands via
+    // didUpdateWidget (which leaves this momentum spring alone); a declined one
+    // never fires it, so reconcile next frame - snap back to the real value.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _selfCommit = false;
+      if (widget.value != target) _spring(widget.value ? 1 : 0);
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    _dragging = false;
+    final velocity = details.velocity.pixelsPerSecond.dx;
+    final target = velocity.abs() > 200 ? velocity > 0 : _pos.value > 0.5;
+    // px/s to fraction/s over the knob's travel, so the spring leaves at the
+    // finger's speed.
+    _change(target, velocity / (_width - _knob));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final trackColor = Color.lerp(theme.hairline, theme.settings.toggleActive, _fraction)!;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _enabled ? () => _commit(!widget.value) : null,
-      onHorizontalDragUpdate: _enabled
-          ? (details) => setState(() {
-              _dragFraction = (_fraction + details.delta.dx / (_width - _knob)).clamp(0.0, 1.0);
-            })
-          : null,
-      onHorizontalDragEnd: _enabled
-          ? (details) {
-              final velocity = details.velocity.pixelsPerSecond.dx;
-              final target = velocity.abs() > 200 ? velocity > 0 : _fraction > 0.5;
-              _commit(target);
+      // Flip from where the knob ACTUALLY is, not widget.value: the latter only
+      // reconciles a frame after a commit, so a fast double-tap read from it
+      // would resolve both taps to the same target.
+      onTap: _enabled ? () => _change(_pos.value <= 0.5, 0) : null,
+      onHorizontalDragStart: _enabled
+          ? (_) {
+              _pos.stop();
+              _dragging = true;
             }
           : null,
+      onHorizontalDragUpdate: _enabled
+          ? (details) =>
+                _pos.value = (_pos.value + details.delta.dx / (_width - _knob)).clamp(0.0, 1.0)
+          : null,
+      onHorizontalDragEnd: _enabled ? _onDragEnd : null,
       child: Opacity(
         opacity: _enabled ? 1 : 0.5,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          width: _width,
-          height: _height,
-          decoration: BoxDecoration(
-            color: trackColor,
-            borderRadius: BorderRadius.circular(_height / 2),
-          ),
-          child: AnimatedAlign(
-            duration: _dragFraction == null ? const Duration(milliseconds: 200) : Duration.zero,
-            curve: Curves.easeOut,
-            alignment: Alignment.lerp(Alignment.centerLeft, Alignment.centerRight, _fraction)!,
-            child: Container(
-              width: _knob,
-              height: _knob,
-              margin: const EdgeInsets.all(2),
+        child: AnimatedBuilder(
+          animation: _pos,
+          builder: (context, child) {
+            final fraction = _pos.value;
+            return Container(
+              width: _width,
+              height: _height,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.shadow.withValues(alpha: 0.12),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: Color.lerp(theme.hairline, theme.settings.toggleActive, fraction)!,
+                borderRadius: BorderRadius.circular(_height / 2),
               ),
+              child: Align(
+                alignment: Alignment.lerp(Alignment.centerLeft, Alignment.centerRight, fraction)!,
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            width: _knob,
+            height: _knob,
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: theme.shadow.withValues(alpha: 0.12),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),

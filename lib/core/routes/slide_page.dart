@@ -249,12 +249,17 @@ class _BackGestureController<T> {
     }
 
     if (animateForward) {
-      controller.animateTo(1, duration: _kDroppedSwipeDuration, curve: curve);
+      // Scale the drop by the distance left, not a fixed time: releasing near the
+      // edge finishes at once instead of crawling the last sliver over a full
+      // 350ms, and a long return still gets the whole duration. (Cupertino's own.)
+      final remaining = (1 - controller.value).clamp(0.0, 1.0);
+      controller.animateTo(1, duration: _kDroppedSwipeDuration * remaining, curve: curve);
     } else {
       if (isCurrent) navigator.pop();
       // The pop may settle inline if already at the target.
       if (controller.isAnimating) {
-        controller.animateBack(0, duration: _kDroppedSwipeDuration, curve: curve);
+        final remaining = controller.value.clamp(0.0, 1.0);
+        controller.animateBack(0, duration: _kDroppedSwipeDuration * remaining, curve: curve);
       }
     }
 
