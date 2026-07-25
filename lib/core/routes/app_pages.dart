@@ -13,23 +13,6 @@ class FadePage<T> extends CustomTransitionPage<T> {
       );
 }
 
-/// A push that slides in from the trailing edge; popping mirrors it, so
-/// navigation keeps a sense of direction.
-class SlidePage<T> extends CustomTransitionPage<T> {
-  SlidePage({required super.child, super.key, super.name})
-    : super(
-        transitionDuration: const Duration(milliseconds: 250),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-          child: child,
-        ),
-      );
-}
-
 /// A full-screen sheet rising from the bottom, for surfaces that sit on top of
 /// the app rather than beside it. It leaves the instant it is asked to: the
 /// rise DECELERATES (no slow ramp in, which is what reads as lag), and the

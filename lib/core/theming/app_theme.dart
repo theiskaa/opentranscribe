@@ -35,6 +35,7 @@ final class AppTheme {
     required this.player,
     required this.settings,
     required this.onboarding,
+    required this.navigation,
     this.motion = const AppMotion(),
   });
 
@@ -66,6 +67,7 @@ final class AppTheme {
     PlayerTheme? player,
     SettingsTheme? settings,
     OnboardingTheme? onboarding,
+    NavigationTheme? navigation,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -192,6 +194,14 @@ final class AppTheme {
             bodyColor: textSecondary,
             handleColor: text,
           ),
+      navigation:
+          navigation ??
+          NavigationTheme(
+            // Black at low alpha; a touch stronger in the dark so the dim and
+            // the edge shadow still read against near-black screens.
+            scrim: shadow.withValues(alpha: brightness == Brightness.dark ? 0.14 : 0.08),
+            edgeShadow: shadow.withValues(alpha: brightness == Brightness.dark ? 0.13 : 0.07),
+          ),
       motion: motion,
     );
   }
@@ -228,6 +238,7 @@ final class AppTheme {
   final PlayerTheme player;
   final SettingsTheme settings;
   final OnboardingTheme onboarding;
+  final NavigationTheme navigation;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.

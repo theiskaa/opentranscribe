@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/routes/slide_page.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
@@ -42,9 +43,9 @@ class AppRouter {
         path: Routes.settings,
         name: Routes.settingsName,
         // The base navigation transition (SlidePage): settings slides in from
-        // the trailing edge and pops back the same way, and home's glass bar
-        // group hides itself for the transition via the platform view's own
-        // cover detection - no manual guard, no lag.
+        // the trailing edge, pops back the same way, and carries the edge
+        // swipe-back. Home's glass bar group hides itself for the transition via
+        // the platform view's own cover detection - no manual guard, no lag.
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const SettingsScreen()),
       ),
