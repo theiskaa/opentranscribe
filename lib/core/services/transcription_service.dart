@@ -85,6 +85,17 @@ class TranscriptionService {
   /// means a mixed-language take, batched span by span on stop.
   List<({int startMs, String tag})> _sessionSpans = [];
 
+  /// The opening span's start round-trip window. A language chosen before any
+  /// audio (the queued switch that fires the instant start() resolves) can read
+  /// a few milliseconds of scheduling latency as elapsed audio; a switch this
+  /// close to the START of a take is treated as choosing the take's language,
+  /// not as a mid-take switch, so it yields a single-language take
+  /// deterministically instead of a spurious sub-second opening span in the old
+  /// language. Scoped to the OPENING span on purpose: a mid-take span always
+  /// holds real speech (a switch needs a menu round-trip far longer than this),
+  /// so it is never swallowed.
+  static const int _spanStartGraceMs = 200;
+
   /// Audio-time accounting from the INJECTED clock (deterministic in tests):
   /// completed audio milliseconds, plus the instant the current live segment
   /// began (null while paused or idle). Span starts are AUDIO time, so pauses
@@ -329,14 +340,21 @@ class TranscriptionService {
     _sessionLocaleId = tag;
     final nowMs = _audioNowMs;
     final spans = _sessionSpans;
-    // Coalesce switches landing on the same audio instant (a rapid toggle,
-    // or a switch while paused): the span that never held any audio is
-    // replaced, and a back-and-forth collapses to nothing.
-    if (spans.isNotEmpty && spans.last.startMs == nowMs) {
-      spans.removeLast();
-    }
+    // Replace a span that holds no audio instead of opening one after it. Two
+    // cases qualify: the switch lands on the exact instant a span began (a rapid
+    // toggle, or consecutive switches while the paused clock is frozen), or it
+    // lands during the opening span's start round-trip (see [_spanStartGraceMs]).
+    // The replacement inherits the removed span's start so nothing before it is
+    // uncovered, and a same-instant back-and-forth collapses to a single span.
+    // A mid-take span always holds real speech, so it is never swallowed.
+    final atStart = spans.length == 1 && spans.first.startMs == 0;
+    final coalesces =
+        spans.isNotEmpty &&
+        (spans.last.startMs == nowMs || (atStart && nowMs <= _spanStartGraceMs));
+    var startMs = nowMs;
+    if (coalesces) startMs = spans.removeLast().startMs;
     if (spans.isEmpty || spans.last.tag != tag) {
-      spans.add((startMs: nowMs, tag: tag));
+      spans.add((startMs: startMs, tag: tag));
     }
     final engine = _engine;
     if (engine is! StreamingTranscriptionEngine) return;

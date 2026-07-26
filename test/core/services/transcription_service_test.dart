@@ -568,6 +568,68 @@ void main() {
     await svc.dispose();
   });
 
+  test('a switch within the start grace window yields a single-language take', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR'])
+      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    // The switch lands a hair after start (scheduling latency, nothing spoken):
+    // it replaces the opening span rather than leaving a throwaway en-US sliver
+    // that would mis-stamp the take and plant a spurious marker.
+    now = now.add(const Duration(milliseconds: 50));
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(const Duration(seconds: 5));
+    final entry = await svc.stopRecording();
+
+    expect(entry.languageSpans, isNull, reason: 'coalesced to one span, not a mix');
+    expect(entry.recordedLocaleId, 'fr-FR');
+    expect(entry.transcript?.localeId, 'fr-FR');
+    expect(entry.transcript?.fullText, 'fr', reason: 'no [en] marker, no leading en slice');
+
+    await svc.dispose();
+  });
+
+  test('the grace window is scoped to the opening span, not mid-take', () async {
+    // Two switches close together deep in a take must NOT collapse: the grace
+    // window only forgives the start round-trip, so a genuine short span (a word
+    // said in a third language) survives rather than being swallowed.
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR', 'de-DE'])
+      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    now = now.add(const Duration(seconds: 5));
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(const Duration(milliseconds: 180)); // within the grace window
+    await svc.setSessionLocale('de-DE');
+    final entry = await svc.stopRecording();
+
+    expect(entry.languageSpans, const [
+      LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: 5000, localeId: 'fr-FR'),
+      LanguageSpan(startMs: 5180, localeId: 'de-DE'),
+    ], reason: 'the 180ms French span is kept, not eaten by the grace window');
+
+    await svc.dispose();
+  });
+
   test('an engine that cannot slice flattens the take to the first language', () async {
     var now = DateTime.utc(2026, 3, 4, 12);
     final engine = FakeBatchEngine()
