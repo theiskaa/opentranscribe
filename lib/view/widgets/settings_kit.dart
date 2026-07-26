@@ -7,7 +7,6 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
-import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The scroll every settings screen shares: the same insets under the frosted
@@ -34,8 +33,8 @@ class SettingsList extends StatelessWidget {
 }
 
 /// A grouped settings card: surface squircle with rows joined by inset
-/// dividers. Rows are whatever widgets the caller passes, normally
-/// [SettingsRow]s.
+/// dividers. Rows are whatever widgets the caller passes (a [SelectableRow], a
+/// custom row).
 class SettingsCard extends StatelessWidget {
   const SettingsCard({required this.children, super.key});
 
@@ -62,116 +61,6 @@ class SettingsCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// One settings row: monochrome icon tile, title, and a trailing value and/or
-/// chevron (or any custom trailing). Color is earned: only destructive rows
-/// pass [danger].
-class SettingsRow extends StatelessWidget {
-  const SettingsRow({
-    required this.title,
-    this.icon,
-    this.iconWidget,
-    this.value,
-    this.chevron = false,
-    this.external = false,
-    this.trailing,
-    this.danger = false,
-    this.onTap,
-    super.key,
-  }) : assert(icon != null || iconWidget != null, 'a row needs an icon or an iconWidget');
-
-  /// The leading glyph: an [AppIcons] symbol, or [iconWidget] for a custom mark.
-  final IconData? icon;
-  final Widget? iconWidget;
-  final String title;
-  final String? value;
-
-  /// A trailing chevron: this row pushes another screen.
-  final bool chevron;
-
-  /// A trailing outward arrow: this row leaves the app (opens a link).
-  final bool external;
-  final Widget? trailing;
-  final bool danger;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.settings;
-
-    return Touchable(
-      onTap: onTap,
-      haptic: onTap != null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: danger ? tokens.dangerIconTint : tokens.iconTileBackground,
-              ),
-              child: Center(
-                child:
-                    iconWidget ??
-                    AppIcon(icon!, size: 16, color: danger ? theme.danger : tokens.iconColor),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                title,
-                style: AppType.subhead.copyWith(color: danger ? theme.danger : theme.text),
-              ),
-            ),
-            if (value != null) ...[
-              Text(value!, style: AppType.subhead.copyWith(color: theme.textSecondary)),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            ?trailing,
-            if (chevron)
-              AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: tokens.chevronColor)
-            else if (external)
-              AppIcon(AppIcons.arrowUpRight, size: tokens.chevronSize, color: tokens.chevronColor),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A settings row whose trailing is the drawn toggle.
-class SettingsToggle extends StatelessWidget {
-  const SettingsToggle({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onChanged,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SettingsRow(
-      icon: icon,
-      title: title,
-      // A breath off the edge: the switch crowds the row's 14 inset otherwise.
-      trailing: Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.xs),
-        child: AppToggle(value: value, onChanged: onChanged),
-      ),
-      onTap: onChanged == null ? null : () => onChanged!(!value),
     );
   }
 }
