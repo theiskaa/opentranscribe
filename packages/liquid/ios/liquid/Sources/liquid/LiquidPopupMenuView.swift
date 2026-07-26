@@ -278,6 +278,22 @@ final class LiquidPopupMenuView: LiquidNativeView {
     return groups.isEmpty ? [[]] : groups
   }
 
+  /// Decodes raw image bytes and returns them as a template scaled to a square
+  /// of [pointSize], so a brand logo tints like a symbol and matches the row
+  /// type rather than rendering at its own intrinsic size.
+  private func templateImage(data: Data, pointSize: CGFloat) -> UIImage? {
+    guard let raw = UIImage(data: data) else { return nil }
+    let side = max(pointSize, 1)
+    let size = CGSize(width: side, height: side)
+    let scaled = UIGraphicsImageRenderer(size: size).image { context in
+      // High-quality downscale from the large master, so the mark stays crisp
+      // at the row's small point size on every display scale.
+      context.cgContext.interpolationQuality = .high
+      raw.draw(in: CGRect(origin: .zero, size: size))
+    }
+    return scaled.withRenderingMode(.alwaysTemplate)
+  }
+
   private func buildMenuElement(from item: [String: Any]) -> UIMenuElement? {
     // Skip dividers - they are handled by grouping
     if isDivider(item) {
@@ -286,9 +302,18 @@ final class LiquidPopupMenuView: LiquidNativeView {
 
     let title = item["label"] as? String ?? ""
     let iconName = item["icon"] as? String
+    let iconBytes = item["iconBytes"] as? FlutterStandardTypedData
     let itemSymbolConfig = UIImage.SymbolConfiguration(
       pointSize: itemIconPointSize, weight: .regular, scale: .medium)
-    let image = iconName.flatMap { UIImage(systemName: $0, withConfiguration: itemSymbolConfig) }
+    // A raster mark (a brand logo with no SF Symbol) arrives as bytes and wins
+    // over a symbol; it is drawn as a template at the row's type size so it sits
+    // like a symbol beside the label.
+    let image: UIImage?
+    if let iconBytes {
+      image = templateImage(data: iconBytes.data, pointSize: itemIconPointSize)
+    } else {
+      image = iconName.flatMap { UIImage(systemName: $0, withConfiguration: itemSymbolConfig) }
+    }
     let isDestructive = (item["isDestructive"] as? NSNumber)?.boolValue
       ?? (item["isDestructive"] as? Bool ?? false)
 
