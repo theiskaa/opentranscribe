@@ -7,37 +7,35 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 
-/// The theme selection: a persisted mode over the built-in light/dark pair,
-/// tracking the platform brightness for system mode.
+/// The theme selection: a persisted family and mode over the platform
+/// brightness. The family supplies the light/dark palettes; the mode picks
+/// between them (following the platform for system).
 @immutable
 final class ThemeState {
-  const ThemeState({
-    required this.mode,
-    required this.light,
-    required this.dark,
-    required this.platformBrightness,
-  });
+  const ThemeState({required this.mode, required this.familyId, required this.platformBrightness});
 
   final AppThemeMode mode;
-  final AppTheme light;
-  final AppTheme dark;
+  final String familyId;
   final Brightness platformBrightness;
 
-  /// The theme widgets actually render.
-  AppTheme get resolved => switch (mode) {
-    AppThemeMode.light => light,
-    AppThemeMode.dark => dark,
-    AppThemeMode.system => platformBrightness == Brightness.dark ? dark : light,
-  };
+  AppThemeFamily get family => AppThemeFamily.byId(familyId);
 
-  ThemeState copyWith({AppThemeMode? mode, Brightness? platformBrightness}) => ThemeState(
-    mode: mode ?? this.mode,
-    light: light,
-    dark: dark,
-    platformBrightness: platformBrightness ?? this.platformBrightness,
-  );
+  bool get wantDark =>
+      mode == AppThemeMode.dark ||
+      (mode == AppThemeMode.system && platformBrightness == Brightness.dark);
+
+  /// The theme widgets actually render.
+  AppTheme get resolved => family.resolve(wantDark: wantDark);
+
+  ThemeState copyWith({AppThemeMode? mode, String? familyId, Brightness? platformBrightness}) =>
+      ThemeState(
+        mode: mode ?? this.mode,
+        familyId: familyId ?? this.familyId,
+        platformBrightness: platformBrightness ?? this.platformBrightness,
+      );
 }
 
 /// Owns theme resolution and mode persistence. The root widget pushes platform
@@ -48,13 +46,13 @@ class ThemeCubit extends Cubit<ThemeState> {
       super(
         ThemeState(
           mode: _storedMode(storage),
-          light: AppTheme.defaultLight,
-          dark: AppTheme.defaultDark,
+          familyId: _storedFamily(storage),
           platformBrightness: platformBrightness ?? PlatformDispatcher.instance.platformBrightness,
         ),
       );
 
   static const key = 'theme.mode';
+  static const familyKey = 'theme.family';
 
   final LocalService _storage;
 
@@ -72,6 +70,16 @@ class ThemeCubit extends Cubit<ThemeState> {
     }
   }
 
+  /// An unknown or missing family falls back to the default one.
+  static String _storedFamily(LocalService storage) {
+    try {
+      final raw = storage.readString(familyKey);
+      return AppThemeFamily.all.any((f) => f.id == raw) ? raw! : AppThemeFamily.defaultId;
+    } catch (_) {
+      return AppThemeFamily.defaultId;
+    }
+  }
+
   /// Persists first and applies nothing on failure, so storage and state can
   /// never disagree after a relaunch.
   Future<void> setMode(AppThemeMode mode) async {
@@ -79,6 +87,14 @@ class ThemeCubit extends Cubit<ThemeState> {
     // The await can outlive the cubit during app teardown.
     if (isClosed) return;
     emit(state.copyWith(mode: mode));
+  }
+
+  /// Picks the theme family, KEEPING the current mode - so a family with "Match
+  /// system" on still follows the platform (light uses light, dark uses dark).
+  Future<void> setFamily(String familyId) async {
+    await _storage.write(familyKey, familyId);
+    if (isClosed) return;
+    emit(state.copyWith(familyId: familyId));
   }
 
   /// OS appearance changed; only system mode visibly re-resolves.

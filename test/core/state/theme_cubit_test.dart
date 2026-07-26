@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,5 +78,26 @@ void main() {
     await cubit.setMode(AppThemeMode.light);
     cubit.updatePlatformBrightness(Brightness.dark);
     expect(cubit.state.resolved, same(AppTheme.defaultLight));
+  });
+
+  test('defaults to the default family with nothing stored', () {
+    expect(build().state.familyId, AppThemeFamily.defaultId);
+  });
+
+  test('setFamily persists and keeps the current mode', () async {
+    final cubit = build();
+    await cubit.setMode(AppThemeMode.dark);
+    await cubit.setFamily(AppThemeFamily.gruvboxId);
+    expect(cubit.state.mode, AppThemeMode.dark, reason: 'mode must be preserved');
+
+    final fresh = build();
+    expect(fresh.state.familyId, AppThemeFamily.gruvboxId);
+    expect(fresh.state.mode, AppThemeMode.dark);
+    expect(fresh.state.resolved, same(AppThemeFamily.byId(AppThemeFamily.gruvboxId).dark));
+  });
+
+  test('an unknown stored family falls back to the default family', () async {
+    await storage.write(ThemeCubit.familyKey, 'dracula');
+    expect(build().state.familyId, AppThemeFamily.defaultId);
   });
 }

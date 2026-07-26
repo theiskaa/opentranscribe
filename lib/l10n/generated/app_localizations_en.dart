@@ -107,6 +107,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppearance => 'Appearance';
 
   @override
+  String get settingsTheme => 'Theme';
+
+  @override
   String get themeSystem => 'System';
 
   @override
@@ -117,6 +120,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeDark => 'Dark';
+
+  @override
+  String get themeNameDefault => 'Default';
+
+  @override
+  String get themeNameGruvbox => 'Gruvbox';
+
+  @override
+  String get themeNameSolarized => 'Solarized';
+
+  @override
+  String get themeNameSepia => 'Sepia';
 
   @override
   String get settingsAppLanguage => 'App language';

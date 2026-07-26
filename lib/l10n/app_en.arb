@@ -124,6 +124,10 @@
   "@settingsAppearance": {
     "description": "Section label of the appearance settings group"
   },
+  "settingsTheme": "Theme",
+  "@settingsTheme": {
+    "description": "Section label of the theme-family picker in appearance settings"
+  },
   "themeSystem": "System",
   "@themeSystem": {
     "description": "Theme mode following the device appearance"
@@ -139,6 +143,22 @@
   "themeDark": "Dark",
   "@themeDark": {
     "description": "Dark theme mode"
+  },
+  "themeNameDefault": "Default",
+  "@themeNameDefault": {
+    "description": "Name of the default theme family in the appearance picker"
+  },
+  "themeNameGruvbox": "Gruvbox",
+  "@themeNameGruvbox": {
+    "description": "Name of the Gruvbox theme family (a proper noun; not translated)"
+  },
+  "themeNameSolarized": "Solarized",
+  "@themeNameSolarized": {
+    "description": "Name of the Solarized theme family (a proper noun; not translated)"
+  },
+  "themeNameSepia": "Sepia",
+  "@themeNameSepia": {
+    "description": "Name of the Sepia theme family (a warm reading mode)"
   },
   "settingsAppLanguage": "App language",
   "@settingsAppLanguage": {

@@ -4,18 +4,50 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// Appearance: reeed's shape. A "Match system" toggle up top, then the Light and
-/// Dark modes as separate labelled groups of preview cards. Matching system
-/// follows the platform; turning it off pins one mode. With one palette per mode
-/// today, each group holds a single card - more themes slot in as more cards.
+/// Appearance: two independent axes. A System / Light / Dark segment picks HOW
+/// the appearance is decided; the theme grid picks WHICH family. They do not
+/// interfere - choosing Gruvbox with System on keeps following the platform, so
+/// light uses gruvbox-light and dark uses gruvbox-dark. Each family card previews
+/// in the currently resolved appearance.
 class AppearanceScreen extends StatelessWidget {
   const AppearanceScreen({super.key});
+
+  String _familyName(String id, AppLocalizations l10n) => switch (id) {
+    AppThemeFamily.gruvboxId => l10n.themeNameGruvbox,
+    AppThemeFamily.solarizedId => l10n.themeNameSolarized,
+    AppThemeFamily.sepiaId => l10n.themeNameSepia,
+    _ => l10n.themeNameDefault,
+  };
+
+  Widget _familyCard(
+    AppThemeFamily family,
+    ThemeState state,
+    ThemeCubit cubit,
+    AppLocalizations l10n,
+  ) {
+    // Preview in the currently resolved appearance, so the grid tracks the
+    // System/Light/Dark segment above it.
+    final variant = family.resolve(wantDark: state.wantDark);
+    return ThemeFamilyCard(
+      label: _familyName(family.id, l10n),
+      selected: state.familyId == family.id,
+      onTap: () => cubit.setFamily(family.id),
+      background: variant.background,
+      foreground: variant.text,
+      accent: variant.accent,
+      onAccent: variant.onAccent,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,59 +55,24 @@ class AppearanceScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final themeCubit = context.watch<ThemeCubit>();
     final state = themeCubit.state;
-    final matchSystem = state.mode == AppThemeMode.system;
 
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
       child: SettingsList(
         children: [
-          SettingsCard(
-            children: [
-              SettingsToggle(
-                icon: AppIcons.moonFill,
-                title: l10n.themeMatchSystem,
-                value: matchSystem,
-                // Off drops to the mode the system is currently showing, so
-                // nothing visibly jumps as the switch flips.
-                onChanged: (on) => themeCubit.setMode(
-                  on
-                      ? AppThemeMode.system
-                      : (state.platformBrightness == Brightness.dark
-                            ? AppThemeMode.dark
-                            : AppThemeMode.light),
-                ),
-              ),
-            ],
+          SectionLabel(l10n.settingsAppearance),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: _ModeSelector(mode: state.mode, onChanged: themeCubit.setMode),
           ),
-          SectionLabel(l10n.themeLight),
+          SectionLabel(l10n.settingsTheme),
           SettingsCard(
             children: [
-              _ModeGroup(
+              _FamilyGrid(
                 cards: [
-                  ThemeModeCard(
-                    label: l10n.themeLight,
-                    selected: !matchSystem && state.mode == AppThemeMode.light,
-                    onTap: () => themeCubit.setMode(AppThemeMode.light),
-                    background: state.light.background,
-                    foreground: state.light.text,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SectionLabel(l10n.themeDark),
-          SettingsCard(
-            children: [
-              _ModeGroup(
-                cards: [
-                  ThemeModeCard(
-                    label: l10n.themeDark,
-                    selected: !matchSystem && state.mode == AppThemeMode.dark,
-                    onTap: () => themeCubit.setMode(AppThemeMode.dark),
-                    background: state.dark.background,
-                    foreground: state.dark.text,
-                  ),
+                  for (final family in AppThemeFamily.all)
+                    _familyCard(family, state, themeCubit, l10n),
                 ],
               ),
             ],
@@ -86,26 +83,111 @@ class AppearanceScreen extends StatelessWidget {
   }
 }
 
-/// The theme cards inside a group card, wrapped at a fixed width so a group can
-/// grow past one without stretching.
-class _ModeGroup extends StatelessWidget {
-  const _ModeGroup({required this.cards});
+/// A three-way appearance switch: System / Light / Dark. The selected pill's
+/// accent fill slides between segments; under Reduce Motion it jumps.
+class _ModeSelector extends StatelessWidget {
+  const _ModeSelector({required this.mode, required this.onChanged});
+
+  final AppThemeMode mode;
+  final ValueChanged<AppThemeMode> onChanged;
+
+  static const _modes = [AppThemeMode.system, AppThemeMode.light, AppThemeMode.dark];
+  static const _height = 40.0;
+  static const _inset = 3.0;
+
+  String _label(AppThemeMode m, AppLocalizations l10n) => switch (m) {
+    AppThemeMode.system => l10n.themeSystem,
+    AppThemeMode.light => l10n.themeLight,
+    AppThemeMode.dark => l10n.themeDark,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    final index = _modes.indexOf(mode);
+    final reduce = context.reduceMotion;
+
+    return DecoratedBox(
+      decoration: SuperellipseDecoration(
+        borderRadius: _height / 2,
+        color: theme.surface,
+        border: BorderSide(color: theme.surfaceBorder),
+      ),
+      child: SizedBox(
+        height: _height,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final segWidth = constraints.maxWidth / _modes.length;
+            return Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: reduce ? Duration.zero : theme.motion.indicator,
+                  curve: theme.motion.indicatorCurve,
+                  left: index * segWidth + _inset,
+                  top: _inset,
+                  bottom: _inset,
+                  width: segWidth - 2 * _inset,
+                  child: DecoratedBox(
+                    decoration: SuperellipseDecoration(
+                      borderRadius: (_height - 2 * _inset) / 2,
+                      color: theme.accent,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    for (final m in _modes)
+                      Expanded(
+                        child: Touchable(
+                          onTap: () {
+                            Haptics.selection();
+                            onChanged(m);
+                          },
+                          child: Center(
+                            child: Text(
+                              _label(m, l10n),
+                              style: AppType.subhead.copyWith(
+                                color: m == mode ? theme.onAccent : theme.textSecondary,
+                                fontWeight: m == mode ? FontWeight.w600 : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Lays the theme cards out in equal columns that fill the row, so they scale
+/// with the device width and never leave an orphan on a second line.
+class _FamilyGrid extends StatelessWidget {
+  const _FamilyGrid({required this.cards});
 
   final List<Widget> cards;
 
   @override
   Widget build(BuildContext context) {
+    const spacing = AppSpacing.md;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
-      // Full width so the cards sit at the LEFT edge; the SettingsCard's Column
-      // centres anything narrower than itself, and a bare Wrap is narrower.
-      child: SizedBox(
-        width: double.infinity,
-        child: Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
-          children: [for (final card in cards) SizedBox(width: 76, child: card)],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = cards.length < 4 ? cards.length : 4;
+          final itemWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [for (final card in cards) SizedBox(width: itemWidth, child: card)],
+          );
+        },
       ),
     );
   }

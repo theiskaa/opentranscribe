@@ -278,6 +278,12 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get settingsAppearance;
 
+  /// Section label of the theme-family picker in appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
   /// Theme mode following the device appearance
   ///
   /// In en, this message translates to:
@@ -301,6 +307,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get themeDark;
+
+  /// Name of the default theme family in the appearance picker
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get themeNameDefault;
+
+  /// Name of the Gruvbox theme family (a proper noun; not translated)
+  ///
+  /// In en, this message translates to:
+  /// **'Gruvbox'**
+  String get themeNameGruvbox;
+
+  /// Name of the Solarized theme family (a proper noun; not translated)
+  ///
+  /// In en, this message translates to:
+  /// **'Solarized'**
+  String get themeNameSolarized;
+
+  /// Name of the Sepia theme family (a warm reading mode)
+  ///
+  /// In en, this message translates to:
+  /// **'Sepia'**
+  String get themeNameSepia;
 
   /// Row that picks the interface language
   ///

@@ -4,6 +4,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
@@ -22,7 +23,8 @@ class SettingsList extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.md,
-        AppScaffold.topPaddingOf(context),
+        // Tighter than the standard breath: settings sits closer under the bar.
+        AppScaffold.topPaddingOf(context) - AppSpacing.md,
         AppSpacing.md,
         MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
       ),
@@ -246,18 +248,20 @@ class SelectableRow extends StatelessWidget {
   }
 }
 
-/// A theme choice as reeed draws it: a card painted in the theme's OWN colours -
-/// its background, three "text line" bars and its name, all in the theme's ink -
-/// so the card is a tiny preview of the app in that theme. Selected takes a 2px
-/// ink border and bolds its name; the rest sit behind a faint hairline. No
-/// checkmark: the card IS the swatch.
-class ThemeModeCard extends StatelessWidget {
-  const ThemeModeCard({
+/// A theme preview: a small mock of the family in the CURRENT appearance - its
+/// background, an accent title line, two ink body lines - with the name below.
+/// Selecting picks the family (mode is unchanged) and fades an accent ring onto
+/// the edge while a checkmark badge pops in; both spring, and go instant under
+/// Reduce Motion.
+class ThemeFamilyCard extends StatefulWidget {
+  const ThemeFamilyCard({
     required this.label,
     required this.selected,
     required this.onTap,
     required this.background,
     required this.foreground,
+    required this.accent,
+    required this.onAccent,
     super.key,
   });
 
@@ -266,57 +270,147 @@ class ThemeModeCard extends StatelessWidget {
   final VoidCallback onTap;
   final Color background;
   final Color foreground;
+  final Color accent;
+  final Color onAccent;
+
+  @override
+  State<ThemeFamilyCard> createState() => _ThemeFamilyCardState();
+}
+
+class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProviderStateMixin {
+  static const _radius = 16.0;
+
+  late final AnimationController _sel = AnimationController(
+    vsync: this,
+    value: widget.selected ? 1 : 0,
+  );
+
+  @override
+  void didUpdateWidget(ThemeFamilyCard old) {
+    super.didUpdateWidget(old);
+    if (old.selected == widget.selected) return;
+    final target = widget.selected ? 1.0 : 0.0;
+    if (context.reduceMotion) {
+      _sel.value = target;
+    } else {
+      _sel.animateTo(target, duration: context.motionNow.indicator);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    super.dispose();
+  }
+
+  Widget _bar(double widthFactor, double height, Color color) => FractionallySizedBox(
+    alignment: Alignment.centerLeft,
+    widthFactor: widthFactor,
+    child: Container(
+      height: height,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(height / 2)),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final popCurve = theme.motion.swipePopCurve;
+    final faded = widget.foreground.withValues(alpha: 0.4);
+
     return Touchable(
-      onTap: onTap,
+      onTap: () {
+        Haptics.selection();
+        widget.onTap();
+      },
       pressedScale: theme.motion.pressIconScale,
-      haptic: true,
-      child: AspectRatio(
-        aspectRatio: 64 / 82,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-            border: Border.all(
-              color: selected ? theme.accent : theme.hairline,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final (i, w) in const [1.0, 0.7, 0.45].indexed) ...[
-                  if (i > 0) const SizedBox(height: 5),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: w,
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: foreground.withValues(alpha: 1 - i * 0.28),
-                        borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AspectRatio(
+            aspectRatio: 92 / 108,
+            child: AnimatedBuilder(
+              animation: _sel,
+              builder: (context, _) {
+                final t = _sel.value;
+                final pop = popCurve.transform(t.clamp(0.0, 1.0));
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: SuperellipseDecoration(
+                          borderRadius: _radius,
+                          color: widget.background,
+                          // The theme's own faint edge, so the card reads as a
+                          // real surface in that palette, not a flat swatch.
+                          border: BorderSide(color: widget.foreground.withValues(alpha: 0.12)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title in the ACCENT: the theme's defining hue
+                              // reads as content, no stray chip to look odd.
+                              _bar(0.62, 6, widget.accent),
+                              const SizedBox(height: 9),
+                              _bar(0.95, 3, faded),
+                              const SizedBox(height: 5),
+                              _bar(0.7, 3, faded),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Text(
-                  label,
-                  style: AppType.caption.copyWith(
-                    color: foreground,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ],
+                    // Accent ring on the edge, faded in (no layout shift).
+                    if (t > 0)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: t,
+                            child: DecoratedBox(
+                              decoration: SuperellipseDecoration(
+                                borderRadius: _radius,
+                                border: BorderSide(color: widget.accent, width: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Checkmark badge in the accent, popping in with overshoot.
+                    if (pop > 0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Transform.scale(
+                          scale: pop,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(color: widget.accent, shape: BoxShape.circle),
+                            child: Center(
+                              child: AppIcon(AppIcons.checkmark, size: 11, color: widget.onAccent),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
-        ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            widget.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.caption.copyWith(
+              color: widget.selected ? theme.accent : theme.text,
+              fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
