@@ -29,6 +29,57 @@ final class Availability {
   int get hashCode => Object.hash(status, detail);
 }
 
+/// One language model's own state on the device. Ordered from worst to best:
+/// the platform has nothing to serve, the asset is downloadable, a download is
+/// pending (possibly waiting for conditions, across launches), or it is ready.
+enum ModelAssetStatus { unsupported, supported, downloading, installed }
+
+/// One language's model state along the two platform axes a management UI
+/// needs: the asset's own [status], and [reserved], whether THIS app may use
+/// it right now (a model can be installed system-wide yet unusable here until
+/// re-reserved). [resolvedTag] is the supported tag the engine canonicalized
+/// the request to (de-AT answering as de-DE), so callers key follow-up actions
+/// on what the engine will actually use.
+@immutable
+final class LocaleModelStatus {
+  const LocaleModelStatus({
+    required this.status,
+    required this.reserved,
+    required this.resolvedTag,
+  });
+
+  final ModelAssetStatus status;
+  final bool reserved;
+  final String resolvedTag;
+
+  bool get isReady => status == ModelAssetStatus.installed && reserved;
+
+  @override
+  bool operator ==(Object other) =>
+      other is LocaleModelStatus &&
+      other.status == status &&
+      other.reserved == reserved &&
+      other.resolvedTag == resolvedTag;
+
+  @override
+  int get hashCode => Object.hash(status, reserved, resolvedTag);
+}
+
+/// How many languages this app may hold usable at once, and which it holds
+/// now. [max] comes from the platform at runtime (it varies by device
+/// storage). 0 is the whole degraded family in one value: no reservation
+/// concept exists (pre-26, engines without managed models) OR the engine
+/// could not answer. Renderers show no cap then; consumers that would ACT on
+/// reserved-ness (remove, evict) must treat 0 as "offer nothing", since the
+/// per-row reserved flag defaults to usable there.
+@immutable
+final class ReservationInfo {
+  const ReservationInfo({required this.max, required this.reservedTags});
+
+  final int max;
+  final List<String> reservedTags;
+}
+
 /// Progress of an on-device model download: [fraction] complete in [0,1], and
 /// [done] once installed. Engine-neutral: whatever an engine must fetch to run
 /// offline (an Apple asset today, a whisper model later) reports through this.
@@ -73,8 +124,19 @@ abstract interface class TranscriptionEngine {
   /// engine cannot answer.
   Future<List<String>> supportedLocales();
 
-  /// Transcribes a kept audio file. The re-transcription seam.
-  Future<Transcript> transcribeFile(File audio, {required String localeId});
+  /// Transcribes a kept audio file, or just the [start]..[end] slice of it
+  /// (null bounds = the file's own edges). Ranges are what let a session
+  /// spoken in several languages batch each span with its own model. An
+  /// engine that cannot honor a range must FAIL the call, never silently
+  /// transcribe the whole file: callers fall back on failure, and a whole
+  /// file answered as a slice would duplicate text across spans. Segment
+  /// timings in the result are relative to the SLICE; the caller offsets.
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  });
 }
 
 /// An engine that also produces live partial/final text while capture runs. Apple
@@ -86,6 +148,11 @@ abstract interface class TranscriptionEngine {
 /// boundary, only text events do. Implementing this interface IS the streaming
 /// capability; there is no separate flag.
 abstract interface class StreamingTranscriptionEngine implements TranscriptionEngine {
+  /// One more contract clause, load-bearing for mid-take language switches: a
+  /// NEW listen must succeed while a previous live stream's cancel is still
+  /// completing (implementations serialize or isolate their transports), and
+  /// a consumer cancel must complete even when the stream will never emit
+  /// again. Callers rely on both without awaiting the old stream's teardown.
   Stream<TranscriptEvent> transcribeLive({required String localeId});
 }
 
@@ -101,7 +168,31 @@ abstract interface class ManagedModelEngine implements TranscriptionEngine {
 
   /// Downloads and installs the model for [localeId], streaming progress and ending
   /// with a [ModelInstallProgress.done] event. A no-op stream if already installed.
-  /// Single-flight is the CALLER's promise: implementations may assume no two
-  /// installs run concurrently and need not serialize them.
+  /// Overlapping calls for DIFFERENT locales are allowed (a per-language UI
+  /// invites them); an implementation whose transport is single-flight must
+  /// serialize them itself rather than let a later call wedge an earlier one.
+  /// Callers still promise not to run two installs for the SAME locale.
   Stream<ModelInstallProgress> installModel({required String localeId});
+
+  /// The tags whose models are downloaded on this DEVICE. Assets are shared
+  /// system-wide, so this can include languages another app or OS feature
+  /// installed. Installed does not mean usable by this app; [localeStatus]
+  /// carries that second axis. Preflight: never throws, empty when the engine
+  /// cannot answer.
+  Future<List<String>> installedLocales();
+
+  /// Fine-grained state for one language. Preflight: never throws; an engine
+  /// that cannot answer reports downloadable-but-not-ready rather than lying
+  /// in either direction.
+  Future<LocaleModelStatus> localeStatus({required String localeId});
+
+  /// Releases this app's claim on a language's model. The platform may keep
+  /// the shared asset on disk and remove it on its own schedule; this only
+  /// ends THIS app's use of the language until it is installed again. Returns
+  /// whether a claim was actually released.
+  Future<bool> removeLanguage({required String localeId});
+
+  /// The platform's language cap and this app's current holdings, for a
+  /// management UI to render honestly. Preflight: never throws.
+  Future<ReservationInfo> reservationInfo();
 }

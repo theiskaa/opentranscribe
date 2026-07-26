@@ -15,11 +15,13 @@ private enum SpeechErrorCode: String {
   case fileMissing = "file_missing"
   case transcribeError = "transcribe_error"
   case modelInstallFailed = "model_install_failed"
+  case reservationCap = "reservation_cap"
   case badArgs = "bad_args"
 
-  /// The channel error for this code.
-  func error(_ message: String) -> FlutterError {
-    FlutterError(code: rawValue, message: message, details: nil)
+  /// The channel error for this code. [details] carries structured extras
+  /// (asset status, reserved tags) so Dart never parses message strings.
+  func error(_ message: String, details: Any? = nil) -> FlutterError {
+    FlutterError(code: rawValue, message: message, details: details)
   }
 }
 
@@ -140,6 +142,137 @@ private func analyzerSegments(from text: AttributedString) -> [[String: Any]] {
   return segments
 }
 
+/// Converts one PCM buffer into [format]. Returns nil on failure so a single
+/// bad buffer is dropped rather than tearing its stream down. Shared by the
+/// live tap feed and the ranged batch feed; the CALLER owns the converter, so
+/// resampler state carries across consecutive buffers.
+private func convertBuffer(
+  _ input: AVAudioPCMBuffer, using converter: AVAudioConverter, to format: AVAudioFormat
+) -> AVAudioPCMBuffer? {
+  let ratio = format.sampleRate / input.format.sampleRate
+  // +1024 frames of headroom over the rate-scaled size: resampling can emit a
+  // few more frames than the ratio predicts (filter tails, rounding).
+  let capacity = AVAudioFrameCount(Double(input.frameLength) * ratio) + 1024
+  guard let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else {
+    return nil
+  }
+  var consumed = false
+  var error: NSError?
+  converter.convert(to: output, error: &error) { _, status in
+    if consumed {
+      status.pointee = .noDataNow
+      return nil
+    }
+    consumed = true
+    status.pointee = .haveData
+    return input
+  }
+  return error == nil ? output : nil
+}
+
+/// The chunk one slice read asks for at a time (~0.7s at 48kHz).
+private let sliceChunkFrames: AVAudioFrameCount = 32_768
+
+/// Reads the next raw chunk of a slice, shrinking [remaining]. Nil on the end
+/// of the slice, a truncated file (a header claiming more than is stored), or
+/// a read error: what WAS read still transcribes, like the whole-file path.
+private func readSliceChunk(
+  from file: AVAudioFile, remaining: inout AVAudioFramePosition
+) -> AVAudioPCMBuffer? {
+  guard remaining > 0 else { return nil }
+  let ask = AVAudioFrameCount(min(AVAudioFramePosition(sliceChunkFrames), remaining))
+  guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: ask)
+  else { return nil }
+  do {
+    try file.read(into: buffer, frameCount: ask)
+  } catch {
+    remaining = 0
+    return nil
+  }
+  if buffer.frameLength == 0 {
+    remaining = 0
+    return nil
+  }
+  remaining -= AVAudioFramePosition(buffer.frameLength)
+  return buffer
+}
+
+/// Drains an [AVAudioConverter]'s buffered tail (the resampler filter holds a
+/// few ms) once its input is exhausted, so span-boundary words keep their end.
+private func flushConverter(
+  _ converter: AVAudioConverter, to format: AVAudioFormat
+) -> AVAudioPCMBuffer? {
+  guard let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096) else { return nil }
+  var error: NSError?
+  converter.convert(to: output, error: &error) { _, status in
+    status.pointee = .endOfStream
+    return nil
+  }
+  return error == nil ? output : nil
+}
+
+/// Pull-based analyzer input for one file slice: each chunk is read and
+/// converted only when the analyzer asks for it, so memory stays one chunk
+/// deep however long the span (a pushed AsyncStream would buffer the whole
+/// slice at disk speed). Single consumer by contract - the analyzer iterates
+/// it once - hence the unchecked Sendable over the file and converter.
+@available(iOS 26.0, *)
+private final class SliceFeed: AsyncSequence, @unchecked Sendable {
+  typealias Element = AnalyzerInput
+
+  private let file: AVAudioFile
+  private let format: AVAudioFormat
+  private let converter: AVAudioConverter?
+  private var head: AVAudioPCMBuffer?
+  private var remaining: AVAudioFramePosition
+  private var flushed = false
+
+  init(
+    file: AVAudioFile, format: AVAudioFormat, converter: AVAudioConverter?,
+    head: AVAudioPCMBuffer, remaining: AVAudioFramePosition
+  ) {
+    self.file = file
+    self.format = format
+    self.converter = converter
+    self.head = head
+    self.remaining = remaining
+  }
+
+  func makeAsyncIterator() -> Iterator { Iterator(feed: self) }
+
+  struct Iterator: AsyncIteratorProtocol {
+    let feed: SliceFeed
+    mutating func next() async -> AnalyzerInput? { feed.nextInput() }
+  }
+
+  private func nextInput() -> AnalyzerInput? {
+    while let raw = nextRaw() {
+      guard let converter else { return AnalyzerInput(buffer: raw) }
+      // A chunk the converter drops is skipped, not fatal, like the live tap.
+      if let converted = convertBuffer(raw, using: converter, to: format),
+        converted.frameLength > 0
+      {
+        return AnalyzerInput(buffer: converted)
+      }
+    }
+    if !flushed, let converter {
+      flushed = true
+      if let tail = flushConverter(converter, to: format), tail.frameLength > 0 {
+        return AnalyzerInput(buffer: tail)
+      }
+    }
+    return nil
+  }
+
+  private func nextRaw() -> AVAudioPCMBuffer? {
+    if let pending = head {
+      head = nil
+      return pending
+    }
+    return readSliceChunk(from: file, remaining: &remaining)
+  }
+}
+
 /// Speech-recognition authorization as an async value (wrapping the callback API).
 private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
   await withCheckedContinuation { continuation in
@@ -147,43 +280,128 @@ private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizati
   }
 }
 
+/// The channel's status strings; one spelling with apple_speech_engine.dart.
+@available(iOS 26.0, *)
+private func statusName(_ status: AssetInventory.Status) -> String {
+  switch status {
+  case .installed: return "installed"
+  case .downloading: return "downloading"
+  case .supported: return "supported"
+  case .unsupported: return "unsupported"
+  @unknown default: return "supported"
+  }
+}
+
+/// This app's reserved locales as sorted bcp47 tags.
+@available(iOS 26.0, *)
+private func reservedTagList() async -> [String] {
+  await AssetInventory.reservedLocales.map { $0.identifier(.bcp47) }.sorted()
+}
+
+/// The per-app language cap is full. Its own type because the fix is an
+/// eviction choice by the user, not a retry; carries the current holdings so
+/// the UI can offer them.
+@available(iOS 26.0, *)
+private struct ReservationCapError: Error {
+  let reservedTags: [String]
+}
+
+/// A model download failure with the PRE-install asset status attached: a
+/// stuck download, an asset the CDN does not have, and an ordinary network
+/// failure all fail downstream with the same error, and only this status
+/// tells them apart in reports.
+@available(iOS 26.0, *)
+private struct ModelInstallError: Error {
+  let underlying: Error
+  let status: AssetInventory.Status
+
+  var message: String {
+    "\((underlying as NSError).localizedDescription) (status before install: \(status))"
+  }
+}
+
+@available(iOS 26.0, *)
+private func isReservationCapError(_ error: Error) -> Bool {
+  let base = error as NSError
+  return base.domain == SFSpeechErrorDomain
+    && base.code == SFSpeechError.Code.tooManyAssetLocalesAllocated.rawValue
+}
+
+/// Folds any install-path failure into the (code, message, extras) all THREE
+/// surfaces share - the method-channel reply, the install stream, and the
+/// live stream - so their shapes cannot drift.
+@available(iOS 26.0, *)
+private func installFailure(_ error: Error) -> (
+  code: SpeechErrorCode, message: String, extras: [String: Any]
+) {
+  if let cap = error as? ReservationCapError {
+    return (
+      .reservationCap,
+      "language limit reached; reserved: \(cap.reservedTags.joined(separator: ", "))",
+      ["reservedTags": cap.reservedTags]
+    )
+  }
+  if let install = error as? ModelInstallError {
+    return (.modelInstallFailed, install.message, ["status": statusName(install.status)])
+  }
+  return (.modelInstallFailed, "\(error)", [:])
+}
+
 /// Reserves the locale and returns the install request, or nil when the model is
 /// already installed. Reserve first, else the request fails "not subscribed to
 /// transcription.<lang>"; a repeat reservation is harmless. The one-time download is
 /// the single dent in the airplane-mode promise; after it, transcription is offline.
+/// Reservations accumulate deliberately (multi-language is the point); the only
+/// release is the explicit removeLanguage call, and a full cap surfaces as the
+/// typed [ReservationCapError] so the UI can run an eviction, never a cryptic
+/// install failure.
 @available(iOS 26.0, *)
 private func reserveAndRequestInstall(_ transcriber: SpeechTranscriber, locale: Locale) async throws
   -> AssetInstallationRequest?
 {
   do {
     try await AssetInventory.reserve(locale: locale)
+  } catch let error where isReservationCapError(error) {
+    throw ReservationCapError(reservedTags: await reservedTagList())
   } catch {
     // Logged, not fatal: the install request below surfaces the attributable error.
     NSLog("AssetInventory.reserve(\(locale.identifier(.bcp47))) failed: \(error)")
   }
-  return try await AssetInventory.assetInstallationRequest(supporting: [transcriber])
-}
-
-/// Releases reservations for every locale but [locale]. AssetInventory caps how many
-/// a process may hold, so repeated language switches would otherwise exhaust the cap
-/// over the app's life, after which every install fails cryptically. Called ONLY from
-/// the explicit install flow, never from transcribe paths, so a transcription of an
-/// old entry in another locale cannot yank a reservation out from under an in-flight
-/// download for the current one.
-@available(iOS 26.0, *)
-private func releaseOtherReservations(keeping locale: Locale) async {
-  let target = locale.identifier(.bcp47)
-  for reserved in await AssetInventory.reservedLocales
-  where reserved.identifier(.bcp47) != target {
-    await AssetInventory.release(reservedLocale: reserved)
+  do {
+    return try await AssetInventory.assetInstallationRequest(supporting: [transcriber])
+  } catch let error where isReservationCapError(error) {
+    throw ReservationCapError(reservedTags: await reservedTagList())
   }
 }
 
+/// Reads and logs the asset status for a transcriber before an install attempt.
+/// Field diagnosis hinges on it: a download stuck from an earlier attempt
+/// (.downloading) and an asset the CDN simply does not have fail downstream with
+/// the same "Not Installing" error; only this status tells them apart.
+@available(iOS 26.0, *)
+private func loggedAssetStatus(_ transcriber: SpeechTranscriber, locale: Locale) async
+  -> AssetInventory.Status
+{
+  let status = await AssetInventory.status(forModules: [transcriber])
+  NSLog("AssetInventory status for \(locale.identifier(.bcp47)) before install: \(status)")
+  return status
+}
+
 /// Installs the on-device model for a transcriber's locale on first use (batch/live).
+/// Throws [ReservationCapError] on a full cap, [ModelInstallError] on a download
+/// failure (status attached), and lets CancellationError pass untouched: callers
+/// branch on its type for quiet teardown.
 @available(iOS 26.0, *)
 private func installTranscriptionModel(_ transcriber: SpeechTranscriber, locale: Locale) async throws {
+  let status = await loggedAssetStatus(transcriber, locale: locale)
   if let request = try await reserveAndRequestInstall(transcriber, locale: locale) {
-    try await request.downloadAndInstall()
+    do {
+      try await request.downloadAndInstall()
+    } catch is CancellationError {
+      throw CancellationError()
+    } catch {
+      throw ModelInstallError(underlying: error, status: status)
+    }
   }
 }
 
@@ -232,7 +450,7 @@ private func modelLocaleInstalled(_ localeId: String) async -> Bool {
 final class SpeechAnalyzerLiveSession {
   private let localeId: String
   private let emit: ([String: Any]) -> Void
-  private let emitError: (SpeechErrorCode, String) -> Void
+  private let emitError: (SpeechErrorCode, String, [String: Any]) -> Void
 
   // Built in run(), not init: the locale must first resolve (async) to the
   // nearest supported model. Guarded by the lock like the other streaming state.
@@ -248,14 +466,14 @@ final class SpeechAnalyzerLiveSession {
   private var consumerToken: Int?
   private var runTask: Task<Void, Never>?
   private var collectorTask: Task<Void, Never>?
-  // Set once teardown begins, so a stop() racing setup, a duplicate finish, and a
-  // late buffer all become no-ops.
+  // Set once teardown begins, so a cancel() racing setup, a duplicate finish,
+  // and a late buffer all become no-ops.
   private var finished = false
 
   fileprivate init(
     localeId: String,
     emit: @escaping ([String: Any]) -> Void,
-    emitError: @escaping (SpeechErrorCode, String) -> Void
+    emitError: @escaping (SpeechErrorCode, String, [String: Any]) -> Void
   ) {
     self.localeId = localeId
     self.emit = emit
@@ -269,7 +487,7 @@ final class SpeechAnalyzerLiveSession {
   private func run() async {
     do {
       guard await requestSpeechAuthorization() == .authorized else {
-        emitError(.permissionDenied, speechNotAuthorizedMessage)
+        emitError(.permissionDenied, speechNotAuthorizedMessage, [:])
         return
       }
       // Resolve to the nearest supported model, then build the pipeline for it.
@@ -292,8 +510,9 @@ final class SpeechAnalyzerLiveSession {
         return
       } catch {
         // A first-use download failure is a model-install condition the app reasons
-        // about (retry when online), not a generic transcription failure.
-        emitError(.modelInstallFailed, "\(error)")
+        // about (retry when online, or evict a language), not a generic failure.
+        let failure = installFailure(error)
+        emitError(failure.code, failure.message, failure.extras)
         abort()
         return
       }
@@ -311,7 +530,7 @@ final class SpeechAnalyzerLiveSession {
       let (inputSequence, builder) = AsyncStream<AnalyzerInput>.makeStream(
         bufferingPolicy: .bufferingOldest(256))
       lock.lock()
-      // A stop() raced this setup: bail before attaching anything to tear down.
+      // A cancel() raced this setup: bail before attaching anything to tear down.
       if finished {
         lock.unlock()
         builder.finish()
@@ -319,7 +538,7 @@ final class SpeechAnalyzerLiveSession {
       }
       analyzerFormat = format
       inputBuilder = builder
-      // Created under the lock so a stop() racing here reliably sees and cancels it.
+      // Created under the lock so a cancel() racing here reliably sees and cancels it.
       collectorTask = makeCollector()
       lock.unlock()
 
@@ -345,7 +564,7 @@ final class SpeechAnalyzerLiveSession {
       // Superseded or torn down mid-setup; not a failure to surface.
       abort()
     } catch {
-      emitError(.transcribeError, "\(error)")
+      emitError(.transcribeError, "\(error)", [:])
       abort()
     }
   }
@@ -385,7 +604,7 @@ final class SpeechAnalyzerLiveSession {
       } catch is CancellationError {
         // A normal teardown, not a failure to surface.
       } catch {
-        self.emitError(.transcribeError, "\(error)")
+        self.emitError(.transcribeError, "\(error)", [:])
       }
     }
   }
@@ -407,36 +626,13 @@ final class SpeechAnalyzerLiveSession {
       converter = AVAudioConverter(from: buffer.format, to: format)
     }
     guard let converter = converter,
-      let converted = Self.convert(buffer, using: converter, to: format)
+      let converted = convertBuffer(buffer, using: converter, to: format)
     else { return }
     builder.yield(AnalyzerInput(buffer: converted))
   }
 
-  /// Converts one capture buffer into the analyzer's format. Returns nil on failure
-  /// so a single bad buffer is dropped rather than tearing the stream down.
-  private static func convert(
-    _ input: AVAudioPCMBuffer, using converter: AVAudioConverter, to format: AVAudioFormat
-  ) -> AVAudioPCMBuffer? {
-    let ratio = format.sampleRate / input.format.sampleRate
-    // +1024 frames of headroom over the rate-scaled size: resampling can emit a
-    // few more frames than the ratio predicts (filter tails, rounding).
-    let capacity = AVAudioFrameCount(Double(input.frameLength) * ratio) + 1024
-    guard let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else {
-      return nil
-    }
-    var consumed = false
-    var error: NSError?
-    converter.convert(to: output, error: &error) { _, status in
-      if consumed {
-        status.pointee = .noDataNow
-        return nil
-      }
-      consumed = true
-      status.pointee = .haveData
-      return input
-    }
-    return error == nil ? output : nil
-  }
+  // Conversion lives in the shared file-scope convertBuffer helper, which the
+  // ranged batch feed drives through the same analyzer format.
 
   /// Marks finished and detaches from capture under the lock. Returns whether
   /// teardown had already run (so the caller skips a second analyzer wind-down) and
@@ -595,8 +791,12 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let session = SpeechAnalyzerLiveSession(
           localeId: localeId,
           emit: { [weak self] payload in self?.emitLive(payload, generation: generation) },
-          emitError: { [weak self] code, message in
-            self?.emitLive(errorPayload(code, message), generation: generation)
+          emitError: { [weak self] code, message, extras in
+            // Structured extras (asset status, reserved tags) ride the live
+            // surface too, so all THREE error surfaces stay in one shape.
+            var payload = errorPayload(code, message)
+            for (key, value) in extras { payload[key] = value }
+            self?.emitLive(payload, generation: generation)
           })
         analyzerLive = session
         session.start()
@@ -752,6 +952,84 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             .map { $0.identifier.replacingOccurrences(of: "_", with: "-") }
             .sorted())
       }
+    case "installedLocales":
+      if #available(iOS 26.0, *) {
+        // Device-wide truth: assets are shared system assets, so this can list
+        // languages another app or OS feature downloaded.
+        Task {
+          let tags = await SpeechTranscriber.installedLocales.map { $0.identifier(.bcp47) }
+          DispatchQueue.main.async { result(tags.sorted()) }
+        }
+      } else {
+        // The classic API cannot enumerate installed models cheaply (it would
+        // need a recognizer per locale); per-tag localeStatus answers readiness.
+        result([String]())
+      }
+    case "localeStatus":
+      let localeId = (call.arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
+      if #available(iOS 26.0, *) {
+        #if targetEnvironment(simulator)
+          // No on-device model on the simulator; unsupported is the honest state.
+          result(["status": "unsupported", "reserved": false, "resolvedTag": localeId])
+        #else
+          Task {
+            let locale = await resolvedLocale(localeId)
+            let tag = locale.identifier(.bcp47)
+            // Same transcriber shape as the transcribe paths, so the status can
+            // never under-report relative to what transcription actually needs.
+            let transcriber = makeTimedTranscriber(locale: locale)
+            let status = await AssetInventory.status(forModules: [transcriber])
+            let reserved = await reservedTagList().contains(tag)
+            DispatchQueue.main.async {
+              result(["status": statusName(status), "reserved": reserved, "resolvedTag": tag])
+            }
+          }
+        #endif
+      } else {
+        // Pre-26 has no asset management: an available on-device recognizer IS
+        // the installed model, and there is no reservation concept to fail on.
+        let installed = onDeviceRecognizer(localeId) != nil
+        result([
+          "status": installed ? "installed" : "unsupported",
+          "reserved": true,
+          "resolvedTag": localeId,
+        ])
+      }
+    case "reservationInfo":
+      if #available(iOS 26.0, *) {
+        Task {
+          let reserved = await reservedTagList()
+          let max = AssetInventory.maximumReservedLocales
+          DispatchQueue.main.async { result(["max": max, "reserved": reserved]) }
+        }
+      } else {
+        // No reservation concept pre-26; max 0 is the contract's "no cap here".
+        result(["max": 0, "reserved": [String]()])
+      }
+    case "removeLanguage":
+      // Strict, unlike the read-only handlers' en-US fallback: this one ACTS,
+      // and garbage arguments must not release a language nobody named.
+      guard let localeId = (call.arguments as? [String: Any])?["localeId"] as? String else {
+        result(SpeechErrorCode.badArgs.error("localeId required"))
+        return
+      }
+      if #available(iOS 26.0, *) {
+        Task {
+          // Match by tag rather than releasing the resolved Locale directly:
+          // reservation identity is fragile (underscore/hyphen variants), and
+          // the reserved instance is the one release recognizes.
+          let locale = await resolvedLocale(localeId)
+          let target = locale.identifier(.bcp47)
+          var released = false
+          for reserved in await AssetInventory.reservedLocales
+          where reserved.identifier(.bcp47) == target {
+            released = await AssetInventory.release(reservedLocale: reserved) || released
+          }
+          DispatchQueue.main.async { result(released) }
+        }
+      } else {
+        result(false)
+      }
     case "transcribeFile":
       guard let args = call.arguments as? [String: Any],
         let path = args["path"] as? String
@@ -760,15 +1038,21 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       let localeId = args["localeId"] as? String ?? "en-US"
-      transcribeFile(path: path, localeId: localeId, result: result)
+      // Optional slice bounds, for one span of a mixed-language take.
+      let startMs = (args["startMs"] as? NSNumber)?.intValue
+      let endMs = (args["endMs"] as? NSNumber)?.intValue
+      transcribeFile(path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
   }
 
   /// Picks the batch strategy: the simulator has no model, iOS 26 uses SpeechAnalyzer,
-  /// older iOS uses the classic recognizer.
-  private func transcribeFile(path: String, localeId: String, result: @escaping FlutterResult) {
+  /// older iOS uses the classic recognizer (whole files only: a ranged ask FAILS
+  /// there, never silently answers with the whole file as if it were the slice).
+  private func transcribeFile(
+    path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
     guard FileManager.default.fileExists(atPath: path) else {
       result(SpeechErrorCode.fileMissing.error(path))
       return
@@ -779,8 +1063,13 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       result(SpeechErrorCode.onDeviceUnavailable.error("on-device speech is unavailable on the simulator"))
     #else
       if #available(iOS 26.0, *) {
-        transcribeFileWithAnalyzer(path: path, localeId: localeId, result: result)
+        transcribeFileWithAnalyzer(
+          path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
       } else {
+        if startMs != nil || endMs != nil {
+          result(SpeechErrorCode.transcribeError.error("ranged transcription needs iOS 26"))
+          return
+        }
         transcribeFileClassic(path: path, localeId: localeId, result: result)
       }
     #endif
@@ -847,9 +1136,11 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   /// fails fast on the simulator before reaching here). The first call for a locale
   /// downloads Apple's on-device model once (this needs the network that one time,
   /// the single dent in the airplane-mode promise); after that it runs fully offline.
+  /// A [startMs]/[endMs] slice transcribes ONE SPAN of a mixed-language take; its
+  /// segment timings are relative to the slice, and Dart offsets them.
   @available(iOS 26.0, *)
   private func transcribeFileWithAnalyzer(
-    path: String, localeId: String, result: @escaping FlutterResult
+    path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
   ) {
     let url = URL(fileURLWithPath: path)
     Task {
@@ -857,6 +1148,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       // Consumes transcriber.results; cancelled on any failure so it does not hang
       // awaiting a results stream that never finalizes.
       var collected: Task<AttributedString, Error>?
+      // Held for the catch below: a failure mid-analysis must wind the
+      // analyzer down, not leave it flushing results nobody consumes.
+      var runningAnalyzer: SpeechAnalyzer?
       do {
         guard await requestSpeechAuthorization() == .authorized else {
           reply(SpeechErrorCode.permissionDenied.error(speechNotAuthorizedMessage))
@@ -870,13 +1164,17 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         do {
           try await installTranscriptionModel(transcriber, locale: locale)
         } catch {
-          // Distinct code: a download failure has a different retry story than a
-          // broken transcription.
-          reply(SpeechErrorCode.modelInstallFailed.error("\(error)"))
+          // Distinct codes: a download failure (or a full language cap) has a
+          // different recovery story than a broken transcription.
+          let failure = installFailure(error)
+          reply(
+            failure.code.error(
+              failure.message, details: failure.extras.isEmpty ? nil : failure.extras))
           return
         }
 
         let analyzer = SpeechAnalyzer(modules: [transcriber])
+        runningAnalyzer = analyzer
         let audioFile = try AVAudioFile(forReading: url)
 
         let collector = Task { () -> AttributedString in
@@ -888,16 +1186,69 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         }
         collected = collector
 
-        if let lastSample = try await analyzer.analyzeSequence(from: audioFile) {
-          try await analyzer.finalizeAndFinish(through: lastSample)
+        if startMs == nil && endMs == nil {
+          if let lastSample = try await analyzer.analyzeSequence(from: audioFile) {
+            try await analyzer.finalizeAndFinish(through: lastSample)
+          } else {
+            // No analyzable audio at all. Cancel and reply the valid empty result
+            // directly, rather than awaiting a collector whose stream a cancellation
+            // may end with CancellationError (misreported as a transcribe error).
+            await analyzer.cancelAndFinishNow()
+            collector.cancel()
+            reply(["text": "", "segments": [[String: Any]]()])
+            return
+          }
         } else {
-          // No analyzable audio at all. Cancel and reply the valid empty result
-          // directly, rather than awaiting a collector whose stream a cancellation
-          // may end with CancellationError (misreported as a transcribe error).
-          await analyzer.cancelAndFinishNow()
-          collector.cancel()
-          reply(["text": "", "segments": [[String: Any]]()])
-          return
+          // One span of a mixed-language take: pull just the slice's frames
+          // through the analyzer in its own format (see [SliceFeed]).
+          guard
+            let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [
+              transcriber
+            ])
+          else {
+            await analyzer.cancelAndFinishNow()
+            collector.cancel()
+            reply(SpeechErrorCode.transcribeError.error("no compatible audio format"))
+            return
+          }
+          let sampleRate = audioFile.processingFormat.sampleRate
+          // Clamped in Double space FIRST: a corrupt span timestamp must not
+          // trap the Int64 conversion.
+          func frame(_ ms: Int) -> AVAudioFramePosition {
+            let raw = (Double(ms) / 1000.0) * sampleRate
+            return AVAudioFramePosition(min(max(raw, 0), Double(audioFile.length)))
+          }
+          let startFrame = frame(startMs ?? 0)
+          let endFrame = endMs.map(frame) ?? audioFile.length
+          let sameFormat = audioFile.processingFormat == format
+          // One converter for the WHOLE slice, so resampler state carries
+          // across chunks instead of clicking at every boundary.
+          let converter = sameFormat
+            ? nil : AVAudioConverter(from: audioFile.processingFormat, to: format)
+          if !sameFormat && converter == nil {
+            await analyzer.cancelAndFinishNow()
+            collector.cancel()
+            reply(SpeechErrorCode.transcribeError.error("audio format conversion unavailable"))
+            return
+          }
+          audioFile.framePosition = startFrame
+          var remaining = endFrame - startFrame
+          // Pre-read the first chunk: a slice holding NO audio (bounds beyond
+          // the file, or a truncated file whose header claims more than it
+          // stores) must take the same empty-reply exit as the whole-file
+          // path, never a finalize on an analyzer that was fed nothing.
+          guard remaining > 0, let head = readSliceChunk(from: audioFile, remaining: &remaining)
+          else {
+            await analyzer.cancelAndFinishNow()
+            collector.cancel()
+            reply(["text": "", "segments": [[String: Any]]()])
+            return
+          }
+          let feed = SliceFeed(
+            file: audioFile, format: format, converter: converter, head: head,
+            remaining: remaining)
+          try await analyzer.start(inputSequence: feed)
+          try await analyzer.finalizeAndFinishThroughEndOfInput()
         }
 
         let text = try await collector.value
@@ -906,6 +1257,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         reply(["text": text.plainText, "segments": analyzerSegments(from: text)])
       } catch {
         collected?.cancel()
+        if let analyzer = runningAnalyzer { await analyzer.cancelAndFinishNow() }
         reply(SpeechErrorCode.transcribeError.error("\(error)"))
       }
     }
@@ -914,8 +1266,8 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
 /// Streams on-device model-install progress for the requested locale over the
 /// `opentranscribe/speech/model` EventChannel. Single-flight: a new listen supersedes
-/// any in-flight install and abandons its stream (the app installs one language at a
-/// time). Payloads: {fraction, done:false} while installing, then a terminal
+/// any in-flight install and abandons its stream (the Dart engine serializes
+/// overlapping installs onto this handler, one at a time). Payloads: {fraction, done:false} while installing, then a terminal
 /// {fraction:1, done:true}; {type:error,...} on failure.
 final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
   private var sink: FlutterEventSink?
@@ -967,9 +1319,10 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
     let locale = await resolvedLocale(localeId)
     let transcriber = makeTimedTranscriber(locale: locale)
     do {
-      // The explicit install flow is the one place other locales' reservations are
-      // released, so language switches cannot exhaust the reservation cap.
-      await releaseOtherReservations(keeping: locale)
+      // Reservations are NOT trimmed here: multiple languages may be held at
+      // once, and the only release is the explicit removeLanguage call. A full
+      // cap surfaces as the typed reservation_cap below.
+      let status = await loggedAssetStatus(transcriber, locale: locale)
       guard let downloader = try await reserveAndRequestInstall(transcriber, locale: locale) else {
         emit(["fraction": 1.0, "done": true], generation: gen)  // already installed
         return
@@ -980,12 +1333,23 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
         self?.emit(["fraction": progress.fractionCompleted, "done": false], generation: gen)
       }
       defer { observation.invalidate() }
-      try await downloader.downloadAndInstall()
+      do {
+        try await downloader.downloadAndInstall()
+      } catch is CancellationError {
+        throw CancellationError()
+      } catch {
+        throw ModelInstallError(underlying: error, status: status)
+      }
       emit(["fraction": 1.0, "done": true], generation: gen)
     } catch is CancellationError {
       // Normal teardown (Dart unsubscribed), not a failure.
     } catch {
-      emit(errorPayload(.modelInstallFailed, "\(error)"), generation: gen)
+      // Same (code, message, extras) shape as the transcribe paths, with the
+      // extras inlined into the payload so Dart branches without string parsing.
+      let failure = installFailure(error)
+      var payload = errorPayload(failure.code, failure.message)
+      for (key, value) in failure.extras { payload[key] = value }
+      emit(payload, generation: gen)
     }
   }
 

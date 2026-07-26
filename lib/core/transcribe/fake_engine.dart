@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:opentranscribe/core/transcribe/transcript.dart';
@@ -31,8 +32,11 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
     this.failBatch = false,
     this.availability = const Availability.available(),
     this.supportedLocaleTags = const ['en-US'],
+    List<String>? installedLocaleTags,
+    this.maxReservedLocales = 3,
     DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+  }) : installedLocaleTags = List.of(installedLocaleTags ?? supportedLocaleTags),
+       _clock = clock ?? DateTime.now;
 
   final String cannedText;
   final String? batchText;
@@ -41,6 +45,16 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   final bool failBatch;
   final Availability availability;
   final List<String> supportedLocaleTags;
+
+  /// Mutable fixture: the tags reported installed AND reserved (this fake keeps
+  /// the two axes together). Defaults to everything supported, matching the
+  /// always-ready [isModelInstalled].
+  final List<String> installedLocaleTags;
+
+  /// The cap [reservationInfo] reports; a fixture, since the real value is
+  /// device-dependent.
+  int maxReservedLocales;
+
   final DateTime Function() _clock;
 
   @override
@@ -59,38 +73,100 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   Future<bool> isModelInstalled({required String localeId}) async => true;
 
   @override
-  Stream<ModelInstallProgress> installModel({required String localeId}) =>
-      Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+  Stream<ModelInstallProgress> installModel({required String localeId}) async* {
+    if (!installedLocaleTags.contains(localeId)) installedLocaleTags.add(localeId);
+    yield const ModelInstallProgress(fraction: 1, done: true);
+  }
 
   @override
-  Future<Transcript> transcribeFile(File audio, {required String localeId}) async {
+  Future<List<String>> installedLocales() async => List.of(installedLocaleTags);
+
+  @override
+  Future<LocaleModelStatus> localeStatus({required String localeId}) async {
+    final installed = installedLocaleTags.contains(localeId);
+    return LocaleModelStatus(
+      status: !supportedLocaleTags.contains(localeId)
+          ? ModelAssetStatus.unsupported
+          : (installed ? ModelAssetStatus.installed : ModelAssetStatus.supported),
+      reserved: installed,
+      resolvedTag: localeId,
+    );
+  }
+
+  @override
+  Future<bool> removeLanguage({required String localeId}) async =>
+      installedLocaleTags.remove(localeId);
+
+  @override
+  Future<ReservationInfo> reservationInfo() async =>
+      ReservationInfo(max: maxReservedLocales, reservedTags: List.of(installedLocaleTags));
+
+  /// Every batch call's (localeId, start, end), newest last, for assertions.
+  final List<({String localeId, Duration? start, Duration? end})> batchCalls = [];
+
+  /// Builds per-call text when set (distinguishable spans in merge tests);
+  /// falls back to [batchText]/[cannedText].
+  String Function(String localeId, Duration? start, Duration? end)? transcriptBuilder;
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async {
+    batchCalls.add((localeId: localeId, start: start, end: end));
     if (failBatch) throw const TranscriptionFailed('fake batch failure');
-    return _cannedTranscript(batchText ?? cannedText, localeId, id, _clock());
+    final text = transcriptBuilder?.call(localeId, start, end) ?? batchText ?? cannedText;
+    return _cannedTranscript(text, localeId, id, _clock());
   }
 
   /// The locale the most recent [transcribeLive] was asked for, for assertions.
   String? lastLiveLocaleId;
 
   @override
-  Stream<TranscriptEvent> transcribeLive({required String localeId}) async* {
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) {
     lastLiveLocaleId = localeId;
-    final words = cannedText.split(' ');
-    final buffer = StringBuffer();
-    for (var i = 0; i < words.length; i++) {
-      buffer.write(i == 0 ? words[i] : ' ${words[i]}');
-      yield TranscriptEvent(text: buffer.toString(), isFinal: false);
-    }
-    if (failLive) {
-      throw const TranscriptionFailed('fake live failure');
-    }
-    await (stopSignal ?? Future<void>.value());
-    yield TranscriptEvent(
-      text: cannedText,
-      isFinal: true,
-      segments: [
-        TranscriptSegment(text: cannedText, start: Duration.zero, end: const Duration(seconds: 1)),
-      ],
+    // A manual controller, like the real engine and for the same reason: a
+    // consumer cancel must complete even while this is parked on [stopSignal]
+    // (a mid-take language switch, a discarded take) - an async* generator's
+    // cancel would hang there, and the fake must not be kinder than the phone.
+    late final StreamController<TranscriptEvent> controller;
+    var cancelled = false;
+    controller = StreamController<TranscriptEvent>(
+      onListen: () async {
+        final words = cannedText.split(' ');
+        final buffer = StringBuffer();
+        for (var i = 0; i < words.length; i++) {
+          buffer.write(i == 0 ? words[i] : ' ${words[i]}');
+          if (cancelled) return;
+          controller.add(TranscriptEvent(text: buffer.toString(), isFinal: false));
+        }
+        if (failLive) {
+          controller.addError(const TranscriptionFailed('fake live failure'));
+          await controller.close();
+          return;
+        }
+        await (stopSignal ?? Future<void>.value());
+        if (cancelled || controller.isClosed) return;
+        controller.add(
+          TranscriptEvent(
+            text: cannedText,
+            isFinal: true,
+            segments: [
+              TranscriptSegment(
+                text: cannedText,
+                start: Duration.zero,
+                end: const Duration(seconds: 1),
+              ),
+            ],
+          ),
+        );
+        await controller.close();
+      },
+      onCancel: () => cancelled = true,
     );
+    return controller.stream;
   }
 }
 
@@ -142,13 +218,33 @@ class FakeBatchEngine implements TranscriptionEngine {
   Future<Availability> checkAvailability({required String localeId}) async =>
       const Availability.available();
 
+  /// Every batch call's (localeId, start, end), newest last, for assertions.
+  final List<({String localeId, Duration? start, Duration? end})> batchCalls = [];
+
+  /// Builds per-call text when set; falls back to [cannedText].
+  String Function(String localeId, Duration? start, Duration? end)? transcriptBuilder;
+
+  /// Fails only RANGED calls, the shape of an engine that cannot slice
+  /// (pre-26), for fallback tests.
+  bool failRanged = false;
+
   @override
-  Future<Transcript> transcribeFile(File audio, {required String localeId}) async {
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async {
+    batchCalls.add((localeId: localeId, start: start, end: end));
     if (gate != null) await gate;
     if (delay != null) await Future<void>.delayed(delay!);
     if (throwGeneric) throw StateError('generic engine failure');
     if (failBatch) throw const TranscriptionFailed('fake batch failure');
-    return _cannedTranscript(cannedText, localeId, id, _clock());
+    if (failRanged && (start != null || end != null)) {
+      throw const TranscriptionFailed('ranged transcription unavailable');
+    }
+    final text = transcriptBuilder?.call(localeId, start, end) ?? cannedText;
+    return _cannedTranscript(text, localeId, id, _clock());
   }
 }
 
@@ -173,6 +269,17 @@ class FakeManagedEngine implements ManagedModelEngine {
   // Mutable: a test flips install behavior after construction.
   List<double> installSteps;
   bool failInstall;
+
+  /// Fails installs with [ReservationCapReached] instead, for eviction-flow tests.
+  bool capReached = false;
+
+  /// Holds an install open after its progress steps, for tests interleaving
+  /// other work with an in-flight download.
+  Future<void>? installGate;
+
+  /// The cap [reservationInfo] reports; a fixture.
+  int maxReservedLocales = 3;
+
   final Availability availability;
   final DateTime Function() _clock;
 
@@ -192,16 +299,73 @@ class FakeManagedEngine implements ManagedModelEngine {
   Future<bool> isModelInstalled({required String localeId}) async => installed;
 
   @override
-  Stream<ModelInstallProgress> installModel({required String localeId}) async* {
-    if (failInstall) throw const ModelInstallFailed('fake install failure');
-    for (final fraction in installSteps) {
-      yield ModelInstallProgress(fraction: fraction, done: false);
-    }
-    installed = true;
-    yield const ModelInstallProgress(fraction: 1, done: true);
+  Stream<ModelInstallProgress> installModel({required String localeId}) {
+    // Cancel-safe like the real engine (and [FakeStreamingEngine]'s live): a
+    // cancel parked on [installGate] must complete; an async* generator's
+    // would hang there, and the fake must not be kinder than the phone.
+    late final StreamController<ModelInstallProgress> controller;
+    var cancelled = false;
+    controller = StreamController<ModelInstallProgress>(
+      onListen: () async {
+        if (capReached) {
+          controller.addError(ReservationCapReached(List.of(supportedLocaleTags)));
+          await controller.close();
+          return;
+        }
+        if (failInstall) {
+          controller.addError(const ModelInstallFailed('fake install failure'));
+          await controller.close();
+          return;
+        }
+        for (final fraction in installSteps) {
+          if (cancelled) return;
+          controller.add(ModelInstallProgress(fraction: fraction, done: false));
+        }
+        if (installGate != null) await installGate;
+        if (cancelled || controller.isClosed) return;
+        installed = true;
+        controller.add(const ModelInstallProgress(fraction: 1, done: true));
+        await controller.close();
+      },
+      onCancel: () => cancelled = true,
+    );
+    return controller.stream;
+  }
+
+  // This fake models ONE managed model, so the per-language view collapses to
+  // the single [installed] flag across every supported tag.
+
+  @override
+  Future<List<String>> installedLocales() async =>
+      installed ? List.of(supportedLocaleTags) : const [];
+
+  @override
+  Future<LocaleModelStatus> localeStatus({required String localeId}) async => LocaleModelStatus(
+    status: !supportedLocaleTags.contains(localeId)
+        ? ModelAssetStatus.unsupported
+        : (installed ? ModelAssetStatus.installed : ModelAssetStatus.supported),
+    reserved: installed,
+    resolvedTag: localeId,
+  );
+
+  @override
+  Future<bool> removeLanguage({required String localeId}) async {
+    final was = installed;
+    installed = false;
+    return was;
   }
 
   @override
-  Future<Transcript> transcribeFile(File audio, {required String localeId}) async =>
-      _cannedTranscript(cannedText, localeId, id, _clock());
+  Future<ReservationInfo> reservationInfo() async => ReservationInfo(
+    max: maxReservedLocales,
+    reservedTags: installed ? List.of(supportedLocaleTags) : const [],
+  );
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => _cannedTranscript(cannedText, localeId, id, _clock());
 }

@@ -1,3 +1,5 @@
+import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
+
 /// The closed set of transcription failures. Native error codes map onto these
 /// so the app reasons about failures by type, not by string. Empty or silent
 /// audio is NOT a failure: it is an empty transcript.
@@ -34,9 +36,23 @@ class CaptureFailed extends TranscriptionException {
 
 /// The engine's on-device model could not be downloaded or installed. Distinct from
 /// [TranscriptionFailed]: almost always transient (network), with a different retry
-/// story than a broken transcription.
+/// story than a broken transcription. [assetStatus] is the asset's state just
+/// before the attempt, when the engine could report it: a stuck download, a
+/// language the platform has no asset for, and an ordinary network failure all
+/// deserve different words in the UI.
 class ModelInstallFailed extends TranscriptionException {
-  const ModelInstallFailed([super.message]);
+  const ModelInstallFailed([super.message, this.assetStatus]);
+
+  final ModelAssetStatus? assetStatus;
+}
+
+/// The platform's per-app language cap is full: installing another language
+/// needs one of [reservedTags] removed first. Its own type because the fix is
+/// an eviction choice by the user, not a retry.
+class ReservationCapReached extends TranscriptionException {
+  const ReservationCapReached(this.reservedTags, [String? message]) : super(message);
+
+  final List<String> reservedTags;
 }
 
 /// The engine failed to produce a transcript.
