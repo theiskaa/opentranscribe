@@ -4,10 +4,6 @@
   "@appTitle": {
     "description": "The title of the application"
   },
-  "settingsLanguage": "Language",
-  "@settingsLanguage": {
-    "description": "Label for the language setting"
-  },
   "settingsOffline": "Everything stays on this device. No account, no cloud, no network.",
   "@settingsOffline": {
     "description": "Settings note describing the offline promise"
@@ -88,25 +84,37 @@
   "@transcribe": {
     "description": "Button that transcribes an untranscribed entry"
   },
+  "transcribeIn": "Transcribe in…",
+  "@transcribeIn": {
+    "description": "Menu action and picker title for transcribing an entry in a chosen language"
+  },
   "playbackFailed": "Playback isn't available right now.",
   "@playbackFailed": {
     "description": "Quiet notice when audio playback fails"
   },
+  "transcribeErrorModelInstall": "Couldn't download the speech model. Check your connection and free space, then try again.",
+  "@transcribeErrorModelInstall": {
+    "description": "Notice when the on-device model download fails during transcription"
+  },
+  "transcribeErrorPermission": "Allow speech recognition for opentranscribe in the Settings app, then try again.",
+  "@transcribeErrorPermission": {
+    "description": "Notice when speech recognition permission is denied"
+  },
+  "transcribeErrorUnavailable": "On-device transcription isn't available for this language on this device.",
+  "@transcribeErrorUnavailable": {
+    "description": "Notice when the device cannot transcribe the chosen language on-device"
+  },
+  "transcribeErrorGeneric": "Something went wrong. Try again.",
+  "@transcribeErrorGeneric": {
+    "description": "Generic notice for a failed entry action (transcribe, rename)"
+  },
+  "transcribeErrorCapReached": "Language limit reached. Remove a language in Settings, then try again.",
+  "@transcribeErrorCapReached": {
+    "description": "Notice when transcribing needs a language slot and the per-app cap is full"
+  },
   "settingsTranscription": "Transcription",
   "@settingsTranscription": {
     "description": "Section label of the transcription settings group"
-  },
-  "settingsModelDownload": "Download",
-  "@settingsModelDownload": {
-    "description": "Action that downloads the transcription model"
-  },
-  "settingsModelInstalled": "Installed",
-  "@settingsModelInstalled": {
-    "description": "Value shown when the model is downloaded"
-  },
-  "settingsModelFailed": "Download failed. Tap to retry.",
-  "@settingsModelFailed": {
-    "description": "Value shown when a model download failed"
   },
   "settingsStorage": "Storage",
   "@settingsStorage": {
@@ -164,21 +172,9 @@
   "@settingsAppLanguage": {
     "description": "Row that picks the interface language"
   },
-  "settingsLanguageInfo": "The language your recordings are transcribed in. Each language uses its own on-device model.",
-  "@settingsLanguageInfo": {
-    "description": "Explanation on the transcription language picker"
-  },
   "settingsAppLanguageInfo": "The language the app's own text is shown in. It does not change how recordings are transcribed.",
   "@settingsAppLanguageInfo": {
     "description": "Explanation on the app language picker"
-  },
-  "settingsModels": "Models",
-  "@settingsModels": {
-    "description": "Row and screen title for the transcription engines"
-  },
-  "settingsModelsInfo": "opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.",
-  "@settingsModelsInfo": {
-    "description": "Explanation on the models screen"
   },
   "settingsAbout": "About",
   "@settingsAbout": {
@@ -191,5 +187,57 @@
   "settingsCreatedBy": "Created by @theiskaa",
   "@settingsCreatedBy": {
     "description": "Row crediting the author; tap opens link"
+  },
+  "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. iOS limits how many languages an app can keep ready at once.",
+  "@transcriptionInfo": {
+    "description": "Header of the transcription screen: the on-device and shared-asset promise"
+  },
+  "transcriptionCap": "{used} of {max} language slots used",
+  "@transcriptionCap": {
+    "description": "Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)",
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "transcriptionRemoveHint": "Swipe left on a language to remove it.",
+  "@transcriptionRemoveHint": {
+    "description": "Footer hint for the swipe-to-remove gesture"
+  },
+  "transcriptionErrorUnsupported": "This language can't be downloaded on this device yet.",
+  "@transcriptionErrorUnsupported": {
+    "description": "Row failure line when the platform has no asset to serve"
+  },
+  "transcriptionErrorStuck": "A previous download is still pending. iOS retries when conditions improve; trying again is safe.",
+  "@transcriptionErrorStuck": {
+    "description": "Row failure line when the asset was already stuck downloading"
+  },
+  "transcriptionErrorGeneric": "Download failed. Check your connection and free space, then try again.",
+  "@transcriptionErrorGeneric": {
+    "description": "Row failure line for an ordinary download failure"
+  },
+  "transcriptionErrorCap": "Language limit reached. Remove a language to add this one.",
+  "@transcriptionErrorCap": {
+    "description": "Row failure line when the per-app language cap is full"
+  },
+  "settingsModels": "Models",
+  "@settingsModels": {
+    "description": "Settings row leading to the models screen (per-language on-device models)"
+  },
+  "transcriptionLanguages": "Languages",
+  "@transcriptionLanguages": {
+    "description": "Section label over the per-language model list on the models screen"
+  },
+  "transcriptionDefaultTag": "Default",
+  "@transcriptionDefaultTag": {
+    "description": "Small tag on the language row currently set as the transcription default"
+  },
+  "transcriptionDefaultHint": "Touch and hold a language to make it the default.",
+  "@transcriptionDefaultHint": {
+    "description": "Footer hint for the hold-to-set-default gesture on the models screen"
   }
 }

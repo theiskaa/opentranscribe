@@ -98,12 +98,6 @@ abstract class AppLocalizations {
   /// **'opentranscribe'**
   String get appTitle;
 
-  /// Label for the language setting
-  ///
-  /// In en, this message translates to:
-  /// **'Language'**
-  String get settingsLanguage;
-
   /// Settings note describing the offline promise
   ///
   /// In en, this message translates to:
@@ -224,35 +218,53 @@ abstract class AppLocalizations {
   /// **'Transcribe'**
   String get transcribe;
 
+  /// Menu action and picker title for transcribing an entry in a chosen language
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe in…'**
+  String get transcribeIn;
+
   /// Quiet notice when audio playback fails
   ///
   /// In en, this message translates to:
   /// **'Playback isn\'t available right now.'**
   String get playbackFailed;
 
+  /// Notice when the on-device model download fails during transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the speech model. Check your connection and free space, then try again.'**
+  String get transcribeErrorModelInstall;
+
+  /// Notice when speech recognition permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Allow speech recognition for opentranscribe in the Settings app, then try again.'**
+  String get transcribeErrorPermission;
+
+  /// Notice when the device cannot transcribe the chosen language on-device
+  ///
+  /// In en, this message translates to:
+  /// **'On-device transcription isn\'t available for this language on this device.'**
+  String get transcribeErrorUnavailable;
+
+  /// Generic notice for a failed entry action (transcribe, rename)
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get transcribeErrorGeneric;
+
+  /// Notice when transcribing needs a language slot and the per-app cap is full
+  ///
+  /// In en, this message translates to:
+  /// **'Language limit reached. Remove a language in Settings, then try again.'**
+  String get transcribeErrorCapReached;
+
   /// Section label of the transcription settings group
   ///
   /// In en, this message translates to:
   /// **'Transcription'**
   String get settingsTranscription;
-
-  /// Action that downloads the transcription model
-  ///
-  /// In en, this message translates to:
-  /// **'Download'**
-  String get settingsModelDownload;
-
-  /// Value shown when the model is downloaded
-  ///
-  /// In en, this message translates to:
-  /// **'Installed'**
-  String get settingsModelInstalled;
-
-  /// Value shown when a model download failed
-  ///
-  /// In en, this message translates to:
-  /// **'Download failed. Tap to retry.'**
-  String get settingsModelFailed;
 
   /// Section label of the storage settings group
   ///
@@ -338,29 +350,11 @@ abstract class AppLocalizations {
   /// **'App language'**
   String get settingsAppLanguage;
 
-  /// Explanation on the transcription language picker
-  ///
-  /// In en, this message translates to:
-  /// **'The language your recordings are transcribed in. Each language uses its own on-device model.'**
-  String get settingsLanguageInfo;
-
   /// Explanation on the app language picker
   ///
   /// In en, this message translates to:
   /// **'The language the app\'s own text is shown in. It does not change how recordings are transcribed.'**
   String get settingsAppLanguageInfo;
-
-  /// Row and screen title for the transcription engines
-  ///
-  /// In en, this message translates to:
-  /// **'Models'**
-  String get settingsModels;
-
-  /// Explanation on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.'**
-  String get settingsModelsInfo;
 
   /// Section label of the about group
   ///
@@ -379,6 +373,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Created by @theiskaa'**
   String get settingsCreatedBy;
+
+  /// Header of the transcription screen: the on-device and shared-asset promise
+  ///
+  /// In en, this message translates to:
+  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. iOS limits how many languages an app can keep ready at once.'**
+  String get transcriptionInfo;
+
+  /// Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {max} language slots used'**
+  String transcriptionCap(int used, int max);
+
+  /// Footer hint for the swipe-to-remove gesture
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left on a language to remove it.'**
+  String get transcriptionRemoveHint;
+
+  /// Row failure line when the platform has no asset to serve
+  ///
+  /// In en, this message translates to:
+  /// **'This language can\'t be downloaded on this device yet.'**
+  String get transcriptionErrorUnsupported;
+
+  /// Row failure line when the asset was already stuck downloading
+  ///
+  /// In en, this message translates to:
+  /// **'A previous download is still pending. iOS retries when conditions improve; trying again is safe.'**
+  String get transcriptionErrorStuck;
+
+  /// Row failure line for an ordinary download failure
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Check your connection and free space, then try again.'**
+  String get transcriptionErrorGeneric;
+
+  /// Row failure line when the per-app language cap is full
+  ///
+  /// In en, this message translates to:
+  /// **'Language limit reached. Remove a language to add this one.'**
+  String get transcriptionErrorCap;
+
+  /// Settings row leading to the models screen (per-language on-device models)
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get settingsModels;
+
+  /// Section label over the per-language model list on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get transcriptionLanguages;
+
+  /// Small tag on the language row currently set as the transcription default
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get transcriptionDefaultTag;
+
+  /// Footer hint for the hold-to-set-default gesture on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold a language to make it the default.'**
+  String get transcriptionDefaultHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

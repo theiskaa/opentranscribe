@@ -12,9 +12,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'opentranscribe';
 
   @override
-  String get settingsLanguage => 'Language';
-
-  @override
   String get settingsOffline =>
       'Everything stays on this device. No account, no cloud, no network.';
 
@@ -80,19 +77,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcribe => 'Transcribe';
 
   @override
+  String get transcribeIn => 'Transcribe in…';
+
+  @override
   String get playbackFailed => 'Playback isn\'t available right now.';
 
   @override
+  String get transcribeErrorModelInstall =>
+      'Couldn\'t download the speech model. Check your connection and free space, then try again.';
+
+  @override
+  String get transcribeErrorPermission =>
+      'Allow speech recognition for opentranscribe in the Settings app, then try again.';
+
+  @override
+  String get transcribeErrorUnavailable =>
+      'On-device transcription isn\'t available for this language on this device.';
+
+  @override
+  String get transcribeErrorGeneric => 'Something went wrong. Try again.';
+
+  @override
+  String get transcribeErrorCapReached =>
+      'Language limit reached. Remove a language in Settings, then try again.';
+
+  @override
   String get settingsTranscription => 'Transcription';
-
-  @override
-  String get settingsModelDownload => 'Download';
-
-  @override
-  String get settingsModelInstalled => 'Installed';
-
-  @override
-  String get settingsModelFailed => 'Download failed. Tap to retry.';
 
   @override
   String get settingsStorage => 'Storage';
@@ -137,19 +147,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppLanguage => 'App language';
 
   @override
-  String get settingsLanguageInfo =>
-      'The language your recordings are transcribed in. Each language uses its own on-device model.';
-
-  @override
   String get settingsAppLanguageInfo =>
       'The language the app\'s own text is shown in. It does not change how recordings are transcribed.';
-
-  @override
-  String get settingsModels => 'Models';
-
-  @override
-  String get settingsModelsInfo =>
-      'opentranscribe transcribes entirely on this device. The model below runs offline; nothing you say is sent anywhere.';
 
   @override
   String get settingsAbout => 'About';
@@ -159,4 +158,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCreatedBy => 'Created by @theiskaa';
+
+  @override
+  String get transcriptionInfo =>
+      'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. iOS limits how many languages an app can keep ready at once.';
+
+  @override
+  String transcriptionCap(int used, int max) {
+    return '$used of $max language slots used';
+  }
+
+  @override
+  String get transcriptionRemoveHint => 'Swipe left on a language to remove it.';
+
+  @override
+  String get transcriptionErrorUnsupported =>
+      'This language can\'t be downloaded on this device yet.';
+
+  @override
+  String get transcriptionErrorStuck =>
+      'A previous download is still pending. iOS retries when conditions improve; trying again is safe.';
+
+  @override
+  String get transcriptionErrorGeneric =>
+      'Download failed. Check your connection and free space, then try again.';
+
+  @override
+  String get transcriptionErrorCap => 'Language limit reached. Remove a language to add this one.';
+
+  @override
+  String get settingsModels => 'Models';
+
+  @override
+  String get transcriptionLanguages => 'Languages';
+
+  @override
+  String get transcriptionDefaultTag => 'Default';
+
+  @override
+  String get transcriptionDefaultHint => 'Touch and hold a language to make it the default.';
 }
