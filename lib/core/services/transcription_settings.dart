@@ -38,6 +38,10 @@ class TranscriptionSettings {
     }
   }
 
+  /// The device locale's tag: what [localeId] falls back to when nothing was
+  /// chosen, and what the default returns to when its language is removed.
+  String get deviceLocaleId => _deviceTag();
+
   /// Pushes the current language to the service. Called once at startup; the
   /// change lands on the next recording (a live session keeps its locale).
   void apply() {
