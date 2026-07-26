@@ -25,12 +25,10 @@ workflows:
         # Encrypted group holding STORAGE_KEY (secure, 32 chars) and
         # APP_STORE_APPLE_ID (the numeric App Store app id; not secret).
         - app_secrets
-      ios_signing:
-        # Automatic signing: Codemagic mints the distribution certificate (its
-        # private key managed for us) and the App Store provisioning profile from
-        # the integration's API key. No .p12 or private key to handle by hand.
-        distribution_type: app_store
-        bundle_identifier: xyz.opentranscribe
+      # Signing files are CREATED explicitly in the scripts below (the declarative
+      # ios_signing block only fetches pre-existing ones). fetch-signing-files
+      # --create mints the distribution certificate and App Store profile using
+      # the CERTIFICATE_PRIVATE_KEY env var (from the app_secrets group).
       flutter: 3.44.4 # TODO: confirm this matches your channel (custom_stable)
       xcode: latest
     # No automatic triggering: this workflow is started ON DEMAND from the
@@ -46,7 +44,17 @@ workflows:
         script: flutter analyze
       - name: Test
         script: flutter test
-      - name: Set up code signing settings on Xcode project
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Create or fetch the App Store signing files
+        script: |
+          app-store-connect fetch-signing-files "xyz.opentranscribe" \
+            --type IOS_APP_STORE \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --create
+      - name: Add the certificate to the keychain
+        script: keychain add-certificates
+      - name: Apply the provisioning profile to the Xcode project
         script: xcode-project use-profiles
       - name: Build signed IPA
         script: |
