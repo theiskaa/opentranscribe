@@ -20,10 +20,11 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
+import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/strip_fold.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
-import 'package:opentranscribe/view/widgets/app_icon_button_group.dart';
+import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -290,6 +291,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              // A persistent record button floating clear of the home indicator.
+              // Pull-to-record stays; this is the obvious, hard-to-miss way in.
+              Positioned(
+                right: AppSpacing.xl,
+                bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+                child: RecordFab(onTap: _openRecorder),
+              ),
             ],
           );
         },
@@ -350,30 +358,23 @@ class _HomeChromeState extends State<_HomeChrome> {
       automaticLeading: false,
       barHeight: theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
-      // Settings and search hang off the bar's trailing edge - the home is the
-      // app, so this is how you leave it. Search is inert for now: present, so
-      // the row is what it will be, but doing nothing until search exists.
+      // One trailing menu instead of a row of buttons: the home is the app, and
+      // this dropdown is how you leave it - the same menu pattern as the entry
+      // screen. Search has no screen yet, so it is present but inert for now.
       actions: [
         Padding(
           padding: const EdgeInsets.only(top: AppSpacing.md),
-          child: AppIconButtonGroup(
+          child: AppMenuButton(
+            icon: AppIcons.ellipsis,
             color: theme.topBar.iconColor,
             items: [
-              AppIconButtonGroupItem(
-                icon: AppIcons.magnifyingglass,
-                onTap: null,
-                semanticLabel: l10n.navSearch,
-              ),
-              AppIconButtonGroupItem(
-                icon: AppIcons.gearshape,
-                // Pushed over home, not a branch switch: settings slides in on
-                // the base transition and pops back. The glass group hides
-                // itself for the push via the platform view's cover detection,
-                // so no manual navigation guard - that guard was the lag.
-                onTap: () => context.pushNamed(Routes.settingsName),
-                semanticLabel: l10n.navSettings,
-              ),
+              AppMenuItem(label: l10n.navSearch, icon: AppIcons.magnifyingglass),
+              AppMenuItem(label: l10n.navSettings, icon: AppIcons.gearshape),
             ],
+            onSelected: (index) {
+              // 0 = Search (inert until a search screen exists); 1 = Settings.
+              if (index == 1) context.pushNamed(Routes.settingsName);
+            },
           ),
         ),
       ],
