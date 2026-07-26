@@ -17,9 +17,9 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      # TODO: name of the App Store Connect integration created in
-      # Codemagic > Team settings > Integrations > Developer Portal.
-      app_store_connect: opentranscribe_asc
+      # The App Store Connect API key name from Codemagic > Team integrations >
+      # Developer Portal. Must match exactly (quoted because it has a space).
+      app_store_connect: "OpenTranscribe Codemagic"
     environment:
       groups:
         # Encrypted group holding STORAGE_KEY (secure, 32 chars) and
