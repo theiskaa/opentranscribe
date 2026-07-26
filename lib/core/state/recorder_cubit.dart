@@ -24,6 +24,7 @@ class RecorderState {
     this.status = RecorderStatus.idle,
     this.elapsed = Duration.zero,
     this.liveText = '',
+    this.localeId = '',
     this.takeId = 0,
     this.live = false,
     this.error,
@@ -32,6 +33,11 @@ class RecorderState {
   final RecorderStatus status;
   final Duration elapsed;
   final String liveText;
+
+  /// The language THIS session transcribes in: the app default at start,
+  /// changeable mid-take via [RecorderCubit.setLanguage]. Session-only; the
+  /// next take starts from the default again.
+  final String localeId;
 
   /// Whether the MICROPHONE is open, which is later than [isRecording]: the
   /// status is emitted the moment the screen asks, while this waits for the
@@ -53,6 +59,7 @@ class RecorderState {
     RecorderStatus? status,
     Duration? elapsed,
     String? liveText,
+    String? localeId,
     int? takeId,
     bool? live,
     RecorderError? error,
@@ -61,6 +68,7 @@ class RecorderState {
     status: status ?? this.status,
     elapsed: elapsed ?? this.elapsed,
     liveText: liveText ?? this.liveText,
+    localeId: localeId ?? this.localeId,
     takeId: takeId ?? this.takeId,
     live: live ?? this.live,
     error: clearError ? null : (error ?? this.error),
@@ -82,6 +90,12 @@ class RecorderCubit extends Cubit<RecorderState> {
 
   final TranscriptionService _service;
   StreamSubscription<TranscriptEvent>? _liveSub;
+
+  /// Text committed by earlier language spans of THIS take, ending with the
+  /// current span's `[fr]`-style marker. The live stream restarts on a
+  /// language switch and its events only carry the new span, so the prefix is
+  /// what keeps everything already spoken on screen.
+  String _livePrefix = '';
 
   /// An interruption (a phone call) ends the capture natively and the service
   /// saves the entry itself. Without this the screen would keep counting into
@@ -127,9 +141,18 @@ class RecorderCubit extends Cubit<RecorderState> {
       if (_startInFlight != null || _service.isRecording) return;
       await _teardown();
     }
-    emit(RecorderState(status: RecorderStatus.recording, takeId: ++_takes));
+    emit(
+      RecorderState(
+        status: RecorderStatus.recording,
+        takeId: ++_takes,
+        // The session opens in the app default; the service snapshots the
+        // same value, so the chip and the batch agree from the first frame.
+        localeId: _service.localeId,
+      ),
+    );
+    _livePrefix = '';
     _liveSub = _service.liveEvents.listen(
-      (event) => emit(state.copyWith(liveText: event.text)),
+      (event) => emit(state.copyWith(liveText: _livePrefix + event.text)),
       onError: (_) {},
     );
     final starting = _service.startRecording();
@@ -248,6 +271,35 @@ class RecorderCubit extends Cubit<RecorderState> {
     }
   }
 
+  /// Re-languages the current take (see [TranscriptionService.setSessionLocale]).
+  /// Nothing already on screen is thrown away: the prior text commits into the
+  /// prefix with the NEW language's `[fr]`-style marker, and the restarted
+  /// stream appends after it. No marker when nothing was said yet; there is
+  /// nothing to separate.
+  Future<void> setLanguage(String tag) async {
+    if (!state.isBusy || state.localeId == tag) return;
+    final prior = state.liveText.trim();
+    _livePrefix = prior.isEmpty ? '' : '$prior [${tag.split('-').first}] ';
+    emit(state.copyWith(localeId: tag, liveText: _livePrefix));
+    try {
+      // A switch tapped while the sheet is still rising races the start
+      // round-trip; wait it out like pause() does. Without this the service
+      // (not yet recording) drops the switch as a silent no-op, and the whole
+      // take runs in the OLD language under a chip claiming the new one.
+      final starting = _startInFlight;
+      if (starting != null) {
+        try {
+          await starting;
+        } catch (_) {
+          return;
+        }
+      }
+      await _service.setSessionLocale(tag);
+    } catch (e) {
+      emit(state.copyWith(error: _kind(e)));
+    }
+  }
+
   void clearError() => emit(state.copyWith(clearError: true));
 
   Future<void> _cancelSession() async {
@@ -290,6 +342,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   Future<void> _teardown() async {
     _timer?.cancel();
     _timer = null;
+    _livePrefix = '';
     await _liveSub?.cancel();
     _liveSub = null;
   }
