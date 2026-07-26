@@ -9,10 +9,8 @@ import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.da
 import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
-import 'package:opentranscribe/view/layouts/settings/screens/app_language_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
-import 'package:opentranscribe/view/layouts/settings/screens/settings_screen.dart';
 
 /// Owns the app's [GoRouter] instance.
 ///
@@ -39,16 +37,6 @@ class AppRouter {
             NoTransitionPage(key: state.pageKey, child: const HomeScreen()),
       ),
       GoRoute(
-        path: Routes.settings,
-        name: Routes.settingsName,
-        // The base navigation transition (SlidePage): settings slides in from
-        // the trailing edge, pops back the same way, and carries the edge
-        // swipe-back. Home's glass bar group hides itself for the transition via
-        // the platform view's own cover detection - no manual guard, no lag.
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const SettingsScreen()),
-      ),
-      GoRoute(
         path: Routes.entry,
         name: Routes.entryName,
         pageBuilder: (context, state) => SlidePage<void>(
@@ -61,12 +49,6 @@ class AppRouter {
         name: Routes.settingsModelsName,
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const ModelsScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsAppLanguage,
-        name: Routes.settingsAppLanguageName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const AppLanguageScreen()),
       ),
       GoRoute(
         path: Routes.settingsAppearance,

@@ -49,10 +49,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePullToRecord => 'Pull to record';
 
   @override
-  String get navSettings => 'Settings';
+  String get navSearch => 'Search';
 
   @override
-  String get navSearch => 'Search';
+  String get menuTranscriptionLanguage => 'Transcription';
+
+  @override
+  String get menuSourceCode => 'Source code';
 
   @override
   String get recordStateRecording => 'Recording';
@@ -144,11 +147,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeNameSepia => 'Sepia';
 
   @override
-  String get settingsAppLanguage => 'App language';
-
-  @override
-  String get settingsAppLanguageInfo =>
-      'The language the app\'s own text is shown in. It does not change how recordings are transcribed.';
+  String get settingsAppLanguage => 'Language';
 
   @override
   String get settingsAbout => 'About';

@@ -164,17 +164,23 @@ abstract class AppLocalizations {
   /// **'Pull to record'**
   String get homePullToRecord;
 
-  /// Accessibility label for the settings button on the home bar
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get navSettings;
-
   /// Accessibility label for the search button on the home bar
   ///
   /// In en, this message translates to:
   /// **'Search'**
   String get navSearch;
+
+  /// Home menu row that opens the picker for the language recordings are transcribed in
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription'**
+  String get menuTranscriptionLanguage;
+
+  /// Home menu row linking to the public source repository, followed by the app version
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get menuSourceCode;
 
   /// State line under the recorder's timer while the microphone is open
   ///
@@ -344,17 +350,11 @@ abstract class AppLocalizations {
   /// **'Sepia'**
   String get themeNameSepia;
 
-  /// Row that picks the interface language
+  /// Home menu row that picks the interface (UI) language
   ///
   /// In en, this message translates to:
-  /// **'App language'**
+  /// **'Language'**
   String get settingsAppLanguage;
-
-  /// Explanation on the app language picker
-  ///
-  /// In en, this message translates to:
-  /// **'The language the app\'s own text is shown in. It does not change how recordings are transcribed.'**
-  String get settingsAppLanguageInfo;
 
   /// Section label of the about group
   ///

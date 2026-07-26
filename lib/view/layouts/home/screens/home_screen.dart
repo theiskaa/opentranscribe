@@ -13,18 +13,16 @@ import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
+import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/strip_fold.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
-import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -351,7 +349,6 @@ class _HomeChromeState extends State<_HomeChrome> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
     return AppTopBar(
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
@@ -359,23 +356,12 @@ class _HomeChromeState extends State<_HomeChrome> {
       barHeight: theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
       // One trailing menu instead of a row of buttons: the home is the app, and
-      // this dropdown is how you leave it - the same menu pattern as the entry
-      // screen. Search has no screen yet, so it is present but inert for now.
+      // this dropdown is how you leave it (there is no settings screen). Every
+      // setting is a row or submenu inside it; see [HomeMenu].
       actions: [
         Padding(
           padding: const EdgeInsets.only(top: AppSpacing.md),
-          child: AppMenuButton(
-            icon: AppIcons.ellipsis,
-            color: theme.topBar.iconColor,
-            items: [
-              AppMenuItem(label: l10n.navSearch, icon: AppIcons.magnifyingglass),
-              AppMenuItem(label: l10n.navSettings, icon: AppIcons.gearshape),
-            ],
-            onSelected: (index) {
-              // 0 = Search (inert until a search screen exists); 1 = Settings.
-              if (index == 1) context.pushNamed(Routes.settingsName);
-            },
-          ),
+          child: HomeMenu(color: theme.topBar.iconColor),
         ),
       ],
       // The top padding settles the block lower in the row, off the status

@@ -48,13 +48,17 @@
   "@homePullToRecord": {
     "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
   },
-  "navSettings": "Settings",
-  "@navSettings": {
-    "description": "Accessibility label for the settings button on the home bar"
-  },
   "navSearch": "Search",
   "@navSearch": {
     "description": "Accessibility label for the search button on the home bar"
+  },
+  "menuTranscriptionLanguage": "Transcription",
+  "@menuTranscriptionLanguage": {
+    "description": "Home menu row that opens the picker for the language recordings are transcribed in"
+  },
+  "menuSourceCode": "Source code",
+  "@menuSourceCode": {
+    "description": "Home menu row linking to the public source repository, followed by the app version"
   },
   "recordStateRecording": "Recording",
   "@recordStateRecording": {
@@ -168,13 +172,9 @@
   "@themeNameSepia": {
     "description": "Name of the Sepia theme family (a warm reading mode)"
   },
-  "settingsAppLanguage": "App language",
+  "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
-    "description": "Row that picks the interface language"
-  },
-  "settingsAppLanguageInfo": "The language the app's own text is shown in. It does not change how recordings are transcribed.",
-  "@settingsAppLanguageInfo": {
-    "description": "Explanation on the app language picker"
+    "description": "Home menu row that picks the interface (UI) language"
   },
   "settingsAbout": "About",
   "@settingsAbout": {
