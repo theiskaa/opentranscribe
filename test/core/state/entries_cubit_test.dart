@@ -82,4 +82,21 @@ void main() {
     expect(cubit.state.entries.single.isTranscribed, isTrue);
     await cubit.close();
   });
+
+  test('a failure is pinned to its entry, invisible on any other', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await service.deleteEntry(entry);
+
+    await cubit.rename(entry, 'ghost');
+
+    expect(cubit.state.error?.entryId, entry.id);
+    expect(cubit.state.errorFor(entry.id), EntriesError.generic);
+    expect(cubit.state.errorFor('someone-else'), isNull);
+
+    cubit.clearError();
+    expect(cubit.state.errorFor(entry.id), isNull);
+
+    await cubit.close();
+  });
 }

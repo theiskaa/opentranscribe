@@ -25,6 +25,68 @@ void main() {
     return (RecorderCubit(service: service), service);
   }
 
+  test('a switch during the start round-trip still languages the take', () async {
+    // The regression: tapping the globe while the sheet is still rising used
+    // to be silently dropped (the service was not recording yet), leaving the
+    // whole take in the old language under a chip claiming the new one.
+    final rec = FakeAudioRecorder(startDelay: const Duration(milliseconds: 20));
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeStreamingEngine(supportedLocaleTags: const ['en-US', 'fr-FR']),
+      store: store,
+    );
+    service.localeId = 'en-US';
+    final cubit = RecorderCubit(service: service);
+
+    final starting = cubit.start();
+    await cubit.setLanguage('fr-FR');
+    await starting;
+    final entry = await cubit.stop();
+
+    expect(entry?.recordedLocaleId, 'fr-FR');
+    expect(entry?.transcript?.localeId, 'fr-FR');
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a language switch keeps the live text and marks the new span', () async {
+    final rec = FakeAudioRecorder();
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeStreamingEngine(
+        cannedText: 'hello world',
+        stopSignal: rec.stopped,
+        supportedLocaleTags: const ['en-US', 'fr-FR'],
+      ),
+      store: store,
+    );
+    final cubit = RecorderCubit(service: service);
+
+    await cubit.start();
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText, 'hello world');
+
+    await cubit.setLanguage('fr-FR');
+    // Nothing spoken so far is thrown away: it commits with the new marker
+    // (the restarted stream's first partials may already have flowed).
+    expect(cubit.state.localeId, 'fr-FR');
+    expect(cubit.state.liveText, startsWith('hello world [fr]'));
+
+    // The restarted stream appends AFTER the committed prefix.
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText, 'hello world [fr] hello world');
+
+    // A switch before anything was said adds no marker; a restart clears all.
+    await cubit.restart();
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText.contains('['), isFalse);
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('pause freezes the timer and status; resume continues', () async {
     final (cubit, service) = build();
     await cubit.start();

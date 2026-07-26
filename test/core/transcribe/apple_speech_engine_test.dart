@@ -86,9 +86,76 @@ void main() {
       await expectCode('permission_denied', isA<PermissionDenied>());
       await expectCode('on_device_unavailable', isA<OnDeviceUnavailable>());
       await expectCode('model_install_failed', isA<ModelInstallFailed>());
+      await expectCode('reservation_cap', isA<ReservationCapReached>());
       await expectCode('file_missing', isA<TranscriptionFailed>());
       await expectCode('transcribe_error', isA<TranscriptionFailed>());
       await expectCode('bad_args', isA<TranscriptionFailed>());
+    });
+
+    test('structured details ride into the typed exceptions', () async {
+      // The native side sends the pre-install asset status and the reserved
+      // tags as structured details; Dart must never parse message strings.
+      mockMethods(
+        (call) async => throw PlatformException(
+          code: 'model_install_failed',
+          message: 'download failed',
+          details: {'status': 'downloading'},
+        ),
+      );
+      await expectLater(
+        engine.transcribeFile(File('/tmp/a.m4a'), localeId: 'en-US'),
+        throwsA(
+          isA<ModelInstallFailed>().having(
+            (e) => e.assetStatus,
+            'assetStatus',
+            ModelAssetStatus.downloading,
+          ),
+        ),
+      );
+
+      mockMethods(
+        (call) async => throw PlatformException(
+          code: 'reservation_cap',
+          message: 'full',
+          details: {
+            'reservedTags': ['de-DE', 'en-US'],
+          },
+        ),
+      );
+      await expectLater(
+        engine.transcribeFile(File('/tmp/a.m4a'), localeId: 'fr-FR'),
+        throwsA(
+          isA<ReservationCapReached>().having((e) => e.reservedTags, 'reservedTags', [
+            'de-DE',
+            'en-US',
+          ]),
+        ),
+      );
+    });
+  });
+
+  group('transcribeFile slices', () {
+    test('bounds ride the channel as milliseconds; whole files omit them', () async {
+      // A typo'd key here would make Swift see nil bounds and transcribe the
+      // WHOLE file per span - duplicated text across a mixed take. Pin it.
+      Map<Object?, Object?>? seenArgs;
+      mockMethods((call) async {
+        seenArgs = call.arguments as Map<Object?, Object?>;
+        return {'text': '', 'segments': <Object?>[]};
+      });
+
+      await engine.transcribeFile(
+        File('/tmp/a.m4a'),
+        localeId: 'en-US',
+        start: const Duration(seconds: 5),
+        end: const Duration(seconds: 9),
+      );
+      expect(seenArgs?['startMs'], 5000);
+      expect(seenArgs?['endMs'], 9000);
+
+      await engine.transcribeFile(File('/tmp/a.m4a'), localeId: 'en-US');
+      expect(seenArgs?.containsKey('startMs'), isFalse);
+      expect(seenArgs?.containsKey('endMs'), isFalse);
     });
   });
 
@@ -168,6 +235,110 @@ void main() {
     });
   });
 
+  group('installedLocales', () {
+    test('decodes the tag list, empty on error or missing plugin', () async {
+      mockMethods((call) async {
+        expect(call.method, 'installedLocales');
+        return ['en-US', 'ru-RU'];
+      });
+      expect(await engine.installedLocales(), ['en-US', 'ru-RU']);
+
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      expect(await engine.installedLocales(), isEmpty);
+
+      messenger.setMockMethodCallHandler(methods, null); // missing plugin
+      expect(await engine.installedLocales(), isEmpty);
+    });
+  });
+
+  group('localeStatus', () {
+    test('decodes the full state map', () async {
+      mockMethods((call) async {
+        expect(call.method, 'localeStatus');
+        expect((call.arguments as Map)['localeId'], 'de-AT');
+        return {'status': 'installed', 'reserved': true, 'resolvedTag': 'de-DE'};
+      });
+
+      final status = await engine.localeStatus(localeId: 'de-AT');
+
+      expect(
+        status,
+        const LocaleModelStatus(
+          status: ModelAssetStatus.installed,
+          reserved: true,
+          resolvedTag: 'de-DE',
+        ),
+      );
+      expect(status.isReady, isTrue);
+    });
+
+    test('every status string maps; junk and errors read as downloadable-not-ready', () async {
+      Future<ModelAssetStatus> statusFor(String raw) async {
+        mockMethods((call) async => {'status': raw, 'reserved': false, 'resolvedTag': 'x'});
+        return (await engine.localeStatus(localeId: 'x')).status;
+      }
+
+      expect(await statusFor('unsupported'), ModelAssetStatus.unsupported);
+      expect(await statusFor('supported'), ModelAssetStatus.supported);
+      expect(await statusFor('downloading'), ModelAssetStatus.downloading);
+      expect(await statusFor('installed'), ModelAssetStatus.installed);
+      // Unknown strings, channel errors, and a missing plugin all degrade to
+      // supported-but-not-ready: neither promising a model nor writing the
+      // language off.
+      expect(await statusFor('bogus'), ModelAssetStatus.supported);
+
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      final onError = await engine.localeStatus(localeId: 'en-US');
+      expect(onError.status, ModelAssetStatus.supported);
+      expect(onError.reserved, isFalse);
+      expect(onError.resolvedTag, 'en-US');
+
+      messenger.setMockMethodCallHandler(methods, null); // missing plugin
+      expect((await engine.localeStatus(localeId: 'en-US')).status, ModelAssetStatus.supported);
+    });
+  });
+
+  group('removeLanguage', () {
+    test('passes the native bool through, false on null or error', () async {
+      mockMethods((call) async {
+        expect(call.method, 'removeLanguage');
+        expect((call.arguments as Map)['localeId'], 'ru-RU');
+        return true;
+      });
+      expect(await engine.removeLanguage(localeId: 'ru-RU'), isTrue);
+
+      mockMethods((call) async => null);
+      expect(await engine.removeLanguage(localeId: 'ru-RU'), isFalse);
+
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      expect(await engine.removeLanguage(localeId: 'ru-RU'), isFalse);
+    });
+  });
+
+  group('reservationInfo', () {
+    test('decodes max and tags, max 0 (no cap) on error or missing plugin', () async {
+      mockMethods((call) async {
+        expect(call.method, 'reservationInfo');
+        return {
+          'max': 3,
+          'reserved': ['en-US', 'ru-RU'],
+        };
+      });
+
+      final info = await engine.reservationInfo();
+      expect(info.max, 3);
+      expect(info.reservedTags, ['en-US', 'ru-RU']);
+
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      expect((await engine.reservationInfo()).max, 0);
+
+      messenger.setMockMethodCallHandler(methods, null); // missing plugin
+      final missing = await engine.reservationInfo();
+      expect(missing.max, 0);
+      expect(missing.reservedTags, isEmpty);
+    });
+  });
+
   group('transcribeLive', () {
     test('yields partials then completes on the final event', () async {
       messenger.setMockStreamHandler(
@@ -240,6 +411,37 @@ void main() {
 
       expect(received, [const TranscriptEvent(text: 'done', isFinal: true)]);
       expect(cancelled, isTrue);
+    });
+
+    test('overlapping live sessions serialize; the second waits for the first', () async {
+      // Every mid-take language switch relies on this: the successor's listen
+      // must queue behind the predecessor's teardown, or the shared channel
+      // would decapitate one of them.
+      final listens = <String>[];
+      messenger.setMockStreamHandler(
+        events,
+        MockStreamHandler.inline(
+          onListen: (arguments, sink) {
+            final tag = (arguments as Map?)?['localeId'] as String;
+            listens.add(tag);
+            sink.success({'text': 'partial-$tag', 'isFinal': false});
+            if (tag == 'b') sink.success({'text': 'done', 'isFinal': true});
+          },
+        ),
+      );
+
+      final firstEvents = <TranscriptEvent>[];
+      final first = engine.transcribeLive(localeId: 'a').listen(firstEvents.add);
+      final second = engine.transcribeLive(localeId: 'b').toList();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(listens, ['a'], reason: 'the second session has not touched the channel');
+      expect(firstEvents.single.text, 'partial-a');
+
+      await first.cancel();
+      final received = await second;
+      expect(listens, ['a', 'b']);
+      expect(received.last.isFinal, isTrue);
     });
 
     test('a raw stream error (not an error payload) maps through the taxonomy', () async {
@@ -328,6 +530,89 @@ void main() {
       await expectLater(
         engine.installModel(localeId: 'en-US').toList(),
         throwsA(isA<ModelInstallFailed>()),
+      );
+    });
+
+    test('overlapping installs serialize; the second waits for the first teardown', () async {
+      // The native install handler is single-flight on ONE channel: an
+      // unserialized second listen would cancel the first download and leave
+      // its stream waiting forever (the frozen-progress-ring bug).
+      final listens = <String>[];
+      messenger.setMockStreamHandler(
+        modelEvents,
+        MockStreamHandler.inline(
+          onListen: (arguments, sink) {
+            final tag = (arguments as Map?)?['localeId'] as String;
+            listens.add(tag);
+            if (tag == 'a') {
+              sink.success({'fraction': 0.5, 'done': false}); // never completes
+            } else {
+              sink.success({'fraction': 1.0, 'done': true});
+            }
+          },
+        ),
+      );
+
+      final firstEvents = <ModelInstallProgress>[];
+      final first = engine.installModel(localeId: 'a').listen(firstEvents.add);
+      final second = engine.installModel(localeId: 'b').toList();
+      await Future<void>.delayed(Duration.zero);
+
+      // The second install has NOT touched the channel while the first runs.
+      expect(listens, ['a']);
+      expect(firstEvents, [const ModelInstallProgress(fraction: 0.5, done: false)]);
+
+      await first.cancel();
+      expect(await second, [const ModelInstallProgress(fraction: 1, done: true)]);
+      expect(listens, ['a', 'b']);
+    });
+
+    test('structured payload keys ride into the typed exceptions', () async {
+      messenger.setMockStreamHandler(
+        modelEvents,
+        MockStreamHandler.inline(
+          onListen: (arguments, sink) {
+            sink.success({
+              'type': 'error',
+              'code': 'model_install_failed',
+              'message': 'stuck',
+              'status': 'downloading',
+            });
+          },
+        ),
+      );
+      await expectLater(
+        engine.installModel(localeId: 'ru-RU').toList(),
+        throwsA(
+          isA<ModelInstallFailed>().having(
+            (e) => e.assetStatus,
+            'assetStatus',
+            ModelAssetStatus.downloading,
+          ),
+        ),
+      );
+
+      messenger.setMockStreamHandler(
+        modelEvents,
+        MockStreamHandler.inline(
+          onListen: (arguments, sink) {
+            sink.success({
+              'type': 'error',
+              'code': 'reservation_cap',
+              'message': 'full',
+              'reservedTags': ['de-DE', 'en-US'],
+            });
+          },
+        ),
+      );
+      await expectLater(
+        engine.installModel(localeId: 'fr-FR').toList(),
+        throwsA(
+          isA<ReservationCapReached>().having((e) => e.reservedTags, 'reservedTags', [
+            'de-DE',
+            'en-US',
+          ]),
+        ),
       );
     });
   });

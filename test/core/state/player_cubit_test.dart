@@ -231,6 +231,42 @@ void main() {
       await cubit.close();
     });
 
+    test('persisted peaks serve instantly, dequantized, with no native read', () async {
+      final player = FakeAudioPlayer(peakShape: const [0.9]);
+      final cubit = PlayerCubit(player: player, service: service);
+
+      await cubit.loadPeaks(entry.withPeaks(const [0, 128, 255]));
+
+      expect(cubit.state.peaks, const [0, 128 / 255, 1]);
+      expect(player.calls.where((call) => call == 'peaks'), isEmpty);
+
+      await cubit.close();
+    });
+
+    test('a decode on an unshaped entry writes the shape back to the store', () async {
+      final storage = LocalService();
+      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      final store = EntryStore(storage);
+      final svc = TranscriptionService(
+        recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),
+        engine: FakeBatchEngine(),
+        store: store,
+      );
+      await store.save(entry);
+      final player = FakeAudioPlayer(peakShape: const [0.5, 1.0]);
+      final cubit = PlayerCubit(player: player, service: svc);
+
+      await cubit.loadPeaks(entry);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.peaks, const [0.5, 1.0]);
+      // Quantized onto the stored record: the next open decodes nothing.
+      expect(store.read('e1')?.peaks, [128, 255]);
+
+      await cubit.close();
+      await svc.dispose();
+    });
+
     test('an unreadable file leaves the wave flat and playback working', () async {
       final player = FakeAudioPlayer(throwOnPeaks: true);
       final cubit = PlayerCubit(player: player, service: service);

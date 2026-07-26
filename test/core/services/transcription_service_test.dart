@@ -170,6 +170,8 @@ void main() {
 
     expect(saved, hasLength(1));
     expect(saved.first.transcript, isNull); // saved untranscribed on interruption
+    // Stamped even here, so transcribing later uses the language it was spoken in.
+    expect(saved.first.recordedLocaleId, 'en-US');
     expect(saved.first.audioPath, 'fake-recording.m4a');
     expect(store.read(saved.first.id), saved.first);
     expect(svc.isRecording, isFalse);
@@ -471,6 +473,269 @@ void main() {
     expect(updated.transcript?.localeId, 'de-DE');
 
     await svc.dispose();
+  });
+
+  test('a new recording gets its wave shape persisted off the critical path', () async {
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: FakeBatchEngine(),
+      store: store,
+      peaksReader: (_) async => [0.0, 0.5, 1.0, 2.0], // >1 clamps, not wraps
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    // The save itself does not wait for the shape.
+    expect(entry.peaks, isNull);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(store.read('id-0')?.peaks, [0, 128, 255, 255]);
+
+    await svc.dispose();
+  });
+
+  test('saveEntryPeaks quantizes once and never clobbers or resurrects', () async {
+    final svc = build((_) => FakeBatchEngine());
+    final entry = Entry(
+      id: 'p1',
+      createdAt: fixedClock,
+      audioPath: '/tmp/p.m4a',
+      duration: Duration.zero,
+    );
+    await store.save(entry);
+
+    await svc.saveEntryPeaks(entry, [0.5]);
+    expect(store.read('p1')?.peaks, [128]);
+
+    // Already shaped: a second write is a no-op, not a clobber.
+    await svc.saveEntryPeaks(entry, [1.0]);
+    expect(store.read('p1')?.peaks, [128]);
+
+    // Deleted meanwhile: never resurrected. Empty input: never stored.
+    await store.delete('p1');
+    await svc.saveEntryPeaks(entry, [0.5]);
+    expect(store.read('p1'), isNull);
+    await svc.saveEntryPeaks(entry.withTitle('x'), const []);
+    expect(store.read('p1'), isNull);
+
+    await svc.dispose();
+  });
+
+  test('a mid-take language switch batches each span in its own language', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR'])
+      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    now = now.add(const Duration(seconds: 5));
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(const Duration(seconds: 5));
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'en [fr] fr');
+    expect(entry.transcript?.localeId, 'en-US');
+    expect(entry.recordedLocaleId, 'en-US');
+    expect(entry.languageSpans, const [
+      LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: 5000, localeId: 'fr-FR'),
+    ]);
+    // Each span batched with its own language over its own slice.
+    expect(engine.batchCalls, [
+      (localeId: 'en-US', start: Duration.zero, end: const Duration(seconds: 5)),
+      (localeId: 'fr-FR', start: const Duration(seconds: 5), end: null),
+    ]);
+    // The switch marker rides as its own zero-length segment (the transcript
+    // view renders segments, not fullText), and the later span's segments
+    // offset from slice time to file time (the fake's canned segment spans
+    // 0..1s of its slice).
+    expect(entry.transcript?.segments[1].text, '[fr]');
+    expect(entry.transcript?.segments[1].start, const Duration(seconds: 5));
+    expect(entry.transcript?.segments[1].end, const Duration(seconds: 5));
+    expect(entry.transcript?.segments[2].start, const Duration(seconds: 5));
+    // Spans survive the storage round-trip.
+    expect(store.read('id-0'), entry);
+
+    await svc.dispose();
+  });
+
+  test('an engine that cannot slice flattens the take to the first language', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = FakeBatchEngine()
+      ..failRanged = true
+      ..transcriptBuilder = (locale, start, end) => 'whole-$locale';
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    now = now.add(const Duration(seconds: 3));
+    await svc.setSessionLocale('fr-FR');
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'whole-en-US');
+    expect(entry.transcript?.localeId, 'en-US', reason: 'flattened to the FIRST language');
+    expect(entry.languageSpans, hasLength(2), reason: 'the mix is kept for a capable engine');
+
+    await svc.dispose();
+  });
+
+  test('retranscribe rebuilds the mix from spans; an explicit override flattens', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = build((_) => engine);
+    final entry = Entry(
+      id: 'mix',
+      createdAt: fixedClock,
+      audioPath: '/tmp/x.m4a',
+      duration: const Duration(seconds: 10),
+      recordedLocaleId: 'en-US',
+      languageSpans: const [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+      ],
+    );
+    await store.save(entry);
+
+    final rebuilt = await svc.retranscribe(entry);
+    expect(rebuilt.transcript?.fullText, 'en [fr] fr');
+    expect(rebuilt.languageSpans, entry.languageSpans);
+
+    final flattened = await svc.retranscribe(rebuilt, localeId: 'ru-RU');
+    expect(flattened.transcript?.fullText, 'ru');
+    expect(engine.batchCalls.last.start, isNull, reason: 'override runs the whole file');
+
+    await svc.dispose();
+  });
+
+  test('pauses do not inflate span starts: audio time, not wall time', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR']),
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    now = now.add(const Duration(seconds: 2));
+    await svc.pauseRecording();
+    now = now.add(const Duration(minutes: 5)); // a long pause holds NO audio
+    await svc.resumeRecording();
+    now = now.add(const Duration(seconds: 1));
+    await svc.setSessionLocale('fr-FR');
+    final entry = await svc.stopRecording();
+
+    expect(entry.languageSpans?.last.startMs, 3000);
+
+    await svc.dispose();
+  });
+
+  test('a same-instant toggle collapses; a single-span take stays plain', () async {
+    final svc = build((_) => FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR']));
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    // Both switches land on the same audio instant (the fixed clock): the
+    // French span never held audio and the take collapses back to English.
+    await svc.setSessionLocale('fr-FR');
+    await svc.setSessionLocale('en-US');
+    final entry = await svc.stopRecording();
+
+    expect(entry.languageSpans, isNull);
+    expect(entry.transcript?.localeId, 'en-US');
+
+    await svc.dispose();
+  });
+
+  test('setSessionLocale re-languages the take: batch AND restarted live', () async {
+    final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'ru-RU']);
+    final svc = build((_) => engine);
+    svc.localeId = 'en-US';
+
+    await svc.startRecording();
+    // The live generator body runs on its first microtask, not at listen.
+    await Future<void>.delayed(Duration.zero);
+    expect(engine.lastLiveLocaleId, 'en-US');
+
+    await svc.setSessionLocale('ru-RU');
+    await Future<void>.delayed(Duration.zero);
+    expect(engine.lastLiveLocaleId, 'ru-RU', reason: 'live restarted in the new language');
+
+    final entry = await svc.stopRecording();
+    expect(entry.transcript?.localeId, 'ru-RU');
+    expect(entry.recordedLocaleId, 'ru-RU');
+    // Session-only: the app default was never touched.
+    expect(svc.localeId, 'en-US');
+
+    // Idle: a no-op, not a default change.
+    await svc.setSessionLocale('de-DE');
+    expect(svc.localeId, 'en-US');
+
+    await svc.dispose();
+  });
+
+  test('every save path stamps the recording-time locale', () async {
+    final svc = build((_) => FakeBatchEngine());
+    svc.localeId = 'fr-FR';
+
+    // A normal stop.
+    await svc.startRecording();
+    final stopped = await svc.stopRecording();
+    expect(stopped.recordedLocaleId, 'fr-FR');
+    expect(stopped.transcript?.localeId, 'fr-FR');
+
+    // A dispose mid-capture saves untranscribed, still stamped.
+    final rec2 = FakeAudioRecorder();
+    final svc2 = build((_) => FakeBatchEngine(), recorder: rec2);
+    svc2.localeId = 'fr-FR';
+    await svc2.startRecording();
+    await svc2.dispose();
+    final abandoned = store.all().firstWhere((e) => e.transcript == null);
+    expect(abandoned.recordedLocaleId, 'fr-FR');
+
+    await svc.dispose();
+  });
+
+  test('retranscribe of an untranscribed entry uses its recording-time locale', () async {
+    // Fail the first batch so the entry lands untranscribed (but stamped).
+    final failing = build((_) => FakeBatchEngine(failBatch: true));
+    failing.localeId = 'fr-FR';
+    await failing.startRecording();
+    final entry = await failing.stopRecording();
+    expect(entry.transcript, isNull);
+    expect(entry.recordedLocaleId, 'fr-FR');
+
+    // The default changed since; the take keeps the language it was spoken in.
+    failing.localeId = 'en-US';
+    final updated = await failing.retranscribe(entry, using: FakeBatchEngine());
+    expect(updated.transcript?.localeId, 'fr-FR');
+
+    // An explicit choice still wins over everything.
+    final corrected = await failing.retranscribe(
+      entry,
+      using: FakeBatchEngine(),
+      localeId: 'de-DE',
+    );
+    expect(corrected.transcript?.localeId, 'de-DE');
+
+    await failing.dispose();
   });
 
   test('retrySave recovers an entry whose first save failed', () async {
@@ -1177,6 +1442,10 @@ class _CloudEngine implements TranscriptionEngine {
       const Availability.available();
 
   @override
-  Future<Transcript> transcribeFile(File audio, {required String localeId}) async =>
-      throw UnimplementedError();
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => throw UnimplementedError();
 }
