@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
@@ -17,10 +18,24 @@ class AppMenuItem {
     required this.label,
     this.id,
     this.icon,
+    this.iconBytes,
     this.destructive = false,
     this.selected = false,
     this.children = const [],
-  });
+  }) : isDivider = false;
+
+  /// A group separator. The NATIVE menu draws a real divider between the groups
+  /// it splits; the fallback menu drops it (item order is preserved and indices
+  /// are unaffected, since it is simply not rendered). Carries nothing.
+  const AppMenuItem.divider()
+    : label = '',
+      id = null,
+      icon = null,
+      iconBytes = null,
+      destructive = false,
+      selected = false,
+      children = const [],
+      isDivider = true;
 
   final String label;
 
@@ -32,6 +47,14 @@ class AppMenuItem {
 
   final IconData? icon;
 
+  /// Raw image bytes (PNG) for a mark with no SF Symbol (a brand logo). iOS
+  /// renders them as a template beside the label; the fallback tints them
+  /// through [Image.memory]. Take precedence over [icon] where both are set.
+  final Uint8List? iconBytes;
+
+  /// Whether this entry is a group separator; see [AppMenuItem.divider].
+  final bool isDivider;
+
   /// Marks what cannot be undone. It carries no colour: the app has none, so
   /// the confirm that follows does the warning.
   final bool destructive;
@@ -41,10 +64,10 @@ class AppMenuItem {
   /// own dropdown instead.
   final bool selected;
 
-  /// Nested choices. NATIVE menus render a real submenu and answer through
-  /// [AppMenuButton.onChildSelected]; the fallback menu ignores children and
-  /// fires the parent's index as a plain action, so the caller opens its own
-  /// follow-up surface there. One level only.
+  /// Nested choices. NATIVE menus render a real submenu whose children answer
+  /// through [AppMenuButton.onSelectedId] (each needs an [id]); the fallback
+  /// menu ignores children and fires the parent's index as a plain action, so
+  /// the caller opens its own follow-up surface there. One level only.
   final List<AppMenuItem> children;
 }
 
@@ -101,7 +124,10 @@ class _MenuBody extends StatelessWidget {
     final theme = context.theme;
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
-    final height = items.length * _rowHeight + AppSpacing.sm * 2;
+    // Dividers are not rendered on the fallback (order is what matters here),
+    // so only real rows count toward the menu's height.
+    final rowCount = items.where((i) => !i.isDivider).length;
+    final height = rowCount * _rowHeight + AppSpacing.sm * 2;
 
     // Below the trigger when there is room, above it when there is not.
     final below = anchor.bottom + _menuGap;
@@ -137,7 +163,8 @@ class _MenuBody extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   for (final (index, item) in items.indexed)
-                    _MenuRow(item: item, onTap: () => Navigator.of(context).pop(index)),
+                    if (!item.isDivider)
+                      _MenuRow(item: item, onTap: () => Navigator.of(context).pop(index)),
                 ],
               ),
             ),
@@ -171,7 +198,16 @@ class _MenuRow extends StatelessWidget {
               Expanded(
                 child: Text(item.label, style: AppType.callout.copyWith(color: theme.text)),
               ),
-              if (item.icon != null) ...[
+              if (item.iconBytes != null) ...[
+                const SizedBox(width: AppSpacing.md),
+                Image.memory(
+                  item.iconBytes!,
+                  width: 17,
+                  height: 17,
+                  color: theme.textSecondary,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
+              ] else if (item.icon != null) ...[
                 const SizedBox(width: AppSpacing.md),
                 AppIcon(item.icon!, size: 17, color: theme.textSecondary),
               ],
@@ -225,13 +261,16 @@ class AppMenuButton extends StatelessWidget {
         size: size,
         items: [
           for (final (i, item) in items.indexed)
-            item.children.isEmpty
+            item.isDivider
+                ? const LiquidPopupButtonEntry.divider()
+                : item.children.isEmpty
                 ? LiquidPopupButtonEntry(
                     // An id when the item has one ('#' prefix keeps it apart
                     // from bare indices), else its position.
                     value: item.id == null ? '$i' : '#${item.id}',
                     label: item.label,
                     icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
+                    iconBytes: item.iconBytes,
                     isDestructive: item.destructive,
                     isSelected: item.selected,
                   )
