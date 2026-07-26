@@ -7,7 +7,6 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -39,22 +38,26 @@ const double _kDiscLeftInset = (_kActionWidth + _kBadgeSize) / 2;
 /// holds still while the row keeps sliding, opening the gap to fully-open.
 const double _kRestOpen = _kDiscLeftInset / _kActionWidth;
 
-/// Swipe-to-reveal delete for one home row. A leftward drag reveals a trailing
-/// Delete disc you tap to remove the entry. From the OPEN state a further drag
-/// stretches the disc into a pill; swiping it fully across (past
+/// Swipe-to-reveal delete for one row. A leftward drag reveals a trailing
+/// destructive disc you tap to remove the row's subject. From the OPEN state a
+/// further drag stretches the disc into a pill; swiping it fully across (past
 /// [_kCommitReveal]) deletes. Two-stage on purpose: a swipe from closed only
 /// ever opens, so a single swipe cannot delete by accident (not a [Dismissible]).
+/// The one swipe vocabulary for destructive row actions: home entries and the
+/// models screen's languages speak it identically.
 ///
 /// Scoped: [openId] is the single row allowed open; opening this one claims it
-/// (closing any other), and the home screen clears it on scroll. A tap on an open
+/// (closing any other), and the host clears it on scroll. A tap on an open
 /// row closes it instead of firing [onTap].
-class EntryDeleteSwipe extends StatefulWidget {
-  const EntryDeleteSwipe({
+class DeleteSwipe extends StatefulWidget {
+  const DeleteSwipe({
     required this.id,
     required this.openId,
     required this.onTap,
     required this.onDelete,
     required this.child,
+    this.onLongPress,
+    this.label,
     super.key,
   });
 
@@ -68,13 +71,22 @@ class EntryDeleteSwipe extends StatefulWidget {
 
   /// Fired by a tap on the disc, or by a full swipe.
   final VoidCallback onDelete;
+
+  /// Optional hold action on the row content (see [Touchable.onLongPress]).
+  final VoidCallback? onLongPress;
+
+  /// The caption under the disc ("Delete" on home rows). Null for dense rows
+  /// (a card list) where the labeled block would spill onto neighbours; the
+  /// red disc carries the meaning alone there.
+  final String? label;
+
   final Widget child;
 
   @override
-  State<EntryDeleteSwipe> createState() => _EntryDeleteSwipeState();
+  State<DeleteSwipe> createState() => _DeleteSwipeState();
 }
 
-class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProviderStateMixin {
+class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin {
   // 0 closed, 1 open at the action width, up to 2 as the disc stretches into a
   // pill. Driven directly by the drag, then settled with the swipe curve.
   late final AnimationController _reveal = AnimationController(
@@ -94,6 +106,9 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
   double _width = 0;
   // Set at each drag's start: only a drag that begins open may expand past 1.
   bool _canExpand = false;
+  // The reveal at the drag's start, so a release can tell a real swipe from a
+  // jittery tap the drag recognizer stole.
+  double _dragStartValue = 0;
   // Latches once the pill is swiped past the commit line, so delete fires once.
   bool _committed = false;
 
@@ -104,7 +119,7 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
   }
 
   @override
-  void didUpdateWidget(EntryDeleteSwipe old) {
+  void didUpdateWidget(DeleteSwipe old) {
     super.didUpdateWidget(old);
     if (old.openId != widget.openId) {
       old.openId.removeListener(_onOpenIdChanged);
@@ -131,6 +146,7 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
     _reveal.stop();
     _disc.stop();
     _canExpand = _reveal.value >= 1;
+    _dragStartValue = _reveal.value;
     _committed = false;
   }
 
@@ -157,6 +173,15 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
   void _onDragEnd(DragEndDetails d) {
     if (_committed) return;
     final velocity = d.primaryVelocity ?? 0;
+    // A "drag" that started closed and went nowhere is a TAP the horizontal
+    // recognizer stole from the tap recognizer (a finger landing with a few
+    // pixels of sideways jitter crosses the slop and wins the arena). Honor
+    // the intent: fire the tap instead of silently swallowing it.
+    if (_dragStartValue == 0 && _reveal.value < 0.06 && velocity.abs() < _kFlingVelocity) {
+      _settle(open: false, claim: false);
+      widget.onTap();
+      return;
+    }
     // Released in the expand zone but short of the commit line: back to open.
     if (_canExpand && _reveal.value >= 1) {
       _settle(open: true, pixelVelocity: velocity);
@@ -233,12 +258,17 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
     // Built once; reused each frame via closure, so the text and glyph are never
     // rebuilt while dragging.
-    final content = Touchable(onTap: _handleTap, child: widget.child);
+    final content = Touchable(
+      onTap: _handleTap,
+      onLongPress: widget.onLongPress,
+      child: widget.child,
+    );
     final glyph = AppIcon(AppIcons.trash, color: theme.onDanger);
-    final label = Text(l10n.delete, style: AppType.caption.copyWith(color: theme.textSecondary));
+    final label = widget.label == null
+        ? null
+        : Text(widget.label!, style: AppType.caption.copyWith(color: theme.textSecondary));
 
     return GestureDetector(
       // Opaque, not deferToChild: the drag must be caught across the WHOLE row,
@@ -281,7 +311,7 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
   // The ONE delete surface: a disc that pops in on open, then the SAME shape
   // stretches into a pill as the drag continues (only its width grows; height
   // and the stadium radius hold), not a second layer fading in over it.
-  Widget _deleteSurface(AppTheme theme, Widget glyph, Widget label) {
+  Widget _deleteSurface(AppTheme theme, Widget glyph, Widget? label) {
     final AppMotion motion = theme.motion;
     const rightInset = (_kActionWidth - _kBadgeSize) / 2;
     const radius = _kBadgeSize / 2;
@@ -318,10 +348,10 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
           return IgnorePointer(
             ignoring: (_reveal.value - 1).abs() > _kSettledEpsilon,
             child: Transform.translate(
-              // The "Delete" label sits inside the centred block, so it pulls the
-              // disc up toward the day header. Nudge the whole surface down by that
-              // much to re-centre the disc on the row and clear the header.
-              offset: Offset(slideIn, AppSpacing.sm),
+              // A label sits inside the centred block, so it pulls the disc up
+              // toward the row above. Nudge the whole surface down by that much
+              // to re-centre the disc on the row; no label, no nudge.
+              offset: Offset(slideIn, label == null ? 0 : AppSpacing.sm),
               child: Padding(
                 padding: const EdgeInsets.only(right: rightInset),
                 // Relax both axes + centerRight so the pill keeps its natural width
@@ -355,10 +385,11 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProvider
                               ),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.xs),
-                            child: label,
-                          ),
+                          if (label != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: AppSpacing.xs),
+                              child: label,
+                            ),
                         ],
                       ),
                     ),

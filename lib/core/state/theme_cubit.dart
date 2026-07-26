@@ -115,4 +115,8 @@ extension ThemeX on BuildContext {
   /// Motion tokens without a select, for callbacks and settle logic. In build,
   /// prefer `theme.motion` so the widget re-themes when the theme changes.
   AppMotion get motionNow => read<ThemeCubit>().state.resolved.motion;
+
+  /// The resolved theme without a select, for callbacks (a dialog's one-shot
+  /// scrim read on open). In build, prefer [theme] so the widget re-themes.
+  AppTheme get themeNow => read<ThemeCubit>().state.resolved;
 }

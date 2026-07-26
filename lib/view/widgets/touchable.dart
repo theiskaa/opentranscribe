@@ -9,6 +9,7 @@ class Touchable extends StatefulWidget {
   const Touchable({
     required this.child,
     required this.onTap,
+    this.onLongPress,
     this.pressedOpacity = 0.4,
     this.pressedScale,
     this.haptic = false,
@@ -17,6 +18,12 @@ class Touchable extends StatefulWidget {
 
   final Widget child;
   final VoidCallback? onTap;
+
+  /// Optional hold action (a row's secondary act, like making a language the
+  /// default). Null keeps the gesture arena free of a long-press recognizer.
+  /// A hold always buzzes (unlike taps, where [haptic] opts in): a hold with
+  /// no confirmation reads as a dead press.
+  final VoidCallback? onLongPress;
   final double pressedOpacity;
 
   /// Optional scale-down target (e.g. 0.92 for icon buttons); null means
@@ -31,7 +38,9 @@ class Touchable extends StatefulWidget {
 class _TouchableState extends State<Touchable> {
   bool _pressed = false;
 
-  bool get _enabled => widget.onTap != null;
+  // A hold-only Touchable still gives pressed feedback; a control that
+  // answers a gesture must not look inert.
+  bool get _enabled => widget.onTap != null || widget.onLongPress != null;
 
   void _setPressed(bool pressed) {
     if (!_enabled || _pressed == pressed) return;
@@ -63,6 +72,13 @@ class _TouchableState extends State<Touchable> {
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress == null
+          ? null
+          : () {
+              _setPressed(false);
+              Haptics.light();
+              widget.onLongPress!();
+            },
       child: child,
     );
   }

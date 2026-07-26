@@ -6,7 +6,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/home/components/swipe_actions.dart';
+import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 
 /// One record in the home list. There is no card and no border: a day's records
@@ -15,7 +15,7 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 /// separates two DAYS is the rail stopping - a break in the ink, which reads at
 /// a glance in a way a wider gap never does.
 ///
-/// Swipe a row left to reveal Delete (see [EntryDeleteSwipe]); only the text
+/// Swipe a row left to reveal Delete (see [DeleteSwipe]); only the text
 /// column moves and it is clipped at the gutter, so the record slides UNDER the
 /// rail rather than across it. Deleting is immediate - the row leaves the list
 /// the instant the action fires, no exit animation.
@@ -76,11 +76,12 @@ class EntryRow extends StatelessWidget {
             children: [
               SizedBox(width: tokens.railGutter),
               Expanded(
-                child: EntryDeleteSwipe(
+                child: DeleteSwipe(
                   id: entry.id,
                   openId: openId,
                   onTap: onTap,
                   onDelete: _requestDelete,
+                  label: l10n.delete,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

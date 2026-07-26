@@ -13,14 +13,39 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// One choice in a menu.
 class AppMenuItem {
-  const AppMenuItem({required this.label, this.icon, this.destructive = false});
+  const AppMenuItem({
+    required this.label,
+    this.id,
+    this.icon,
+    this.destructive = false,
+    this.selected = false,
+    this.children = const [],
+  });
 
   final String label;
+
+  /// Stable identity for selection, answered via [AppMenuButton.onSelectedId].
+  /// Positional indices go stale when the item list rebuilds under an OPEN
+  /// native menu (the menu shows the old snapshot, the closure resolves the
+  /// new list); an id names the choice itself. Submenu children need one.
+  final String? id;
+
   final IconData? icon;
 
   /// Marks what cannot be undone. It carries no colour: the app has none, so
   /// the confirm that follows does the warning.
   final bool destructive;
+
+  /// Renders a selection checkmark on the NATIVE menu (UIMenu state). The
+  /// fallback menu ignores it; selection lists there run through the app's
+  /// own dropdown instead.
+  final bool selected;
+
+  /// Nested choices. NATIVE menus render a real submenu and answer through
+  /// [AppMenuButton.onChildSelected]; the fallback menu ignores children and
+  /// fires the parent's index as a plain action, so the caller opens its own
+  /// follow-up surface there. One level only.
+  final List<AppMenuItem> children;
 }
 
 /// The menu's own metrics.
@@ -166,6 +191,7 @@ class AppMenuButton extends StatelessWidget {
     required this.icon,
     required this.items,
     required this.onSelected,
+    this.onSelectedId,
     this.size = 44,
     this.iconSize = 20,
     this.color,
@@ -175,6 +201,11 @@ class AppMenuButton extends StatelessWidget {
   final IconData icon;
   final List<AppMenuItem> items;
   final ValueChanged<int> onSelected;
+
+  /// Fired for items carrying an [AppMenuItem.id] (including native submenu
+  /// children, which the fallback folds into the parent's plain action).
+  final ValueChanged<String>? onSelectedId;
+
   final double size;
   final double iconSize;
   final Color? color;
@@ -182,9 +213,9 @@ class AppMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (PlatformCaps.nativeGlass) {
-      // The native menu answers with an entry's VALUE, not its position, so the
-      // index is carried across as the value and handed back to the same
-      // callback the fallback uses. Both sides then speak in indices.
+      // The native menu answers with an entry's VALUE, not its position, so
+      // positions are carried across as values ('i', or 'i.j' inside a
+      // submenu) and handed back to the same callbacks the fallback uses.
       return LiquidPopupButton(
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
@@ -194,14 +225,38 @@ class AppMenuButton extends StatelessWidget {
         size: size,
         items: [
           for (final (i, item) in items.indexed)
-            LiquidPopupButtonEntry(
-              value: '$i',
-              label: item.label,
-              icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
-              isDestructive: item.destructive,
-            ),
+            item.children.isEmpty
+                ? LiquidPopupButtonEntry(
+                    // An id when the item has one ('#' prefix keeps it apart
+                    // from bare indices), else its position.
+                    value: item.id == null ? '$i' : '#${item.id}',
+                    label: item.label,
+                    icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
+                    isDestructive: item.destructive,
+                    isSelected: item.selected,
+                  )
+                : LiquidPopupButtonEntry(
+                    value: '$i',
+                    label: item.label,
+                    icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
+                    children: [
+                      for (final child in item.children)
+                        LiquidPopupButtonEntry(
+                          value: '#${child.id ?? ''}',
+                          label: child.label,
+                          icon: child.icon == null ? null : AppIcons.sfSymbolName(child.icon!),
+                          isDestructive: child.destructive,
+                          isSelected: child.selected,
+                        ),
+                    ],
+                  ),
         ],
         onSelected: (value) {
+          if (value.startsWith('#')) {
+            final id = value.substring(1);
+            if (id.isNotEmpty) onSelectedId?.call(id);
+            return;
+          }
           final index = int.tryParse(value);
           if (index != null) onSelected(index);
         },
@@ -210,7 +265,17 @@ class AppMenuButton extends StatelessWidget {
     return _MenuTrigger(
       icon: icon,
       items: items,
-      onSelected: onSelected,
+      // The fallback captures its item snapshot at open, so an index answer
+      // is race-free there; route id-carrying items through the id callback
+      // so both platforms answer the same way.
+      onSelected: (index) {
+        final id = items[index].id;
+        if (id != null) {
+          onSelectedId?.call(id);
+        } else {
+          onSelected(index);
+        }
+      },
       size: size,
       iconSize: iconSize,
       color: color,
