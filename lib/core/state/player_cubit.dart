@@ -13,9 +13,8 @@ import 'package:opentranscribe/core/transcribe/transcript.dart';
 /// back to it from anywhere in the ring.
 const List<double> playbackRates = [1, 1.25, 1.5, 2];
 
-/// How finely a recording's shape is read. Generous enough that any bar count a
-/// phone can show resamples DOWN from it, so layout never drives a native read.
-const int _peakBuckets = 320;
+/// How finely a recording's shape is read; see [AudioPlayer.defaultPeakBuckets].
+const int _peakBuckets = AudioPlayer.defaultPeakBuckets;
 
 /// The transcript segment lit at [position]: the one whose span contains it,
 /// else the latest segment already begun, so gaps between segments keep the
@@ -130,16 +129,25 @@ class PlayerCubit extends Cubit<PlayerState> {
   /// to re-apply it after the native player is rebuilt.
   double _rate = 1;
 
-  /// Reads the entry's shape for the wave, once per screen. A failure is quiet:
-  /// the wave stays flat and playback is unaffected, since reading a file and
-  /// playing it are independent of each other.
+  /// Loads the entry's shape for the wave, once per screen. The persisted
+  /// envelope answers instantly; only an entry from before peaks were stored
+  /// pays a decode, and its result is written back so it pays exactly once.
+  /// A failure is quiet: the wave stays flat and playback is unaffected,
+  /// since reading a file and playing it are independent of each other.
   Future<void> loadPeaks(Entry entry, {int buckets = _peakBuckets}) async {
     if (state.peaks.isNotEmpty) return;
+    final stored = entry.peaks;
+    if (stored != null && stored.isNotEmpty) {
+      emit(state.copyWith(peaks: [for (final v in stored) v / 255]));
+      return;
+    }
     try {
       final path = await _service.resolveAudioPath(entry);
       final peaks = await _player.peaks(path, buckets: buckets);
       if (isClosed || _detached) return;
       emit(state.copyWith(peaks: peaks));
+      // Backfill the record so the next open skips the decode entirely.
+      unawaited(_service.saveEntryPeaks(entry, peaks));
     } catch (_) {
       // Unreadable, missing, or a codec the decoder will not open. There is
       // nothing to say about it that the flat wave does not already say.

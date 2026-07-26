@@ -27,6 +27,7 @@ class TranscriptionService {
     required this._store,
     this.localeId = 'en-US',
     this._batchTimeout = const Duration(minutes: 2),
+    this._peaksReader,
     DateTime Function()? clock,
     String Function()? idGenerator,
   }) : _clock = clock ?? DateTime.now,
@@ -51,8 +52,15 @@ class TranscriptionService {
   final DateTime Function() _clock;
   final String Function() _newId;
 
+  /// Reads an audio file's amplitude envelope (0..1), injected so the service
+  /// can persist a new entry's shape at save time without owning a player.
+  /// Null in tests that do not care; the detail screen then backfills on the
+  /// first open instead.
+  final Future<List<double>> Function(String path)? _peaksReader;
+
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
+  final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
   StreamSubscription<CaptureStatus>? _statusSub;
   bool _recording = false;
@@ -71,6 +79,30 @@ class TranscriptionService {
   /// stop-path batch for that session (claimed into a local at finalize, so a new
   /// session starting mid-finalize cannot re-language the old one).
   String? _sessionLocaleId;
+
+  /// The current session's language spans, ascending by audio time. Seeded at
+  /// start with one span at 0; [setSessionLocale] appends. More than one span
+  /// means a mixed-language take, batched span by span on stop.
+  List<({int startMs, String tag})> _sessionSpans = [];
+
+  /// Audio-time accounting from the INJECTED clock (deterministic in tests):
+  /// completed audio milliseconds, plus the instant the current live segment
+  /// began (null while paused or idle). Span starts are AUDIO time, so pauses
+  /// never inflate them past the file they index into.
+  int _audioMsAccumulated = 0;
+  DateTime? _audioSegmentStart;
+
+  int get _audioNowMs {
+    final started = _audioSegmentStart;
+    return _audioMsAccumulated +
+        (started == null ? 0 : _clock().difference(started).inMilliseconds);
+  }
+
+  void _audioClockPause() {
+    final started = _audioSegmentStart;
+    if (started != null) _audioMsAccumulated += _clock().difference(started).inMilliseconds;
+    _audioSegmentStart = null;
+  }
 
   /// The entry saved by an interruption's auto-finalize, so a stop that races it
   /// (arriving after it completed) returns it instead of throwing. Deliberately NOT
@@ -121,11 +153,15 @@ class TranscriptionService {
   /// Preflight: whether transcription can run for [localeId] (defaults to the
   /// service locale). The probe downloads nothing; a managed engine fetches its
   /// model once on first use or via [installModel]. Delegates to the engine.
+  /// No UI consumer since the per-language rows took over, KEPT for the
+  /// recording preflight gate the recorder still lacks (nothing today warns
+  /// before recording in a language whose model is absent).
   Future<Availability> checkAvailability({String? localeId}) =>
       _engine.checkAvailability(localeId: localeId ?? this.localeId);
 
   /// Whether the model is downloaded so transcription runs with no wait. An engine
-  /// with no downloadable model is always ready.
+  /// with no downloadable model is always ready. Kept with [checkAvailability]
+  /// for the same future recording gate.
   Future<bool> isModelInstalled({String? localeId}) async {
     final engine = _engine;
     return engine is ManagedModelEngine
@@ -133,13 +169,71 @@ class TranscriptionService {
         : true;
   }
 
+  /// Fires after any path that may have changed a model's install state (a
+  /// first-use install during transcription, an explicit install, a removal),
+  /// so state layers re-read instead of polling or going stale.
+  Stream<void> get modelStateChanged => _modelStateChanged.stream;
+
+  void _notifyModelStateChanged() {
+    if (!_modelStateChanged.isClosed) _modelStateChanged.add(null);
+  }
+
   /// Downloads the model, streaming progress to completion. An engine with no
-  /// downloadable model completes instantly.
+  /// downloadable model completes instantly. Deliberately `.map`, NOT an
+  /// async* wrapper: a consumer cancel must propagate synchronously to the
+  /// engine stream, and a generator parked on a silent download (a stuck
+  /// asset with no progress ticks) could never be unwound - hanging the
+  /// cancel and wedging the engine's install queue behind it.
   Stream<ModelInstallProgress> installModel({String? localeId}) {
     final engine = _engine;
+    if (engine is! ManagedModelEngine) {
+      return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+    }
+    return engine.installModel(localeId: localeId ?? this.localeId).map((progress) {
+      if (progress.done) _notifyModelStateChanged();
+      return progress;
+    });
+  }
+
+  /// The tags whose models are downloaded on this device. An engine with no
+  /// downloadable model is ready for everything it supports.
+  Future<List<String>> installedLocales() {
+    final engine = _engine;
+    return engine is ManagedModelEngine ? engine.installedLocales() : engine.supportedLocales();
+  }
+
+  /// Fine-grained model state for one language. Always explicit: status paths
+  /// never default to the service locale, so callers cannot accidentally ask
+  /// about "whatever the default is right now".
+  Future<LocaleModelStatus> localeStatus(String localeId) async {
+    final engine = _engine;
+    if (engine is ManagedModelEngine) return engine.localeStatus(localeId: localeId);
+    // No managed model: a supported language is ready as-is.
+    final supported = (await engine.supportedLocales()).contains(localeId);
+    return LocaleModelStatus(
+      status: supported ? ModelAssetStatus.installed : ModelAssetStatus.unsupported,
+      reserved: true,
+      resolvedTag: localeId,
+    );
+  }
+
+  /// Releases this app's claim on a language's model (the platform owns the
+  /// shared asset's actual lifetime). Returns whether a claim was released.
+  Future<bool> removeLanguage(String localeId) async {
+    final engine = _engine;
+    if (engine is! ManagedModelEngine) return false;
+    final released = await engine.removeLanguage(localeId: localeId);
+    if (released) _notifyModelStateChanged();
+    return released;
+  }
+
+  /// The platform's language cap and current holdings; max 0 when the engine
+  /// has no such concept.
+  Future<ReservationInfo> reservationInfo() {
+    final engine = _engine;
     return engine is ManagedModelEngine
-        ? engine.installModel(localeId: localeId ?? this.localeId)
-        : Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+        ? engine.reservationInfo()
+        : Future.value(const ReservationInfo(max: 0, reservedTags: []));
   }
 
   /// Begins a capture. Throws [StateError] if one is already recording or
@@ -184,6 +278,9 @@ class TranscriptionService {
       // Snapshot the locale for the whole session: live and the stop-path batch
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = localeId;
+      _sessionSpans = [(startMs: 0, tag: localeId)];
+      _audioMsAccumulated = 0;
+      _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
       // call that interrupted us) must not lose the entry a prior finalize saved.
       _lastFinalized = null;
@@ -198,21 +295,59 @@ class TranscriptionService {
       final engine = _engine;
       // The type is the source of truth for streaming; there is no separate flag.
       if (engine is StreamingTranscriptionEngine) {
-        _liveSub = engine
-            .transcribeLive(localeId: _sessionLocaleId ?? localeId)
-            .listen(
-              (event) {
-                if (!_live.isClosed) _live.add(event);
-              },
-              onError: (Object error, StackTrace stack) {
-                if (!_live.isClosed) _live.addError(error, stack);
-              },
-              cancelOnError: false,
-            );
+        _liveSub = _subscribeLive(engine, _sessionLocaleId ?? localeId);
       }
     } finally {
       _starting = false;
     }
+  }
+
+  StreamSubscription<TranscriptEvent> _subscribeLive(
+    StreamingTranscriptionEngine engine,
+    String tag,
+  ) => engine
+      .transcribeLive(localeId: tag)
+      .listen(
+        (event) {
+          if (!_live.isClosed) _live.add(event);
+        },
+        onError: (Object error, StackTrace stack) {
+          if (!_live.isClosed) _live.addError(error, stack);
+        },
+        cancelOnError: false,
+      );
+
+  /// Re-languages the CURRENT session from this moment on: a new language
+  /// span begins at the current audio time, the settling batch will run each
+  /// span in its own language, and the live stream restarts in [tag] (its
+  /// text so far was UI-only; the batch is the source of truth, so nothing
+  /// already spoken is lost). Session-only by design: the app default is
+  /// TranscriptionSettings' job, and a one-take language change must not
+  /// silently rewrite it. A no-op when idle.
+  Future<void> setSessionLocale(String tag) async {
+    if (!_recording || _sessionLocaleId == tag) return;
+    _sessionLocaleId = tag;
+    final nowMs = _audioNowMs;
+    final spans = _sessionSpans;
+    // Coalesce switches landing on the same audio instant (a rapid toggle,
+    // or a switch while paused): the span that never held any audio is
+    // replaced, and a back-and-forth collapses to nothing.
+    if (spans.isNotEmpty && spans.last.startMs == nowMs) {
+      spans.removeLast();
+    }
+    if (spans.isEmpty || spans.last.tag != tag) {
+      spans.add((startMs: nowMs, tag: tag));
+    }
+    final engine = _engine;
+    if (engine is! StreamingTranscriptionEngine) return;
+    final liveSub = _liveSub;
+    _liveSub = null;
+    // NOT awaited: a live stream mid-session has no next event to resume a
+    // cancel on, so awaiting could wedge the switch. Ordering is safe by
+    // contract: [StreamingTranscriptionEngine.transcribeLive] promises a new
+    // listen works while the old stream's teardown is still completing.
+    unawaited(liveSub?.cancel());
+    _liveSub = _subscribeLive(engine, tag);
   }
 
   /// Ends the capture and returns the saved entry. The intricate parts of the
@@ -276,9 +411,17 @@ class TranscriptionService {
     final statusSub = _statusSub;
     _statusSub = null;
     final sessionLocale = _sessionLocaleId;
+    final spans = _sessionSpans;
+    _sessionSpans = [];
+    _audioClockPause();
     await statusSub?.cancel();
     try {
       final recording = await _recorder.stop();
+      // Cancel live NOW (idempotently re-awaited in the finally): a live
+      // stream that degraded silently would otherwise hold the engine's
+      // teardown chain through the whole batch pass, queueing a new take's
+      // live text behind it for minutes.
+      unawaited(liveSub?.cancel());
 
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
@@ -286,12 +429,11 @@ class TranscriptionService {
       if (transcribe) {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
-          transcript = await _batch(
-            _engine,
-            audioFile,
-            recording.duration,
-            localeId: sessionLocale,
-          );
+          transcript = spans.length > 1
+              ? await _segmentedBatch(_engine, audioFile, recording.duration, spans)
+              : await _batch(_engine, audioFile, recording.duration, localeId: sessionLocale);
+          // A first-use model install may have piggybacked on this pass.
+          _notifyModelStateChanged();
         } catch (_) {
           // Any failure keeps the recording untranscribed rather than losing it; it
           // can be re-transcribed later. Never let a transcription error orphan audio.
@@ -305,6 +447,15 @@ class TranscriptionService {
         audioPath: recording.path,
         duration: recording.duration,
         transcript: transcript,
+        // Stamped even when transcription was skipped or failed: an entry
+        // saved untranscribed (interruption, dispose, failed batch) must
+        // still know what language it is in when transcribed later. A mixed
+        // take's recording language is its FIRST span's, and its spans are
+        // kept so a later (re-)transcription can rebuild the mix.
+        recordedLocaleId: spans.isNotEmpty ? spans.first.tag : sessionLocale,
+        languageSpans: spans.length > 1
+            ? [for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag)]
+            : null,
       );
       try {
         await _store.save(entry);
@@ -314,6 +465,10 @@ class TranscriptionService {
         // the caller can retry via [retrySave] instead of losing the reference.
         throw EntrySaveFailed(entry, error);
       }
+      // Off the critical path: the entry is saved and returned now; its wave
+      // shape lands in a follow-up write so the first open never re-decodes
+      // the whole file.
+      unawaited(_backfillPeaks(entry));
       return entry;
     } finally {
       await liveSub?.cancel();
@@ -333,7 +488,10 @@ class TranscriptionService {
       throw StateError(_recording ? 'already paused' : 'not recording');
     }
     await _recorder.pause();
-    if (_recording) _paused = true;
+    if (_recording) {
+      _paused = true;
+      _audioClockPause();
+    }
   }
 
   /// Resumes a paused capture into the same recording. Throws [StateError] when
@@ -344,7 +502,10 @@ class TranscriptionService {
       throw StateError(_recording ? 'not paused' : 'not recording');
     }
     await _recorder.resume();
-    if (_recording) _paused = false;
+    if (_recording) {
+      _paused = false;
+      _audioSegmentStart = _clock();
+    }
   }
 
   /// Ends the capture and discards it: no entry, no kept audio. The claim
@@ -447,9 +608,11 @@ class TranscriptionService {
   /// Re-transcribes a kept recording, optionally with a different engine. This is
   /// the whole payoff of keeping raw audio: a sharper engine re-reads your history
   /// with no re-recording and no network. Unlike stop, a failure here throws.
-  /// Defaults to the entry's original transcript locale, so an app-language change
-  /// does not silently re-read old entries in the wrong language. (Note the pin:
-  /// an entry first transcribed in the WRONG locale keeps that locale on re-runs
+  /// The language resolves through the entry's own chain: an explicit [localeId],
+  /// else the transcript's locale, else the RECORDING-time locale, else the app
+  /// default. So a default change never silently re-languages an entry, and an
+  /// untranscribed take keeps the language it was spoken in. (Note the pin: an
+  /// entry first transcribed in the WRONG locale keeps that locale on re-runs
   /// until a caller passes [localeId] explicitly.)
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     final engine = using ?? _engine;
@@ -458,8 +621,21 @@ class TranscriptionService {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
     }
     final audioFile = File(await _resolveAudioPath(entry.audioPath));
-    final locale = localeId ?? entry.transcript?.localeId ?? this.localeId;
-    final transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
+    // A mixed-language take re-transcribes span by span, rebuilding the mix,
+    // UNLESS the caller chose a language explicitly: the user's correction
+    // flattens the whole take into that one language on purpose.
+    final spans = entry.languageSpans;
+    final Transcript transcript;
+    if (localeId == null && spans != null && spans.length > 1) {
+      transcript = await _segmentedBatch(engine, audioFile, entry.duration, [
+        for (final span in spans) (startMs: span.startMs, tag: span.localeId),
+      ]);
+    } else {
+      final locale = localeId ?? entry.effectiveLocaleId ?? this.localeId;
+      transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
+    }
+    // A first-use model install may have piggybacked on this pass.
+    _notifyModelStateChanged();
     // The batch pass can run minutes; the user may have deleted the entry or
     // renamed it meanwhile. Never resurrect a deleted entry as a ghost, and
     // never clobber a fresher title: the transcript is applied to the STORED
@@ -497,6 +673,35 @@ class TranscriptionService {
   /// rather than reaching into storage itself.
   Future<String> resolveAudioPath(Entry entry) => _resolveAudioPath(entry.audioPath);
 
+  /// Persists a computed amplitude envelope onto the STORED entry (quantized
+  /// to 0..255), so later opens skip the full-file decode. Applied to the
+  /// stored record, never the caller's copy, and only once: a no-op when the
+  /// entry was deleted meanwhile or already carries a shape. Best effort; a
+  /// failed write just means the next open computes again.
+  Future<void> saveEntryPeaks(Entry entry, List<double> peaks) async {
+    if (peaks.isEmpty) return;
+    final stored = _store.read(entry.id);
+    if (stored == null || stored.peaks != null) return;
+    final quantized = [for (final v in peaks) (v.clamp(0.0, 1.0) * 255).round()];
+    try {
+      await _store.save(stored.withPeaks(quantized));
+    } catch (_) {
+      // The envelope is derived data; losing the write costs one re-decode.
+    }
+  }
+
+  /// Save-time backfill for a NEW entry: read the shape once and persist it.
+  Future<void> _backfillPeaks(Entry entry) async {
+    final reader = _peaksReader;
+    if (reader == null || entry.peaks != null) return;
+    try {
+      final path = await _resolveAudioPath(entry.audioPath);
+      await saveEntryPeaks(entry, await reader(path));
+    } catch (_) {
+      // Unreadable now (or mid-teardown): the first open backfills instead.
+    }
+  }
+
   /// Resolves a stored audio reference to an absolute path. Real entries store a
   /// bare filename, stable across a backup/restore that would move the app's
   /// container; an already-absolute path (tests, legacy) is returned unchanged.
@@ -512,16 +717,93 @@ class TranscriptionService {
     File file,
     Duration duration, {
     String? localeId,
+    Duration? start,
+    Duration? end,
   }) {
     // Scale the timeout by audio length so a long entry is not cut off, while still
     // bounding a hung native call.
     final timeout = _batchTimeout + duration * 2;
     return engine
-        .transcribeFile(file, localeId: localeId ?? this.localeId)
+        .transcribeFile(file, localeId: localeId ?? this.localeId, start: start, end: end)
         .timeout(
           timeout,
           onTimeout: () => throw const TranscriptionFailed('transcription timed out'),
         );
+  }
+
+  /// Batches a mixed-language take span by span and merges the results: texts
+  /// joined with a `[fr]`-style marker at each switch, segment timings offset
+  /// to file time, the first span's language as the transcript's. Any span
+  /// failing (an engine that cannot slice, pre-26) falls the WHOLE take back
+  /// to one flattened pass in the first span's language: a flattened
+  /// transcript beats an untranscribed entry, and the persisted spans let a
+  /// re-transcription rebuild the mix on a capable engine later.
+  Future<Transcript> _segmentedBatch(
+    TranscriptionEngine engine,
+    File file,
+    Duration duration,
+    List<({int startMs, String tag})> spans,
+  ) async {
+    try {
+      final parts = <Transcript>[];
+      for (var i = 0; i < spans.length; i++) {
+        final start = Duration(milliseconds: spans[i].startMs);
+        final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
+        final spanLength = (end ?? duration) - start;
+        parts.add(
+          await _batch(
+            engine,
+            file,
+            spanLength.isNegative ? Duration.zero : spanLength,
+            localeId: spans[i].tag,
+            start: start,
+            end: end,
+          ),
+        );
+      }
+      final buffer = StringBuffer();
+      final segments = <TranscriptSegment>[];
+      // The transcript's language is the first SPOKEN span's: a take whose
+      // opening span held only silence is, effectively, the later language.
+      String? firstSpokenTag;
+      for (var i = 0; i < parts.length; i++) {
+        final offset = Duration(milliseconds: spans[i].startMs);
+        final text = parts[i].fullText.trim();
+        if (text.isNotEmpty) firstSpokenTag ??= spans[i].tag;
+        // A silent span earns neither text nor a marker; the first spoken
+        // span earns no marker either (nothing before it to separate).
+        if (text.isNotEmpty && buffer.isEmpty) {
+          buffer.write(text);
+        } else if (text.isNotEmpty) {
+          final marker = '[${spans[i].tag.split('-').first}]';
+          buffer.write(' $marker $text');
+          // The marker also rides as its own zero-length segment at the
+          // switch instant: the transcript VIEW renders segments (not
+          // fullText), so without this the reader would never see where the
+          // language turned - and tapping it seeks to that moment.
+          segments.add(TranscriptSegment(text: marker, start: offset, end: offset));
+        }
+        for (final segment in parts[i].segments) {
+          segments.add(
+            TranscriptSegment(
+              text: segment.text,
+              start: segment.start + offset,
+              end: segment.end + offset,
+              confidence: segment.confidence,
+            ),
+          );
+        }
+      }
+      return Transcript(
+        fullText: buffer.toString(),
+        segments: segments,
+        localeId: firstSpokenTag ?? spans.first.tag,
+        engineId: engine.id,
+        createdAt: _clock(),
+      );
+    } on TranscriptionException {
+      return _batch(engine, file, duration, localeId: spans.first.tag);
+    }
   }
 
   /// Recovers audio files in the recordings directory that no entry references:
@@ -596,6 +878,7 @@ class TranscriptionService {
     _statusSub = null;
     await _live.close();
     await _autoFinalized.close();
+    await _modelStateChanged.close();
   }
 
   static int _idSequence = 0;

@@ -105,10 +105,14 @@ class Deps {
     await audioStorageSettings.apply();
 
     final engine = AppleSpeechEngine();
+    // Built before the service so a fresh recording's wave shape can be read
+    // and persisted at save time (viewing then never re-decodes the file).
+    final audioPlayer = PlatformAudioPlayer();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engine,
       store: EntryStore(localService),
+      peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
     );
     final transcriptionSettings = TranscriptionSettings(
       storage: localService,
@@ -122,8 +126,10 @@ class Deps {
       transcriptionService: transcriptionService,
       audioStorageSettings: audioStorageSettings,
       transcriptionSettings: transcriptionSettings,
-      audioPlayer: PlatformAudioPlayer(),
+      audioPlayer: audioPlayer,
       router: AppRouter(),
+      // The models screen renders this registry; whisper.cpp lands as one
+      // more entry here, not new plumbing.
       engineDescriptors: [
         EngineDescriptor(
           engineId: engine.id,

@@ -34,6 +34,11 @@ abstract interface class AudioPlayer {
   /// is the player's, not one playback's.
   Future<void> setRate(double rate);
 
+  /// The master resolution an entry's shape is read (and persisted) at.
+  /// Generous enough that any bar count a phone can show resamples DOWN from
+  /// it, so layout never drives a native read.
+  static const int defaultPeakBuckets = 320;
+
   /// The amplitude envelope of the file at [path]: [buckets] values in 0..1, one
   /// per equal slice of the recording, each the loudest sample in its slice.
   /// Normalized against the file's own loudest sample, so the shape says where
