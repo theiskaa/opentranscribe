@@ -36,16 +36,16 @@ class _SlidePageRoute<T> extends PageRoute<T> {
   // The eased form for a tap/programmatic push. During a drag the raw animation
   // is used instead, so the page tracks the finger 1:1 (Cupertino's linear flag).
   static final Animatable<Offset> _easedOffset = _offset.chain(
-    CurveTween(curve: Curves.easeOutCubic),
+    CurveTween(curve: Curves.fastEaseInToSlowEaseOut),
   );
 
   Widget get _child => (settings as SlidePage<T>).child;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 250);
+  Duration get transitionDuration => const Duration(milliseconds: 300);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 250);
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
 
   @override
   bool get opaque => true;
@@ -56,11 +56,10 @@ class _SlidePageRoute<T> extends PageRoute<T> {
   @override
   bool get barrierDismissible => false;
 
-  // Dim the page below while this one is over it, fading with the transition.
-  // Composite-safe: a barrier is a Flutter overlay, so it never moves the native
-  // glass chrome underneath. Read (not watched) - only visible mid-transition.
+  // No dim on the page below: darkening a screen that isn't moving read as off.
+  // The leading-edge shadow alone separates the two while this one slides over.
   @override
-  Color? get barrierColor => navigator?.context.read<ThemeCubit>().state.resolved.navigation.scrim;
+  Color? get barrierColor => null;
 
   @override
   String? get barrierLabel => null;
