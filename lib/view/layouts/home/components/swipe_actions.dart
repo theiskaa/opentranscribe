@@ -30,6 +30,15 @@ const double _kOverflow = 40;
 /// around a reveal of 1.
 const double _kSettledEpsilon = 1e-3;
 
+/// The disc rests centred in the action gutter, so its left edge sits this far
+/// from the row's right edge - the distance the row must vacate before the disc
+/// is fully clear of the text.
+const double _kDiscLeftInset = (_kActionWidth + _kBadgeSize) / 2;
+
+/// The open fraction at which the disc reaches that rest spot; past it the disc
+/// holds still while the row keeps sliding, opening the gap to fully-open.
+const double _kRestOpen = _kDiscLeftInset / _kActionWidth;
+
 /// Swipe-to-reveal delete for one home row. A leftward drag reveals a trailing
 /// Delete disc you tap to remove the entry. From the OPEN state a further drag
 /// stretches the disc into a pill; swiping it fully across (past
@@ -65,7 +74,7 @@ class EntryDeleteSwipe extends StatefulWidget {
   State<EntryDeleteSwipe> createState() => _EntryDeleteSwipeState();
 }
 
-class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerProviderStateMixin {
+class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with TickerProviderStateMixin {
   // 0 closed, 1 open at the action width, up to 2 as the disc stretches into a
   // pill. Driven directly by the drag, then settled with the swipe curve.
   late final AnimationController _reveal = AnimationController(
@@ -73,6 +82,13 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
     value: 0,
     upperBound: _kMaxReveal,
   );
+
+  // The disc's entrance progress, on its OWN spring so it may overshoot: 0 fully
+  // off the right edge, 1 at rest, a touch past 1 on the landing bounce. Tracks
+  // the finger 1:1 while dragging (hugging the row's edge, never over the text),
+  // then springs home. Separate from _reveal, which must NOT overshoot - that
+  // would flash the pill.
+  late final AnimationController _disc = AnimationController.unbounded(vsync: this);
 
   // The row width, cached from the layout so the drag math and the paint agree.
   double _width = 0;
@@ -100,6 +116,7 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
   void dispose() {
     widget.openId.removeListener(_onOpenIdChanged);
     _reveal.dispose();
+    _disc.dispose();
     super.dispose();
   }
 
@@ -112,6 +129,7 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
 
   void _onDragStart(DragStartDetails _) {
     _reveal.stop();
+    _disc.stop();
     _canExpand = _reveal.value >= 1;
     _committed = false;
   }
@@ -126,6 +144,9 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
     final maxValue = _canExpand ? _kMaxReveal : 1.0;
     final next = (v - d.primaryDelta! / unit).clamp(0.0, maxValue);
     _reveal.value = next;
+    // The disc hugs the sliding edge up to its rest point, then holds - so it
+    // tracks the finger without ever crossing onto the text.
+    _disc.value = (next / _kRestOpen).clamp(0.0, 1.0);
     // Full swipe: dragged (nearly) all the way across, delete without a release.
     if (_canExpand && next >= _kCommitReveal) {
       _committed = true;
@@ -160,10 +181,13 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
   void _settle({required bool open, bool claim = true, double pixelVelocity = 0}) {
     final start = _reveal.value;
     final target = open ? 1.0 : 0.0;
+    final discTarget = open ? 1.0 : 0.0;
     if (context.reduceMotion) {
-      // Reduce Motion: no settle, no disc pop (both ride _reveal) - jump there.
+      // Reduce Motion: no settle, no bounce - jump both straight to target.
       _reveal.stop();
       _reveal.value = target;
+      _disc.stop();
+      _disc.value = discTarget;
     } else {
       final motion = context.motionNow;
       // px/s to reveal-units/s. A leftward drag (negative pixel velocity) drives
@@ -180,6 +204,14 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
           xMin: start < target ? start : target,
           xMax: start < target ? target : start,
         ),
+      );
+      // The disc rides its own underdamped spring, handed the finger's velocity so
+      // there is no seam: it lands with one soft overshoot on show, springs back
+      // off the edge on hide. A faster fling lands with a proportionally bigger
+      // bounce.
+      final discVelocity = -pixelVelocity / _kDiscLeftInset;
+      _disc.animateWith(
+        SpringSimulation(motion.swipePopSpring, _disc.value, discTarget, discVelocity),
       );
     }
     if (open) {
@@ -256,57 +288,79 @@ class _EntryDeleteSwipeState extends State<EntryDeleteSwipe> with SingleTickerPr
 
     return Positioned.fill(
       child: AnimatedBuilder(
-        animation: _reveal,
+        animation: Listenable.merge([_reveal, _disc]),
         builder: (context, _) {
           final open = _reveal.value.clamp(0.0, 1.0);
           final expand = (_reveal.value - 1).clamp(0.0, 1.0);
-          // Fade in early, settle at near-full size with a small overshoot.
-          final appear = const Interval(0, 0.5, curve: Curves.easeOutCubic).transform(open);
-          final scale =
-              motion.swipePopMinScale +
-              (1 - motion.swipePopMinScale) * motion.swipePopCurve.transform(open);
           final w = _kBadgeSize + (_width - _kBadgeSize) * expand;
+
+          // The entrance rides _disc: 0 off the right edge, 1 at rest, a touch past
+          // 1 on the landing overshoot. It slides IN FROM THE RIGHT and the
+          // overshoot is a soft bounce - a nudge left and a small pop in size as it
+          // lands, reversed on hide. One spring, so there is no seam.
+          final entrance = _disc.value;
+          final grow = entrance.clamp(0.0, 1.0);
+          final overshoot = (entrance - 1).clamp(0.0, 0.3);
+          final appear = Curves.easeOut.transform(grow);
+          final scale =
+              motion.swipePopMinScale + (1 - motion.swipePopMinScale) * grow + overshoot * 0.4;
+
+          // Whatever the spring does, never let the disc cross the sliding row's
+          // right edge: clamp its offset to the strip the row has vacated, so it is
+          // never drawn over the text and the off-edge part is hidden by the outer
+          // clip. The expand phase holds it at rest while it stretches into the pill.
+          final contentDx = _kActionWidth * open + (_width - _kActionWidth) * expand;
+          final slideIn = (_kDiscLeftInset * (1 - entrance)).clamp(
+            _kDiscLeftInset - contentDx,
+            _kDiscLeftInset,
+          );
 
           return IgnorePointer(
             ignoring: (_reveal.value - 1).abs() > _kSettledEpsilon,
-            child: Padding(
-              padding: const EdgeInsets.only(right: rightInset),
-              // Relax both axes + centerRight so the pill keeps its natural width
-              // (pushed right, not stretched full and centered) and can spill
-              // into the row's gap on a short row.
-              child: OverflowBox(
-                alignment: Alignment.centerRight,
-                minWidth: 0,
-                maxWidth: double.infinity,
-                minHeight: 0,
-                maxHeight: double.infinity,
-                child: Opacity(
-                  opacity: appear,
-                  child: Transform.scale(
-                    scale: scale,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Touchable(
-                          onTap: widget.onDelete,
-                          pressedOpacity: 0.6,
-                          child: SizedBox(
-                            width: w,
-                            height: _kBadgeSize,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: theme.danger,
-                                borderRadius: BorderRadius.circular(radius),
+            child: Transform.translate(
+              // The "Delete" label sits inside the centred block, so it pulls the
+              // disc up toward the day header. Nudge the whole surface down by that
+              // much to re-centre the disc on the row and clear the header.
+              offset: Offset(slideIn, AppSpacing.sm),
+              child: Padding(
+                padding: const EdgeInsets.only(right: rightInset),
+                // Relax both axes + centerRight so the pill keeps its natural width
+                // (pushed right, not stretched full and centered) and can spill
+                // into the row's gap on a short row.
+                child: OverflowBox(
+                  alignment: Alignment.centerRight,
+                  minWidth: 0,
+                  maxWidth: double.infinity,
+                  minHeight: 0,
+                  maxHeight: double.infinity,
+                  child: Opacity(
+                    opacity: appear,
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Touchable(
+                            onTap: widget.onDelete,
+                            pressedOpacity: 0.6,
+                            child: SizedBox(
+                              width: w,
+                              height: _kBadgeSize,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: theme.danger,
+                                  borderRadius: BorderRadius.circular(radius),
+                                ),
+                                child: Center(child: glyph),
                               ),
-                              child: Center(child: glyph),
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.xs),
-                          child: label,
-                        ),
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.xs),
+                            child: label,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

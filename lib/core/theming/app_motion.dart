@@ -34,6 +34,7 @@ final class AppMotion {
     this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
     this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
     this.swipePopMinScale = 0.85,
+    this.swipePopSpring = const SpringDescription(mass: 1, stiffness: 480, damping: 22),
   });
 
   final Duration entrance;
@@ -98,8 +99,14 @@ final class AppMotion {
   /// without a wobble.
   final SpringDescription toggleSpring;
 
-  /// The delete disc's entrance: a gentle overshoot [swipePopCurve] scaling up
-  /// from [swipePopMinScale] to 1 as it reveals (and back down as it hides).
+  /// A gentle overshoot used by pop-in reveals: the theme card selection, and the
+  /// delete disc growing in from [swipePopMinScale] to full size as it enters.
   final Curve swipePopCurve;
   final double swipePopMinScale;
+
+  /// The delete disc's slide-in from the right settling home: an UNDERDAMPED
+  /// spring, so it lands with one soft overshoot (a bounce) on show and springs
+  /// back off the edge on hide - one continuous motion, no slide-then-pop seam.
+  /// On its own controller because it must overshoot, unlike [swipeSpring].
+  final SpringDescription swipePopSpring;
 }
