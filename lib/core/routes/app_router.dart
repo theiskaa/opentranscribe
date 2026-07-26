@@ -11,7 +11,6 @@ import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/app_language_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
-import 'package:opentranscribe/view/layouts/settings/screens/language_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/settings_screen.dart';
 
@@ -58,10 +57,10 @@ class AppRouter {
         ),
       ),
       GoRoute(
-        path: Routes.settingsLanguage,
-        name: Routes.settingsLanguageName,
+        path: Routes.settingsModels,
+        name: Routes.settingsModelsName,
         pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const LanguageScreen()),
+            SlidePage<void>(key: state.pageKey, child: const ModelsScreen()),
       ),
       GoRoute(
         path: Routes.settingsAppLanguage,
@@ -74,12 +73,6 @@ class AppRouter {
         name: Routes.settingsAppearanceName,
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const AppearanceScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsModels,
-        name: Routes.settingsModelsName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const ModelsScreen()),
       ),
       GoRoute(
         path: Routes.record,

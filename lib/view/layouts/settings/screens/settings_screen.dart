@@ -80,16 +80,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SectionLabel(l10n.settingsTranscription),
               SettingsCard(
                 children: [
-                  SettingsRow(
-                    icon: AppIcons.globe,
-                    title: l10n.settingsLanguage,
-                    value: localeDisplayName(state.localeId),
-                    chevron: true,
-                    onTap: () => context.pushNamed(Routes.settingsLanguageName),
-                  ),
+                  // ONE row: languages and their models live together on the
+                  // models screen (the globe there sets the default). The
+                  // value names the current default so it reads at a glance.
                   SettingsRow(
                     icon: AppIcons.waveform,
                     title: l10n.settingsModels,
+                    value: localeDisplayName(state.localeId),
                     chevron: true,
                     onTap: () => context.pushNamed(Routes.settingsModelsName),
                   ),

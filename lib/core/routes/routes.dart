@@ -7,9 +7,11 @@ abstract final class Routes {
   static const settings = '/settings';
   static const settingsName = 'settings';
 
-  /// The transcription-language picker, pushed over settings.
-  static const settingsLanguage = '/settings/language';
-  static const settingsLanguageName = 'settingsLanguage';
+  /// The models screen (per-language on-device models), pushed over settings.
+  /// The default-language CHOICE lives on the settings screen itself (a
+  /// picker), so this screen manages models only.
+  static const settingsModels = '/settings/models';
+  static const settingsModelsName = 'settingsModels';
 
   /// The app-language (UI locale) picker, pushed over settings.
   static const settingsAppLanguage = '/settings/app-language';
@@ -18,10 +20,6 @@ abstract final class Routes {
   /// The appearance (theme) screen, pushed over settings.
   static const settingsAppearance = '/settings/appearance';
   static const settingsAppearanceName = 'settingsAppearance';
-
-  /// The transcription models screen, pushed over settings.
-  static const settingsModels = '/settings/models';
-  static const settingsModelsName = 'settingsModels';
 
   /// Entry detail. Navigate by name with an `id` param; pushes over the shell.
   static const entry = '/entry/:id';
