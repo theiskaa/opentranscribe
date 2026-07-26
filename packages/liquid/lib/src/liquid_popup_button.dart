@@ -10,13 +10,15 @@ class LiquidPopupButtonEntry {
     this.children = const [],
     this.causesNavigation = false,
     this.isDestructive = false,
+    this.isSelected = false,
   }) : isDivider = false;
 
   const LiquidPopupButtonEntry.submenu({required this.label, required this.children, this.icon})
     : value = '__submenu__',
       isDivider = false,
       causesNavigation = false,
-      isDestructive = false;
+      isDestructive = false,
+      isSelected = false;
 
   /// Creates a divider entry that visually separates menu items.
   const LiquidPopupButtonEntry.divider()
@@ -26,7 +28,8 @@ class LiquidPopupButtonEntry {
       children = const [],
       isDivider = true,
       causesNavigation = false,
-      isDestructive = false;
+      isDestructive = false,
+      isSelected = false;
 
   final String value;
   final String label;
@@ -48,6 +51,9 @@ class LiquidPopupButtonEntry {
   /// Whether this entry should be shown as destructive.
   final bool isDestructive;
 
+  /// Whether this entry renders with a selection checkmark (UIMenu state).
+  final bool isSelected;
+
   Map<String, dynamic> toMap() => {
     'value': value,
     'label': label,
@@ -55,6 +61,7 @@ class LiquidPopupButtonEntry {
     if (children.isNotEmpty) 'children': children.map((e) => e.toMap()).toList(),
     if (isDivider) 'isDivider': true,
     if (isDestructive) 'isDestructive': true,
+    if (isSelected) 'isSelected': true,
   };
 }
 
@@ -69,6 +76,7 @@ class LiquidPopupButton extends StatefulWidget {
     this.iconPointSize,
     this.itemIconPointSize,
     this.size = 44,
+    this.bare = false,
     this.isDark,
     super.key,
   }) : assert(items.length > 0, 'At least one item is required');
@@ -95,6 +103,12 @@ class LiquidPopupButton extends StatefulWidget {
   /// read as oversized beside the text.
   final double? itemIconPointSize;
 
+  /// Bare mode: the native button is invisible and fills whatever box this
+  /// widget is given (no glass circle, no glyph, no visual overflow). Overlay
+  /// it on any Flutter content to make that content the trigger of a real
+  /// UIMenu, which UIKit only presents from a native control.
+  final bool bare;
+
   /// Whether to use dark mode appearance.
   ///
   /// When specified, overrides the system's user interface style on iOS.
@@ -112,6 +126,7 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
     'items': widget.items.map((entry) => entry.toMap()).toList(),
     'enabled': widget.enabled,
     'size': widget.size,
+    if (widget.bare) 'bare': true,
     if (widget.semanticLabel != null) 'semanticLabel': widget.semanticLabel,
     if (widget.buttonLabel != null) 'buttonLabel': widget.buttonLabel,
     if (widget.icon != null) 'icon': widget.icon,
@@ -122,6 +137,19 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.bare) {
+      // Fills the parent's box; no square host, no visual overflow.
+      return RepaintBoundary(
+        child: Visibility.maintain(
+          visible: !_isHidden,
+          child: LiquidPlatformView(
+            viewType: 'liquid_popup_button',
+            creationParams: _params,
+            onMethodCall: _handleMethodCall,
+          ),
+        ),
+      );
+    }
     const visualOverflow = 12.0;
     final hostSize = widget.size + (visualOverflow * 2);
 

@@ -21,10 +21,16 @@ final class LiquidPopupMenuView: LiquidNativeView {
   private var buttonSize: CGFloat = 44
   private var buttonWidthConstraint: NSLayoutConstraint?
   private var buttonHeightConstraint: NSLayoutConstraint?
+  private var edgeConstraints: [NSLayoutConstraint] = []
   private var items: [[String: Any]] = []
   private var buttonLabel: String?
   private var iconName: String?
   private var iconPointSize: CGFloat?
+
+  /// Bare mode: no glass, no glyph, the button fills the host invisibly. Lets
+  /// arbitrary Flutter content (a settings row) act as the trigger of a REAL
+  /// UIMenu, which UIKit only presents from a native control.
+  private var bare = false
 
   /// Point size for the ITEM icons inside the menu. Without an explicit symbol
   /// configuration UIKit renders a menu image at the symbol's own intrinsic
@@ -93,6 +99,12 @@ final class LiquidPopupMenuView: LiquidNativeView {
 
     items = params["items"] as? [[String: Any]] ?? []
 
+    let wantsBare = (params["bare"] as? NSNumber)?.boolValue ?? (params["bare"] as? Bool ?? false)
+    if wantsBare != bare {
+      bare = wantsBare
+      applyLayoutMode()
+    }
+
     if let size = params["size"] as? Double {
       buttonSize = CGFloat(size)
       buttonWidthConstraint?.constant = buttonSize
@@ -125,7 +137,46 @@ final class LiquidPopupMenuView: LiquidNativeView {
     button.menu = buildMenu()
   }
 
+  /// Bare pins the button to the host's edges; the sized circle centers it.
+  private func applyLayoutMode() {
+    if edgeConstraints.isEmpty {
+      edgeConstraints = [
+        button.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+        button.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+        button.topAnchor.constraint(equalTo: root.topAnchor),
+        button.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+      ]
+    }
+    if bare {
+      buttonWidthConstraint?.isActive = false
+      buttonHeightConstraint?.isActive = false
+      NSLayoutConstraint.activate(edgeConstraints)
+    } else {
+      NSLayoutConstraint.deactivate(edgeConstraints)
+      buttonWidthConstraint?.isActive = true
+      buttonHeightConstraint?.isActive = true
+    }
+    root.setNeedsLayout()
+  }
+
   private func configureButtonAppearance() {
+    if bare {
+      // Invisible on purpose: the Flutter row underneath is the visible
+      // control, and the menu itself is the feedback.
+      if #available(iOS 15.0, *) {
+        var config = UIButton.Configuration.plain()
+        config.image = nil
+        config.title = nil
+        config.baseBackgroundColor = .clear
+        button.configuration = config
+      } else {
+        button.setTitle(nil, for: .normal)
+        button.setImage(nil, for: .normal)
+      }
+      button.backgroundColor = .clear
+      button.tintColor = .clear
+      return
+    }
     let symbolName = iconName ?? "ellipsis"
     let pointSize = iconPointSize ?? 17
     let symbolConfig = UIImage.SymbolConfiguration(
@@ -251,6 +302,8 @@ final class LiquidPopupMenuView: LiquidNativeView {
     }
 
     let value = item["value"] as? String
+    let isSelected = (item["isSelected"] as? NSNumber)?.boolValue
+      ?? (item["isSelected"] as? Bool ?? false)
     if #available(iOS 13.0, *) {
       let attributes: UIMenuElement.Attributes = isDestructive ? [.destructive] : []
       return UIAction(
@@ -259,7 +312,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
         identifier: nil,
         discoverabilityTitle: nil,
         attributes: attributes,
-        state: .off
+        state: isSelected ? .on : .off
       ) { [weak self] _ in
         guard let self, let value else { return }
         // Delay callback to next runloop cycle to let UIMenu dismiss animation complete
@@ -269,7 +322,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
       }
     }
 
-    return UIAction(title: title, state: .off) { [weak self] _ in
+    return UIAction(title: title, state: isSelected ? .on : .off) { [weak self] _ in
       guard let self, let value else { return }
       // Delay callback to next runloop cycle to let UIMenu dismiss animation complete
       DispatchQueue.main.async {
