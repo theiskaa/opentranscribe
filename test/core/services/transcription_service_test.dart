@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -562,12 +563,14 @@ void main() {
     );
     await store.save(entry);
 
-    // The batch pass runs long; the user deletes the entry mid-flight.
-    final retranscribing = svc.retranscribe(
-      entry,
-      using: FakeBatchEngine(delay: const Duration(milliseconds: 30)),
-    );
+    // The batch pass is held open while the user deletes the entry mid-flight.
+    // A gate (not a wall-clock delay) keeps the ordering deterministic: the
+    // delete fully lands before the engine is released and retranscribe reads
+    // the store back.
+    final gate = Completer<void>();
+    final retranscribing = svc.retranscribe(entry, using: FakeBatchEngine(gate: gate.future));
     await svc.deleteEntry(entry);
+    gate.complete();
 
     await expectLater(retranscribing, throwsStateError);
     expect(store.read('g1'), isNull); // stayed deleted, no ghost

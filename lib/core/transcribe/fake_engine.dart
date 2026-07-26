@@ -103,6 +103,7 @@ class FakeBatchEngine implements TranscriptionEngine {
     this.failBatch = false,
     this.throwGeneric = false,
     this.delay,
+    this.gate,
     this.supportedLocaleTags = const ['en-US'],
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
@@ -121,6 +122,11 @@ class FakeBatchEngine implements TranscriptionEngine {
   /// Delays the result, to exercise the batch timeout.
   final Duration? delay;
 
+  /// Holds the batch pass open until this future completes, for tests that need
+  /// to interleave an event (a delete, a rename) deterministically rather than
+  /// racing a wall-clock [delay].
+  final Future<void>? gate;
+
   final DateTime Function() _clock;
 
   @override
@@ -138,6 +144,7 @@ class FakeBatchEngine implements TranscriptionEngine {
 
   @override
   Future<Transcript> transcribeFile(File audio, {required String localeId}) async {
+    if (gate != null) await gate;
     if (delay != null) await Future<void>.delayed(delay!);
     if (throwGeneric) throw StateError('generic engine failure');
     if (failBatch) throw const TranscriptionFailed('fake batch failure');
