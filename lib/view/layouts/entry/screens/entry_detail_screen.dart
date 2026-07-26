@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart' show TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +10,7 @@ import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
+import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -18,8 +21,10 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/locale_names.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
 /// a wave you can scrub, then what was said. Reads [EntriesCubit] so
@@ -50,6 +55,10 @@ class _DetailView extends StatefulWidget {
 
 class _DetailViewState extends State<_DetailView> {
   final FocusNode _titleFocus = FocusNode();
+
+  /// The bar's menu button, which the Transcribe-in dropdown anchors to (the
+  /// menu that offered the action grew from the same spot).
+  final GlobalKey _menuAnchor = GlobalKey();
   PlayerCubit? _player;
 
   @override
@@ -72,14 +81,71 @@ class _DetailViewState extends State<_DetailView> {
       case 0:
         _titleFocus.requestFocus();
       case 1:
+        // Runs in the entry's OWN language (the service resolves it); the
+        // picker below is the explicit override.
         context.read<EntriesCubit>().retranscribe(entry);
       case 2:
+        _transcribeIn(entry);
+      case 3:
         // Straight through, no confirm. The menu already took a deliberate tap
         // to open and a second one to land on a row marked destructive; a sheet
         // asking the same question again is a tax on every deliberate delete to
         // catch the accidental one.
         context.read<EntriesCubit>().delete(entry);
     }
+  }
+
+  /// The languages an entry may be (re-)transcribed in: the entry's own, the
+  /// app default, and every ready language (without a reservation concept,
+  /// pre-26, every supported language works with no install). The service
+  /// default closes the cold-start hole where settings state is still empty.
+  List<String> _transcribeTags(Entry entry, SettingsState settings) {
+    final tags = <String>[
+      // The entry's own language leads, even when its model is gone.
+      if (entry.effectiveLocaleId != null) entry.effectiveLocaleId!,
+      ...settings.selectableLanguageTags(),
+      // Cold start (settings state still empty): the service default still
+      // names one language to offer rather than a menu that does nothing.
+      Deps.i.transcriptionService.localeId,
+    ];
+    final unique = <String>[];
+    for (final tag in tags) {
+      if (tag.isNotEmpty && !unique.contains(tag)) unique.add(tag);
+    }
+    return unique;
+  }
+
+  /// The wrong-language correction on the FALLBACK path: the app's anchored
+  /// dropdown out of the menu button. On native glass the menu itself carries
+  /// the languages as a real submenu, and this is never called.
+  Future<void> _transcribeIn(Entry entry) async {
+    final settings = context.read<SettingsCubit>().state;
+    final entries = context.read<EntriesCubit>();
+    final tags = _transcribeTags(entry, settings);
+
+    // Anchor to the menu button that offered the action; if it is somehow
+    // gone (a rebuilt bar), a top-right stand-in keeps the growth corner.
+    final box = _menuAnchor.currentContext?.findRenderObject();
+    final screen = MediaQuery.sizeOf(context);
+    final anchor = box is RenderBox && box.attached
+        ? box.localToGlobal(Offset.zero) & box.size
+        : Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
+
+    final preselected = entry.effectiveLocaleId ?? settings.localeId;
+    final index = await showAppDropdown(
+      context,
+      anchor: anchor,
+      items: [
+        for (final tag in tags)
+          AppDropdownItem(
+            label: localeDisplayName(tag),
+            flag: localeFlag(tag),
+            selected: tag == preselected,
+          ),
+      ],
+    );
+    if (index == null) return;
+    unawaited(entries.retranscribe(entry, localeId: tags[index]));
   }
 
   @override
@@ -100,6 +166,14 @@ class _DetailViewState extends State<_DetailView> {
         }
 
         final busy = state.busyId == entry.id;
+        // The entry's own language, once known: the quiet answer to "what
+        // will Re-transcribe run in".
+        final language = entry.effectiveLocaleId;
+        // For the Transcribe-in choices: a real submenu on the native menu,
+        // the anchored dropdown on the fallback (see _transcribeIn).
+        final settings = context.watch<SettingsCubit>().state;
+        final transcribeTags = _transcribeTags(entry, settings);
+        final preselected = entry.effectiveLocaleId ?? settings.localeId;
         // The bottom CTA only exists for a never-transcribed entry, and not
         // while a run is in flight (the body shows the spinner then).
         final showCta = entry.transcript == null && !busy;
@@ -130,11 +204,12 @@ class _DetailViewState extends State<_DetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // A failure the screen could not prevent (a delete or
+                      // A failure the screen could not prevent (a transcribe or
                       // rename that did not take), inline at the top and gone on
-                      // its own - no dialog.
+                      // its own - no dialog. Scoped: only THIS entry's failure
+                      // renders here, never another entry's leftover.
                       AppNotice(
-                        message: state.error,
+                        message: _errorMessage(state.errorFor(entry.id), l10n),
                         onDismiss: () => context.read<EntriesCubit>().clearError(),
                       ),
                       _TitleField(entry: entry, focusNode: _titleFocus),
@@ -142,7 +217,8 @@ class _DetailViewState extends State<_DetailView> {
                       Text(
                         '${DateFormat.yMMMMd().format(entry.createdAt.toLocal())}'
                         ' \u00b7 ${formatTime(entry.createdAt)}'
-                        ' \u00b7 ${formatClock(entry.duration)}',
+                        ' \u00b7 ${formatClock(entry.duration)}'
+                        '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
                         style: AppType.digits(
                           AppType.footnote,
                         ).copyWith(color: theme.textSecondary),
@@ -162,14 +238,35 @@ class _DetailViewState extends State<_DetailView> {
                 child: AppTopBar(
                   actions: [
                     AppMenuButton(
+                      key: _menuAnchor,
                       icon: AppIcons.ellipsis,
                       color: theme.topBar.iconColor,
                       items: [
                         AppMenuItem(label: l10n.rename, icon: AppIcons.textformat),
                         AppMenuItem(label: l10n.retranscribe, icon: AppIcons.arrowCounterclockwise),
+                        AppMenuItem(
+                          label: l10n.transcribeIn,
+                          icon: AppIcons.globe,
+                          // Native renders these as a nested UIMenu; the
+                          // fallback fires the parent action instead and the
+                          // anchored dropdown takes over. Ids, not positions:
+                          // the chosen language must survive a list rebuild
+                          // under the open menu.
+                          children: [
+                            for (final tag in transcribeTags)
+                              AppMenuItem(
+                                id: tag,
+                                label: '${localeFlag(tag)}  ${localeDisplayName(tag)}',
+                                selected: tag == preselected,
+                              ),
+                          ],
+                        ),
                         AppMenuItem(label: l10n.delete, icon: AppIcons.trash, destructive: true),
                       ],
                       onSelected: (index) => _onAction(index, entry, l10n),
+                      onSelectedId: (tag) => unawaited(
+                        context.read<EntriesCubit>().retranscribe(entry, localeId: tag),
+                      ),
                     ),
                   ],
                 ),
@@ -184,6 +281,17 @@ class _DetailViewState extends State<_DetailView> {
     );
   }
 }
+
+/// Words an [EntriesError] for the notice line. The kinds are the contract;
+/// the raw platform error never reaches the screen.
+String? _errorMessage(EntriesError? error, AppLocalizations l10n) => switch (error) {
+  null => null,
+  EntriesError.permissionDenied => l10n.transcribeErrorPermission,
+  EntriesError.onDeviceUnavailable => l10n.transcribeErrorUnavailable,
+  EntriesError.modelInstallFailed => l10n.transcribeErrorModelInstall,
+  EntriesError.reservationCap => l10n.transcribeErrorCapReached,
+  EntriesError.generic => l10n.transcribeErrorGeneric,
+};
 
 /// The never-transcribed entry's one action, pinned to the screen's floor as a
 /// full-width CTA over the scrolling document. The scroll reserves room for it,

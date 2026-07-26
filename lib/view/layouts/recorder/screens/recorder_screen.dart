@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
+import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
@@ -15,10 +16,11 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/recorder_controls.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
-import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// The one margin this screen repeats: the band, the transcript and the
@@ -131,7 +133,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
         buildWhen: (previous, current) =>
             previous.status != current.status ||
             previous.error != current.error ||
-            previous.live != current.live,
+            previous.live != current.live ||
+            previous.localeId != current.localeId,
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
           final denied = state.error == RecorderError.permissionDenied;
@@ -158,6 +161,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
                             ? l10n.recordStatePaused
                             : (state.live ? l10n.recordStateRecording : null),
                       ),
+                actions: [
+                  // Change what THIS take transcribes in, mid-sentence if
+                  // needed; the next take starts from the default again.
+                  if (!denied && !saving) _LanguageAction(sessionTag: state.localeId),
+                ],
               ),
               if (denied)
                 Expanded(
@@ -312,4 +320,29 @@ String _formatElapsed(Duration d) {
   final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
   final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
   return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}
+
+/// The session-language switch on the bar. Session-only: picking here
+/// re-languages the current take and never rewrites the app default.
+class _LanguageAction extends StatelessWidget {
+  const _LanguageAction({required this.sessionTag});
+
+  final String sessionTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final settings = context.watch<SettingsCubit>().state;
+    return LanguageMenuButton(
+      current: sessionTag,
+      tags: [
+        // The session's language leads even if its model just vanished.
+        if (sessionTag.isNotEmpty) sessionTag,
+        for (final tag in settings.selectableLanguageTags())
+          if (tag != sessionTag) tag,
+      ],
+      color: theme.topBar.iconColor,
+      onPick: (tag) => context.read<RecorderCubit>().setLanguage(tag),
+    );
+  }
 }
