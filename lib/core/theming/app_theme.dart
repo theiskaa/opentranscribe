@@ -133,9 +133,13 @@ final class AppTheme {
             tileBorder: text.withValues(alpha: 0.14),
             tileBorderDisabled: text.withValues(alpha: 0.07),
             // A ring, not a block: the cursor slides across the tiles and
-            // today's tint has to survive underneath it.
-            cursorFill: text.withValues(alpha: 0.08),
-            cursorBorder: text.withValues(alpha: 0.55),
+            // today's tint has to survive underneath it. Low-alpha ink on white
+            // reads far weaker than low-alpha white on black, so on light the
+            // ring needs a HIGHER alpha to carry the "you are here" weight, while
+            // the fill needs a LOWER one (ink muddies the tile faster than white
+            // lifts it), letting the ring lead rather than a grey block.
+            cursorFill: text.withValues(alpha: brightness == Brightness.dark ? 0.08 : 0.05),
+            cursorBorder: text.withValues(alpha: brightness == Brightness.dark ? 0.55 : 0.85),
           ),
       entryList:
           entryList ??
@@ -252,11 +256,15 @@ final class AppTheme {
   static final defaultLight = AppTheme.fromBase(
     brightness: Brightness.light,
     background: const Color(0xFFFFFFFF),
-    surface: const Color(0xFFF6F6F6),
-    surfaceBorder: const Color(0xFFE6E6E6),
+    surface: const Color(0xFFF4F4F4),
+    // Crisper than a near-white hairline: on white, borders this faint make
+    // cards and controls read as muddy grey blobs rather than defined surfaces.
+    surfaceBorder: const Color(0xFFD9D9D9),
     text: const Color(0xFF111111),
-    textSecondary: const Color(0xFF8A8A8E),
-    hairline: const Color(0xFFE6E6E6),
+    // Neutral (drops the cool blue cast) and a touch darker, so secondary text
+    // reads cleanly instead of washed-out grey.
+    textSecondary: const Color(0xFF79797B),
+    hairline: const Color(0xFFDEDEDE),
     accent: const Color(0xFF111111),
     accentPressed: const Color(0xFF000000),
     onAccent: const Color(0xFFFFFFFF),

@@ -76,7 +76,7 @@ void main() {
       final t = AppTheme.defaultLight;
       expect(t.brightness, Brightness.light);
       expect(t.background, const Color(0xFFFFFFFF));
-      expect(t.surface, const Color(0xFFF6F6F6));
+      expect(t.surface, const Color(0xFFF4F4F4));
       expect(t.text, const Color(0xFF111111));
       expect(t.accent, const Color(0xFF111111));
       expect(t.onAccent, const Color(0xFFFFFFFF));
