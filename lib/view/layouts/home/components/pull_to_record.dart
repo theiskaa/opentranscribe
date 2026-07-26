@@ -151,9 +151,7 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
   void _onPull() {
     // Under Reduce Motion the bars still rise with the pull (that is feedback,
     // not decoration), but the swell never travels across them.
-    final waving =
-        widget.pull.value >= widget.threshold * _wavePull &&
-        !context.reduceMotion;
+    final waving = widget.pull.value >= widget.threshold * _wavePull && !context.reduceMotion;
     if (waving == _waving) return;
     _waving = waving;
     if (!waving) {

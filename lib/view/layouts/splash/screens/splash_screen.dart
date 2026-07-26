@@ -19,12 +19,11 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late final AnimationController _timeline = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1000),
-  )..addStatusListener((status) {
-    if (status == AnimationStatus.completed) widget.onFinished();
-  });
+  late final AnimationController _timeline =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
+        ..addStatusListener((status) {
+          if (status == AnimationStatus.completed) widget.onFinished();
+        });
 
   // Draw in over the first ~730ms, a short settle, then a ~200ms collapse.
   late final Animation<double> _draw = CurvedAnimation(
@@ -128,7 +127,10 @@ class _WaveSplashPainter extends CustomPainter {
       final left = size.width * (75 * i) / 492;
       final radius = Radius.circular(math.min(barWidth / 2, height / 2));
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(left, centerY - height / 2, barWidth, height), radius),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, centerY - height / 2, barWidth, height),
+          radius,
+        ),
         paint,
       );
     }

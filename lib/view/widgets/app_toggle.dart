@@ -100,12 +100,7 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
       _pos.value = target;
       return;
     }
-    final spring = SpringSimulation(
-      context.motionNow.toggleSpring,
-      _pos.value,
-      target,
-      velocity,
-    );
+    final spring = SpringSimulation(context.motionNow.toggleSpring, _pos.value, target, velocity);
     // Clamp to the ends so a hard fling cannot push the knob past the track.
     _pos.animateWith(ClampedSimulation(spring, xMin: 0, xMax: 1));
   }

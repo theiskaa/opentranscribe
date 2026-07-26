@@ -77,11 +77,9 @@ class _RollingTextState extends State<RollingText> with SingleTickerProviderStat
     _from = widget.text;
   }
 
-  Duration _window(BuildContext context) =>
-      widget.window ?? context.motionNow.digitRoll;
+  Duration _window(BuildContext context) => widget.window ?? context.motionNow.digitRoll;
 
-  Duration _stagger(BuildContext context) =>
-      widget.stagger ?? context.motionNow.rollStagger;
+  Duration _stagger(BuildContext context) => widget.stagger ?? context.motionNow.rollStagger;
 
   @override
   void didUpdateWidget(RollingText old) {

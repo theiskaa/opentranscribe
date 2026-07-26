@@ -57,7 +57,9 @@ class RecordFab extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(child: AppIcon(AppIcons.waveform, size: _iconSize, color: theme.text)),
+        child: Center(
+          child: AppIcon(AppIcons.waveform, size: _iconSize, color: theme.text),
+        ),
       ),
     );
   }
