@@ -74,9 +74,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 height: glyphHeight,
                 child: CustomPaint(
                   painter: _WaveSplashPainter(
+                    // The brand mark is monochrome ink, not the accent hue: a
+                    // themed accent (Gruvbox orange, Solarized blue) would tint
+                    // the wave, so it rides the text colour in every theme.
                     draw: reduceMotion ? 1 : _draw.value,
                     retract: reduceMotion ? 0 : _exit.value,
-                    color: theme.accent,
+                    color: theme.text,
                   ),
                 ),
               ),
