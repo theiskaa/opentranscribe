@@ -282,14 +282,21 @@ final class LiquidPopupMenuView: LiquidNativeView {
   /// of [pointSize], so a brand logo tints like a symbol and matches the row
   /// type rather than rendering at its own intrinsic size.
   private func templateImage(data: Data, pointSize: CGFloat) -> UIImage? {
-    guard let raw = UIImage(data: data) else { return nil }
+    guard let raw = UIImage(data: data), raw.size.width > 0, raw.size.height > 0 else {
+      return nil
+    }
     let side = max(pointSize, 1)
-    let size = CGSize(width: side, height: side)
-    let scaled = UIGraphicsImageRenderer(size: size).image { context in
+    let canvas = CGSize(width: side, height: side)
+    let scaled = UIGraphicsImageRenderer(size: canvas).image { context in
       // High-quality downscale from the large master, so the mark stays crisp
       // at the row's small point size on every display scale.
       context.cgContext.interpolationQuality = .high
-      raw.draw(in: CGRect(origin: .zero, size: size))
+      // Aspect-fit and center: the mark is never stretched or clipped, whatever
+      // the source's proportions, and it can never render larger than the row.
+      let scale = min(side / raw.size.width, side / raw.size.height)
+      let w = raw.size.width * scale
+      let h = raw.size.height * scale
+      raw.draw(in: CGRect(x: (side - w) / 2, y: (side - h) / 2, width: w, height: h))
     }
     return scaled.withRenderingMode(.alwaysTemplate)
   }
