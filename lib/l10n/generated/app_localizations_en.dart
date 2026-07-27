@@ -87,7 +87,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcribeErrorModelInstall =>
-      'Couldn\'t download the speech model. Check your connection and free space, then try again.';
+      'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.';
 
   @override
   String get transcribeErrorPermission =>
@@ -184,6 +184,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionErrorCap => 'Language limit reached. Remove a language to add this one.';
+
+  @override
+  String get transcriptionErrorRemove => 'Couldn\'t remove this language. Try again.';
+
+  @override
+  String get transcriptionDownloading => 'Downloading';
+
+  @override
+  String get retry => 'Try again';
+
+  @override
+  String get modelFailCapTitle => 'Language limit reached';
+
+  @override
+  String modelFailCapBody(String language) {
+    return 'iOS limits how many languages an app can keep ready at once. Remove one of these to make room for $language.';
+  }
+
+  @override
+  String get modelFailUnsupportedTitle => 'Not available yet';
+
+  @override
+  String modelFailUnsupportedBody(String language) {
+    return 'iOS doesn\'t offer an on-device model for $language on this device yet. It may arrive with a future iOS update.';
+  }
+
+  @override
+  String get modelFailStuckTitle => 'Still downloading';
+
+  @override
+  String modelFailStuckBody(String language) {
+    return 'A previous download for $language is still pending. iOS retries it when conditions improve, and asking again is safe.';
+  }
+
+  @override
+  String get modelFailGenericTitle => 'Couldn\'t download';
+
+  @override
+  String modelFailGenericBody(String language) {
+    return 'The $language model couldn\'t be downloaded. Check your connection and free space. iOS may also be unable to provide this model right now; trying again is safe.';
+  }
+
+  @override
+  String get modelFailRemoveTitle => 'Couldn\'t remove';
+
+  @override
+  String modelFailRemoveBody(String language) {
+    return 'iOS didn\'t release $language. Trying again is safe.';
+  }
 
   @override
   String get settingsModels => 'Models';

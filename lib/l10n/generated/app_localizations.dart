@@ -239,7 +239,7 @@ abstract class AppLocalizations {
   /// Notice when the on-device model download fails during transcription
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t download the speech model. Check your connection and free space, then try again.'**
+  /// **'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.'**
   String get transcribeErrorModelInstall;
 
   /// Notice when speech recognition permission is denied
@@ -415,6 +415,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language limit reached. Remove a language to add this one.'**
   String get transcriptionErrorCap;
+
+  /// Row failure line when the platform refused to release a language
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove this language. Try again.'**
+  String get transcriptionErrorRemove;
+
+  /// Row sub-line prefix while a language model downloads, followed by the percent
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get transcriptionDownloading;
+
+  /// Button that retries a failed model download or removal
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get retry;
+
+  /// Failure sheet title when the per-app language cap blocks an install
+  ///
+  /// In en, this message translates to:
+  /// **'Language limit reached'**
+  String get modelFailCapTitle;
+
+  /// Failure sheet body for the cap case, above the removable language list
+  ///
+  /// In en, this message translates to:
+  /// **'iOS limits how many languages an app can keep ready at once. Remove one of these to make room for {language}.'**
+  String modelFailCapBody(String language);
+
+  /// Failure sheet title when the platform has no on-device model for the language
+  ///
+  /// In en, this message translates to:
+  /// **'Not available yet'**
+  String get modelFailUnsupportedTitle;
+
+  /// Failure sheet body for the unsupported case
+  ///
+  /// In en, this message translates to:
+  /// **'iOS doesn\'t offer an on-device model for {language} on this device yet. It may arrive with a future iOS update.'**
+  String modelFailUnsupportedBody(String language);
+
+  /// Failure sheet title when an earlier system download is still pending
+  ///
+  /// In en, this message translates to:
+  /// **'Still downloading'**
+  String get modelFailStuckTitle;
+
+  /// Failure sheet body for the stuck-download case
+  ///
+  /// In en, this message translates to:
+  /// **'A previous download for {language} is still pending. iOS retries it when conditions improve, and asking again is safe.'**
+  String modelFailStuckBody(String language);
+
+  /// Failure sheet title for an ordinary model download failure
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download'**
+  String get modelFailGenericTitle;
+
+  /// Failure sheet body for an ordinary download failure
+  ///
+  /// In en, this message translates to:
+  /// **'The {language} model couldn\'t be downloaded. Check your connection and free space. iOS may also be unable to provide this model right now; trying again is safe.'**
+  String modelFailGenericBody(String language);
+
+  /// Failure sheet title when the platform refused to release a language
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove'**
+  String get modelFailRemoveTitle;
+
+  /// Failure sheet body for a refused removal
+  ///
+  /// In en, this message translates to:
+  /// **'iOS didn\'t release {language}. Trying again is safe.'**
+  String modelFailRemoveBody(String language);
 
   /// Settings row leading to the models screen (per-language on-device models)
   ///
