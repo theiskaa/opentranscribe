@@ -7,6 +7,11 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // A killed process leaves its recording activity ticking on the island
+    // over a closed microphone; sweep the leftovers before anything else.
+    if #available(iOS 16.2, *) {
+      RecordingLiveActivityController.shared.sweep()
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

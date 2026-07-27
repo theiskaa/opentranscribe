@@ -650,7 +650,14 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     levels.setStreamHandler(instance.levelHandler)
     registrar.addMethodCallDelegate(instance, channel: methods)
     instance.session.onStatus = { [weak instance] status in
-      DispatchQueue.main.async { instance?.statusSink?(status) }
+      DispatchQueue.main.async {
+        instance?.statusSink?(status)
+        // Fan out to the Live Activity AFTER Dart: the island is a mirror of
+        // capture state, never a participant in it.
+        if #available(iOS 16.2, *) {
+          RecordingLiveActivityController.shared.handle(status)
+        }
+      }
     }
     // onLevel already fires on main.
     instance.session.onLevel = { [weak instance] level in
