@@ -325,7 +325,11 @@ class TranscriptionService {
 
       final engine = _engine;
       // The type is the source of truth for streaming; there is no separate flag.
-      if (engine is StreamingTranscriptionEngine) {
+      // Guard on _recording: an interruption replayed just above (a call landing
+      // during start()) already finalized this session, so a live subscription now
+      // would attach to a dead take - leaked until dispose, and its error would fire
+      // the recorder's error surface on a screen the user never sees.
+      if (engine is StreamingTranscriptionEngine && _recording) {
         _liveSub = _subscribeLive(engine, _sessionLocaleId ?? localeId);
       }
     } finally {
@@ -582,8 +586,16 @@ class TranscriptionService {
         Entry? saved;
         try {
           saved = await pending;
+        } on EntrySaveFailed catch (e) {
+          // The record never saved, but the audio is on disk: the user's cancel
+          // must still discard it, or reconcileOrphans resurrects the take next
+          // launch. deleteEntry removes the orphaned file (the record delete is a
+          // no-op). Best-effort: a failed discard falls back to that sweep.
+          try {
+            await deleteEntry(e.entry);
+          } catch (_) {}
         } catch (_) {
-          // Nothing was captured or the save failed: nothing kept to discard.
+          // Nothing was captured (CaptureFailed) or another failure: nothing kept.
         }
         if (saved != null) {
           if (identical(_lastFinalized, saved)) _lastFinalized = null;
