@@ -62,6 +62,11 @@ class TranscriptionService {
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
+
+  /// Gates the shared [_live] broadcast to the current session. Bumped at the
+  /// top of [startRecording] so a superseded session's late flush is dropped
+  /// rather than painting the new take with the old text. See [_subscribeLive].
+  int _liveGeneration = 0;
   StreamSubscription<CaptureStatus>? _statusSub;
   bool _recording = false;
   bool _paused = false;
@@ -257,6 +262,10 @@ class TranscriptionService {
     // Claimed before the first await: without this, two concurrent starts would
     // both pass the _recording check, double-subscribe, and double-start capture.
     _starting = true;
+    // Close the live gate before the permission + mic round trip below, not
+    // after: a predecessor flushing late during that window would otherwise
+    // still match the gate and paint this take with the old transcript.
+    _liveGeneration++;
     try {
       final permission = await _recorder.ensurePermission();
       if (permission != PermissionStatus.granted) {
@@ -316,17 +325,32 @@ class TranscriptionService {
   StreamSubscription<TranscriptEvent> _subscribeLive(
     StreamingTranscriptionEngine engine,
     String tag,
-  ) => engine
-      .transcribeLive(localeId: tag)
-      .listen(
-        (event) {
-          if (!_live.isClosed) _live.add(event);
-        },
-        onError: (Object error, StackTrace stack) {
-          if (!_live.isClosed) _live.addError(error, stack);
-        },
-        cancelOnError: false,
-      );
+  ) {
+    // Stamped with the owning session: a stream can outlive its cancel and
+    // flush the whole old transcript late; the next start bumps the gate, so
+    // this listener's events are dropped once a newer take exists.
+    final generation = _liveGeneration;
+    return engine
+        .transcribeLive(localeId: tag)
+        .listen(
+          (event) {
+            // The live UI never needs the isFinal event: it only duplicates the
+            // last partial, and the batch pass is the source of truth for the
+            // saved transcript. It is also the ONLY event a stopped session
+            // emits LATE (its graceful finalize flushes after stop), so it is
+            // the one that races a new take and paints it with the old text.
+            // Drop it here; the engine still uses it to close its own stream.
+            if (event.isFinal) return;
+            if (generation != _liveGeneration || _live.isClosed) return;
+            _live.add(event);
+          },
+          onError: (Object error, StackTrace stack) {
+            if (generation != _liveGeneration || _live.isClosed) return;
+            _live.addError(error, stack);
+          },
+          cancelOnError: false,
+        );
+  }
 
   /// Re-languages the CURRENT session from this moment on: a new language
   /// span begins at the current audio time, the settling batch will run each
@@ -435,10 +459,8 @@ class TranscriptionService {
     await statusSub?.cancel();
     try {
       final recording = await _recorder.stop();
-      // Cancel live NOW (idempotently re-awaited in the finally): a live
-      // stream that degraded silently would otherwise hold the engine's
-      // teardown chain through the whole batch pass, queueing a new take's
-      // live text behind it for minutes.
+      // UI-only; released here (not after the batch) so the next take's live
+      // session is not queued behind it. Re-awaited in the finally.
       unawaited(liveSub?.cancel());
 
       // The recording reference is a filename; resolve it to an absolute path to open

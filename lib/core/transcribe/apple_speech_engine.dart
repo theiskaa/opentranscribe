@@ -263,94 +263,79 @@ class AppleSpeechEngine implements StreamingTranscriptionEngine, ManagedModelEng
     }
   }
 
-  /// Completes when the most recent live stream's channel teardown finished, so
-  /// the next session's listen cannot be decapitated by it (see [transcribeLive]).
-  /// Latched at call time, released from onListen/onCancel: a returned stream
-  /// nobody listens to would hold successors, so every call site listens
-  /// immediately.
-  Future<void>? _liveTeardown;
+  /// The events channel, listened ONCE and fanned into [_liveHub]. Session
+  /// lifecycle is driven by the startLive/stopLive method calls below, never by
+  /// subscribing or cancelling this channel, so one take's teardown can never
+  /// race the next take's setup (the bug where a new recording either inherited
+  /// the old transcript or got no live text at all). Both live for the app's
+  /// lifetime by design.
+  // ignore: close_sinks
+  StreamController<Map<String, dynamic>>? _liveHub;
+  // ignore: cancel_subscriptions
+  StreamSubscription<Object?>? _liveChannelSub;
+
+  Stream<Map<String, dynamic>> get _liveEvents {
+    // ignore: close_sinks
+    final hub = _liveHub ??= StreamController<Map<String, dynamic>>.broadcast();
+    _liveChannelSub ??= _events.receiveBroadcastStream().listen((raw) {
+      if (raw is Map) hub.add(raw.cast<String, dynamic>());
+    });
+    return hub.stream;
+  }
+
+  /// A unique token per live session, sent with startLive and stamped on every
+  /// event so each take's stream sees only its own.
+  int _liveSessionSeq = 0;
 
   @override
   Stream<TranscriptEvent> transcribeLive({required String localeId}) {
-    // EventChannel cancels are per-call and ownerless: a previous live stream's
-    // cancel, arriving AFTER a new listen on the same channel name, would null the
-    // new handler and stop the new native session. Serialize: wait for the prior
-    // stream's full teardown before issuing this listen. (The recorder avoids this
-    // with one shared stream; here the listen arguments differ per call.)
-    final prior = _liveTeardown;
-    final teardown = Completer<void>();
-    _liveTeardown = teardown.future;
-
-    // A manual controller, NOT async*, for the same reason as [installModel]:
-    // a mid-session cancel (a language switch) lands while the generator is
-    // suspended on a channel that will never speak again, and generator
-    // cancellation only takes effect at a yield - the cancel would hang, the
-    // native session would never stop, and the next session would never start.
-    // Cancelled in settle(), which every exit path runs; the lint cannot see
-    // through the closures.
-    // ignore: cancel_subscriptions
-    StreamSubscription<Object?>? channelSub;
-    late final StreamController<TranscriptEvent> controller;
+    final session = ++_liveSessionSeq;
+    final controller = StreamController<TranscriptEvent>();
+    StreamSubscription<Map<String, dynamic>>? sub;
 
     Future<void> settle() async {
-      final sub = channelSub;
-      channelSub = null;
-      // Channel teardown FIRST, then completion: the successor session's
-      // listen queues behind this teardown.
       await sub?.cancel();
-      if (!teardown.isCompleted) teardown.complete();
+      sub = null;
       if (!controller.isClosed) await controller.close();
     }
 
-    controller = StreamController<TranscriptEvent>(
-      onListen: () async {
-        if (prior != null) await prior;
-        // The consumer may have given up while queued behind the prior session.
-        if (!controller.hasListener || controller.isClosed) return;
-        // Passing localeId as the listen argument lets the native side build the
-        // recognizer for the right locale. Recognition is started in native
-        // onListen (and stopped in onCancel), so partials never arrive before
-        // the sink exists.
-        channelSub = _events
-            .receiveBroadcastStream({'localeId': localeId})
-            .listen(
-              (raw) {
-                if (raw is! Map) return;
-                final map = raw.cast<String, dynamic>();
-                if (map['type'] == 'error') {
-                  controller.addError(
-                    _mapError(map['code'] as String?, map['message'] as String?, payload: map),
-                  );
-                  unawaited(settle());
-                  return;
-                }
-                final event = TranscriptEvent(
-                  text: (map['text'] as String?) ?? '',
-                  isFinal: (map['isFinal'] as bool?) ?? false,
-                  segments: _segments(map['segments']),
-                );
-                controller.add(event);
-                // Recognition is settled; stop listening so the stream completes.
-                if (event.isFinal) unawaited(settle());
-              },
-              onError: (Object error) {
-                // A raw channel error becomes a typed failure, like the batch path.
-                controller.addError(switch (error) {
-                  PlatformException(:final code, :final message, :final details) => _mapError(
-                    code,
-                    message,
-                    details: details,
-                  ),
-                  MissingPluginException(:final message) => TranscriptionFailed(message),
-                  _ => error,
-                });
-                unawaited(settle());
-              },
-              onDone: () => unawaited(settle()),
-            );
-      },
-      onCancel: settle,
-    );
+    controller.onListen = () {
+      sub = _liveEvents.where((map) => map['session'] == session).listen((map) {
+        if (map['type'] == 'error') {
+          controller.addError(
+            _mapError(map['code'] as String?, map['message'] as String?, payload: map),
+          );
+          unawaited(settle());
+          return;
+        }
+        controller.add(
+          TranscriptEvent(
+            text: (map['text'] as String?) ?? '',
+            isFinal: (map['isFinal'] as bool?) ?? false,
+            segments: _segments(map['segments']),
+          ),
+        );
+        if ((map['isFinal'] as bool?) ?? false) unawaited(settle());
+      });
+      _methods
+          .invokeMethod<void>('startLive', {'session': session, 'localeId': localeId})
+          .catchError((Object error) {
+            controller.addError(switch (error) {
+              PlatformException(:final code, :final message, :final details) => _mapError(
+                code,
+                message,
+                details: details,
+              ),
+              MissingPluginException(:final message) => TranscriptionFailed(message),
+              _ => error,
+            });
+            unawaited(settle());
+          });
+    };
+    controller.onCancel = () async {
+      unawaited(_methods.invokeMethod<void>('stopLive', {'session': session}));
+      await settle();
+    };
     return controller.stream;
   }
 

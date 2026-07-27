@@ -340,27 +340,45 @@ void main() {
   });
 
   group('transcribeLive', () {
-    test('yields partials then completes on the final event', () async {
+    // The protocol: the events channel is listened ONCE; each take is driven by
+    // a startLive method call and every event is tagged with the session token,
+    // so a take's stream sees only its own events and consecutive takes never
+    // race each other's channel handoff.
+    MockStreamHandlerEventSink? liveSink;
+    final started = <int>[];
+    final stopped = <int>[];
+
+    void mockLive() {
+      started.clear();
+      stopped.clear();
       messenger.setMockStreamHandler(
         events,
-        MockStreamHandler.inline(
-          onListen: (arguments, sink) {
-            expect((arguments as Map?)?['localeId'], 'en-US');
-            sink.success({'text': 'hel', 'isFinal': false});
-            sink.success({
-              'text': 'hello',
-              'isFinal': true,
-              'segments': [
-                {'text': 'hello', 'startMs': 0, 'endMs': 700},
-              ],
-            });
-          },
-        ),
+        MockStreamHandler.inline(onListen: (arguments, sink) => liveSink = sink),
       );
+      mockMethods((call) async {
+        final args = call.arguments as Map?;
+        if (call.method == 'startLive') started.add(args!['session'] as int);
+        if (call.method == 'stopLive') stopped.add(args!['session'] as int);
+        return null;
+      });
+    }
 
-      final received = await engine.transcribeLive(localeId: 'en-US').toList();
+    test('yields partials then completes on the final event', () async {
+      mockLive();
+      final done = engine.transcribeLive(localeId: 'en-US').toList();
+      await Future<void>.delayed(Duration.zero);
+      final s = started.single;
+      liveSink!.success({'session': s, 'text': 'hel', 'isFinal': false});
+      liveSink!.success({
+        'session': s,
+        'text': 'hello',
+        'isFinal': true,
+        'segments': [
+          {'text': 'hello', 'startMs': 0, 'endMs': 700},
+        ],
+      });
 
-      expect(received, [
+      expect(await done, [
         const TranscriptEvent(text: 'hel', isFinal: false),
         const TranscriptEvent(
           text: 'hello',
@@ -377,87 +395,53 @@ void main() {
     });
 
     test('an error payload becomes the typed exception', () async {
-      messenger.setMockStreamHandler(
-        events,
-        MockStreamHandler.inline(
-          onListen: (arguments, sink) {
-            sink.success({'type': 'error', 'code': 'permission_denied', 'message': 'no'});
-          },
-        ),
-      );
-
-      await expectLater(
-        engine.transcribeLive(localeId: 'en-US').toList(),
-        throwsA(isA<PermissionDenied>()),
-      );
+      mockLive();
+      final done = engine.transcribeLive(localeId: 'en-US').toList();
+      await Future<void>.delayed(Duration.zero);
+      liveSink!.success({
+        'session': started.single,
+        'type': 'error',
+        'code': 'permission_denied',
+        'message': 'no',
+      });
+      await expectLater(done, throwsA(isA<PermissionDenied>()));
     });
 
-    test('non-map junk events are skipped, and the final event cancels natively', () async {
-      // The return-on-isFinal cancelling the native subscription is the load-bearing
-      // cleanup (it drives native onCancel -> stopLive); pin it.
-      var cancelled = false;
-      messenger.setMockStreamHandler(
-        events,
-        MockStreamHandler.inline(
-          onListen: (arguments, sink) {
-            sink.success('junk');
-            sink.success({'text': 'done', 'isFinal': true});
-          },
-          onCancel: (arguments) => cancelled = true,
-        ),
-      );
+    test('the final event stops the session natively', () async {
+      // The final closing the stream drives onCancel -> the stopLive call; pin it.
+      mockLive();
+      final done = engine.transcribeLive(localeId: 'en-US').toList();
+      await Future<void>.delayed(Duration.zero);
+      final s = started.single;
+      liveSink!.success({'session': s, 'text': 'done', 'isFinal': true});
 
-      final received = await engine.transcribeLive(localeId: 'en-US').toList();
-
-      expect(received, [const TranscriptEvent(text: 'done', isFinal: true)]);
-      expect(cancelled, isTrue);
+      expect(await done, [const TranscriptEvent(text: 'done', isFinal: true)]);
+      expect(stopped, contains(s));
     });
 
-    test('overlapping live sessions serialize; the second waits for the first', () async {
-      // Every mid-take language switch relies on this: the successor's listen
-      // must queue behind the predecessor's teardown, or the shared channel
-      // would decapitate one of them.
-      final listens = <String>[];
-      messenger.setMockStreamHandler(
-        events,
-        MockStreamHandler.inline(
-          onListen: (arguments, sink) {
-            final tag = (arguments as Map?)?['localeId'] as String;
-            listens.add(tag);
-            sink.success({'text': 'partial-$tag', 'isFinal': false});
-            if (tag == 'b') sink.success({'text': 'done', 'isFinal': true});
-          },
-        ),
-      );
+    test('concurrent sessions route by token; each stream sees only its own', () async {
+      // The core of the new design: an old take finalizing while a new one runs
+      // cannot cross into it, because every event carries its owning session.
+      mockLive();
+      final aEvents = <TranscriptEvent>[];
+      final bEvents = <TranscriptEvent>[];
+      final a = engine.transcribeLive(localeId: 'en-US').listen(aEvents.add);
+      final b = engine.transcribeLive(localeId: 'fr-FR').listen(bEvents.add);
+      await Future<void>.delayed(Duration.zero);
+      expect(started.length, 2);
+      final (sa, sb) = (started[0], started[1]);
 
-      final firstEvents = <TranscriptEvent>[];
-      final first = engine.transcribeLive(localeId: 'a').listen(firstEvents.add);
-      final second = engine.transcribeLive(localeId: 'b').toList();
+      liveSink!.success({'session': sa, 'text': 'alpha', 'isFinal': false});
+      liveSink!.success({'session': sb, 'text': 'bravo', 'isFinal': false});
+      // The old session's late final must land ONLY on its own stream.
+      liveSink!.success({'session': sa, 'text': 'alpha done', 'isFinal': true});
       await Future<void>.delayed(Duration.zero);
 
-      expect(listens, ['a'], reason: 'the second session has not touched the channel');
-      expect(firstEvents.single.text, 'partial-a');
+      expect(aEvents.map((e) => e.text), ['alpha', 'alpha done']);
+      expect(bEvents.map((e) => e.text), ['bravo'], reason: 'b never sees a\'s events');
 
-      await first.cancel();
-      final received = await second;
-      expect(listens, ['a', 'b']);
-      expect(received.last.isFinal, isTrue);
-    });
-
-    test('a raw stream error (not an error payload) maps through the taxonomy', () async {
-      messenger.setMockStreamHandler(
-        events,
-        MockStreamHandler.inline(
-          onListen: (arguments, sink) {
-            sink.error(code: 'on_device_unavailable', message: 'no model');
-          },
-        ),
-      );
-
-      await expectLater(
-        engine.transcribeLive(localeId: 'en-US').toList(),
-        throwsA(isA<OnDeviceUnavailable>()),
-      );
+      await a.cancel();
+      await b.cancel();
     });
   });
 

@@ -709,6 +709,12 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   // resolve cannot leave an orphaned consumer/task with no teardown path.
   private var liveGeneration = 0
 
+  // The current live session token from Dart. The events channel is listened
+  // once and never cancelled per-take; sessions are driven by startLive/stopLive
+  // method calls, and every emit is tagged with this token so Dart routes each
+  // take's stream to only its own events. -1 = no session.
+  private var liveSession = -1
+
   // The iOS 26 SpeechAnalyzer live session. Stored untyped because its type is
   // availability-gated; cast on use.
   private var analyzerLive: AnyObject?
@@ -735,44 +741,39 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     registrar.addMethodCallDelegate(instance, channel: methods)
   }
 
-  // Live recognition is tied to the Dart subscription: onListen starts it (so the
-  // sink is set before any partial), onCancel tears it down.
+  // The events channel is listened once for the app's lifetime: onListen only
+  // stores the sink, and recognition is driven by the startLive/stopLive method
+  // calls. This decouples session lifecycle from the channel subscription, so
+  // consecutive takes never race each other's listen/cancel.
   func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink)
     -> FlutterError?
   {
     self.eventSink = eventSink
-    let localeId = (arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
-    startLive(localeId: localeId)
     return nil
   }
 
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
-    stopLive()
     eventSink = nil
     return nil
   }
 
-  private func emit(_ payload: [String: Any]) {
-    DispatchQueue.main.async { self.eventSink?(payload) }
-  }
-
-  private func emitError(_ code: SpeechErrorCode, _ message: String) {
-    emit(errorPayload(code, message))
-  }
-
   /// Delivers a live payload on main only if [generation] is still current, so a
   /// superseded session's late partials or its cancellation error can never leak
-  /// into the next session's stream.
+  /// into the next session's stream. Tags each event with the owning session so
+  /// Dart routes it to that take's stream and no other.
   private func emitLive(_ payload: [String: Any], generation: Int) {
     DispatchQueue.main.async {
       guard generation == self.liveGeneration else { return }
-      self.eventSink?(payload)
+      var tagged = payload
+      tagged["session"] = self.liveSession
+      self.eventSink?(tagged)
     }
   }
 
-  private func startLive(localeId: String) {
+  private func startLive(localeId: String, session: Int) {
     // Re-entrancy guard: a new live session tears down any previous one first.
     stopLive()
+    liveSession = session
     // One generation for BOTH paths: task cancellation is best-effort, so a
     // superseded session (classic or analyzer) can still be mid-emit; the guard at
     // delivery time is what actually keeps stale text, finals, and cancellation
@@ -784,11 +785,14 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     if #available(iOS 26.0, *) {
       #if targetEnvironment(simulator)
         // No on-device model on the simulator; fail fast instead of hanging on a
-        // model download that never completes.
-        emitError(.onDeviceUnavailable, "on-device speech is unavailable on the simulator")
+        // model download that never completes. Tagged (via emitLive) so Dart
+        // routes it to this session's stream.
+        emitLive(
+          errorPayload(.onDeviceUnavailable, "on-device speech is unavailable on the simulator"),
+          generation: generation)
         return
       #else
-        let session = SpeechAnalyzerLiveSession(
+        let analyzerSession = SpeechAnalyzerLiveSession(
           localeId: localeId,
           emit: { [weak self] payload in self?.emitLive(payload, generation: generation) },
           emitError: { [weak self] code, message, extras in
@@ -798,8 +802,8 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             for (key, value) in extras { payload[key] = value }
             self?.emitLive(payload, generation: generation)
           })
-        analyzerLive = session
-        session.start()
+        analyzerLive = analyzerSession
+        analyzerSession.start()
         return
       #endif
     }
@@ -1042,6 +1046,17 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       let startMs = (args["startMs"] as? NSNumber)?.intValue
       let endMs = (args["endMs"] as? NSNumber)?.intValue
       transcribeFile(path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
+    case "startLive":
+      let args = call.arguments as? [String: Any]
+      let session = args?["session"] as? Int ?? 0
+      startLive(localeId: args?["localeId"] as? String ?? "en-US", session: session)
+      result(nil)
+    case "stopLive":
+      let session = (call.arguments as? [String: Any])?["session"] as? Int ?? -1
+      // Only the current session may end live: a superseded take's late stop
+      // must not tear down the take that replaced it.
+      if session == liveSession { stopLive() }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -1327,12 +1342,24 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
         emit(["fraction": 1.0, "done": true], generation: gen)  // already installed
         return
       }
-      // Observe fractionCompleted (KVO); the observation is torn down when install()
-      // returns or throws.
-      let observation = downloader.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
-        self?.emit(["fraction": progress.fractionCompleted, "done": false], generation: gen)
+      // Poll the fraction rather than KVO-observing it: the request's Progress
+      // gains its real children only once downloadAndInstall is underway, so an
+      // observation taken here can watch a husk that never moves (the bug that
+      // held the UI at 0% through whole downloads). Reading fresh each tick sees
+      // whatever object currently carries the fraction; unchanged reads are not
+      // re-emitted.
+      let progressTask = Task { [weak self] in
+        var last = -1.0
+        while !Task.isCancelled {
+          let fraction = downloader.progress.fractionCompleted
+          if fraction > last + 0.001 {
+            last = fraction
+            self?.emit(["fraction": fraction, "done": false], generation: gen)
+          }
+          try? await Task.sleep(nanoseconds: 150_000_000)
+        }
       }
-      defer { observation.invalidate() }
+      defer { progressTask.cancel() }
       do {
         try await downloader.downloadAndInstall()
       } catch is CancellationError {
