@@ -185,4 +185,22 @@ void main() {
     expect(mixed.withPeaks(const [1]).languageSpans, mixed.languageSpans);
     expect(mixed == mixed.withTitle(null), isTrue);
   });
+
+  test('out-of-order language spans are sorted ascending on read', () {
+    // _segmentedBatch trusts ascending order; a span persisted out of order must
+    // not survive the round-trip and yield a silently empty slice later.
+    final json = {
+      'id': 'abc',
+      'createdAt': DateTime.utc(2026, 3, 4, 9).toIso8601String(),
+      'audioPath': '/audio/abc.m4a',
+      'durationMs': 12000,
+      'languageSpans': [
+        {'startMs': 4000, 'localeId': 'fr-FR'},
+        {'startMs': 0, 'localeId': 'en-US'},
+      ],
+    };
+    final entry = Entry.fromJson(json);
+    expect(entry.languageSpans!.map((s) => s.startMs), [0, 4000]);
+    expect(entry.languageSpans!.first.localeId, 'en-US');
+  });
 }

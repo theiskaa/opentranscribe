@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/transcribe/fake_engine.dart';
 import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:opentranscribe/core/transcribe/transcript_event.dart';
 import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,6 +74,63 @@ void main() {
     expect(events, isNotEmpty);
     expect(store.read('id-0'), entry);
 
+    await svc.dispose();
+  });
+
+  test('a live isFinal event is dropped from liveEvents (batch is the truth)', () async {
+    // The isFinal event only duplicates the last partial, and it is the one a
+    // stopped session flushes late into the next take. The service must drop it
+    // from the live stream. Deleting the guard would let 'FINAL TEXT' through.
+    final engine = _ManualLiveEngine();
+    final svc = build((_) => engine);
+    final events = <String>[];
+    final sub = svc.liveEvents.listen((e) => events.add(e.text));
+
+    await svc.startRecording();
+    engine.controllers[0].add(const TranscriptEvent(text: 'partial one', isFinal: false));
+    engine.controllers[0].add(const TranscriptEvent(text: 'partial two', isFinal: false));
+    engine.controllers[0].add(const TranscriptEvent(text: 'FINAL TEXT', isFinal: true));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(events, ['partial one', 'partial two']);
+
+    await svc.stopRecording();
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('a superseded take\'s late live event never paints the new take', () async {
+    // The stop's live-sub cancel is unawaited and the recorder's stopDelay holds
+    // the finalize open, so the old (generation-1) subscription is still alive
+    // when the next startRecording bumps the generation. The generation gate must
+    // keep the old take's late flush off the new take.
+    final engine = _ManualLiveEngine();
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 30));
+    final svc = build((_) => engine, recorder: rec);
+    final events = <String>[];
+    final sub = svc.liveEvents.listen((e) => events.add(e.text));
+
+    await svc.startRecording(); // generation 1, subscribes controllers[0]
+    engine.controllers[0].add(const TranscriptEvent(text: 'take one', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+
+    final stopping = svc.stopRecording(); // flips _recording false, holds on stopDelay
+    await Future<void>.delayed(Duration.zero);
+    await svc.startRecording(); // generation 2, subscribes controllers[1]
+
+    // The superseded take flushes late while its sub is still detaching.
+    engine.controllers[0].add(const TranscriptEvent(text: 'STALE from take one', isFinal: false));
+    engine.controllers[0].add(const TranscriptEvent(text: 'FINAL from take one', isFinal: true));
+    engine.controllers[1].add(const TranscriptEvent(text: 'take two', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+    await stopping;
+
+    expect(events, contains('take one'));
+    expect(events, contains('take two'));
+    expect(events, isNot(contains('STALE from take one')));
+    expect(events, isNot(contains('FINAL from take one')));
+
+    await sub.cancel();
     await svc.dispose();
   });
 
@@ -1160,6 +1218,76 @@ void main() {
     await svc.dispose();
   });
 
+  test('deleteEntry keeps the record when the delete fails and the file remains', () async {
+    // An iOS data-protection lock can make the delete throw with the file still
+    // on disk. Dropping the record then would orphan the file and
+    // reconcileOrphans would resurrect the "deleted" recording next launch, so
+    // the record must survive for a retry to remove both.
+    final dir = await Directory.systemTemp.createTemp('otr-delfail');
+    final file = File('${dir.path}/clip.m4a');
+    await file.writeAsString('audio');
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      engine: FakeBatchEngine(),
+      store: store,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+      fileDeleter: (_) async => throw const FileSystemException('locked'),
+    );
+    final entry = Entry(
+      id: 'd1',
+      createdAt: fixedClock,
+      audioPath: 'clip.m4a',
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    await expectLater(svc.deleteEntry(entry), throwsA(isA<EntryDeleteFailed>()));
+
+    // Record kept and the file still referenced, so the sweep sees it as a live
+    // entry, not an orphan to resurrect.
+    expect(store.read('d1'), isNotNull);
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('deleteEntry removes the record when the delete throws but the file is gone', () async {
+    // The delete seam threw, but the file is actually gone (a delete that failed
+    // only on its result, not its effect): there is nothing left to orphan, so
+    // the record is still removed.
+    final dir = await Directory.systemTemp.createTemp('otr-delgone');
+    final file = File('${dir.path}/clip.m4a');
+    await file.writeAsString('audio');
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      engine: FakeBatchEngine(),
+      store: store,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+      fileDeleter: (f) async {
+        await f.delete();
+        throw const FileSystemException('reported failure after delete');
+      },
+    );
+    final entry = Entry(
+      id: 'd2',
+      createdAt: fixedClock,
+      audioPath: 'clip.m4a',
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    await svc.deleteEntry(entry);
+
+    expect(store.read('d2'), isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('retranscribe failure throws and leaves the old transcript intact', () async {
     final svc = build((rec) => FakeStreamingEngine(batchText: 'original', stopSignal: rec.stopped));
     await svc.startRecording();
@@ -1485,6 +1613,49 @@ class _ThrowingStore extends EntryStore {
       throw Exception('save failed');
     }
     return super.save(entry);
+  }
+}
+
+/// A streaming engine whose live events the test drives by hand: each
+/// [transcribeLive] call hands back a fresh controller, kept in [controllers] so
+/// a test can emit on a superseded take's stream after a newer take started.
+/// Unlike [FakeStreamingEngine] it does NOT suppress a late final on cancel, so
+/// the service's own guards (isFinal drop, generation gate) are what must hold.
+class _ManualLiveEngine implements StreamingTranscriptionEngine {
+  final List<StreamController<TranscriptEvent>> controllers = [];
+
+  @override
+  String get id => 'manual.live';
+
+  @override
+  bool get onDeviceOnly => true;
+
+  @override
+  Future<List<String>> supportedLocales() async => const ['en-US'];
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) async =>
+      const Availability.available();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => Transcript(
+    fullText: 'batch',
+    segments: const [],
+    localeId: localeId,
+    engineId: id,
+    createdAt: DateTime.utc(2026),
+  );
+
+  @override
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) {
+    final controller = StreamController<TranscriptEvent>();
+    controllers.add(controller);
+    return controller.stream;
   }
 }
 

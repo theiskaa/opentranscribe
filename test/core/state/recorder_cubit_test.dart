@@ -400,6 +400,29 @@ void main() {
     await service.dispose();
   });
 
+  test('a backward wall-clock adjustment never shrinks elapsed', () async {
+    var now = DateTime(2026, 1, 1, 12);
+    final rec = FakeAudioRecorder();
+    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final cubit = RecorderCubit(service: service, now: () => now);
+
+    await cubit.start();
+    now = now.add(const Duration(seconds: 30));
+    await cubit.pause();
+    expect(cubit.state.elapsed, const Duration(seconds: 30));
+
+    await cubit.resume();
+    // The clock jumps BACKWARD mid-run (an NTP correction): elapsed must hold at
+    // the banked base, not go negative or shrink below it.
+    now = now.subtract(const Duration(seconds: 20));
+    await cubit.pause();
+    expect(cubit.state.elapsed, const Duration(seconds: 30));
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a stop finalizing behind a popped sheet never clobbers the next take', () async {
     // The regression: complete pops the sheet and lets stop() finish behind it
     // (the batch pass takes seconds). A new take started in that window used
