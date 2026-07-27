@@ -132,24 +132,30 @@ final class Entry {
     if (languageSpans != null) 'languageSpans': [for (final s in languageSpans!) s.toJson()],
   };
 
-  factory Entry.fromJson(Map<String, dynamic> json) => Entry(
-    id: json['id'] as String,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    audioPath: json['audioPath'] as String,
-    duration: Duration(milliseconds: json['durationMs'] as int),
-    transcript: json['transcript'] == null
-        ? null
-        : Transcript.fromJson(json['transcript'] as Map<String, dynamic>),
-    // Absent in records written before titles existed; null is untitled.
-    title: json['title'] as String?,
-    // Absent in records written before per-entry language; null is unknown.
-    recordedLocaleId: json['recordedLocaleId'] as String?,
-    // Absent in records written before peaks were persisted; backfilled lazily.
-    peaks: (json['peaks'] as List?)?.map((v) => (v as num).toInt()).toList(),
-    languageSpans: (json['languageSpans'] as List?)
+  factory Entry.fromJson(Map<String, dynamic> json) {
+    // Sorted ascending by start on read: _segmentedBatch's slice math trusts the
+    // order, and a persisted span out of order would yield a silently empty slice.
+    final spans = (json['languageSpans'] as List?)
         ?.map((s) => LanguageSpan.fromJson((s as Map).cast<String, dynamic>()))
-        .toList(),
-  );
+        .toList();
+    spans?.sort((a, b) => a.startMs.compareTo(b.startMs));
+    return Entry(
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      audioPath: json['audioPath'] as String,
+      duration: Duration(milliseconds: (json['durationMs'] as num).toInt()),
+      transcript: json['transcript'] == null
+          ? null
+          : Transcript.fromJson(json['transcript'] as Map<String, dynamic>),
+      // Absent in records written before titles existed; null is untitled.
+      title: json['title'] as String?,
+      // Absent in records written before per-entry language; null is unknown.
+      recordedLocaleId: json['recordedLocaleId'] as String?,
+      // Absent in records written before peaks were persisted; backfilled lazily.
+      peaks: (json['peaks'] as List?)?.map((v) => (v as num).toInt()).toList(),
+      languageSpans: spans,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

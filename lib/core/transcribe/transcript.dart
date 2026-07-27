@@ -24,8 +24,8 @@ final class TranscriptSegment {
 
   factory TranscriptSegment.fromJson(Map<String, dynamic> json) => TranscriptSegment(
     text: json['text'] as String,
-    start: Duration(milliseconds: json['startMs'] as int),
-    end: Duration(milliseconds: json['endMs'] as int),
+    start: Duration(milliseconds: (json['startMs'] as num).toInt()),
+    end: Duration(milliseconds: (json['endMs'] as num).toInt()),
     confidence: (json['confidence'] as num?)?.toDouble(),
   );
 
