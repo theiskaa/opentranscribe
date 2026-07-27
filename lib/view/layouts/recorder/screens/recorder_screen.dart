@@ -47,6 +47,10 @@ class _RecorderScreenState extends State<RecorderScreen> {
   @override
   void initState() {
     super.initState();
+    // Synchronously, before the first frame: the previous take's stop may
+    // still be finalizing behind its popped sheet, and this sheet must not
+    // open wearing that take's text and clock while it waits for start().
+    context.read<RecorderCubit>().prepareTake();
     // Opening the microphone is a platform round trip that blocks the UI
     // thread (session category, activation, engine start), so it waits until
     // the sheet has LANDED. Done during the rise it eats the frames of the

@@ -79,8 +79,9 @@ class RecorderState {
 /// an elapsed timer, pause and discard, and the saved entry on stop. Errors
 /// (e.g. denied mic permission) surface on the state rather than throwing.
 class RecorderCubit extends Cubit<RecorderState> {
-  RecorderCubit({required TranscriptionService service})
+  RecorderCubit({required TranscriptionService service, DateTime Function()? now})
     : _service = service,
+      _now = now ?? DateTime.now,
       super(const RecorderState()) {
     _autoSub = _service.autoFinalized.listen(
       (_) => _onInterrupted(),
@@ -89,7 +90,21 @@ class RecorderCubit extends Cubit<RecorderState> {
   }
 
   final TranscriptionService _service;
+
+  /// The wall clock, injectable so tests can move time deterministically.
+  final DateTime Function() _now;
+
   StreamSubscription<TranscriptEvent>? _liveSub;
+
+  /// Recorded time banked by earlier runs of this take (before pauses and
+  /// interruptions); the live remainder is measured from [_runStart].
+  Duration _elapsedBase = Duration.zero;
+
+  /// When the current run began, null while not running. Elapsed derives from
+  /// the WALL CLOCK ([_elapsedBase] plus time since this mark), never from
+  /// counting timer ticks: backgrounding throttles timers, and every missed
+  /// tick used to vanish from the take's clock forever.
+  DateTime? _runStart;
 
   /// Text committed by earlier language spans of THIS take, ending with the
   /// current span's `[fr]`-style marker. The live stream restarts on a
@@ -126,6 +141,28 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// waveform buffers and interpolates on its own side.
   Stream<double> get inputLevel => _service.inputLevel;
 
+  /// Clears a dead take's leftovers the MOMENT a recorder surface attaches,
+  /// before [start] runs (start waits out the sheet's entrance). The cubit
+  /// outlives its screens, so without this a fresh sheet opens wearing the
+  /// LAST take's text and clock: its stop is still finalizing behind the
+  /// popped sheet (status saving), or backgrounding killed the capture under
+  /// a state still claiming to record. Quiet whenever a real session is in
+  /// flight; the synchronous emit is the point, so nothing stale ever renders.
+  void prepareTake() {
+    if (!state.isBusy || _startInFlight != null || _service.isRecording) return;
+    _timer?.cancel();
+    _timer = null;
+    _livePrefix = '';
+    _elapsedBase = Duration.zero;
+    _runStart = null;
+    unawaited(_liveSub?.cancel());
+    _liveSub = null;
+    // Advancing the take TAKES OWNERSHIP: a stop or cancel still finalizing
+    // behind its popped sheet fails its ownership check from here on, so not
+    // even its error can land on the fresh sheet this call just cleaned.
+    emit(RecorderState(takeId: ++_takes));
+  }
+
   Future<void> start() async {
     // Nothing to wait for on the common path, so the busy check below still
     // runs synchronously and two rapid starts cannot both pass it.
@@ -139,8 +176,21 @@ class RecorderCubit extends Cubit<RecorderState> {
       // hanging), and the take asking now would inherit its text, its clock and
       // its status without ever recording a thing. Heal it rather than refuse.
       if (_startInFlight != null || _service.isRecording) return;
-      await _teardown();
     }
+    // Reset SYNCHRONOUSLY, never awaited: a previous take's stop may still be
+    // finalizing behind its popped sheet, and its subscription, prefix, and
+    // timer must not leak into this take. Synchronous on purpose - the claim
+    // emitted below must follow the busy check with no async gap, or two
+    // rapid starts (and a switch or pause racing the start round-trip) both
+    // slip through it. Cancelling a broadcast subscription detaches it at the
+    // call, so the unawaited cancel cannot leak an event into the new state.
+    _timer?.cancel();
+    _timer = null;
+    _livePrefix = '';
+    _elapsedBase = Duration.zero;
+    _runStart = null;
+    unawaited(_liveSub?.cancel());
+    _liveSub = null;
     emit(
       RecorderState(
         status: RecorderStatus.recording,
@@ -150,7 +200,6 @@ class RecorderCubit extends Cubit<RecorderState> {
         localeId: _service.localeId,
       ),
     );
-    _livePrefix = '';
     _liveSub = _service.liveEvents.listen(
       (event) => emit(state.copyWith(liveText: _livePrefix + event.text)),
       onError: (_) {},
@@ -191,7 +240,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       await _service.pauseRecording();
       _timer?.cancel();
       _timer = null;
-      emit(state.copyWith(status: RecorderStatus.paused));
+      // Bank the run so the frozen clock is exact, not whatever the last
+      // one-second tick happened to show.
+      _elapsedBase = _currentElapsed();
+      _runStart = null;
+      emit(state.copyWith(status: RecorderStatus.paused, elapsed: _elapsedBase));
     } catch (e) {
       emit(state.copyWith(error: _kind(e)));
     } finally {
@@ -231,6 +284,9 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// Discards the current take: no entry, no kept audio.
   Future<void> cancel() async {
     if (!state.isBusy) return;
+    // Same ownership rule as stop(): this runs on behind a popped sheet, and
+    // the final reset belongs to this take only.
+    final take = _takes;
     emit(state.copyWith(status: RecorderStatus.saving));
     final ending = _cancelSession();
     _discardInFlight = ending;
@@ -239,7 +295,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     } finally {
       if (identical(_discardInFlight, ending)) _discardInFlight = null;
     }
-    emit(const RecorderState());
+    if (take == _takes) emit(const RecorderState());
   }
 
   Future<Entry?> stop() async {
@@ -258,15 +314,25 @@ class RecorderCubit extends Cubit<RecorderState> {
     // circuiting here would leave the user tapping complete on a saved take and
     // getting nothing.
     _timer?.cancel();
+    // This stop runs on behind a popped sheet (the batch pass takes seconds),
+    // and a NEW take may start meanwhile. Once one has, the cubit is that
+    // take's: this stop must still return its entry, but may no longer touch
+    // the state, the timer, or the live subscription it no longer owns.
+    // Clobbering them was how a finished take wiped a fresh recording.
+    final take = _takes;
     emit(state.copyWith(status: RecorderStatus.saving));
     try {
       final entry = await _service.stopRecording();
-      await _teardown();
-      emit(const RecorderState());
+      if (take == _takes) {
+        await _teardown();
+        emit(const RecorderState());
+      }
       return entry;
     } catch (e) {
-      await _teardown();
-      emit(RecorderState(error: _kind(e)));
+      if (take == _takes) {
+        await _teardown();
+        emit(RecorderState(error: _kind(e)));
+      }
       return null;
     }
   }
@@ -326,7 +392,19 @@ class RecorderCubit extends Cubit<RecorderState> {
     if (!state.isRecording && !state.isPaused) return;
     _timer?.cancel();
     _timer = null;
-    emit(state.copyWith(live: false));
+    // Settle the clock at the moment capture died, so the frozen display
+    // matches what was actually recorded.
+    _elapsedBase = _currentElapsed();
+    _runStart = null;
+    emit(state.copyWith(live: false, elapsed: _elapsedBase));
+  }
+
+  /// Recorded time so far: the banked base plus the current run's wall-clock
+  /// span. Reading the clock (rather than counting ticks) keeps it honest
+  /// through background throttling and missed frames.
+  Duration _currentElapsed() {
+    final runStart = _runStart;
+    return _elapsedBase + (runStart == null ? Duration.zero : _now().difference(runStart));
   }
 
   void _startTimer() {
@@ -334,8 +412,10 @@ class RecorderCubit extends Cubit<RecorderState> {
     // strand a periodic timer that nothing can cancel, doubling the clock and
     // emitting after close.
     _timer?.cancel();
+    _runStart = _now();
+    // The tick is only a repaint cadence; the value always comes from the clock.
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      emit(state.copyWith(elapsed: state.elapsed + const Duration(seconds: 1)));
+      emit(state.copyWith(elapsed: _currentElapsed()));
     });
   }
 
@@ -343,6 +423,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer?.cancel();
     _timer = null;
     _livePrefix = '';
+    _elapsedBase = Duration.zero;
+    _runStart = null;
     await _liveSub?.cancel();
     _liveSub = null;
   }

@@ -1,12 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/transcribe/fake_engine.dart';
+import 'package:opentranscribe/core/transcribe/transcript_event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_audio_recorder.dart';
+
+/// A streaming engine whose live streams are hand-fed by the test, so event
+/// timing (a finished session flushing late) is scripted, not raced.
+class _ScriptedLiveEngine extends FakeStreamingEngine {
+  _ScriptedLiveEngine() : super(supportedLocaleTags: const ['en-US']);
+
+  final List<StreamController<TranscriptEvent>> sessions = [];
+
+  @override
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) {
+    final controller = StreamController<TranscriptEvent>();
+    sessions.add(controller);
+    return controller.stream;
+  }
+}
 
 void main() {
   late LocalService storage;
@@ -213,10 +231,14 @@ void main() {
     expect(cubit.state.status, RecorderStatus.recording);
     expect(cubit.state.error, isNull, reason: 'a double tap is not the user erring');
 
-    // One timer, not two: elapsed must advance once per second.
+    // One timer, not two. Elapsed reads the wall clock now, so a doubled
+    // timer cannot double the value; what it WOULD do is emit twice. Assert
+    // the clock advanced like real time, not like two summed tickers.
     final before = cubit.state.elapsed;
     await Future<void>.delayed(const Duration(milliseconds: 1100));
-    expect(cubit.state.elapsed - before, const Duration(seconds: 1));
+    final delta = cubit.state.elapsed - before;
+    expect(delta.inMilliseconds, greaterThanOrEqualTo(1000));
+    expect(delta.inMilliseconds, lessThan(2000));
 
     await cubit.stop();
     await cubit.close();
@@ -343,6 +365,164 @@ void main() {
     await cubit.close();
     await service.dispose();
   });
+  test('elapsed reads the wall clock, so throttled ticks cannot lose time', () async {
+    // Background throttling starves Timer.periodic; a tick-counted clock lost
+    // every missed second. The clock is now derived from now() anchors, which
+    // pause/resume/interruption bank exactly.
+    var now = DateTime(2026, 1, 1, 12);
+    final rec = FakeAudioRecorder();
+    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final cubit = RecorderCubit(service: service, now: () => now);
+
+    await cubit.start();
+    // A 90s span with NO timer ticks delivered (as under background throttle).
+    now = now.add(const Duration(seconds: 90));
+    await cubit.pause();
+    expect(cubit.state.elapsed, const Duration(seconds: 90));
+
+    // Paused time never counts, however long it lasts.
+    now = now.add(const Duration(seconds: 30));
+    await cubit.resume();
+    now = now.add(const Duration(seconds: 10));
+    await cubit.pause();
+    expect(cubit.state.elapsed, const Duration(seconds: 100));
+
+    await cubit.resume();
+    now = now.add(const Duration(seconds: 5));
+    // An interruption settles the clock at the moment capture died.
+    rec.interrupt();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(cubit.state.elapsed, const Duration(seconds: 105));
+    expect(cubit.state.live, isFalse);
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a stop finalizing behind a popped sheet never clobbers the next take', () async {
+    // The regression: complete pops the sheet and lets stop() finish behind it
+    // (the batch pass takes seconds). A new take started in that window used
+    // to be wiped when the old stop landed: its teardown killed the new live
+    // subscription and its final emit reset the state under a hot microphone.
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final stopping = cubit.stop();
+    // The service released the session synchronously; the recorder is still
+    // finalizing. A new take begins inside that window.
+    expect(service.isRecording, isFalse);
+    await cubit.start();
+    expect(cubit.state.isRecording, isTrue);
+    final newTake = cubit.state.takeId;
+
+    final first = await stopping;
+    expect(first, isNotNull, reason: 'the finished take still hands its entry back');
+    expect(cubit.state.isRecording, isTrue, reason: 'the stale stop must not wipe the new take');
+    expect(cubit.state.takeId, newTake);
+
+    final second = await cubit.stop();
+    expect(second, isNotNull);
+    expect(cubit.state.isBusy, isFalse);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a finished session flushing late never paints the next take', () async {
+    // The field bug: complete a take, open a new one fast, and the OLD take's
+    // live stream flushes its full transcript late (a native finalize can run
+    // seconds behind; the claimed subscription's cancel runs only after the
+    // recorder round trip). The service's live gate must drop it.
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
+    final engine = _ScriptedLiveEngine();
+    final service = TranscriptionService(recorder: rec, engine: engine, store: store);
+    final cubit = RecorderCubit(service: service);
+
+    await cubit.start();
+    engine.sessions.single.add(const TranscriptEvent(text: 'old take words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText, 'old take words');
+
+    // Complete: the sheet pops, the stop finalizes behind it; a fresh take
+    // begins inside that window.
+    final stopping = cubit.stop();
+    cubit.prepareTake();
+    await cubit.start();
+    expect(cubit.state.liveText, isEmpty);
+
+    // The finished session flushes late, into a broadcast the new take is
+    // already listening to. Gate, not luck: the event must simply not land.
+    engine.sessions.first.add(const TranscriptEvent(text: 'old take words', isFinal: true));
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText, isEmpty, reason: 'a stale flush must never cross takes');
+
+    engine.sessions.last.add(const TranscriptEvent(text: 'new words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.liveText, 'new words');
+
+    await stopping;
+    expect(cubit.state.liveText, 'new words', reason: 'the stale stop left the new take alone');
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a cancel finishing behind a popped sheet never clobbers the next take', () async {
+    // cancel()'s final reset carries the same ownership rule as stop()'s.
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final cancelling = cubit.cancel();
+    // start() waits out the discard, then records fresh.
+    await cubit.start();
+    expect(cubit.state.isRecording, isTrue);
+
+    await cancelling;
+    expect(cubit.state.isRecording, isTrue, reason: 'the stale cancel must not wipe the new take');
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('prepareTake clears a finishing take, and is quiet mid-take', () async {
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeStreamingEngine(cannedText: 'hello world', stopSignal: rec.stopped),
+      store: store,
+    );
+    final cubit = RecorderCubit(service: service);
+    await cubit.start();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(cubit.state.liveText, isNotEmpty);
+
+    // Mid-take it must change nothing: a real session owns the state.
+    cubit.prepareTake();
+    expect(cubit.state.isRecording, isTrue);
+    expect(cubit.state.liveText, isNotEmpty);
+
+    // Complete: the sheet pops, the stop finalizes behind it, and the state
+    // still wears the old take's text. A new sheet attaching NOW must see a
+    // clean state, not the previous transcription.
+    final stopping = cubit.stop();
+    expect(cubit.state.liveText, isNotEmpty);
+    cubit.prepareTake();
+    expect(cubit.state.isBusy, isFalse);
+    expect(cubit.state.liveText, isEmpty);
+
+    expect(await stopping, isNotNull);
+    expect(cubit.state.isBusy, isFalse);
+    expect(cubit.state.liveText, isEmpty);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a fresh take never inherits a stranded one', () async {
     // The cubit outlives the recorder screen, so a state left BUSY with no
     // capture behind it (a stop that no-opped, an interruption left hanging)
