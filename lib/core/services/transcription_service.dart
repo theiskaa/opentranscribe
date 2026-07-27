@@ -30,8 +30,10 @@ class TranscriptionService {
     this._peaksReader,
     DateTime Function()? clock,
     String Function()? idGenerator,
+    Future<void> Function(File file)? fileDeleter,
   }) : _clock = clock ?? DateTime.now,
-       _newId = idGenerator ?? _defaultId {
+       _newId = idGenerator ?? _defaultId,
+       _deleteFile = fileDeleter ?? _deleteFileDefault {
     // The one rule, enforced in code: only on-device engines are allowed.
     if (!_engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${_engine.id}');
@@ -52,6 +54,12 @@ class TranscriptionService {
   final DateTime Function() _clock;
   final String Function() _newId;
 
+  /// Removes an entry's kept audio file. Injected so a delete failure (an iOS
+  /// data-protection lock) is testable; defaults to a plain [File.delete].
+  final Future<void> Function(File file) _deleteFile;
+
+  static Future<void> _deleteFileDefault(File file) => file.delete();
+
   /// Reads an audio file's amplitude envelope (0..1), injected so the service
   /// can persist a new entry's shape at save time without owning a player.
   /// Null in tests that do not care; the detail screen then backfills on the
@@ -70,6 +78,9 @@ class TranscriptionService {
   StreamSubscription<CaptureStatus>? _statusSub;
   bool _recording = false;
   bool _paused = false;
+
+  /// Single-flights [reconcileOrphans] so two sweeps never race one snapshot.
+  bool _reconciling = false;
 
   /// Claimed synchronously at the top of [startRecording], before its awaits, so
   /// two concurrent starts cannot both proceed (and leak a status subscription).
@@ -361,6 +372,9 @@ class TranscriptionService {
   /// silently rewrite it. A no-op when idle.
   Future<void> setSessionLocale(String tag) async {
     if (!_recording || _sessionLocaleId == tag) return;
+    // Note: _liveGeneration is bumped only per-recording (startRecording), not
+    // here. Within-take correctness of the restart below rests on the engine's
+    // session token dropping the old stream's late events, not on that gate.
     _sessionLocaleId = tag;
     final nowMs = _audioNowMs;
     final spans = _sessionSpans;
@@ -597,7 +611,21 @@ class TranscriptionService {
 
   /// Retries persisting an entry whose save failed ([EntrySaveFailed]). The entry
   /// already references its kept audio, so a successful retry fully recovers it.
+  /// Pure: no side effects, so [dispose]/[finalizeActiveCapture] can use it
+  /// during teardown without touching the controllers they are closing.
   Future<void> retrySave(Entry entry) => _store.save(entry);
+
+  /// Recovers an interruption's auto-save after it failed and surfaced on
+  /// [autoFinalized] as an [EntrySaveFailed]. Persists the entry, then
+  /// re-announces it on [autoFinalized] as a normal event so list surfaces
+  /// refresh. Sets [_lastFinalized] only while idle, so a take that started
+  /// meanwhile keeps its own double-stop contract (a stale entry must never be
+  /// handed to a new take's stop).
+  Future<void> recoverInterruptedSave(Entry entry) async {
+    await _store.save(entry);
+    if (!_recording && !_starting) _lastFinalized = entry;
+    if (!_autoFinalized.isClosed) _autoFinalized.add(entry);
+  }
 
   /// Auto-finalizes on a native interruption. Saves untranscribed, unlike a user
   /// stop: an interruption often means the app is backgrounding (and may be suspended
@@ -637,9 +665,12 @@ class TranscriptionService {
     final file = File(await _resolveAudioPath(entry.audioPath));
     if (file.existsSync()) {
       try {
-        await file.delete();
-      } catch (_) {
-        // Metadata removal below still proceeds; a stray file is not fatal.
+        await _deleteFile(file);
+      } catch (error) {
+        // If the file survived the failed delete, removing the record too would
+        // orphan it and the reconcile sweep would resurrect the "deleted"
+        // recording next launch. Keep the record so a retry removes both.
+        if (file.existsSync()) throw EntryDeleteFailed(entry, error);
       }
     }
     await _store.delete(entry.id);
@@ -854,64 +885,77 @@ class TranscriptionService {
   /// voice after they believe it is gone. Skipped while a capture is live (its
   /// in-progress file has no entry yet by design). Returns the number recovered.
   Future<int> reconcileOrphans() async {
-    if (_recording || _starting) return 0;
-    final dirPath = await _recorder.recordingsDirectory();
-    if (dirPath.isEmpty) return 0;
-    final dir = Directory(dirPath);
-    if (!dir.existsSync()) return 0;
+    if (_recording || _starting || _reconciling) return 0;
+    // Single-flight: the `referenced` set is snapshotted once, so two concurrent
+    // sweeps could double-recover or double-delete the same file.
+    _reconciling = true;
+    try {
+      final dirPath = await _recorder.recordingsDirectory();
+      if (dirPath.isEmpty) return 0;
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) return 0;
 
-    final referenced = _store.all().map((e) => e.audioPath.split('/').last).toSet();
-    var recovered = 0;
-    await for (final item in dir.list(followLinks: false)) {
-      if (item is! File) continue;
-      final name = item.uri.pathSegments.last;
-      if (referenced.contains(name)) continue;
-      // A capture may have started while this sweep awaited; its file has no entry
-      // yet and must not be touched.
-      if (_recording || _starting) break;
-      final duration = await _recorder.probeRecording(name);
-      try {
-        if (duration == null) {
-          await item.delete();
-        } else {
-          await _store.save(
-            Entry(
-              id: _newId(),
-              createdAt: item.statSync().modified,
-              audioPath: name,
-              duration: duration,
-            ),
-          );
-          recovered++;
+      final referenced = _store.all().map((e) => e.audioPath.split('/').last).toSet();
+      var recovered = 0;
+      await for (final item in dir.list(followLinks: false)) {
+        if (item is! File) continue;
+        final name = item.uri.pathSegments.last;
+        if (referenced.contains(name)) continue;
+        // A capture may have started while this sweep awaited; its file has no
+        // entry yet and must not be touched.
+        if (_recording || _starting) break;
+        final duration = await _recorder.probeRecording(name);
+        try {
+          if (duration == null) {
+            await item.delete();
+          } else {
+            await _store.save(
+              Entry(
+                id: _newId(),
+                createdAt: item.statSync().modified,
+                audioPath: name,
+                duration: duration,
+              ),
+            );
+            recovered++;
+          }
+        } catch (_) {
+          // Best effort per file; the next sweep retries whatever failed.
         }
-      } catch (_) {
-        // Best effort per file; the next sweep retries whatever failed.
       }
+      return recovered;
+    } finally {
+      _reconciling = false;
     }
-    return recovered;
+  }
+
+  /// Finalizes an in-flight capture (untranscribed) and saves it, without tearing
+  /// the service down. Wired to app termination ([AppLifecycleState.detached]):
+  /// a terminate while recording would otherwise leave the file unfinalized, and
+  /// the reconcile sweep deletes a file it cannot probe. No [autoFinalized] emit
+  /// (this is not an interruption); on success the entry is reachable via
+  /// [entries], and if even the retry fails the sweep recovers it next launch.
+  /// A no-op when idle; never throws.
+  Future<void> finalizeActiveCapture() async {
+    if (!_recording) return;
+    try {
+      await _stopAndPersist(transcribe: false);
+    } on EntrySaveFailed catch (e) {
+      // Retry once instead of silently dropping the only handle to the recording.
+      try {
+        await retrySave(e.entry);
+      } catch (_) {
+        // The sweep recovers it next launch.
+      }
+    } catch (_) {
+      // CaptureFailed etc.: nothing was captured.
+    }
   }
 
   Future<void> dispose() async {
     // Never abandon a live capture: finalize and save it (untranscribed) first, or
     // the native session would keep running and the audio would never get a record.
-    // No autoFinalized emit here (dispose is not an interruption, and the controller
-    // is about to close). On success the entry is reachable via entries(); if even
-    // the retry below fails, the reconcile sweep recovers the file next launch.
-    if (_recording) {
-      try {
-        await _stopAndPersist(transcribe: false);
-      } on EntrySaveFailed catch (e) {
-        // The typed error would vanish with the closing controller; retry once
-        // instead of silently dropping the only handle to the recording.
-        try {
-          await retrySave(e.entry);
-        } catch (_) {
-          // The sweep recovers it next launch.
-        }
-      } catch (_) {
-        // CaptureFailed etc.: nothing was captured.
-      }
-    }
+    await finalizeActiveCapture();
     await _liveSub?.cancel();
     _liveSub = null;
     await _statusSub?.cancel();
@@ -938,4 +982,18 @@ final class EntrySaveFailed implements Exception {
 
   @override
   String toString() => 'EntrySaveFailed(${entry.id}): $cause';
+}
+
+/// Deleting an entry's kept audio file failed and the file is still on disk, so
+/// the record was NOT removed: dropping it would orphan the file and the
+/// reconcile sweep would resurrect the "deleted" recording. Carries the [entry]
+/// so a caller can retry [TranscriptionService.deleteEntry].
+final class EntryDeleteFailed implements Exception {
+  const EntryDeleteFailed(this.entry, this.cause);
+
+  final Entry entry;
+  final Object cause;
+
+  @override
+  String toString() => 'EntryDeleteFailed(${entry.id}): $cause';
 }
