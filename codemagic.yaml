@@ -47,8 +47,15 @@ workflows:
       - name: Set up keychain
         script: keychain initialize
       - name: Create or fetch the App Store signing files
+        # One profile per target: the Live Activity widget extension
+        # (xyz.opentranscribe.RecorderActivity) is signed separately from the app,
+        # so it needs its own App ID + profile or the archive fails to sign it.
         script: |
           app-store-connect fetch-signing-files "xyz.opentranscribe" \
+            --type IOS_APP_STORE \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          app-store-connect fetch-signing-files "xyz.opentranscribe.RecorderActivity" \
             --type IOS_APP_STORE \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --create
