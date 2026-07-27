@@ -189,7 +189,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     // Full swipe: dragged past the commit line, delete without a release.
     if (_canExpand && next >= widget.commitReveal) {
       _committed = true;
-      _commit();
+      widget.onDelete();
     }
   }
 
@@ -224,8 +224,6 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     }
     _settle(open: open, pixelVelocity: velocity);
   }
-
-  void _commit() => widget.onDelete();
 
   // Settle the reveal to open (1) or closed (0) with a spring seeded by the
   // finger's release velocity, so the animation continues at the speed the drag
@@ -297,7 +295,12 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     final content = Touchable(
       onTap: _handleTap,
       onLongPress: widget.onLongPress,
-      child: widget.child,
+      // Full width so the WHOLE row is the tap target. The child (a left-aligned
+      // column) sizes to its widest line, leaving the blank area right of short
+      // text with no tap handler - the outer drag recognizer does not fire onTap
+      // for a stationary press, so a tap there would do nothing. The column stays
+      // left-aligned; only the hit area grows.
+      child: SizedBox(width: double.infinity, child: widget.child),
     );
     final glyph = AppIcon(AppIcons.trash, color: theme.onDanger);
     final label = widget.label == null
