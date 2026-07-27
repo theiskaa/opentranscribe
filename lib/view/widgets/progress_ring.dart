@@ -6,8 +6,10 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 
 /// A quiet determinate ring: a hairline track and an accent arc growing
 /// clockwise from twelve o'clock. The app's first fraction-true progress
-/// control (the spinner stays for waits with no known end); drawn, not
-/// animated, because the fraction itself moves as downloads report.
+/// control (the spinner stays for waits with no known end). The arc EASES
+/// between reported fractions: downloads report in coarse jumps, and a ring
+/// that snaps between them reads as broken rather than busy. Interruptible by
+/// construction; a new fraction retargets the glide mid-flight.
 class ProgressRing extends StatelessWidget {
   const ProgressRing({required this.fraction, this.size = 22, super.key});
 
@@ -18,12 +20,14 @@ class ProgressRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return CustomPaint(
-      size: Size.square(size),
-      painter: _RingPainter(
-        fraction: fraction.clamp(0.0, 1.0),
-        track: theme.hairline,
-        fill: theme.accent,
+    final motion = theme.motion;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: fraction.clamp(0.0, 1.0)),
+      duration: context.reduceMotion ? Duration.zero : motion.indicator,
+      curve: motion.indicatorCurve,
+      builder: (context, value, _) => CustomPaint(
+        size: Size.square(size),
+        painter: _RingPainter(fraction: value, track: theme.hairline, fill: theme.accent),
       ),
     );
   }

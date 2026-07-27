@@ -58,6 +58,7 @@ class DeleteSwipe extends StatefulWidget {
     required this.child,
     this.onLongPress,
     this.label,
+    this.commitReveal = _kCommitReveal,
     super.key,
   });
 
@@ -79,6 +80,12 @@ class DeleteSwipe extends StatefulWidget {
   /// (a card list) where the labeled block would spill onto neighbours; the
   /// red disc carries the meaning alone there.
   final String? label;
+
+  /// The reveal at which a full swipe commits the delete, in (1, 2]: 1 is the
+  /// open disc, 2 the pill stretched across the whole row. The default demands
+  /// nearly the full row; a host can lower it where its rows are short enough
+  /// that the full pull reads as more work than the action deserves.
+  final double commitReveal;
 
   final Widget child;
 
@@ -125,6 +132,19 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       old.openId.removeListener(_onOpenIdChanged);
       widget.openId.addListener(_onOpenIdChanged);
     }
+    // A keyless list rebuild can hand this State another row's config. An open
+    // (or committed) reveal must not survive onto that row: reset hard, no
+    // settle, the disc simply belongs to a row that is no longer here. The
+    // dead row's open claim is released too, so the shared slot never points
+    // at an id no row answers to.
+    if (old.id != widget.id) {
+      _reveal.stop();
+      _reveal.value = 0;
+      _disc.stop();
+      _disc.value = 0;
+      _committed = false;
+      if (widget.openId.value == old.id) widget.openId.value = null;
+    }
   }
 
   @override
@@ -163,8 +183,8 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     // The disc hugs the sliding edge up to its rest point, then holds - so it
     // tracks the finger without ever crossing onto the text.
     _disc.value = (next / _kRestOpen).clamp(0.0, 1.0);
-    // Full swipe: dragged (nearly) all the way across, delete without a release.
-    if (_canExpand && next >= _kCommitReveal) {
+    // Full swipe: dragged past the commit line, delete without a release.
+    if (_canExpand && next >= widget.commitReveal) {
       _committed = true;
       _commit();
     }
@@ -242,8 +262,11 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     if (open) {
       Haptics.selection();
       if (claim) widget.openId.value = widget.id;
-    } else if (widget.openId.value == widget.id) {
-      widget.openId.value = null;
+    } else {
+      // Closing un-commits: a row that survived its delete (the removal was a
+      // no-op) must be swipeable again, not dead behind the latch.
+      _committed = false;
+      if (widget.openId.value == widget.id) widget.openId.value = null;
     }
   }
 
