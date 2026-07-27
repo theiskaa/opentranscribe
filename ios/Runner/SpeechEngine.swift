@@ -452,6 +452,14 @@ final class SpeechAnalyzerLiveSession {
   private let emit: ([String: Any]) -> Void
   private let emitError: (SpeechErrorCode, String, [String: Any]) -> Void
 
+  // The PREVIOUS session's analyzer wind-down, awaited once before this session's
+  // own analyzer.start(). Two SpeechAnalyzer instances contending for the shared
+  // on-device recognizer can stall the new start() indefinitely - the new take's
+  // live window then stays blank while the batch pass still works. A rapid restart
+  // (a mid-take language switch, or stop-then-record-again) is exactly when they
+  // overlap, so serialize them.
+  private let priorTeardown: Task<Void, Never>?
+
   // Built in run(), not init: the locale must first resolve (async) to the
   // nearest supported model. Guarded by the lock like the other streaming state.
   private var transcriber: SpeechTranscriber?
@@ -469,15 +477,31 @@ final class SpeechAnalyzerLiveSession {
   // Set once teardown begins, so a cancel() racing setup, a duplicate finish,
   // and a late buffer all become no-ops.
   private var finished = false
+  // One-shot latch for the feed diagnostic below: touched only on the single
+  // realtime tap thread (like converter), so it needs no lock.
+  private var feedFailureReported = false
+  // The analyzer wind-down this session launches on finish()/abort(), handed to
+  // the NEXT session as its priorTeardown so the two never overlap. Guarded by lock.
+  private var teardownTask: Task<Void, Never>?
 
   fileprivate init(
     localeId: String,
     emit: @escaping ([String: Any]) -> Void,
-    emitError: @escaping (SpeechErrorCode, String, [String: Any]) -> Void
+    emitError: @escaping (SpeechErrorCode, String, [String: Any]) -> Void,
+    priorTeardown: Task<Void, Never>? = nil
   ) {
     self.localeId = localeId
     self.emit = emit
     self.emitError = emitError
+    self.priorTeardown = priorTeardown
+  }
+
+  // The wind-down to await before a successor session starts. nil if this session
+  // never built (or already released) its analyzer.
+  var pendingTeardown: Task<Void, Never>? {
+    lock.lock()
+    defer { lock.unlock() }
+    return teardownTask
   }
 
   func start() {
@@ -517,11 +541,17 @@ final class SpeechAnalyzerLiveSession {
         return
       }
 
-      // No compatible on-device format means the model is not usable here. Degrade
-      // silently (batch is the source of truth) rather than attach a collector that
-      // would await results forever.
+      // No compatible on-device format means the model is not usable here. Batch is
+      // still the source of truth, so this never fails the take; surface why live is
+      // blank (temporary diagnostic) instead of degrading silently.
       guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
-      else { return }
+      else {
+        emitError(.transcribeError, "live: no compatible on-device audio format", [:])
+        // Wind the (created but never started) analyzer down like the sibling
+        // early-returns above, so this session does not sit half-initialized.
+        abort()
+        return
+      }
 
       // Bounded, dropping the newest when full: the tap produces ~47 buffers/sec
       // with no backpressure signal, so an analyzer running below realtime must not
@@ -541,6 +571,15 @@ final class SpeechAnalyzerLiveSession {
       // Created under the lock so a cancel() racing here reliably sees and cancels it.
       collectorTask = makeCollector()
       lock.unlock()
+
+      // Wait out the previous session's analyzer wind-down before starting ours,
+      // so the two never contend for the shared recognizer (which stalls this
+      // start() and leaves live blank). A completed teardown returns instantly.
+      await priorTeardown?.value
+      if Task.isCancelled {
+        abort()
+        return
+      }
 
       try await analyzer.start(inputSequence: inputSequence)
 
@@ -625,10 +664,25 @@ final class SpeechAnalyzerLiveSession {
     if converter == nil || converter?.inputFormat != buffer.format {
       converter = AVAudioConverter(from: buffer.format, to: format)
     }
-    guard let converter = converter,
-      let converted = convertBuffer(buffer, using: converter, to: format)
-    else { return }
+    guard let converter = converter else {
+      reportFeedFailure("live: could not build audio converter for capture format")
+      return
+    }
+    guard let converted = convertBuffer(buffer, using: converter, to: format) else {
+      reportFeedFailure("live: audio conversion failed")
+      return
+    }
     builder.yield(AnalyzerInput(buffer: converted))
+  }
+
+  // Surface the first feed failure once (temporary diagnostic): a converter that
+  // will not build, or conversion that fails, silently starves the analyzer so
+  // the live window stays blank while the batch pass still succeeds. One emit per
+  // session; the Dart side clears it as soon as live text resumes.
+  private func reportFeedFailure(_ message: String) {
+    guard !feedFailureReported else { return }
+    feedFailureReported = true
+    emitError(.transcribeError, message, [:])
   }
 
   // Conversion lives in the shared file-scope convertBuffer helper, which the
@@ -663,7 +717,10 @@ final class SpeechAnalyzerLiveSession {
     let analyzer = self.analyzer
     lock.unlock()
     guard let analyzer = analyzer else { return }
-    Task { try? await analyzer.finalizeAndFinishThroughEndOfInput() }
+    let task = Task { try? await analyzer.finalizeAndFinishThroughEndOfInput() }
+    lock.lock()
+    teardownTask = task
+    lock.unlock()
   }
 
   /// Tears down now without waiting for a final event, cancelling the collector.
@@ -682,7 +739,12 @@ final class SpeechAnalyzerLiveSession {
     let analyzer = self.analyzer
     lock.unlock()
     guard let analyzer = analyzer else { return }
-    Task { try? await analyzer.cancelAndFinishNow() }
+    // Overwrites any finish() task on purpose: a cancel supersedes a graceful
+    // finalize, and this is the wind-down the next session must wait on.
+    let task = Task { try? await analyzer.cancelAndFinishNow() }
+    lock.lock()
+    teardownTask = task
+    lock.unlock()
   }
 
   /// Cancel from outside: Dart unsubscribed, or a newer session started. Named
@@ -718,6 +780,11 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   // The iOS 26 SpeechAnalyzer live session. Stored untyped because its type is
   // availability-gated; cast on use.
   private var analyzerLive: AnyObject?
+
+  // The outgoing analyzer session's wind-down, captured in stopLive and handed to
+  // the next session (startLive) so a new analyzer never starts while the old one
+  // is still tearing down. Main-thread only, like startLive/stopLive.
+  private var pendingAnalyzerTeardown: Task<Void, Never>?
 
   // Batch tasks are retained by id so overlapping calls do not drop each other.
   private var batchTasks: [Int: SFSpeechRecognitionTask] = [:]
@@ -801,7 +868,11 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             var payload = errorPayload(code, message)
             for (key, value) in extras { payload[key] = value }
             self?.emitLive(payload, generation: generation)
-          })
+          },
+          priorTeardown: pendingAnalyzerTeardown)
+        // Ownership moves to the new session; a stale (already-finished) task here
+        // would just resolve instantly, but clear it so it is never awaited twice.
+        pendingAnalyzerTeardown = nil
         analyzerLive = analyzerSession
         analyzerSession.start()
         return
@@ -883,7 +954,10 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private func stopLive() {
     liveGeneration += 1
     if #available(iOS 26.0, *) {
-      (analyzerLive as? SpeechAnalyzerLiveSession)?.cancel()
+      let live = analyzerLive as? SpeechAnalyzerLiveSession
+      live?.cancel()
+      // Hand this session's wind-down to the next startLive to await.
+      pendingAnalyzerTeardown = live?.pendingTeardown
       analyzerLive = nil
     }
     lock.lock()
