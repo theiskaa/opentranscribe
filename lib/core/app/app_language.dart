@@ -9,8 +9,17 @@ abstract final class AppLanguage {
   static const key = 'language';
   static const fallback = 'en';
 
-  /// The current language code from storage, or [fallback].
-  static String of(LocalService storage) => storage.readString(key) ?? fallback;
+  /// The current language code from storage, or [fallback]. Never throws: this is
+  /// read during cubit construction at launch, so an undecryptable or corrupt
+  /// record must fail safe to the default rather than crash the app, matching the
+  /// other settings readers.
+  static String of(LocalService storage) {
+    try {
+      return storage.readString(key) ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
 
   /// Persists the selected language code.
   static Future<void> set(LocalService storage, String code) => storage.write(key, code);
