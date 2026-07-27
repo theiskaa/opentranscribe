@@ -356,12 +356,16 @@ class AppleSpeechEngine implements StreamingTranscriptionEngine, ManagedModelEng
       // An untimed segment is dropped, matching the native side, rather than
       // fabricated as a zero-length span at the start of the audio.
       if (startMs == null || endMs == null) continue;
+      final confidence = (map['confidence'] as num?)?.toDouble();
       segments.add(
         TranscriptSegment(
           text: (map['text'] as String?) ?? '',
           start: Duration(milliseconds: startMs.toInt()),
           end: Duration(milliseconds: endMs.toInt()),
-          confidence: (map['confidence'] as num?)?.toDouble(),
+          // Drop a non-finite confidence (some iOS builds report NaN for a
+          // zero-confidence segment): it survives the channel but throws in
+          // jsonEncode when the entry is saved, losing the whole transcript.
+          confidence: (confidence != null && confidence.isFinite) ? confidence : null,
         ),
       );
     }
