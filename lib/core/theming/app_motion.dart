@@ -30,6 +30,8 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
+    this.shimmer = const Duration(milliseconds: 1200),
+    this.errorBlink = const Duration(milliseconds: 1000),
     this.swipeSpring = const SpringDescription(mass: 1, stiffness: 440, damping: 42),
     this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
     this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
@@ -86,6 +88,15 @@ final class AppMotion {
   /// read as breathing rather than vibration, and it only runs while a finger
   /// is holding the gesture past its threshold.
   final Duration pullWave;
+
+  /// One pass of the skeleton shimmer's highlight band across the placeholder,
+  /// looped while a transcript is being produced. The one loop that carries no
+  /// live signal, so it is slow enough to read as breathing, not a spinner.
+  final Duration shimmer;
+
+  /// One breath of the inline error indicator's dot, looped to draw the eye
+  /// without a spinner or a shout. Slow, so it reads as a pulse, not a flash.
+  final Duration errorBlink;
 
   /// A row's swipe-action reveal settling open or closed after the finger lifts.
   /// A spring, not a fixed curve, so the settle continues at the finger's release

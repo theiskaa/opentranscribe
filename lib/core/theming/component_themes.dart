@@ -233,10 +233,15 @@ final class PlayerTheme {
     required this.waveRemaining,
     required this.segmentColor,
     required this.activeSegmentHighlight,
+    required this.skeletonBase,
+    required this.skeletonHighlight,
     this.waveBarWidth = 3.0,
     this.waveGap = 3.0,
     this.waveHeight = 40.0,
     this.controlSize = 40.0,
+    this.skeletonLineHeight = 11.0,
+    this.skeletonLineGap = 15.0,
+    this.skeletonRadius = AppRadius.sm,
   });
 
   /// The played part of the wave, and the quiet tone the rest is drawn in. The
@@ -250,6 +255,12 @@ final class PlayerTheme {
   final Color segmentColor;
   final Color activeSegmentHighlight;
 
+  /// The transcript skeleton shown while a (re-)transcription is in flight: the
+  /// resting bar fill and the sheen that sweeps across it. Ink at low alpha, so
+  /// the placeholder reads as the page's own quiet, not a foreign grey.
+  final Color skeletonBase;
+  final Color skeletonHighlight;
+
   /// One bar of the wave, and its distance to the next. Shared geometry with
   /// the recorder's band on purpose: the same recording, drawn twice.
   final double waveBarWidth;
@@ -260,6 +271,12 @@ final class PlayerTheme {
 
   /// The speed chip's tap-target height, matched to the wave's height.
   final double controlSize;
+
+  /// One skeleton line's height and the gap to the next, sized to the body
+  /// text the placeholder stands in for.
+  final double skeletonLineHeight;
+  final double skeletonLineGap;
+  final double skeletonRadius;
 }
 
 /// Grouped settings cards, rows, and toggles.
@@ -299,6 +316,38 @@ final class SettingsTheme {
   final double iconTileSize;
   final double chevronSize;
   final double dividerInset;
+}
+
+/// The inline error indicator: a quiet pill that pulses a danger dot and opens
+/// a details sheet on tap. A surface card with one hue (the dot), so it reads as
+/// the app's own, not a system alert pasted in.
+@immutable
+final class ErrorPillTheme {
+  const ErrorPillTheme({
+    required this.background,
+    required this.border,
+    required this.dot,
+    required this.text,
+    required this.chevron,
+    this.height = 46.0,
+    this.radius = AppRadius.chip,
+    this.dotSize = 8.0,
+    this.blinkMinOpacity = 0.25,
+  });
+
+  final Color background;
+  final Color border;
+
+  /// The one hue: the pulsing dot that says "something is wrong here".
+  final Color dot;
+  final Color text;
+  final Color chevron;
+  final double height;
+  final double radius;
+  final double dotSize;
+
+  /// How far the dot dims at the bottom of its breath, 1 being no dimming.
+  final double blinkMinOpacity;
 }
 
 /// The onboarding pages.

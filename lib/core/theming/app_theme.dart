@@ -37,6 +37,7 @@ final class AppTheme {
     required this.settings,
     required this.onboarding,
     required this.navigation,
+    required this.errorPill,
     this.motion = const AppMotion(),
   });
 
@@ -70,6 +71,7 @@ final class AppTheme {
     SettingsTheme? settings,
     OnboardingTheme? onboarding,
     NavigationTheme? navigation,
+    ErrorPillTheme? errorPill,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -172,6 +174,12 @@ final class AppTheme {
             waveRemaining: text.withValues(alpha: 0.16),
             segmentColor: text,
             activeSegmentHighlight: text.withValues(alpha: 0.12),
+            // The skeleton is the same ink as everything else, just quiet: a
+            // faint resting bar with a sheen a step stronger sweeping through
+            // it. Kept light so it reads as a placeholder settling, not a block
+            // of filled text.
+            skeletonBase: text.withValues(alpha: 0.05),
+            skeletonHighlight: text.withValues(alpha: 0.10),
           ),
       settings:
           settings ??
@@ -208,6 +216,17 @@ final class AppTheme {
             // the edge shadow still read against near-black screens.
             scrim: shadow.withValues(alpha: brightness == Brightness.dark ? 0.14 : 0.08),
             edgeShadow: shadow.withValues(alpha: brightness == Brightness.dark ? 0.13 : 0.07),
+          ),
+      errorPill:
+          errorPill ??
+          ErrorPillTheme(
+            // A surface card like every other, not a red alert box: the dot is
+            // the only hue, the rest reads as the app's own quiet.
+            background: surface,
+            border: surfaceBorder,
+            dot: danger,
+            text: text,
+            chevron: textSecondary,
           ),
       motion: motion,
     );
@@ -250,6 +269,7 @@ final class AppTheme {
   final SettingsTheme settings;
   final OnboardingTheme onboarding;
   final NavigationTheme navigation;
+  final ErrorPillTheme errorPill;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.
