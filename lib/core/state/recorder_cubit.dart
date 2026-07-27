@@ -24,6 +24,8 @@ class RecorderState {
     this.status = RecorderStatus.idle,
     this.elapsed = Duration.zero,
     this.liveText = '',
+    this.liveError,
+    this.heardSound = false,
     this.localeId = '',
     this.takeId = 0,
     this.live = false,
@@ -33,6 +35,19 @@ class RecorderState {
   final RecorderStatus status;
   final Duration elapsed;
   final String liveText;
+
+  /// A non-terminal live-transcription failure: the settling batch on stop is
+  /// unaffected, so recording continues, but the live window has nothing to
+  /// show and this says why. Cleared the moment live text resumes. Temporary
+  /// diagnostic copy (the raw native reason) until we know the on-device cause.
+  final String? liveError;
+
+  /// Whether the microphone has heard real sound this take (input level crossed
+  /// [RecorderCubit._kHeardThreshold] at least once). This, NOT [liveText], is
+  /// what tells an X-to-discard whether the take is worth keeping: the live
+  /// stream can be blank while real speech was captured, and the batch pass on
+  /// stop reads the audio the live engine could not. Latches true for the take.
+  final bool heardSound;
 
   /// The language THIS session transcribes in: the app default at start,
   /// changeable mid-take via [RecorderCubit.setLanguage]. Session-only; the
@@ -59,6 +74,9 @@ class RecorderState {
     RecorderStatus? status,
     Duration? elapsed,
     String? liveText,
+    String? liveError,
+    bool clearLiveError = false,
+    bool? heardSound,
     String? localeId,
     int? takeId,
     bool? live,
@@ -68,6 +86,8 @@ class RecorderState {
     status: status ?? this.status,
     elapsed: elapsed ?? this.elapsed,
     liveText: liveText ?? this.liveText,
+    liveError: clearLiveError ? null : (liveError ?? this.liveError),
+    heardSound: heardSound ?? this.heardSound,
     localeId: localeId ?? this.localeId,
     takeId: takeId ?? this.takeId,
     live: live ?? this.live,
@@ -105,6 +125,16 @@ class RecorderCubit extends Cubit<RecorderState> {
   final DateTime Function() _now;
 
   StreamSubscription<TranscriptEvent>? _liveSub;
+
+  /// Watches the input level so [RecorderState.heardSound] can latch when the
+  /// mic hears real sound, independent of whether the live engine transcribed it.
+  StreamSubscription<double>? _levelSub;
+
+  /// Input level (0..1, native `(dBFS + 60) / 60`) above which the take counts as
+  /// having heard real sound: digital silence sits near 0, quiet room tone near
+  /// 0.2, and any spoken word peaks well above this. Set to clear the room floor
+  /// without ever missing speech - discarding a real take is the failure to avoid.
+  static const double _kHeardThreshold = 0.3;
 
   /// Recorded time banked by earlier runs of this take (before pauses and
   /// interruptions); the live remainder is measured from [_runStart].
@@ -167,6 +197,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _runStart = null;
     unawaited(_liveSub?.cancel());
     _liveSub = null;
+    unawaited(_levelSub?.cancel());
+    _levelSub = null;
     // Advancing the take TAKES OWNERSHIP: a stop or cancel still finalizing
     // behind its popped sheet fails its ownership check from here on, so not
     // even its error can land on the fresh sheet this call just cleaned.
@@ -201,6 +233,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _runStart = null;
     unawaited(_liveSub?.cancel());
     _liveSub = null;
+    unawaited(_levelSub?.cancel());
+    _levelSub = null;
     emit(
       RecorderState(
         status: RecorderStatus.recording,
@@ -211,9 +245,22 @@ class RecorderCubit extends Cubit<RecorderState> {
       ),
     );
     _liveSub = _service.liveEvents.listen(
-      (event) => emit(state.copyWith(liveText: _livePrefix + event.text)),
-      onError: (_) {},
+      (event) =>
+          emit(state.copyWith(liveText: _livePrefix + event.text, clearLiveError: true)),
+      // A live failure never tears down the take: the batch pass on stop is the
+      // source of truth and still runs. Surface why the live window is blank
+      // instead of swallowing it (temporary raw diagnostic copy).
+      onError: (Object e) {
+        if (!isClosed) emit(state.copyWith(liveError: e.toString()));
+      },
     );
+    _levelSub = _service.inputLevel.listen((level) {
+      // Latch once: this is what an X-to-discard consults, so it must not depend
+      // on the live transcript, which can be blank over real speech.
+      if (!state.heardSound && level >= _kHeardThreshold && !isClosed) {
+        emit(state.copyWith(heardSound: true));
+      }
+    });
     final starting = _service.startRecording();
     _startInFlight = starting;
     try {
@@ -470,6 +517,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _runStart = null;
     await _liveSub?.cancel();
     _liveSub = null;
+    await _levelSub?.cancel();
+    _levelSub = null;
   }
 
   RecorderError _kind(Object error) {

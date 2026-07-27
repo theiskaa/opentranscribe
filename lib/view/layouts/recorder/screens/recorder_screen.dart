@@ -97,7 +97,12 @@ class _RecorderScreenState extends State<RecorderScreen> {
     final cubit = context.read<RecorderCubit>();
     final home = context.read<HomeCubit>();
     final state = cubit.state;
-    final heardSomething = state.liveText.trim().isNotEmpty;
+    // What decides discard is whether the MIC heard sound, not whether the live
+    // engine transcribed it: the live window can be blank over real speech, and
+    // the batch pass on stop still reads it. Gating on live text alone discarded
+    // fully-spoken takes whenever live transcription was blank. Live text is kept
+    // as a belt-and-suspenders signal (if there is text, there was certainly sound).
+    final heardSomething = state.heardSound || state.liveText.trim().isNotEmpty;
     // LEAVE FIRST. Persisting runs the batch pass over the whole take, seconds
     // of it, and nothing on this screen is waiting on the answer: the cubit
     // outlives the route, so the save finishes behind the closing sheet. Home's
@@ -312,9 +317,30 @@ class _LiveText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<RecorderCubit, RecorderState, String>(
-      selector: (state) => state.liveText,
-      builder: (context, text) => LiveTranscript(text: text),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        BlocSelector<RecorderCubit, RecorderState, String>(
+          selector: (state) => state.liveText,
+          builder: (context, text) => LiveTranscript(text: text),
+        ),
+        // Temporary diagnostic: when live goes blank but the batch pass still
+        // works, this shows the raw native reason so a TestFlight build tells us
+        // the on-device cause. Replace with localized graceful copy once known.
+        BlocSelector<RecorderCubit, RecorderState, String?>(
+          selector: (state) => state.liveError,
+          builder: (context, error) => error == null
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: AppType.caption.copyWith(color: context.theme.danger),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

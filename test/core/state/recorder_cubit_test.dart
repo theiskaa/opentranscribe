@@ -68,6 +68,48 @@ void main() {
     await service.dispose();
   });
 
+  test('the mic hearing sound latches heardSound, below-threshold noise does not', () async {
+    // heardSound, not the live transcript, is what an X-to-discard consults: the
+    // live stream can be blank over real speech. A room-tone level must not latch;
+    // a spoken peak must, and it stays latched for the take.
+    final rec = FakeAudioRecorder();
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+    expect(cubit.state.heardSound, isFalse);
+
+    rec.levelController.add(0.1); // quiet room floor
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.heardSound, isFalse);
+
+    rec.levelController.add(0.6); // a spoken word
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.heardSound, isTrue);
+
+    // Latched: a later dip back to silence does not clear it.
+    rec.levelController.add(0.0);
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.heardSound, isTrue);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a fresh take starts with heardSound reset to false', () async {
+    final rec = FakeAudioRecorder();
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+    rec.levelController.add(0.6);
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.heardSound, isTrue);
+
+    await cubit.stop();
+    await cubit.start();
+    expect(cubit.state.heardSound, isFalse);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a language switch keeps the live text and marks the new span', () async {
     final rec = FakeAudioRecorder();
     final service = TranscriptionService(
