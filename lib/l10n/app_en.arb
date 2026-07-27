@@ -116,6 +116,46 @@
   "@transcribeErrorCapReached": {
     "description": "Notice when transcribing needs a language slot and the per-app cap is full"
   },
+  "transcribeErrorLabelPermission": "Speech recognition is off",
+  "@transcribeErrorLabelPermission": {
+    "description": "Short label on the inline error indicator when permission is denied"
+  },
+  "transcribeErrorLabelUnavailable": "Not available on this device",
+  "@transcribeErrorLabelUnavailable": {
+    "description": "Short label on the inline error indicator when the language is unavailable on-device"
+  },
+  "transcribeErrorLabelModelInstall": "Couldn't get the language model",
+  "@transcribeErrorLabelModelInstall": {
+    "description": "Short label on the inline error indicator when the model download failed"
+  },
+  "transcribeErrorLabelCapReached": "Language limit reached",
+  "@transcribeErrorLabelCapReached": {
+    "description": "Short label on the inline error indicator when the language cap is full"
+  },
+  "transcribeErrorLabelGeneric": "Transcription failed",
+  "@transcribeErrorLabelGeneric": {
+    "description": "Short label on the inline error indicator for a generic failure"
+  },
+  "transcribeErrorTitlePermission": "Turn on speech recognition",
+  "@transcribeErrorTitlePermission": {
+    "description": "Details-sheet title when permission is denied"
+  },
+  "transcribeErrorTitleUnavailable": "Not available here",
+  "@transcribeErrorTitleUnavailable": {
+    "description": "Details-sheet title when the language is unavailable on-device"
+  },
+  "transcribeErrorTitleModelInstall": "Couldn't download the model",
+  "@transcribeErrorTitleModelInstall": {
+    "description": "Details-sheet title when the model download failed"
+  },
+  "transcribeErrorTitleCapReached": "Language limit reached",
+  "@transcribeErrorTitleCapReached": {
+    "description": "Details-sheet title when the language cap is full"
+  },
+  "transcribeErrorTitleGeneric": "Something went wrong",
+  "@transcribeErrorTitleGeneric": {
+    "description": "Details-sheet title for a generic failure"
+  },
   "settingsTranscription": "Transcription",
   "@settingsTranscription": {
     "description": "Section label of the transcription settings group"

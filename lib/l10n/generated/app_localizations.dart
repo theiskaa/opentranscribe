@@ -266,6 +266,66 @@ abstract class AppLocalizations {
   /// **'Language limit reached. Remove a language in Settings, then try again.'**
   String get transcribeErrorCapReached;
 
+  /// Short label on the inline error indicator when permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Speech recognition is off'**
+  String get transcribeErrorLabelPermission;
+
+  /// Short label on the inline error indicator when the language is unavailable on-device
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this device'**
+  String get transcribeErrorLabelUnavailable;
+
+  /// Short label on the inline error indicator when the model download failed
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get the language model'**
+  String get transcribeErrorLabelModelInstall;
+
+  /// Short label on the inline error indicator when the language cap is full
+  ///
+  /// In en, this message translates to:
+  /// **'Language limit reached'**
+  String get transcribeErrorLabelCapReached;
+
+  /// Short label on the inline error indicator for a generic failure
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription failed'**
+  String get transcribeErrorLabelGeneric;
+
+  /// Details-sheet title when permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on speech recognition'**
+  String get transcribeErrorTitlePermission;
+
+  /// Details-sheet title when the language is unavailable on-device
+  ///
+  /// In en, this message translates to:
+  /// **'Not available here'**
+  String get transcribeErrorTitleUnavailable;
+
+  /// Details-sheet title when the model download failed
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the model'**
+  String get transcribeErrorTitleModelInstall;
+
+  /// Details-sheet title when the language cap is full
+  ///
+  /// In en, this message translates to:
+  /// **'Language limit reached'**
+  String get transcribeErrorTitleCapReached;
+
+  /// Details-sheet title for a generic failure
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get transcribeErrorTitleGeneric;
+
   /// Section label of the transcription settings group
   ///
   /// In en, this message translates to:

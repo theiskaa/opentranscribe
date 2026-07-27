@@ -15,11 +15,12 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
-import 'package:opentranscribe/view/widgets/app_notice.dart';
+import 'package:opentranscribe/view/widgets/error_pill.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
@@ -175,9 +176,19 @@ class _DetailViewState extends State<_DetailView> {
         final transcribeTags = _transcribeTags(entry, settings);
         final preselected = entry.effectiveLocaleId ?? settings.localeId;
         // The bottom CTA only exists for a never-transcribed entry, and not
-        // while a run is in flight (the body shows the spinner then).
+        // while a run is in flight (the body shows the skeleton then).
         final showCta = entry.transcript == null && !busy;
+        // This entry's own failure, if any. It rides the bottom dock above the
+        // CTA, pulsing until the user acts on it - never a snackbar.
+        final error = state.errorFor(entry.id);
         final bottomInset = MediaQuery.paddingOf(context).bottom;
+        // What the scroll must clear so its last line never hides behind the
+        // pinned dock: the pill, the CTA, and the gap between them, whichever
+        // are present.
+        final dockHeight =
+            (error != null ? theme.errorPill.height : 0.0) +
+            (error != null && showCta ? AppSpacing.md : 0.0) +
+            (showCta ? theme.button.height : 0.0);
         return ColoredBox(
           color: theme.screens.entryDetail,
           child: Stack(
@@ -195,23 +206,15 @@ class _DetailViewState extends State<_DetailView> {
                     // content starting inside it would sit under the wash.
                     AppTopBar.heightOf(context) + theme.topBar.fadeTail,
                     AppSpacing.xl,
-                    // Clear the pinned CTA when it shows, so the last line can
+                    // Clear the pinned dock when it shows, so the last line can
                     // never hide behind it; otherwise just the home indicator.
-                    showCta
-                        ? bottomInset + AppSpacing.xl + theme.button.height + AppSpacing.xxxl
+                    dockHeight > 0
+                        ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
                         : bottomInset + AppSpacing.xxxl,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // A failure the screen could not prevent (a transcribe or
-                      // rename that did not take), inline at the top and gone on
-                      // its own - no dialog. Scoped: only THIS entry's failure
-                      // renders here, never another entry's leftover.
-                      AppNotice(
-                        message: _errorMessage(state.errorFor(entry.id), l10n),
-                        onDismiss: () => context.read<EntriesCubit>().clearError(),
-                      ),
                       _TitleField(entry: entry, focusNode: _titleFocus),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
@@ -271,9 +274,11 @@ class _DetailViewState extends State<_DetailView> {
                   ],
                 ),
               ),
-              // A never-transcribed entry gets its one action as a bottom CTA,
-              // clear of the document above it.
-              if (showCta) _TranscribeCta(entry: entry),
+              // The pinned dock: the error indicator over the Transcribe CTA,
+              // both clear of the document. Either may be absent; the scroll
+              // reserves exactly their room so neither covers content.
+              if (error != null || showCta)
+                _BottomDock(entry: entry, error: error, showCta: showCta),
             ],
           ),
         );
@@ -282,28 +287,27 @@ class _DetailViewState extends State<_DetailView> {
   }
 }
 
-/// Words an [EntriesError] for the notice line. The kinds are the contract;
-/// the raw platform error never reaches the screen.
-String? _errorMessage(EntriesError? error, AppLocalizations l10n) => switch (error) {
-  null => null,
-  EntriesError.permissionDenied => l10n.transcribeErrorPermission,
-  EntriesError.onDeviceUnavailable => l10n.transcribeErrorUnavailable,
-  EntriesError.modelInstallFailed => l10n.transcribeErrorModelInstall,
-  EntriesError.reservationCap => l10n.transcribeErrorCapReached,
-  EntriesError.generic => l10n.transcribeErrorGeneric,
-};
-
-/// The never-transcribed entry's one action, pinned to the screen's floor as a
-/// full-width CTA over the scrolling document. The scroll reserves room for it,
-/// so it never covers content.
-class _TranscribeCta extends StatelessWidget {
-  const _TranscribeCta({required this.entry});
+/// The screen's floor: a failure indicator that opens its details on tap, over
+/// the never-transcribed entry's one action. Whichever is present sits full
+/// width above the home indicator; when both show, the error rides above the
+/// button so the fix and the retry read top to bottom.
+class _BottomDock extends StatelessWidget {
+  const _BottomDock({required this.entry, required this.error, required this.showCta});
 
   final Entry entry;
+  final EntriesError? error;
+  final bool showCta;
+
+  Future<void> _openDetails(BuildContext context, EntriesError kind) async {
+    final entries = context.read<EntriesCubit>();
+    final retry = await showTranscribeErrorSheet(context, kind);
+    if (retry) unawaited(entries.retranscribe(entry));
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final kind = error;
     return Positioned(
       left: 0,
       right: 0,
@@ -315,14 +319,36 @@ class _TranscribeCta extends StatelessWidget {
           AppSpacing.xl,
           MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
         ),
-        child: AppButton(
-          label: l10n.transcribe,
-          onPressed: () => context.read<EntriesCubit>().retranscribe(entry),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (kind != null)
+              ErrorPill(
+                message: _pillLabel(kind, l10n),
+                onTap: () => _openDetails(context, kind),
+              ),
+            if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
+            if (showCta)
+              AppButton(
+                label: l10n.transcribe,
+                onPressed: () => context.read<EntriesCubit>().retranscribe(entry),
+              ),
+          ],
         ),
       ),
     );
   }
 }
+
+/// The short label the error pill carries; the sheet behind it tells the rest.
+String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
+  EntriesError.permissionDenied => l10n.transcribeErrorLabelPermission,
+  EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
+  EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
+  EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
+  EntriesError.generic => l10n.transcribeErrorLabelGeneric,
+};
 
 /// The reeed-style inline rename: the title IS a borderless text field in the
 /// title's own type, always editable in place. Focus to edit; losing focus

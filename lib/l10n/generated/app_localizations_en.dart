@@ -105,6 +105,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Language limit reached. Remove a language in Settings, then try again.';
 
   @override
+  String get transcribeErrorLabelPermission => 'Speech recognition is off';
+
+  @override
+  String get transcribeErrorLabelUnavailable => 'Not available on this device';
+
+  @override
+  String get transcribeErrorLabelModelInstall => 'Couldn\'t get the language model';
+
+  @override
+  String get transcribeErrorLabelCapReached => 'Language limit reached';
+
+  @override
+  String get transcribeErrorLabelGeneric => 'Transcription failed';
+
+  @override
+  String get transcribeErrorTitlePermission => 'Turn on speech recognition';
+
+  @override
+  String get transcribeErrorTitleUnavailable => 'Not available here';
+
+  @override
+  String get transcribeErrorTitleModelInstall => 'Couldn\'t download the model';
+
+  @override
+  String get transcribeErrorTitleCapReached => 'Language limit reached';
+
+  @override
+  String get transcribeErrorTitleGeneric => 'Something went wrong';
+
+  @override
   String get settingsTranscription => 'Transcription';
 
   @override
