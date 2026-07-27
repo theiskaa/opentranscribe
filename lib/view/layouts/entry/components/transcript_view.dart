@@ -10,7 +10,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/shimmer.dart';
 
 /// The transcript body. Where the transcript carries timings, it is a second
 /// way through the recording: the segment under the playhead is MARKED (never
@@ -63,12 +63,10 @@ class _TranscriptViewState extends State<TranscriptView> {
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    if (widget.busy) {
-      return const Padding(
-        padding: EdgeInsets.all(AppSpacing.xxxl),
-        child: Center(child: AppSpinner()),
-      );
-    }
+    // A run in flight (first transcribe or re-transcribe): a shimmering
+    // skeleton in the transcript's own place, so the wait reads as the words
+    // arriving rather than a spinner parked over the page.
+    if (widget.busy) return const _TranscriptSkeleton();
 
     final transcript = widget.entry.transcript;
     final text = transcript?.fullText.trim() ?? '';
@@ -115,6 +113,61 @@ class _TranscriptViewState extends State<TranscriptView> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The transcript placeholder while a run is in flight: a paragraph of shimmering
+/// lines in the transcript's own column. The short lines close paragraphs, so the
+/// block reads as prose taking shape, not a loading bar.
+class _TranscriptSkeleton extends StatelessWidget {
+  const _TranscriptSkeleton();
+
+  /// Line lengths as percents of the text column. A ragged run with two short
+  /// breaks, so it reads as sentences rather than an even stack.
+  static const _widths = [100, 100, 92, 100, 60, 100, 95, 100, 45];
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.player;
+    return Shimmer(
+      base: tokens.skeletonBase,
+      highlight: tokens.skeletonHighlight,
+      builder: (color) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, width) in _widths.indexed)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i == _widths.length - 1 ? 0 : tokens.skeletonLineGap,
+              ),
+              // Expanded flexes give a bounded fractional width with no reliance
+              // on the parent's main-axis constraints; the tail keeps the line
+              // left-aligned when it is short.
+              child: SizedBox(
+                height: tokens.skeletonLineHeight,
+                // Stretch, so each bar fills the line's height; an Expanded only
+                // pins the width, and a bare DecoratedBox would otherwise be
+                // zero pixels tall and paint nothing.
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: width,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(tokens.skeletonRadius),
+                        ),
+                      ),
+                    ),
+                    if (width < 100) Expanded(flex: 100 - width, child: const SizedBox()),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
