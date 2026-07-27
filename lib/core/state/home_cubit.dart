@@ -99,9 +99,14 @@ class HomeCubit extends Cubit<HomeState> {
     emit(HomeState(entries: _visible()));
     try {
       await _service.deleteEntry(entry);
+    } catch (e) {
+      // A delete that failed with the file still on disk kept the record (so the
+      // reconcile sweep cannot resurrect it); the finally restores the row.
+      // Home has no error surface, so the returning row is the only signal.
+      if (kDebugMode) debugPrint('home: delete failed: $e');
     } finally {
       _pendingDeletes.remove(entry.id);
-      emit(HomeState(entries: _visible()));
+      if (!isClosed) emit(HomeState(entries: _visible()));
     }
   }
 

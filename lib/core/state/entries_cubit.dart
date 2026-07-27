@@ -88,13 +88,11 @@ class EntriesCubit extends Cubit<EntriesState> {
     try {
       await _service.renameEntry(entry, title);
     } catch (e) {
-      emit(
-        state.copyWith(
-          error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
-        ),
-      );
+      if (!isClosed) {
+        emit(state.copyWith(error: EntriesFailure(entryId: entry.id, kind: _kind(e))));
+      }
     } finally {
-      emit(state.copyWith(entries: _service.entries()));
+      if (!isClosed) emit(state.copyWith(entries: _service.entries()));
     }
   }
 
@@ -102,8 +100,15 @@ class EntriesCubit extends Cubit<EntriesState> {
     emit(state.copyWith(busyId: entry.id));
     try {
       await _service.deleteEntry(entry);
+    } catch (e) {
+      // A delete that failed with the file still on disk kept the record (so the
+      // recording is not resurrected by the reconcile sweep); the finally below
+      // restores the row, and the user is told so they can retry.
+      if (!isClosed) {
+        emit(state.copyWith(error: EntriesFailure(entryId: entry.id, kind: _kind(e))));
+      }
     } finally {
-      emit(state.copyWith(entries: _service.entries(), clearBusy: true));
+      if (!isClosed) emit(state.copyWith(entries: _service.entries(), clearBusy: true));
     }
   }
 
@@ -117,6 +122,8 @@ class EntriesCubit extends Cubit<EntriesState> {
     } catch (e) {
       failure = EntriesFailure(entryId: entry.id, kind: _kind(e));
     }
+    // A re-transcribe can run minutes; the screen may be gone by now.
+    if (isClosed) return;
     // copyWith, never a fresh state: another entry's in-flight action owns
     // busyId by now if it claimed it after this one started.
     emit(

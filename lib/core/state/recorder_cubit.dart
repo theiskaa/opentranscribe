@@ -85,7 +85,17 @@ class RecorderCubit extends Cubit<RecorderState> {
       super(const RecorderState()) {
     _autoSub = _service.autoFinalized.listen(
       (_) => _onInterrupted(),
-      onError: (Object _) => _onInterrupted(),
+      onError: (Object error) {
+        // The capture died either way: settle the clock and the live claim.
+        _onInterrupted();
+        // A failed interruption save is recoverable via retrySave; this cubit is
+        // app-scoped (always alive), so it is the one owner that runs it, rather
+        // than leaving the audio for the next-launch sweep.
+        if (error is EntrySaveFailed) {
+          final take = _takes;
+          unawaited(_recoverSave(error.entry, take));
+        }
+      },
     );
   }
 
@@ -245,6 +255,10 @@ class RecorderCubit extends Cubit<RecorderState> {
       _elapsedBase = _currentElapsed();
       _runStart = null;
       emit(state.copyWith(status: RecorderStatus.paused, elapsed: _elapsedBase));
+    } on StateError {
+      // A stop won the race and flipped the service out of recording between the
+      // check above and the pause await: the stop owns the outcome, so pausing a
+      // take that is already ending is not a user-facing error.
     } catch (e) {
       emit(state.copyWith(error: _kind(e)));
     } finally {
@@ -274,7 +288,16 @@ class RecorderCubit extends Cubit<RecorderState> {
     // Saving synchronously first: the discard must not leave a window where
     // complete or a second control can act on the dying session.
     emit(state.copyWith(status: RecorderStatus.saving));
-    await _cancelSession();
+    // Publish the teardown like cancel() does, so a concurrent start()/cancel()
+    // waits it out instead of racing _teardown(). Cleared before start() below,
+    // so start()'s own _discardInFlight await sees null (no self-deadlock).
+    final ending = _cancelSession();
+    _discardInFlight = ending;
+    try {
+      await ending;
+    } finally {
+      if (identical(_discardInFlight, ending)) _discardInFlight = null;
+    }
     // The take id carries through the reset: dropping it to zero here would
     // remount every view keyed on it twice for one restart.
     emit(RecorderState(takeId: state.takeId));
@@ -389,6 +412,11 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// the session stays open for complete to claim it; only the things that
   /// would now be lying stop: the clock, and the claim that the mic is live.
   void _onInterrupted() {
+    // A stale interruption for a PAST take must not settle a fresh one: if the
+    // service is recording again, a new take owns the cubit now. Only stop() and
+    // cancel() carry a captured take id; this event has none, so the live service
+    // state is the ownership check.
+    if (_service.isRecording) return;
     if (!state.isRecording && !state.isPaused) return;
     _timer?.cancel();
     _timer = null;
@@ -399,12 +427,27 @@ class RecorderCubit extends Cubit<RecorderState> {
     emit(state.copyWith(live: false, elapsed: _elapsedBase));
   }
 
+  /// The interruption's own save failed. Recover the audio's record (so it is not
+  /// left for the next-launch sweep), and only surface an error if even that
+  /// fails, on the same take that heard the failure.
+  Future<void> _recoverSave(Entry entry, int take) async {
+    try {
+      await _service.recoverInterruptedSave(entry);
+    } catch (e) {
+      if (!isClosed && take == _takes) emit(state.copyWith(error: _kind(e)));
+    }
+  }
+
   /// Recorded time so far: the banked base plus the current run's wall-clock
   /// span. Reading the clock (rather than counting ticks) keeps it honest
   /// through background throttling and missed frames.
   Duration _currentElapsed() {
     final runStart = _runStart;
-    return _elapsedBase + (runStart == null ? Duration.zero : _now().difference(runStart));
+    if (runStart == null) return _elapsedBase;
+    // Clamp to non-negative: a backward wall-clock adjustment (NTP, the user
+    // changing the clock) mid-run would otherwise shrink the displayed elapsed.
+    final delta = _now().difference(runStart);
+    return _elapsedBase + (delta.isNegative ? Duration.zero : delta);
   }
 
   void _startTimer() {
