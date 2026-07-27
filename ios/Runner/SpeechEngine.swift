@@ -717,7 +717,7 @@ final class SpeechAnalyzerLiveSession {
     let analyzer = self.analyzer
     lock.unlock()
     guard let analyzer = analyzer else { return }
-    let task = Task { try? await analyzer.finalizeAndFinishThroughEndOfInput() }
+    let task = Task { _ = try? await analyzer.finalizeAndFinishThroughEndOfInput() }
     lock.lock()
     teardownTask = task
     lock.unlock()
@@ -741,7 +741,7 @@ final class SpeechAnalyzerLiveSession {
     guard let analyzer = analyzer else { return }
     // Overwrites any finish() task on purpose: a cancel supersedes a graceful
     // finalize, and this is the wind-down the next session must wait on.
-    let task = Task { try? await analyzer.cancelAndFinishNow() }
+    let task = Task { _ = try? await analyzer.cancelAndFinishNow() }
     lock.lock()
     teardownTask = task
     lock.unlock()
