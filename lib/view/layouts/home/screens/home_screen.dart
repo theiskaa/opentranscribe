@@ -82,6 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _glideId = 0;
   bool _gliding = false;
 
+  /// Bumped on each title tap so the week strip returns to today's week even
+  /// when the list is already at the top and the cursor never moves.
+  int _homeTick = 0;
+
   /// The reading line for the CURRENT fold: the chrome's bottom edge, which
   /// rides up with the content while the strip folds and then holds. It is
   /// where a day's label takes the title, and where a calendar tap parks it.
@@ -278,9 +282,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         visibleWeek: week,
                         state: state,
                         fold: _fold,
+                        homeTick: _homeTick,
                         onTitleTap: () {
                           _sections.reset();
                           _glideTo(0);
+                          // Force the strip home too: a manually swiped week
+                          // leaves the cursor on today, so the glide alone
+                          // would not page it back.
+                          setState(() => _homeTick++);
                         },
                         onDayTap: _scrollToDay,
                         onVisibleWeekChanged: (start) => _visibleWeek.value = start,
@@ -313,6 +322,7 @@ class _HomeChrome extends StatefulWidget {
     required this.visibleWeek,
     required this.state,
     required this.fold,
+    required this.homeTick,
     required this.onTitleTap,
     required this.onDayTap,
     required this.onVisibleWeekChanged,
@@ -326,6 +336,10 @@ class _HomeChrome extends StatefulWidget {
 
   /// How far the strip is folded away, 0 open to 1 gone.
   final ValueListenable<double> fold;
+
+  /// Bumped on a title tap, forwarded to the strip so it pages back to today's
+  /// week even when the cursor never moved.
+  final int homeTick;
   final VoidCallback onTitleTap;
   final ValueChanged<DateTime> onDayTap;
   final ValueChanged<DateTime> onVisibleWeekChanged;
@@ -392,6 +406,7 @@ class _HomeChromeState extends State<_HomeChrome> {
           cursorDay: widget.activeDay,
           onDayTap: widget.onDayTap,
           onVisibleWeekChanged: widget.onVisibleWeekChanged,
+          homeTick: widget.homeTick,
         ),
       ),
       bottomHeight: AppSpacing.md + WeekCalendar.heightOf(context),

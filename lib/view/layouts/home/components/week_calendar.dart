@@ -22,6 +22,7 @@ class WeekCalendar extends StatefulWidget {
     required this.cursorDay,
     required this.onDayTap,
     required this.onVisibleWeekChanged,
+    required this.homeTick,
     super.key,
   });
 
@@ -38,6 +39,11 @@ class WeekCalendar extends StatefulWidget {
   /// Fires with the visible week's first day as swipes land, so the bar's
   /// month can follow the strip.
   final ValueChanged<DateTime> onVisibleWeekChanged;
+
+  /// Bumped on a title tap to page the strip back to today's week, even when
+  /// the cursor never moved because the list was already at the top. A swiped
+  /// strip has no other way home in that state.
+  final int homeTick;
 
   /// The strip's rendered height, for layouts that slide content under it.
   static double heightOf(BuildContext context) => context.theme.calendar.cellHeight;
@@ -113,11 +119,24 @@ class _WeekCalendarState extends State<WeekCalendar> {
   @override
   void didUpdateWidget(WeekCalendar old) {
     super.didUpdateWidget(old);
+    // A title tap sends the strip home to today's week even when the cursor
+    // did not move (the list was already at the top), which the cursor-driven
+    // path below would miss.
+    if (old.homeTick != widget.homeTick) {
+      _slideToPage(_weekCount - 1);
+      return;
+    }
     // The strip follows the cursor across weeks, straight to the final week.
     if (old.cursorDay == widget.cursorDay) return;
+    _slideToPage(_pageOfWeek(_weekStart(widget.cursorDay)));
+  }
+
+  /// Slides the strip to [target], honouring Reduce Motion, and reports the
+  /// month of the week we are heading to as the slide STARTS rather than when
+  /// onPageChanged lands. A no-op when already there.
+  void _slideToPage(int target) {
     final controller = _controller;
     if (controller == null || !controller.hasClients) return;
-    final target = _pageOfWeek(_weekStart(widget.cursorDay));
     if (target == controller.page?.round()) return;
     if (context.reduceMotion) {
       controller.jumpToPage(target);
@@ -125,9 +144,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
       final motion = context.motionNow;
       controller.animateToPage(target, duration: motion.weekSlide, curve: Curves.easeOutCubic);
     }
-    // The bar's month belongs to the week we are heading to, not the one we
-    // are leaving: report it as the slide STARTS, not when onPageChanged
-    // fires at the end. Post-frame because this runs inside a build.
+    // Post-frame because this may run inside a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.onVisibleWeekChanged(_startOfPage(target));
     });
