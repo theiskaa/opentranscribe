@@ -137,9 +137,7 @@ class _HomeMenuState extends State<HomeMenu> {
     final appLang = context.watch<AppLanguageCubit>().state;
 
     final currentDefault = _currentDefault(settings);
-    final sourceLabel = _version == null
-        ? l10n.menuSourceCode
-        : '${l10n.menuSourceCode}  ·  $_version';
+    final sourceLabel = _version == null ? l10n.menuSourceCode : '$_version';
 
     // Grouped, not just listed: Search, then the transcription group (Models,
     // Transcription), the app group (Appearance, Language), then Source. Native
