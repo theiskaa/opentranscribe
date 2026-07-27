@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -50,6 +52,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _themeCubit.updatePlatformBrightness(
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Termination only. Background-audio keeps a live recording in `paused`, so
+    // finalizing on pause would kill background capture; only on detach (the app
+    // going away) do we finalize any in-flight take, so it is never left as an
+    // unfinalized file the reconcile sweep would discard.
+    if (state == AppLifecycleState.detached) {
+      unawaited(Deps.i.transcriptionService.finalizeActiveCapture());
+    }
   }
 
   @override
