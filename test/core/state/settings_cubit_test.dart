@@ -263,6 +263,97 @@ void main() {
       await cubit.close();
     });
 
+    test('a refused removal marks the row and a successful retry clears it', () async {
+      // Nothing installed: FakeManagedEngine.removeLanguage reports false.
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.remove('de-DE');
+
+      expect(row(cubit, 'de-DE').failure?.kind, LanguageFailureKind.removeFailed);
+      expect(row(cubit, 'en-US').failure, isNull, reason: 'only the refused row is marked');
+
+      // The failure survives reloads even once the row reads ready: a removal
+      // failure lives on a ready row by nature, readiness must not clear it.
+      engine.installed = true;
+      await cubit.load();
+      expect(row(cubit, 'de-DE').isReady, isTrue);
+      expect(row(cubit, 'de-DE').failure?.kind, LanguageFailureKind.removeFailed);
+
+      // A retry that actually releases clears the verdict.
+      await cubit.remove('de-DE');
+      expect(row(cubit, 'de-DE').failure, isNull);
+
+      await cubit.close();
+    });
+
+    test('a removal in flight swallows the duplicate tap', () async {
+      // The disc stays tappable while the round trip runs; the duplicate used
+      // to find nothing left to release and stamp "couldn't remove" over a
+      // removal that just succeeded.
+      engine.installed = true;
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+
+      final first = cubit.remove('de-DE');
+      final second = cubit.remove('de-DE');
+
+      expect(await second, isFalse);
+      expect(await first, isTrue);
+      expect(row(cubit, 'de-DE').failure, isNull);
+
+      await cubit.close();
+    });
+
+    test('an install retry clears a standing removeFailed verdict', () async {
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+      await cubit.remove('de-DE');
+      expect(row(cubit, 'de-DE').failure?.kind, LanguageFailureKind.removeFailed);
+
+      cubit.install('de-DE');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(row(cubit, 'de-DE').failure, isNull);
+      expect(row(cubit, 'de-DE').isReady, isTrue);
+
+      await cubit.close();
+    });
+
+    test('evictAndInstall frees the slot then retries the blocked language', () async {
+      engine.installed = true;
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.evictAndInstall('en-US', 'de-DE');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(
+        row(cubit, 'de-DE').isReady,
+        isTrue,
+        reason: 'the blocked install ran after the evict',
+      );
+      expect(row(cubit, 'de-DE').failure, isNull);
+
+      await cubit.close();
+    });
+
+    test('evictAndInstall skips the retry when nothing was released', () async {
+      // Nothing installed: the eviction is refused, so the blocked language
+      // must not start a download it has no slot for.
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.evictAndInstall('en-US', 'de-DE');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(row(cubit, 'en-US').failure?.kind, LanguageFailureKind.removeFailed);
+      expect(row(cubit, 'de-DE').installing, isFalse);
+      expect(row(cubit, 'de-DE').isReady, isFalse);
+
+      await cubit.close();
+    });
+
     test('removing the default falls back to the device locale', () async {
       engine.installed = true;
       final cubit = build();

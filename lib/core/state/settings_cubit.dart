@@ -11,7 +11,9 @@ import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 
 /// Why a language row failed, as a kind the UI words. [capReached] is not a
 /// retry story: the fix is removing one of the languages holding the cap.
-enum LanguageFailureKind { installFailed, capReached }
+/// [removeFailed] marks a removal the platform refused (released nothing);
+/// the row itself is usually still ready.
+enum LanguageFailureKind { installFailed, capReached, removeFailed }
 
 @immutable
 final class LanguageFailure {
@@ -230,7 +232,11 @@ class SettingsCubit extends Cubit<SettingsState> {
           // A standing failure survives rebuilds UNLESS the language became
           // ready through another path (a first-use install during
           // transcription): a ready row wearing "download failed" is a lie.
-          failure: ready ? null : previous[tag]?.failure,
+          // A removal failure is the exception: it lives on a ready row by
+          // nature, so readiness cannot clear it.
+          failure: ready && previous[tag]?.failure?.kind != LanguageFailureKind.removeFailed
+              ? null
+              : previous[tag]?.failure,
         ),
       );
     }
@@ -310,19 +316,63 @@ class SettingsCubit extends Cubit<SettingsState> {
   /// fresh install; never silently to another random language, and never at
   /// all when nothing was actually released (a no-op removal must not carry a
   /// side effect the user did not ask for).
-  Future<void> remove(String tag) async {
+  Future<bool> remove(String tag) async {
+    // Single-flight per tag: the disc stays tappable while a removal's round
+    // trip is in flight, and the duplicate would find nothing left to release
+    // and stamp "couldn't remove" over a removal that just succeeded.
+    if (!_removals.add(tag)) return false;
+    try {
+      return await _remove(tag);
+    } finally {
+      _removals.remove(tag);
+    }
+  }
+
+  final Set<String> _removals = {};
+
+  Future<bool> _remove(String tag) async {
+    // A fresh attempt clears the last one's verdict either way.
+    _patchRow(tag, (row) => row.copyWith(clearFailure: true));
     final released = await _service.removeLanguage(tag);
-    if (isClosed) return;
+    if (isClosed) return released;
     if (released && tag == state.localeId) {
       await _transcription.setLocaleId(_transcription.deviceLocaleId);
     }
     await load();
+    if (isClosed) return released;
+    if (!released) {
+      // Nothing was released: say so on the row instead of pretending the
+      // swipe did something. The failure stands until a retry clears it.
+      _patchRow(
+        tag,
+        (row) =>
+            row.copyWith(failure: const LanguageFailure(kind: LanguageFailureKind.removeFailed)),
+      );
+    }
+    return released;
+  }
+
+  /// The cap-recovery move as one gesture: frees a slot by removing
+  /// [evictTag], then retries the blocked [installTag]. A refused removal
+  /// skips the retry; the evicted row already wears its own failure.
+  Future<void> evictAndInstall(String evictTag, String installTag) async {
+    final released = await remove(evictTag);
+    if (isClosed || !released) return;
+    install(installTag);
   }
 
   Future<void> setBackupExcluded(bool excluded) async {
     await _audioStorage.setExcluded(excluded);
     if (isClosed) return;
     emit(state.copyWith(backupExcluded: _audioStorage.backupExcluded));
+  }
+
+  /// Debug-only: stamps a synthetic [failure] on [tag] so the failure sheet
+  /// can be inspected without a real install failing. A no-op in release, and
+  /// gone the next time [load] runs (except a removeFailed on a ready row).
+  void debugStampFailure(String tag, LanguageFailure failure) {
+    if (!kDebugMode) return;
+    _patchRow(tag, (row) => row.copyWith(failure: failure));
   }
 
   void _patchRow(String tag, LanguageModelState Function(LanguageModelState) update) {
