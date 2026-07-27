@@ -165,7 +165,10 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   void _onDragStart(DragStartDetails _) {
     _reveal.stop();
     _disc.stop();
-    _canExpand = _reveal.value >= 1;
+    // A settled-open reveal rests a hair below 1 (overdamped, approached from
+    // below), so a raw >= 1 would read open as not-yet-open and refuse to let a
+    // second drag stretch it into the delete pill. Allow the epsilon band.
+    _canExpand = _reveal.value > 1 - _kSettledEpsilon;
     _dragStartValue = _reveal.value;
     _committed = false;
   }
@@ -196,8 +199,12 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     // A "drag" that started closed and went nowhere is a TAP the horizontal
     // recognizer stole from the tap recognizer (a finger landing with a few
     // pixels of sideways jitter crosses the slop and wins the arena). Honor
-    // the intent: fire the tap instead of silently swallowing it.
-    if (_dragStartValue == 0 && _reveal.value < 0.06 && velocity.abs() < _kFlingVelocity) {
+    // the intent: fire the tap instead of silently swallowing it. "Started
+    // closed" allows the spring's settled-closed rest (a hair above 0, not
+    // exactly 0), or a once-swiped row would never recover a jittery tap.
+    if (_dragStartValue < _kSettledEpsilon &&
+        _reveal.value < 0.06 &&
+        velocity.abs() < _kFlingVelocity) {
       _settle(open: false, claim: false);
       widget.onTap();
       return;
@@ -271,7 +278,11 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   }
 
   void _handleTap() {
-    if (_reveal.value > 0) {
+    // A settled-closed reveal rests a hair above 0 (the spring stops within its
+    // tolerance, not exactly at target), so test against the same epsilon the
+    // disc's hit-test uses. A raw > 0 would make a closed-but-once-swiped row
+    // swallow every tap and never fire onTap.
+    if (_reveal.value > _kSettledEpsilon) {
       _settle(open: false);
     } else {
       widget.onTap();
