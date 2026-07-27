@@ -82,11 +82,22 @@ class Deps {
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
+  static bool _initialized = false;
+
   static Future<void> init() async {
+    // Idempotent: a stray second call after a successful init would otherwise
+    // throw an opaque LateInitializationError on the `i` assignment. The flag is
+    // set only once `i` is assigned (end of this method), so a call that threw
+    // partway can still be retried rather than early-returning with `i` unset.
+    if (_initialized) return;
+
     // Refuse to ship a release build that would encrypt journal data with the
     // committed development key. Provide a real key via --dart-define=STORAGE_KEY.
     if (kReleaseMode && _storageKey == _devStorageKey) {
       throw StateError('STORAGE_KEY must be supplied via --dart-define for a release build');
+    }
+    if (kDebugMode && _storageKey == _devStorageKey) {
+      debugPrint('deps: using the committed development STORAGE_KEY (debug/profile only)');
     }
 
     final localService = LocalService();
@@ -100,7 +111,11 @@ class Deps {
     // development), and a session left hot fails every later start with
     // "already recording" until the app is relaunched. Quiet when idle, which
     // is every real launch.
-    unawaited(recorder.cancel().catchError((Object _) {}));
+    unawaited(
+      recorder.cancel().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: launch cancel of a stale capture failed: $e');
+      }),
+    );
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
     await audioStorageSettings.apply();
 
@@ -138,9 +153,15 @@ class Deps {
         ),
       ],
     );
+    _initialized = true;
 
     // Recover or remove audio files no entry references (a kill mid-recording, a
     // save that never landed). Off the critical path: launch must not wait on it.
-    unawaited(i.transcriptionService.reconcileOrphans().catchError((Object _) => 0));
+    unawaited(
+      i.transcriptionService.reconcileOrphans().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: orphan reconcile failed: $e');
+        return 0;
+      }),
+    );
   }
 }
