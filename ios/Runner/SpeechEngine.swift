@@ -483,6 +483,11 @@ final class SpeechAnalyzerLiveSession {
   // The analyzer wind-down this session launches on finish()/abort(), handed to
   // the NEXT session as its priorTeardown so the two never overlap. Guarded by lock.
   private var teardownTask: Task<Void, Never>?
+  // True once analyzer.start() has returned. A session torn down BEFORE this never
+  // started an analyzer, so it winds nothing down (no cancelAndFinishNow on an
+  // unstarted analyzer) and instead chains its own priorTeardown forward, so the
+  // older analyzer it was still waiting on is not orphaned. Guarded by lock.
+  private var analyzerStarted = false
 
   fileprivate init(
     localeId: String,
@@ -496,12 +501,21 @@ final class SpeechAnalyzerLiveSession {
     self.priorTeardown = priorTeardown
   }
 
-  // The wind-down to await before a successor session starts. nil if this session
-  // never built (or already released) its analyzer.
+  // The wind-down a successor must await before starting its analyzer. Chains this
+  // session's own teardown BEHIND its priorTeardown: if this session was superseded
+  // before it started (own teardown nil/trivial), the older analyzer it was still
+  // waiting on is carried forward through prior, so the chain never drops a
+  // still-running analyzer under a rapid burst of restarts.
   var pendingTeardown: Task<Void, Never>? {
     lock.lock()
-    defer { lock.unlock() }
-    return teardownTask
+    let own = teardownTask
+    lock.unlock()
+    let prior = priorTeardown
+    if own == nil && prior == nil { return nil }
+    return Task {
+      await prior?.value
+      await own?.value
+    }
   }
 
   func start() {
@@ -582,6 +596,9 @@ final class SpeechAnalyzerLiveSession {
       }
 
       try await analyzer.start(inputSequence: inputSequence)
+      lock.lock()
+      analyzerStarted = true
+      lock.unlock()
 
       let token = CaptureHub.session.addConsumer(
         onBuffer: { [weak self] buffer in self?.feed(buffer) },
@@ -715,8 +732,9 @@ final class SpeechAnalyzerLiveSession {
     guard !already else { return }
     lock.lock()
     let analyzer = self.analyzer
+    let started = analyzerStarted
     lock.unlock()
-    guard let analyzer = analyzer else { return }
+    guard let analyzer = analyzer, started else { return }
     let task = Task { _ = try? await analyzer.finalizeAndFinishThroughEndOfInput() }
     lock.lock()
     teardownTask = task
@@ -737,8 +755,12 @@ final class SpeechAnalyzerLiveSession {
     // serializes its operations; cancel supersedes an in-flight finish.
     lock.lock()
     let analyzer = self.analyzer
+    let started = analyzerStarted
     lock.unlock()
-    guard let analyzer = analyzer else { return }
+    // An unstarted analyzer has nothing to wind down; skip it so we never await a
+    // cancelAndFinishNow() on an analyzer that never ran (its priorTeardown chains
+    // forward via pendingTeardown instead).
+    guard let analyzer = analyzer, started else { return }
     // Overwrites any finish() task on purpose: a cancel supersedes a graceful
     // finalize, and this is the wind-down the next session must wait on.
     let task = Task { _ = try? await analyzer.cancelAndFinishNow() }
