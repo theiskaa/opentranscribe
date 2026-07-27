@@ -479,10 +479,23 @@ final class AudioCaptureSession {
         do {
           try file.write(from: buffer)
         } catch {
+          // Latch on the nil->set transition inside one lock so concurrent
+          // buffers that all threw dispatch the teardown exactly once.
           self.lock.lock()
-          self.fileWriteError = "\(error)"
+          let first = self.fileWriteError == nil
+          if first { self.fileWriteError = "\(error)" }
           self.lock.unlock()
-          NSLog("AudioCaptureSession write error: \(error)")
+          if first {
+            NSLog("AudioCaptureSession write error: \(error)")
+            // End the take rather than keep a live mic writing nothing for the
+            // rest of the session: the audio up to here is kept, and Dart
+            // auto-finalizes off the interrupted status.
+            DispatchQueue.main.async { [weak self] in
+              guard let self = self, self.isRunning else { return }
+              self.teardown()
+              self.onStatus?("interrupted")
+            }
+          }
         }
       }
       for onBuffer in onBuffers { onBuffer(buffer) }
@@ -546,6 +559,11 @@ final class AudioCaptureSession {
       }
 
       input.removeTap(onBus: 0)
+      // The old tap is detached, so no writer races these: reset the level
+      // window so one sample after the route change is not aggregated on top of
+      // a partial pre-change window (matches start()).
+      self.levelSumSquares = 0
+      self.levelFrames = 0
       self.installCaptureTap(on: input, format: format)
       if !self.engine.isRunning {
         do {

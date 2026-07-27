@@ -44,19 +44,31 @@ final class RecordingLiveActivityController {
 
   /// A fresh take starts an activity; a resume re-anchors the running one.
   private func begin() {
-    if let _ = activity {
+    // A handle that is still on screen (active, or merely stale - stale is still
+    // updatable) is re-anchored and updated, never duplicated with a new request.
+    if let activity = activity, activity.activityState != .ended, activity.activityState != .dismissed {
       runStart = Date()
       push(paused: false)
       scheduleHourRollover()
       return
     }
-    accumulated = 0
+    // No live handle. A fresh take starts the clock at zero; a resume whose
+    // island the system ended (the 8h ceiling) keeps its banked time so the new
+    // island resumes the real clock. End the dead handle before requesting a new
+    // one so two islands never coexist.
+    if let dead = activity {
+      enqueue { await dead.end(nil, dismissalPolicy: .immediate) }
+      activity = nil
+    } else {
+      accumulated = 0
+    }
     runStart = Date()
     // The user toggle (Settings > OpenTranscribe > Live Activities) can be
     // off; recording proceeds without an island, never the other way around.
     guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
     let state = RecordingActivityAttributes.ContentState(
-      startedAt: Date(), accumulated: 0, paused: false)
+      startedAt: (runStart ?? Date()).addingTimeInterval(-accumulated),
+      accumulated: accumulated, paused: false)
     activity = try? Activity.request(
       attributes: RecordingActivityAttributes(),
       content: .init(state: state, staleDate: nil))
@@ -88,11 +100,19 @@ final class RecordingLiveActivityController {
   }
 
   private func push(paused: Bool) {
-    guard let activity = activity else { return }
+    // A system-dismissed/ended handle is not updatable; skip it rather than spin
+    // no-op updates. A resume then recreates via begin().
+    guard let activity = activity,
+      activity.activityState == .active || activity.activityState == .stale
+    else { return }
     let state = RecordingActivityAttributes.ContentState(
-      // Now minus what is already on the clock: the island's system-side
-      // timer reads the right total from the first frame.
-      startedAt: Date().addingTimeInterval(-accumulated),
+      // Run start minus what is already banked: the island's system-side timer
+      // reads the right total from the first frame. Anchoring to runStart (not
+      // now) is what keeps the hour-rollover push honest - at rollover now is an
+      // hour past runStart, so a now-based anchor would reset the clock to 0.
+      // While paused runStart is nil and the fallback reproduces the old value;
+      // the paused widget renders the static accumulated time anyway.
+      startedAt: (runStart ?? Date()).addingTimeInterval(-accumulated),
       accumulated: accumulated,
       paused: paused)
     enqueue { await activity.update(.init(state: state, staleDate: nil)) }

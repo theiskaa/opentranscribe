@@ -109,7 +109,12 @@ private struct TimerText: View {
   let fit: TimerFit
 
   var body: some View {
-    let longForm = Date().timeIntervalSince(state.startedAt) >= 3590
+    // While paused, startedAt is frozen but Date() keeps advancing, so a long
+    // pause would spuriously widen the frame; read the true banked total instead.
+    let longForm =
+      state.paused
+      ? state.accumulated >= 3590
+      : Date().timeIntervalSince(state.startedAt) >= 3590
     let text: Text
     if state.paused {
       text = Text(Self.clock(state.accumulated))
