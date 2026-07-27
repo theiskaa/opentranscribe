@@ -190,15 +190,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// flight; the synchronous emit is the point, so nothing stale ever renders.
   void prepareTake() {
     if (!state.isBusy || _startInFlight != null || _service.isRecording) return;
-    _timer?.cancel();
-    _timer = null;
-    _livePrefix = '';
-    _elapsedBase = Duration.zero;
-    _runStart = null;
-    unawaited(_liveSub?.cancel());
-    _liveSub = null;
-    unawaited(_levelSub?.cancel());
-    _levelSub = null;
+    _resetRunState();
     // Advancing the take TAKES OWNERSHIP: a stop or cancel still finalizing
     // behind its popped sheet fails its ownership check from here on, so not
     // even its error can land on the fresh sheet this call just cleaned.
@@ -219,22 +211,10 @@ class RecorderCubit extends Cubit<RecorderState> {
       // its status without ever recording a thing. Heal it rather than refuse.
       if (_startInFlight != null || _service.isRecording) return;
     }
-    // Reset SYNCHRONOUSLY, never awaited: a previous take's stop may still be
-    // finalizing behind its popped sheet, and its subscription, prefix, and
-    // timer must not leak into this take. Synchronous on purpose - the claim
-    // emitted below must follow the busy check with no async gap, or two
-    // rapid starts (and a switch or pause racing the start round-trip) both
-    // slip through it. Cancelling a broadcast subscription detaches it at the
-    // call, so the unawaited cancel cannot leak an event into the new state.
-    _timer?.cancel();
-    _timer = null;
-    _livePrefix = '';
-    _elapsedBase = Duration.zero;
-    _runStart = null;
-    unawaited(_liveSub?.cancel());
-    _liveSub = null;
-    unawaited(_levelSub?.cancel());
-    _levelSub = null;
+    // Reset synchronously (see _resetRunState): the claim emitted below must
+    // follow the busy check with no async gap, so nothing from a still-finalizing
+    // previous take leaks in.
+    _resetRunState();
     emit(
       RecorderState(
         status: RecorderStatus.recording,
@@ -245,8 +225,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       ),
     );
     _liveSub = _service.liveEvents.listen(
-      (event) =>
-          emit(state.copyWith(liveText: _livePrefix + event.text, clearLiveError: true)),
+      (event) {
+        if (!isClosed) {
+          emit(state.copyWith(liveText: _livePrefix + event.text, clearLiveError: true));
+        }
+      },
       // A live failure never tears down the take: the batch pass on stop is the
       // source of truth and still runs. Surface why the live window is blank
       // instead of swallowing it (temporary raw diagnostic copy).
@@ -507,6 +490,25 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       emit(state.copyWith(elapsed: _currentElapsed()));
     });
+  }
+
+  /// Clears any per-run state a previous take left in flight (timer, prefix,
+  /// clock, live/level subscriptions), so nothing leaks into the next take.
+  /// Synchronous on purpose: [start] must reset and emit its claim with no async
+  /// gap, or two rapid starts (and a switch or pause racing the start round-trip)
+  /// both slip through the busy check. Cancelling a broadcast subscription
+  /// detaches it at the call, so the unawaited cancels cannot leak an event into
+  /// the new state.
+  void _resetRunState() {
+    _timer?.cancel();
+    _timer = null;
+    _livePrefix = '';
+    _elapsedBase = Duration.zero;
+    _runStart = null;
+    unawaited(_liveSub?.cancel());
+    _liveSub = null;
+    unawaited(_levelSub?.cancel());
+    _levelSub = null;
   }
 
   Future<void> _teardown() async {

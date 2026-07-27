@@ -78,6 +78,13 @@ final class ReservationInfo {
 
   final int max;
   final List<String> reservedTags;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReservationInfo && other.max == max && listEquals(other.reservedTags, reservedTags);
+
+  @override
+  int get hashCode => Object.hash(max, Object.hashAll(reservedTags));
 }
 
 /// Progress of an on-device model download: [fraction] complete in [0,1], and
