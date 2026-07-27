@@ -56,6 +56,13 @@ class LocalService {
 
   /// Pads or truncates the key to exactly 32 characters.
   String _padKey(String key) {
+    // AES-256 needs 32 BYTES; a non-ASCII char is >1 byte under Key.fromUtf8, so
+    // 32 code units would not be 32 bytes and AES would reject the key. Catch
+    // misuse in debug rather than at first encrypt; keys are expected ASCII.
+    assert(
+      key.codeUnits.every((c) => c < 128),
+      'STORAGE_KEY must be ASCII: non-ASCII chars break the 32-byte AES key',
+    );
     if (key.length >= 32) return key.substring(0, 32);
     return key.padRight(32, '0');
   }
