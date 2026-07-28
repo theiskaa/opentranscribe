@@ -132,18 +132,14 @@ final class AppTheme {
             weekdayLabelColor: textSecondary,
             dayNumberColor: text,
             disabledDayColor: textSecondary.withValues(alpha: 0.6),
-            // Today is marked by a dot, not a hue: the strip stays ink-only.
-            todayColor: text,
-            tileBorder: text.withValues(alpha: 0.14),
-            tileBorderDisabled: text.withValues(alpha: 0.07),
-            // A ring, not a block: the cursor slides across the tiles and
-            // today's tint has to survive underneath it. Low-alpha ink on white
-            // reads far weaker than low-alpha white on black, so on light the
-            // ring needs a HIGHER alpha to carry the "you are here" weight, while
-            // the fill needs a LOWER one (ink muddies the tile faster than white
-            // lifts it), letting the ring lead rather than a grey block.
-            cursorFill: text.withValues(alpha: brightness == Brightness.dark ? 0.08 : 0.05),
-            cursorBorder: text.withValues(alpha: brightness == Brightness.dark ? 0.55 : 0.85),
+            // One quiet grammar: the dot says today, the soft border says
+            // where you are, the chip's strength says whether the day holds
+            // anything. Low-alpha white on black reads weaker than ink on
+            // white, so dark runs the higher alphas.
+            todayDot: text,
+            tileFill: text.withValues(alpha: brightness == Brightness.dark ? 0.06 : 0.04),
+            tileFillMuted: text.withValues(alpha: brightness == Brightness.dark ? 0.03 : 0.02),
+            cursorBorder: text.withValues(alpha: brightness == Brightness.dark ? 0.38 : 0.25),
           ),
       entryList:
           entryList ??

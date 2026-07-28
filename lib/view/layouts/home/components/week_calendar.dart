@@ -8,7 +8,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// The week strip in the home chrome, always visible. The accent cursor marks
+/// The week strip in the home chrome, always visible. The soft border marks
 /// [cursorDay] (the day the scroll is viewing; today at rest) and the strip
 /// pages itself to the cursor's week as the scroll crosses weeks. Tapping an
 /// enabled day (one with records, or today) NAVIGATES: the screen scrolls the
@@ -121,9 +121,9 @@ class _WeekCalendarState extends State<WeekCalendar> {
     super.didUpdateWidget(old);
     // A title tap sends the strip home to today's week even when the cursor
     // did not move (the list was already at the top), which the cursor-driven
-    // path below would miss.
+    // path below would miss. Fast: it answers a touch, not a scroll.
     if (old.homeTick != widget.homeTick) {
-      _slideToPage(_weekCount - 1);
+      _slideToPage(_weekCount - 1, fast: true);
       return;
     }
     // The strip follows the cursor across weeks, straight to the final week.
@@ -133,8 +133,9 @@ class _WeekCalendarState extends State<WeekCalendar> {
 
   /// Slides the strip to [target], honouring Reduce Motion, and reports the
   /// month of the week we are heading to as the slide STARTS rather than when
-  /// onPageChanged lands. A no-op when already there.
-  void _slideToPage(int target) {
+  /// onPageChanged lands. A no-op when already there. [fast] is the tap
+  /// answer's clock, quicker than the scroll-following slide's.
+  void _slideToPage(int target, {bool fast = false}) {
     final controller = _controller;
     if (controller == null || !controller.hasClients) return;
     if (target == controller.page?.round()) return;
@@ -142,7 +143,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
       controller.jumpToPage(target);
     } else {
       final motion = context.motionNow;
-      controller.animateToPage(target, duration: motion.weekSlide, curve: Curves.easeOutCubic);
+      controller.animateToPage(
+        target,
+        duration: fast ? motion.weekHome : motion.weekSlide,
+        curve: Curves.easeOutCubic,
+      );
     }
     // Post-frame because this may run inside a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -190,8 +195,8 @@ class _WeekCalendarState extends State<WeekCalendar> {
   }
 }
 
-/// One week: a row of day tiles. The cursor is each tile's OWN ring, lit in
-/// place - a ring sliding across discrete tiles would cross the gaps and the
+/// One week: a row of day tiles. The cursor is each tile's OWN border, lit in
+/// place - a shape sliding across discrete tiles would cross the gaps and the
 /// tiles between, which reads wrong for this shape language.
 class _WeekRow extends StatelessWidget {
   const _WeekRow({
@@ -227,8 +232,9 @@ class _WeekRow extends StatelessWidget {
   }
 }
 
-/// One day: a soft rounded tile holding the weekday letter, the day number,
-/// and today's dot. The viewed day's ring fades up on the tile itself.
+/// One day: the weekday letter and the day number over a soft chip (a whisper
+/// when the day holds nothing), today's dot beneath. The viewed day's soft
+/// border fades up around whichever tile the scroll is reading.
 class _DayTile extends StatelessWidget {
   const _DayTile({
     required this.day,
@@ -252,7 +258,10 @@ class _DayTile extends StatelessWidget {
     // the empty past and the future are inert.
     final enabled = hasEntries || isToday;
     final numberColor = enabled ? tokens.dayNumberColor : tokens.disabledDayColor;
-    final restingBorder = enabled ? tokens.tileBorder : tokens.tileBorderDisabled;
+    final letterColor = enabled
+        ? tokens.weekdayLabelColor
+        : tokens.weekdayLabelColor.withValues(alpha: 0.5);
+    final restingFill = hasEntries ? tokens.tileFill : tokens.tileFillMuted;
 
     return Touchable(
       onTap: enabled ? () => onTap(day) : null,
@@ -263,11 +272,10 @@ class _DayTile extends StatelessWidget {
           duration: theme.motion.crossfade,
           curve: Curves.easeOut,
           builder: (context, t, child) => DecoratedBox(
-            // Outline at rest, fill only on the viewed day.
             decoration: SuperellipseDecoration(
               borderRadius: tokens.tileRadius,
-              color: Color.lerp(const Color(0x00000000), tokens.cursorFill, t),
-              border: BorderSide(color: Color.lerp(restingBorder, tokens.cursorBorder, t)!),
+              color: restingFill,
+              border: BorderSide(color: Color.lerp(null, tokens.cursorBorder, t)!),
             ),
             child: child,
           ),
@@ -276,11 +284,7 @@ class _DayTile extends StatelessWidget {
             children: [
               Text(
                 DateFormat.E().format(day).substring(0, 1).toUpperCase(),
-                style: AppType.caption.copyWith(
-                  color: enabled
-                      ? tokens.weekdayLabelColor
-                      : tokens.weekdayLabelColor.withValues(alpha: 0.5),
-                ),
+                style: AppType.caption.copyWith(color: letterColor),
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
@@ -290,15 +294,13 @@ class _DayTile extends StatelessWidget {
                 ).copyWith(color: numberColor),
               ),
               const SizedBox(height: AppSpacing.xxs),
-              // The dot marks TODAY. No accent color: dark-vs-dim numbers say
-              // where records live, and the ring says where you are.
               SizedBox(
                 height: tokens.dotSize,
                 child: isToday
                     ? Container(
                         width: tokens.dotSize,
                         height: tokens.dotSize,
-                        decoration: BoxDecoration(color: tokens.todayColor, shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: tokens.todayDot, shape: BoxShape.circle),
                       )
                     : null,
               ),

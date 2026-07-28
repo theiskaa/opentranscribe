@@ -40,8 +40,8 @@ void main() {
       final theme = derived();
       expect(theme.button.pressed, theme.accentPressed);
       expect(theme.button.secondaryBackground, theme.surface);
-      expect(theme.calendar.tileBorder, theme.text.withValues(alpha: 0.14));
-      expect(theme.calendar.todayColor, theme.text);
+      expect(theme.calendar.cursorBorder, theme.text.withValues(alpha: 0.25));
+      expect(theme.calendar.todayDot, theme.text);
       expect(theme.entryList.railColor, theme.hairline);
       expect(theme.entryList.nodeColor, theme.textSecondary);
       expect(theme.player.progress, theme.accent);
@@ -67,7 +67,7 @@ void main() {
       expect(theme.screens.home, const Color(0xFF222222));
       // Untouched groups still derive.
       expect(theme.topBar.background, theme.background);
-      expect(theme.calendar.tileBorder, theme.text.withValues(alpha: 0.14));
+      expect(theme.calendar.tileFill, theme.text.withValues(alpha: 0.04));
     });
   });
 
@@ -89,6 +89,9 @@ void main() {
       expect(t.surface, const Color(0xFF1C1C1E));
       expect(t.text, const Color(0xFFF5F5F5));
       expect(t.onAccent, const Color(0xFF111111));
+      // Dark runs the stronger calendar alphas: low-alpha white reads weaker.
+      expect(t.calendar.cursorBorder, t.text.withValues(alpha: 0.38));
+      expect(t.calendar.tileFill, t.text.withValues(alpha: 0.06));
     });
   });
 }

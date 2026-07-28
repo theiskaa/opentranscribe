@@ -23,6 +23,7 @@ final class AppMotion {
     this.rollStagger = const Duration(milliseconds: 30),
     this.subtitleRoll = const Duration(milliseconds: 120),
     this.weekSlide = const Duration(milliseconds: 300),
+    this.weekHome = const Duration(milliseconds: 180),
     this.pageSlide = const Duration(milliseconds: 300),
     this.dayGlide = const Duration(milliseconds: 320),
     this.dayGlideCurve = Curves.easeOutCubic,
@@ -74,6 +75,10 @@ final class AppMotion {
   /// The calendar strip paging to the viewed day's week as the scroll (or a
   /// manual swipe's return trip) moves across weeks.
   final Duration weekSlide;
+
+  /// The strip paging home on a title TAP: quicker than [weekSlide]'s
+  /// scroll-following travel, because it answers a touch, not a scroll.
+  final Duration weekHome;
 
   /// A full-screen pager advancing one page on a button tap (onboarding's Next).
   final Duration pageSlide;

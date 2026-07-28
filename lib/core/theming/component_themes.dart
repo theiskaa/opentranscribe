@@ -98,10 +98,9 @@ final class CalendarTheme {
     required this.weekdayLabelColor,
     required this.dayNumberColor,
     required this.disabledDayColor,
-    required this.todayColor,
-    required this.tileBorder,
-    required this.tileBorderDisabled,
-    required this.cursorFill,
+    required this.todayDot,
+    required this.tileFill,
+    required this.tileFillMuted,
     required this.cursorBorder,
     this.tileRadius = 14.0,
     this.tileGap = 5.0,
@@ -116,22 +115,25 @@ final class CalendarTheme {
   /// not respond.
   final Color dayNumberColor;
   final Color disabledDayColor;
-  final Color todayColor;
 
-  /// Each day is its own OUTLINED tile - no fill at rest; inert days carry
-  /// the fainter outline.
-  final Color tileBorder;
-  final Color tileBorderDisabled;
+  /// The dot under today's number: a fixed landmark in a different grammar
+  /// from the cursor's moving border, so the two compose when you are
+  /// viewing today.
+  final Color todayDot;
 
-  /// The viewed day is the only filled tile, and its outline strengthens.
-  final Color cursorFill;
+  /// A day's soft resting chip: records at full strength, nothing at a
+  /// whisper, so the row reads what the week held at a glance.
+  final Color tileFill;
+  final Color tileFillMuted;
+
+  /// The soft border that marks the viewed day: where you are.
   final Color cursorBorder;
   final double tileRadius;
 
   /// Breathing room between neighboring tiles.
   final double tileGap;
 
-  /// The dot inside today's tile, in [todayColor].
+  /// The dot under today's number, in [todayDot].
   final double dotSize;
 
   /// One tile's height, which is the strip's height.
