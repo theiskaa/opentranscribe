@@ -77,6 +77,28 @@ void main() {
     await svc.dispose();
   });
 
+  test('a live session that ends without a final still persists the batch transcript', () async {
+    // A real analyzer session can end on partials only, never emitting a final
+    // event. The service must not wait for one: it always runs the batch pass on
+    // stop, so the saved transcript is the batch text regardless.
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'live partial words',
+        batchText: 'settled batch transcript',
+        liveNoFinal: true,
+        stopSignal: rec.stopped,
+      ),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first; // deterministic: a partial has flowed
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'settled batch transcript');
+
+    await svc.dispose();
+  });
+
   test('a live isFinal event is dropped from liveEvents (batch is the truth)', () async {
     // The isFinal event only duplicates the last partial, and it is the one a
     // stopped session flushes late into the next take. The service must drop it
