@@ -810,6 +810,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
   // Batch tasks are retained by id so overlapping calls do not drop each other.
   private var batchTasks: [Int: SFSpeechRecognitionTask] = [:]
+  // The iOS 26 analyzer-path counterpart to batchTasks, keyed from the same
+  // nextBatchId sequence.
+  private var batchAnalyzerTasks: [Int: Task<Void, Never>] = [:]
   private var nextBatchId = 0
 
   // Streams model-install progress on its own channel. Held here so it lives as long
@@ -1142,6 +1145,17 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       let startMs = (args["startMs"] as? NSNumber)?.intValue
       let endMs = (args["endMs"] as? NSNumber)?.intValue
       transcribeFile(path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
+    case "cancelBatches":
+      // Abandons every in-flight batch task; each one's own completion/defer
+      // removes it from its registry, so the dictionaries are not cleared here
+      // (that would race a reply already in flight and double-remove).
+      lock.lock()
+      let tasks = Array(batchTasks.values)
+      let analyzerTasks = Array(batchAnalyzerTasks.values)
+      lock.unlock()
+      tasks.forEach { $0.cancel() }
+      analyzerTasks.forEach { $0.cancel() }
+      result(nil)
     case "startLive":
       let args = call.arguments as? [String: Any]
       let session = args?["session"] as? Int ?? 0
@@ -1254,7 +1268,18 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
   ) {
     let url = URL(fileURLWithPath: path)
-    Task {
+    // Mint the id before the task exists, so it can be registered the moment
+    // the task handle is available, before any await inside runs.
+    lock.lock()
+    let id = nextBatchId
+    nextBatchId += 1
+    lock.unlock()
+    let task = Task { [weak self] in
+      defer {
+        self?.lock.lock()
+        self?.batchAnalyzerTasks.removeValue(forKey: id)
+        self?.lock.unlock()
+      }
       func reply(_ value: Any) { DispatchQueue.main.async { result(value) } }
       // Consumes transcriber.results; cancelled on any failure so it does not hang
       // awaiting a results stream that never finalizes.
@@ -1369,9 +1394,15 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       } catch {
         collected?.cancel()
         if let analyzer = runningAnalyzer { await analyzer.cancelAndFinishNow() }
+        // A cancelBatches() call surfaces here as CancellationError: the same
+        // path as any other failure, replying onto a Dart future that has
+        // already given up. Harmless.
         reply(SpeechErrorCode.transcribeError.error("\(error)"))
       }
     }
+    lock.lock()
+    batchAnalyzerTasks[id] = task
+    lock.unlock()
   }
 }
 

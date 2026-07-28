@@ -1075,6 +1075,28 @@ void main() {
     await svc.dispose();
   });
 
+  test('a batch that outlives its timeout is cancelled on the engine', () async {
+    // The Dart future giving up must not leave the native task running: the
+    // service tells a CancellableBatchEngine to abandon it too.
+    final engine = FakeBatchEngine(delay: const Duration(milliseconds: 200));
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(duration: Duration.zero),
+      engine: engine,
+      store: store,
+      batchTimeout: const Duration(milliseconds: 10),
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript, isNull);
+    expect(engine.cancelBatchesCalls, 1);
+
+    await svc.dispose();
+  });
+
   test('startRecording throws PermissionDenied when the mic is denied', () async {
     final svc = build(
       (_) => FakeBatchEngine(),

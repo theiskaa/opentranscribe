@@ -23,13 +23,16 @@ Transcript _cannedTranscript(String text, String localeId, String engineId, Date
 /// real final) once [stopSignal] completes. Its batch result is [batchText] (default
 /// [cannedText]), so a test can prove the persisted transcript comes from batch, not
 /// live. Set [failLive]/[failBatch] to exercise the failure paths.
-class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelEngine {
+class FakeStreamingEngine
+    implements StreamingTranscriptionEngine, ManagedModelEngine, CancellableBatchEngine {
   FakeStreamingEngine({
     this.cannedText = 'the quick brown fox jumps over the lazy dog',
     this.batchText,
     this.stopSignal,
     this.failLive = false,
     this.failBatch = false,
+    this.liveNoFinal = false,
+    this.batchDelay,
     this.availability = const Availability.available(),
     this.throwOnCheckAvailability = false,
     this.supportedLocaleTags = const ['en-US'],
@@ -44,6 +47,16 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   final Future<void>? stopSignal;
   final bool failLive;
   final bool failBatch;
+
+  /// When true, the success path emits its partials then closes on [stopSignal]
+  /// WITHOUT a final event, mirroring an analyzer session that only ever
+  /// partials. Proves the batch result, not the live text, is the saved truth.
+  final bool liveNoFinal;
+
+  /// Delays [transcribeFile]'s completion, so a test can outlast the service
+  /// timeout and prove cancelBatches() fired.
+  final Duration? batchDelay;
+
   final Availability availability;
 
   /// When true, [checkAvailability] throws, to exercise callers' failure paths.
@@ -124,9 +137,18 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
     Duration? end,
   }) async {
     batchCalls.add((localeId: localeId, start: start, end: end));
+    if (batchDelay != null) await Future<void>.delayed(batchDelay!);
     if (failBatch) throw const TranscriptionFailed('fake batch failure');
     final text = transcriptBuilder?.call(localeId, start, end) ?? batchText ?? cannedText;
     return _cannedTranscript(text, localeId, id, _clock());
+  }
+
+  /// How many times [cancelBatches] was called, for the timeout-cancel test.
+  int cancelBatchesCalls = 0;
+
+  @override
+  Future<void> cancelBatches() async {
+    cancelBatchesCalls++;
   }
 
   /// The locale the most recent [transcribeLive] was asked for, for assertions.
@@ -157,6 +179,10 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
         }
         await (stopSignal ?? Future<void>.value());
         if (cancelled || controller.isClosed) return;
+        if (liveNoFinal) {
+          await controller.close();
+          return;
+        }
         controller.add(
           TranscriptEvent(
             text: cannedText,
@@ -181,7 +207,7 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
 /// Deterministic batch-only engine, the whisper.cpp-shaped double: it is NOT a
 /// [StreamingTranscriptionEngine], so it exercises the batch path through the type
 /// check, not just the capability flag. Set [failBatch] to fail transcription.
-class FakeBatchEngine implements TranscriptionEngine {
+class FakeBatchEngine implements TranscriptionEngine, CancellableBatchEngine {
   FakeBatchEngine({
     this.cannedText = 'batch transcript',
     this.failBatch = false,
@@ -235,6 +261,14 @@ class FakeBatchEngine implements TranscriptionEngine {
   /// Fails only RANGED calls, the shape of an engine that cannot slice
   /// (pre-26), for fallback tests.
   bool failRanged = false;
+
+  /// How many times [cancelBatches] was called, for the timeout-cancel test.
+  int cancelBatchesCalls = 0;
+
+  @override
+  Future<void> cancelBatches() async {
+    cancelBatchesCalls++;
+  }
 
   @override
   Future<Transcript> transcribeFile(

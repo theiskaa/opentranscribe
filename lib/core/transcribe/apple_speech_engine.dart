@@ -18,7 +18,8 @@ const _modelChannel = 'opentranscribe/speech/model';
 /// stream over an EventChannel; batch (re-transcription, tests) goes over the
 /// MethodChannel; model install streams over its own EventChannel. Nothing above
 /// this file names Apple Speech. On-device only.
-class AppleSpeechEngine implements StreamingTranscriptionEngine, ManagedModelEngine {
+class AppleSpeechEngine
+    implements StreamingTranscriptionEngine, ManagedModelEngine, CancellableBatchEngine {
   AppleSpeechEngine({
     MethodChannel? methods,
     EventChannel? events,
@@ -260,6 +261,18 @@ class AppleSpeechEngine implements StreamingTranscriptionEngine, ManagedModelEng
       throw _mapError(e.code, e.message, details: e.details);
     } on MissingPluginException catch (e) {
       throw TranscriptionFailed(e.message);
+    }
+  }
+
+  @override
+  Future<void> cancelBatches() async {
+    try {
+      await _methods.invokeMethod<void>('cancelBatches');
+    } on PlatformException {
+      // Cancellation is best effort; a failed cancel changes nothing for the
+      // caller, who has already given up on the batch.
+    } on MissingPluginException {
+      // Same: tests without a native side must not throw here.
     }
   }
 

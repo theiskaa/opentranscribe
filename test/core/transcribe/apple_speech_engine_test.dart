@@ -159,6 +159,28 @@ void main() {
     });
   });
 
+  group('cancelBatches', () {
+    test('invokes the native method and swallows failures', () async {
+      var called = false;
+      mockMethods((call) async {
+        expect(call.method, 'cancelBatches');
+        called = true;
+        return null;
+      });
+
+      await engine.cancelBatches();
+      expect(called, isTrue);
+
+      // Best effort: neither a platform error nor a missing plugin may throw,
+      // since the caller has already given up on the batch by the time this runs.
+      mockMethods((call) async => throw PlatformException(code: 'x'));
+      await engine.cancelBatches();
+
+      messenger.setMockMethodCallHandler(methods, null); // missing plugin
+      await engine.cancelBatches();
+    });
+  });
+
   group('supportedLocales', () {
     test('decodes the tag list, empty on error or missing plugin', () async {
       mockMethods((call) async {

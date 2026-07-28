@@ -815,7 +815,16 @@ class TranscriptionService {
         .transcribeFile(file, localeId: localeId ?? this.localeId, start: start, end: end)
         .timeout(
           timeout,
-          onTimeout: () => throw const TranscriptionFailed('transcription timed out'),
+          onTimeout: () {
+            // The Dart side is giving up; tell the engine so the native task does not
+            // keep holding the recognizer for work nobody will read. CancellableBatchEngine
+            // does not extend TranscriptionEngine, so `is` alone cannot promote; the cast
+            // makes the member visible.
+            if (engine is CancellableBatchEngine) {
+              unawaited((engine as CancellableBatchEngine).cancelBatches());
+            }
+            throw const TranscriptionFailed('transcription timed out');
+          },
         );
   }
 

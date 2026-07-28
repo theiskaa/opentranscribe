@@ -163,6 +163,14 @@ abstract interface class StreamingTranscriptionEngine implements TranscriptionEn
   Stream<TranscriptEvent> transcribeLive({required String localeId});
 }
 
+/// An engine that can abort its in-flight batch transcriptions. The service
+/// calls this when a batch outlives its timeout, so an abandoned native task
+/// does not keep holding the recognizer. Cancelling must be safe at any time,
+/// including when nothing is in flight, and must never affect live streaming.
+abstract interface class CancellableBatchEngine {
+  Future<void> cancelBatches();
+}
+
 /// An engine whose on-device model is downloaded and managed on the device. Apple
 /// Speech implements this (its language assets); a future whisper.cpp engine would
 /// too (its model file). An engine with no downloadable model does not implement it,
