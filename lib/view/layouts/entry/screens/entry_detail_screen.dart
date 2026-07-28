@@ -166,7 +166,9 @@ class _DetailViewState extends State<_DetailView> {
           return ColoredBox(color: theme.screens.entryDetail, child: const SizedBox.expand());
         }
 
-        final busy = state.busyId == entry.id;
+        // Transcribe only: a delete is also an in-flight action on this id, but
+        // it must not dissolve the transcript or flash the loader on its way out.
+        final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
         // The entry's own language, once known: the quiet answer to "what
         // will Re-transcribe run in".
         final language = entry.effectiveLocaleId;
@@ -176,7 +178,7 @@ class _DetailViewState extends State<_DetailView> {
         final transcribeTags = _transcribeTags(entry, settings);
         final preselected = entry.effectiveLocaleId ?? settings.localeId;
         // The bottom CTA only exists for a never-transcribed entry, and not
-        // while a run is in flight (the body shows the skeleton then).
+        // while a run is in flight (the body shows the loader then).
         final showCta = entry.transcript == null && !busy;
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.

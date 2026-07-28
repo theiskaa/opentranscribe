@@ -37,15 +37,21 @@ final class EntriesFailure {
   int get hashCode => Object.hash(entryId, kind);
 }
 
+/// The in-flight action's kind. The transcript view dissolves into its shimmer
+/// only for a transcribe; a delete must not run it on the way out.
+enum EntriesAction { transcribe, delete }
+
 /// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesState {
-  const EntriesState({this.entries = const [], this.busyId, this.error});
+  const EntriesState({this.entries = const [], this.busyId, this.busyAction, this.error});
 
   /// Newest first.
   final List<Entry> entries;
 
-  /// Id of an entry with an in-flight action (re-transcribe/delete), for UI hints.
+  /// Id of an entry with an in-flight action (re-transcribe/delete), for UI
+  /// hints; [busyAction] says which action it is.
   final String? busyId;
+  final EntriesAction? busyAction;
 
   /// Last action failure, for the UI to surface ON ITS OWN ENTRY. Cleared on
   /// the next action or on dismiss.
@@ -58,12 +64,14 @@ class EntriesState {
   EntriesState copyWith({
     List<Entry>? entries,
     String? busyId,
+    EntriesAction? busyAction,
     EntriesFailure? error,
     bool clearBusy = false,
     bool clearError = false,
   }) => EntriesState(
     entries: entries ?? this.entries,
     busyId: clearBusy ? null : (busyId ?? this.busyId),
+    busyAction: clearBusy ? null : (busyAction ?? this.busyAction),
     error: clearError ? null : (error ?? this.error),
   );
 }
@@ -101,7 +109,7 @@ class EntriesCubit extends Cubit<EntriesState> {
   }
 
   Future<void> delete(Entry entry) async {
-    emit(state.copyWith(busyId: entry.id));
+    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.delete));
     try {
       await _service.deleteEntry(entry);
     } catch (e) {
@@ -123,7 +131,7 @@ class EntriesCubit extends Cubit<EntriesState> {
   /// Re-transcribes in the entry's own language by default; [localeId] is the
   /// user's explicit override (the Transcribe-in picker).
   Future<void> retranscribe(Entry entry, {String? localeId}) async {
-    emit(state.copyWith(busyId: entry.id, clearError: true));
+    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.transcribe, clearError: true));
     EntriesFailure? failure;
     try {
       await _service.retranscribe(entry, localeId: localeId);

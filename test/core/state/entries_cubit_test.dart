@@ -73,6 +73,40 @@ void main() {
     await cubit.close();
   });
 
+  test('a delete is busy as a delete, never as a transcribe', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    final seen = <EntriesAction?>[];
+    final sub = cubit.stream.listen((s) => seen.add(s.busyAction));
+
+    await cubit.delete(entry);
+
+    // The transcript view dissolves on a transcribe-busy entry; a delete
+    // wearing the wrong kind would run the shimmer on its way out.
+    expect(seen, contains(EntriesAction.delete));
+    expect(seen, isNot(contains(EntriesAction.transcribe)));
+    expect(cubit.state.busyAction, isNull);
+
+    await sub.cancel();
+    await cubit.close();
+  });
+
+  test('a retranscribe is busy as a transcribe, and clears when it lands', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    final seen = <EntriesAction?>[];
+    final sub = cubit.stream.listen((s) => seen.add(s.busyAction));
+
+    await cubit.retranscribe(entry);
+
+    expect(seen, contains(EntriesAction.transcribe));
+    expect(cubit.state.busyAction, isNull);
+    expect(cubit.state.busyId, isNull);
+
+    await sub.cancel();
+    await cubit.close();
+  });
+
   test('retranscribe swaps in the fresh transcript', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;
