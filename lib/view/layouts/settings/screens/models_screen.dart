@@ -22,6 +22,7 @@ import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -426,18 +427,8 @@ class _LanguageRow extends StatelessWidget {
   /// download still pending from an earlier attempt, and otherwise the model
   /// this language runs on.
   String _subLine(AppLocalizations l10n) {
-    final failure = row.failure;
-    if (failure != null) {
-      return switch (failure.kind) {
-        LanguageFailureKind.capReached => l10n.transcriptionErrorCap,
-        LanguageFailureKind.removeFailed => l10n.transcriptionErrorRemove,
-        LanguageFailureKind.installFailed => switch (failure.assetStatus) {
-          ModelAssetStatus.unsupported => l10n.transcriptionErrorUnsupported,
-          ModelAssetStatus.downloading => l10n.transcriptionErrorStuck,
-          _ => l10n.transcriptionErrorGeneric,
-        },
-      };
-    }
+    final failure = modelFailureLine(l10n, row);
+    if (failure != null) return failure;
     if (row.status == ModelAssetStatus.unsupported) return l10n.transcriptionErrorUnsupported;
     if (row.status == ModelAssetStatus.downloading && !row.installing) {
       return l10n.transcriptionErrorStuck;
