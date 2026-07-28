@@ -44,6 +44,7 @@ final class AppMotion {
     this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
     this.swipePopMinScale = 0.85,
     this.swipePopSpring = const SpringDescription(mass: 1, stiffness: 480, damping: 22),
+    this.swipeExit = const Duration(milliseconds: 350),
   });
 
   final Duration entrance;
@@ -155,4 +156,9 @@ final class AppMotion {
   /// back off the edge on hide - one continuous motion, no slide-then-pop seam.
   /// On its own controller because it must overshoot, unlike [swipeSpring].
   final SpringDescription swipePopSpring;
+
+  /// A deleted row leaving the list: the record fades, then its slot closes,
+  /// and only then is the subject actually removed - so the removal lands on
+  /// an already-empty slot instead of cutting the row out mid-frame.
+  final Duration swipeExit;
 }
