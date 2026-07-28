@@ -49,9 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePullToRecord => 'Pull to record';
 
   @override
-  String get navSearch => 'Search';
-
-  @override
   String get menuTranscriptionLanguage => 'Transcription';
 
   @override

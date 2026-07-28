@@ -48,10 +48,6 @@
   "@homePullToRecord": {
     "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
   },
-  "navSearch": "Search",
-  "@navSearch": {
-    "description": "Accessibility label for the search button on the home bar"
-  },
   "menuTranscriptionLanguage": "Transcription",
   "@menuTranscriptionLanguage": {
     "description": "Home menu row that opens the picker for the language recordings are transcribed in"

@@ -164,12 +164,6 @@ abstract class AppLocalizations {
   /// **'Pull to record'**
   String get homePullToRecord;
 
-  /// Accessibility label for the search button on the home bar
-  ///
-  /// In en, this message translates to:
-  /// **'Search'**
-  String get navSearch;
-
   /// Home menu row that opens the picker for the language recordings are transcribed in
   ///
   /// In en, this message translates to:
