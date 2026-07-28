@@ -95,7 +95,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In en, this message translates to:
-  /// **'opentranscribe'**
+  /// **'OpenTranscribe'**
   String get appTitle;
 
   /// Settings note describing the offline promise
@@ -577,6 +577,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Touch and hold a language to make it the default.'**
   String get transcriptionDefaultHint;
+
+  /// Explanatory body on the first onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'You speak your mind, and it writes it down.'**
+  String get onboardingIntroBody;
+
+  /// Link on the intro step that opens the open-source repository
+  ///
+  /// In en, this message translates to:
+  /// **'View source'**
+  String get onboardingSource;
+
+  /// Headline on the permissions onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Allow access'**
+  String get onboardingPermissionsTitle;
+
+  /// Subtitle reassuring that the requested permissions stay on-device
+  ///
+  /// In en, this message translates to:
+  /// **'Both work entirely on your device.'**
+  String get onboardingPermissionsBody;
+
+  /// Name of the microphone permission row
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone'**
+  String get onboardingMicName;
+
+  /// One-line reason the app needs the microphone
+  ///
+  /// In en, this message translates to:
+  /// **'To record your voice.'**
+  String get onboardingMicReason;
+
+  /// Name of the speech-recognition permission row
+  ///
+  /// In en, this message translates to:
+  /// **'Speech recognition'**
+  String get onboardingSpeechName;
+
+  /// One-line reason the app needs speech recognition
+  ///
+  /// In en, this message translates to:
+  /// **'To turn your recordings into text, on device.'**
+  String get onboardingSpeechReason;
+
+  /// Button that requests a permission
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get onboardingAllow;
+
+  /// Shown when a permission was denied; opens the system Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Enable in Settings'**
+  String get onboardingOpenSettings;
+
+  /// Headline on the model-download onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Download a language'**
+  String get onboardingModelsTitle;
+
+  /// Body on the model-download onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription runs offline once a language is on your device. You can add more later in Settings.'**
+  String get onboardingModelsBody;
+
+  /// Button advancing to the next onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// Button finishing onboarding and entering the app
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingStart;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

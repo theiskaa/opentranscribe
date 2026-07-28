@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "opentranscribe",
+  "appTitle": "OpenTranscribe",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -356,5 +356,61 @@
   "transcriptionDefaultHint": "Touch and hold a language to make it the default.",
   "@transcriptionDefaultHint": {
     "description": "Footer hint for the hold-to-set-default gesture on the models screen"
+  },
+  "onboardingIntroBody": "You speak your mind, and it writes it down.",
+  "@onboardingIntroBody": {
+    "description": "Explanatory body on the first onboarding step"
+  },
+  "onboardingSource": "View source",
+  "@onboardingSource": {
+    "description": "Link on the intro step that opens the open-source repository"
+  },
+  "onboardingPermissionsTitle": "Allow access",
+  "@onboardingPermissionsTitle": {
+    "description": "Headline on the permissions onboarding step"
+  },
+  "onboardingPermissionsBody": "Both work entirely on your device.",
+  "@onboardingPermissionsBody": {
+    "description": "Subtitle reassuring that the requested permissions stay on-device"
+  },
+  "onboardingMicName": "Microphone",
+  "@onboardingMicName": {
+    "description": "Name of the microphone permission row"
+  },
+  "onboardingMicReason": "To record your voice.",
+  "@onboardingMicReason": {
+    "description": "One-line reason the app needs the microphone"
+  },
+  "onboardingSpeechName": "Speech recognition",
+  "@onboardingSpeechName": {
+    "description": "Name of the speech-recognition permission row"
+  },
+  "onboardingSpeechReason": "To turn your recordings into text, on device.",
+  "@onboardingSpeechReason": {
+    "description": "One-line reason the app needs speech recognition"
+  },
+  "onboardingAllow": "Allow",
+  "@onboardingAllow": {
+    "description": "Button that requests a permission"
+  },
+  "onboardingOpenSettings": "Enable in Settings",
+  "@onboardingOpenSettings": {
+    "description": "Shown when a permission was denied; opens the system Settings"
+  },
+  "onboardingModelsTitle": "Download a language",
+  "@onboardingModelsTitle": {
+    "description": "Headline on the model-download onboarding step"
+  },
+  "onboardingModelsBody": "Transcription runs offline once a language is on your device. You can add more later in Settings.",
+  "@onboardingModelsBody": {
+    "description": "Body on the model-download onboarding step"
+  },
+  "onboardingNext": "Next",
+  "@onboardingNext": {
+    "description": "Button advancing to the next onboarding step"
+  },
+  "onboardingStart": "Get started",
+  "@onboardingStart": {
+    "description": "Button finishing onboarding and entering the app"
   }
 }

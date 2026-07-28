@@ -1,0 +1,121 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:opentranscribe/core/state/settings_cubit.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_tile.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/model_failure_line.dart';
+import 'package:opentranscribe/view/widgets/progress_ring.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// Model step: offer the default language for download so transcription works
+/// offline right away. Optional - more languages live in the Models screen, and
+/// the default installs itself on first use if skipped here.
+class OnboardingModels extends StatelessWidget {
+  const OnboardingModels({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      builder: (context, state) {
+        // The suggested language to start with is the app default.
+        LanguageModelState? row;
+        for (final r in state.languages) {
+          if (r.tag == state.localeId) {
+            row = r;
+            break;
+          }
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.onboardingModelsTitle, style: AppType.title.copyWith(color: theme.text)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.onboardingModelsBody,
+                style: AppType.footnote.copyWith(color: theme.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              if (row == null)
+                // theme.text, not textSecondary: the spinner picks its dot color
+                // by the tint's luminance, and dark mode's mid-gray secondary
+                // picks black dots.
+                AppSpinner(size: 22, color: theme.text)
+              else
+                _ModelRow(row: row),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ModelRow extends StatelessWidget {
+  const _ModelRow({required this.row});
+
+  final LanguageModelState row;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final failure = modelFailureLine(AppLocalizations.of(context)!, row);
+    return Row(
+      children: [
+        OnboardingTile(
+          // height: 1 collapses the leading a flag emoji otherwise carries.
+          child: Text(
+            localeFlag(row.tag),
+            style: const TextStyle(fontSize: 20, height: 1),
+            textScaler: TextScaler.noScaling,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(localeDisplayName(row.tag), style: AppType.subhead.copyWith(color: theme.text)),
+              if (failure != null) ...[
+                const SizedBox(height: 2),
+                Text(failure, style: AppType.footnote.copyWith(color: theme.textSecondary)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        _trailing(context),
+      ],
+    );
+  }
+
+  Widget _trailing(BuildContext context) {
+    final theme = context.theme;
+    if (row.isReady) return AppIcon(AppIcons.checkmark, size: 18, color: theme.accent);
+    if (row.installing) {
+      final fraction = row.installFraction!;
+      // Before the first real fraction there is no honest progress to draw.
+      return fraction <= 0
+          ? AppSpinner(size: 22, color: theme.text)
+          : ProgressRing(fraction: fraction);
+    }
+    return Touchable(
+      onTap: () => context.read<SettingsCubit>().install(row.tag),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xs),
+        child: AppIcon(AppIcons.icloud, size: 22, color: theme.accent),
+      ),
+    );
+  }
+}

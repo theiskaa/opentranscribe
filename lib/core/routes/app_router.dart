@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/routes/slide_page.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
+import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
@@ -27,6 +30,16 @@ class AppRouter {
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: Routes.home,
+    // Send a first-run user to onboarding until they finish it, and never back
+    // into it once done. A synchronous storage read, so it is cheap on every
+    // navigation. The splash (App.build) runs first; this fires as it lifts.
+    redirect: (context, state) {
+      final done = Onboarding.isDone(Deps.i.localService);
+      final atOnboarding = state.matchedLocation == Routes.onboarding;
+      if (!done && !atOnboarding) return Routes.onboarding;
+      if (done && atOnboarding) return Routes.home;
+      return null;
+    },
     routes: [
       GoRoute(
         path: Routes.home,
@@ -35,6 +48,13 @@ class AppRouter {
         // over it.
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const HomeScreen()),
+      ),
+      GoRoute(
+        path: Routes.onboarding,
+        name: Routes.onboardingName,
+        // No transition: the splash cuts straight to it on a cold first launch.
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
       ),
       GoRoute(
         path: Routes.entry,

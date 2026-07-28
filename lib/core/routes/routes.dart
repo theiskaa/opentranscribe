@@ -4,6 +4,11 @@ abstract final class Routes {
   static const home = '/';
   static const homeName = 'home';
 
+  /// First-launch onboarding (intro, permissions, model download). Gated by the
+  /// router's redirect on [Onboarding.isDone]; shown once, then never again.
+  static const onboarding = '/onboarding';
+  static const onboardingName = 'onboarding';
+
   /// The models screen (per-language on-device models). There is no settings
   /// screen: the home menu ([HomeMenu]) is the settings surface, and Models is
   /// the one setting deep enough to earn its own screen. Pushed over home.

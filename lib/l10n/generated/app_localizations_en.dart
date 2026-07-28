@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'opentranscribe';
+  String get appTitle => 'OpenTranscribe';
 
   @override
   String get settingsOffline =>
@@ -275,4 +275,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionDefaultHint => 'Touch and hold a language to make it the default.';
+
+  @override
+  String get onboardingIntroBody => 'You speak your mind, and it writes it down.';
+
+  @override
+  String get onboardingSource => 'View source';
+
+  @override
+  String get onboardingPermissionsTitle => 'Allow access';
+
+  @override
+  String get onboardingPermissionsBody => 'Both work entirely on your device.';
+
+  @override
+  String get onboardingMicName => 'Microphone';
+
+  @override
+  String get onboardingMicReason => 'To record your voice.';
+
+  @override
+  String get onboardingSpeechName => 'Speech recognition';
+
+  @override
+  String get onboardingSpeechReason => 'To turn your recordings into text, on device.';
+
+  @override
+  String get onboardingAllow => 'Allow';
+
+  @override
+  String get onboardingOpenSettings => 'Enable in Settings';
+
+  @override
+  String get onboardingModelsTitle => 'Download a language';
+
+  @override
+  String get onboardingModelsBody =>
+      'Transcription runs offline once a language is on your device. You can add more later in Settings.';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingStart => 'Get started';
 }

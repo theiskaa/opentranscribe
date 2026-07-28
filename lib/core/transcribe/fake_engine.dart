@@ -31,6 +31,7 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
     this.failLive = false,
     this.failBatch = false,
     this.availability = const Availability.available(),
+    this.throwOnCheckAvailability = false,
     this.supportedLocaleTags = const ['en-US'],
     List<String>? installedLocaleTags,
     this.maxReservedLocales = 3,
@@ -44,6 +45,10 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   final bool failLive;
   final bool failBatch;
   final Availability availability;
+
+  /// When true, [checkAvailability] throws, to exercise callers' failure paths.
+  final bool throwOnCheckAvailability;
+
   final List<String> supportedLocaleTags;
 
   /// Mutable fixture: the tags reported installed AND reserved (this fake keeps
@@ -67,7 +72,10 @@ class FakeStreamingEngine implements StreamingTranscriptionEngine, ManagedModelE
   bool get onDeviceOnly => true;
 
   @override
-  Future<Availability> checkAvailability({required String localeId}) async => availability;
+  Future<Availability> checkAvailability({required String localeId}) async {
+    if (throwOnCheckAvailability) throw StateError('fake availability failure');
+    return availability;
+  }
 
   @override
   Future<bool> isModelInstalled({required String localeId}) async => true;

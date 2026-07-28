@@ -14,6 +14,7 @@ class FakeAudioRecorder implements AudioRecorder {
     this.permission = PermissionStatus.granted,
     this.recordingsDir = '/tmp',
     this.throwOnSetBackup = false,
+    this.throwOnEnsurePermission = false,
     this.throwOnStart = false,
     this.throwOnPause = false,
     this.throwOnResume = false,
@@ -33,6 +34,9 @@ class FakeAudioRecorder implements AudioRecorder {
 
   /// When true, [setBackupExcluded] throws, to exercise best-effort apply paths.
   final bool throwOnSetBackup;
+
+  /// When true, [ensurePermission] throws, modeling a channel error.
+  final bool throwOnEnsurePermission;
 
   /// When true, [start] throws, to exercise failed-start cleanup paths. Mutable
   /// so a test can fail the SECOND start after a successful first.
@@ -67,7 +71,10 @@ class FakeAudioRecorder implements AudioRecorder {
   Future<void> get stopped => _stopped.future;
 
   @override
-  Future<PermissionStatus> ensurePermission() async => permission;
+  Future<PermissionStatus> ensurePermission() async {
+    if (throwOnEnsurePermission) throw const CaptureFailed('fake permission failure');
+    return permission;
+  }
 
   @override
   Stream<CaptureStatus> get status => _status.stream;

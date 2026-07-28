@@ -186,6 +186,11 @@ class TranscriptionService {
   Future<Availability> checkAvailability({String? localeId}) =>
       _engine.checkAvailability(localeId: localeId ?? this.localeId);
 
+  /// Prompts for (or reports) microphone permission. Recording gates on this
+  /// itself; exposed so onboarding can front-load the prompt. Idempotent - a
+  /// second call just reports the settled status.
+  Future<PermissionStatus> ensureMicPermission() => _recorder.ensurePermission();
+
   /// Whether the model is downloaded so transcription runs with no wait. An engine
   /// with no downloadable model is always ready. Kept with [checkAvailability]
   /// for the same future recording gate.
