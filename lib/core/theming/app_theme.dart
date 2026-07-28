@@ -174,12 +174,6 @@ final class AppTheme {
             waveRemaining: text.withValues(alpha: 0.16),
             segmentColor: text,
             activeSegmentHighlight: text.withValues(alpha: 0.12),
-            // The skeleton is the same ink as everything else, just quiet: a
-            // faint resting bar with a sheen a step stronger sweeping through
-            // it. Kept light so it reads as a placeholder settling, not a block
-            // of filled text.
-            skeletonBase: text.withValues(alpha: 0.05),
-            skeletonHighlight: text.withValues(alpha: 0.10),
           ),
       settings:
           settings ??

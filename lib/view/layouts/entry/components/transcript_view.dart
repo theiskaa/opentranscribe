@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -10,12 +15,20 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/widgets/shimmer.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
 /// The transcript body. Where the transcript carries timings, it is a second
 /// way through the recording: the segment under the playhead is MARKED (never
 /// the rest dimmed), and TAPPING a sentence plays from it. Untranscribed entries
 /// get a quiet explanation and a transcribe action.
+///
+/// A re-transcribe crossfades the existing words into an iMessage-style
+/// invisible-ink shimmer, holds that living cloud while the run is in flight,
+/// then crossfades into the new text. A first transcribe has no words to
+/// dissolve, so it shimmers a placeholder instead: lines of ink sized by the
+/// recording's length and envelope, resolving into the real text when the run
+/// lands. Reduce motion (or a failed capture) falls back to the dots loader.
 class TranscriptView extends StatefulWidget {
   const TranscriptView({required this.entry, required this.busy, super.key});
 
@@ -26,16 +39,174 @@ class TranscriptView extends StatefulWidget {
   State<TranscriptView> createState() => _TranscriptViewState();
 }
 
-class _TranscriptViewState extends State<TranscriptView> {
+enum _Phase { content, shimmer, loading }
+
+class _TranscriptViewState extends State<TranscriptView> with TickerProviderStateMixin {
+  /// How long the formed ink holds before it is allowed to resolve, so a
+  /// near-instant re-transcribe still shows the full shimmer rather than a blink.
+  static const Duration _minHold = Duration(milliseconds: 500);
+
   /// One recognizer per segment, rebuilt when the segments change and disposed
   /// with the widget. Gesture recognizers on spans are not owned by the span:
   /// nothing else will ever free them.
   List<TapGestureRecognizer> _taps = const [];
 
+  /// Wraps the rendered text so a re-transcribe can grab its last painted frame.
+  final GlobalKey _textKey = GlobalKey();
+
+  /// 1 shows the text, 0 shows the ink cloud; the crossfade between them.
+  /// Created in [initState], never lazily: a view disposed without ever
+  /// shimmering must not create its ticker during teardown.
+  late final AnimationController _reveal;
+  late final Animation<double> _hide;
+
+  /// A seamless 0..1 loop driving the shimmer while it is up; its lap is
+  /// [AppMotion.inkLoop], read when the shimmer starts.
+  late final AnimationController _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _reveal = AnimationController(vsync: this, value: 1);
+    _hide = ReverseAnimation(_reveal);
+    _clock = AnimationController(vsync: this);
+  }
+
+  late _Phase _phase = widget.busy ? _Phase.loading : _Phase.content;
+  ui.Image? _inkImage;
+
+  /// Synthetic ink for a first transcribe, where there is no text to capture.
+  Float32List? _inkPoints;
+  Size? _inkSize;
+  double _inkDpr = 1;
+
+  /// Identifies the current shimmer, so a delayed callback from a superseded run
+  /// cannot resolve the wrong one.
+  int _run = 0;
+
+  /// The ink has formed AND held its beat (ready to resolve), and the new
+  /// transcript has landed. The reveal waits for BOTH.
+  bool _inkSettled = false;
+  bool _newReady = false;
+
   @override
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
     if (old.entry.transcript != widget.entry.transcript) _buildTaps();
+
+    if (!old.busy && widget.busy) {
+      // A run started. Dissolve the words if there are any; a first transcribe
+      // shimmers a placeholder shaped like the transcript the audio should
+      // produce instead. Reduce motion (or a failed prep) shows the loader.
+      final hadText = (old.entry.transcript?.fullText.trim().isNotEmpty) ?? false;
+      if (context.reduceMotion) {
+        _phase = _Phase.loading;
+      } else if (hadText ? _captureText() : _prepareInkLines()) {
+        _startHide();
+      } else {
+        _phase = _Phase.loading;
+      }
+    } else if (old.busy && !widget.busy) {
+      // The run landed. If we are shimmering, let the reveal fire once the ink
+      // has settled; otherwise just show the new text.
+      if (_phase == _Phase.shimmer) {
+        _newReady = true;
+        _tryReveal(_run);
+      } else {
+        _phase = _Phase.content;
+        _stopShimmer();
+      }
+    }
+  }
+
+  /// Text -> ink, then hold. The reveal is gated on this finishing, so it never
+  /// races a fast re-transcribe.
+  void _startHide() {
+    final run = ++_run;
+    _inkSettled = false;
+    _newReady = false;
+    _phase = _Phase.shimmer;
+    _clock
+      ..duration = context.motionNow.inkLoop
+      ..repeat();
+    _reveal.duration = context.motionNow.inkDissolve;
+    _reveal.reverse().whenComplete(() {
+      Future<void>.delayed(_minHold, () {
+        if (!mounted || run != _run) return;
+        _inkSettled = true;
+        _tryReveal(run);
+      });
+    });
+  }
+
+  /// Ink -> new text, but only once the ink has settled and the words are ready.
+  void _tryReveal(int run) {
+    if (run != _run || !_inkSettled || !_newReady || _phase != _Phase.shimmer) return;
+    _reveal.duration = context.motionNow.inkResolve;
+    _reveal.forward().whenComplete(() {
+      if (mounted && run == _run && _phase == _Phase.shimmer) {
+        setState(() => _phase = _Phase.content);
+        _stopShimmer();
+      }
+    });
+  }
+
+  /// Grabs the transcript's last painted frame into an image the shimmer draws
+  /// from. Returns whether a usable frame was captured.
+  bool _captureText() {
+    final boundary = _textKey.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) return false;
+    if (!boundary.hasSize || boundary.size.isEmpty) return false;
+    try {
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      _releaseInk();
+      _inkImage = boundary.toImageSync(pixelRatio: dpr);
+      // A plain copy: RenderBox.size hands back a debug size that tracks its
+      // owner, and reusing it once the boundary detaches trips debugAdoptSize.
+      _inkSize = Size(boundary.size.width, boundary.size.height);
+      _inkDpr = dpr;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Builds the placeholder a first transcribe shimmers: estimated lines of
+  /// word-shaped ink, sized by the recording's length and amplitude envelope.
+  /// Returns whether the layout gave a usable width.
+  bool _prepareInkLines() {
+    final width = context.size?.width ?? 0;
+    if (width <= 0) return false;
+    const style = AppType.body;
+    final fontSize = style.fontSize!;
+    final lineHeight = fontSize * style.height!;
+    final lines = estimateInkLines(
+      audio: widget.entry.duration,
+      width: width,
+      fontSize: fontSize,
+      peaks: widget.entry.peaks,
+    );
+    _releaseInk();
+    _inkPoints = placeholderInkPoints(
+      width: width,
+      lines: lines,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+    );
+    _inkSize = Size(width, lines * lineHeight);
+    return true;
+  }
+
+  void _stopShimmer() {
+    _clock.stop();
+    _releaseInk();
+  }
+
+  void _releaseInk() {
+    _inkImage?.dispose();
+    _inkImage = null;
+    _inkPoints = null;
+    _inkSize = null;
   }
 
   void _buildTaps() {
@@ -53,6 +224,9 @@ class _TranscriptViewState extends State<TranscriptView> {
 
   @override
   void dispose() {
+    _reveal.dispose();
+    _clock.dispose();
+    _releaseInk();
     for (final tap in _taps) {
       tap.dispose();
     }
@@ -63,11 +237,66 @@ class _TranscriptViewState extends State<TranscriptView> {
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    // A run in flight (first transcribe or re-transcribe): a shimmering
-    // skeleton in the transcript's own place, so the wait reads as the words
-    // arriving rather than a spinner parked over the page.
-    if (widget.busy) return const _TranscriptSkeleton();
+    // The shimmer: the real text and the ink cloud stacked, crossfaded by
+    // [_reveal]. The text layer is the OLD words while a run is in flight (they
+    // fade under the cloud) and the NEW words once it lands (they fade back in),
+    // so one crossfade covers both halves with nothing ever snapping. A first
+    // transcribe has no old words; its cloud is the placeholder lines instead.
+    final inkSize = _inkSize;
+    final inkImage = _inkImage;
+    final inkPoints = _inkPoints;
+    if (_phase == _Phase.shimmer && inkSize != null && (inkImage != null || inkPoints != null)) {
+      return Stack(
+        children: [
+          // Opacity does not block hit testing: without the IgnorePointer,
+          // tapping the glitter would land on an invisible segment and seek.
+          IgnorePointer(
+            child: FadeTransition(opacity: _reveal, child: _content(context)),
+          ),
+          IgnorePointer(
+            child: FadeTransition(
+              opacity: _hide,
+              child: inkImage != null
+                  ? InvisibleInk(
+                      image: inkImage,
+                      size: inkSize,
+                      pixelRatio: _inkDpr,
+                      color: theme.player.segmentColor,
+                      clock: _clock,
+                    )
+                  : InvisibleInk.points(
+                      points: inkPoints!,
+                      size: inkSize,
+                      color: theme.player.segmentColor,
+                      clock: _clock,
+                    ),
+            ),
+          ),
+        ],
+      );
+    }
 
+    final loading = _phase == _Phase.loading;
+    return AnimatedSwitcher(
+      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+      layoutBuilder: (current, previous) =>
+          Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
+      child: loading
+          ? Align(
+              key: const ValueKey('loading'),
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                // The ink dots, so the loader reads as the page's own, not a chip.
+                child: AppSpinner(size: 30, color: theme.player.segmentColor),
+              ),
+            )
+          : KeyedSubtree(key: const ValueKey('content'), child: _content(context)),
+    );
+  }
+
+  Widget _content(BuildContext context) {
+    final theme = context.theme;
     final transcript = widget.entry.transcript;
     final text = transcript?.fullText.trim() ?? '';
     if (transcript == null || text.isEmpty) {
@@ -78,7 +307,10 @@ class _TranscriptViewState extends State<TranscriptView> {
 
     final segments = transcript.segments;
     if (segments.isEmpty) {
-      return Text(text, style: AppType.body.copyWith(color: theme.text));
+      return RepaintBoundary(
+        key: _textKey,
+        child: Text(text, style: AppType.body.copyWith(color: theme.text)),
+      );
     }
     if (_taps.length != segments.length) _buildTaps();
 
@@ -86,87 +318,35 @@ class _TranscriptViewState extends State<TranscriptView> {
     // times a second, and the paragraph only changes when the LIT SEGMENT does.
     // Rebuilding every span on every tick was re-laying out the whole
     // transcript four times out of five for nothing.
-    return BlocSelector<PlayerCubit, PlayerState, int?>(
-      selector: (player) => player.status == PlaybackStatus.stopped
-          ? null
-          : activeSegmentIndex(segments, player.position),
-      builder: (context, active) {
-        final highlight = Paint()..color = theme.player.activeSegmentHighlight;
-        return Text.rich(
-          TextSpan(
-            children: [
-              for (final (i, segment) in segments.indexed)
-                TextSpan(
-                  text: i == segments.length - 1 ? segment.text : '${segment.text} ',
-                  recognizer: _taps[i],
-                  style: AppType.body.copyWith(
-                    color: theme.player.segmentColor,
-                    // The rest of the transcript is NOT dimmed. Reading is the
-                    // point of this screen, and dimming everything you are not
-                    // hearing makes the page worse at it; the lit segment
-                    // carries a mark instead, so following the audio costs the
-                    // rest of the text nothing.
-                    background: i == active ? highlight : null,
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// The transcript placeholder while a run is in flight: a paragraph of shimmering
-/// lines in the transcript's own column. The short lines close paragraphs, so the
-/// block reads as prose taking shape, not a loading bar.
-class _TranscriptSkeleton extends StatelessWidget {
-  const _TranscriptSkeleton();
-
-  /// Line lengths as percents of the text column. A ragged run with two short
-  /// breaks, so it reads as sentences rather than an even stack.
-  static const _widths = [100, 100, 92, 100, 60, 100, 95, 100, 45];
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.theme.player;
-    return Shimmer(
-      base: tokens.skeletonBase,
-      highlight: tokens.skeletonHighlight,
-      builder: (color) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final (i, width) in _widths.indexed)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i == _widths.length - 1 ? 0 : tokens.skeletonLineGap,
-              ),
-              // Expanded flexes give a bounded fractional width with no reliance
-              // on the parent's main-axis constraints; the tail keeps the line
-              // left-aligned when it is short.
-              child: SizedBox(
-                height: tokens.skeletonLineHeight,
-                // Stretch, so each bar fills the line's height; an Expanded only
-                // pins the width, and a bare DecoratedBox would otherwise be
-                // zero pixels tall and paint nothing.
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      flex: width,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(tokens.skeletonRadius),
-                        ),
-                      ),
+    return RepaintBoundary(
+      key: _textKey,
+      child: BlocSelector<PlayerCubit, PlayerState, int?>(
+        selector: (player) => player.status == PlaybackStatus.stopped
+            ? null
+            : activeSegmentIndex(segments, player.position),
+        builder: (context, active) {
+          final highlight = Paint()..color = theme.player.activeSegmentHighlight;
+          return Text.rich(
+            TextSpan(
+              children: [
+                for (final (i, segment) in segments.indexed)
+                  TextSpan(
+                    text: i == segments.length - 1 ? segment.text : '${segment.text} ',
+                    recognizer: _taps[i],
+                    style: AppType.body.copyWith(
+                      color: theme.player.segmentColor,
+                      // The rest of the transcript is NOT dimmed. Reading is the
+                      // point of this screen, and dimming everything you are not
+                      // hearing makes the page worse at it; the lit segment
+                      // carries a mark instead, so following the audio costs the
+                      // rest of the text nothing.
+                      background: i == active ? highlight : null,
                     ),
-                    if (width < 100) Expanded(flex: 100 - width, child: const SizedBox()),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
-        ],
+          );
+        },
       ),
     );
   }

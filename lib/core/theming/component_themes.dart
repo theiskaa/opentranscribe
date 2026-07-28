@@ -233,15 +233,10 @@ final class PlayerTheme {
     required this.waveRemaining,
     required this.segmentColor,
     required this.activeSegmentHighlight,
-    required this.skeletonBase,
-    required this.skeletonHighlight,
     this.waveBarWidth = 3.0,
     this.waveGap = 3.0,
     this.waveHeight = 40.0,
     this.controlSize = 40.0,
-    this.skeletonLineHeight = 11.0,
-    this.skeletonLineGap = 15.0,
-    this.skeletonRadius = AppRadius.sm,
   });
 
   /// The played part of the wave, and the quiet tone the rest is drawn in. The
@@ -255,12 +250,6 @@ final class PlayerTheme {
   final Color segmentColor;
   final Color activeSegmentHighlight;
 
-  /// The transcript skeleton shown while a (re-)transcription is in flight: the
-  /// resting bar fill and the sheen that sweeps across it. Ink at low alpha, so
-  /// the placeholder reads as the page's own quiet, not a foreign grey.
-  final Color skeletonBase;
-  final Color skeletonHighlight;
-
   /// One bar of the wave, and its distance to the next. Shared geometry with
   /// the recorder's band on purpose: the same recording, drawn twice.
   final double waveBarWidth;
@@ -271,12 +260,6 @@ final class PlayerTheme {
 
   /// The speed chip's tap-target height, matched to the wave's height.
   final double controlSize;
-
-  /// One skeleton line's height and the gap to the next, sized to the body
-  /// text the placeholder stands in for.
-  final double skeletonLineHeight;
-  final double skeletonLineGap;
-  final double skeletonRadius;
 }
 
 /// Grouped settings cards, rows, and toggles.

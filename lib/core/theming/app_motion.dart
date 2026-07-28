@@ -31,7 +31,9 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
-    this.shimmer = const Duration(milliseconds: 1200),
+    this.inkDissolve = const Duration(milliseconds: 600),
+    this.inkResolve = const Duration(milliseconds: 850),
+    this.inkLoop = const Duration(seconds: 6),
     this.errorBlink = const Duration(milliseconds: 1000),
     this.swipeSpring = const SpringDescription(mass: 1, stiffness: 440, damping: 42),
     this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
@@ -93,10 +95,17 @@ final class AppMotion {
   /// is holding the gesture past its threshold.
   final Duration pullWave;
 
-  /// One pass of the skeleton shimmer's highlight band across the placeholder,
-  /// looped while a transcript is being produced. The one loop that carries no
-  /// live signal, so it is slow enough to read as breathing, not a spinner.
-  final Duration shimmer;
+  /// The text dissolving into its invisible-ink shimmer when a re-transcribe
+  /// starts. One-shot.
+  final Duration inkDissolve;
+
+  /// The ink resolving back into the new transcript once the run lands. Slower
+  /// than [inkDissolve] on purpose: the arrival takes its time.
+  final Duration inkResolve;
+
+  /// One lap of the ink shimmer's seamless loop. Long, because every spark
+  /// pulses a few times per lap and faster laps read as boiling.
+  final Duration inkLoop;
 
   /// One breath of the inline error indicator's dot, looped to draw the eye
   /// without a spinner or a shout. Slow, so it reads as a pulse, not a flash.
