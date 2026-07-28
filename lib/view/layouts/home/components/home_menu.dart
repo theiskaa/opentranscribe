@@ -135,16 +135,7 @@ class _HomeMenuState extends State<HomeMenu> {
     final currentDefault = _currentDefault(settings);
     final sourceLabel = _version == null ? l10n.menuSourceCode : '$_version';
 
-    // Grouped, not just listed: Search, then the transcription group (Models,
-    // Transcription), the app group (Appearance, Language), then Source. Native
-    // menus draw a real divider between groups; the fallback keeps the order.
-    // The two language pickers close different groups on purpose, so they never
-    // sit right under each other. Each parent's position is captured as it is
-    // added: parents are the only id-less items, so on the fallback they alone
-    // reach onSelected(index).
     final items = <AppMenuItem>[
-      AppMenuItem(id: 'act:search', label: l10n.navSearch, icon: AppIcons.magnifyingglass),
-      const AppMenuItem.divider(),
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
     ];
     final defaultLangIndex = items.length;
@@ -221,8 +212,6 @@ class _HomeMenuState extends State<HomeMenu> {
               context.pushNamed(Routes.galleryName);
             case 'act:source':
               unawaited(openLink(kRepoUrl));
-            case 'act:search':
-              // No search screen yet; present but inert.
               break;
           }
         }
