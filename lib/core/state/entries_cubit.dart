@@ -89,7 +89,11 @@ class EntriesCubit extends Cubit<EntriesState> {
       await _service.renameEntry(entry, title);
     } catch (e) {
       if (!isClosed) {
-        emit(state.copyWith(error: EntriesFailure(entryId: entry.id, kind: _kind(e))));
+        emit(
+          state.copyWith(
+            error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
+          ),
+        );
       }
     } finally {
       if (!isClosed) emit(state.copyWith(entries: _service.entries()));
@@ -105,7 +109,11 @@ class EntriesCubit extends Cubit<EntriesState> {
       // recording is not resurrected by the reconcile sweep); the finally below
       // restores the row, and the user is told so they can retry.
       if (!isClosed) {
-        emit(state.copyWith(error: EntriesFailure(entryId: entry.id, kind: _kind(e))));
+        emit(
+          state.copyWith(
+            error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
+          ),
+        );
       }
     } finally {
       if (!isClosed) emit(state.copyWith(entries: _service.entries(), clearBusy: true));

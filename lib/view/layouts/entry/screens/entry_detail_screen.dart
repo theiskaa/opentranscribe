@@ -324,10 +324,7 @@ class _BottomDock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (kind != null)
-              ErrorPill(
-                message: _pillLabel(kind, l10n),
-                onTap: () => _openDetails(context, kind),
-              ),
+              ErrorPill(message: _pillLabel(kind, l10n), onTap: () => _openDetails(context, kind)),
             if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
             if (showCta)
               AppButton(

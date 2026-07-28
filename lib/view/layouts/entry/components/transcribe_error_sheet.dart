@@ -14,10 +14,7 @@ import 'package:opentranscribe/view/widgets/app_sheet.dart';
 /// user asked to try again. The retry runs on the caller's side, AFTER the sheet
 /// has closed, so its work lands on the screen and not under a modal.
 Future<bool> showTranscribeErrorSheet(BuildContext context, EntriesError kind) async {
-  final retry = await showAppSheet<bool>(
-    context,
-    builder: (context) => _ErrorContent(kind: kind),
-  );
+  final retry = await showAppSheet<bool>(context, builder: (context) => _ErrorContent(kind: kind));
   return retry ?? false;
 }
 
@@ -78,7 +75,11 @@ class _ErrorContent extends StatelessWidget {
           child: AppIcon(icon, size: 26, color: theme.textSecondary),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text(title, textAlign: TextAlign.center, style: AppType.title.copyWith(color: theme.text)),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: AppType.title.copyWith(color: theme.text),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Text(
           body,
