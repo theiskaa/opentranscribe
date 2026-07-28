@@ -107,11 +107,16 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         _phase = _Phase.loading;
       }
     } else if (old.busy && !widget.busy) {
-      // The run landed. If we are shimmering, let the reveal fire once the ink
-      // has settled; otherwise just show the new text.
+      // The run landed. New words reveal once the ink has settled; a run that
+      // produced nothing steps aside at once so the error surface, not the
+      // shimmer, gets the stage.
       if (_phase == _Phase.shimmer) {
-        _newReady = true;
-        _tryReveal(_run);
+        if (old.entry.transcript != widget.entry.transcript) {
+          _newReady = true;
+          _tryReveal(_run);
+        } else {
+          _failReveal();
+        }
       } else {
         _phase = _Phase.content;
         _stopShimmer();
@@ -136,6 +141,19 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         _inkSettled = true;
         _tryReveal(run);
       });
+    });
+  }
+
+  /// A failed run's exit: a quick crossfade back to what was there, skipping
+  /// the hold and the slow arrival, which are earned by new words only.
+  void _failReveal() {
+    final run = ++_run;
+    _reveal.duration = context.motionNow.crossfade;
+    _reveal.forward().whenComplete(() {
+      if (mounted && run == _run && _phase == _Phase.shimmer) {
+        setState(() => _phase = _Phase.content);
+        _stopShimmer();
+      }
     });
   }
 
@@ -175,7 +193,11 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   /// word-shaped ink, sized by the recording's length and amplitude envelope.
   /// Returns whether the layout gave a usable width.
   bool _prepareInkLines() {
-    final width = context.size?.width ?? 0;
+    // Not context.size: Element.size asserts during build, and didUpdateWidget
+    // runs inside it. The render box still carries last frame's size.
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return false;
+    final width = box.size.width;
     if (width <= 0) return false;
     const style = AppType.body;
     final fontSize = style.fontSize!;

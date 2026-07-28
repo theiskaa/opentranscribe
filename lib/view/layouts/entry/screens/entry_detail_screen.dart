@@ -177,9 +177,10 @@ class _DetailViewState extends State<_DetailView> {
         final settings = context.watch<SettingsCubit>().state;
         final transcribeTags = _transcribeTags(entry, settings);
         final preselected = entry.effectiveLocaleId ?? settings.localeId;
-        // The bottom CTA only exists for a never-transcribed entry, and not
-        // while a run is in flight (the body shows the loader then).
-        final showCta = entry.transcript == null && !busy;
+        // The bottom CTA exists for a never-transcribed entry; a run in flight
+        // disables it in place rather than unmounting it, so a failed run
+        // never blinks the button away and back.
+        final showCta = entry.transcript == null;
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.
         final error = state.errorFor(entry.id);
@@ -280,7 +281,13 @@ class _DetailViewState extends State<_DetailView> {
               // both clear of the document. Either may be absent; the scroll
               // reserves exactly their room so neither covers content.
               if (error != null || showCta)
-                _BottomDock(entry: entry, error: error, showCta: showCta),
+                _BottomDock(
+                  entry: entry,
+                  error: error,
+                  errorTick: state.errorTick,
+                  showCta: showCta,
+                  busy: busy,
+                ),
             ],
           ),
         );
@@ -294,11 +301,19 @@ class _DetailViewState extends State<_DetailView> {
 /// width above the home indicator; when both show, the error rides above the
 /// button so the fix and the retry read top to bottom.
 class _BottomDock extends StatelessWidget {
-  const _BottomDock({required this.entry, required this.error, required this.showCta});
+  const _BottomDock({
+    required this.entry,
+    required this.error,
+    required this.errorTick,
+    required this.showCta,
+    required this.busy,
+  });
 
   final Entry entry;
   final EntriesError? error;
+  final int errorTick;
   final bool showCta;
+  final bool busy;
 
   Future<void> _openDetails(BuildContext context, EntriesError kind) async {
     final entries = context.read<EntriesCubit>();
@@ -326,12 +341,18 @@ class _BottomDock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (kind != null)
-              ErrorPill(message: _pillLabel(kind, l10n), onTap: () => _openDetails(context, kind)),
+              // Keyed by the tick: a repeat of the same failure remounts the
+              // pill, so its announcing shake plays again.
+              ErrorPill(
+                key: ValueKey(errorTick),
+                message: _pillLabel(kind, l10n),
+                onTap: () => _openDetails(context, kind),
+              ),
             if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
             if (showCta)
               AppButton(
                 label: l10n.transcribe,
-                onPressed: () => context.read<EntriesCubit>().retranscribe(entry),
+                onPressed: busy ? null : () => context.read<EntriesCubit>().retranscribe(entry),
               ),
           ],
         ),

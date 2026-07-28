@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -21,18 +23,36 @@ class ErrorPill extends StatefulWidget {
   State<ErrorPill> createState() => _ErrorPillState();
 }
 
-class _ErrorPillState extends State<ErrorPill> with SingleTickerProviderStateMixin {
+class _ErrorPillState extends State<ErrorPill> with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final AnimationController _shake;
+  bool _announced = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this);
+    _shake = AnimationController(vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // One damped shake announces the failure this pill mounted for; the dot's
+    // breath takes over after.
+    if (_announced) return;
+    _announced = true;
+    if (!context.reduceMotion) {
+      _shake
+        ..duration = context.motionNow.errorShake
+        ..forward();
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _shake.dispose();
     super.dispose();
   }
 
@@ -51,38 +71,60 @@ class _ErrorPillState extends State<ErrorPill> with SingleTickerProviderStateMix
       _controller.repeat(reverse: true);
     }
 
-    return Touchable(
-      onTap: widget.onTap,
-      haptic: true,
-      child: Container(
-        height: tokens.height,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        alignment: Alignment.center,
-        decoration: SuperellipseDecoration(
-          borderRadius: tokens.radius,
-          color: tokens.background,
-          border: BorderSide(color: tokens.border),
-        ),
-        child: Row(
-          children: [
-            _Dot(controller: _controller, color: tokens.dot, size: tokens.dotSize, reduce: reduce),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                widget.message,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.subhead.copyWith(color: tokens.text),
+    return AnimatedBuilder(
+      animation: _shake,
+      builder: (context, child) => Transform.translate(
+        offset: Offset(shakeOffset(_shake.value, tokens.shakeTravel), 0),
+        child: child,
+      ),
+      child: Touchable(
+        onTap: widget.onTap,
+        haptic: true,
+        child: Container(
+          height: tokens.height,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          alignment: Alignment.center,
+          decoration: SuperellipseDecoration(
+            borderRadius: tokens.radius,
+            color: tokens.background,
+            border: BorderSide(color: tokens.border),
+          ),
+          child: Row(
+            children: [
+              _Dot(
+                controller: _controller,
+                color: tokens.dot,
+                size: tokens.dotSize,
+                reduce: reduce,
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            AppIcon(AppIcons.chevronForward, size: 14, color: tokens.chevron),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  widget.message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.subhead.copyWith(color: tokens.text),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              AppIcon(AppIcons.chevronForward, size: 14, color: tokens.chevron),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+/// The announcing shake's horizontal throw at progress [t] (0..1): a damped
+/// sine that oscillates [_shakeCycles] times and dies out, resting at exactly
+/// zero on both ends. Pure, so the shape is testable.
+double shakeOffset(double t, double travel) {
+  if (t <= 0 || t >= 1) return 0;
+  return math.sin(t * math.pi * 2 * _shakeCycles) * (1 - t) * travel;
+}
+
+const int _shakeCycles = 3;
 
 /// The breathing dot. A [FadeTransition] driven by the shared controller, so the
 /// pulse costs no rebuilds; its floor is the theme's [ErrorPillTheme.blinkMinOpacity].
