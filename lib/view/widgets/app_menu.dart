@@ -258,6 +258,9 @@ class AppMenuButton extends StatelessWidget {
         // Sized to the row's own label, not to the symbol's intrinsic size,
         // which UIKit otherwise draws far larger than the words beside it.
         itemIconPointSize: AppType.callout.fontSize,
+        // isDark keeps the glass and its menu in step with the chosen theme
+        // family, not just the system appearance.
+        isDark: context.theme.brightness == Brightness.dark,
         size: size,
         items: [
           for (final (i, item) in items.indexed)

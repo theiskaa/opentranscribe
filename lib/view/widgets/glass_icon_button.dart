@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
+import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -28,11 +29,13 @@ class AppGlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (PlatformCaps.nativeGlass) {
       // The native side draws the glyph itself, from the SF Symbol NAME - our
-      // vendored icon font never reaches it.
+      // vendored icon font never reaches it. isDark keeps the glass in step
+      // with the chosen theme family, not just the system appearance.
       return LiquidIconButton(
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
         tintColor: color,
+        isDark: context.theme.brightness == Brightness.dark,
         onPressed: onTap,
         enabled: onTap != null,
         size: size,

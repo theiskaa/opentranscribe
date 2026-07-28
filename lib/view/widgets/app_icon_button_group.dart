@@ -56,11 +56,13 @@ class AppIconButtonGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     if (PlatformCaps.nativeGlass) {
       // The native side draws each glyph from its SF Symbol NAME; our vendored
-      // font never reaches it.
+      // font never reaches it. isDark keeps the glass in step with the chosen
+      // theme family, not just the system appearance.
       return LiquidIconButtonGroup(
         height: height,
         slotWidth: slotWidth,
         iconPointSize: iconSize,
+        isDark: context.theme.brightness == Brightness.dark,
         items: [
           for (final item in items)
             LiquidIconButtonGroupAction(
