@@ -160,22 +160,6 @@
   "@transcribeErrorTitleGeneric": {
     "description": "Details-sheet title for a generic failure"
   },
-  "settingsTranscription": "Transcription",
-  "@settingsTranscription": {
-    "description": "Section label of the transcription settings group"
-  },
-  "settingsStorage": "Storage",
-  "@settingsStorage": {
-    "description": "Section label of the storage settings group"
-  },
-  "settingsBackup": "Include audio in backups",
-  "@settingsBackup": {
-    "description": "Toggle that includes kept audio in device backups"
-  },
-  "settingsApp": "App",
-  "@settingsApp": {
-    "description": "Section grouping app-level settings (appearance, language)"
-  },
   "settingsAppearance": "Appearance",
   "@settingsAppearance": {
     "description": "Section label of the appearance settings group"
@@ -187,10 +171,6 @@
   "themeSystem": "System",
   "@themeSystem": {
     "description": "Theme mode following the device appearance"
-  },
-  "themeMatchSystem": "Match system",
-  "@themeMatchSystem": {
-    "description": "Toggle that makes the theme follow the device appearance"
   },
   "themeLight": "Light",
   "@themeLight": {
@@ -219,18 +199,6 @@
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
-  },
-  "settingsAbout": "About",
-  "@settingsAbout": {
-    "description": "Section label of the about group"
-  },
-  "settingsOpenSource": "Read the source code",
-  "@settingsOpenSource": {
-    "description": "Row pointing source code; tap opens link"
-  },
-  "settingsCreatedBy": "Created by @theiskaa",
-  "@settingsCreatedBy": {
-    "description": "Row crediting the author; tap opens link"
   },
   "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. iOS limits how many languages an app can keep ready at once.",
   "@transcriptionInfo": {

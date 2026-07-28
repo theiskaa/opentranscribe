@@ -332,30 +332,6 @@ abstract class AppLocalizations {
   /// **'Something went wrong'**
   String get transcribeErrorTitleGeneric;
 
-  /// Section label of the transcription settings group
-  ///
-  /// In en, this message translates to:
-  /// **'Transcription'**
-  String get settingsTranscription;
-
-  /// Section label of the storage settings group
-  ///
-  /// In en, this message translates to:
-  /// **'Storage'**
-  String get settingsStorage;
-
-  /// Toggle that includes kept audio in device backups
-  ///
-  /// In en, this message translates to:
-  /// **'Include audio in backups'**
-  String get settingsBackup;
-
-  /// Section grouping app-level settings (appearance, language)
-  ///
-  /// In en, this message translates to:
-  /// **'App'**
-  String get settingsApp;
-
   /// Section label of the appearance settings group
   ///
   /// In en, this message translates to:
@@ -373,12 +349,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get themeSystem;
-
-  /// Toggle that makes the theme follow the device appearance
-  ///
-  /// In en, this message translates to:
-  /// **'Match system'**
-  String get themeMatchSystem;
 
   /// Light theme mode
   ///
@@ -421,24 +391,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language'**
   String get settingsAppLanguage;
-
-  /// Section label of the about group
-  ///
-  /// In en, this message translates to:
-  /// **'About'**
-  String get settingsAbout;
-
-  /// Row pointing source code; tap opens link
-  ///
-  /// In en, this message translates to:
-  /// **'Read the source code'**
-  String get settingsOpenSource;
-
-  /// Row crediting the author; tap opens link
-  ///
-  /// In en, this message translates to:
-  /// **'Created by @theiskaa'**
-  String get settingsCreatedBy;
 
   /// Header of the transcription screen: the on-device and shared-asset promise
   ///

@@ -139,18 +139,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcribeErrorTitleGeneric => 'Something went wrong';
 
   @override
-  String get settingsTranscription => 'Transcription';
-
-  @override
-  String get settingsStorage => 'Storage';
-
-  @override
-  String get settingsBackup => 'Include audio in backups';
-
-  @override
-  String get settingsApp => 'App';
-
-  @override
   String get settingsAppearance => 'Appearance';
 
   @override
@@ -158,9 +146,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeSystem => 'System';
-
-  @override
-  String get themeMatchSystem => 'Match system';
 
   @override
   String get themeLight => 'Light';
@@ -182,15 +167,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppLanguage => 'Language';
-
-  @override
-  String get settingsAbout => 'About';
-
-  @override
-  String get settingsOpenSource => 'Read the source code';
-
-  @override
-  String get settingsCreatedBy => 'Created by @theiskaa';
 
   @override
   String get transcriptionInfo =>
