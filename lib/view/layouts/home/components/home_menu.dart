@@ -33,10 +33,6 @@ class HomeMenu extends StatefulWidget {
 }
 
 class _HomeMenuState extends State<HomeMenu> {
-  /// The public repository. A link, not a socket the app opens; the OS browser
-  /// does, for a URL that carries no user data.
-  static const _repoUrl = 'github.com/theiskaa/opentranscribe';
-
   /// Read from the bundle so it is never out of step with the pubspec. Null
   /// until the async read lands; the row shows the bare label until then.
   String? _version;
@@ -224,7 +220,7 @@ class _HomeMenuState extends State<HomeMenu> {
             case 'act:gallery':
               context.pushNamed(Routes.galleryName);
             case 'act:source':
-              unawaited(openLink(_repoUrl));
+              unawaited(openLink(kRepoUrl));
             case 'act:search':
               // No search screen yet; present but inert.
               break;
