@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -7,6 +6,10 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// Where a bar control sits relative to the screen edge, and to the next
+/// control along. One number for both, so the chrome reads as a single rhythm.
+const double _edgeInset = AppSpacing.md;
 
 /// The floating bar every screen shares: a transparent overlay carrying its
 /// title, over a progressive blur that fades to nothing past the content row.
@@ -19,14 +22,6 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// through the row and only melts across the tail); large title bars pad by
 /// [largeHeightOf] plus a breath (`AppScaffold.topPaddingOf` for scaffolded
 /// screens).
-/// Where a bar control sits relative to the screen edge, and to the next
-/// control along. One number for both, so the chrome reads as a single rhythm.
-const double _edgeInset = AppSpacing.md;
-
-/// How much faster than the fold a folding bottom slot pulls itself up, so it
-/// reads as retreating under the title row rather than waiting to be cut off.
-const double _foldLead = 0.22;
-
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     this.leading,
@@ -38,7 +33,6 @@ class AppTopBar extends StatelessWidget {
     this.onTitleTap,
     this.bottom,
     this.bottomHeight = 0,
-    this.bottomFold,
     this.frosted = false,
     this.automaticLeading = true,
     super.key,
@@ -71,14 +65,6 @@ class AppTopBar extends StatelessWidget {
   /// work.
   final Widget? bottom;
   final double bottomHeight;
-
-  /// Folds the bottom slot away as its value runs 0 to 1. The slot's height
-  /// goes with it, so the material and its fade close down over a strip that
-  /// retreats up behind the title row, and the bar ends up compact.
-  ///
-  /// A listenable rather than a plain value because a scroll drives it: only
-  /// the bar's frame rebuilds per frame, never the row or the slot's contents.
-  final ValueListenable<double>? bottomFold;
 
   /// The SECONDARY bar (reeed's): a translucent frost that content shows
   /// through, fading from its midpoint, rather than home's opaque material.
@@ -161,92 +147,56 @@ class AppTopBar extends StatelessWidget {
           )
         : row;
 
-    // Everything above is built once. Only this is rebuilt as the slot folds,
-    // and it reuses the widgets it closes over, so no subtree is rebuilt with
-    // it.
-    Widget frame(double value) {
-      final fold = value.clamp(0.0, 1.0);
-      final slot = bottomHeight * (1 - fold);
-      final chromeHeight = topInset + rowHeight + slot;
-      return SizedBox(
-        height: chromeHeight + bar.fadeTail,
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: frosted
-                  // reeed's material: a translucent tint over the blur, faded
-                  // from the midpoint, so content shows through as frost.
-                  ? EdgeFade(
-                      height: chromeHeight + bar.fadeTail,
-                      color: bar.background.withValues(alpha: 0.55),
-                      sigma: bar.blurSigma,
-                    )
-                  : EdgeFade(
-                      height: chromeHeight + bar.fadeTail,
-                      color: bar.background,
-                      sigma: bar.blurSigma,
-                      // Opaque through the whole chrome (title row AND the
-                      // bottom slot); only the tail fades, so nothing stays
-                      // legible under the title and the bottom slot is never
-                      // washed.
-                      fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
-                    ),
-            ),
-            // Content scrolled under the bar is invisible behind the wash; it
-            // must not stay tappable through it. The row and the bottom slot
-            // paint (and hit-test) above this, so the bar's own controls are
-            // unaffected.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: chromeHeight,
-              child: const AbsorbPointer(child: SizedBox.expand()),
-            ),
-            Positioned(top: topInset, left: 0, right: 0, height: rowHeight, child: titledRow),
-            if (bottom != null)
-              Positioned(
-                top: topInset + rowHeight,
-                left: 0,
-                right: 0,
-                height: slot,
-                // The slot keeps handing its child the FULL height and clips
-                // what no longer fits, so the strip is laid out once and only
-                // the cut moves; everything is anchored at the bottom, which
-                // is the chrome's own edge, so nothing drifts off it.
-                //
-                // What the row swallows is a ghost: the fade spends itself
-                // early (ease-out), so the clip's edge only ever crosses
-                // something already most of the way gone, and the slot leaves
-                // by dissolving rather than by being cut in half.
-                child: Opacity(
-                  opacity: 1 - Curves.easeOutSine.transform(fold),
-                  child: ClipRect(
-                    child: OverflowBox(
-                      alignment: Alignment.bottomCenter,
-                      minHeight: bottomHeight,
-                      maxHeight: bottomHeight,
-                      child: Transform.translate(
-                        offset: Offset(0, -bottomHeight * _foldLead * fold),
-                        child: bottom,
-                      ),
-                    ),
+    final chromeHeight = topInset + rowHeight + bottomHeight;
+    return SizedBox(
+      height: chromeHeight + bar.fadeTail,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: frosted
+                // reeed's material: a translucent tint over the blur, faded
+                // from the midpoint, so content shows through as frost.
+                ? EdgeFade(
+                    height: chromeHeight + bar.fadeTail,
+                    color: bar.background.withValues(alpha: 0.55),
+                    sigma: bar.blurSigma,
+                  )
+                : EdgeFade(
+                    height: chromeHeight + bar.fadeTail,
+                    color: bar.background,
+                    sigma: bar.blurSigma,
+                    // Opaque through the whole chrome (title row AND the
+                    // bottom slot); only the tail fades, so nothing stays
+                    // legible under the title and the bottom slot is never
+                    // washed.
+                    fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
                   ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    final fold = bottomFold;
-    if (fold == null) return frame(0);
-    return ValueListenableBuilder<double>(
-      valueListenable: fold,
-      builder: (context, value, _) => frame(value),
+          ),
+          // Content scrolled under the bar is invisible behind the wash; it
+          // must not stay tappable through it. The row and the bottom slot
+          // paint (and hit-test) above this, so the bar's own controls are
+          // unaffected.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: chromeHeight,
+            child: const AbsorbPointer(child: SizedBox.expand()),
+          ),
+          Positioned(top: topInset, left: 0, right: 0, height: rowHeight, child: titledRow),
+          if (bottom != null)
+            Positioned(
+              top: topInset + rowHeight,
+              left: 0,
+              right: 0,
+              height: bottomHeight,
+              child: bottom!,
+            ),
+        ],
+      ),
     );
   }
 }

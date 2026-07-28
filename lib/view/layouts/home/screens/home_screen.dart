@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,23 +14,24 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
-import 'package:opentranscribe/view/layouts/home/components/strip_fold.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
-/// the journal scrolling under it. The scroll drives both the rolling date
-/// and the strip's cursor, exactly in step; tapping a calendar day glides the
-/// list to that day's section, tapping the title glides home, and pulling down
-/// past the threshold opens the recorder. [HomeCubit] is provided at the root,
-/// so the shell can refresh it after a recording.
+/// the journal scrolling under it. The calendar never hides; the scroll drives
+/// the rolling date and the strip's cursor, exactly in step. Tapping a
+/// calendar day glides the list to that day's section, tapping the title
+/// glides home, and pulling down past the threshold opens the recorder.
+/// [HomeCubit] is provided at the root, so the shell can refresh it after a
+/// recording.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -53,16 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   /// Set from the theme each build: the list's resting top, past the chrome
-  /// (fully open) and its fade. FIXED, so the strip folding never relayouts
-  /// the list - only the chrome's own height moves.
+  /// and its fade. The chrome never folds - the calendar is home's fixed
+  /// ground, always in sight - so this is also the reading line.
   double _contentTop = 0;
-
-  /// The chrome's foldable block: the breath plus the week strip.
-  double _stripDepth = 0;
-
-  /// How far the strip is folded, 0 open to 1 gone. A pure function of the
-  /// scroll, so the fold is exactly as interruptible as the finger driving it.
-  final ValueNotifier<double> _fold = ValueNotifier(0);
 
   /// The id of the one row currently swiped open, or null. Shared across every
   /// row so opening one closes the rest; scrolling clears it. This is the
@@ -86,11 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
   /// when the list is already at the top and the cursor never moves.
   int _homeTick = 0;
 
-  /// The reading line for the CURRENT fold: the chrome's bottom edge, which
-  /// rides up with the content while the strip folds and then holds. It is
-  /// where a day's label takes the title, and where a calendar tap parks it.
-  double get _line => _contentTop - _fold.value * _stripDepth;
-
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
     if (notification is ScrollUpdateNotification) {
@@ -101,27 +89,11 @@ class _HomeScreenState extends State<HomeScreen> {
         pixels: notification.metrics.pixels,
         dragging: notification.dragDetails != null,
       );
-      _fold.value = stripFold(notification.metrics.pixels, _stripDepth);
-      if (!_gliding) _sections.track(_scroll, line: _line);
+      if (!_gliding) _sections.track(_scroll, line: _contentTop);
       return false;
     }
-    if (notification is ScrollEndNotification) {
-      _pullGesture.settle();
-      _settleStrip();
-    }
+    if (notification is ScrollEndNotification) _pullGesture.settle();
     return false;
-  }
-
-  /// Finishes a fold the scroll stopped half way through. Nothing to settle is
-  /// the common case, and a target the list cannot actually reach is skipped
-  /// rather than glided to: the glide's own end would ask again.
-  void _settleStrip() {
-    if (_gliding || !_scroll.hasClients) return;
-    final target = stripSettle(_scroll.position.pixels, _stripDepth);
-    if (target == null) return;
-    final reachable = target.clamp(0.0, _scroll.position.maxScrollExtent);
-    if ((reachable - _scroll.position.pixels).abs() < 0.5) return;
-    _glideTo(reachable);
   }
 
   void _openRecorder() {
@@ -154,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (id != _glideId) return;
       // Arrived (or the user grabbed it mid-flight): geometry rules again.
       _gliding = false;
-      if (mounted) _sections.track(_scroll, line: _line);
+      if (mounted) _sections.track(_scroll, line: _contentTop);
     });
   }
 
@@ -171,21 +143,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     // The cursor and the title move on touch; the list catches up.
     _sections.focus(day);
-    _glideTo(dayGlideOffset(start, _contentTop, _stripDepth));
+    _glideTo(dayGlideOffset(start, _contentTop));
   }
 
   /// Grows (or gives back) the list's tail so the deepest label can reach the
   /// reading line. Runs after layout, when the starts and the scroll extent
   /// are both real. The tail sits BELOW every label, so it cannot move them:
-  /// one pass settles it. It measures against the FOLDED line, the only one
-  /// the oldest day can ever be parked on, which is also what guarantees the
-  /// list is always long enough to fold the strip at all.
+  /// one pass settles it.
   void _fitTail() {
     if (!_scroll.hasClients) return;
     final deepest = _sections.lastStart;
     final delta = deepest == null
         ? -_tail
-        : (deepest - (_contentTop - _stripDepth)) - _scroll.position.maxScrollExtent;
+        : (deepest - _contentTop) - _scroll.position.maxScrollExtent;
     final next = (_tail + delta).clamp(0.0, double.infinity);
     if ((next - _tail).abs() > 0.5) setState(() => _tail = next);
   }
@@ -196,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _pullGesture.dispose();
     _sections.dispose();
     _visibleWeek.dispose();
-    _fold.dispose();
     _openRow.dispose();
     super.dispose();
   }
@@ -206,8 +175,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = context.theme;
     // The strip gets a breath under the subtitle; resting content starts
     // fully past the fade tail so the first splitter is never washed.
-    _stripDepth = AppSpacing.md + WeekCalendar.heightOf(context);
-    _contentTop = AppTopBar.largeHeightOf(context) + _stripDepth + theme.topBar.fadeTail;
+    _contentTop =
+        AppTopBar.largeHeightOf(context) +
+        AppSpacing.md +
+        WeekCalendar.heightOf(context) +
+        theme.topBar.fadeTail;
 
     return ColoredBox(
       color: theme.screens.home,
@@ -219,7 +191,12 @@ class _HomeScreenState extends State<HomeScreen> {
           // of days does.
           _sections.seedAfterLayout(() {
             if (!mounted) return;
-            _sections.track(_scroll, line: _line);
+            // A glide owns the cursor; only the geometry refreshes mid-flight.
+            if (_gliding) {
+              _sections.reseed(_scroll);
+            } else {
+              _sections.track(_scroll, line: _contentTop);
+            }
             _fitTail();
           });
 
@@ -253,8 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: body,
                 ),
               ),
-              // Lives in the gap a record pull opens under the chrome, which
-              // is fully open for the whole of that gesture.
+              // Lives in the gap a record pull opens under the chrome.
               Positioned(
                 top: _contentTop,
                 left: 0,
@@ -281,7 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         activeDay: viewed ?? today,
                         visibleWeek: week,
                         state: state,
-                        fold: _fold,
                         homeTick: _homeTick,
                         onTitleTap: () {
                           _sections.reset();
@@ -314,14 +289,14 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 /// The chrome: the rolling date over the week strip, on one shared material.
-/// The strip's cursor and the title are the same day by construction. The date
-/// row is fixed; the strip folds away under it as the journal scrolls.
+/// The strip's cursor and the title are the same day by construction. Fixed:
+/// the calendar is home's ground and stays in sight while the journal scrolls
+/// under it.
 class _HomeChrome extends StatefulWidget {
   const _HomeChrome({
     required this.activeDay,
     required this.visibleWeek,
     required this.state,
-    required this.fold,
     required this.homeTick,
     required this.onTitleTap,
     required this.onDayTap,
@@ -333,9 +308,6 @@ class _HomeChrome extends StatefulWidget {
   /// First day of the calendar's visible week; its month renders after the dot.
   final DateTime visibleWeek;
   final HomeState state;
-
-  /// How far the strip is folded away, 0 open to 1 gone.
-  final ValueListenable<double> fold;
 
   /// Bumped on a title tap, forwarded to the strip so it pages back to today's
   /// week even when the cursor never moved.
@@ -410,7 +382,6 @@ class _HomeChromeState extends State<_HomeChrome> {
         ),
       ),
       bottomHeight: AppSpacing.md + WeekCalendar.heightOf(context),
-      bottomFold: widget.fold,
     );
   }
 }

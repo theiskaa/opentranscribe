@@ -97,6 +97,13 @@ class SectionTracker {
     ], viewedDay.value);
   }
 
+  /// Refreshes the start table without touching [viewedDay], for moments the
+  /// cursor is spoken for (a glide in flight).
+  void reseed(ScrollController scroll) {
+    if (!scroll.hasClients) return;
+    _upsertStarts(scroll.offset);
+  }
+
   /// Runs [track] once after the current frame's layout, deduped per frame.
   void seedAfterLayout(VoidCallback track) {
     if (_seedPending) return;
