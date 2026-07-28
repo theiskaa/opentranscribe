@@ -152,7 +152,7 @@ class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMix
                           child: Text(
                             widget.label,
                             key: ValueKey(widget.label),
-                            style: AppType.callout.copyWith(color: foreground),
+                            style: AppType.callout.copyWith(color: foreground, height: 1),
                           ),
                         ),
                       ],
