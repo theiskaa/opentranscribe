@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Something went wrong while recording.'**
   String get recordErrorMessage;
 
+  /// Calm notice under the live transcript when live transcription fails mid-recording; the batch pass still transcribes the entry
+  ///
+  /// In en, this message translates to:
+  /// **'Live text isn\'t available right now. Your recording is safe and will be transcribed when you finish.'**
+  String get recordLiveUnavailable;
+
   /// Title of the in-screen state when mic permission is denied
   ///
   /// In en, this message translates to:

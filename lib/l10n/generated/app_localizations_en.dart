@@ -67,6 +67,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordErrorMessage => 'Something went wrong while recording.';
 
   @override
+  String get recordLiveUnavailable =>
+      'Live text isn\'t available right now. Your recording is safe and will be transcribed when you finish.';
+
+  @override
   String get recordPermissionTitle => 'Microphone is off';
 
   @override

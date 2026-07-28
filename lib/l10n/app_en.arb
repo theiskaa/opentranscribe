@@ -72,6 +72,10 @@
   "@recordErrorMessage": {
     "description": "Generic body of the recording error dialog"
   },
+  "recordLiveUnavailable": "Live text isn't available right now. Your recording is safe and will be transcribed when you finish.",
+  "@recordLiveUnavailable": {
+    "description": "Calm notice under the live transcript when live transcription fails mid-recording; the batch pass still transcribes the entry"
+  },
   "recordPermissionTitle": "Microphone is off",
   "@recordPermissionTitle": {
     "description": "Title of the in-screen state when mic permission is denied"

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -324,21 +325,23 @@ class _LiveText extends StatelessWidget {
           selector: (state) => state.liveText,
           builder: (context, text) => LiveTranscript(text: text),
         ),
-        // Temporary diagnostic: when live goes blank but the batch pass still
-        // works, this shows the raw native reason so a TestFlight build tells us
-        // the on-device cause. Replace with localized graceful copy once known.
+        // Live is a nicety; the batch pass still transcribes the entry, so
+        // failure gets calm copy, not an alarm. Raw reason kept in debug
+        // builds for on-device debugging.
         BlocSelector<RecorderCubit, RecorderState, String?>(
           selector: (state) => state.liveError,
-          builder: (context, error) => error == null
-              ? const SizedBox.shrink()
-              : Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: Text(
-                    error,
-                    textAlign: TextAlign.center,
-                    style: AppType.caption.copyWith(color: context.theme.danger),
-                  ),
-                ),
+          builder: (context, error) {
+            if (error == null) return const SizedBox.shrink();
+            final copy = AppLocalizations.of(context)!.recordLiveUnavailable;
+            return Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                kDebugMode ? '$copy\n$error' : copy,
+                textAlign: TextAlign.center,
+                style: AppType.caption.copyWith(color: context.theme.textSecondary),
+              ),
+            );
+          },
         ),
       ],
     );
