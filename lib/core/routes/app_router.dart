@@ -30,16 +30,12 @@ class AppRouter {
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: Routes.home,
-    // Send a first-run user to onboarding until they finish it, and never back
-    // into it once done. A synchronous storage read, so it is cheap on every
-    // navigation. The splash (App.build) runs first; this fires as it lifts.
-    redirect: (context, state) {
-      final done = Onboarding.isDone(Deps.i.localService);
-      final atOnboarding = state.matchedLocation == Routes.onboarding;
-      if (!done && !atOnboarding) return Routes.onboarding;
-      if (done && atOnboarding) return Routes.home;
-      return null;
-    },
+    // A synchronous storage read, so it is cheap on every navigation. The
+    // splash (App.build) runs first; this fires as it lifts.
+    redirect: (context, state) => resolveRedirect(
+      onboardingDone: Onboarding.isDone(Deps.i.localService),
+      matchedLocation: state.matchedLocation,
+    ),
     routes: [
       GoRoute(
         path: Routes.home,
@@ -93,4 +89,12 @@ class AppRouter {
         ),
     ],
   );
+}
+
+/// First-run users land in onboarding; finished users can never re-enter it.
+String? resolveRedirect({required bool onboardingDone, required String matchedLocation}) {
+  final atOnboarding = matchedLocation == Routes.onboarding;
+  if (!onboardingDone && !atOnboarding) return Routes.onboarding;
+  if (onboardingDone && atOnboarding) return Routes.home;
+  return null;
 }
