@@ -35,6 +35,9 @@ final class AppMotion {
     this.inkResolve = const Duration(milliseconds: 850),
     this.inkLoop = const Duration(seconds: 6),
     this.errorBlink = const Duration(milliseconds: 1000),
+    this.errorShake = const Duration(milliseconds: 400),
+    this.sheetSpring = const SpringDescription(mass: 1, stiffness: 380, damping: 39),
+    this.sheetScrim = const Duration(milliseconds: 300),
     this.swipeSpring = const SpringDescription(mass: 1, stiffness: 440, damping: 42),
     this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
     this.swipePopCurve = const Cubic(0.34, 1.25, 0.64, 1),
@@ -110,6 +113,20 @@ final class AppMotion {
   /// One breath of the inline error indicator's dot, looped to draw the eye
   /// without a spinner or a shout. Slow, so it reads as a pulse, not a flash.
   final Duration errorBlink;
+
+  /// The error pill announcing itself: a small damped shake as it lands, the
+  /// reject gesture. One-shot, skipped under Reduce Motion.
+  final Duration errorShake;
+
+  /// The bottom sheet rising, settling after a released drag, and leaving,
+  /// seeded with the finger's release velocity so drag and animation are one
+  /// motion. Critically damped and softer than [swipeSpring]: a surface should
+  /// feel weightier than a row, and never bounce.
+  final SpringDescription sheetSpring;
+
+  /// The sheet's scrim fading in and out. Also how long a popped sheet has to
+  /// finish springing offscreen before the route takes it away.
+  final Duration sheetScrim;
 
   /// A row's swipe-action reveal settling open or closed after the finger lifts.
   /// A spring, not a fixed curve, so the settle continues at the finger's release

@@ -316,6 +316,7 @@ final class ErrorPillTheme {
     this.radius = AppRadius.chip,
     this.dotSize = 8.0,
     this.blinkMinOpacity = 0.25,
+    this.shakeTravel = 5.0,
   });
 
   final Color background;
@@ -331,6 +332,40 @@ final class ErrorPillTheme {
 
   /// How far the dot dims at the bottom of its breath, 1 being no dimming.
   final double blinkMinOpacity;
+
+  /// How far the announcing shake throws the pill off centre.
+  final double shakeTravel;
+}
+
+/// The bottom sheet: the panel every raised message shares. Content-sized, so
+/// the tokens here are its frame, not its height.
+@immutable
+final class SheetTheme {
+  const SheetTheme({
+    required this.background,
+    required this.grabberColor,
+    this.radius = AppRadius.panel,
+    this.grabberWidth = 36.0,
+    this.grabberHeight = 5.0,
+    this.dismissDrag = 120.0,
+    this.flingVelocity = 700.0,
+    this.maxHeightFraction = 0.7,
+  });
+
+  final Color background;
+  final Color grabberColor;
+  final double radius;
+  final double grabberWidth;
+  final double grabberHeight;
+
+  /// How far down a released drag must sit to dismiss instead of settling back.
+  final double dismissDrag;
+
+  /// Downward fling speed past which a release dismisses regardless of travel.
+  final double flingVelocity;
+
+  /// The screen fraction a sheet may grow to before its content scrolls.
+  final double maxHeightFraction;
 }
 
 /// The onboarding pages.

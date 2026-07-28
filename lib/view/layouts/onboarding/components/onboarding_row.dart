@@ -3,29 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-
-/// The 44x44 secondary-surface circle that leads every onboarding row.
-class OnboardingTile extends StatelessWidget {
-  const OnboardingTile({required this.child, super.key});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    return Container(
-      width: 44,
-      height: 44,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.button.secondaryBackground,
-        shape: BoxShape.circle,
-        border: Border.all(color: theme.button.secondaryBorder),
-      ),
-      child: child,
-    );
-  }
-}
+import 'package:opentranscribe/view/widgets/circle_tile.dart';
 
 /// One onboarding row: the circle [tile], a [title] over its explaining
 /// [line], and an optional [trailing] control, aligned the same on every step
@@ -49,7 +27,7 @@ class OnboardingRow extends StatelessWidget {
     final theme = context.theme;
     return Row(
       children: [
-        OnboardingTile(child: tile),
+        CircleTile(child: tile),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(

@@ -10,6 +10,8 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
@@ -174,6 +176,65 @@ class _GalleryScreenState extends State<GalleryScreen> {
               const _InkDemo(),
               const SizedBox(height: AppSpacing.xl),
               const _InkLinesDemo(),
+              _section('Sheets'),
+              AppButton(
+                label: 'Message',
+                variant: AppButtonVariant.secondary,
+                onPressed: () => showAppSheet<void>(
+                  context,
+                  builder: (context) => const SheetMessage(
+                    icon: AppIcons.globe,
+                    title: 'Not available yet',
+                    body:
+                        'A body long enough to wrap onto a second line, the way a real '
+                        'failure story reads.',
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'Message with retry',
+                variant: AppButtonVariant.secondary,
+                onPressed: () => showAppSheet<void>(
+                  context,
+                  builder: (context) => SheetMessage(
+                    icon: AppIcons.icloud,
+                    title: 'Couldn\'t download',
+                    body: 'Check your connection and free space, then try again.',
+                    action: AppButton(label: 'Retry', onPressed: () => Navigator.of(context).pop()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'Message with rows',
+                variant: AppButtonVariant.secondary,
+                onPressed: () => showAppSheet<void>(
+                  context,
+                  builder: (context) => SheetMessage(
+                    icon: AppIcons.globe,
+                    title: 'Language limit reached',
+                    body: 'Remove one of these to make room.',
+                    rows: [
+                      for (final name in const ['English (US)', 'Deutsch (DE)'])
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: AppType.subhead.copyWith(color: theme.text),
+                                ),
+                              ),
+                              AppIcon(AppIcons.trash, size: 18, color: theme.danger),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
               _section('Empty state'),
               const EmptyState(
                 visual: WaveGlyph(),

@@ -17,6 +17,7 @@ import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';

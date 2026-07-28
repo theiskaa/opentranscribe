@@ -1,30 +1,38 @@
+import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 
-/// A bottom sheet that rises to half the screen, flush to the left, right, and
-/// bottom edges with only its top corners rounded. Resolves to whatever the
-/// content pops with, or null when dismissed by the scrim or a downward drag.
+/// A bottom sheet sized to its content, flush to the screen's edges with only
+/// its top corners rounded. It rises, settles, and leaves on
+/// [AppMotion.sheetSpring], seeded with the finger's release velocity so a
+/// drag and its settle read as one motion; Reduce Motion swaps the travel for
+/// a scrim fade. Resolves to whatever the content pops with, or null when
+/// dismissed by the scrim or a downward drag.
 Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder}) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
+  final reduce = context.reduceMotion;
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,
     barrierLabel: '',
     barrierColor: barrier,
-    transitionDuration: motion.indicator,
+    // The route only fades the scrim; the sheet drives its own travel and
+    // rides this duration out when popped mid-flight. Under Reduce Motion the
+    // sheet joins the fade instead of travelling.
+    transitionDuration: motion.sheetScrim,
     pageBuilder: (context, animation, secondaryAnimation) => _SheetBody(builder: builder),
-    transitionBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
-      return SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(curved),
-        child: child,
-      );
-    },
+    transitionBuilder: (context, animation, secondaryAnimation, child) =>
+        reduce ? FadeTransition(opacity: animation, child: child) : child,
   );
 }
+
+/// The exit spring's target, past fully-offscreen on purpose: the route's
+/// reverse can undercut a critically damped settle, and the overshoot buys
+/// the last sliver of travel before the overlay goes.
+const double _exitTarget = 1.1;
 
 class _SheetBody extends StatefulWidget {
   const _SheetBody({required this.builder});
@@ -36,88 +44,131 @@ class _SheetBody extends StatefulWidget {
 }
 
 class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMixin {
-  static const double _dismissDrag = 120;
-  static const double _flingVelocity = 700;
-  static const double _radius = 28;
+  /// Vertical offset in fractions of the panel's own height: 0 resting, 1
+  /// fully offscreen. Fractions, because the panel's height is unknown until
+  /// layout and the entrance must start before the first frame.
+  late final AnimationController _frac;
 
-  late final AnimationController _offset = AnimationController(
-    vsync: this,
-    value: 0,
-    upperBound: double.infinity,
-  );
+  final GlobalKey _panel = GlobalKey();
+  Animation<double>? _routeAnimation;
+  bool _entered = false;
+  bool _leaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _frac = AnimationController.unbounded(vsync: this, value: 1);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_entered) return;
+    _entered = true;
+    if (context.reduceMotion) {
+      _frac.value = 0;
+    } else {
+      _spring(to: 0);
+    }
+    // A scrim tap or a programmatic pop reverses the route; the sheet leaves
+    // under its own spring when that happens.
+    _routeAnimation = ModalRoute.of(context)?.animation;
+    _routeAnimation?.addStatusListener(_onRouteStatus);
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    if (status != AnimationStatus.reverse || _leaving || !mounted) return;
+    _leaving = true;
+    if (!context.reduceMotion) _spring(to: _exitTarget);
+  }
+
+  void _spring({required double to, double velocity = 0}) {
+    _frac.animateWith(SpringSimulation(context.motionNow.sheetSpring, _frac.value, to, velocity));
+  }
+
+  double? get _height => _panel.currentContext?.size?.height;
 
   void _onDragUpdate(DragUpdateDetails d) {
-    _offset.value = (_offset.value + d.primaryDelta!).clamp(0.0, double.infinity);
+    final height = _height;
+    if (_leaving || height == null) return;
+    _frac.value = (_frac.value + d.primaryDelta! / height).clamp(0.0, double.infinity);
   }
 
   void _onDragEnd(DragEndDetails d) {
+    final height = _height;
+    if (_leaving || height == null) return;
+    final sheet = context.themeNow.sheet;
     final velocity = d.primaryVelocity ?? 0;
-    if (_offset.value > _dismissDrag || velocity > _flingVelocity) {
+    if (_frac.value * height > sheet.dismissDrag || velocity > sheet.flingVelocity) {
+      // Pop now so the scrim fades while the sheet springs away at the
+      // finger's speed: one gesture, both layers leaving together.
+      _leaving = true;
       Navigator.of(context).pop();
+      _spring(to: _exitTarget, velocity: velocity / height);
     } else {
-      _offset.animateBack(
-        0,
-        duration: context.motionNow.indicator,
-        curve: context.motionNow.indicatorCurve,
-      );
+      _spring(to: 0, velocity: velocity / height);
     }
   }
 
   @override
   void dispose() {
-    _offset.dispose();
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _frac.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final height = MediaQuery.sizeOf(context).height * 0.5;
+    final sheet = context.theme.sheet;
+    final radius = BorderRadius.vertical(top: Radius.circular(sheet.radius));
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: AnimatedBuilder(
-        animation: _offset,
+        animation: _frac,
         builder: (context, child) =>
-            Transform.translate(offset: Offset(0, _offset.value), child: child),
+            FractionalTranslation(translation: Offset(0, _frac.value), child: child),
         child: GestureDetector(
           onVerticalDragUpdate: _onDragUpdate,
           onVerticalDragEnd: _onDragEnd,
-          child: Container(
-            height: height,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(_radius)),
+          child: ConstrainedBox(
+            key: _panel,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * sheet.maxHeightFraction,
             ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(_radius)),
-              child: Column(
-                children: [
-                  // The grabber, the one affordance that says this drags down.
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-                    child: Container(
-                      width: 36,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: theme.hairline,
-                        borderRadius: BorderRadius.circular(2.5),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
+              child: ClipRRect(
+                borderRadius: radius,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // The grabber, the one affordance that says this drags down.
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+                      child: Container(
+                        width: sheet.grabberWidth,
+                        height: sheet.grabberHeight,
+                        decoration: BoxDecoration(
+                          color: sheet.grabberColor,
+                          borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        AppSpacing.xl,
-                        AppSpacing.lg,
-                        AppSpacing.xl,
-                        MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                        ),
+                        child: widget.builder(context),
                       ),
-                      child: widget.builder(context),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

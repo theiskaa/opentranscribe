@@ -38,6 +38,7 @@ final class AppTheme {
     required this.onboarding,
     required this.navigation,
     required this.errorPill,
+    required this.sheet,
     this.motion = const AppMotion(),
   });
 
@@ -72,6 +73,7 @@ final class AppTheme {
     OnboardingTheme? onboarding,
     NavigationTheme? navigation,
     ErrorPillTheme? errorPill,
+    SheetTheme? sheet,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -222,6 +224,7 @@ final class AppTheme {
             text: text,
             chevron: textSecondary,
           ),
+      sheet: sheet ?? SheetTheme(background: surface, grabberColor: hairline),
       motion: motion,
     );
   }
@@ -264,6 +267,7 @@ final class AppTheme {
   final OnboardingTheme onboarding;
   final NavigationTheme navigation;
   final ErrorPillTheme errorPill;
+  final SheetTheme sheet;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.
