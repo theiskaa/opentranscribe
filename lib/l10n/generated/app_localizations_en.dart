@@ -261,7 +261,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingIntroBody => 'You speak your mind, and it writes it down.';
 
   @override
-  String get onboardingSource => 'View source';
+  String get onboardingSpeakTitle => 'Just talk';
+
+  @override
+  String get onboardingSpeakLine => 'Tap record and say what is on your mind.';
+
+  @override
+  String get onboardingWriteTitle => 'Read it back';
+
+  @override
+  String get onboardingWriteLine => 'Every recording is written down as text.';
+
+  @override
+  String get onboardingPrivateTitle => 'Nothing leaves the phone';
+
+  @override
+  String get onboardingPrivateLine => 'No account, no cloud. Airplane mode changes nothing.';
+
+  @override
+  String get onboardingSource => 'Open source';
+
+  @override
+  String get onboardingSourceLine => 'Every line of it is public. Read it on GitHub.';
 
   @override
   String get onboardingPermissionsTitle => 'Allow access';
@@ -292,7 +313,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingModelsBody =>
-      'Transcription runs offline once a language is on your device. You can add more later in Settings.';
+      'Transcription runs offline once a language is on your device. You can add more anytime from the menu.';
 
   @override
   String get onboardingNext => 'Next';

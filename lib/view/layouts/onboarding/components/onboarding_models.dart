@@ -34,27 +34,36 @@ class OnboardingModels extends StatelessWidget {
             break;
           }
         }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.onboardingModelsTitle, style: AppType.title.copyWith(color: theme.text)),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.onboardingModelsBody,
-                style: AppType.footnote.copyWith(color: theme.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              if (row == null)
-                // theme.text, not textSecondary: the spinner picks its dot color
-                // by the tint's luminance, and dark mode's mid-gray secondary
-                // picks black dots.
-                AppSpinner(size: 22, color: theme.text)
-              else
-                _ModelRow(row: row),
-            ],
+        // Center when it fits, scroll when large type makes it tall.
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxl,
+              vertical: AppSpacing.xl,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.onboardingModelsTitle,
+                  style: AppType.display2.copyWith(color: theme.text),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.onboardingModelsBody,
+                  style: AppType.subhead.copyWith(color: theme.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                if (row == null)
+                  // theme.text, not textSecondary: the spinner picks its dot
+                  // color by the tint's luminance, and dark mode's mid-gray
+                  // secondary picks black dots.
+                  AppSpinner(size: 22, color: theme.text)
+                else
+                  _ModelRow(row: row),
+              ],
+            ),
           ),
         );
       },
@@ -69,34 +78,17 @@ class _ModelRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final failure = modelFailureLine(AppLocalizations.of(context)!, row);
-    return Row(
-      children: [
-        OnboardingTile(
-          // height: 1 collapses the leading a flag emoji otherwise carries.
-          child: Text(
-            localeFlag(row.tag),
-            style: const TextStyle(fontSize: 20, height: 1),
-            textScaler: TextScaler.noScaling,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(localeDisplayName(row.tag), style: AppType.subhead.copyWith(color: theme.text)),
-              if (failure != null) ...[
-                const SizedBox(height: 2),
-                Text(failure, style: AppType.footnote.copyWith(color: theme.textSecondary)),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        _trailing(context),
-      ],
+    return OnboardingRow(
+      // height: 1 collapses the leading a flag emoji otherwise carries.
+      tile: Text(
+        localeFlag(row.tag),
+        style: const TextStyle(fontSize: 20, height: 1),
+        textScaler: TextScaler.noScaling,
+      ),
+      title: localeDisplayName(row.tag),
+      line: failure,
+      trailing: _trailing(context),
     );
   }
 

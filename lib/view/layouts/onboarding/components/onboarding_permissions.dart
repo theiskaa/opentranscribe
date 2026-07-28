@@ -29,46 +29,52 @@ class OnboardingPermissions extends StatelessWidget {
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) {
         final cubit = context.read<OnboardingCubit>();
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.onboardingPermissionsTitle,
-                style: AppType.title.copyWith(color: theme.text),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.onboardingPermissionsBody,
-                style: AppType.footnote.copyWith(color: theme.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              _PermissionRow(
-                icon: AppIcons.micFill,
-                name: l10n.onboardingMicName,
-                reason: l10n.onboardingMicReason,
-                granted: state.micGranted,
-                requesting: state.requestingMic,
-                // Restricted (parental controls) is not "yet to ask": there is
-                // nothing to grant here, so it reads like a denial - Settings.
-                denied:
-                    state.mic == PermissionStatus.denied ||
-                    state.mic == PermissionStatus.restricted,
-                onAllow: () => unawaited(cubit.requestMic()),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _PermissionRow(
-                icon: AppIcons.waveform,
-                name: l10n.onboardingSpeechName,
-                reason: l10n.onboardingSpeechReason,
-                granted: state.speechGranted,
-                requesting: state.requestingSpeech,
-                denied: state.speech == SpeechPermission.denied,
-                onAllow: () => unawaited(cubit.requestSpeech()),
-              ),
-            ],
+        // Center when it fits, scroll when large type makes it tall.
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxl,
+              vertical: AppSpacing.xl,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.onboardingPermissionsTitle,
+                  style: AppType.display2.copyWith(color: theme.text),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.onboardingPermissionsBody,
+                  style: AppType.subhead.copyWith(color: theme.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                _PermissionRow(
+                  icon: AppIcons.micFill,
+                  name: l10n.onboardingMicName,
+                  reason: l10n.onboardingMicReason,
+                  granted: state.micGranted,
+                  requesting: state.requestingMic,
+                  // Restricted (parental controls) is not "yet to ask": there is
+                  // nothing to grant here, so it reads like a denial - Settings.
+                  denied:
+                      state.mic == PermissionStatus.denied ||
+                      state.mic == PermissionStatus.restricted,
+                  onAllow: () => unawaited(cubit.requestMic()),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _PermissionRow(
+                  icon: AppIcons.waveform,
+                  name: l10n.onboardingSpeechName,
+                  reason: l10n.onboardingSpeechReason,
+                  granted: state.speechGranted,
+                  requesting: state.requestingSpeech,
+                  denied: state.speech == SpeechPermission.denied,
+                  onAllow: () => unawaited(cubit.requestSpeech()),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -98,23 +104,11 @@ class _PermissionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return Row(
-      children: [
-        OnboardingTile(child: AppIcon(icon, size: 20, color: theme.text)),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: AppType.subhead.copyWith(color: theme.text)),
-              const SizedBox(height: 2),
-              Text(reason, style: AppType.footnote.copyWith(color: theme.textSecondary)),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        _trailing(context),
-      ],
+    return OnboardingRow(
+      tile: AppIcon(icon, size: 20, color: theme.text),
+      title: name,
+      line: reason,
+      trailing: _trailing(context),
     );
   }
 

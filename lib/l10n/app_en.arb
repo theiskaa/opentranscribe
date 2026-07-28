@@ -333,9 +333,37 @@
   "@onboardingIntroBody": {
     "description": "Explanatory body on the first onboarding step"
   },
-  "onboardingSource": "View source",
+  "onboardingSpeakTitle": "Just talk",
+  "@onboardingSpeakTitle": {
+    "description": "Title of the intro row about recording"
+  },
+  "onboardingSpeakLine": "Tap record and say what is on your mind.",
+  "@onboardingSpeakLine": {
+    "description": "One-line explanation under the recording intro row"
+  },
+  "onboardingWriteTitle": "Read it back",
+  "@onboardingWriteTitle": {
+    "description": "Title of the intro row about transcription"
+  },
+  "onboardingWriteLine": "Every recording is written down as text.",
+  "@onboardingWriteLine": {
+    "description": "One-line explanation under the transcription intro row"
+  },
+  "onboardingPrivateTitle": "Nothing leaves the phone",
+  "@onboardingPrivateTitle": {
+    "description": "Title of the intro row about privacy"
+  },
+  "onboardingPrivateLine": "No account, no cloud. Airplane mode changes nothing.",
+  "@onboardingPrivateLine": {
+    "description": "One-line explanation under the privacy intro row"
+  },
+  "onboardingSource": "Open source",
   "@onboardingSource": {
-    "description": "Link on the intro step that opens the open-source repository"
+    "description": "Title of the intro row that opens the open-source repository"
+  },
+  "onboardingSourceLine": "Every line of it is public. Read it on GitHub.",
+  "@onboardingSourceLine": {
+    "description": "One-line explanation under the open-source intro row"
   },
   "onboardingPermissionsTitle": "Allow access",
   "@onboardingPermissionsTitle": {
@@ -373,7 +401,7 @@
   "@onboardingModelsTitle": {
     "description": "Headline on the model-download onboarding step"
   },
-  "onboardingModelsBody": "Transcription runs offline once a language is on your device. You can add more later in Settings.",
+  "onboardingModelsBody": "Transcription runs offline once a language is on your device. You can add more anytime from the menu.",
   "@onboardingModelsBody": {
     "description": "Body on the model-download onboarding step"
   },

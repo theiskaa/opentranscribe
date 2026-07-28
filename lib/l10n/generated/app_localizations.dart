@@ -542,11 +542,53 @@ abstract class AppLocalizations {
   /// **'You speak your mind, and it writes it down.'**
   String get onboardingIntroBody;
 
-  /// Link on the intro step that opens the open-source repository
+  /// Title of the intro row about recording
   ///
   /// In en, this message translates to:
-  /// **'View source'**
+  /// **'Just talk'**
+  String get onboardingSpeakTitle;
+
+  /// One-line explanation under the recording intro row
+  ///
+  /// In en, this message translates to:
+  /// **'Tap record and say what is on your mind.'**
+  String get onboardingSpeakLine;
+
+  /// Title of the intro row about transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Read it back'**
+  String get onboardingWriteTitle;
+
+  /// One-line explanation under the transcription intro row
+  ///
+  /// In en, this message translates to:
+  /// **'Every recording is written down as text.'**
+  String get onboardingWriteLine;
+
+  /// Title of the intro row about privacy
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing leaves the phone'**
+  String get onboardingPrivateTitle;
+
+  /// One-line explanation under the privacy intro row
+  ///
+  /// In en, this message translates to:
+  /// **'No account, no cloud. Airplane mode changes nothing.'**
+  String get onboardingPrivateLine;
+
+  /// Title of the intro row that opens the open-source repository
+  ///
+  /// In en, this message translates to:
+  /// **'Open source'**
   String get onboardingSource;
+
+  /// One-line explanation under the open-source intro row
+  ///
+  /// In en, this message translates to:
+  /// **'Every line of it is public. Read it on GitHub.'**
+  String get onboardingSourceLine;
 
   /// Headline on the permissions onboarding step
   ///
@@ -605,7 +647,7 @@ abstract class AppLocalizations {
   /// Body on the model-download onboarding step
   ///
   /// In en, this message translates to:
-  /// **'Transcription runs offline once a language is on your device. You can add more later in Settings.'**
+  /// **'Transcription runs offline once a language is on your device. You can add more anytime from the menu.'**
   String get onboardingModelsBody;
 
   /// Button advancing to the next onboarding step
