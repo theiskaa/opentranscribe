@@ -14,6 +14,7 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// The widget gallery: every design-system widget in its states, for eyeballing
@@ -157,6 +158,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               _section('Wave glyph'),
               const Align(alignment: Alignment.centerLeft, child: WaveGlyph()),
+              _section('GitHub mark'),
+              Row(
+                children: [
+                  GithubMark(color: theme.text, size: 28),
+                  const SizedBox(width: AppSpacing.lg),
+                  GithubMark(color: theme.accent, size: 14),
+                ],
+              ),
               _section('Empty state'),
               const EmptyState(
                 visual: WaveGlyph(),
