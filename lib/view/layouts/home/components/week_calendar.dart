@@ -261,7 +261,7 @@ class _DayTile extends StatelessWidget {
     final letterColor = enabled
         ? tokens.weekdayLabelColor
         : tokens.weekdayLabelColor.withValues(alpha: 0.5);
-    final restingFill = hasEntries ? tokens.tileFill : tokens.tileFillMuted;
+    final restingFill = enabled ? tokens.tileFill : tokens.tileFillMuted;
 
     return Touchable(
       onTap: enabled ? () => onTap(day) : null,
