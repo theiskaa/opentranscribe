@@ -43,7 +43,13 @@ enum EntriesAction { transcribe, delete }
 
 /// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesState {
-  const EntriesState({this.entries = const [], this.busyId, this.busyAction, this.error});
+  const EntriesState({
+    this.entries = const [],
+    this.busyId,
+    this.busyAction,
+    this.error,
+    this.errorTick = 0,
+  });
 
   /// Newest first.
   final List<Entry> entries;
@@ -53,9 +59,14 @@ class EntriesState {
   final String? busyId;
   final EntriesAction? busyAction;
 
-  /// Last action failure, for the UI to surface ON ITS OWN ENTRY. Cleared on
-  /// the next action or on dismiss.
+  /// Last action failure, for the UI to surface ON ITS OWN ENTRY. Cleared
+  /// when a retry succeeds; a retry in flight keeps it standing, so the
+  /// failure surface never blinks away just to come back.
   final EntriesFailure? error;
+
+  /// Bumped with every failure landing, so a surface can re-announce a repeat
+  /// of the same error rather than sit still.
+  final int errorTick;
 
   /// The failure kind for [entryId], or null: the one lookup screens use, so
   /// none of them can accidentally render another entry's failure.
@@ -66,6 +77,7 @@ class EntriesState {
     String? busyId,
     EntriesAction? busyAction,
     EntriesFailure? error,
+    int? errorTick,
     bool clearBusy = false,
     bool clearError = false,
   }) => EntriesState(
@@ -73,6 +85,7 @@ class EntriesState {
     busyId: clearBusy ? null : (busyId ?? this.busyId),
     busyAction: clearBusy ? null : (busyAction ?? this.busyAction),
     error: clearError ? null : (error ?? this.error),
+    errorTick: errorTick ?? this.errorTick,
   );
 }
 
@@ -96,13 +109,7 @@ class EntriesCubit extends Cubit<EntriesState> {
     try {
       await _service.renameEntry(entry, title);
     } catch (e) {
-      if (!isClosed) {
-        emit(
-          state.copyWith(
-            error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
-          ),
-        );
-      }
+      if (!isClosed) emit(_withFailure(entry, e));
     } finally {
       if (!isClosed) emit(state.copyWith(entries: _service.entries()));
     }
@@ -116,13 +123,7 @@ class EntriesCubit extends Cubit<EntriesState> {
       // A delete that failed with the file still on disk kept the record (so the
       // recording is not resurrected by the reconcile sweep); the finally below
       // restores the row, and the user is told so they can retry.
-      if (!isClosed) {
-        emit(
-          state.copyWith(
-            error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
-          ),
-        );
-      }
+      if (!isClosed) emit(_withFailure(entry, e));
     } finally {
       if (!isClosed) emit(state.copyWith(entries: _service.entries(), clearBusy: true));
     }
@@ -131,33 +132,37 @@ class EntriesCubit extends Cubit<EntriesState> {
   /// Re-transcribes in the entry's own language by default; [localeId] is the
   /// user's explicit override (the Transcribe-in picker).
   Future<void> retranscribe(Entry entry, {String? localeId}) async {
-    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.transcribe, clearError: true));
-    EntriesFailure? failure;
+    // The pill and its sheet stay tappable through a retry; a second run on
+    // the same entry would double-transcribe and confuse the one busy slot.
+    if (state.busyId == entry.id) return;
+    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.transcribe));
+    Object? failure;
     try {
       await _service.retranscribe(entry, localeId: localeId);
     } catch (e) {
-      failure = EntriesFailure(entryId: entry.id, kind: _kind(e));
+      failure = e;
     }
     // A re-transcribe can run minutes; the screen may be gone by now.
     if (isClosed) return;
     // copyWith, never a fresh state: another entry's in-flight action owns
     // busyId by now if it claimed it after this one started.
+    final clearBusy = state.busyId == entry.id;
     emit(
       failure == null
-          ? state.copyWith(
-              entries: _service.entries(),
-              clearBusy: state.busyId == entry.id,
-              clearError: true,
-            )
-          : state.copyWith(
-              entries: _service.entries(),
-              clearBusy: state.busyId == entry.id,
-              error: failure,
-            ),
+          ? state.copyWith(entries: _service.entries(), clearBusy: clearBusy, clearError: true)
+          : _withFailure(
+              entry,
+              failure,
+            ).copyWith(entries: _service.entries(), clearBusy: clearBusy),
     );
   }
 
-  void clearError() => emit(state.copyWith(clearError: true));
+  /// One failure landing: the error pinned to its entry plus the tick bump
+  /// that lets a surface re-announce a repeat of the same failure.
+  EntriesState _withFailure(Entry entry, Object e) => state.copyWith(
+    error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
+    errorTick: state.errorTick + 1,
+  );
 
   /// Folds a raw failure into the kind the UI words for the user; the raw error
   /// (often a native NSError dump) is only ever debug-logged.

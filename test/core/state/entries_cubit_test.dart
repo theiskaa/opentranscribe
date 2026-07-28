@@ -10,14 +10,16 @@ import '../../support/fake_audio_recorder.dart';
 
 void main() {
   late TranscriptionService service;
+  late FakeBatchEngine engine;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    engine = FakeBatchEngine();
     service = TranscriptionService(
       recorder: FakeAudioRecorder(),
-      engine: FakeBatchEngine(),
+      engine: engine,
       store: EntryStore(storage),
     );
   });
@@ -117,6 +119,21 @@ void main() {
     await cubit.close();
   });
 
+  test('every failure bumps the tick, so a repeat can re-announce itself', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await service.deleteEntry(entry);
+
+    await cubit.rename(entry, 'ghost');
+    final first = cubit.state.errorTick;
+    await cubit.rename(entry, 'ghost again');
+
+    expect(first, greaterThan(0));
+    expect(cubit.state.errorTick, greaterThan(first));
+
+    await cubit.close();
+  });
+
   test('a failure is pinned to its entry, invisible on any other', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;
@@ -128,9 +145,38 @@ void main() {
     expect(cubit.state.errorFor(entry.id), EntriesError.generic);
     expect(cubit.state.errorFor('someone-else'), isNull);
 
-    cubit.clearError();
-    expect(cubit.state.errorFor(entry.id), isNull);
+    await cubit.close();
+  });
 
+  test('a retry in flight keeps the standing error, so the pill never blinks', () async {
+    engine.failBatch = true;
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await cubit.retranscribe(entry);
+    expect(cubit.state.errorFor(entry.id), isNotNull);
+
+    final seen = <bool>[];
+    final sub = cubit.stream.listen((s) => seen.add(s.error != null));
+    await cubit.retranscribe(entry);
+    await sub.cancel();
+
+    expect(seen, isNotEmpty);
+    expect(seen, everyElement(isTrue));
+    await cubit.close();
+  });
+
+  test('a retry that succeeds clears the standing error', () async {
+    engine.failBatch = true;
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await cubit.retranscribe(entry);
+    expect(cubit.state.errorFor(entry.id), isNotNull);
+
+    engine.failBatch = false;
+    await cubit.retranscribe(entry);
+
+    expect(cubit.state.errorFor(entry.id), isNull);
+    expect(cubit.state.entries.single.isTranscribed, isTrue);
     await cubit.close();
   });
 }

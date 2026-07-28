@@ -223,8 +223,9 @@ class FakeBatchEngine implements TranscriptionEngine, CancellableBatchEngine {
   /// The picker list this fake reports.
   final List<String> supportedLocaleTags;
 
-  /// Throws a [TranscriptionFailed] (the mapped taxonomy).
-  final bool failBatch;
+  /// Throws a [TranscriptionFailed] (the mapped taxonomy). Mutable so a test
+  /// can fail a run and then let a retry succeed.
+  bool failBatch;
 
   /// Throws a non-taxonomy error, to prove the service never orphans a recording.
   final bool throwGeneric;
