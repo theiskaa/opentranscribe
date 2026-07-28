@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// Header of the transcription screen: the on-device and shared-asset promise
   ///
   /// In en, this message translates to:
-  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. iOS limits how many languages an app can keep ready at once.'**
+  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.'**
   String get transcriptionInfo;
 
   /// Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)
@@ -419,7 +419,7 @@ abstract class AppLocalizations {
   /// Row failure line when the asset was already stuck downloading
   ///
   /// In en, this message translates to:
-  /// **'A previous download is still pending. iOS retries when conditions improve; trying again is safe.'**
+  /// **'A previous download is still pending. The system retries when conditions improve; trying again is safe.'**
   String get transcriptionErrorStuck;
 
   /// Row failure line for an ordinary download failure
@@ -461,7 +461,7 @@ abstract class AppLocalizations {
   /// Failure sheet body for the cap case, above the removable language list
   ///
   /// In en, this message translates to:
-  /// **'iOS limits how many languages an app can keep ready at once. Remove one of these to make room for {language}.'**
+  /// **'The system limits how many languages an app can keep ready at once. Remove one of these to make room for {language}.'**
   String modelFailCapBody(String language);
 
   /// Failure sheet title when the platform has no on-device model for the language
@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// Failure sheet body for the stuck-download case
   ///
   /// In en, this message translates to:
-  /// **'A previous download for {language} is still pending. iOS retries it when conditions improve, and asking again is safe.'**
+  /// **'A previous download for {language} is still pending. The system retries it when conditions improve, and asking again is safe.'**
   String modelFailStuckBody(String language);
 
   /// Failure sheet title for an ordinary model download failure
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// Failure sheet body for an ordinary download failure
   ///
   /// In en, this message translates to:
-  /// **'The {language} model couldn\'t be downloaded. Check your connection and free space. iOS may also be unable to provide this model right now; trying again is safe.'**
+  /// **'The {language} model couldn\'t be downloaded. Check your connection and free space, then try again.'**
   String modelFailGenericBody(String language);
 
   /// Failure sheet title when the platform refused to release a language
@@ -509,7 +509,7 @@ abstract class AppLocalizations {
   /// Failure sheet body for a refused removal
   ///
   /// In en, this message translates to:
-  /// **'iOS didn\'t release {language}. Trying again is safe.'**
+  /// **'The system didn\'t release {language}. Trying again is safe.'**
   String modelFailRemoveBody(String language);
 
   /// Settings row leading to the models screen (per-language on-device models)

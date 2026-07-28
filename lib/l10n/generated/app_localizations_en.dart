@@ -171,7 +171,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionInfo =>
-      'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. iOS limits how many languages an app can keep ready at once.';
+      'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.';
 
   @override
   String transcriptionCap(int used, int max) {
@@ -187,7 +187,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionErrorStuck =>
-      'A previous download is still pending. iOS retries when conditions improve; trying again is safe.';
+      'A previous download is still pending. The system retries when conditions improve; trying again is safe.';
 
   @override
   String get transcriptionErrorGeneric =>
@@ -210,7 +210,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String modelFailCapBody(String language) {
-    return 'iOS limits how many languages an app can keep ready at once. Remove one of these to make room for $language.';
+    return 'The system limits how many languages an app can keep ready at once. Remove one of these to make room for $language.';
   }
 
   @override
@@ -226,7 +226,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String modelFailStuckBody(String language) {
-    return 'A previous download for $language is still pending. iOS retries it when conditions improve, and asking again is safe.';
+    return 'A previous download for $language is still pending. The system retries it when conditions improve, and asking again is safe.';
   }
 
   @override
@@ -234,7 +234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String modelFailGenericBody(String language) {
-    return 'The $language model couldn\'t be downloaded. Check your connection and free space. iOS may also be unable to provide this model right now; trying again is safe.';
+    return 'The $language model couldn\'t be downloaded. Check your connection and free space, then try again.';
   }
 
   @override
@@ -242,7 +242,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String modelFailRemoveBody(String language) {
-    return 'iOS didn\'t release $language. Trying again is safe.';
+    return 'The system didn\'t release $language. Trying again is safe.';
   }
 
   @override

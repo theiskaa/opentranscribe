@@ -200,7 +200,7 @@
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
   },
-  "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. iOS limits how many languages an app can keep ready at once.",
+  "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. The system limits how many languages an app can keep ready at once.",
   "@transcriptionInfo": {
     "description": "Header of the transcription screen: the on-device and shared-asset promise"
   },
@@ -224,7 +224,7 @@
   "@transcriptionErrorUnsupported": {
     "description": "Row failure line when the platform has no asset to serve"
   },
-  "transcriptionErrorStuck": "A previous download is still pending. iOS retries when conditions improve; trying again is safe.",
+  "transcriptionErrorStuck": "A previous download is still pending. The system retries when conditions improve; trying again is safe.",
   "@transcriptionErrorStuck": {
     "description": "Row failure line when the asset was already stuck downloading"
   },
@@ -252,7 +252,7 @@
   "@modelFailCapTitle": {
     "description": "Failure sheet title when the per-app language cap blocks an install"
   },
-  "modelFailCapBody": "iOS limits how many languages an app can keep ready at once. Remove one of these to make room for {language}.",
+  "modelFailCapBody": "The system limits how many languages an app can keep ready at once. Remove one of these to make room for {language}.",
   "@modelFailCapBody": {
     "description": "Failure sheet body for the cap case, above the removable language list",
     "placeholders": {
@@ -278,7 +278,7 @@
   "@modelFailStuckTitle": {
     "description": "Failure sheet title when an earlier system download is still pending"
   },
-  "modelFailStuckBody": "A previous download for {language} is still pending. iOS retries it when conditions improve, and asking again is safe.",
+  "modelFailStuckBody": "A previous download for {language} is still pending. The system retries it when conditions improve, and asking again is safe.",
   "@modelFailStuckBody": {
     "description": "Failure sheet body for the stuck-download case",
     "placeholders": {
@@ -291,7 +291,7 @@
   "@modelFailGenericTitle": {
     "description": "Failure sheet title for an ordinary model download failure"
   },
-  "modelFailGenericBody": "The {language} model couldn't be downloaded. Check your connection and free space. iOS may also be unable to provide this model right now; trying again is safe.",
+  "modelFailGenericBody": "The {language} model couldn't be downloaded. Check your connection and free space, then try again.",
   "@modelFailGenericBody": {
     "description": "Failure sheet body for an ordinary download failure",
     "placeholders": {
@@ -304,7 +304,7 @@
   "@modelFailRemoveTitle": {
     "description": "Failure sheet title when the platform refused to release a language"
   },
-  "modelFailRemoveBody": "iOS didn't release {language}. Trying again is safe.",
+  "modelFailRemoveBody": "The system didn't release {language}. Trying again is safe.",
   "@modelFailRemoveBody": {
     "description": "Failure sheet body for a refused removal",
     "placeholders": {
