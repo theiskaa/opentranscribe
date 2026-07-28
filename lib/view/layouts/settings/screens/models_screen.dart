@@ -328,23 +328,15 @@ class _LanguageRow extends StatelessWidget {
       // the failure story when there is one.
       onTap: explain ?? () {},
       onLongPress: makeDefault,
-      onDelete: () => unawaited(_removeAndSettle(context, cubit)),
+      // A refused removal keeps the row: the swipe's exit reopens the slot on
+      // its own, and the failure line says what happened.
+      onDelete: () => cubit.remove(row.tag),
       // Tighter than the default: releasing a language is undoable (install
       // it again), so demanding the pill be dragged across nearly the whole
       // row reads as more work than the action deserves.
       commitReveal: 1.6,
       child: content,
     );
-  }
-
-  /// Removes the language, then releases the open swipe EITHER WAY: a refused
-  /// removal keeps the row, and a row keeping its red disc open forever is the
-  /// bug this screen used to have. The failure line says what happened.
-  Future<void> _removeAndSettle(BuildContext context, SettingsCubit cubit) async {
-    await cubit.remove(row.tag);
-    // The screen may have been popped during the round trip, taking the
-    // notifier down with it; a dead row has no disc left to release.
-    if (context.mounted) openRemove.value = null;
   }
 
   Widget _content(BuildContext context) {

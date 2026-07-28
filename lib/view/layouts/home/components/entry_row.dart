@@ -4,7 +4,6 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
@@ -17,8 +16,9 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 ///
 /// Swipe a row left to reveal Delete (see [DeleteSwipe]); only the text
 /// column moves and it is clipped at the gutter, so the record slides UNDER the
-/// rail rather than across it. Deleting is immediate - the row leaves the list
-/// the instant the action fires, no exit animation.
+/// rail rather than across it. A delete plays the swipe's exit first - the
+/// whole slot (rail, node and day gap included, via [DeleteSwipe.frame]) fades
+/// and closes before the row actually leaves the list.
 class EntryRow extends StatelessWidget {
   const EntryRow({
     required this.entry,
@@ -41,12 +41,6 @@ class EntryRow extends StatelessWidget {
   final ValueNotifier<String?> openId;
   final Future<void> Function(Entry) onDelete;
 
-  void _requestDelete() {
-    Haptics.medium();
-    if (openId.value == entry.id) openId.value = null;
-    onDelete(entry);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -56,65 +50,65 @@ class EntryRow extends StatelessWidget {
     final title = entry.title;
     final leadStyle = title != null ? AppType.headline : AppType.body;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: CustomPaint(
-        // Behind the record: the rail and its node are the list's structure, so
-        // they hold still while the record slides. The swipe wraps only the text
-        // column (right of the gutter), so the record never reaches the rail.
-        painter: _RailPainter(
-          railColor: tokens.railColor,
-          nodeColor: tokens.nodeColor,
-          railWidth: tokens.railWidth,
-          nodeSize: tokens.nodeSize,
-          nodeCenter: _firstLineCenter(leadStyle),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: tokens.railGutter),
-              Expanded(
-                child: DeleteSwipe(
-                  id: entry.id,
-                  openId: openId,
-                  onTap: onTap,
-                  onDelete: _requestDelete,
-                  label: l10n.delete,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (title != null) ...[
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppType.headline.copyWith(color: tokens.titleColor),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                      ],
-                      Text(
-                        excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
-                        maxLines: tokens.excerptLines,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.body.copyWith(
-                          color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '${formatTime(entry.createdAt)} · '
-                        '${formatDurationCompact(entry.duration)}',
-                        style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return DeleteSwipe(
+      id: entry.id,
+      openId: openId,
+      onTap: onTap,
+      onDelete: () => onDelete(entry),
+      label: l10n.delete,
+      // Behind the record: the rail and its node are the list's structure, so
+      // they hold still while the record slides. The swipe wraps only the text
+      // column (right of the gutter), so the record never reaches the rail;
+      // the frame ties rail, gutter and day gap to the row's exit.
+      frame: (context, swipe) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: CustomPaint(
+          painter: _RailPainter(
+            railColor: tokens.railColor,
+            nodeColor: tokens.nodeColor,
+            railWidth: tokens.railWidth,
+            nodeSize: tokens.nodeSize,
+            nodeCenter: _firstLineCenter(leadStyle),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: tokens.railGutter),
+                Expanded(child: swipe),
+              ],
+            ),
           ),
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) ...[
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.headline.copyWith(color: tokens.titleColor),
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+          ],
+          Text(
+            excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
+            maxLines: tokens.excerptLines,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.body.copyWith(
+              color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '${formatTime(entry.createdAt)} · '
+            '${formatDurationCompact(entry.duration)}',
+            style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
+          ),
+        ],
       ),
     );
   }

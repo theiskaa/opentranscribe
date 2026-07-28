@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
@@ -49,6 +51,12 @@ const double _kRestOpen = _kDiscLeftInset / _kActionWidth;
 /// Scoped: [openId] is the single row allowed open; opening this one claims it
 /// (closing any other), and the host clears it on scroll. A tap on an open
 /// row closes it instead of firing [onTap].
+///
+/// A committed delete plays the row's EXIT before anything is removed: the
+/// record fades, then its slot closes, and only then does [onDelete] run - so
+/// the actual removal lands on an already-empty slot instead of cutting the
+/// row out mid-frame. If the subject survives the call (a refused removal),
+/// the slot reopens and the row returns, closed.
 class DeleteSwipe extends StatefulWidget {
   const DeleteSwipe({
     required this.id,
@@ -56,6 +64,7 @@ class DeleteSwipe extends StatefulWidget {
     required this.onTap,
     required this.onDelete,
     required this.child,
+    this.frame,
     this.onLongPress,
     this.label,
     this.commitReveal = _kCommitReveal,
@@ -70,8 +79,16 @@ class DeleteSwipe extends StatefulWidget {
   /// Fired by a tap while closed; a tap while open closes instead.
   final VoidCallback onTap;
 
-  /// Fired by a tap on the disc, or by a full swipe.
-  final VoidCallback onDelete;
+  /// Removes the row's subject, fired by a tap on the disc or by a full swipe -
+  /// after the exit collapse. Resolving with the subject still in place (a
+  /// refused removal) brings the row back.
+  final Future<void> Function() onDelete;
+
+  /// Chrome the host draws AROUND the swipe (home's rail, gutter and day gap)
+  /// that must not slide with the content yet must leave with the row: the
+  /// exit collapse wraps this builder's result, so everything the row owns
+  /// fades and closes as one piece. Identity when null.
+  final Widget Function(BuildContext context, Widget swipe)? frame;
 
   /// Optional hold action on the row content (see [Touchable.onLongPress]).
   final VoidCallback? onLongPress;
@@ -109,6 +126,10 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   // would flash the pill.
   late final AnimationController _disc = AnimationController.unbounded(vsync: this);
 
+  // The exit's progress, 0 (row whole) to 1 (faded and collapsed). Linear;
+  // the phases in [_exitFrame] carve their own curves out of it.
+  late final AnimationController _exit = AnimationController(vsync: this);
+
   // The row width, cached from the layout so the drag math and the paint agree.
   double _width = 0;
   // Set at each drag's start: only a drag that begins open may expand past 1.
@@ -142,6 +163,8 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       _reveal.value = 0;
       _disc.stop();
       _disc.value = 0;
+      _exit.stop();
+      _exit.value = 0;
       _committed = false;
       if (widget.openId.value == old.id) widget.openId.value = null;
     }
@@ -152,17 +175,22 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     widget.openId.removeListener(_onOpenIdChanged);
     _reveal.dispose();
     _disc.dispose();
+    _exit.dispose();
     super.dispose();
   }
 
   // Another row claimed the open slot (or a scroll cleared it): close this one.
+  // Not during an exit, whose own commit released the claim: the frozen pill
+  // must fade where it is, not spring closed underneath the collapse.
   void _onOpenIdChanged() {
+    if (_committed) return;
     if (widget.openId.value != widget.id && _reveal.value > 0) {
       _settle(open: false, claim: false);
     }
   }
 
   void _onDragStart(DragStartDetails _) {
+    if (_committed) return;
     _reveal.stop();
     _disc.stop();
     // A settled-open reveal rests a hair below 1 (overdamped, approached from
@@ -187,10 +215,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     // tracks the finger without ever crossing onto the text.
     _disc.value = (next / _kRestOpen).clamp(0.0, 1.0);
     // Full swipe: dragged past the commit line, delete without a release.
-    if (_canExpand && next >= widget.commitReveal) {
-      _committed = true;
-      widget.onDelete();
-    }
+    if (_canExpand && next >= widget.commitReveal) unawaited(_commitDelete());
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -276,6 +301,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   }
 
   void _handleTap() {
+    if (_committed) return;
     // A settled-closed reveal rests a hair above 0 (the spring stops within its
     // tolerance, not exactly at target), so test against the same epsilon the
     // disc's hit-test uses. A raw > 0 would make a closed-but-once-swiped row
@@ -284,6 +310,41 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       _settle(open: false);
     } else {
       widget.onTap();
+    }
+  }
+
+  /// The one delete path, from the disc tap and the full swipe alike: freeze
+  /// the swipe where it is, play the exit, THEN run the delete. Still here
+  /// with the same id afterwards means the subject survived (the host refused
+  /// the removal): reopen the slot and hand the row back, closed.
+  Future<void> _commitDelete() async {
+    if (_committed) return;
+    _committed = true;
+    Haptics.medium();
+    _reveal.stop();
+    _disc.stop();
+    final id = widget.id;
+    if (widget.openId.value == id) widget.openId.value = null;
+    final motion = context.motionNow;
+    final reduce = context.reduceMotion;
+    if (!reduce) {
+      try {
+        await _exit.animateTo(1, duration: motion.swipeExit).orCancel;
+      } on TickerCanceled {
+        // Interrupted (disposed mid-exit): the delete is still owed.
+      }
+    }
+    await widget.onDelete();
+    // A removed row never returns here with its id: the host dropped it, and a
+    // reused State was hard-reset by didUpdateWidget on the way.
+    if (!mounted || widget.id != id) return;
+    _reveal.value = 0;
+    _disc.value = 0;
+    _committed = false;
+    if (reduce || _exit.value == 0) {
+      _exit.value = 0;
+    } else {
+      unawaited(_exit.animateBack(0, duration: motion.swipeExit));
     }
   }
 
@@ -307,7 +368,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
         ? null
         : Text(widget.label!, style: AppType.caption.copyWith(color: theme.textSecondary));
 
-    return GestureDetector(
+    final swipe = GestureDetector(
       // Opaque, not deferToChild: the drag must be caught across the WHOLE row,
       // including the blank area right of short text, or it falls through to the
       // list and scrolls instead of revealing.
@@ -328,6 +389,28 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
             );
           },
         ),
+      ),
+    );
+
+    final framed = widget.frame == null ? swipe : widget.frame!(context, swipe);
+    return AnimatedBuilder(animation: _exit, builder: _exitFrame, child: framed);
+  }
+
+  /// The exit, carved from the linear controller in two phases: the record
+  /// fades first, then the emptied slot closes, so the collapse never drags
+  /// legible text over the row below. The clip's vertical slack (the disc's
+  /// room to spill into the row gap) tightens away before the slot moves.
+  Widget _exitFrame(BuildContext context, Widget? child) {
+    final t = _exit.value;
+    final fade = 1 - const Interval(0, 0.45, curve: Curves.easeOut).transform(t);
+    final height = 1 - const Interval(0.25, 1, curve: Curves.easeInOutCubic).transform(t);
+    final slack = _kOverflow * (1 - const Interval(0, 0.25).transform(t));
+    return ClipRect(
+      clipper: _ExitClipper(slack),
+      child: Align(
+        alignment: Alignment.topCenter,
+        heightFactor: height,
+        child: Opacity(opacity: fade, child: child),
       ),
     );
   }
@@ -408,7 +491,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Touchable(
-                            onTap: widget.onDelete,
+                            onTap: () => unawaited(_commitDelete()),
                             pressedOpacity: 0.6,
                             child: SizedBox(
                               width: w,
@@ -452,4 +535,19 @@ class _HorizontalClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(CustomClipper<Rect> oldClipper) => false;
+}
+
+/// The exit's clip: the same vertical slack as [_HorizontalClipper] while the
+/// row is whole, and none once the slot is closing, so the shrinking row
+/// swallows its content instead of bleeding over the neighbour below.
+class _ExitClipper extends CustomClipper<Rect> {
+  const _ExitClipper(this.slack);
+
+  final double slack;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, -slack, size.width, size.height + slack);
+
+  @override
+  bool shouldReclip(_ExitClipper oldClipper) => oldClipper.slack != slack;
 }
