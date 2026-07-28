@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
@@ -103,10 +102,6 @@ class Deps {
 
     final localService = LocalService();
     await localService.init(encryptionKey: _storageKey);
-
-    // Debug rig: forget onboarding each launch so it shows on every run while
-    // it is being reworked. See [Onboarding.debugAlwaysShow].
-    if (Onboarding.debugAlwaysShow) await localService.write(Onboarding.key, 'false');
 
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.
