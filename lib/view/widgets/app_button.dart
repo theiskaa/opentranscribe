@@ -134,7 +134,27 @@ class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMix
                           AppIcon(widget.icon!, size: 18, color: foreground),
                           const SizedBox(width: AppSpacing.sm),
                         ],
-                        Text(widget.label, style: AppType.callout.copyWith(color: foreground)),
+                        // A changed label transforms in place (rise + fade)
+                        // rather than snapping, so a button that reuses its slot
+                        // for a new action reads as the same button, changed.
+                        AnimatedSwitcher(
+                          duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                          transitionBuilder: (child, animation) => FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween(
+                                begin: const Offset(0, 0.4),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          ),
+                          child: Text(
+                            widget.label,
+                            key: ValueKey(widget.label),
+                            style: AppType.callout.copyWith(color: foreground),
+                          ),
+                        ),
                       ],
                     ),
             ),
