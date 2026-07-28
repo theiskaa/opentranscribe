@@ -144,6 +144,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
             previous.status != current.status ||
             previous.error != current.error ||
             previous.live != current.live ||
+            previous.interrupted != current.interrupted ||
             previous.localeId != current.localeId,
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
