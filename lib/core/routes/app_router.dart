@@ -40,10 +40,11 @@ class AppRouter {
       GoRoute(
         path: Routes.home,
         name: Routes.homeName,
-        // The base of the stack: it does not slide in, everything slides in
-        // over it.
+        // The base of the stack: everything slides in over it. On a plain
+        // launch the initial route does not animate; the arrival fade only
+        // plays on the swap out of onboarding.
         pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const HomeScreen()),
+            ArrivalPage<void>(key: state.pageKey, child: const HomeScreen()),
       ),
       GoRoute(
         path: Routes.onboarding,

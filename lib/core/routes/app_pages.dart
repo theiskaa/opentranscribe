@@ -13,6 +13,28 @@ class FadePage<T> extends CustomTransitionPage<T> {
       );
 }
 
+/// Home's arrival out of onboarding: a fade with a touch of scale, so the app
+/// reads as coming forward to meet the user rather than snapping into place.
+/// An initial route never animates, so a plain launch is untouched; this only
+/// ever plays on the one swap that ends the first run.
+class ArrivalPage<T> extends CustomTransitionPage<T> {
+  ArrivalPage({required super.child, super.key, super.name})
+    : super(
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final eased = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+          return FadeTransition(
+            opacity: eased,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.97, end: 1).animate(eased),
+              child: child,
+            ),
+          );
+        },
+      );
+}
+
 /// A full-screen sheet rising from the bottom, for surfaces that sit on top of
 /// the app rather than beside it. It leaves the instant it is asked to: the
 /// rise DECELERATES (no slow ramp in, which is what reads as lag), and the
