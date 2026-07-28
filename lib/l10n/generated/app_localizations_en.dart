@@ -218,7 +218,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String modelFailUnsupportedBody(String language) {
-    return 'iOS doesn\'t offer an on-device model for $language on this device yet. It may arrive with a future iOS update.';
+    return 'There\'s no on-device model for $language on this device yet. It may arrive with a system update.';
   }
 
   @override
@@ -256,6 +256,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionDefaultHint => 'Touch and hold a language to make it the default.';
+
+  @override
+  String transcriptionDeviceLanguageFallback(String fallback) {
+    return 'Your phone\'s language isn\'t supported for on-device transcription yet, so $fallback is the default.';
+  }
 
   @override
   String get onboardingIntroBody => 'You speak your mind, and it writes it down.';

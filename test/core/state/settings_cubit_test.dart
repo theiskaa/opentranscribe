@@ -74,6 +74,72 @@ void main() {
     await cubit.close();
   });
 
+  // A cubit over its own engine with [tags], its default derived from
+  // [deviceTag] and resolved the way Deps.init does. Caller closes the cubit;
+  // the service dies with the shared tearDown recorder.
+  Future<(SettingsCubit, TranscriptionService)> buildResolved({
+    required List<String> tags,
+    required String deviceTag,
+  }) async {
+    final scopedService = TranscriptionService(
+      recorder: recorder,
+      engine: FakeManagedEngine(supportedLocaleTags: tags),
+      store: EntryStore(storage),
+    );
+    final scopedTranscription = TranscriptionSettings(
+      storage: storage,
+      service: scopedService,
+      deviceTag: () => deviceTag,
+    );
+    await scopedTranscription.apply();
+    final cubit = SettingsCubit(
+      service: scopedService,
+      transcription: scopedTranscription,
+      audioStorage: audioStorage,
+    );
+    await Future<void>.delayed(Duration.zero);
+    return (cubit, scopedService);
+  }
+
+  test('a derived device tag the engine cannot run never becomes a row', () async {
+    // The Turkish-phone-in-Georgia bug: tr-GE resolves to tr-TR before this
+    // surface ever sees it, so no phantom unsupported row appears.
+    final (cubit, scoped) = await buildResolved(tags: ['en-US', 'tr-TR'], deviceTag: 'tr-GE');
+
+    expect(cubit.state.localeId, 'tr-TR');
+    expect(cubit.state.defaultLanguage?.tag, 'tr-TR');
+    expect([for (final row in cubit.state.languages) row.tag], isNot(contains('tr-GE')));
+    expect(cubit.state.deviceLanguageUnsupported, isFalse);
+
+    await cubit.close();
+    await scoped.dispose();
+  });
+
+  test('a device language with no model at all raises the fallback notice', () async {
+    final (cubit, scoped) = await buildResolved(tags: ['en-US', 'tr-TR'], deviceTag: 'ka-GE');
+
+    expect(cubit.state.localeId, 'en-US');
+    expect(cubit.state.deviceLanguageUnsupported, isTrue);
+
+    await cubit.close();
+    await scoped.dispose();
+  });
+
+  test('rows come major languages first, one order for every surface', () async {
+    final (cubit, scoped) = await buildResolved(
+      tags: ['ar-SA', 'da-DK', 'en-GB', 'en-US', 'tr-TR'],
+      deviceTag: 'en-US',
+    );
+
+    expect(
+      [for (final row in cubit.state.languages) row.tag],
+      ['en-US', 'en-GB', 'ar-SA', 'tr-TR', 'da-DK'],
+    );
+
+    await cubit.close();
+    await scoped.dispose();
+  });
+
   test('install maps progress and lands installed', () async {
     engine.installSteps = [0.3, 0.7];
     final cubit = build();

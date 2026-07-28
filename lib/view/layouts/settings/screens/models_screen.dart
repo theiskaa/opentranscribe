@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
+import 'package:opentranscribe/core/utils/language_tags.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -133,16 +134,16 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
           // Sorted for reading, not by the engine's tag order: what you can
-          // use now on top (the default first), then everything else by name.
+          // use now on top (the default first), then major languages first.
           final rows = [...state.languages]
             ..sort((a, b) {
               if (a.isDefault != b.isDefault) return a.isDefault ? -1 : 1;
               if (a.isReady != b.isReady) return a.isReady ? -1 : 1;
-              return localeDisplayName(
-                a.tag,
-              ).toLowerCase().compareTo(localeDisplayName(b.tag).toLowerCase());
+              return languageTagCompare(a.tag, b.tag);
             });
           final hints = [
+            if (state.deviceLanguageUnsupported)
+              l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
             if (rows.isNotEmpty) l10n.transcriptionDefaultHint,
             if (canManage && reserved > 0) l10n.transcriptionRemoveHint,
           ];

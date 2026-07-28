@@ -473,7 +473,7 @@ abstract class AppLocalizations {
   /// Failure sheet body for the unsupported case
   ///
   /// In en, this message translates to:
-  /// **'iOS doesn\'t offer an on-device model for {language} on this device yet. It may arrive with a future iOS update.'**
+  /// **'There\'s no on-device model for {language} on this device yet. It may arrive with a system update.'**
   String modelFailUnsupportedBody(String language);
 
   /// Failure sheet title when an earlier system download is still pending
@@ -535,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Touch and hold a language to make it the default.'**
   String get transcriptionDefaultHint;
+
+  /// Footer notice when the phone's language has no on-device model in any variant
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone\'s language isn\'t supported for on-device transcription yet, so {fallback} is the default.'**
+  String transcriptionDeviceLanguageFallback(String fallback);
 
   /// Explanatory body on the first onboarding step
   ///

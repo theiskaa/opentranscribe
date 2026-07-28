@@ -138,8 +138,9 @@ class Deps {
       storage: localService,
       service: transcriptionService,
     );
-    // Pushes the stored (or device-default) language before anything records.
-    transcriptionSettings.apply();
+    // Pushes the stored (or resolved device-default) language before anything
+    // records.
+    await transcriptionSettings.apply();
 
     i = Deps._(
       localService: localService,

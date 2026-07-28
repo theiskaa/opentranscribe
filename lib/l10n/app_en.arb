@@ -265,7 +265,7 @@
   "@modelFailUnsupportedTitle": {
     "description": "Failure sheet title when the platform has no on-device model for the language"
   },
-  "modelFailUnsupportedBody": "iOS doesn't offer an on-device model for {language} on this device yet. It may arrive with a future iOS update.",
+  "modelFailUnsupportedBody": "There's no on-device model for {language} on this device yet. It may arrive with a system update.",
   "@modelFailUnsupportedBody": {
     "description": "Failure sheet body for the unsupported case",
     "placeholders": {
@@ -328,6 +328,15 @@
   "transcriptionDefaultHint": "Touch and hold a language to make it the default.",
   "@transcriptionDefaultHint": {
     "description": "Footer hint for the hold-to-set-default gesture on the models screen"
+  },
+  "transcriptionDeviceLanguageFallback": "Your phone's language isn't supported for on-device transcription yet, so {fallback} is the default.",
+  "@transcriptionDeviceLanguageFallback": {
+    "description": "Footer notice when the phone's language has no on-device model in any variant",
+    "placeholders": {
+      "fallback": {
+        "type": "String"
+      }
+    }
   },
   "onboardingIntroBody": "You speak your mind, and it writes it down.",
   "@onboardingIntroBody": {

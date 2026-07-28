@@ -1,3 +1,5 @@
+import 'package:opentranscribe/core/utils/language_tags.dart';
+
 /// Native display names for the languages the on-device engines ship, keyed by
 /// language subtag. Data, not translation: a language picker names each
 /// language in itself by convention, so these are deliberately not l10n keys.
@@ -30,45 +32,14 @@ const _languageNames = <String, String>{
   'zh': '中文',
 };
 
-/// A representative country per language, for the flag chip when a tag carries
-/// no region of its own. A language is not a country, so this is a convention
-/// (the flag people most associate with the language), not a fact.
-const _languageCountry = <String, String>{
-  'ar': 'SA',
-  'da': 'DK',
-  'de': 'DE',
-  'en': 'US',
-  'es': 'ES',
-  'fi': 'FI',
-  'fr': 'FR',
-  'he': 'IL',
-  'hi': 'IN',
-  'id': 'ID',
-  'it': 'IT',
-  'ja': 'JP',
-  'ko': 'KR',
-  'nb': 'NO',
-  'nl': 'NL',
-  'pl': 'PL',
-  'pt': 'PT',
-  'ru': 'RU',
-  'sv': 'SE',
-  'th': 'TH',
-  'tr': 'TR',
-  'uk': 'UA',
-  'vi': 'VN',
-  'yue': 'HK',
-  'zh': 'CN',
-};
-
 /// The flag emoji for a BCP-47 tag: its region subtag when present ("en-US" ->
-/// US), else the language's representative country. A globe when neither
-/// resolves, so a picker row never renders a blank chip.
+/// US), else the language's home region. A globe when neither resolves, so a
+/// picker row never renders a blank chip.
 String localeFlag(String tag) {
   final parts = tag.split('-');
   final region = parts.length > 1
       ? parts.last.toUpperCase()
-      : _languageCountry[parts.first.toLowerCase()];
+      : languageHomeRegion[parts.first.toLowerCase()];
   if (region == null || region.length != 2) return '\u{1F310}';
   // Two ASCII letters map to the two regional-indicator symbols that render as
   // a flag.

@@ -425,11 +425,21 @@ private func makeTimedTranscriber(locale: Locale, volatileResults: Bool = false)
 
 /// The nearest supported model locale for a requested tag (de-AT finds de-DE), or
 /// the request unchanged when nothing matches, so an unsupported language fails
-/// honestly downstream instead of silently becoming another language.
+/// honestly downstream instead of silently becoming another language. When the
+/// equivalence probe knows nothing, any supported variant of the same LANGUAGE
+/// still counts (tr-GE finds tr-TR): entries recorded under a region no model
+/// ships for must not fail a language that exists.
 @available(iOS 26.0, *)
 private func resolvedLocale(_ localeId: String) async -> Locale {
   let requested = Locale(identifier: localeId)
-  return await SpeechTranscriber.supportedLocale(equivalentTo: requested) ?? requested
+  if let match = await SpeechTranscriber.supportedLocale(equivalentTo: requested) { return match }
+  if let language = requested.language.languageCode {
+    let variant = await SpeechTranscriber.supportedLocales
+      .filter { $0.language.languageCode == language }
+      .min { $0.identifier(.bcp47) < $1.identifier(.bcp47) }
+    if let variant = variant { return variant }
+  }
+  return requested
 }
 
 /// Whether the on-device model for a locale is downloaded and ready now.
@@ -1010,11 +1020,12 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         Task {
           let authorized = await requestSpeechAuthorization() == .authorized
           // Supported means a model exists for the language, including near
-          // variants (de-AT counts via de-DE); a wholly unsupported language
+          // variants (de-AT counts via de-DE, tr-GE via tr-TR, matching what
+          // transcription itself resolves); a wholly unsupported language
           // reports unavailable rather than ever falling back silently.
-          let supported =
-            await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: localeId))
-            != nil
+          let resolved = await resolvedLocale(localeId).identifier(.bcp47)
+          let supported = await SpeechTranscriber.supportedLocales
+            .contains { $0.identifier(.bcp47) == resolved }
           let status =
             !authorized
             ? SpeechErrorCode.permissionDenied.rawValue

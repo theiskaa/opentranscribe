@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:opentranscribe/core/utils/language_tags.dart';
 
 /// Why a language row failed, as a kind the UI words. [capReached] is not a
 /// retry story: the fix is removing one of the languages holding the cap.
@@ -96,9 +97,15 @@ final class SettingsState {
     this.languages = const [],
     this.reservationMax = 0,
     this.backupExcluded = true,
+    this.deviceLanguageUnsupported = false,
   });
 
   final String localeId;
+
+  /// True when the phone's language has no on-device model in any variant and
+  /// the current default equals the derived fallback, so a surface can say why
+  /// the default is not the phone's language.
+  final bool deviceLanguageUnsupported;
 
   /// The engine's raw tag list, kept beside the rows for callers that need
   /// plain membership (the rows add installed extras and the kept default).
@@ -146,12 +153,14 @@ final class SettingsState {
     List<LanguageModelState>? languages,
     int? reservationMax,
     bool? backupExcluded,
+    bool? deviceLanguageUnsupported,
   }) => SettingsState(
     localeId: localeId ?? this.localeId,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
     backupExcluded: backupExcluded ?? this.backupExcluded,
+    deviceLanguageUnsupported: deviceLanguageUnsupported ?? this.deviceLanguageUnsupported,
   );
 }
 
@@ -207,7 +216,11 @@ class SettingsCubit extends Cubit<SettingsState> {
     for (final tag in installed) {
       if (!tags.contains(tag)) tags.add(tag);
     }
+    // A stored choice whose language lost support, or a startup whose engine
+    // answered no languages; the derived default otherwise resolves before it
+    // can get here.
     if (localeId.isNotEmpty && !tags.contains(localeId)) tags.add(localeId);
+    tags.sort(languageTagCompare);
 
     final previous = {for (final row in state.languages) row.tag: row};
     final rows = <LanguageModelState>[];
@@ -247,6 +260,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         languages: rows,
         reservationMax: reservations.max,
         backupExcluded: _audioStorage.backupExcluded,
+        deviceLanguageUnsupported:
+            _transcription.deviceLanguageUnsupported && localeId == _transcription.deviceLocaleId,
       ),
     );
   }
