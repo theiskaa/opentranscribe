@@ -209,8 +209,17 @@ class _RecorderScreenState extends State<RecorderScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _columnInset),
                   child: AppNotice(
-                    message: state.error == RecorderError.generic ? l10n.recordErrorMessage : null,
-                    onDismiss: () => context.read<RecorderCubit>().clearError(),
+                    message: state.error == RecorderError.generic
+                        ? l10n.recordErrorMessage
+                        : state.interrupted
+                        ? l10n.recordInterruptedSaved
+                        : null,
+                    onDismiss: () {
+                      final cubit = context.read<RecorderCubit>();
+                      state.error == RecorderError.generic
+                          ? cubit.clearError()
+                          : cubit.clearInterrupted();
+                    },
                   ),
                 ),
                 SafeArea(

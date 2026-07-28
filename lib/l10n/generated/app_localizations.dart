@@ -206,6 +206,12 @@ abstract class AppLocalizations {
   /// **'Live text isn\'t available right now. Your recording is safe and will be transcribed when you finish.'**
   String get recordLiveUnavailable;
 
+  /// Notice on the recorder screen after a call or route change ended the recording; the take was auto-saved as an untranscribed entry
+  ///
+  /// In en, this message translates to:
+  /// **'Recording interrupted. Your take was saved and can be transcribed from your journal.'**
+  String get recordInterruptedSaved;
+
   /// Title of the in-screen state when mic permission is denied
   ///
   /// In en, this message translates to:

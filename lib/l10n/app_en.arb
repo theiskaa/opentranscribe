@@ -76,6 +76,10 @@
   "@recordLiveUnavailable": {
     "description": "Calm notice under the live transcript when live transcription fails mid-recording; the batch pass still transcribes the entry"
   },
+  "recordInterruptedSaved": "Recording interrupted. Your take was saved and can be transcribed from your journal.",
+  "@recordInterruptedSaved": {
+    "description": "Notice on the recorder screen after a call or route change ended the recording; the take was auto-saved as an untranscribed entry"
+  },
   "recordPermissionTitle": "Microphone is off",
   "@recordPermissionTitle": {
     "description": "Title of the in-screen state when mic permission is denied"

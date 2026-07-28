@@ -30,6 +30,7 @@ class RecorderState {
     this.takeId = 0,
     this.live = false,
     this.error,
+    this.interrupted = false,
   });
 
   final RecorderStatus status;
@@ -66,6 +67,11 @@ class RecorderState {
   final int takeId;
   final RecorderError? error;
 
+  /// The capture died under this take and the service auto-saved it. The
+  /// screen shows a reassurance notice until the next run starts or the
+  /// user dismisses it explicitly.
+  final bool interrupted;
+
   bool get isRecording => status == RecorderStatus.recording;
   bool get isPaused => status == RecorderStatus.paused;
   bool get isBusy => status != RecorderStatus.idle;
@@ -82,6 +88,7 @@ class RecorderState {
     bool? live,
     RecorderError? error,
     bool clearError = false,
+    bool? interrupted,
   }) => RecorderState(
     status: status ?? this.status,
     elapsed: elapsed ?? this.elapsed,
@@ -92,6 +99,7 @@ class RecorderState {
     takeId: takeId ?? this.takeId,
     live: live ?? this.live,
     error: clearError ? null : (error ?? this.error),
+    interrupted: interrupted ?? this.interrupted,
   );
 }
 
@@ -421,6 +429,8 @@ class RecorderCubit extends Cubit<RecorderState> {
 
   void clearError() => emit(state.copyWith(clearError: true));
 
+  void clearInterrupted() => emit(state.copyWith(interrupted: false));
+
   Future<void> _cancelSession() async {
     final starting = _startInFlight;
     if (starting != null) {
@@ -454,7 +464,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     // matches what was actually recorded.
     _elapsedBase = _currentElapsed();
     _runStart = null;
-    emit(state.copyWith(live: false, elapsed: _elapsedBase));
+    emit(state.copyWith(live: false, elapsed: _elapsedBase, interrupted: true));
   }
 
   /// The interruption's own save failed. Recover the audio's record (so it is not

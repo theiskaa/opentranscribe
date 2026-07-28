@@ -71,6 +71,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Live text isn\'t available right now. Your recording is safe and will be transcribed when you finish.';
 
   @override
+  String get recordInterruptedSaved =>
+      'Recording interrupted. Your take was saved and can be transcribed from your journal.';
+
+  @override
   String get recordPermissionTitle => 'Microphone is off';
 
   @override

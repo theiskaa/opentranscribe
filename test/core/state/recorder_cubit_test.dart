@@ -263,6 +263,60 @@ void main() {
     await service.dispose();
   });
 
+  test('an interruption latches the interrupted flag with the settled clock', () async {
+    final recorder = FakeAudioRecorder();
+    final (cubit, service) = build(recorder: recorder);
+    await cubit.start();
+
+    recorder.interrupt();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(cubit.state.interrupted, isTrue);
+    expect(cubit.state.live, isFalse);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('starting a new take clears the interrupted notice', () async {
+    final recorder = FakeAudioRecorder();
+    final (cubit, service) = build(recorder: recorder);
+    await cubit.start();
+
+    recorder.interrupt();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(cubit.state.interrupted, isTrue);
+
+    await cubit.start();
+    expect(cubit.state.interrupted, isFalse);
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('clearInterrupted dismisses without touching the rest of the state', () async {
+    final recorder = FakeAudioRecorder();
+    final (cubit, service) = build(recorder: recorder);
+    await cubit.start();
+
+    recorder.interrupt();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(cubit.state.interrupted, isTrue);
+    final beforeClear = cubit.state;
+
+    cubit.clearInterrupted();
+
+    expect(cubit.state.interrupted, isFalse);
+    expect(cubit.state.status, beforeClear.status);
+    expect(cubit.state.elapsed, beforeClear.elapsed);
+    expect(cubit.state.live, beforeClear.live);
+    expect(cubit.state.error, beforeClear.error);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a second resume inside the first one is a quiet no-op', () async {
     final (cubit, service) = build();
     await cubit.start();
