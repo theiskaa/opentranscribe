@@ -188,10 +188,15 @@ final class AudioCaptureSession {
       throw CaptureError.noInput
     }
 
+    // 32 kbps per channel: speech at this AAC rate stays fully intelligible and
+    // transcribes as well as the encoder's default, at less than half the size.
+    // The key is the TOTAL stream rate, so a stereo route scales rather than
+    // starving both channels.
     let settings: [String: Any] = [
       AVFormatIDKey: kAudioFormatMPEG4AAC,
       AVSampleRateKey: format.sampleRate,
       AVNumberOfChannelsKey: format.channelCount,
+      AVEncoderBitRateKey: 32_000 * Int(format.channelCount),
       AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
     ]
     let url: URL
