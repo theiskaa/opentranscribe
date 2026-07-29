@@ -43,10 +43,12 @@ String formatDurationCompact(Duration d) {
 String formatBytes(int bytes, [String? locale]) {
   const kb = 1000, mb = kb * 1000, gb = mb * 1000;
   if (bytes < kb) return '$bytes B';
-  // Decided on the ROUNDED value: 999.5 KB must read 1.0 MB, never 1000 KB.
+  // Every seam is decided on the ROUNDED value: 999.5 KB must read 1.0 MB
+  // and 999.95 MB must read 1.0 GB, never "1000" of the smaller unit.
   final kbRounded = (bytes / kb).round();
   if (bytes < mb && kbRounded < 1000) return '$kbRounded KB';
   final decimal = NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1);
-  if (bytes < gb) return '${decimal.format(bytes / mb)} MB';
+  final mbTenths = (bytes / mb * 10).round();
+  if (bytes < gb && mbTenths < 10000) return '${decimal.format(mbTenths / 10)} MB';
   return '${decimal.format(bytes / gb)} GB';
 }

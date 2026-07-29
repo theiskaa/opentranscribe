@@ -16,10 +16,14 @@ void main() {
     expect(formatBytes(1230000000), '1.2 GB');
   });
 
-  test('formatBytes never renders 1000 KB at the unit seam', () {
-    // 999500..999999 rounds to 1000; the unit must step up with the rounding.
+  test('formatBytes never renders 1000 of a unit at either seam', () {
+    // Rounding reaches 1000 just under each threshold; the unit must step up
+    // with the rounding, at the KB seam and the MB seam alike.
     expect(formatBytes(999500), '1.0 MB');
     expect(formatBytes(999999), '1.0 MB');
+    expect(formatBytes(999940000), '999.9 MB');
+    expect(formatBytes(999950000), '1.0 GB');
+    expect(formatBytes(999999999), '1.0 GB');
   });
 
   test('formatBytes renders the decimal in the given locale', () {
