@@ -16,7 +16,7 @@ opentranscribe is a voice journal for iOS with no network layer. Capture, transc
 
 Transcription sits behind one contract, `TranscriptionEngine`. Apple's Speech framework is the first implementation, `SpeechAnalyzer` on iOS 26 and `SFSpeechRecognizer` below it, and whisper.cpp is meant to land as a second one without the rest of the app noticing. An engine that does not declare itself on-device is refused at construction, so the offline guarantee is a property of the code.
 
-Live text is painted while you speak and then thrown away. What gets saved is a batch pass over the finished file, which is why the raw audio is kept: any entry can be transcribed again later, in another language or by a better engine. Speech models are per-language and live on the device, so the Models screen manages them, including the cap iOS 26 puts on how many languages one app may hold.
+Live text is painted while you speak and then thrown away. What gets saved is a batch pass over the finished file, which is why the raw audio is kept by default: any entry can be transcribed again later, in another language or by a better engine. Keeping audio is a choice, though. The Cache screen shows what the recordings occupy, can clear the audio of already-transcribed entries, and holds a keep-audio switch that, when off, deletes each recording once its transcription succeeds. Speech models are per-language and live on the device, so the Models screen manages them, including the cap iOS 26 puts on how many languages one app may hold.
 
 ## Data on disk
 

@@ -28,10 +28,11 @@ final class LanguageSpan {
 
 /// One journal entry: a kept recording and, once transcribed, its transcript.
 /// While present, the audio is the source of truth and is kept so the entry can
-/// be re-transcribed by a better engine later. A null [audioPath] means the user
-/// chose not to keep audio and the file was deleted after a successful
-/// transcription: the entry is transcript-only, cannot be played back, and can
-/// never be re-transcribed. The transcript is null until transcription completes.
+/// be re-transcribed by a better engine later. A null [audioPath] means the
+/// audio was discarded - the keep-audio preference deleting it after a
+/// successful transcription, or the Cache screen's explicit clear: the entry is
+/// transcript-only, cannot be played back, and can never be re-transcribed. The
+/// transcript is null until transcription completes.
 @immutable
 final class Entry {
   /// [createdAt] is normalized to UTC here, so round-trip equality through JSON

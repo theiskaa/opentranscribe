@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/audio/audio_recorder.dart';
 
-/// Persists and applies the audio-backup preference. Kept audio is excluded from
+/// Persists the audio storage preferences. Backup: kept audio is excluded from
 /// the device's iCloud/local backup by default, so nothing leaves the phone; the
-/// user can opt in. This is the mechanism only; the on/off switch is a later UI.
+/// user can opt in ([apply] pushes it to the native layer). Keep-audio: whether
+/// recordings survive a successful transcription; storage-only, read by the
+/// TranscriptionService through Deps wiring, surfaced on the Cache screen.
 class AudioStorageSettings {
   AudioStorageSettings({required this._storage, required this._recorder});
 

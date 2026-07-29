@@ -52,7 +52,7 @@ Corollaries that shape the code:
 - Transcription runs on-device, behind one contract: `TranscriptionEngine` in `core/transcribe/`. The engine is swappable (Apple Speech today, whisper.cpp later). Streaming and downloadable-model behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`.
 - `TranscriptionEngine.onDeviceOnly` is a hard gate. The app refuses an engine that answers false, so nothing can quietly route audio off the phone.
 - Nothing in `view/`, `core/services/`, or `core/state/` names a concrete engine. `Deps.init()` is the only place allowed to, plus the `EngineDescriptor` list it builds for surfaces that must show engine names.
-- Audio capture is app-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device so entries can be re-transcribed later by a better engine.
+- Audio capture is app-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
 
 ## Architecture
 
