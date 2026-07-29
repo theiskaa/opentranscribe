@@ -187,6 +187,31 @@ void main() {
     await cubit.close();
   });
 
+  test('setKeepAudio round-trips through the storage setting', () async {
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.keepAudio, isTrue);
+
+    await cubit.setKeepAudio(false);
+
+    expect(cubit.state.keepAudio, isFalse);
+    expect(audioStorage.keepAudio, isFalse);
+    // Storage only: flipping keep-audio never touches the native layer.
+    expect(recorder.backupExcluded, isNull);
+
+    await cubit.close();
+  });
+
+  test('load surfaces a keepAudio choice persisted before this session', () async {
+    await audioStorage.setKeepAudio(false);
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.keepAudio, isFalse);
+
+    await cubit.close();
+  });
+
   test('locale display names render natively and fall back to the tag', () {
     expect(localeDisplayName('en-US'), 'English (US)');
     expect(localeDisplayName('de-DE'), 'Deutsch (DE)');
