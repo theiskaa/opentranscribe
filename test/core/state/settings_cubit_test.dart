@@ -202,6 +202,22 @@ void main() {
     await cubit.close();
   });
 
+  test('setKeepAudio reflects the tap immediately, then settles on the truth', () async {
+    // Optimistic: a slow encrypted write must not spring the toggle back and
+    // forward; the first emit lands before the write, the last from storage.
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    final pending = cubit.setKeepAudio(false);
+    expect(cubit.state.keepAudio, isFalse);
+    await pending;
+
+    expect(cubit.state.keepAudio, isFalse);
+    expect(audioStorage.keepAudio, isFalse);
+
+    await cubit.close();
+  });
+
   test('load surfaces a keepAudio choice persisted before this session', () async {
     await audioStorage.setKeepAudio(false);
     final cubit = build();

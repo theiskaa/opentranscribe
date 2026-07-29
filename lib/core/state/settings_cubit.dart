@@ -390,8 +390,16 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(backupExcluded: _audioStorage.backupExcluded));
   }
 
+  /// Optimistic: the toggle reflects the tap immediately (a slow encrypted
+  /// write would otherwise spring the knob back and forward again), then the
+  /// stored truth settles it - which also reverts a failed persist honestly.
   Future<void> setKeepAudio(bool keep) async {
-    await _audioStorage.setKeepAudio(keep);
+    emit(state.copyWith(keepAudio: keep));
+    try {
+      await _audioStorage.setKeepAudio(keep);
+    } catch (e) {
+      if (kDebugMode) debugPrint('settings: keep-audio persist failed: $e');
+    }
     if (isClosed) return;
     emit(state.copyWith(keepAudio: _audioStorage.keepAudio));
   }
