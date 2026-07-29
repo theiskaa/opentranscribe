@@ -105,6 +105,6 @@
   "cacheClearTitle": "Apagar áudio transcrito?",
   "cacheClearBody": "{count, plural, one {Apaga o áudio de uma entrada transcrita ({size}). O texto fica. Não é possível desfazer.} other {Apaga o áudio de {count} entradas transcritas ({size}). O texto fica. Não é possível desfazer.}}",
   "cacheClearConfirm": "Apagar gravações",
-  "cacheRecordingsCount": "{count, plural, one {1 gravação} other {{count} gravações}}",
+  "cacheRecordingsCount": "{count, plural, one {{count} gravação} other {{count} gravações}}",
   "cacheReclaimableInfo": "Transcrito, pode ser apagado"
 }

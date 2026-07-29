@@ -105,6 +105,6 @@
   "cacheClearTitle": "Effacer l'audio transcrit ?",
   "cacheClearBody": "{count, plural, one {Supprime l'audio d'une entrée transcrite ({size}). Le texte reste. Irréversible.} other {Supprime l'audio de {count} entrées transcrites ({size}). Le texte reste. Irréversible.}}",
   "cacheClearConfirm": "Supprimer les enregistrements",
-  "cacheRecordingsCount": "{count, plural, one {1 enregistrement} other {{count} enregistrements}}",
+  "cacheRecordingsCount": "{count, plural, one {{count} enregistrement} other {{count} enregistrements}}",
   "cacheReclaimableInfo": "Transcrit, peut être effacé"
 }

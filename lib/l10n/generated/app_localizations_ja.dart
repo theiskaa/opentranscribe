@@ -328,14 +328,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cacheReclaimableInfo => '文字起こし済み、削除可能';
 
   @override
-  String get cacheUsageInfo => '文字起こし済みエントリーの音声は削除できます。テキストは残ります。未変換の録音には決して触れません。';
+  String get cacheUsageInfo => '文字起こし済みエントリーの音声は削除できます。テキストは残ります。文字起こしされていない録音には決して触れません。';
 
   @override
   String get cacheKeepAudio => '音声を保持';
 
   @override
   String get cacheKeepAudioInfo =>
-      'オフにすると、文字起こしが成功した録音はその時点で削除されます。該当エントリーはテキストのみになり、再生も、将来のより良いエンジンでの再変換もできません。';
+      'オフにすると、文字起こしが成功した録音はその時点で削除されます。該当エントリーはテキストのみになり、再生も、将来のより良いエンジンでの再文字起こしもできません。';
 
   @override
   String get cacheClear => '文字起こし済み音声を削除';
