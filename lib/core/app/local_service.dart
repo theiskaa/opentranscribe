@@ -141,7 +141,15 @@ class LocalService {
   bool containsKey(String key) => _prefs.containsKey(key);
 
   /// Deletes a value from local storage.
-  Future<bool> delete(String key) => _prefs.remove(key);
+  /// Removes [key]. Throws when the platform refuses, same rationale as
+  /// [write]: the in-memory cache would show the value gone until relaunch,
+  /// then resurrect it - for an entry record, a deleted entry coming back
+  /// pointing at an already-deleted audio file.
+  Future<bool> delete(String key) async {
+    final ok = await _prefs.remove(key);
+    if (!ok) throw StateError('LocalService.delete failed to persist: $key');
+    return ok;
+  }
 
   /// Clears all data from local storage.
   Future<bool> clear() => _prefs.clear();
