@@ -307,15 +307,22 @@ class _DetailViewState extends State<_DetailView> {
                             : context.motionNow.indicator,
                         curve: context.motionNow.indicatorCurve,
                         alignment: Alignment.topCenter,
-                        child: !entry.hasAudio
-                            ? const SizedBox(width: double.infinity)
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  WavePlayer(entry: entry),
-                                  const SizedBox(height: AppSpacing.xxl),
-                                ],
-                              ),
+                        // The switcher fades the wave out while the size eases
+                        // the gap closed, so nothing hard-cuts mid-read.
+                        child: AnimatedSwitcher(
+                          duration: context.reduceMotion
+                              ? Duration.zero
+                              : context.motionNow.indicator,
+                          child: !entry.hasAudio
+                              ? const SizedBox(width: double.infinity)
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    WavePlayer(entry: entry),
+                                    const SizedBox(height: AppSpacing.xxl),
+                                  ],
+                                ),
+                        ),
                       ),
                       TranscriptView(entry: entry, busy: busy),
                     ],

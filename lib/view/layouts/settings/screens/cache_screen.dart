@@ -306,9 +306,12 @@ class _ToggleRow extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.settings;
     // The whole row toggles, not just the 31pt switch: the one control in
-    // this flow that would otherwise miss the 44pt touch target.
+    // this flow that would otherwise miss the 44pt touch target. The row
+    // buzzes like the knob would (the knob's own tap wins the arena and
+    // carries its own haptic, so no double fire).
     return Touchable(
       onTap: () => onChanged(!value),
+      haptic: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
