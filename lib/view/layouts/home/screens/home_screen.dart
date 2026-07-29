@@ -23,6 +23,7 @@ import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
@@ -335,6 +336,7 @@ class _HomeChromeState extends State<_HomeChrome> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final locale = localeTag(context);
     return AppTopBar(
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
@@ -355,7 +357,7 @@ class _HomeChromeState extends State<_HomeChrome> {
       title: Padding(
         padding: const EdgeInsets.only(top: AppSpacing.md),
         child: RollingText(
-          text: DateFormat.MMMMd().format(widget.activeDay),
+          text: DateFormat.MMMMd(locale).format(widget.activeDay),
           style: AppType.digits(AppType.display2).copyWith(color: theme.topBar.titleColor),
           direction: _direction,
         ),
@@ -363,8 +365,8 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Quieter than the title: every changed character moves together, fast.
       subtitle: RollingText(
         text:
-            '${DateFormat.EEEE().format(widget.activeDay)} · '
-            '${DateFormat.yMMMM().format(widget.visibleWeek)}',
+            '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
+            '${DateFormat.yMMMM(locale).format(widget.visibleWeek)}',
         style: AppType.footnote.copyWith(color: theme.textSecondary),
         direction: _direction,
         window: theme.motion.subtitleRoll,
@@ -416,6 +418,7 @@ class _RecordsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final sections = state.sections;
+    final locale = localeTag(context);
 
     // Nothing floats over the list any more; the tail just clears the home
     // indicator.
@@ -442,8 +445,8 @@ class _RecordsList extends StatelessWidget {
               AppSpacing.sm,
             ),
             child: Text(
-              '${DateFormat.EEEE().format(section.day)}, '
-              '${DateFormat.MMMd().format(section.day)}',
+              '${DateFormat.EEEE(locale).format(section.day)}, '
+              '${DateFormat.MMMd(locale).format(section.day)}',
               // Keyed on the LABEL, not the padded block: the tracker's line
               // is about where the words are, so every day rests and lands in
               // the same place regardless of the gap above it.

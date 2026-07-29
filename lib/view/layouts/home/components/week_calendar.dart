@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The week strip in the home chrome, always visible. The soft border marks
@@ -283,7 +284,9 @@ class _DayTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                DateFormat.E().format(day).substring(0, 1).toUpperCase(),
+                DateFormat.E(
+                  localeTag(context),
+                ).format(day).substring(0, 1).toUpperCase(),
                 style: AppType.caption.copyWith(color: letterColor),
               ),
               const SizedBox(height: AppSpacing.xxs),

@@ -104,7 +104,7 @@ class EntryRow extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '${formatTime(entry.createdAt)} · '
+            '${formatTime(entry.createdAt, localeTag(context))} · '
             '${formatDurationCompact(entry.duration)}',
             style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
           ),

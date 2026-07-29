@@ -1,18 +1,27 @@
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 
 /// The one place display formatting for entries lives, so every surface renders
-/// the same shapes. All formats follow intl's default locale, which the root
-/// widget keeps in step with the app language.
+/// the same shapes. Date formats take an explicit locale so they render in the
+/// app language and rebuild when it changes; when omitted they follow intl's
+/// default locale, which the root widget keeps in step with the app language.
+
+/// The app locale as a date-format tag. Reading it makes the caller a
+/// [Localizations] dependent, so date text rebuilds when the language changes,
+/// and passing it to [DateFormat] avoids relying on the mutable global
+/// [Intl.defaultLocale], which the async localization load can leave a step
+/// behind on the first paint after a switch.
+String localeTag(BuildContext context) => Localizations.localeOf(context).languageCode;
 
 /// The display title rule: the user's title, else a localized date-time
 /// default. Untitled entries are always presentable.
-String entryDisplayTitle(Entry entry) =>
-    entry.title ?? DateFormat.MMMMd().add_jm().format(entry.createdAt.toLocal());
+String entryDisplayTitle(Entry entry, [String? locale]) =>
+    entry.title ?? DateFormat.MMMMd(locale).add_jm().format(entry.createdAt.toLocal());
 
 /// Wall-clock time of a moment, localized (e.g. 14:05 or 2:05 PM).
-String formatTime(DateTime utc) => DateFormat.jm().format(utc.toLocal());
+String formatTime(DateTime utc, [String? locale]) => DateFormat.jm(locale).format(utc.toLocal());
 
 /// A duration as m:ss, the audio-length shape for player surfaces.
 String formatClock(Duration d) {

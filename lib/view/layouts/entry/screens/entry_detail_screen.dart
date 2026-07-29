@@ -221,8 +221,8 @@ class _DetailViewState extends State<_DetailView> {
                       _TitleField(entry: entry, focusNode: _titleFocus),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        '${DateFormat.yMMMMd().format(entry.createdAt.toLocal())}'
-                        ' \u00b7 ${formatTime(entry.createdAt)}'
+                        '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
+                        ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
                         ' \u00b7 ${formatClock(entry.duration)}'
                         '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
                         style: AppType.digits(
