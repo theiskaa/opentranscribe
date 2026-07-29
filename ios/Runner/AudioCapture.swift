@@ -191,10 +191,11 @@ final class AudioCaptureSession {
     // 32 kbps per channel: speech at this AAC rate stays fully intelligible and
     // transcribes as well as the encoder's default, at less than half the size.
     // The key is the TOTAL stream rate, so a stereo route scales rather than
-    // starving both channels. Clamped to the sample rate: at a narrowband HFP
-    // route (8 kHz, old Bluetooth headsets) the encoder rejects rates past
-    // ~24 kbps and file creation would fail on every attempt.
-    let perChannelRate = min(32_000, Int(format.sampleRate))
+    // starving both channels. Band-limited routes step down to the BEST rate
+    // the encoder accepts there, not the floor: below 16 kHz (narrowband HFP,
+    // old Bluetooth headsets) the ceiling is 24 kbps and 32 would be rejected
+    // at file creation; from 16 kHz up (mSBC and everything better) 32 fits.
+    let perChannelRate = format.sampleRate >= 16_000 ? 32_000 : 24_000
     let settings: [String: Any] = [
       AVFormatIDKey: kAudioFormatMPEG4AAC,
       AVSampleRateKey: format.sampleRate,
