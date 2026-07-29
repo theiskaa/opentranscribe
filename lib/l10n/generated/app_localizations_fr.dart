@@ -1,0 +1,331 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for French (`fr`).
+class AppLocalizationsFr extends AppLocalizations {
+  AppLocalizationsFr([String locale = 'fr']) : super(locale);
+
+  @override
+  String get appTitle => 'OpenTranscribe';
+
+  @override
+  String get settingsOffline =>
+      'Tout reste sur cet appareil. Aucun compte, aucun cloud, aucun réseau.';
+
+  @override
+  String get entryUntranscribed => 'Non transcrit';
+
+  @override
+  String get entryUntranscribedTitle => 'Pas encore transcrit';
+
+  @override
+  String get entryUntranscribedMessage =>
+      'Transformez cet enregistrement en texte à relire. Cela se fait sur votre appareil.';
+
+  @override
+  String get entryNoSpeechTitle => 'Aucun mot à afficher';
+
+  @override
+  String get entryNoSpeechMessage =>
+      'Cet enregistrement a été transcrit, mais aucune parole n\'y a été trouvée.';
+
+  @override
+  String get retranscribe => 'Retranscrire';
+
+  @override
+  String get delete => 'Supprimer';
+
+  @override
+  String get homeEmptyHeadline => 'Parlez, et c\'est écrit.';
+
+  @override
+  String get homeEmptySubtitle =>
+      'Tout ce que vous dites est transcrit et conservé sur cet appareil. Tirez vers le bas pour enregistrer votre première entrée.';
+
+  @override
+  String get homePullToRecord => 'Tirez pour enregistrer';
+
+  @override
+  String get menuTranscriptionLanguage => 'Transcription';
+
+  @override
+  String get menuSourceCode => 'Code source';
+
+  @override
+  String get recordStateRecording => 'Enregistrement';
+
+  @override
+  String get recordStatePaused => 'En pause';
+
+  @override
+  String get recordErrorMessage => 'Une erreur s\'est produite pendant l\'enregistrement.';
+
+  @override
+  String get recordLiveUnavailable =>
+      'Le texte en direct n\'est pas disponible pour l\'instant. Votre enregistrement est en sécurité et sera transcrit une fois terminé.';
+
+  @override
+  String get recordInterruptedSaved =>
+      'Enregistrement interrompu. Votre prise a été enregistrée et peut être transcrite depuis votre journal.';
+
+  @override
+  String get recordPermissionTitle => 'Le micro est désactivé';
+
+  @override
+  String get recordPermissionMessage =>
+      'Autorisez l\'accès au micro pour opentranscribe dans l\'app Réglages, puis réessayez.';
+
+  @override
+  String get rename => 'Renommer';
+
+  @override
+  String get transcribe => 'Transcrire';
+
+  @override
+  String get transcribeIn => 'Transcrire en…';
+
+  @override
+  String get playbackFailed => 'La lecture n\'est pas disponible pour l\'instant.';
+
+  @override
+  String get transcribeErrorModelInstall =>
+      'Impossible d\'obtenir le modèle vocal pour cette langue. Vérifiez votre connexion et l\'espace disponible, ou gérez les langues dans Modèles.';
+
+  @override
+  String get transcribeErrorPermission =>
+      'Autorisez la reconnaissance vocale pour opentranscribe dans l\'app Réglages, puis réessayez.';
+
+  @override
+  String get transcribeErrorUnavailable =>
+      'La transcription sur l\'appareil n\'est pas disponible pour cette langue sur cet appareil.';
+
+  @override
+  String get transcribeErrorGeneric => 'Une erreur s\'est produite. Réessayez.';
+
+  @override
+  String get transcribeErrorCapReached =>
+      'Limite de langues atteinte. Retirez une langue dans les Réglages, puis réessayez.';
+
+  @override
+  String get transcribeErrorLabelPermission => 'Reconnaissance vocale désactivée';
+
+  @override
+  String get transcribeErrorLabelUnavailable => 'Indisponible sur cet appareil';
+
+  @override
+  String get transcribeErrorLabelModelInstall => 'Modèle de langue non obtenu';
+
+  @override
+  String get transcribeErrorLabelCapReached => 'Limite de langues atteinte';
+
+  @override
+  String get transcribeErrorLabelGeneric => 'Échec de la transcription';
+
+  @override
+  String get transcribeErrorTitlePermission => 'Activer la reconnaissance vocale';
+
+  @override
+  String get transcribeErrorTitleUnavailable => 'Indisponible ici';
+
+  @override
+  String get transcribeErrorTitleModelInstall => 'Téléchargement du modèle impossible';
+
+  @override
+  String get transcribeErrorTitleCapReached => 'Limite de langues atteinte';
+
+  @override
+  String get transcribeErrorTitleGeneric => 'Une erreur s\'est produite';
+
+  @override
+  String get settingsAppearance => 'Apparence';
+
+  @override
+  String get settingsTheme => 'Thème';
+
+  @override
+  String get themeSystem => 'Système';
+
+  @override
+  String get themeLight => 'Clair';
+
+  @override
+  String get themeDark => 'Sombre';
+
+  @override
+  String get themeNameDefault => 'Par défaut';
+
+  @override
+  String get themeNameGruvbox => 'Gruvbox';
+
+  @override
+  String get themeNameSolarized => 'Solarized';
+
+  @override
+  String get themeNameSepia => 'Sépia';
+
+  @override
+  String get settingsAppLanguage => 'Langue';
+
+  @override
+  String get transcriptionInfo =>
+      'Chaque langue utilise son propre modèle sur l\'appareil, téléchargé une fois et partagé avec le système ; les modèles ne comptent pas dans le stockage de cette app. Le système limite le nombre de langues qu\'une app peut garder prêtes à la fois.';
+
+  @override
+  String transcriptionCap(int used, int max) {
+    return '$used emplacements de langue sur $max utilisés';
+  }
+
+  @override
+  String get transcriptionRemoveHint => 'Balayez une langue vers la gauche pour la retirer.';
+
+  @override
+  String get transcriptionErrorUnsupported =>
+      'Cette langue ne peut pas encore être téléchargée sur cet appareil.';
+
+  @override
+  String get transcriptionErrorStuck =>
+      'Un téléchargement précédent est encore en attente. Le système réessaie quand les conditions s\'améliorent ; réessayer ne pose aucun problème.';
+
+  @override
+  String get transcriptionErrorGeneric =>
+      'Échec du téléchargement. Vérifiez votre connexion et l\'espace disponible, puis réessayez.';
+
+  @override
+  String get transcriptionErrorCap =>
+      'Limite de langues atteinte. Retirez une langue pour ajouter celle-ci.';
+
+  @override
+  String get transcriptionErrorRemove => 'Impossible de retirer cette langue. Réessayez.';
+
+  @override
+  String get transcriptionDownloading => 'Téléchargement';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get modelFailCapTitle => 'Limite de langues atteinte';
+
+  @override
+  String modelFailCapBody(String language) {
+    return 'Le système limite le nombre de langues qu\'une app peut garder prêtes à la fois. Retirez-en une pour faire de la place à $language.';
+  }
+
+  @override
+  String get modelFailUnsupportedTitle => 'Pas encore disponible';
+
+  @override
+  String modelFailUnsupportedBody(String language) {
+    return 'Il n\'y a pas encore de modèle sur l\'appareil pour $language sur cet appareil. Il pourrait arriver avec une mise à jour système.';
+  }
+
+  @override
+  String get modelFailStuckTitle => 'Téléchargement en cours';
+
+  @override
+  String modelFailStuckBody(String language) {
+    return 'Un téléchargement précédent pour $language est encore en attente. Le système le réessaie quand les conditions s\'améliorent, et redemander ne pose aucun problème.';
+  }
+
+  @override
+  String get modelFailGenericTitle => 'Téléchargement impossible';
+
+  @override
+  String modelFailGenericBody(String language) {
+    return 'Le modèle $language n\'a pas pu être téléchargé. Vérifiez votre connexion et l\'espace disponible, puis réessayez.';
+  }
+
+  @override
+  String get modelFailRemoveTitle => 'Suppression impossible';
+
+  @override
+  String modelFailRemoveBody(String language) {
+    return 'Le système n\'a pas libéré $language. Réessayer ne pose aucun problème.';
+  }
+
+  @override
+  String get settingsModels => 'Modèles';
+
+  @override
+  String get transcriptionLanguages => 'Langues';
+
+  @override
+  String get transcriptionDefaultTag => 'Par défaut';
+
+  @override
+  String get transcriptionDefaultHint =>
+      'Touchez et maintenez une langue pour en faire la langue par défaut.';
+
+  @override
+  String transcriptionDeviceLanguageFallback(String fallback) {
+    return 'La langue de votre téléphone n\'est pas encore prise en charge pour la transcription sur l\'appareil, donc $fallback est la langue par défaut.';
+  }
+
+  @override
+  String get onboardingIntroBody => 'Vous exprimez ce que vous avez en tête, et c\'est écrit.';
+
+  @override
+  String get onboardingSpeakTitle => 'Parlez, tout simplement';
+
+  @override
+  String get onboardingSpeakLine => 'Appuyez sur enregistrer et dites ce que vous avez en tête.';
+
+  @override
+  String get onboardingWriteTitle => 'Relisez-le';
+
+  @override
+  String get onboardingWriteLine => 'Chaque enregistrement est mis par écrit.';
+
+  @override
+  String get onboardingPrivateTitle => 'Rien ne quitte le téléphone';
+
+  @override
+  String get onboardingPrivateLine => 'Aucun compte, aucun cloud. Le mode avion n\'y change rien.';
+
+  @override
+  String get onboardingSource => 'Open source';
+
+  @override
+  String get onboardingSourceLine => 'Chaque ligne est publique. Lisez-la sur GitHub.';
+
+  @override
+  String get onboardingPermissionsTitle => 'Autoriser l\'accès';
+
+  @override
+  String get onboardingPermissionsBody => 'Les deux fonctionnent entièrement sur votre appareil.';
+
+  @override
+  String get onboardingMicName => 'Micro';
+
+  @override
+  String get onboardingMicReason => 'Pour enregistrer votre voix.';
+
+  @override
+  String get onboardingSpeechName => 'Reconnaissance vocale';
+
+  @override
+  String get onboardingSpeechReason =>
+      'Pour transformer vos enregistrements en texte, sur l\'appareil.';
+
+  @override
+  String get onboardingAllow => 'Autoriser';
+
+  @override
+  String get onboardingOpenSettings => 'Activer dans les Réglages';
+
+  @override
+  String get onboardingModelsTitle => 'Télécharger une langue';
+
+  @override
+  String get onboardingModelsBody =>
+      'La transcription fonctionne hors ligne une fois qu\'une langue est sur votre appareil. Vous pouvez en ajouter à tout moment depuis le menu.';
+
+  @override
+  String get onboardingNext => 'Suivant';
+
+  @override
+  String get onboardingStart => 'Commencer';
+}
