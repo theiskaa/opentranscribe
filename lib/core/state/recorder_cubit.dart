@@ -24,7 +24,7 @@ class RecorderState {
     this.status = RecorderStatus.idle,
     this.elapsed = Duration.zero,
     this.liveText = '',
-    this.liveError,
+    this.liveUnavailable = false,
     this.heardSound = false,
     this.localeId = '',
     this.takeId = 0,
@@ -39,9 +39,9 @@ class RecorderState {
 
   /// A non-terminal live-transcription failure: the settling batch on stop is
   /// unaffected, so recording continues, but the live window has nothing to
-  /// show and this says why. Cleared the moment live text resumes. Temporary
-  /// diagnostic copy (the raw native reason) until we know the on-device cause.
-  final String? liveError;
+  /// show and the screen says so calmly. Cleared the moment live text resumes.
+  /// The raw native reason is debug-logged, never carried in state.
+  final bool liveUnavailable;
 
   /// Whether the microphone has heard real sound this take (input level crossed
   /// [RecorderCubit._kHeardThreshold] at least once). This, NOT [liveText], is
@@ -80,8 +80,7 @@ class RecorderState {
     RecorderStatus? status,
     Duration? elapsed,
     String? liveText,
-    String? liveError,
-    bool clearLiveError = false,
+    bool? liveUnavailable,
     bool? heardSound,
     String? localeId,
     int? takeId,
@@ -93,7 +92,7 @@ class RecorderState {
     status: status ?? this.status,
     elapsed: elapsed ?? this.elapsed,
     liveText: liveText ?? this.liveText,
-    liveError: clearLiveError ? null : (liveError ?? this.liveError),
+    liveUnavailable: liveUnavailable ?? this.liveUnavailable,
     heardSound: heardSound ?? this.heardSound,
     localeId: localeId ?? this.localeId,
     takeId: takeId ?? this.takeId,
@@ -235,14 +234,15 @@ class RecorderCubit extends Cubit<RecorderState> {
     _liveSub = _service.liveEvents.listen(
       (event) {
         if (!isClosed) {
-          emit(state.copyWith(liveText: _livePrefix + event.text, clearLiveError: true));
+          emit(state.copyWith(liveText: _livePrefix + event.text, liveUnavailable: false));
         }
       },
       // A live failure never tears down the take: the batch pass on stop is the
-      // source of truth and still runs. Surface why the live window is blank
-      // instead of swallowing it (temporary raw diagnostic copy).
+      // source of truth and still runs. The screen tells the user calmly that
+      // live text is unavailable; the raw reason is only debug-logged.
       onError: (Object e) {
-        if (!isClosed) emit(state.copyWith(liveError: e.toString()));
+        if (kDebugMode) debugPrint('recorder: live transcription failed: $e');
+        if (!isClosed) emit(state.copyWith(liveUnavailable: true));
       },
     );
     _levelSub = _service.inputLevel.listen((level) {
