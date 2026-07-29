@@ -1,0 +1,312 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Chinese (`zh`).
+class AppLocalizationsZh extends AppLocalizations {
+  AppLocalizationsZh([String locale = 'zh']) : super(locale);
+
+  @override
+  String get appTitle => 'OpenTranscribe';
+
+  @override
+  String get settingsOffline => '一切都留在这台设备上。无账号、无云端、无网络。';
+
+  @override
+  String get entryUntranscribed => '未转写';
+
+  @override
+  String get entryUntranscribedTitle => '尚未转写';
+
+  @override
+  String get entryUntranscribedMessage => '把这段录音转成可以回看的文字。转写在本机进行。';
+
+  @override
+  String get entryNoSpeechTitle => '没有可显示的内容';
+
+  @override
+  String get entryNoSpeechMessage => '这段录音已转写，但其中没有检测到语音。';
+
+  @override
+  String get retranscribe => '重新转写';
+
+  @override
+  String get delete => '删除';
+
+  @override
+  String get homeEmptyHeadline => '开口说，即刻成文。';
+
+  @override
+  String get homeEmptySubtitle => '你说的每一句都会被转写，并保存在这台设备上。下拉即可录制第一条。';
+
+  @override
+  String get homePullToRecord => '下拉录制';
+
+  @override
+  String get menuTranscriptionLanguage => '转写';
+
+  @override
+  String get menuSourceCode => '源代码';
+
+  @override
+  String get recordStateRecording => '录制中';
+
+  @override
+  String get recordStatePaused => '已暂停';
+
+  @override
+  String get recordErrorMessage => '录制时出了点问题。';
+
+  @override
+  String get recordLiveUnavailable => '实时文字暂时不可用。你的录音已妥善保存，结束后会自动转写。';
+
+  @override
+  String get recordInterruptedSaved => '录制被打断。你的录音已保存，可在日志中转写。';
+
+  @override
+  String get recordPermissionTitle => '麦克风已关闭';
+
+  @override
+  String get recordPermissionMessage => '请在“设置”应用中为 opentranscribe 开启麦克风权限，然后重试。';
+
+  @override
+  String get rename => '重命名';
+
+  @override
+  String get transcribe => '转写';
+
+  @override
+  String get transcribeIn => '转写为…';
+
+  @override
+  String get playbackFailed => '播放暂时不可用。';
+
+  @override
+  String get transcribeErrorModelInstall => '无法获取该语言的语音模型。请检查网络连接和可用空间，或在“模型”中管理语言。';
+
+  @override
+  String get transcribeErrorPermission => '请在“设置”应用中为 opentranscribe 开启语音识别权限，然后重试。';
+
+  @override
+  String get transcribeErrorUnavailable => '本机的设备端转写暂不支持该语言。';
+
+  @override
+  String get transcribeErrorGeneric => '出了点问题。请重试。';
+
+  @override
+  String get transcribeErrorCapReached => '语言数量已达上限。请在“设置”中移除一种语言，然后重试。';
+
+  @override
+  String get transcribeErrorLabelPermission => '语音识别已关闭';
+
+  @override
+  String get transcribeErrorLabelUnavailable => '本机不支持';
+
+  @override
+  String get transcribeErrorLabelModelInstall => '无法获取语言模型';
+
+  @override
+  String get transcribeErrorLabelCapReached => '语言数量已达上限';
+
+  @override
+  String get transcribeErrorLabelGeneric => '转写失败';
+
+  @override
+  String get transcribeErrorTitlePermission => '开启语音识别';
+
+  @override
+  String get transcribeErrorTitleUnavailable => '此处不支持';
+
+  @override
+  String get transcribeErrorTitleModelInstall => '无法下载模型';
+
+  @override
+  String get transcribeErrorTitleCapReached => '语言数量已达上限';
+
+  @override
+  String get transcribeErrorTitleGeneric => '出了点问题';
+
+  @override
+  String get settingsAppearance => '外观';
+
+  @override
+  String get settingsTheme => '主题';
+
+  @override
+  String get themeSystem => '跟随系统';
+
+  @override
+  String get themeLight => '浅色';
+
+  @override
+  String get themeDark => '深色';
+
+  @override
+  String get themeNameDefault => '默认';
+
+  @override
+  String get themeNameGruvbox => 'Gruvbox';
+
+  @override
+  String get themeNameSolarized => 'Solarized';
+
+  @override
+  String get themeNameSepia => 'Sepia';
+
+  @override
+  String get settingsAppLanguage => '语言';
+
+  @override
+  String get transcriptionInfo => '每种语言都使用各自的设备端模型，下载一次后与系统共享；模型不计入本应用的存储占用。系统会限制一个应用同时可保持就绪的语言数量。';
+
+  @override
+  String transcriptionCap(int used, int max) {
+    return '已使用 $max 个语言名额中的 $used 个';
+  }
+
+  @override
+  String get transcriptionRemoveHint => '向左滑动某种语言即可移除。';
+
+  @override
+  String get transcriptionErrorUnsupported => '本机暂时无法下载该语言。';
+
+  @override
+  String get transcriptionErrorStuck => '上一次下载仍在等待中。条件改善后系统会自动重试，再试一次也没有问题。';
+
+  @override
+  String get transcriptionErrorGeneric => '下载失败。请检查网络连接和可用空间，然后重试。';
+
+  @override
+  String get transcriptionErrorCap => '语言数量已达上限。请移除一种语言以添加这一种。';
+
+  @override
+  String get transcriptionErrorRemove => '无法移除该语言。请重试。';
+
+  @override
+  String get transcriptionDownloading => '下载中';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get modelFailCapTitle => '语言数量已达上限';
+
+  @override
+  String modelFailCapBody(String language) {
+    return '系统会限制一个应用同时可保持就绪的语言数量。请移除以下语言之一，为 $language 腾出空间。';
+  }
+
+  @override
+  String get modelFailUnsupportedTitle => '暂不支持';
+
+  @override
+  String modelFailUnsupportedBody(String language) {
+    return '本机暂时还没有 $language 的设备端模型。它可能会随系统更新一同到来。';
+  }
+
+  @override
+  String get modelFailStuckTitle => '仍在下载';
+
+  @override
+  String modelFailStuckBody(String language) {
+    return '$language 的上一次下载仍在等待中。条件改善后系统会自动重试，再次请求也没有问题。';
+  }
+
+  @override
+  String get modelFailGenericTitle => '无法下载';
+
+  @override
+  String modelFailGenericBody(String language) {
+    return '无法下载 $language 模型。请检查网络连接和可用空间，然后重试。';
+  }
+
+  @override
+  String get modelFailRemoveTitle => '无法移除';
+
+  @override
+  String modelFailRemoveBody(String language) {
+    return '系统未能释放 $language。再试一次也没有问题。';
+  }
+
+  @override
+  String get settingsModels => '模型';
+
+  @override
+  String get transcriptionLanguages => '语言';
+
+  @override
+  String get transcriptionDefaultTag => '默认';
+
+  @override
+  String get transcriptionDefaultHint => '轻触并按住某种语言，即可将其设为默认。';
+
+  @override
+  String transcriptionDeviceLanguageFallback(String fallback) {
+    return '你手机的语言暂不支持设备端转写，因此默认使用 $fallback。';
+  }
+
+  @override
+  String get onboardingIntroBody => '你说出心中所想，它替你记录成文。';
+
+  @override
+  String get onboardingSpeakTitle => '只管说';
+
+  @override
+  String get onboardingSpeakLine => '点击录制，说出你的想法。';
+
+  @override
+  String get onboardingWriteTitle => '回看文字';
+
+  @override
+  String get onboardingWriteLine => '每段录音都会转写成文字。';
+
+  @override
+  String get onboardingPrivateTitle => '一切都不离开手机';
+
+  @override
+  String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
+
+  @override
+  String get onboardingSource => '开源';
+
+  @override
+  String get onboardingSourceLine => '每一行代码都是公开的。可在 GitHub 上查看。';
+
+  @override
+  String get onboardingPermissionsTitle => '允许访问';
+
+  @override
+  String get onboardingPermissionsBody => '两者都完全在你的设备上运行。';
+
+  @override
+  String get onboardingMicName => '麦克风';
+
+  @override
+  String get onboardingMicReason => '用于录制你的声音。';
+
+  @override
+  String get onboardingSpeechName => '语音识别';
+
+  @override
+  String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
+
+  @override
+  String get onboardingAllow => '允许';
+
+  @override
+  String get onboardingOpenSettings => '在“设置”中启用';
+
+  @override
+  String get onboardingModelsTitle => '下载一种语言';
+
+  @override
+  String get onboardingModelsBody => '只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+
+  @override
+  String get onboardingNext => '下一步';
+
+  @override
+  String get onboardingStart => '开始使用';
+}
