@@ -101,8 +101,8 @@ class TranscriptionService {
   bool _reconciling = false;
 
   /// Single-flights [purgeTranscribedAudio]. Deliberately not shared with
-  /// [_reconciling]: the launch purge must not silently no-op because the
-  /// orphan sweep happens to be running.
+  /// [_reconciling]: the Cache screen's clear must not silently no-op because
+  /// the launch orphan sweep happens to be running.
   bool _purging = false;
 
   /// Claimed synchronously at the top of [startRecording], before its awaits, so
@@ -233,10 +233,11 @@ class TranscriptionService {
     if (!_modelStateChanged.isClosed) _modelStateChanged.add(null);
   }
 
-  /// Fires after a DETACHED store mutation (a discard landing behind a stop, a
-  /// purge, the launch heal), so list surfaces re-read instead of showing an
-  /// entry whose audio quietly left. Awaited mutations (delete, rename,
-  /// re-transcribe) don't fire; their callers reload themselves.
+  /// Fires after a store mutation no caller is awaiting a reload for: a
+  /// discard landing behind a stop or a re-transcribe, a purge or heal batch,
+  /// an orphan recovery. List surfaces re-read instead of showing an entry
+  /// whose audio quietly left. Plain delete and rename don't fire; their
+  /// callers reload themselves.
   Stream<void> get entriesChanged => _entriesChanged.stream;
 
   void _notifyEntriesChanged() {
@@ -651,7 +652,12 @@ class TranscriptionService {
         }
         if (saved != null) {
           if (identical(_lastFinalized, saved)) _lastFinalized = null;
-          await deleteEntry(saved);
+          try {
+            await deleteEntry(saved);
+          } catch (_) {
+            // Best effort, like the save-failed branch above: a locked file
+            // keeps its record and the user deletes it visibly instead.
+          }
         }
       }
       return;
@@ -762,7 +768,9 @@ class TranscriptionService {
   /// resurrected as a transcript-only ghost. Returns false when nothing was
   /// discarded: the entry is gone, or the audio is still on disk and referenced
   /// (a later sweep retries). Never throws, since it runs detached behind saves.
-  Future<bool> _discardAudio(String entryId) async {
+  /// Bulk sweeps pass [notify] false and announce once at the end, so an
+  /// N-entry purge costs the listeners one reload, not N.
+  Future<bool> _discardAudio(String entryId, {bool notify = true}) async {
     try {
       final stored = _store.read(entryId);
       if (stored == null) return false;
@@ -790,7 +798,7 @@ class TranscriptionService {
       await _store.save(fresh.withoutAudio());
       // Detached mutation: without this, an open screen keeps offering the
       // player and re-transcribe for audio that no longer exists.
-      _notifyEntriesChanged();
+      if (notify) _notifyEntriesChanged();
       return true;
     } catch (_) {
       return false;
@@ -808,18 +816,24 @@ class TranscriptionService {
   Future<int> healDanglingAudio() async {
     var healed = 0;
     for (final entry in _store.all()) {
-      final path = entry.audioPath;
-      if (path == null || entry.transcript == null) continue;
-      if (File(await _resolveAudioPath(path)).existsSync()) continue;
-      if (await _discardAudio(entry.id)) healed++;
+      try {
+        final path = entry.audioPath;
+        if (path == null || entry.transcript == null) continue;
+        if (File(await _resolveAudioPath(path)).existsSync()) continue;
+        if (await _discardAudio(entry.id, notify: false)) healed++;
+      } catch (_) {
+        // Best effort per entry, like the reconcile sweep; next launch retries.
+      }
     }
+    if (healed > 0) _notifyEntriesChanged();
     return healed;
   }
 
   /// What the kept recordings occupy on disk, for the Cache surface. A
   /// read-only sweep over the entries: files that vanished or cannot be
-  /// statted count as zero rather than failing the whole answer. Reclaimable
-  /// means the entry is transcribed, so [purgeTranscribedAudio] would free it.
+  /// statted are skipped entirely (counted in neither bytes nor counts).
+  /// Reclaimable means the entry is transcribed, so [purgeTranscribedAudio]
+  /// would free it.
   Future<AudioUsage> audioUsage() async {
     var totalBytes = 0, totalCount = 0, reclaimableBytes = 0, reclaimableCount = 0;
     for (final entry in _store.all()) {
@@ -860,8 +874,9 @@ class TranscriptionService {
       var discarded = 0;
       for (final entry in _store.all()) {
         if (entry.transcript == null || entry.audioPath == null) continue;
-        if (await _discardAudio(entry.id)) discarded++;
+        if (await _discardAudio(entry.id, notify: false)) discarded++;
       }
+      if (discarded > 0) _notifyEntriesChanged();
       return discarded;
     } finally {
       _purging = false;
@@ -985,13 +1000,20 @@ class TranscriptionService {
     }
   }
 
+  /// The recordings directory, fetched once: it is stable for the process
+  /// lifetime (the container only moves between launches), and the launch
+  /// sweeps resolve O(entries) paths, which would otherwise be one channel
+  /// round trip each.
+  String? _recordingsDir;
+
   /// Resolves a stored audio reference to an absolute path. Real entries store a
   /// bare filename, stable across a backup/restore that would move the app's
   /// container; an already-absolute path (tests, legacy) is returned unchanged.
   Future<String> _resolveAudioPath(String stored) async {
     if (stored.startsWith('/')) return stored;
-    var dir = await _recorder.recordingsDirectory();
+    var dir = _recordingsDir ?? await _recorder.recordingsDirectory();
     if (dir.endsWith('/')) dir = dir.substring(0, dir.length - 1);
+    _recordingsDir = dir;
     return '$dir/$stored';
   }
 
@@ -1150,6 +1172,9 @@ class TranscriptionService {
           // Best effort per file; the next sweep retries whatever failed.
         }
       }
+      // Detached recovery: without this, a take recovered after home seeded
+      // its list stays invisible until an unrelated reload.
+      if (recovered > 0) _notifyEntriesChanged();
       return recovered;
     } finally {
       _reconciling = false;

@@ -2015,7 +2015,8 @@ void main() {
     expect(store.read('id-0')?.transcript, isNotNull);
     expect(file.existsSync(), isTrue);
 
-    // The retry story: the launch purge, with the lock gone, reclaims it.
+    // The retry story: the Cache screen's explicit purge, with the lock gone,
+    // reclaims it (the launch heal never touches a file that still exists).
     final retry = build(
       (_) => FakeBatchEngine(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
@@ -2259,7 +2260,7 @@ void main() {
     // The single most safety-critical point of the contract: the discard is
     // chained only behind a SUCCESSFUL save, so a save failure must leave the
     // audio untouched, and the retrySave recovery must not delete it either
-    // (the launch purge reclaims it later).
+    // (reclaiming it later is the Cache screen's explicit clear).
     final dir = await Directory.systemTemp.createTemp('otr-savefail');
     final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
     final throwing = _ThrowingStore(storage, failures: 1);
