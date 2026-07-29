@@ -75,17 +75,25 @@ class HomeCubit extends Cubit<HomeState> {
     : _service = service,
       super(HomeState(entries: service.entries())) {
     _autoSub = _service.autoFinalized.listen((_) => load(), onError: (Object _) {});
+    // Detached discards mutate the store without a navigation to refresh on.
+    _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   late final StreamSubscription<Entry> _autoSub;
+  late final StreamSubscription<void> _changesSub;
 
   /// Ids removed optimistically whose on-device delete is still in flight. Every
   /// emit filters these out, so a concurrent delete's reconcile (or an
   /// auto-finalize refresh) can never resurrect a row that is on its way out.
   final Set<String> _pendingDeletes = {};
 
-  void load() => emit(HomeState(entries: _visible()));
+  void load() {
+    // Also reached from detached continuations (a recorder sheet's exit); the
+    // guard keeps those safe even though this cubit is app-scoped today.
+    if (isClosed) return;
+    emit(HomeState(entries: _visible()));
+  }
 
   List<Entry> _visible() =>
       _service.entries().where((e) => !_pendingDeletes.contains(e.id)).toList();
@@ -113,6 +121,7 @@ class HomeCubit extends Cubit<HomeState> {
   @override
   Future<void> close() async {
     await _autoSub.cancel();
+    await _changesSub.cancel();
     return super.close();
   }
 }

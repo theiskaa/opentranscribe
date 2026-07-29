@@ -29,6 +29,9 @@ void main() {
   TranscriptionService build(
     TranscriptionEngine Function(FakeAudioRecorder) engine, {
     FakeAudioRecorder? recorder,
+    bool Function()? keepAudio,
+    Future<void> Function(File file)? fileDeleter,
+    Future<List<double>> Function(String path)? peaksReader,
   }) {
     final rec = recorder ?? FakeAudioRecorder();
     idCounter = 0;
@@ -38,6 +41,9 @@ void main() {
       store: store,
       clock: () => fixedClock,
       idGenerator: () => 'id-${idCounter++}',
+      keepAudio: keepAudio,
+      fileDeleter: fileDeleter,
+      peaksReader: peaksReader,
     );
   }
 
@@ -1641,6 +1647,703 @@ void main() {
     await sub.cancel();
     await svc.dispose();
   });
+
+  Transcript canned(String text) => Transcript(
+    fullText: text,
+    segments: [
+      TranscriptSegment(text: text, start: Duration.zero, end: const Duration(seconds: 1)),
+    ],
+    localeId: 'en-US',
+    engineId: 'fake',
+    createdAt: fixedClock,
+  );
+
+  test('keep-off: a transcribed stop discards the audio only after the wave lands', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-keepoff');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final gate = Completer<List<double>>();
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'kept words'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+      peaksReader: (_) => gate.future,
+    );
+
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    // The caller's copy still carries the path; the store is the truth and the
+    // discard lands off the critical path.
+    expect(entry.audioPath, 'take.m4a');
+    await pumpEventQueue();
+    // The discard chains BEHIND the backfill: while the shape is still being
+    // read, the file must exist (a discard-first order would pass the end
+    // state below either way, since _discardAudio backfills peaks itself).
+    expect(file.existsSync(), isTrue);
+
+    gate.complete([0.5]);
+    await pumpEventQueue();
+
+    final stored = store.read('id-0');
+    expect(stored?.audioPath, isNull);
+    expect(stored?.transcript?.fullText, 'kept words');
+    // The wave outlives the file it was read from.
+    expect(stored?.peaks, [128]);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a keep-on stop stays kept even if the preference flips mid-backfill', () async {
+    // The service latches the answer at save time: a flip-to-off while the
+    // wave is still being read must not delete a take stopped under keep-on.
+    final dir = await Directory.systemTemp.createTemp('otr-latch');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    var keep = true;
+    final gate = Completer<List<double>>();
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => keep,
+      peaksReader: (_) => gate.future,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    keep = false;
+    gate.complete([0.5]);
+    await pumpEventQueue();
+
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a failing peaks reader never blocks the discard', () async {
+    // The wave is cosmetic; a decode failure must not leave the space held.
+    final dir = await Directory.systemTemp.createTemp('otr-peaksfail');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'words'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+      peaksReader: (_) async => throw StateError('decode failed'),
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    final stored = store.read('id-0');
+    expect(stored?.audioPath, isNull);
+    expect(stored?.transcript?.fullText, 'words');
+    expect(stored?.peaks, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('an overlapping purge is a no-op that returns 0', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-purgerace');
+    final file = File('${dir.path}/one.m4a')..writeAsStringSync('audio');
+    final gate = Completer<void>();
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      fileDeleter: (f) async {
+        await gate.future;
+        await f.delete();
+      },
+    );
+    await store.save(
+      Entry(
+        id: 'q1',
+        createdAt: fixedClock,
+        audioPath: 'one.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('q'),
+      ),
+    );
+
+    final first = svc.purgeTranscribedAudio();
+    await pumpEventQueue();
+    // The first purge is parked inside its delete; a second must not race the
+    // same snapshot.
+    expect(await svc.purgeTranscribedAudio(), 0);
+    gate.complete();
+    expect(await first, 1);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('healDanglingAudio repairs only transcribed records whose file is gone', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-heal');
+    final present = File('${dir.path}/present.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'h1',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    await store.save(
+      Entry(
+        id: 'h2',
+        createdAt: fixedClock,
+        audioPath: 'present.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    // Untranscribed with a missing file: its words are gone, left visible.
+    await store.save(
+      Entry(id: 'h3', createdAt: fixedClock, audioPath: 'alsogone.m4a', duration: Duration.zero),
+    );
+
+    expect(await svc.healDanglingAudio(), 1);
+
+    expect(store.read('h1')?.audioPath, isNull);
+    // The heal never deletes a file: kept history is untouchable here.
+    expect(store.read('h2')?.audioPath, 'present.m4a');
+    expect(present.existsSync(), isTrue);
+    expect(store.read('h3')?.audioPath, 'alsogone.m4a');
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a discard killed between file delete and save is healed at launch', () async {
+    // The kill-window shape: the file went, the record still points at it.
+    final dir = await Directory.systemTemp.createTemp('otr-healkill');
+    File('${dir.path}/take.m4a').writeAsStringSync('audio');
+    final failing = _NullPathSaveFailsOnce(storage);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      engine: FakeBatchEngine(),
+      store: failing,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    // Dangling: the discard deleted the file but its save was "killed".
+    expect(failing.read('id-0')?.audioPath, 'take.m4a');
+    expect(File('${dir.path}/take.m4a').existsSync(), isFalse);
+    // Usage never counts a dangling record as held bytes.
+    final usage = await svc.audioUsage();
+    expect(usage.totalCount, 0);
+
+    expect(await svc.healDanglingAudio(), 1);
+    expect(failing.read('id-0')?.audioPath, isNull);
+    expect(failing.read('id-0')?.transcript, isNotNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a failed transcription keeps the audio', () async {
+    // The audio is the only copy of the words; the discard defers to a later
+    // successful (re-)transcription.
+    final dir = await Directory.systemTemp.createTemp('otr-keepfail');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(failBatch: true),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    final stored = store.read('id-0');
+    expect(stored?.transcript, isNull);
+    expect(stored?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: an interruption auto-save keeps its audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-keepint');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = build((_) => FakeBatchEngine(), recorder: rec, keepAudio: () => false);
+
+    await svc.startRecording();
+    final saved = svc.autoFinalized.first;
+    rec.interrupt();
+    final entry = await saved;
+    await pumpEventQueue();
+
+    expect(entry.transcript, isNull);
+    expect(store.read(entry.id)?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-on (the default): a transcribed stop keeps the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-keepon');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: retranscribe completes the deferred discard on first success', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-keepretr');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'finally'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'r1',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('r1')!);
+
+    expect(updated.audioPath, isNull);
+    expect(store.read('r1')?.audioPath, isNull);
+    expect(store.read('r1')?.transcript?.fullText, 'finally');
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: re-transcribing an already-transcribed entry never deletes', () async {
+    // Reclaiming old audio is an explicit cleanup action only; a re-run with a
+    // better engine must not silently destroy the source it just read.
+    final dir = await Directory.systemTemp.createTemp('otr-keepretr2');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'sharper'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'r2',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('old'),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('r2')!);
+
+    expect(updated.transcript?.fullText, 'sharper');
+    expect(updated.audioPath, 'clip.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('retranscribe of a transcript-only entry throws before any engine work', () async {
+    final engine = FakeBatchEngine();
+    final svc = build((_) => engine);
+    final entry = Entry(
+      id: 'r3',
+      createdAt: fixedClock,
+      audioPath: null,
+      duration: Duration.zero,
+      transcript: canned('only text'),
+    );
+    await store.save(entry);
+
+    await expectLater(svc.retranscribe(entry), throwsStateError);
+    expect(engine.batchCalls, isEmpty);
+
+    await svc.dispose();
+  });
+
+  test('keep-off: a failed discard keeps the path and a later purge finishes it', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-discfail');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+      fileDeleter: (_) async => throw const FileSystemException('locked'),
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    // While the file survives, the path stays, or the reconcile sweep would
+    // resurrect the audio as a new entry.
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(store.read('id-0')?.transcript, isNotNull);
+    expect(file.existsSync(), isTrue);
+
+    // The retry story: the Cache screen's explicit purge, with the lock gone,
+    // reclaims it (the launch heal never touches a file that still exists).
+    final retry = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    expect(await retry.purgeTranscribedAudio(), 1);
+    expect(store.read('id-0')?.audioPath, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+    await retry.dispose();
+  });
+
+  test('deleteEntry of a transcript-only entry removes the record with no file work', () async {
+    var deletes = 0;
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      fileDeleter: (_) async {
+        deletes++;
+      },
+    );
+    final entry = Entry(id: 'd3', createdAt: fixedClock, audioPath: null, duration: Duration.zero);
+    await store.save(entry);
+
+    await svc.deleteEntry(entry);
+
+    expect(store.read('d3'), isNull);
+    expect(deletes, 0);
+
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans ignores transcript-only entries and still recovers orphans', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-reconull');
+    final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) => const Duration(seconds: 2),
+      ),
+    );
+    await store.save(
+      Entry(id: 'b1', createdAt: fixedClock, audioPath: null, duration: Duration.zero),
+    );
+
+    expect(await svc.reconcileOrphans(), 1);
+    expect(store.read('b1')?.audioPath, isNull);
+    expect(orphan.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('audioUsage counts kept audio and its reclaimable share, skipping gone files', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-usage');
+    File('${dir.path}/done.m4a').writeAsStringSync('audio'); // 5 bytes
+    File('${dir.path}/raw.m4a').writeAsStringSync('raw'); // 3 bytes
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'u1',
+        createdAt: fixedClock,
+        audioPath: 'done.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('done'),
+      ),
+    );
+    await store.save(
+      Entry(
+        id: 'u2',
+        createdAt: fixedClock,
+        audioPath: 'raw.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    // Transcript-only and dangling-path entries hold no measurable audio.
+    await store.save(
+      Entry(
+        id: 'u3',
+        createdAt: fixedClock,
+        audioPath: null,
+        duration: Duration.zero,
+        transcript: canned('bare'),
+      ),
+    );
+    await store.save(
+      Entry(
+        id: 'u4',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: Duration.zero,
+        transcript: canned('gone'),
+      ),
+    );
+
+    final usage = await svc.audioUsage();
+
+    expect(usage.totalBytes, 8);
+    expect(usage.totalCount, 2);
+    expect(usage.reclaimableBytes, 5);
+    expect(usage.reclaimableCount, 1);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('purgeTranscribedAudio reclaims only transcribed audio and is idempotent', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-purge');
+    final one = File('${dir.path}/one.m4a')..writeAsStringSync('audio');
+    final two = File('${dir.path}/two.m4a')..writeAsStringSync('audio');
+    final raw = File('${dir.path}/raw.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    final base = Entry(
+      id: 'p1',
+      createdAt: fixedClock,
+      audioPath: 'one.m4a',
+      duration: const Duration(seconds: 1),
+      transcript: canned('one'),
+    );
+    await store.save(base);
+    await store.save(
+      Entry(
+        id: 'p2',
+        createdAt: fixedClock,
+        audioPath: 'two.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('two'),
+      ),
+    );
+    // Untranscribed audio is the only copy of its words: never purged.
+    await store.save(
+      Entry(id: 'p3', createdAt: fixedClock, audioPath: 'raw.m4a', duration: Duration.zero),
+    );
+    // Already transcript-only: nothing to do.
+    await store.save(
+      Entry(
+        id: 'p4',
+        createdAt: fixedClock,
+        audioPath: null,
+        duration: Duration.zero,
+        transcript: canned('bare'),
+      ),
+    );
+
+    expect(await svc.purgeTranscribedAudio(), 2);
+    expect(one.existsSync(), isFalse);
+    expect(two.existsSync(), isFalse);
+    expect(raw.existsSync(), isTrue);
+    expect(store.read('p1')?.audioPath, isNull);
+    expect(store.read('p2')?.audioPath, isNull);
+    expect(store.read('p3')?.audioPath, 'raw.m4a');
+    expect(await svc.purgeTranscribedAudio(), 0);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('purge skips a failing delete and still reclaims the rest', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-purgefail');
+    final locked = File('${dir.path}/locked.m4a')..writeAsStringSync('audio');
+    final free = File('${dir.path}/free.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      fileDeleter: (f) async {
+        if (f.path.endsWith('locked.m4a')) throw const FileSystemException('locked');
+        await f.delete();
+      },
+    );
+    await store.save(
+      Entry(
+        id: 'l1',
+        createdAt: fixedClock,
+        audioPath: 'locked.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('locked'),
+      ),
+    );
+    await store.save(
+      Entry(
+        id: 'l2',
+        createdAt: fixedClock,
+        audioPath: 'free.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('free'),
+      ),
+    );
+
+    expect(await svc.purgeTranscribedAudio(), 1);
+    expect(locked.existsSync(), isTrue);
+    expect(store.read('l1')?.audioPath, 'locked.m4a');
+    expect(free.existsSync(), isFalse);
+    expect(store.read('l2')?.audioPath, isNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a delete landing mid-discard is not resurrected as a ghost', () async {
+    // _discardAudio re-reads the entry right before its final save; a save of
+    // its earlier snapshot would bring a deleted entry back transcript-only.
+    final dir = await Directory.systemTemp.createTemp('otr-ghostdisc');
+    File('${dir.path}/clip.m4a').writeAsStringSync('audio');
+    final gate = Completer<List<double>>();
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+      peaksReader: (_) => gate.future,
+    );
+    final entry = Entry(
+      id: 'g1',
+      createdAt: fixedClock,
+      audioPath: 'clip.m4a',
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    // First-success discard, held open inside its peaks read.
+    final done = svc.retranscribe(entry);
+    await pumpEventQueue();
+    await svc.deleteEntry(store.read('g1')!);
+    gate.complete([0.5]);
+    await done;
+
+    expect(store.read('g1'), isNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a failed save schedules no discard, and a recovered save keeps audio', () async {
+    // The single most safety-critical point of the contract: the discard is
+    // chained only behind a SUCCESSFUL save, so a save failure must leave the
+    // audio untouched, and the retrySave recovery must not delete it either
+    // (reclaiming it later is the Cache screen's explicit clear).
+    final dir = await Directory.systemTemp.createTemp('otr-savefail');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final throwing = _ThrowingStore(storage, failures: 1);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      engine: FakeBatchEngine(),
+      store: throwing,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    Entry? failed;
+    try {
+      await svc.stopRecording();
+    } on EntrySaveFailed catch (e) {
+      failed = e.entry;
+    }
+    await pumpEventQueue();
+    expect(failed, isNotNull);
+    expect(file.existsSync(), isTrue);
+
+    await svc.retrySave(failed!);
+    await pumpEventQueue();
+    expect(throwing.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a rename landing mid-discard survives on the transcript-only record', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-renamedisc');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final gate = Completer<List<double>>();
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'words'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+      peaksReader: (_) => gate.future,
+    );
+    final entry = Entry(
+      id: 'g2',
+      createdAt: fixedClock,
+      audioPath: 'clip.m4a',
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    final done = svc.retranscribe(entry);
+    await pumpEventQueue();
+    await svc.renameEntry(entry, 'named');
+    gate.complete([0.5]);
+    await done;
+
+    final stored = store.read('g2');
+    expect(stored?.title, 'named');
+    expect(stored?.audioPath, isNull);
+    expect(stored?.transcript?.fullText, 'words');
+    expect(stored?.peaks, [128]);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+}
+
+/// A store whose FIRST transcript-only save throws, modeling a kill landing
+/// between a discard's file delete and its record update.
+class _NullPathSaveFailsOnce extends EntryStore {
+  _NullPathSaveFailsOnce(super.storage);
+
+  bool _failed = false;
+
+  @override
+  Future<void> save(Entry entry) async {
+    if (!_failed && entry.audioPath == null) {
+      _failed = true;
+      throw Exception('killed');
+    }
+    return super.save(entry);
+  }
 }
 
 /// A store whose save fails [failures] times (-1: always), to prove save failures

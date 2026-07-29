@@ -421,5 +421,62 @@
   "onboardingStart": "Get started",
   "@onboardingStart": {
     "description": "Button finishing onboarding and entering the app"
+  },
+  "settingsCache": "Cache",
+  "@settingsCache": {
+    "description": "Menu row and section label of the cache screen (audio storage usage and cleanup)"
+  },
+  "cacheRecordingsCount": "{count, plural, one {1 recording} other {{count} recordings}}",
+  "@cacheRecordingsCount": {
+    "description": "Storage card subline: how many entries keep audio",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cacheReclaimable": "Reclaimable",
+  "@cacheReclaimable": {
+    "description": "Storage card row: audio held by already-transcribed entries, freeable via the clear action"
+  },
+  "cacheReclaimableInfo": "Transcribed, safe to clear",
+  "@cacheReclaimableInfo": {
+    "description": "Subline under the reclaimable row saying why this share is safe to delete"
+  },
+  "cacheUsageInfo": "Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.",
+  "@cacheUsageInfo": {
+    "description": "Help paragraph under the usage card"
+  },
+  "cacheKeepAudio": "Keep audio",
+  "@cacheKeepAudio": {
+    "description": "Toggle row label: whether recordings survive a successful transcription"
+  },
+  "cacheKeepAudioInfo": "When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.",
+  "@cacheKeepAudioInfo": {
+    "description": "Help paragraph under the keep-audio toggle stating the consequence"
+  },
+  "cacheClear": "Clear transcribed audio",
+  "@cacheClear": {
+    "description": "Destructive action row that opens the clear confirmation sheet"
+  },
+  "cacheClearTitle": "Clear transcribed audio?",
+  "@cacheClearTitle": {
+    "description": "Title of the clear confirmation sheet"
+  },
+  "cacheClearBody": "{count, plural, one {Deletes the audio of one transcribed entry ({size}). Its text stays. This cannot be undone.} other {Deletes the audio of {count} transcribed entries ({size}). Their text stays. This cannot be undone.}}",
+  "@cacheClearBody": {
+    "description": "Body of the clear confirmation sheet naming exactly what goes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheClearConfirm": "Delete recordings",
+  "@cacheClearConfirm": {
+    "description": "Destructive confirm button on the clear sheet"
   }
 }

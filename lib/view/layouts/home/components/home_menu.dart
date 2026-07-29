@@ -153,6 +153,9 @@ class _HomeMenuState extends State<HomeMenu> {
         ],
       ),
     );
+    items.add(
+      AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
+    );
     items.add(const AppMenuItem.divider());
     items.add(
       AppMenuItem(id: 'act:appearance', label: l10n.settingsAppearance, icon: AppIcons.moonFill),
@@ -208,6 +211,8 @@ class _HomeMenuState extends State<HomeMenu> {
               context.pushNamed(Routes.settingsModelsName);
             case 'act:appearance':
               context.pushNamed(Routes.settingsAppearanceName);
+            case 'act:cache':
+              context.pushNamed(Routes.settingsCacheName);
             case 'act:gallery':
               context.pushNamed(Routes.galleryName);
             case 'act:source':

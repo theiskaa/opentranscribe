@@ -325,4 +325,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingStart => 'Get started';
+
+  @override
+  String get settingsCache => 'Cache';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recordings',
+      one: '1 recording',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => 'Reclaimable';
+
+  @override
+  String get cacheReclaimableInfo => 'Transcribed, safe to clear';
+
+  @override
+  String get cacheUsageInfo =>
+      'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.';
+
+  @override
+  String get cacheKeepAudio => 'Keep audio';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.';
+
+  @override
+  String get cacheClear => 'Clear transcribed audio';
+
+  @override
+  String get cacheClearTitle => 'Clear transcribed audio?';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Deletes the audio of $count transcribed entries ($size). Their text stays. This cannot be undone.',
+      one:
+          'Deletes the audio of one transcribed entry ($size). Its text stays. This cannot be undone.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => 'Delete recordings';
 }

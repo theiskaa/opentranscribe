@@ -97,6 +97,7 @@ final class SettingsState {
     this.languages = const [],
     this.reservationMax = 0,
     this.backupExcluded = true,
+    this.keepAudio = true,
     this.deviceLanguageUnsupported = false,
   });
 
@@ -120,6 +121,10 @@ final class SettingsState {
   final int reservationMax;
 
   final bool backupExcluded;
+
+  /// Whether recordings survive a successful transcription (see
+  /// AudioStorageSettings.keepAudio).
+  final bool keepAudio;
 
   LanguageModelState? get defaultLanguage {
     for (final row in languages) {
@@ -153,6 +158,7 @@ final class SettingsState {
     List<LanguageModelState>? languages,
     int? reservationMax,
     bool? backupExcluded,
+    bool? keepAudio,
     bool? deviceLanguageUnsupported,
   }) => SettingsState(
     localeId: localeId ?? this.localeId,
@@ -160,6 +166,7 @@ final class SettingsState {
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
     backupExcluded: backupExcluded ?? this.backupExcluded,
+    keepAudio: keepAudio ?? this.keepAudio,
     deviceLanguageUnsupported: deviceLanguageUnsupported ?? this.deviceLanguageUnsupported,
   );
 }
@@ -260,6 +267,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         languages: rows,
         reservationMax: reservations.max,
         backupExcluded: _audioStorage.backupExcluded,
+        keepAudio: _audioStorage.keepAudio,
         deviceLanguageUnsupported:
             _transcription.deviceLanguageUnsupported && localeId == _transcription.deviceLocaleId,
       ),
@@ -380,6 +388,23 @@ class SettingsCubit extends Cubit<SettingsState> {
     await _audioStorage.setExcluded(excluded);
     if (isClosed) return;
     emit(state.copyWith(backupExcluded: _audioStorage.backupExcluded));
+  }
+
+  /// Optimistic: the toggle reflects the tap immediately (a slow encrypted
+  /// write would otherwise spring the knob back and forward again), then the
+  /// settle emit re-reads storage. A REFUSED persist keeps the tapped value
+  /// in the prefs cache until relaunch (see LocalService.write), so the
+  /// session stays self-consistent with what the service reads; the toggle
+  /// reverts only at next launch.
+  Future<void> setKeepAudio(bool keep) async {
+    emit(state.copyWith(keepAudio: keep));
+    try {
+      await _audioStorage.setKeepAudio(keep);
+    } catch (e) {
+      if (kDebugMode) debugPrint('settings: keep-audio persist failed: $e');
+    }
+    if (isClosed) return;
+    emit(state.copyWith(keepAudio: _audioStorage.keepAudio));
   }
 
   /// Debug-only: stamps a synthetic [failure] on [tag] so the failure sheet

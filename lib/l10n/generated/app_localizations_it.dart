@@ -329,4 +329,56 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get onboardingStart => 'Inizia';
+
+  @override
+  String get settingsCache => 'Cache';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registrazioni',
+      one: '1 registrazione',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => 'Recuperabile';
+
+  @override
+  String get cacheReclaimableInfo => 'Trascritto, si può eliminare';
+
+  @override
+  String get cacheUsageInfo =>
+      'L\'audio delle voci trascritte può essere eliminato; il testo resta. Le registrazioni non ancora trascritte non vengono mai toccate.';
+
+  @override
+  String get cacheKeepAudio => 'Conserva audio';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      'Se disattivato, ogni registrazione viene eliminata appena la trascrizione riesce. Queste voci sono solo testo: niente riproduzione, niente nuova trascrizione con un motore migliore.';
+
+  @override
+  String get cacheClear => 'Elimina audio trascritto';
+
+  @override
+  String get cacheClearTitle => 'Eliminare l\'audio trascritto?';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Elimina l\'audio di $count voci trascritte ($size). Il testo resta. Non si può annullare.',
+      one: 'Elimina l\'audio di una voce trascritta ($size). Il testo resta. Non si può annullare.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => 'Elimina registrazioni';
 }

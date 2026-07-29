@@ -87,6 +87,7 @@ Future<int?> showAppMenu(
 }) {
   // A one-shot read: this runs from tap handlers, where select is illegal.
   final motion = context.motionNow;
+  final reduceMotion = context.reduceMotion;
   return showGeneralDialog<int>(
     context: context,
     barrierDismissible: true,
@@ -97,6 +98,9 @@ Future<int?> showAppMenu(
         _MenuBody(anchor: anchor, items: items),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
+      // Under Reduce Motion the growth is dropped and only the fade remains,
+      // the same degrade the sheet uses.
+      if (reduceMotion) return FadeTransition(opacity: curved, child: child);
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
@@ -184,9 +188,17 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    // The native menu paints destructive rows red; the fallback must warn the
+    // same way, or a pre-glass user meets an unmarked irreversible action.
+    final color = item.destructive ? theme.danger : theme.text;
+    final iconColor = item.destructive ? theme.danger : theme.textSecondary;
     return Touchable(
       onTap: () {
-        Haptics.selection();
+        if (item.destructive) {
+          Haptics.medium();
+        } else {
+          Haptics.selection();
+        }
         onTap();
       },
       child: SizedBox(
@@ -196,7 +208,7 @@ class _MenuRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(item.label, style: AppType.callout.copyWith(color: theme.text)),
+                child: Text(item.label, style: AppType.callout.copyWith(color: color)),
               ),
               if (item.iconBytes != null) ...[
                 const SizedBox(width: AppSpacing.md),
@@ -204,12 +216,12 @@ class _MenuRow extends StatelessWidget {
                   item.iconBytes!,
                   width: 17,
                   height: 17,
-                  color: theme.textSecondary,
+                  color: iconColor,
                   colorBlendMode: BlendMode.srcIn,
                 ),
               ] else if (item.icon != null) ...[
                 const SizedBox(width: AppSpacing.md),
-                AppIcon(item.icon!, size: 17, color: theme.textSecondary),
+                AppIcon(item.icon!, size: 17, color: iconColor),
               ],
             ],
           ),
@@ -307,17 +319,8 @@ class AppMenuButton extends StatelessWidget {
     return _MenuTrigger(
       icon: icon,
       items: items,
-      // The fallback captures its item snapshot at open, so an index answer
-      // is race-free there; route id-carrying items through the id callback
-      // so both platforms answer the same way.
-      onSelected: (index) {
-        final id = items[index].id;
-        if (id != null) {
-          onSelectedId?.call(id);
-        } else {
-          onSelected(index);
-        }
-      },
+      onSelected: onSelected,
+      onSelectedId: onSelectedId,
       size: size,
       iconSize: iconSize,
       color: color,
@@ -332,6 +335,7 @@ class _MenuTrigger extends StatefulWidget {
     required this.icon,
     required this.items,
     required this.onSelected,
+    required this.onSelectedId,
     required this.size,
     required this.iconSize,
     required this.color,
@@ -340,6 +344,7 @@ class _MenuTrigger extends StatefulWidget {
   final IconData icon;
   final List<AppMenuItem> items;
   final ValueChanged<int> onSelected;
+  final ValueChanged<String>? onSelectedId;
   final double size;
   final double iconSize;
   final Color? color;
@@ -353,8 +358,21 @@ class _MenuTriggerState extends State<_MenuTrigger> {
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.attached) return;
     final origin = box.localToGlobal(Offset.zero);
-    final index = await showAppMenu(context, anchor: origin & box.size, items: widget.items);
-    if (index != null) widget.onSelected(index);
+    // The dialog displays this snapshot for its whole life while the route
+    // below keeps rebuilding, so the answer must resolve against the SAME
+    // list: the row the user tapped is the row they saw, not whatever a
+    // rebuild put at that position meanwhile. The callbacks themselves are
+    // read fresh off the widget, so handlers still see current state.
+    final items = widget.items;
+    final index = await showAppMenu(context, anchor: origin & box.size, items: items);
+    if (index == null || index < 0 || index >= items.length) return;
+    if (!mounted) return;
+    final id = items[index].id;
+    if (id != null) {
+      widget.onSelectedId?.call(id);
+    } else {
+      widget.onSelected(index);
+    }
   }
 
   @override

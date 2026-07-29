@@ -311,4 +311,48 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingStart => '始める';
+
+  @override
+  String get settingsCache => 'キャッシュ';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音');
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => '解放可能';
+
+  @override
+  String get cacheReclaimableInfo => '文字起こし済み、削除可能';
+
+  @override
+  String get cacheUsageInfo => '文字起こし済みエントリーの音声は削除できます。テキストは残ります。文字起こしされていない録音には決して触れません。';
+
+  @override
+  String get cacheKeepAudio => '音声を保持';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      'オフにすると、文字起こしが成功した録音はその時点で削除されます。該当エントリーはテキストのみになり、再生も、将来のより良いエンジンでの再文字起こしもできません。';
+
+  @override
+  String get cacheClear => '文字起こし済み音声を削除';
+
+  @override
+  String get cacheClearTitle => '文字起こし済み音声を削除しますか？';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の文字起こし済みエントリーの音声（$size）を削除します。テキストは残ります。元に戻せません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => '録音を削除';
 }

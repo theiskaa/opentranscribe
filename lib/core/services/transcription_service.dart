@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:opentranscribe/core/audio/audio_recorder.dart';
 import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -20,6 +22,12 @@ import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 /// streaming engine's live stream is used only for real-time UI ([liveEvents]); it
 /// never decides the persisted transcript. If transcription fails, the recording is
 /// kept untranscribed rather than lost, and can be re-transcribed later.
+///
+/// When the keep-audio preference is off, a recording is discarded after its
+/// FIRST successful transcription: the transcript is persisted first, then the
+/// file is deleted and the entry becomes transcript-only. Audio is never deleted
+/// on a failure path, and a repeat re-transcription never deletes; bulk reclaim
+/// is [purgeTranscribedAudio], an explicit action only.
 class TranscriptionService {
   TranscriptionService({
     required this._recorder,
@@ -31,9 +39,11 @@ class TranscriptionService {
     DateTime Function()? clock,
     String Function()? idGenerator,
     Future<void> Function(File file)? fileDeleter,
+    bool Function()? keepAudio,
   }) : _clock = clock ?? DateTime.now,
        _newId = idGenerator ?? _defaultId,
-       _deleteFile = fileDeleter ?? _deleteFileDefault {
+       _deleteFile = fileDeleter ?? _deleteFileDefault,
+       _keepAudio = keepAudio ?? _keepAudioDefault {
     // The one rule, enforced in code: only on-device engines are allowed.
     if (!_engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${_engine.id}');
@@ -60,6 +70,13 @@ class TranscriptionService {
 
   static Future<void> _deleteFileDefault(File file) => file.delete();
 
+  /// Whether kept audio survives a successful transcription. Read when a
+  /// transcript lands (a stop latches it at save time, deliberately: a flip
+  /// mid-backfill must not delete a take stopped under keep-on).
+  final bool Function() _keepAudio;
+
+  static bool _keepAudioDefault() => true;
+
   /// Reads an audio file's amplitude envelope (0..1), injected so the service
   /// can persist a new entry's shape at save time without owning a player.
   /// Null in tests that do not care; the detail screen then backfills on the
@@ -69,6 +86,7 @@ class TranscriptionService {
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
+  final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
   /// Gates the shared [_live] broadcast to the current session. Bumped at the
@@ -81,6 +99,11 @@ class TranscriptionService {
 
   /// Single-flights [reconcileOrphans] so two sweeps never race one snapshot.
   bool _reconciling = false;
+
+  /// Single-flights [purgeTranscribedAudio]. Deliberately not shared with
+  /// [_reconciling]: the Cache screen's clear must not silently no-op because
+  /// the launch orphan sweep happens to be running.
+  bool _purging = false;
 
   /// Claimed synchronously at the top of [startRecording], before its awaits, so
   /// two concurrent starts cannot both proceed (and leak a status subscription).
@@ -208,6 +231,17 @@ class TranscriptionService {
 
   void _notifyModelStateChanged() {
     if (!_modelStateChanged.isClosed) _modelStateChanged.add(null);
+  }
+
+  /// Fires after a store mutation no caller is awaiting a reload for: a
+  /// discard landing behind a stop or a re-transcribe, a purge or heal batch,
+  /// an orphan recovery. List surfaces re-read instead of showing an entry
+  /// whose audio quietly left. Plain delete and rename don't fire; their
+  /// callers reload themselves.
+  Stream<void> get entriesChanged => _entriesChanged.stream;
+
+  void _notifyEntriesChanged() {
+    if (!_entriesChanged.isClosed) _entriesChanged.add(null);
   }
 
   /// Downloads the model, streaming progress to completion. An engine with no
@@ -483,8 +517,10 @@ class TranscriptionService {
     try {
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
-      // session is not queued behind it. Re-awaited in the finally.
-      unawaited(liveSub?.cancel());
+      // session is not queued behind it. Re-awaited in the finally; a cancel
+      // rejection is swallowed on both copies, or this detached one would hit
+      // the zone and the finally would fail a stop that fully succeeded.
+      unawaited(liveSub?.cancel().catchError((_) {}));
 
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
@@ -530,11 +566,23 @@ class TranscriptionService {
       }
       // Off the critical path: the entry is saved and returned now; its wave
       // shape lands in a follow-up write so the first open never re-decodes
-      // the whole file.
-      unawaited(_backfillPeaks(entry));
+      // the whole file. Under keep-audio off the discard chains AFTER the
+      // backfill, so the waveform is captured before the file disappears. The
+      // returned entry deliberately still carries its path: the store is the
+      // truth, and surfaces refresh from it.
+      final discard = transcript != null && !_keepAudio();
+      unawaited(
+        _backfillPeaks(entry).then((_) async {
+          if (discard) await _discardAudio(entry.id);
+        }),
+      );
       return entry;
     } finally {
-      await liveSub?.cancel();
+      try {
+        await liveSub?.cancel();
+      } catch (_) {
+        // The subscription is dead either way; the outcome above stands.
+      }
     }
   }
 
@@ -604,7 +652,12 @@ class TranscriptionService {
         }
         if (saved != null) {
           if (identical(_lastFinalized, saved)) _lastFinalized = null;
-          await deleteEntry(saved);
+          try {
+            await deleteEntry(saved);
+          } catch (_) {
+            // Best effort, like the save-failed branch above: a locked file
+            // keeps its record and the user deletes it visibly instead.
+          }
         }
       }
       return;
@@ -622,7 +675,11 @@ class TranscriptionService {
     } on CaptureFailed {
       // Nothing captured or capture already dead: discarding was the goal.
     } finally {
-      await liveSub?.cancel();
+      try {
+        await liveSub?.cancel();
+      } catch (_) {
+        // The subscription is dead either way; the outcome above stands.
+      }
     }
   }
 
@@ -679,18 +736,151 @@ class TranscriptionService {
   /// Deletes an entry and its kept audio file. The audio is the source of truth,
   /// so removing the record removes the recording with it.
   Future<void> deleteEntry(Entry entry) async {
-    final file = File(await _resolveAudioPath(entry.audioPath));
-    if (file.existsSync()) {
+    final path = entry.audioPath;
+    if (path != null) {
+      final File file;
       try {
-        await _deleteFile(file);
+        file = File(await _resolveAudioPath(path));
       } catch (error) {
-        // If the file survived the failed delete, removing the record too would
-        // orphan it and the reconcile sweep would resurrect the "deleted"
-        // recording next launch. Keep the record so a retry removes both.
-        if (file.existsSync()) throw EntryDeleteFailed(entry, error);
+        // A channel failure resolving the directory: nothing was deleted, so
+        // surface the typed failure the retry contract advertises.
+        throw EntryDeleteFailed(entry, error);
+      }
+      if (file.existsSync()) {
+        try {
+          await _deleteFile(file);
+        } catch (error) {
+          // If the file survived the failed delete, removing the record too would
+          // orphan it and the reconcile sweep would resurrect the "deleted"
+          // recording next launch. Keep the record so a retry removes both.
+          if (file.existsSync()) throw EntryDeleteFailed(entry, error);
+        }
       }
     }
     await _store.delete(entry.id);
+  }
+
+  /// Discards an entry's kept audio, keeping the record: peaks are captured
+  /// first (best effort) so the waveform survives, the file is deleted, then
+  /// the STORED entry is re-read and saved without its path. That fresh read
+  /// has no await before the save, so a delete, rename or re-transcription
+  /// landing mid-discard is never clobbered and a deleted entry is never
+  /// resurrected as a transcript-only ghost. Returns false when nothing was
+  /// discarded: the entry is gone, or the audio is still on disk and referenced
+  /// (a later sweep retries). Never throws, since it runs detached behind saves.
+  /// Bulk sweeps pass [notify] false and announce once at the end, so an
+  /// N-entry purge costs the listeners one reload, not N.
+  Future<bool> _discardAudio(String entryId, {bool notify = true}) async {
+    try {
+      final stored = _store.read(entryId);
+      if (stored == null) return false;
+      final path = stored.audioPath;
+      if (path == null) return true;
+      if (stored.peaks == null && _peaksReader != null) {
+        try {
+          await saveEntryPeaks(stored, await _peaksReader(await _resolveAudioPath(path)));
+        } catch (_) {
+          // The wave is cosmetic; losing it never blocks reclaiming the space.
+        }
+      }
+      final file = File(await _resolveAudioPath(path));
+      if (file.existsSync()) {
+        try {
+          await _deleteFile(file);
+        } catch (_) {
+          // Same rule as deleteEntry: while the file survives, the path stays,
+          // or the reconcile sweep would resurrect the audio as a new entry.
+          if (file.existsSync()) return false;
+        }
+      }
+      final fresh = _store.read(entryId);
+      if (fresh == null || fresh.audioPath == null) return true;
+      await _store.save(fresh.withoutAudio());
+      // Detached mutation: without this, an open screen keeps offering the
+      // player and re-transcribe for audio that no longer exists.
+      if (notify) _notifyEntriesChanged();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Finishes discards a kill interrupted: a transcribed entry whose audio
+  /// file is ALREADY gone but whose record still points at it (the window
+  /// between [_discardAudio]'s file delete and its save). Runs at launch in
+  /// both keep modes, since the file's absence is a fact either way. Never
+  /// deletes a file, so it can never destroy kept history; bulk reclaim stays
+  /// [purgeTranscribedAudio] behind the Cache screen's confirm. Untranscribed
+  /// records with missing audio are left alone: their words are gone, and a
+  /// visibly broken entry the user can delete beats a silent empty one.
+  Future<int> healDanglingAudio() async {
+    var healed = 0;
+    for (final entry in _store.all()) {
+      try {
+        final path = entry.audioPath;
+        if (path == null || entry.transcript == null) continue;
+        if (File(await _resolveAudioPath(path)).existsSync()) continue;
+        if (await _discardAudio(entry.id, notify: false)) healed++;
+      } catch (_) {
+        // Best effort per entry, like the reconcile sweep; next launch retries.
+      }
+    }
+    if (healed > 0) _notifyEntriesChanged();
+    return healed;
+  }
+
+  /// What the kept recordings occupy on disk, for the Cache surface. A
+  /// read-only sweep over the entries: files that vanished or cannot be
+  /// statted are skipped entirely (counted in neither bytes nor counts).
+  /// Reclaimable means the entry is transcribed, so [purgeTranscribedAudio]
+  /// would free it.
+  Future<AudioUsage> audioUsage() async {
+    var totalBytes = 0, totalCount = 0, reclaimableBytes = 0, reclaimableCount = 0;
+    for (final entry in _store.all()) {
+      final path = entry.audioPath;
+      if (path == null) continue;
+      int bytes;
+      try {
+        bytes = await File(await _resolveAudioPath(path)).length();
+      } catch (_) {
+        continue;
+      }
+      totalBytes += bytes;
+      totalCount++;
+      if (entry.transcript != null) {
+        reclaimableBytes += bytes;
+        reclaimableCount++;
+      }
+    }
+    return AudioUsage(
+      totalBytes: totalBytes,
+      totalCount: totalCount,
+      reclaimableBytes: reclaimableBytes,
+      reclaimableCount: reclaimableCount,
+    );
+  }
+
+  /// Reclaims the audio of every already-transcribed entry, leaving the records
+  /// transcript-only. EXPLICIT action only, behind the Cache screen's confirm:
+  /// this destroys kept history, so no automatic path may call it (the launch
+  /// sweep runs [healDanglingAudio], which never deletes a file). Per-entry
+  /// failures are skipped (the next run retries); the returned count is
+  /// approximate under concurrency (an entry another path just discarded may
+  /// still count). An overlapping call returns 0.
+  Future<int> purgeTranscribedAudio() async {
+    if (_purging) return 0;
+    _purging = true;
+    try {
+      var discarded = 0;
+      for (final entry in _store.all()) {
+        if (entry.transcript == null || entry.audioPath == null) continue;
+        if (await _discardAudio(entry.id, notify: false)) discarded++;
+      }
+      if (discarded > 0) _notifyEntriesChanged();
+      return discarded;
+    } finally {
+      _purging = false;
+    }
   }
 
   /// Re-transcribes a kept recording, optionally with a different engine. This is
@@ -708,7 +898,11 @@ class TranscriptionService {
     if (!engine.onDeviceOnly) {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
     }
-    final audioFile = File(await _resolveAudioPath(entry.audioPath));
+    final path = entry.audioPath;
+    if (path == null) {
+      throw StateError('entry ${entry.id} is transcript-only, nothing to retranscribe');
+    }
+    final audioFile = File(await _resolveAudioPath(path));
     // A mixed-language take re-transcribes span by span, rebuilding the mix,
     // UNLESS the caller chose a language explicitly: the user's correction
     // flattens the whole take into that one language on purpose.
@@ -733,8 +927,16 @@ class TranscriptionService {
     if (stored == null) {
       throw StateError('entry ${entry.id} was deleted during retranscribe');
     }
+    // Discard only on the FIRST successful transcription: that is the keep-off
+    // deferral completing (a failed or interrupted first pass finally landing).
+    // A repeat re-transcription never deletes; bulk reclaim is explicit only.
+    final firstSuccess = stored.transcript == null;
     final updated = stored.withTranscript(transcript);
     await _store.save(updated);
+    if (firstSuccess && !_keepAudio()) {
+      await _discardAudio(entry.id);
+      return _store.read(entry.id) ?? updated;
+    }
     return updated;
   }
 
@@ -758,8 +960,15 @@ class TranscriptionService {
 
   /// The absolute path of an entry's kept audio, for playback. The service owns
   /// where entry audio lives, so a caller (e.g. a player) resolves through here
-  /// rather than reaching into storage itself.
-  Future<String> resolveAudioPath(Entry entry) => _resolveAudioPath(entry.audioPath);
+  /// rather than reaching into storage itself. Throws [StateError] for a
+  /// transcript-only entry; callers gate on [Entry.hasAudio].
+  Future<String> resolveAudioPath(Entry entry) {
+    final path = entry.audioPath;
+    if (path == null) {
+      throw StateError('entry ${entry.id} is transcript-only, no audio to resolve');
+    }
+    return _resolveAudioPath(path);
+  }
 
   /// Persists a computed amplitude envelope onto the STORED entry (quantized
   /// to 0..255), so later opens skip the full-file decode. Applied to the
@@ -781,22 +990,30 @@ class TranscriptionService {
   /// Save-time backfill for a NEW entry: read the shape once and persist it.
   Future<void> _backfillPeaks(Entry entry) async {
     final reader = _peaksReader;
-    if (reader == null || entry.peaks != null) return;
+    final audioPath = entry.audioPath;
+    if (reader == null || entry.peaks != null || audioPath == null) return;
     try {
-      final path = await _resolveAudioPath(entry.audioPath);
+      final path = await _resolveAudioPath(audioPath);
       await saveEntryPeaks(entry, await reader(path));
     } catch (_) {
       // Unreadable now (or mid-teardown): the first open backfills instead.
     }
   }
 
+  /// The recordings directory, fetched once: it is stable for the process
+  /// lifetime (the container only moves between launches), and the launch
+  /// sweeps resolve O(entries) paths, which would otherwise be one channel
+  /// round trip each.
+  String? _recordingsDir;
+
   /// Resolves a stored audio reference to an absolute path. Real entries store a
   /// bare filename, stable across a backup/restore that would move the app's
   /// container; an already-absolute path (tests, legacy) is returned unchanged.
   Future<String> _resolveAudioPath(String stored) async {
     if (stored.startsWith('/')) return stored;
-    var dir = await _recorder.recordingsDirectory();
+    var dir = _recordingsDir ?? await _recorder.recordingsDirectory();
     if (dir.endsWith('/')) dir = dir.substring(0, dir.length - 1);
+    _recordingsDir = dir;
     return '$dir/$stored';
   }
 
@@ -921,7 +1138,13 @@ class TranscriptionService {
       final dir = Directory(dirPath);
       if (!dir.existsSync()) return 0;
 
-      final referenced = _store.all().map((e) => e.audioPath.split('/').last).toSet();
+      // Transcript-only entries reference no file and cannot anchor one.
+      final referenced = _store
+          .all()
+          .map((e) => e.audioPath)
+          .whereType<String>()
+          .map((p) => p.split('/').last)
+          .toSet();
       var recovered = 0;
       await for (final item in dir.list(followLinks: false)) {
         if (item is! File) continue;
@@ -949,6 +1172,9 @@ class TranscriptionService {
           // Best effort per file; the next sweep retries whatever failed.
         }
       }
+      // Detached recovery: without this, a take recovered after home seeded
+      // its list stays invisible until an unrelated reload.
+      if (recovered > 0) _notifyEntriesChanged();
       return recovered;
     } finally {
       _reconciling = false;
@@ -989,6 +1215,7 @@ class TranscriptionService {
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();
+    await _entriesChanged.close();
   }
 
   static int _idSequence = 0;
@@ -997,9 +1224,40 @@ class TranscriptionService {
       '${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}-${_idSequence++}';
 }
 
+/// What kept recordings occupy on disk; see [TranscriptionService.audioUsage].
+@immutable
+final class AudioUsage {
+  const AudioUsage({
+    required this.totalBytes,
+    required this.totalCount,
+    required this.reclaimableBytes,
+    required this.reclaimableCount,
+  });
+
+  final int totalBytes;
+  final int totalCount;
+
+  /// The share held by already-transcribed entries, the part a purge frees.
+  final int reclaimableBytes;
+  final int reclaimableCount;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AudioUsage &&
+      other.totalBytes == totalBytes &&
+      other.totalCount == totalCount &&
+      other.reclaimableBytes == reclaimableBytes &&
+      other.reclaimableCount == reclaimableCount;
+
+  @override
+  int get hashCode => Object.hash(totalBytes, totalCount, reclaimableBytes, reclaimableCount);
+}
+
 /// Persisting a finalized entry failed. Carries the [entry] (which already
 /// references its kept audio) so the caller can [TranscriptionService.retrySave]
-/// instead of losing the only handle to the recording.
+/// instead of losing the only handle to the recording. Under keep-audio off a
+/// recovered save keeps its audio (the discard chains only behind a successful
+/// first save); reclaiming it later is the Cache screen's explicit clear.
 final class EntrySaveFailed implements Exception {
   const EntrySaveFailed(this.entry, this.cause);
 

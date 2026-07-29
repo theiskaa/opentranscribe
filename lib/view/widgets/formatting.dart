@@ -36,3 +36,19 @@ String formatDurationCompact(Duration d) {
   if (d.inMinutes > 0) return '${d.inMinutes}m ${d.inSeconds.remainder(60)}s';
   return '${d.inSeconds}s';
 }
+
+/// A byte count as storage prose (312 KB, 4.5 MB, 1.2 GB). Decimal units,
+/// matching what iOS itself reports for storage; whole numbers below a
+/// megabyte, one locale-aware decimal from there up.
+String formatBytes(int bytes, [String? locale]) {
+  const kb = 1000, mb = kb * 1000, gb = mb * 1000;
+  if (bytes < kb) return '$bytes B';
+  // Every seam is decided on the ROUNDED value: 999.5 KB must read 1.0 MB
+  // and 999.95 MB must read 1.0 GB, never "1000" of the smaller unit.
+  final kbRounded = (bytes / kb).round();
+  if (bytes < mb && kbRounded < 1000) return '$kbRounded KB';
+  final decimal = NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1);
+  final mbTenths = (bytes / mb * 10).round();
+  if (bytes < gb && mbTenths < 10000) return '${decimal.format(mbTenths / 10)} MB';
+  return '${decimal.format(bytes / gb)} GB';
+}

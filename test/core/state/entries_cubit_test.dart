@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
@@ -178,5 +181,102 @@ void main() {
     expect(cubit.state.errorFor(entry.id), isNull);
     expect(cubit.state.entries.single.isTranscribed, isTrue);
     await cubit.close();
+  });
+
+  test('keep-off: a first-success retranscribe lands transcript-only in the list', () async {
+    // The branch's headline behavior at the state layer: after the deferred
+    // discard completes, the list must reflect the transcript-only entry.
+    final dir = await Directory.systemTemp.createTemp('otr-cubitkeep');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final storage = LocalService();
+    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    final store = EntryStore(storage);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      engine: FakeBatchEngine(cannedText: 'finally'),
+      store: store,
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'k1',
+        createdAt: DateTime.utc(2026, 3, 4),
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    final cubit = EntriesCubit(service: svc);
+
+    await cubit.retranscribe(cubit.state.entries.single);
+    await pumpEventQueue();
+
+    final listed = cubit.state.entries.single;
+    expect(listed.transcript?.fullText, 'finally');
+    expect(listed.hasAudio, isFalse);
+    expect(cubit.state.error, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await cubit.close();
+    await svc.dispose();
+    await dir.delete(recursive: true);
+  });
+
+  test('retranscribe of a transcript-only entry pins a failure, never the zone', () async {
+    final storage = LocalService();
+    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    final store = EntryStore(storage);
+    final localEngine = FakeBatchEngine();
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: localEngine,
+      store: store,
+    );
+    await store.save(
+      Entry(
+        id: 'b1',
+        createdAt: DateTime.utc(2026, 3, 4),
+        audioPath: null,
+        duration: Duration.zero,
+      ),
+    );
+    final cubit = EntriesCubit(service: svc);
+
+    // A stale open menu can still fire this; the StateError must be caught,
+    // pinned to the entry, and the list left consistent.
+    await cubit.retranscribe(cubit.state.entries.single);
+
+    expect(cubit.state.errorFor('b1'), EntriesError.generic);
+    expect(cubit.state.entries.single.hasAudio, isFalse);
+    expect(localEngine.batchCalls, isEmpty);
+
+    await cubit.close();
+    await svc.dispose();
+  });
+
+  test('a detached discard refreshes the list without a manual load', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-cubitdisc');
+    File('${dir.path}/take.m4a').writeAsStringSync('audio');
+    final storage = LocalService();
+    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      engine: FakeBatchEngine(),
+      store: EntryStore(storage),
+      keepAudio: () => false,
+    );
+    final cubit = EntriesCubit(service: svc);
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    cubit.load();
+    // The save landed with audio; the discard then completes detached and
+    // must announce itself, or an open screen keeps a dead player.
+    await pumpEventQueue();
+
+    expect(cubit.state.entries.single.hasAudio, isFalse);
+
+    await cubit.close();
+    await svc.dispose();
+    await dir.delete(recursive: true);
   });
 }

@@ -188,20 +188,39 @@ final class AudioCaptureSession {
       throw CaptureError.noInput
     }
 
+    // 32 kbps per channel: speech at this AAC rate stays fully intelligible and
+    // transcribes as well as the encoder's default, at less than half the size.
+    // The key is the TOTAL stream rate, so a stereo route scales rather than
+    // starving both channels. Band-limited routes step down to the BEST rate
+    // the encoder accepts there, not the floor: below 16 kHz (narrowband HFP,
+    // old Bluetooth headsets) the ceiling is 24 kbps and 32 would be rejected
+    // at file creation; from 16 kHz up (mSBC and everything better) 32 fits.
+    let perChannelRate = format.sampleRate >= 16_000 ? 32_000 : 24_000
     let settings: [String: Any] = [
       AVFormatIDKey: kAudioFormatMPEG4AAC,
       AVSampleRateKey: format.sampleRate,
       AVNumberOfChannelsKey: format.channelCount,
+      AVEncoderBitRateKey: perChannelRate * Int(format.channelCount),
       AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
     ]
     let url: URL
-    let file: AVAudioFile
     do {
       // Kept audio lives in a durable, protected, app-private directory, not temp.
       url = try AudioCaptureSession.recordingsDirectory()
         .appendingPathComponent("otr-\(UUID().uuidString).m4a")
+    } catch {
+      try? session.setActive(false, options: .notifyOthersOnDeactivation)
+      throw error
+    }
+    let file: AVAudioFile
+    do {
       file = try AVAudioFile(forWriting: url, settings: settings)
     } catch {
+      // AVAudioFile writes a header before validating encoder settings, so a
+      // refused configuration leaves a real file behind - a validly finalized
+      // empty container the reconcile sweep reads as a 0 ms recording, never
+      // as deletable junk. Remove it here, like the engine-start path does.
+      try? FileManager.default.removeItem(at: url)
       try? session.setActive(false, options: .notifyOthersOnDeactivation)
       throw error
     }

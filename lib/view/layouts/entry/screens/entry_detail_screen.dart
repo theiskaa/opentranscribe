@@ -62,6 +62,10 @@ class _DetailViewState extends State<_DetailView> {
   final GlobalKey _menuAnchor = GlobalKey();
   PlayerCubit? _player;
 
+  /// Set once the entry loses its audio while this screen is open, so the
+  /// stop below fires exactly once.
+  bool _stoppedForDiscard = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -77,22 +81,76 @@ class _DetailViewState extends State<_DetailView> {
     super.dispose();
   }
 
-  void _onAction(int index, Entry entry, AppLocalizations l10n) {
-    switch (index) {
-      case 0:
+  /// Action row ids: the list shrinks when an entry loses its audio, and a
+  /// menu opened before that rebuild still shows the old rows, so a position
+  /// can land on the wrong action. An id names the choice itself; only the
+  /// Transcribe-in parent answers by position (a parent with children never
+  /// answers by id), and the dispatcher checks it is really the parent.
+  static const _actRename = 'act:rename';
+  static const _actRetranscribe = 'act:retranscribe';
+  static const _actDelete = 'act:delete';
+
+  List<AppMenuItem> _menuItems(
+    Entry entry,
+    AppLocalizations l10n,
+    List<String> transcribeTags,
+    String preselected,
+  ) => [
+    AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
+    if (entry.hasAudio) ...[
+      AppMenuItem(
+        id: _actRetranscribe,
+        label: l10n.retranscribe,
+        icon: AppIcons.arrowCounterclockwise,
+      ),
+      AppMenuItem(
+        label: l10n.transcribeIn,
+        icon: AppIcons.globe,
+        // Native renders these as a nested UIMenu; the fallback fires the
+        // parent action instead and the anchored dropdown takes over. Ids,
+        // not positions: the chosen language must survive a list rebuild
+        // under the open menu.
+        children: [
+          for (final tag in transcribeTags)
+            AppMenuItem(
+              id: tag,
+              label: '${localeFlag(tag)}  ${localeDisplayName(tag)}',
+              selected: tag == preselected,
+            ),
+        ],
+      ),
+    ],
+    AppMenuItem(id: _actDelete, label: l10n.delete, icon: AppIcons.trash, destructive: true),
+  ];
+
+  /// Handles every id answer: the three action rows and the language leaves.
+  /// The audio-dependent ones re-check [Entry.hasAudio] so a tap on a stale
+  /// open menu (the discard landed while it was up) is a no-op, never a wrong
+  /// action on a transcript-only entry.
+  void _onMenuId(String id, Entry entry) {
+    // Anything act:-prefixed is an action row; an unknown one must never fall
+    // through to the language branch and re-transcribe with a bogus locale.
+    if (id.startsWith('act:') && id != _actRename && id != _actRetranscribe && id != _actDelete) {
+      return;
+    }
+    switch (id) {
+      case _actRename:
         _titleFocus.requestFocus();
-      case 1:
+      case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
-        // picker below is the explicit override.
-        context.read<EntriesCubit>().retranscribe(entry);
-      case 2:
-        _transcribeIn(entry);
-      case 3:
+        // language leaves below are the explicit override.
+        if (entry.hasAudio) unawaited(context.read<EntriesCubit>().retranscribe(entry));
+      case _actDelete:
         // Straight through, no confirm. The menu already took a deliberate tap
         // to open and a second one to land on a row marked destructive; a sheet
         // asking the same question again is a tax on every deliberate delete to
         // catch the accidental one.
-        context.read<EntriesCubit>().delete(entry);
+        unawaited(context.read<EntriesCubit>().delete(entry));
+      default:
+        // A language leaf; its id is the tag itself.
+        if (entry.hasAudio) {
+          unawaited(context.read<EntriesCubit>().retranscribe(entry, localeId: id));
+        }
     }
   }
 
@@ -166,6 +224,13 @@ class _DetailViewState extends State<_DetailView> {
           return ColoredBox(color: theme.screens.entryDetail, child: const SizedBox.expand());
         }
 
+        // Audio discarded while this screen is open (a keep-off transcription
+        // landing): the player is about to unmount, so playback must die with
+        // it, not keep sounding from a deleted file with no controls left.
+        if (!entry.hasAudio && !_stoppedForDiscard) {
+          _stoppedForDiscard = true;
+          unawaited(_player?.stopAndDetach());
+        }
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
@@ -177,13 +242,15 @@ class _DetailViewState extends State<_DetailView> {
         final settings = context.watch<SettingsCubit>().state;
         final transcribeTags = _transcribeTags(entry, settings);
         final preselected = entry.effectiveLocaleId ?? settings.localeId;
+        final menu = _menuItems(entry, l10n, transcribeTags, preselected);
         // The bottom CTA exists for a never-transcribed entry; a run in flight
         // disables it in place rather than unmounting it, so a failed run
-        // never blinks the button away and back.
-        final showCta = entry.transcript == null;
+        // never blinks the button away and back. Transcribing needs the audio,
+        // so a transcript-only entry offers neither the CTA nor a retry.
+        final showCta = entry.transcript == null && entry.hasAudio;
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.
-        final error = state.errorFor(entry.id);
+        final error = entry.hasAudio ? state.errorFor(entry.id) : null;
         final bottomInset = MediaQuery.paddingOf(context).bottom;
         // What the scroll must clear so its last line never hides behind the
         // pinned dock: the pill, the CTA, and the gap between them, whichever
@@ -230,8 +297,33 @@ class _DetailViewState extends State<_DetailView> {
                         ).copyWith(color: theme.textSecondary),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
-                      WavePlayer(entry: entry),
-                      const SizedBox(height: AppSpacing.xxl),
+                      // Discarded audio: the document flows from the metadata
+                      // straight into what it says. Animated, so a discard
+                      // landing mid-read collapses the player instead of
+                      // snapping ~80px of layout in one frame.
+                      AnimatedSize(
+                        duration: context.reduceMotion
+                            ? Duration.zero
+                            : context.motionNow.indicator,
+                        curve: context.motionNow.indicatorCurve,
+                        alignment: Alignment.topCenter,
+                        // The switcher fades the wave out while the size eases
+                        // the gap closed, so nothing hard-cuts mid-read.
+                        child: AnimatedSwitcher(
+                          duration: context.reduceMotion
+                              ? Duration.zero
+                              : context.motionNow.indicator,
+                          child: !entry.hasAudio
+                              ? const SizedBox(width: double.infinity)
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    WavePlayer(entry: entry),
+                                    const SizedBox(height: AppSpacing.xxl),
+                                  ],
+                                ),
+                        ),
+                      ),
                       TranscriptView(entry: entry, busy: busy),
                     ],
                   ),
@@ -247,32 +339,16 @@ class _DetailViewState extends State<_DetailView> {
                       key: _menuAnchor,
                       icon: AppIcons.ellipsis,
                       color: theme.topBar.iconColor,
-                      items: [
-                        AppMenuItem(label: l10n.rename, icon: AppIcons.textformat),
-                        AppMenuItem(label: l10n.retranscribe, icon: AppIcons.arrowCounterclockwise),
-                        AppMenuItem(
-                          label: l10n.transcribeIn,
-                          icon: AppIcons.globe,
-                          // Native renders these as a nested UIMenu; the
-                          // fallback fires the parent action instead and the
-                          // anchored dropdown takes over. Ids, not positions:
-                          // the chosen language must survive a list rebuild
-                          // under the open menu.
-                          children: [
-                            for (final tag in transcribeTags)
-                              AppMenuItem(
-                                id: tag,
-                                label: '${localeFlag(tag)}  ${localeDisplayName(tag)}',
-                                selected: tag == preselected,
-                              ),
-                          ],
-                        ),
-                        AppMenuItem(label: l10n.delete, icon: AppIcons.trash, destructive: true),
-                      ],
-                      onSelected: (index) => _onAction(index, entry, l10n),
-                      onSelectedId: (tag) => unawaited(
-                        context.read<EntriesCubit>().retranscribe(entry, localeId: tag),
-                      ),
+                      items: menu,
+                      // Only the Transcribe-in parent answers by position; a
+                      // stale index from a menu that outlived a rebuild is
+                      // dropped rather than landing on another row.
+                      onSelected: (index) {
+                        if (index < 0 || index >= menu.length) return;
+                        if (menu[index].children.isEmpty) return;
+                        unawaited(_transcribeIn(entry));
+                      },
+                      onSelectedId: (id) => _onMenuId(id, entry),
                     ),
                   ],
                 ),

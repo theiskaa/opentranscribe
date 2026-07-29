@@ -27,8 +27,12 @@ final class LanguageSpan {
 }
 
 /// One journal entry: a kept recording and, once transcribed, its transcript.
-/// The audio is the source of truth and is kept so the entry can be re-transcribed
-/// by a better engine later. The transcript is null until transcription completes.
+/// While present, the audio is the source of truth and is kept so the entry can
+/// be re-transcribed by a better engine later. A null [audioPath] means the
+/// audio was discarded - the keep-audio preference deleting it after a
+/// successful transcription, or the Cache screen's explicit clear: the entry is
+/// transcript-only, cannot be played back, and can never be re-transcribed. The
+/// transcript is null until transcription completes.
 @immutable
 final class Entry {
   /// [createdAt] is normalized to UTC here, so round-trip equality through JSON
@@ -47,7 +51,10 @@ final class Entry {
 
   final String id;
   final DateTime createdAt;
-  final String audioPath;
+
+  /// Required but nullable: every creation site must decide, so a flow cannot
+  /// forget the path by omission. Null means the audio was discarded.
+  final String? audioPath;
   final Duration duration;
   final Transcript? transcript;
 
@@ -73,6 +80,8 @@ final class Entry {
   final List<LanguageSpan>? languageSpans;
 
   bool get isTranscribed => transcript != null;
+
+  bool get hasAudio => audioPath != null;
 
   /// The language this entry is known to be in: its transcript's, else the
   /// one it was recorded under. Null means unknown; actions then fall back to
@@ -106,6 +115,20 @@ final class Entry {
     languageSpans: languageSpans,
   );
 
+  /// Returns a copy with the audio reference dropped: the transcript-only form
+  /// an entry takes after its recording is discarded under keep-audio off.
+  Entry withoutAudio() => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: null,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    peaks: peaks,
+    languageSpans: languageSpans,
+  );
+
   /// Returns a copy carrying the computed amplitude envelope.
   Entry withPeaks(List<int> peaks) => Entry(
     id: id,
@@ -123,7 +146,7 @@ final class Entry {
     'id': id,
     // Store UTC so timestamps survive travel and DST unchanged.
     'createdAt': createdAt.toUtc().toIso8601String(),
-    'audioPath': audioPath,
+    if (audioPath != null) 'audioPath': audioPath,
     'durationMs': duration.inMilliseconds,
     if (transcript != null) 'transcript': transcript!.toJson(),
     if (title != null) 'title': title,
@@ -142,7 +165,8 @@ final class Entry {
     return Entry(
       id: json['id'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      audioPath: json['audioPath'] as String,
+      // Absent on transcript-only entries whose audio was discarded.
+      audioPath: json['audioPath'] as String?,
       duration: Duration(milliseconds: (json['durationMs'] as num).toInt()),
       transcript: json['transcript'] == null
           ? null

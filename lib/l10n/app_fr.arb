@@ -95,5 +95,16 @@
   "onboardingModelsTitle": "Télécharger une langue",
   "onboardingModelsBody": "La transcription fonctionne hors ligne une fois qu'une langue est sur votre appareil. Vous pouvez en ajouter à tout moment depuis le menu.",
   "onboardingNext": "Suivant",
-  "onboardingStart": "Commencer"
+  "onboardingStart": "Commencer",
+  "settingsCache": "Cache",
+  "cacheReclaimable": "Récupérable",
+  "cacheUsageInfo": "L'audio des entrées transcrites peut être effacé ; le texte reste. Les enregistrements pas encore transcrits ne sont jamais touchés.",
+  "cacheKeepAudio": "Conserver l'audio",
+  "cacheKeepAudioInfo": "Si désactivé, chaque enregistrement est supprimé dès que sa transcription réussit. Ces entrées sont texte seul : pas de lecture, pas de retranscription par un meilleur moteur plus tard.",
+  "cacheClear": "Effacer l'audio transcrit",
+  "cacheClearTitle": "Effacer l'audio transcrit ?",
+  "cacheClearBody": "{count, plural, one {Supprime l'audio d'une entrée transcrite ({size}). Le texte reste. Irréversible.} other {Supprime l'audio de {count} entrées transcrites ({size}). Le texte reste. Irréversible.}}",
+  "cacheClearConfirm": "Supprimer les enregistrements",
+  "cacheRecordingsCount": "{count, plural, one {{count} enregistrement} other {{count} enregistrements}}",
+  "cacheReclaimableInfo": "Transcrit, peut être effacé"
 }

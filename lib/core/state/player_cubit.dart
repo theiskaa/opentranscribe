@@ -159,6 +159,10 @@ class PlayerCubit extends Cubit<PlayerState> {
   /// status (native completed or yielded meanwhile) falls back to a fresh
   /// play per the [AudioPlayer.resume] contract.
   Future<void> toggle(Entry entry) async {
+    // Transcript-only entry: resolveAudioPath would throw StateError, which the
+    // PlaybackException catch below does not cover. The UI hides the player for
+    // these; this guard keeps a stale entry object from crashing the screen.
+    if (!entry.hasAudio) return;
     try {
       switch (state.status) {
         case PlaybackStatus.playing:
@@ -193,7 +197,7 @@ class PlayerCubit extends Cubit<PlayerState> {
     final resume = from > Duration.zero && from < state.duration ? from : null;
     await _player.play(path);
     if (resume != null && !isClosed && !_detached) await _player.seek(resume);
-    if (_rate != 1) await _player.setRate(_rate);
+    if (_rate != 1 && !isClosed && !_detached) await _player.setRate(_rate);
   }
 
   /// Seeks within the current file. [duration] lets the bar clamp against the

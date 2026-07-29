@@ -95,5 +95,16 @@
   "onboardingModelsTitle": "下载一种语言",
   "onboardingModelsBody": "只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。",
   "onboardingNext": "下一步",
-  "onboardingStart": "开始使用"
+  "onboardingStart": "开始使用",
+  "settingsCache": "缓存",
+  "cacheReclaimable": "可释放",
+  "cacheUsageInfo": "已转写条目的音频可以清除，文字会保留。尚未转写的录音绝不会被触碰。",
+  "cacheKeepAudio": "保留音频",
+  "cacheKeepAudioInfo": "关闭后，录音在转写成功后即被删除。这类条目仅剩文字：无法回放，也无法日后用更好的引擎重新转写。",
+  "cacheClear": "清除已转写音频",
+  "cacheClearTitle": "清除已转写音频？",
+  "cacheClearBody": "{count, plural, other {将删除 {count} 个已转写条目的音频（{size}）。文字保留。此操作无法撤销。}}",
+  "cacheClearConfirm": "删除录音",
+  "cacheRecordingsCount": "{count, plural, other {{count} 个录音}}",
+  "cacheReclaimableInfo": "已转写，可安全清除"
 }

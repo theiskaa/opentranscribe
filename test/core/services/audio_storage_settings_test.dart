@@ -59,4 +59,31 @@ void main() {
 
     expect(recorder.backupExcluded, isNull);
   });
+
+  test('keepAudio defaults to kept and setKeepAudio persists', () async {
+    final recorder = FakeAudioRecorder();
+    final settings = AudioStorageSettings(storage: storage, recorder: recorder);
+
+    expect(settings.keepAudio, isTrue);
+
+    await settings.setKeepAudio(false);
+    expect(settings.keepAudio, isFalse);
+    // Storage only: discarding is the service's job, never the native layer's.
+    expect(recorder.backupExcluded, isNull);
+
+    // Survives a fresh instance reading the same storage.
+    final reloaded = AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder());
+    expect(reloaded.keepAudio, isFalse);
+  });
+
+  test('an undecryptable keepAudio value fails safe to kept', () async {
+    // A wrongly-false answer deletes audio irreversibly, so corruption must
+    // read as kept.
+    await AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder()).setKeepAudio(false);
+    final other = LocalService();
+    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    final reopened = AudioStorageSettings(storage: other, recorder: FakeAudioRecorder());
+
+    expect(reopened.keepAudio, isTrue);
+  });
 }
