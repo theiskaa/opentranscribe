@@ -284,9 +284,7 @@ class _DayTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                DateFormat.E(
-                  localeTag(context),
-                ).format(day).substring(0, 1).toUpperCase(),
+                DateFormat.E(localeTag(context)).format(day).substring(0, 1).toUpperCase(),
                 style: AppType.caption.copyWith(color: letterColor),
               ),
               const SizedBox(height: AppSpacing.xxs),
