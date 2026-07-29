@@ -12,6 +12,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -58,7 +59,11 @@ class _CacheView extends StatelessWidget {
         action: AppButton(
           label: l10n.cacheClearConfirm,
           variant: AppButtonVariant.danger,
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: () {
+            // The house destructive-confirm weight, same as swipe-delete.
+            Haptics.medium();
+            Navigator.of(context).pop(true);
+          },
         ),
       ),
     );
@@ -133,82 +138,100 @@ class _StorageCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final measured = usage;
     final showBar = measured != null && measured.reclaimableBytes > 0;
-    return SettingsCard(
-      children: [
-        // Header and bar as ONE child: the card divides between children, and
-        // a divider hugging the bar would read as three broken strips.
-        Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(14, 14, 14, showBar ? 0 : 14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: SuperellipseDecoration(
-                      borderRadius: tokens.iconTileRadius + 2,
-                      color: tokens.iconTileBackground,
+    // AnimatedSize: the bar mounting, the count line landing, and a clear
+    // shrinking the card all resize smoothly instead of snapping a frame.
+    return AnimatedSize(
+      duration: context.reduceMotion ? Duration.zero : context.motionNow.indicator,
+      curve: context.motionNow.indicatorCurve,
+      alignment: Alignment.topCenter,
+      child: SettingsCard(
+        children: [
+          // Header and bar as ONE child: the card divides between children, and
+          // a divider hugging the bar would read as three broken strips.
+          Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(14, 14, 14, showBar ? 0 : 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: SuperellipseDecoration(
+                        borderRadius: tokens.iconTileRadius + 2,
+                        color: tokens.iconTileBackground,
+                      ),
+                      child: AppIcon(AppIcons.internaldrive, size: 22, color: theme.text),
                     ),
-                    child: AppIcon(AppIcons.internaldrive, size: 22, color: theme.text),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          // Ellipsis while the first sweep runs: zeros would
-                          // read as "nothing stored".
-                          measured == null ? '…' : formatBytes(measured.totalBytes, locale),
-                          style: AppType.digits(AppType.headline).copyWith(color: theme.text),
-                        ),
-                        if (measured != null) ...[
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            // Ellipsis while the first sweep runs: zeros would
+                            // read as "nothing stored".
+                            measured == null ? '…' : formatBytes(measured.totalBytes, locale),
+                            style: AppType.digits(AppType.headline).copyWith(color: theme.text),
+                          ),
                           const SizedBox(height: 2),
                           Text(
-                            l10n.cacheRecordingsCount(measured.totalCount),
+                            // A space, not conditional: the line's height is
+                            // reserved so the header never grows a frame after
+                            // the first measure lands.
+                            measured == null ? ' ' : l10n.cacheRecordingsCount(measured.totalCount),
                             style: AppType.footnote.copyWith(color: theme.textSecondary),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (showBar)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox(
-                    height: 8,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: ColoredBox(color: tokens.iconTileBackground)),
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: (measured.reclaimableBytes / measured.totalBytes).clamp(
-                            0.0,
-                            1.0,
+              if (showBar)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      height: 8,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(child: ColoredBox(color: tokens.iconTileBackground)),
+                          // Tweened so a changing share sweeps rather than jumps.
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(
+                              end: (measured.reclaimableBytes / measured.totalBytes).clamp(
+                                0.0,
+                                1.0,
+                              ),
+                            ),
+                            duration: context.reduceMotion
+                                ? Duration.zero
+                                : context.motionNow.indicator,
+                            curve: context.motionNow.indicatorCurve,
+                            builder: (context, fraction, _) => FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: fraction,
+                              heightFactor: 1,
+                              child: ColoredBox(color: theme.accent),
+                            ),
                           ),
-                          heightFactor: 1,
-                          child: ColoredBox(color: theme.accent),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
-        if (measured != null)
-          _ReclaimableRow(
-            size: formatBytes(measured.reclaimableBytes, locale),
-            highlighted: measured.reclaimableBytes > 0,
+            ],
           ),
-      ],
+          if (measured != null)
+            _ReclaimableRow(
+              size: formatBytes(measured.reclaimableBytes, locale),
+              highlighted: measured.reclaimableBytes > 0,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -282,26 +305,31 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.settings;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: tokens.iconTileSize,
-            height: tokens.iconTileSize,
-            alignment: Alignment.center,
-            decoration: SuperellipseDecoration(
-              borderRadius: tokens.iconTileRadius,
-              color: tokens.iconTileBackground,
+    // The whole row toggles, not just the 31pt switch: the one control in
+    // this flow that would otherwise miss the 44pt touch target.
+    return Touchable(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: tokens.iconTileBackground,
+              ),
+              child: AppIcon(icon, size: 16, color: theme.text),
             ),
-            child: AppIcon(icon, size: 16, color: theme.text),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
-          ),
-          AppToggle(value: value, onChanged: onChanged),
-        ],
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+            ),
+            AppToggle(value: value, onChanged: onChanged),
+          ],
+        ),
       ),
     );
   }
