@@ -159,16 +159,14 @@ class Deps {
 
     // Recover or remove audio files no entry references (a kill mid-recording, a
     // save that never landed). Off the critical path: launch must not wait on it.
-    // Under keep-audio off, the purge then finishes any discard a kill or a
-    // failed delete interrupted; chained after the sweep so the two never
-    // interleave over one directory.
+    // The heal then repairs records whose audio file is already gone (a kill
+    // mid-discard); chained after the sweep so the two never interleave over one
+    // directory. NEVER a bulk purge here: deleting kept history is the Cache
+    // screen's explicit, confirmed action, and a toggle flip must not schedule it.
     unawaited(
       i.transcriptionService
           .reconcileOrphans()
-          .then(
-            (_) =>
-                audioStorageSettings.keepAudio ? 0 : i.transcriptionService.purgeTranscribedAudio(),
-          )
+          .then((_) => i.transcriptionService.healDanglingAudio())
           .catchError((Object e) {
             if (kDebugMode) debugPrint('deps: launch audio sweep failed: $e');
             return 0;

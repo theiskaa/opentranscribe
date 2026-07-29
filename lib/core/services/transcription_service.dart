@@ -86,6 +86,7 @@ class TranscriptionService {
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
+  final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
   /// Gates the shared [_live] broadcast to the current session. Bumped at the
@@ -230,6 +231,16 @@ class TranscriptionService {
 
   void _notifyModelStateChanged() {
     if (!_modelStateChanged.isClosed) _modelStateChanged.add(null);
+  }
+
+  /// Fires after a DETACHED store mutation (a discard landing behind a stop, a
+  /// purge, the launch heal), so list surfaces re-read instead of showing an
+  /// entry whose audio quietly left. Awaited mutations (delete, rename,
+  /// re-transcribe) don't fire; their callers reload themselves.
+  Stream<void> get entriesChanged => _entriesChanged.stream;
+
+  void _notifyEntriesChanged() {
+    if (!_entriesChanged.isClosed) _entriesChanged.add(null);
   }
 
   /// Downloads the model, streaming progress to completion. An engine with no
@@ -505,8 +516,10 @@ class TranscriptionService {
     try {
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
-      // session is not queued behind it. Re-awaited in the finally.
-      unawaited(liveSub?.cancel());
+      // session is not queued behind it. Re-awaited in the finally; a cancel
+      // rejection is swallowed on both copies, or this detached one would hit
+      // the zone and the finally would fail a stop that fully succeeded.
+      unawaited(liveSub?.cancel().catchError((_) {}));
 
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
@@ -564,7 +577,11 @@ class TranscriptionService {
       );
       return entry;
     } finally {
-      await liveSub?.cancel();
+      try {
+        await liveSub?.cancel();
+      } catch (_) {
+        // The subscription is dead either way; the outcome above stands.
+      }
     }
   }
 
@@ -652,7 +669,11 @@ class TranscriptionService {
     } on CaptureFailed {
       // Nothing captured or capture already dead: discarding was the goal.
     } finally {
-      await liveSub?.cancel();
+      try {
+        await liveSub?.cancel();
+      } catch (_) {
+        // The subscription is dead either way; the outcome above stands.
+      }
     }
   }
 
@@ -711,7 +732,14 @@ class TranscriptionService {
   Future<void> deleteEntry(Entry entry) async {
     final path = entry.audioPath;
     if (path != null) {
-      final file = File(await _resolveAudioPath(path));
+      final File file;
+      try {
+        file = File(await _resolveAudioPath(path));
+      } catch (error) {
+        // A channel failure resolving the directory: nothing was deleted, so
+        // surface the typed failure the retry contract advertises.
+        throw EntryDeleteFailed(entry, error);
+      }
       if (file.existsSync()) {
         try {
           await _deleteFile(file);
@@ -760,10 +788,32 @@ class TranscriptionService {
       final fresh = _store.read(entryId);
       if (fresh == null || fresh.audioPath == null) return true;
       await _store.save(fresh.withoutAudio());
+      // Detached mutation: without this, an open screen keeps offering the
+      // player and re-transcribe for audio that no longer exists.
+      _notifyEntriesChanged();
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  /// Finishes discards a kill interrupted: a transcribed entry whose audio
+  /// file is ALREADY gone but whose record still points at it (the window
+  /// between [_discardAudio]'s file delete and its save). Runs at launch in
+  /// both keep modes, since the file's absence is a fact either way. Never
+  /// deletes a file, so it can never destroy kept history; bulk reclaim stays
+  /// [purgeTranscribedAudio] behind the Cache screen's confirm. Untranscribed
+  /// records with missing audio are left alone: their words are gone, and a
+  /// visibly broken entry the user can delete beats a silent empty one.
+  Future<int> healDanglingAudio() async {
+    var healed = 0;
+    for (final entry in _store.all()) {
+      final path = entry.audioPath;
+      if (path == null || entry.transcript == null) continue;
+      if (File(await _resolveAudioPath(path)).existsSync()) continue;
+      if (await _discardAudio(entry.id)) healed++;
+    }
+    return healed;
   }
 
   /// What the kept recordings occupy on disk, for the Cache surface. A
@@ -797,10 +847,12 @@ class TranscriptionService {
   }
 
   /// Reclaims the audio of every already-transcribed entry, leaving the records
-  /// transcript-only. The Cache surface's bulk action, and the launch retry that
-  /// finishes discards a kill or a failed delete interrupted. Per-entry failures
-  /// are skipped (the next run retries); returns how many recordings were
-  /// discarded. An overlapping call returns 0.
+  /// transcript-only. EXPLICIT action only, behind the Cache screen's confirm:
+  /// this destroys kept history, so no automatic path may call it (the launch
+  /// sweep runs [healDanglingAudio], which never deletes a file). Per-entry
+  /// failures are skipped (the next run retries); the returned count is
+  /// approximate under concurrency (an entry another path just discarded may
+  /// still count). An overlapping call returns 0.
   Future<int> purgeTranscribedAudio() async {
     if (_purging) return 0;
     _purging = true;
@@ -1138,6 +1190,7 @@ class TranscriptionService {
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();
+    await _entriesChanged.close();
   }
 
   static int _idSequence = 0;
@@ -1179,7 +1232,7 @@ final class AudioUsage {
 /// references its kept audio) so the caller can [TranscriptionService.retrySave]
 /// instead of losing the only handle to the recording. Under keep-audio off a
 /// recovered save keeps its audio (the discard chains only behind a successful
-/// first save); the launch purge reclaims it later.
+/// first save); reclaiming it later is the Cache screen's explicit clear.
 final class EntrySaveFailed implements Exception {
   const EntrySaveFailed(this.entry, this.cause);
 

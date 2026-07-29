@@ -1658,14 +1658,15 @@ void main() {
     createdAt: fixedClock,
   );
 
-  test('keep-off: a transcribed stop discards the audio after the wave lands', () async {
+  test('keep-off: a transcribed stop discards the audio only after the wave lands', () async {
     final dir = await Directory.systemTemp.createTemp('otr-keepoff');
     final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final gate = Completer<List<double>>();
     final svc = build(
       (_) => FakeBatchEngine(cannedText: 'kept words'),
       recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
       keepAudio: () => false,
-      peaksReader: (_) async => [0.5],
+      peaksReader: (_) => gate.future,
     );
 
     await svc.startRecording();
@@ -1674,6 +1675,13 @@ void main() {
     // discard lands off the critical path.
     expect(entry.audioPath, 'take.m4a');
     await pumpEventQueue();
+    // The discard chains BEHIND the backfill: while the shape is still being
+    // read, the file must exist (a discard-first order would pass the end
+    // state below either way, since _discardAudio backfills peaks itself).
+    expect(file.existsSync(), isTrue);
+
+    gate.complete([0.5]);
+    await pumpEventQueue();
 
     final stored = store.read('id-0');
     expect(stored?.audioPath, isNull);
@@ -1681,6 +1689,168 @@ void main() {
     // The wave outlives the file it was read from.
     expect(stored?.peaks, [128]);
     expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a keep-on stop stays kept even if the preference flips mid-backfill', () async {
+    // The service latches the answer at save time: a flip-to-off while the
+    // wave is still being read must not delete a take stopped under keep-on.
+    final dir = await Directory.systemTemp.createTemp('otr-latch');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    var keep = true;
+    final gate = Completer<List<double>>();
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => keep,
+      peaksReader: (_) => gate.future,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    keep = false;
+    gate.complete([0.5]);
+    await pumpEventQueue();
+
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a failing peaks reader never blocks the discard', () async {
+    // The wave is cosmetic; a decode failure must not leave the space held.
+    final dir = await Directory.systemTemp.createTemp('otr-peaksfail');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(cannedText: 'words'),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+      peaksReader: (_) async => throw StateError('decode failed'),
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    final stored = store.read('id-0');
+    expect(stored?.audioPath, isNull);
+    expect(stored?.transcript?.fullText, 'words');
+    expect(stored?.peaks, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('an overlapping purge is a no-op that returns 0', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-purgerace');
+    final file = File('${dir.path}/one.m4a')..writeAsStringSync('audio');
+    final gate = Completer<void>();
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      fileDeleter: (f) async {
+        await gate.future;
+        await f.delete();
+      },
+    );
+    await store.save(
+      Entry(
+        id: 'q1',
+        createdAt: fixedClock,
+        audioPath: 'one.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('q'),
+      ),
+    );
+
+    final first = svc.purgeTranscribedAudio();
+    await pumpEventQueue();
+    // The first purge is parked inside its delete; a second must not race the
+    // same snapshot.
+    expect(await svc.purgeTranscribedAudio(), 0);
+    gate.complete();
+    expect(await first, 1);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('healDanglingAudio repairs only transcribed records whose file is gone', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-heal');
+    final present = File('${dir.path}/present.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'h1',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    await store.save(
+      Entry(
+        id: 'h2',
+        createdAt: fixedClock,
+        audioPath: 'present.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    // Untranscribed with a missing file: its words are gone, left visible.
+    await store.save(
+      Entry(id: 'h3', createdAt: fixedClock, audioPath: 'alsogone.m4a', duration: Duration.zero),
+    );
+
+    expect(await svc.healDanglingAudio(), 1);
+
+    expect(store.read('h1')?.audioPath, isNull);
+    // The heal never deletes a file: kept history is untouchable here.
+    expect(store.read('h2')?.audioPath, 'present.m4a');
+    expect(present.existsSync(), isTrue);
+    expect(store.read('h3')?.audioPath, 'alsogone.m4a');
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a discard killed between file delete and save is healed at launch', () async {
+    // The kill-window shape: the file went, the record still points at it.
+    final dir = await Directory.systemTemp.createTemp('otr-healkill');
+    File('${dir.path}/take.m4a').writeAsStringSync('audio');
+    final failing = _NullPathSaveFailsOnce(storage);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      engine: FakeBatchEngine(),
+      store: failing,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    // Dangling: the discard deleted the file but its save was "killed".
+    expect(failing.read('id-0')?.audioPath, 'take.m4a');
+    expect(File('${dir.path}/take.m4a').existsSync(), isFalse);
+    // Usage never counts a dangling record as held bytes.
+    final usage = await svc.audioUsage();
+    expect(usage.totalCount, 0);
+
+    expect(await svc.healDanglingAudio(), 1);
+    expect(failing.read('id-0')?.audioPath, isNull);
+    expect(failing.read('id-0')?.transcript, isNotNull);
 
     await dir.delete(recursive: true);
     await svc.dispose();
@@ -2156,6 +2326,23 @@ void main() {
     await dir.delete(recursive: true);
     await svc.dispose();
   });
+}
+
+/// A store whose FIRST transcript-only save throws, modeling a kill landing
+/// between a discard's file delete and its record update.
+class _NullPathSaveFailsOnce extends EntryStore {
+  _NullPathSaveFailsOnce(super.storage);
+
+  bool _failed = false;
+
+  @override
+  Future<void> save(Entry entry) async {
+    if (!_failed && entry.audioPath == null) {
+      _failed = true;
+      throw Exception('killed');
+    }
+    return super.save(entry);
+  }
 }
 
 /// A store whose save fails [failures] times (-1: always), to prove save failures
