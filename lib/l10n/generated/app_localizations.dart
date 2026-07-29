@@ -683,6 +683,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get onboardingStart;
+
+  /// Menu row and section label of the cache screen (audio storage usage and cleanup)
+  ///
+  /// In en, this message translates to:
+  /// **'Cache'**
+  String get settingsCache;
+
+  /// Storage card subline: how many entries keep audio
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording} other {{count} recordings}}'**
+  String cacheRecordingsCount(int count);
+
+  /// Storage card row: audio held by already-transcribed entries, freeable via the clear action
+  ///
+  /// In en, this message translates to:
+  /// **'Reclaimable'**
+  String get cacheReclaimable;
+
+  /// Subline under the reclaimable row saying why this share is safe to delete
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed, safe to clear'**
+  String get cacheReclaimableInfo;
+
+  /// Help paragraph under the usage card
+  ///
+  /// In en, this message translates to:
+  /// **'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.'**
+  String get cacheUsageInfo;
+
+  /// Toggle row label: whether recordings survive a successful transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Keep audio'**
+  String get cacheKeepAudio;
+
+  /// Help paragraph under the keep-audio toggle stating the consequence
+  ///
+  /// In en, this message translates to:
+  /// **'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.'**
+  String get cacheKeepAudioInfo;
+
+  /// Destructive action row that opens the clear confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Clear transcribed audio'**
+  String get cacheClear;
+
+  /// Title of the clear confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Clear transcribed audio?'**
+  String get cacheClearTitle;
+
+  /// Body of the clear confirmation sheet naming exactly what goes
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Deletes the audio of one transcribed entry ({size}). Its text stays. This cannot be undone.} other {Deletes the audio of {count} transcribed entries ({size}). Their text stays. This cannot be undone.}}'**
+  String cacheClearBody(int count, String size);
+
+  /// Destructive confirm button on the clear sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Delete recordings'**
+  String get cacheClearConfirm;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

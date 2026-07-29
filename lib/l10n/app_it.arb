@@ -95,5 +95,16 @@
   "onboardingModelsTitle": "Scarica una lingua",
   "onboardingModelsBody": "La trascrizione funziona offline una volta che una lingua è sul tuo dispositivo. Puoi aggiungerne altre in qualsiasi momento dal menu.",
   "onboardingNext": "Avanti",
-  "onboardingStart": "Inizia"
+  "onboardingStart": "Inizia",
+  "settingsCache": "Cache",
+  "cacheReclaimable": "Recuperabile",
+  "cacheUsageInfo": "L'audio delle voci trascritte può essere eliminato; il testo resta. Le registrazioni non ancora trascritte non vengono mai toccate.",
+  "cacheKeepAudio": "Conserva audio",
+  "cacheKeepAudioInfo": "Se disattivato, ogni registrazione viene eliminata appena la trascrizione riesce. Queste voci sono solo testo: niente riproduzione, niente nuova trascrizione con un motore migliore.",
+  "cacheClear": "Elimina audio trascritto",
+  "cacheClearTitle": "Eliminare l'audio trascritto?",
+  "cacheClearBody": "{count, plural, one {Elimina l'audio di una voce trascritta ({size}). Il testo resta. Non si può annullare.} other {Elimina l'audio di {count} voci trascritte ({size}). Il testo resta. Non si può annullare.}}",
+  "cacheClearConfirm": "Elimina registrazioni",
+  "cacheRecordingsCount": "{count, plural, one {1 registrazione} other {{count} registrazioni}}",
+  "cacheReclaimableInfo": "Trascritto, si può eliminare"
 }

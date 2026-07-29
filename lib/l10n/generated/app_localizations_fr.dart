@@ -328,4 +328,56 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingStart => 'Commencer';
+
+  @override
+  String get settingsCache => 'Cache';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count enregistrements',
+      one: '1 enregistrement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => 'Récupérable';
+
+  @override
+  String get cacheReclaimableInfo => 'Transcrit, peut être effacé';
+
+  @override
+  String get cacheUsageInfo =>
+      'L\'audio des entrées transcrites peut être effacé ; le texte reste. Les enregistrements pas encore transcrits ne sont jamais touchés.';
+
+  @override
+  String get cacheKeepAudio => 'Conserver l\'audio';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      'Si désactivé, chaque enregistrement est supprimé dès que sa transcription réussit. Ces entrées sont texte seul : pas de lecture, pas de retranscription par un meilleur moteur plus tard.';
+
+  @override
+  String get cacheClear => 'Effacer l\'audio transcrit';
+
+  @override
+  String get cacheClearTitle => 'Effacer l\'audio transcrit ?';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Supprime l\'audio de $count entrées transcrites ($size). Le texte reste. Irréversible.',
+      one: 'Supprime l\'audio d\'une entrée transcrite ($size). Le texte reste. Irréversible.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => 'Supprimer les enregistrements';
 }

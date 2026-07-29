@@ -327,4 +327,57 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingStart => 'Começar';
+
+  @override
+  String get settingsCache => 'Cache';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gravações',
+      one: '1 gravação',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => 'Recuperável';
+
+  @override
+  String get cacheReclaimableInfo => 'Transcrito, pode ser apagado';
+
+  @override
+  String get cacheUsageInfo =>
+      'O áudio das entradas transcritas pode ser apagado; o texto fica. Gravações ainda não transcritas nunca são tocadas.';
+
+  @override
+  String get cacheKeepAudio => 'Manter áudio';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      'Desligado, cada gravação é apagada assim que a transcrição é concluída. Essas entradas ficam só com texto: sem reprodução e sem nova transcrição por um motor melhor.';
+
+  @override
+  String get cacheClear => 'Apagar áudio transcrito';
+
+  @override
+  String get cacheClearTitle => 'Apagar áudio transcrito?';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Apaga o áudio de $count entradas transcritas ($size). O texto fica. Não é possível desfazer.',
+      one:
+          'Apaga o áudio de uma entrada transcrita ($size). O texto fica. Não é possível desfazer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => 'Apagar gravações';
 }

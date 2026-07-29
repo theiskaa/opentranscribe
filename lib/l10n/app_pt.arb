@@ -95,5 +95,16 @@
   "onboardingModelsTitle": "Transferir um idioma",
   "onboardingModelsBody": "A transcrição corre offline assim que um idioma estiver no seu dispositivo. Pode adicionar mais a qualquer momento a partir do menu.",
   "onboardingNext": "Seguinte",
-  "onboardingStart": "Começar"
+  "onboardingStart": "Começar",
+  "settingsCache": "Cache",
+  "cacheReclaimable": "Recuperável",
+  "cacheUsageInfo": "O áudio das entradas transcritas pode ser apagado; o texto fica. Gravações ainda não transcritas nunca são tocadas.",
+  "cacheKeepAudio": "Manter áudio",
+  "cacheKeepAudioInfo": "Desligado, cada gravação é apagada assim que a transcrição é concluída. Essas entradas ficam só com texto: sem reprodução e sem nova transcrição por um motor melhor.",
+  "cacheClear": "Apagar áudio transcrito",
+  "cacheClearTitle": "Apagar áudio transcrito?",
+  "cacheClearBody": "{count, plural, one {Apaga o áudio de uma entrada transcrita ({size}). O texto fica. Não é possível desfazer.} other {Apaga o áudio de {count} entradas transcritas ({size}). O texto fica. Não é possível desfazer.}}",
+  "cacheClearConfirm": "Apagar gravações",
+  "cacheRecordingsCount": "{count, plural, one {1 gravação} other {{count} gravações}}",
+  "cacheReclaimableInfo": "Transcrito, pode ser apagado"
 }

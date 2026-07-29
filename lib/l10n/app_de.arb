@@ -95,5 +95,16 @@
   "onboardingModelsTitle": "Sprache herunterladen",
   "onboardingModelsBody": "Die Transkription läuft offline, sobald eine Sprache auf Ihrem Gerät ist. Weitere können Sie jederzeit über das Menü hinzufügen.",
   "onboardingNext": "Weiter",
-  "onboardingStart": "Los geht’s"
+  "onboardingStart": "Los geht’s",
+  "settingsCache": "Cache",
+  "cacheReclaimable": "Freigebbar",
+  "cacheUsageInfo": "Audio transkribierter Einträge kann gelöscht werden; der Text bleibt. Noch nicht transkribierte Aufnahmen werden nie angetastet.",
+  "cacheKeepAudio": "Audio behalten",
+  "cacheKeepAudioInfo": "Wenn aus, wird jede Aufnahme gelöscht, sobald ihre Transkription gelingt. Solche Einträge sind nur Text: keine Wiedergabe, keine erneute Transkription durch eine bessere Engine.",
+  "cacheClear": "Transkribiertes Audio löschen",
+  "cacheClearTitle": "Transkribiertes Audio löschen?",
+  "cacheClearBody": "{count, plural, one {Löscht das Audio eines transkribierten Eintrags ({size}). Der Text bleibt. Das lässt sich nicht rückgängig machen.} other {Löscht das Audio von {count} transkribierten Einträgen ({size}). Der Text bleibt. Das lässt sich nicht rückgängig machen.}}",
+  "cacheClearConfirm": "Aufnahmen löschen",
+  "cacheRecordingsCount": "{count, plural, one {1 Aufnahme} other {{count} Aufnahmen}}",
+  "cacheReclaimableInfo": "Transkribiert, kann gelöscht werden"
 }

@@ -309,4 +309,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingStart => '开始使用';
+
+  @override
+  String get settingsCache => '缓存';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 个录音');
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => '可释放';
+
+  @override
+  String get cacheReclaimableInfo => '已转写，可安全清除';
+
+  @override
+  String get cacheUsageInfo => '已转写条目的音频可以清除，文字会保留。尚未转写的录音绝不会被触碰。';
+
+  @override
+  String get cacheKeepAudio => '保留音频';
+
+  @override
+  String get cacheKeepAudioInfo => '关闭后，录音在转写成功后即被删除。这类条目仅剩文字：无法回放，也无法日后用更好的引擎重新转写。';
+
+  @override
+  String get cacheClear => '清除已转写音频';
+
+  @override
+  String get cacheClearTitle => '清除已转写音频？';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '将删除 $count 个已转写条目的音频（$size）。文字保留。此操作无法撤销。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => '删除录音';
 }

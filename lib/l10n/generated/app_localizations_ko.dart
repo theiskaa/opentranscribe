@@ -312,4 +312,48 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingStart => '시작하기';
+
+  @override
+  String get settingsCache => '캐시';
+
+  @override
+  String cacheRecordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개');
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheReclaimable => '확보 가능';
+
+  @override
+  String get cacheReclaimableInfo => '전사됨, 지워도 안전';
+
+  @override
+  String get cacheUsageInfo => '전사된 항목의 오디오는 지울 수 있으며 텍스트는 남습니다. 아직 전사되지 않은 녹음은 절대 건드리지 않습니다.';
+
+  @override
+  String get cacheKeepAudio => '오디오 보관';
+
+  @override
+  String get cacheKeepAudioInfo =>
+      '끄면 전사가 성공한 녹음은 즉시 삭제됩니다. 해당 항목은 텍스트만 남아 재생할 수 없고, 나중에 더 나은 엔진으로 다시 전사할 수도 없습니다.';
+
+  @override
+  String get cacheClear => '전사된 오디오 지우기';
+
+  @override
+  String get cacheClearTitle => '전사된 오디오를 지울까요?';
+
+  @override
+  String cacheClearBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '전사된 항목 $count개의 오디오($size)를 삭제합니다. 텍스트는 남습니다. 되돌릴 수 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cacheClearConfirm => '녹음 삭제';
 }
