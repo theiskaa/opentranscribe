@@ -203,4 +203,43 @@ void main() {
     expect(entry.languageSpans!.map((s) => s.startMs), [0, 4000]);
     expect(entry.languageSpans!.first.localeId, 'en-US');
   });
+
+  test('a transcript-only entry omits audioPath and round-trips as null', () {
+    expect(baseEntry().hasAudio, isTrue);
+
+    final bare = baseEntry().withTranscript(transcript).withoutAudio();
+    expect(bare.hasAudio, isFalse);
+    expect(bare.toJson().containsKey('audioPath'), isFalse);
+    expect(Entry.fromJson(bare.toJson()), bare);
+  });
+
+  test('withoutAudio drops only the audio reference', () {
+    final full = Entry(
+      id: 'abc',
+      createdAt: DateTime.utc(2026, 3, 4, 9),
+      audioPath: '/audio/abc.m4a',
+      duration: const Duration(seconds: 12),
+      transcript: transcript,
+      title: 'named',
+      recordedLocaleId: 'de-DE',
+      peaks: const [1, 2],
+      languageSpans: const [LanguageSpan(startMs: 0, localeId: 'de-DE')],
+    );
+    final bare = full.withoutAudio();
+
+    expect(bare.audioPath, isNull);
+    expect(bare.id, full.id);
+    expect(bare.createdAt, full.createdAt);
+    expect(bare.duration, full.duration);
+    expect(bare.transcript, full.transcript);
+    expect(bare.title, full.title);
+    expect(bare.recordedLocaleId, full.recordedLocaleId);
+    expect(bare.peaks, full.peaks);
+    expect(bare.languageSpans, full.languageSpans);
+
+    // Copiers keep the null: no update path resurrects a discarded reference.
+    expect(bare.withTitle('t').audioPath, isNull);
+    expect(bare.withPeaks(const [3]).audioPath, isNull);
+    expect(bare.withTranscript(transcript).audioPath, isNull);
+  });
 }

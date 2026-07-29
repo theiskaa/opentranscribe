@@ -16,6 +16,7 @@ class AudioStorageSettings {
   // path is plaintext and has no readBool, so the string keeps the preference
   // encrypted and gives the "excluded unless explicitly 'false'" default.
   static const _key = 'audio.backupExcluded';
+  static const _keepAudioKey = 'audio.keepAudio';
 
   /// Whether kept audio is excluded from backup. Defaults to true (excluded), also
   /// when the stored value cannot be decrypted (key change, corruption): fail safe
@@ -27,6 +28,21 @@ class AudioStorageSettings {
       return true;
     }
   }
+
+  /// Whether recordings are kept after a successful transcription. Defaults to
+  /// true (kept), also when the stored value cannot be decrypted: fail toward
+  /// keeping data, since a wrongly-false answer deletes audio irreversibly.
+  bool get keepAudio {
+    try {
+      return _storage.readString(_keepAudioKey) != 'false';
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Sets whether recordings are kept. Storage only: the native layer never
+  /// deletes audio, the TranscriptionService reads this through Deps wiring.
+  Future<void> setKeepAudio(bool keep) => _storage.write(_keepAudioKey, keep ? 'true' : 'false');
 
   /// Pushes the persisted preference to the native layer. Failures are swallowed:
   /// the native default is already excluded, so a startup hiccup never blocks the
