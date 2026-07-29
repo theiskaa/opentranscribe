@@ -106,7 +106,10 @@ class EntriesCubit extends Cubit<EntriesState> {
   final TranscriptionService _service;
   late final StreamSubscription<void> _changesSub;
 
-  void load() => emit(state.copyWith(entries: _service.entries()));
+  void load() {
+    if (isClosed) return;
+    emit(state.copyWith(entries: _service.entries()));
+  }
 
   /// Renames an entry (null or blank clears back to the date default). The
   /// service applies the title to the stored entry, so a racing re-transcribe

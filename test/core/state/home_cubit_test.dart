@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -5,6 +8,7 @@ import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/transcribe/fake_engine.dart';
+import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_audio_recorder.dart';
@@ -139,6 +143,76 @@ void main() {
 
       await cubit.close();
       await svc.dispose();
+    });
+
+    test('an entriesChanged reload cannot resurrect a row mid-delete', () async {
+      // The optimistic delete hides the row at once; a purge announcing a
+      // store change while that delete is still on disk must not bring the
+      // hidden row back.
+      SharedPreferences.setMockInitialValues({});
+      final storage = LocalService();
+      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      final store = EntryStore(storage);
+      final dir = await Directory.systemTemp.createTemp('otr-homerace');
+      final doomed = File('${dir.path}/doomed.m4a')..writeAsStringSync('audio');
+      File('${dir.path}/done.m4a').writeAsStringSync('audio');
+      final gate = Completer<void>();
+      final svc = TranscriptionService(
+        recorder: FakeAudioRecorder(recordingsDir: dir.path),
+        engine: FakeBatchEngine(),
+        store: store,
+        // Only the doomed file's delete parks; the purge target deletes free.
+        fileDeleter: (f) async {
+          if (f.path.endsWith('doomed.m4a')) await gate.future;
+          await f.delete();
+        },
+      );
+      await store.save(
+        Entry(
+          id: 'doomed',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: 'doomed.m4a',
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      await store.save(
+        Entry(
+          id: 'done',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: 'done.m4a',
+          duration: const Duration(seconds: 1),
+          transcript: Transcript(
+            fullText: 'done',
+            segments: const [
+              TranscriptSegment(text: 'done', start: Duration.zero, end: Duration(seconds: 1)),
+            ],
+            localeId: 'en-US',
+            engineId: 'fake',
+            createdAt: DateTime.utc(2026, 3, 4),
+          ),
+        ),
+      );
+      final cubit = HomeCubit(service: svc);
+      expect(cubit.state.entries, hasLength(2));
+
+      final deleting = cubit.delete(cubit.state.entries.firstWhere((e) => e.id == 'doomed'));
+      expect(cubit.state.entries.map((e) => e.id), ['done']);
+
+      // The purge lands mid-delete and fires entriesChanged; the reload must
+      // keep filtering the pending delete.
+      await svc.purgeTranscribedAudio();
+      await pumpEventQueue();
+      expect(cubit.state.entries.map((e) => e.id), ['done']);
+
+      gate.complete();
+      await deleting;
+      expect(cubit.state.entries.map((e) => e.id), ['done']);
+      expect(store.read('doomed'), isNull);
+      expect(doomed.existsSync(), isFalse);
+
+      await cubit.close();
+      await svc.dispose();
+      await dir.delete(recursive: true);
     });
   });
 }

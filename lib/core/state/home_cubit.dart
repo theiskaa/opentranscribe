@@ -88,7 +88,12 @@ class HomeCubit extends Cubit<HomeState> {
   /// auto-finalize refresh) can never resurrect a row that is on its way out.
   final Set<String> _pendingDeletes = {};
 
-  void load() => emit(HomeState(entries: _visible()));
+  void load() {
+    // Also reached from detached continuations (a recorder sheet's exit); the
+    // guard keeps those safe even though this cubit is app-scoped today.
+    if (isClosed) return;
+    emit(HomeState(entries: _visible()));
+  }
 
   List<Entry> _visible() =>
       _service.entries().where((e) => !_pendingDeletes.contains(e.id)).toList();

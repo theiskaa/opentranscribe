@@ -392,7 +392,10 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   /// Optimistic: the toggle reflects the tap immediately (a slow encrypted
   /// write would otherwise spring the knob back and forward again), then the
-  /// stored truth settles it - which also reverts a failed persist honestly.
+  /// settle emit re-reads storage. A REFUSED persist keeps the tapped value
+  /// in the prefs cache until relaunch (see LocalService.write), so the
+  /// session stays self-consistent with what the service reads; the toggle
+  /// reverts only at next launch.
   Future<void> setKeepAudio(bool keep) async {
     emit(state.copyWith(keepAudio: keep));
     try {
