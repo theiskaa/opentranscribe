@@ -19,8 +19,11 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/circle_tile.dart';
 import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
+import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// The widget gallery: every design-system widget in its states, for eyeballing
@@ -170,6 +173,26 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   GithubMark(color: theme.text, size: 28),
                   const SizedBox(width: AppSpacing.lg),
                   GithubMark(color: theme.accent, size: 14),
+                ],
+              ),
+              _section('Locale flag'),
+              Row(
+                children: [
+                  for (final tag in ['en-US', 'de', 'ja', 'fr-FR', 'ko'])
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.md),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: theme.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: theme.surfaceBorder),
+                        ),
+                        child: LocaleFlag(localeFlag(tag), size: 18),
+                      ),
+                    ),
+                  CircleTile(child: LocaleFlag(localeFlag('it'), size: 20)),
                 ],
               ),
               _section('Invisible ink'),

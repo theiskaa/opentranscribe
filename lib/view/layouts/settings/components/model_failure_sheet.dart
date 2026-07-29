@@ -11,6 +11,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
@@ -137,12 +138,7 @@ class _EvictRow extends StatelessWidget {
                 borderRadius: tokens.iconTileRadius,
                 color: tokens.iconTileBackground,
               ),
-              child: Text(
-                localeFlag(tag),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, height: 1),
-                textScaler: TextScaler.noScaling,
-              ),
+              child: LocaleFlag(localeFlag(tag), size: 18),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(

@@ -23,6 +23,7 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
@@ -358,14 +359,7 @@ class _LanguageRow extends StatelessWidget {
               borderRadius: tokens.iconTileRadius,
               color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
             ),
-            // height: 1 collapses the line leading a flag emoji otherwise
-            // carries below its glyph (same fix as the picker rows).
-            child: Text(
-              localeFlag(row.tag),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, height: 1),
-              textScaler: TextScaler.noScaling,
-            ),
+            child: LocaleFlag(localeFlag(row.tag), size: 18),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

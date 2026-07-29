@@ -9,6 +9,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_row.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
@@ -80,12 +81,7 @@ class _ModelRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final failure = modelFailureLine(AppLocalizations.of(context)!, row);
     return OnboardingRow(
-      // height: 1 collapses the leading a flag emoji otherwise carries.
-      tile: Text(
-        localeFlag(row.tag),
-        style: const TextStyle(fontSize: 20, height: 1),
-        textScaler: TextScaler.noScaling,
-      ),
+      tile: LocaleFlag(localeFlag(row.tag), size: 20),
       title: localeDisplayName(row.tag),
       line: failure,
       trailing: _trailing(context),

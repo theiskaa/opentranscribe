@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The scroll every settings screen shares: the same insets under the frosted
@@ -109,15 +110,7 @@ class SelectableRow extends StatelessWidget {
                 borderRadius: tokens.iconTileRadius,
                 color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
               ),
-              // height: 1 collapses the line leading a flag emoji otherwise
-              // carries below its glyph, so Center actually centres the mark
-              // rather than the taller line box it sits in.
-              child: Text(
-                flag,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, height: 1),
-                textScaler: TextScaler.noScaling,
-              ),
+              child: LocaleFlag(flag, size: 18),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
