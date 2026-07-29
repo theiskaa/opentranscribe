@@ -22,24 +22,34 @@ final class CacheState {
 }
 
 /// Drives the Cache screen: what the kept recordings occupy and the one bulk
-/// action against it. Screen-scoped; a fresh screen re-measures on open.
+/// action against it. Screen-scoped; a fresh screen re-measures on open, and
+/// store changes landing WHILE it is open (a detached discard, a delete
+/// elsewhere) re-measure through [TranscriptionService.entriesChanged], so the
+/// numbers the destructive confirm quotes stay honest.
 class CacheCubit extends Cubit<CacheState> {
   CacheCubit({required this._service}) : super(const CacheState()) {
+    _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
     unawaited(load());
   }
 
   final TranscriptionService _service;
+  late final StreamSubscription<void> _changesSub;
 
   Future<void> load() async {
-    final usage = await _service.audioUsage();
-    if (isClosed) return;
-    emit(state.copyWith(usage: usage));
+    try {
+      final usage = await _service.audioUsage();
+      if (isClosed) return;
+      emit(state.copyWith(usage: usage));
+    } catch (e) {
+      // A corrupt store must not reject into the zone at screen open; the
+      // placeholder stays and a later change signal retries.
+      if (kDebugMode) debugPrint('cache: usage sweep failed: $e');
+    }
   }
 
   /// Purges transcribed audio and re-measures. Quiet when nothing is
   /// reclaimable or a clear is already running.
   Future<void> clear() async {
-    // A confirm can land after programmatic navigation tore the screen down.
     if (isClosed || state.clearing) return;
     emit(state.copyWith(clearing: true));
     try {
@@ -47,9 +57,16 @@ class CacheCubit extends Cubit<CacheState> {
       final usage = await _service.audioUsage();
       if (isClosed) return;
       emit(CacheState(usage: usage));
-    } catch (_) {
+    } catch (e) {
       // Best effort: the numbers on screen stay; a reopen re-measures.
+      if (kDebugMode) debugPrint('cache: clear failed: $e');
       if (!isClosed) emit(state.copyWith(clearing: false));
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _changesSub.cancel();
+    return super.close();
   }
 }

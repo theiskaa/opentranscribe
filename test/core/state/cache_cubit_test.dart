@@ -130,4 +130,75 @@ void main() {
 
     expect(cubit.state.usage, isNull);
   });
+
+  test('a store change while the screen is open re-measures the numbers', () async {
+    await seed();
+    final cubit = CacheCubit(service: service);
+    await pumpEventQueue();
+    expect(cubit.state.usage!.reclaimableCount, 1);
+
+    // An external actor reclaims audio behind the open screen; the change
+    // signal must land the new numbers without a navigation.
+    await service.purgeTranscribedAudio();
+    await pumpEventQueue();
+
+    expect(cubit.state.usage!.reclaimableCount, 0);
+    expect(cubit.state.usage!.totalBytes, 3);
+
+    await cubit.close();
+  });
+
+  test('a failed re-measure after a clear leaves the screen usable', () async {
+    final failing = _ToggleFailStore(storage);
+    File('${dir.path}/done.m4a').writeAsStringSync('audio');
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      engine: FakeBatchEngine(),
+      store: failing,
+      // The purge itself succeeds; the store starts refusing reads right
+      // after the delete, so only the re-measure fails.
+      fileDeleter: (f) async {
+        await f.delete();
+        failing.failAll = true;
+      },
+    );
+    await failing.save(
+      Entry(
+        id: 'f1',
+        createdAt: fixedClock,
+        audioPath: 'done.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('f'),
+      ),
+    );
+    final cubit = CacheCubit(service: svc);
+    await pumpEventQueue();
+
+    await cubit.clear();
+
+    // The flag resets and the stale numbers stand; nothing rejects the zone.
+    expect(cubit.state.clearing, isFalse);
+    expect(cubit.state.usage!.reclaimableCount, 1);
+
+    failing.failAll = false;
+    await cubit.load();
+    expect(cubit.state.usage!.reclaimableCount, 0);
+
+    await cubit.close();
+    await svc.dispose();
+  });
+}
+
+/// A store whose [all] can be switched to throw, modeling corrupt reads that
+/// land between a purge and its re-measure.
+class _ToggleFailStore extends EntryStore {
+  _ToggleFailStore(super.storage);
+
+  bool failAll = false;
+
+  @override
+  List<Entry> all() {
+    if (failAll) throw StateError('store unreadable');
+    return super.all();
+  }
 }

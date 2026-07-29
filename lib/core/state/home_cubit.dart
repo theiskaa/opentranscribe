@@ -75,10 +75,13 @@ class HomeCubit extends Cubit<HomeState> {
     : _service = service,
       super(HomeState(entries: service.entries())) {
     _autoSub = _service.autoFinalized.listen((_) => load(), onError: (Object _) {});
+    // Detached discards mutate the store without a navigation to refresh on.
+    _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   late final StreamSubscription<Entry> _autoSub;
+  late final StreamSubscription<void> _changesSub;
 
   /// Ids removed optimistically whose on-device delete is still in flight. Every
   /// emit filters these out, so a concurrent delete's reconcile (or an
@@ -113,6 +116,7 @@ class HomeCubit extends Cubit<HomeState> {
   @override
   Future<void> close() async {
     await _autoSub.cancel();
+    await _changesSub.cancel();
     return super.close();
   }
 }

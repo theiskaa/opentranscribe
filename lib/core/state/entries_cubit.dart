@@ -2,6 +2,8 @@
 // Fields are private (a cubit owns its collaborators) and the constructor must
 // call super(state), so initializing formals do not apply.
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -94,9 +96,15 @@ class EntriesCubit extends Cubit<EntriesState> {
   // here the moment it opens, and an empty seed would read as "deleted".
   EntriesCubit({required TranscriptionService service})
     : _service = service,
-      super(EntriesState(entries: service.entries()));
+      super(EntriesState(entries: service.entries())) {
+    // A detached discard (keep-audio off) nulls an entry's audio behind the
+    // scenes; without this, an open detail screen keeps offering the player
+    // and re-transcribe for a file that no longer exists.
+    _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
+  }
 
   final TranscriptionService _service;
+  late final StreamSubscription<void> _changesSub;
 
   void load() => emit(state.copyWith(entries: _service.entries()));
 
@@ -176,5 +184,11 @@ class EntriesCubit extends Cubit<EntriesState> {
       ReservationCapReached() => EntriesError.reservationCap,
       _ => EntriesError.generic,
     };
+  }
+
+  @override
+  Future<void> close() async {
+    await _changesSub.cancel();
+    return super.close();
   }
 }
