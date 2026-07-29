@@ -87,6 +87,7 @@ Future<int?> showAppMenu(
 }) {
   // A one-shot read: this runs from tap handlers, where select is illegal.
   final motion = context.motionNow;
+  final reduceMotion = context.reduceMotion;
   return showGeneralDialog<int>(
     context: context,
     barrierDismissible: true,
@@ -97,6 +98,9 @@ Future<int?> showAppMenu(
         _MenuBody(anchor: anchor, items: items),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
+      // Under Reduce Motion the growth is dropped and only the fade remains,
+      // the same degrade the sheet uses.
+      if (reduceMotion) return FadeTransition(opacity: curved, child: child);
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
@@ -184,9 +188,17 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    // The native menu paints destructive rows red; the fallback must warn the
+    // same way, or a pre-glass user meets an unmarked irreversible action.
+    final color = item.destructive ? theme.danger : theme.text;
+    final iconColor = item.destructive ? theme.danger : theme.textSecondary;
     return Touchable(
       onTap: () {
-        Haptics.selection();
+        if (item.destructive) {
+          Haptics.medium();
+        } else {
+          Haptics.selection();
+        }
         onTap();
       },
       child: SizedBox(
@@ -196,7 +208,7 @@ class _MenuRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(item.label, style: AppType.callout.copyWith(color: theme.text)),
+                child: Text(item.label, style: AppType.callout.copyWith(color: color)),
               ),
               if (item.iconBytes != null) ...[
                 const SizedBox(width: AppSpacing.md),
@@ -204,12 +216,12 @@ class _MenuRow extends StatelessWidget {
                   item.iconBytes!,
                   width: 17,
                   height: 17,
-                  color: theme.textSecondary,
+                  color: iconColor,
                   colorBlendMode: BlendMode.srcIn,
                 ),
               ] else if (item.icon != null) ...[
                 const SizedBox(width: AppSpacing.md),
-                AppIcon(item.icon!, size: 17, color: theme.textSecondary),
+                AppIcon(item.icon!, size: 17, color: iconColor),
               ],
             ],
           ),
@@ -354,6 +366,7 @@ class _MenuTriggerState extends State<_MenuTrigger> {
     final items = widget.items;
     final index = await showAppMenu(context, anchor: origin & box.size, items: items);
     if (index == null || index < 0 || index >= items.length) return;
+    if (!mounted) return;
     final id = items[index].id;
     if (id != null) {
       widget.onSelectedId?.call(id);

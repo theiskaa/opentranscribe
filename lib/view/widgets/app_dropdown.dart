@@ -33,6 +33,7 @@ Future<int?> showAppDropdown(
 }) {
   // One-shot read: this runs from tap handlers, where select is illegal.
   final motion = context.motionNow;
+  final reduceMotion = context.reduceMotion;
   return showGeneralDialog<int>(
     context: context,
     barrierDismissible: true,
@@ -43,6 +44,8 @@ Future<int?> showAppDropdown(
         _DropdownBody(anchor: anchor, items: items),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
+      // Fade-only under Reduce Motion, like the menu and the sheet.
+      if (reduceMotion) return FadeTransition(opacity: curved, child: child);
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
