@@ -270,8 +270,13 @@ void main() {
     await svc.stopRecording();
     cubit.load();
     // The save landed with audio; the discard then completes detached and
-    // must announce itself, or an open screen keeps a dead player.
-    await pumpEventQueue();
+    // must announce itself, or an open screen keeps a dead player. Wait on the
+    // re-emit rather than a bounded pump: the discard's real File.delete is
+    // wall-clock I/O a slow CI disk can outrun. The timeout turns a genuine
+    // regression into a clear failure instead of a hang.
+    await cubit.stream
+        .firstWhere((s) => s.entries.isNotEmpty && !s.entries.single.hasAudio)
+        .timeout(const Duration(seconds: 5));
 
     expect(cubit.state.entries.single.hasAudio, isFalse);
 
