@@ -62,6 +62,10 @@ class _DetailViewState extends State<_DetailView> {
   final GlobalKey _menuAnchor = GlobalKey();
   PlayerCubit? _player;
 
+  /// Set once the entry loses its audio while this screen is open, so the
+  /// stop below fires exactly once.
+  bool _stoppedForDiscard = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -124,6 +128,11 @@ class _DetailViewState extends State<_DetailView> {
   /// open menu (the discard landed while it was up) is a no-op, never a wrong
   /// action on a transcript-only entry.
   void _onMenuId(String id, Entry entry) {
+    // Anything act:-prefixed is an action row; an unknown one must never fall
+    // through to the language branch and re-transcribe with a bogus locale.
+    if (id.startsWith('act:') && id != _actRename && id != _actRetranscribe && id != _actDelete) {
+      return;
+    }
     switch (id) {
       case _actRename:
         _titleFocus.requestFocus();
@@ -215,6 +224,13 @@ class _DetailViewState extends State<_DetailView> {
           return ColoredBox(color: theme.screens.entryDetail, child: const SizedBox.expand());
         }
 
+        // Audio discarded while this screen is open (a keep-off transcription
+        // landing): the player is about to unmount, so playback must die with
+        // it, not keep sounding from a deleted file with no controls left.
+        if (!entry.hasAudio && !_stoppedForDiscard) {
+          _stoppedForDiscard = true;
+          unawaited(_player?.stopAndDetach());
+        }
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
@@ -282,11 +298,25 @@ class _DetailViewState extends State<_DetailView> {
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       // Discarded audio: the document flows from the metadata
-                      // straight into what it says.
-                      if (entry.hasAudio) ...[
-                        WavePlayer(entry: entry),
-                        const SizedBox(height: AppSpacing.xxl),
-                      ],
+                      // straight into what it says. Animated, so a discard
+                      // landing mid-read collapses the player instead of
+                      // snapping ~80px of layout in one frame.
+                      AnimatedSize(
+                        duration: context.reduceMotion
+                            ? Duration.zero
+                            : context.motionNow.indicator,
+                        curve: context.motionNow.indicatorCurve,
+                        alignment: Alignment.topCenter,
+                        child: !entry.hasAudio
+                            ? const SizedBox(width: double.infinity)
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  WavePlayer(entry: entry),
+                                  const SizedBox(height: AppSpacing.xxl),
+                                ],
+                              ),
+                      ),
                       TranscriptView(entry: entry, busy: busy),
                     ],
                   ),
