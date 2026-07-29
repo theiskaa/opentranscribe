@@ -35,10 +35,15 @@ class CacheCubit extends Cubit<CacheState> {
   final TranscriptionService _service;
   late final StreamSubscription<void> _changesSub;
 
+  /// Bumped by every measure, so a slow sweep started earlier can never land
+  /// its stale numbers over a fresher emit (the post-clear zero especially).
+  int _measureGeneration = 0;
+
   Future<void> load() async {
+    final generation = ++_measureGeneration;
     try {
       final usage = await _service.audioUsage();
-      if (isClosed) return;
+      if (isClosed || generation != _measureGeneration) return;
       emit(state.copyWith(usage: usage));
     } catch (e) {
       // A corrupt store must not reject into the zone at screen open; the
@@ -54,8 +59,14 @@ class CacheCubit extends Cubit<CacheState> {
     emit(state.copyWith(clearing: true));
     try {
       await _service.purgeTranscribedAudio();
+      final generation = ++_measureGeneration;
       final usage = await _service.audioUsage();
       if (isClosed) return;
+      if (generation != _measureGeneration) {
+        // A newer measure owns the numbers; only release the button.
+        emit(state.copyWith(clearing: false));
+        return;
+      }
       emit(CacheState(usage: usage));
     } catch (e) {
       // Best effort: the numbers on screen stay; a reopen re-measures.

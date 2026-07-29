@@ -90,6 +90,8 @@ void main() {
     await pumpEventQueue();
 
     await cubit.clear();
+    // The purge's own change signal may carry the final numbers; let it land.
+    await pumpEventQueue();
 
     expect(File('${dir.path}/done.m4a').existsSync(), isFalse);
     // Untranscribed audio is the only copy of its words: untouched.
@@ -113,6 +115,7 @@ void main() {
     final sub = cubit.stream.listen((s) => clearingEmits.add(s.clearing));
 
     await Future.wait([cubit.clear(), cubit.clear()]);
+    await pumpEventQueue();
 
     expect(clearingEmits.where((c) => c), hasLength(1));
     expect(cubit.state.clearing, isFalse);
