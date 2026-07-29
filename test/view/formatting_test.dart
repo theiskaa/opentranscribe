@@ -16,6 +16,12 @@ void main() {
     expect(formatBytes(1230000000), '1.2 GB');
   });
 
+  test('formatBytes never renders 1000 KB at the unit seam', () {
+    // 999500..999999 rounds to 1000; the unit must step up with the rounding.
+    expect(formatBytes(999500), '1.0 MB');
+    expect(formatBytes(999999), '1.0 MB');
+  });
+
   test('formatBytes renders the decimal in the given locale', () {
     // The separator is the locale's, so sizes read like the rest of the app.
     expect(formatBytes(1500000, 'de'), '1,5 MB');

@@ -43,7 +43,9 @@ String formatDurationCompact(Duration d) {
 String formatBytes(int bytes, [String? locale]) {
   const kb = 1000, mb = kb * 1000, gb = mb * 1000;
   if (bytes < kb) return '$bytes B';
-  if (bytes < mb) return '${(bytes / kb).round()} KB';
+  // Decided on the ROUNDED value: 999.5 KB must read 1.0 MB, never 1000 KB.
+  final kbRounded = (bytes / kb).round();
+  if (bytes < mb && kbRounded < 1000) return '$kbRounded KB';
   final decimal = NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1);
   if (bytes < gb) return '${decimal.format(bytes / mb)} MB';
   return '${decimal.format(bytes / gb)} GB';
