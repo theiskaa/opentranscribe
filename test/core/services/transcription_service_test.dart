@@ -42,10 +42,7 @@ void main() {
       clock: () => fixedClock,
       idGenerator: () => 'id-${idCounter++}',
       keepAudio: keepAudio,
-      // A synchronous default deleter: the file is really removed, but within
-      // the call, so a detached discard's only wall-clock I/O never has to
-      // land inside pumpEventQueue's bounded turns (the CI flake). Tests
-      // exercising a failed/gone delete pass their own deleter.
+      // Synchronous so a discard's only real I/O never outruns pumpEventQueue.
       fileDeleter: fileDeleter ?? (f) async => f.deleteSync(),
       peaksReader: peaksReader,
     );
@@ -1839,8 +1836,6 @@ void main() {
       clock: () => fixedClock,
       idGenerator: () => 'id-0',
       keepAudio: () => false,
-      // Synchronous delete: the discard's only real I/O completes in-call, so
-      // the dangling state below is settled without depending on pump timing.
       fileDeleter: (f) async => f.deleteSync(),
     );
 

@@ -141,9 +141,7 @@ void main() {
     expect(cubit.state.usage!.reclaimableCount, 1);
 
     // An external actor reclaims audio behind the open screen; the change
-    // signal must land the new numbers without a navigation. Wait on the
-    // re-measure emit rather than a bounded pump: the re-measure stats files
-    // (real I/O) a slow CI disk can outrun.
+    // signal re-measures without a navigation.
     await service.purgeTranscribedAudio();
     await cubit.stream
         .firstWhere((s) => s.usage != null && s.usage!.reclaimableCount == 0)
