@@ -13,6 +13,7 @@ import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
+import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 
 /// Owns the app's [GoRouter] instance.
@@ -72,6 +73,12 @@ class AppRouter {
         name: Routes.settingsAppearanceName,
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const AppearanceScreen()),
+      ),
+      GoRoute(
+        path: Routes.settingsCache,
+        name: Routes.settingsCacheName,
+        pageBuilder: (context, state) =>
+            SlidePage<void>(key: state.pageKey, child: const CacheScreen()),
       ),
       GoRoute(
         path: Routes.record,

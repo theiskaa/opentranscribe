@@ -19,6 +19,10 @@ abstract final class Routes {
   static const settingsAppearance = '/settings/appearance';
   static const settingsAppearanceName = 'settingsAppearance';
 
+  /// The cache screen (audio storage usage, keep-audio, bulk clear).
+  static const settingsCache = '/settings/cache';
+  static const settingsCacheName = 'settingsCache';
+
   /// Entry detail. Navigate by name with an `id` param; pushes over the shell.
   static const entry = '/entry/:id';
   static const entryName = 'entry';
