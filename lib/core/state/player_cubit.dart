@@ -197,7 +197,7 @@ class PlayerCubit extends Cubit<PlayerState> {
     final resume = from > Duration.zero && from < state.duration ? from : null;
     await _player.play(path);
     if (resume != null && !isClosed && !_detached) await _player.seek(resume);
-    if (_rate != 1) await _player.setRate(_rate);
+    if (_rate != 1 && !isClosed && !_detached) await _player.setRate(_rate);
   }
 
   /// Seeks within the current file. [duration] lets the bar clamp against the

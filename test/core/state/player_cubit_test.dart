@@ -357,5 +357,49 @@ void main() {
       await cubit.close();
       await player.dispose();
     });
+
+    test('toggle on a transcript-only entry is a silent no-op', () async {
+      // A stale tap (the entry lost its audio under an open screen) must not
+      // reach the player or surface a failure notice.
+      final player = FakeAudioPlayer();
+      final cubit = PlayerCubit(player: player, service: service);
+      final bare = Entry(
+        id: 'b1',
+        createdAt: DateTime.utc(2026, 7, 23),
+        audioPath: null,
+        duration: const Duration(seconds: 30),
+      );
+
+      await cubit.toggle(bare);
+
+      expect(player.lastPath, isNull);
+      expect(player.calls, isEmpty);
+      expect(cubit.state.failed, isFalse);
+
+      await cubit.close();
+      await player.dispose();
+    });
+
+    test('stored peaks still paint the wave for a transcript-only entry', () async {
+      // The discard captures peaks before deleting the file, exactly so this
+      // path works: the wave renders from the record, never from disk.
+      final player = FakeAudioPlayer();
+      final cubit = PlayerCubit(player: player, service: service);
+      final bare = Entry(
+        id: 'b2',
+        createdAt: DateTime.utc(2026, 7, 23),
+        audioPath: null,
+        duration: const Duration(seconds: 30),
+        peaks: const [0, 128, 255],
+      );
+
+      await cubit.loadPeaks(bare);
+
+      expect(cubit.state.peaks, [0, 128 / 255, 1.0]);
+      expect(player.calls, isEmpty);
+
+      await cubit.close();
+      await player.dispose();
+    });
   });
 }
