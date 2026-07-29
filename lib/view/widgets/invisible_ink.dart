@@ -148,7 +148,7 @@ Float32List sampleInkPoints(
 const double _kWordsPerSecond = 2.4; // conversational pace, ~145 wpm
 const double _kCharsPerWord = 6.2; // an average word plus its space
 const double _kCharWidthEm = 0.48; // average glyph advance per font size
-const double _kInkHeightEm = 0.6; // the x-height band a line's ink fills
+const double _kInkHeightEm = 0.46; // the x-height band a line's ink fills
 const int _kMaxInkRows = 16; // about a screenful; taller reads no better
 const int _kVoicedFloor = 20; // envelope level (0..255) that counts as speech
 
@@ -203,7 +203,9 @@ Float32List placeholderInkPoints({
       final wordWidth = math.min(fontSize * (1.6 + 3.6 * _rand(line * 97 + word, 13)), measure - x);
       for (var px = x; px < x + wordWidth; px += step) {
         for (var py = top; py < top + inkHeight; py += step) {
-          if (_rand(index++, 14) < 0.7) {
+          // Sparse fill: real glyphs ink only a fraction of their band, so a
+          // low keep rate reads as strokes rather than a solid dark ribbon.
+          if (_rand(index++, 14) < 0.3) {
             points.add(px);
             points.add(py);
           }
