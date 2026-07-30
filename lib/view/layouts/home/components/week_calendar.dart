@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -60,13 +61,8 @@ class _WeekCalendarState extends State<WeekCalendar> {
   PageController? _controller;
   int _weekCount = 1;
 
-  /// The first day of the current locale's week containing [day].
-  DateTime _weekStart(DateTime day) {
-    // intl: FIRSTDAYOFWEEK is 0-based Monday; DateTime.weekday is 1-based Monday.
-    final first = DateFormat().dateSymbols.FIRSTDAYOFWEEK + 1;
-    final delta = (day.weekday - first + 7) % 7;
-    return DateTime(day.year, day.month, day.day - delta);
-  }
+  /// The first day of [day]'s week, via the shared [startOfWeek].
+  DateTime _weekStart(DateTime day) => startOfWeek(day);
 
   DateTime get _today {
     final now = DateTime.now();
