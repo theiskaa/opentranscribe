@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { GITHUB_URL, SITE_URL, SITE_TAGLINE } from "@/lib/site";
 import { WaveMark } from "./Wordmark";
 import { GithubIcon } from "./Icons";
@@ -6,8 +7,8 @@ const COLS = [
   {
     head: "Product",
     links: [
-      { label: "How it works", href: "#works" },
-      { label: "Privacy", href: "#privacy" },
+      { label: "How it works", href: "/#works" },
+      { label: "Privacy", href: "/#privacy" },
     ],
   },
   {
@@ -42,18 +43,26 @@ export default function Footer() {
               <div key={col.head}>
                 <p className="t-eyebrow mb-5">{col.head}</p>
                 <ul className="space-y-3.5">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <a
-                        href={l.href}
-                        target={l.href.startsWith("http") ? "_blank" : undefined}
-                        rel={l.href.startsWith("http") ? "noreferrer" : undefined}
-                        className="link-underline t-body-s hover:text-ink"
-                      >
-                        {l.label}
-                      </a>
-                    </li>
-                  ))}
+                  {col.links.map((l) =>
+                    l.href.startsWith("http") ? (
+                      <li key={l.label}>
+                        <a
+                          href={l.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="link-underline t-body-s hover:text-ink"
+                        >
+                          {l.label}
+                        </a>
+                      </li>
+                    ) : (
+                      <li key={l.label}>
+                        <Link href={l.href} className="link-underline t-body-s hover:text-ink">
+                          {l.label}
+                        </Link>
+                      </li>
+                    ),
+                  )}
                 </ul>
               </div>
             ))}
@@ -61,9 +70,14 @@ export default function Footer() {
         </div>
 
         <div className="mt-20 flex flex-col gap-2 border-t border-line pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <a href={SITE_URL} className="link-underline t-mono hover:text-ink">
-            opentranscribe.xyz
-          </a>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <a href={SITE_URL} className="link-underline t-mono hover:text-ink">
+              opentranscribe.xyz
+            </a>
+            <Link href="/privacy" className="link-underline t-mono hover:text-ink">
+              Privacy Policy
+            </Link>
+          </div>
           <p className="t-eyebrow">© 2026 OpenTranscribe</p>
         </div>
       </div>
