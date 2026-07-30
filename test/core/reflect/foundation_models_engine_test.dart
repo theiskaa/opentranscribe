@@ -123,6 +123,16 @@ void main() {
       );
     });
 
+    test('a deterministic native rejection is NOT the transient signal', () async {
+      // bad_args mapped to ReflectionUnavailable would read as retry-later and
+      // head-of-line-block every older week in the catch-up loop.
+      mock((call) async => throw PlatformException(code: 'bad_args', message: 'malformed'));
+      await expectLater(
+        engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('a missing plugin throws ReflectionUnavailable (retry, not false silence)', () async {
       // No handler: could-not-run, which must be distinguishable from silence.
       await expectLater(

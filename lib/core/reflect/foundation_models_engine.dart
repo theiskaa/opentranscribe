@@ -62,11 +62,12 @@ class FoundationModelsEngine implements ReflectionEngine {
       // Empty output is silence, the default and valid outcome, not a failure.
       return (text == null || text.isEmpty) ? null : text;
     } on PlatformException catch (e) {
-      // Only the native "could not run" reaches here; a guardrail refusal comes
-      // back as empty text (silence) above, never as an error.
-      throw ReflectionUnavailable(
-        e.code == _unavailableCode ? e.message : '${e.code}: ${e.message}',
-      );
+      // A guardrail refusal comes back as empty text (silence) above, never as
+      // an error. Only "could not run" maps to the transient signal; any other
+      // code (a deterministic rejection like bad_args) must not, or it would
+      // read as retry-later and head-of-line-block every older week.
+      if (e.code == _unavailableCode) throw ReflectionUnavailable(e.message);
+      throw StateError('reflect failed: ${e.code}: ${e.message}');
     } on MissingPluginException catch (e) {
       // No plugin means the engine is not really here; treat as could-not-run so
       // the caller retries rather than persisting a false silence.

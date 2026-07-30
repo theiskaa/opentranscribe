@@ -82,8 +82,8 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
       return
     }
 
-    let instructions = buildInstructions(style: style)
-    let prompt = buildPrompt(entries: entries)
+    let instructions = buildInstructions(style: style, localeId: localeId)
+    let prompt = buildPrompt(entries: entries, localeId: localeId)
 
     Task {
       do {
@@ -92,13 +92,8 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
         let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         await MainActor.run { result(["text": text]) }
       } catch let error as LanguageModelSession.GenerationError {
-        // The model RAN but produced nothing usable for this input: a guardrail
-        // refusal, a week too long for the context window, a decode failure. All
-        // are terminal for this week, so all are SILENCE, never a retry. Only a
-        // non-generation (system) failure below is transient/could-not-run, so a
-        // deterministic per-week failure can never head-of-line-block older weeks.
-        _ = error
-        await MainActor.run { result(["text": ""]) }
+        let outcome = generationOutcome(for: error)
+        await MainActor.run { result(outcome) }
       } catch {
         await MainActor.run {
           result(ReflectErrorCode.unavailable.error(String(describing: error)))
@@ -107,10 +102,27 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// Splits generation failures by what they mean for the WEEK. Transient
+  /// system conditions (throttled, model assets evicted, another request in
+  /// flight) are could-not-run: the week stays unreflected and the next open
+  /// retries, because persisting them would permanently mislabel a real week as
+  /// quiet. Everything else means the model ran and produced nothing usable for
+  /// this input (a refusal, an overflow, a decode failure): terminal for this
+  /// week, so silence, never a retry that would head-of-line-block older weeks.
+  @available(iOS 26.0, *)
+  private func generationOutcome(for error: LanguageModelSession.GenerationError) -> Any {
+    switch error {
+    case .rateLimited, .assetsUnavailable, .concurrentRequests:
+      return ReflectErrorCode.unavailable.error(String(describing: error))
+    default:
+      return ["text": ""]
+    }
+  }
+
   /// The observer contract, plus the three user knobs. The non-negotiables are
   /// the base: observe, never address the person, never advise, and prefer
   /// silence over filler. First-draft copy; tuned on-device.
-  private func buildInstructions(style: [String: Any]) -> String {
+  private func buildInstructions(style: [String: Any], localeId: String) -> String {
     var lines: [String] = [
       "You read a person's week back to them from their own voice-journal entries.",
       "You are only an observer. You notice what recurred, what shifted, the shape of the week.",
@@ -151,17 +163,27 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
       lines.append("You may name the specific people, projects, and places you heard.")
     }
 
+    // The reflection must come back in the app language: without the directive
+    // the English instructions prime the model to answer in English no matter
+    // what language the entries hold. Named in English (the instructions'
+    // language) so the directive itself stays unambiguous to the model.
+    let language = Locale(identifier: "en_US").localizedString(forLanguageCode: localeId) ?? localeId
+    lines.append("Write in \(language).")
+
     return lines.joined(separator: " ")
   }
 
-  private func buildPrompt(entries: [[String: Any]]) -> String {
-    let weekdays = [
-      "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-    ]
+  private func buildPrompt(entries: [[String: Any]], localeId: String) -> String {
+    // Weekday names in the reflection's own language, so the prompt does not
+    // mix English scaffolding into a non-English week. weekdaySymbols is
+    // Sunday-first; the wire weekday is Dart's 1=Monday..7=Sunday.
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: localeId)
+    let weekdays = formatter.weekdaySymbols ?? []
     var lines: [String] = ["This week's entries, in order:", ""]
     for entry in entries {
       let weekday = entry["weekday"] as? Int ?? 0
-      let dayName = (weekday >= 1 && weekday <= 7) ? weekdays[weekday - 1] : ""
+      let dayName = (weekday >= 1 && weekday <= 7 && weekdays.count == 7) ? weekdays[weekday % 7] : ""
       let text = (entry["text"] as? String) ?? ""
       var head = dayName
       if let title = entry["title"] as? String, !title.isEmpty {
