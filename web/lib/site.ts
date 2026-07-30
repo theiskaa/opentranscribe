@@ -12,11 +12,6 @@ export const SITE_DESCRIPTION =
 
 export const GITHUB_URL = "https://github.com/theiskaa/opentranscribe";
 
-export const NAV_LINKS = [
-  { label: "How it works", href: "#works" },
-  { label: "Privacy", href: "#privacy" },
-] as const;
-
 export const STEPS = [
   {
     n: "01",

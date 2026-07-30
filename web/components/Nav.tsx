@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GITHUB_URL, NAV_LINKS } from "@/lib/site";
+import { GITHUB_URL } from "@/lib/site";
 import { WaveMark } from "./Wordmark";
 import { GithubIcon } from "./Icons";
 
@@ -27,28 +27,15 @@ export default function Nav() {
           OpenTranscribe
         </a>
 
-        <div className="flex items-center gap-8">
-          <div className="hidden items-center gap-7 md:flex">
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="link-underline t-eyebrow text-ink-muted transition-colors hover:text-ink"
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-md border border-line-strong px-3.5 py-2 text-[13px] font-medium text-ink transition-colors hover:border-ink"
-          >
-            <GithubIcon className="h-4 w-4" />
-            GitHub
-          </a>
-        </div>
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-md border border-line-strong px-3.5 py-2 text-[13px] font-medium text-ink transition-colors hover:border-ink"
+        >
+          <GithubIcon className="h-4 w-4" />
+          GitHub
+        </a>
       </nav>
     </header>
   );
