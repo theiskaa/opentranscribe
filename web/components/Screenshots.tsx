@@ -35,14 +35,16 @@ export default function Screenshots() {
 
   return (
     <div ref={ref} className="shotfan -mt-6 flex items-end justify-center px-4 sm:-mt-12">
-      {SHOTS.map((shot, i) => (
+      {SHOTS.map((shot, i) => {
+        const pose = POSE[i] ?? { ty: 0, rot: 0 };
+        return (
         <div
           key={shot.src}
-          className={`shot-enter group relative -mx-[4vw] w-[42vw] max-w-[248px] hover:z-50 sm:-mx-[2vw] sm:w-[22vw] ${Z[i]}`}
+          className={`shot-enter group relative -mx-[4vw] w-[42vw] max-w-[248px] hover:z-50 sm:-mx-[2vw] sm:w-[22vw] ${Z[i] ?? "z-[1]"}`}
         >
           <div
             style={
-              { "--ty": `${POSE[i].ty}px`, "--rot": `${POSE[i].rot}deg` } as React.CSSProperties
+              { "--ty": `${pose.ty}px`, "--rot": `${pose.rot}deg` } as React.CSSProperties
             }
             className="relative origin-bottom [transform:translateY(calc(var(--ty)_+_var(--lift,0px)))_rotate(calc(var(--rot)_*_var(--rotm,1)))_scale(var(--s,1))] transition-transform duration-[480ms] ease-settle group-hover:duration-[380ms] group-hover:ease-spring group-hover:[--lift:-28px] group-hover:[--rotm:0.35] group-hover:[--s:1.07]"
           >
@@ -58,7 +60,8 @@ export default function Screenshots() {
             />
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
