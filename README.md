@@ -8,17 +8,19 @@
 <p>
   <a href="pubspec.yaml"><img alt="Flutter" src="https://img.shields.io/badge/flutter-3.44%2B-02569B?logo=flutter&logoColor=white"></a>
   <a href="pubspec.yaml"><img alt="Dart" src="https://img.shields.io/badge/dart-3.12%2B-0175C2?logo=dart&logoColor=white"></a>
-  <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
 </p>
 
 opentranscribe is a voice journal for iOS with no network layer. Capture, transcription, and storage all happen on the device, and there is no account, no sync, no telemetry, and no code path anywhere in the app that opens a socket. Airplane mode is not a supported mode, it is the only mode there is.
+
+<img alt="Recording with live text, a finished entry, the week, and the on-device language models" src="assets/readme/showcase.png" width="760">
 
 Transcription sits behind one contract, `TranscriptionEngine`. Apple's Speech framework is the first implementation, `SpeechAnalyzer` on iOS 26 and `SFSpeechRecognizer` below it, and whisper.cpp is meant to land as a second one without the rest of the app noticing. An engine that does not declare itself on-device is refused at construction, so the offline guarantee is a property of the code.
 
 Live text is painted while you speak and then thrown away. What gets saved is a batch pass over the finished file, which is why the raw audio is kept by default: any entry can be transcribed again later, in another language or by a better engine. Keeping audio is a choice, though. The Cache screen shows what the recordings occupy, can clear the audio of already-transcribed entries, and holds a keep-audio switch that, when off, deletes each recording once its transcription succeeds. Speech models are per-language and live on the device, so the Models screen manages them, including the cap iOS 26 puts on how many languages one app may hold.
 
-## Data on disk
+## At rest
 
 Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-CBC with a fresh IV per record. The encryption key is a build-time secret, not a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
 
