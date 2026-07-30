@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -22,6 +24,7 @@ import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart'
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
@@ -187,6 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
+          // Cards are driven by the reflection history; watching it here rebuilds
+          // home when a week is reflected, deleted, or regenerated.
+          final reflections = context.watch<ReflectionsCubit>().state.history;
           // After EVERY build: splitter positions move when entries are
           // added or renamed (card heights change), not only when the set
           // of days does.
@@ -215,6 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : _RecordsList(
                   key: _sections.listKey,
                   state: state,
+                  reflections: reflections,
                   controller: _scroll,
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
@@ -391,6 +398,7 @@ class _HomeChromeState extends State<_HomeChrome> {
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
+    required this.reflections,
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
@@ -401,6 +409,9 @@ class _RecordsList extends StatelessWidget {
   });
 
   final HomeState state;
+
+  /// The reflection history, placed as cards at the top of each finished week.
+  final List<Reflection> reflections;
   final ScrollController controller;
 
   /// Tracker-owned keys splitter label positions are read through.
@@ -424,6 +435,13 @@ class _RecordsList extends StatelessWidget {
     // indicator.
     final clearance = MediaQuery.paddingOf(context).bottom;
 
+    // A reflection card sits above the first section of each finished week.
+    final cards = reflectionCardsForSections(
+      sectionDays: [for (final section in sections) section.day],
+      reflections: reflections,
+      today: DateTime.now(),
+    );
+
     return ListView(
       controller: controller,
       // Materialize everything: with every splitter measured, calendar taps
@@ -433,14 +451,23 @@ class _RecordsList extends StatelessWidget {
       padding: EdgeInsets.only(top: topPadding, bottom: clearance + AppSpacing.lg + tail),
       children: [
         for (final (s, section) in sections.indexed) ...[
+          if (cards[s] != null) ...[
+            SizedBox(height: s == 0 ? 0 : AppSpacing.xxl),
+            ReflectionHomeCard(
+              reflection: cards[s]!,
+              onTap: () => context.pushNamed(Routes.reflectionsName),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           Padding(
             // Top spacing only BETWEEN groups: the first splitter rests right
-            // under the chrome. The left inset lands the label on the records'
-            // TEXT column (content margin + rail gutter), not on the rail: the
-            // rail belongs to the day's records, and the label names them.
+            // under the chrome. A card above a week supplies that break itself,
+            // so the splitter drops its own top gap then. The left inset lands
+            // the label on the records' TEXT column (content margin + rail
+            // gutter), not on the rail: the rail belongs to the day's records.
             padding: EdgeInsets.fromLTRB(
-              AppSpacing.xl + theme.entryList.railGutter,
-              s == 0 ? 0 : AppSpacing.xxxl,
+              theme.entryList.textColumnInset,
+              s == 0 || cards[s] != null ? 0 : AppSpacing.xxxl,
               AppSpacing.xl,
               AppSpacing.sm,
             ),

@@ -180,6 +180,11 @@ final class EntryListTheme {
   final double railGutter;
 
   final int excerptLines;
+
+  /// The left inset that lands content on the records' TEXT column (content
+  /// margin + rail gutter). One source for the day splitter, the reflection
+  /// card, and the quiet-week marker, so a rail change cannot un-align them.
+  double get textColumnInset => AppSpacing.xl + railGutter;
 }
 
 /// The recorder screen: timer, waveform, live transcript. The pause, restart,
