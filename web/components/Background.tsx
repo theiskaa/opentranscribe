@@ -48,19 +48,20 @@ void main() {
   vec2 px = block * u_cell;
   vec2 q = vec2(px.x, u_res.y - px.y) / u_res.x;
 
-  float t = u_time * 0.01;
-  float grain = 0.88 + 0.24 * (fbm(q * 3.0 + vec2(t, -t * 0.7)) - 0.5);
+  float t = u_time * 0.02;
 
-  float d = distance(q, vec2(0.5, 0.3));
-  float halo = (1.0 - smoothstep(0.04, 0.62, d)) * 0.085;
-  float top = (1.0 - smoothstep(0.0, 0.32, q.y)) * 0.04;
+  float d = distance(q, vec2(0.5, 0.32));
+  float glow = 1.0 - smoothstep(0.05, 0.62, d);
+  glow = glow * glow * (3.0 - 2.0 * glow);
 
-  float tone = 0.012 + (halo + top) * grain;
+  float breathe = 0.82 + 0.34 * (fbm(q * 2.6 + vec2(t, -t * 0.6)) - 0.5);
+  float tone = glow * 0.62 * breathe;
 
-  float thr = mix(bayer8(block), hash(block), 0.15);
-  float lit = step(thr + 0.004, tone);
+  float thr = mix(bayer8(block), hash(block), 0.06);
+  float lit = step(thr, tone);
+  float shade = 0.26 + 0.26 * glow;
 
-  gl_FragColor = vec4(vec3(0.34) * lit, 1.0);
+  gl_FragColor = vec4(vec3(shade) * lit, 1.0);
 }
 `;
 
@@ -105,7 +106,8 @@ export default function Background() {
     const uCell = gl.getUniformLocation(program, "u_cell");
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    gl.uniform1f(uCell, dpr);
+    const cell = dpr * 2;
+    gl.uniform1f(uCell, cell);
 
     let raf = 0;
     let shown = false;
