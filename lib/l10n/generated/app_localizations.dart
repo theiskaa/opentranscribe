@@ -749,6 +749,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete recordings'**
   String get cacheClearConfirm;
+
+  /// Title of the reflections screen and its home-menu row
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reflections'**
+  String get reflectionsTitle;
+
+  /// Empty-state headline on the reflections screen before any week has been reflected
+  ///
+  /// In en, this message translates to:
+  /// **'No reflections yet'**
+  String get reflectionsEmptyTitle;
+
+  /// Empty-state supporting line under the headline on the reflections screen
+  ///
+  /// In en, this message translates to:
+  /// **'The first arrives when your week closes, read back from what you recorded.'**
+  String get reflectionsEmptyBody;
+
+  /// Shown for a week the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet week.'**
+  String get reflectionQuietWeek;
+
+  /// Settings submenu: the reflection voice
+  ///
+  /// In en, this message translates to:
+  /// **'Voice'**
+  String get reflectionVoice;
+
+  /// Voice option: reads the week back as a short reflective note
+  ///
+  /// In en, this message translates to:
+  /// **'Literary'**
+  String get reflectionVoiceLiterary;
+
+  /// Voice option: reports the shape of the week plainly
+  ///
+  /// In en, this message translates to:
+  /// **'Observational'**
+  String get reflectionVoiceObservational;
+
+  /// Voice option: nearly a log, minimal interpretation
+  ///
+  /// In en, this message translates to:
+  /// **'Sparse'**
+  String get reflectionVoiceSparse;
+
+  /// Settings submenu: how long a reflection may run
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get reflectionLength;
+
+  /// Length option: a single sentence
+  ///
+  /// In en, this message translates to:
+  /// **'One line'**
+  String get reflectionLengthOneLine;
+
+  /// Length option: up to three sentences
+  ///
+  /// In en, this message translates to:
+  /// **'A few sentences'**
+  String get reflectionLengthSentences;
+
+  /// Length option: up to a short paragraph
+  ///
+  /// In en, this message translates to:
+  /// **'Short paragraph'**
+  String get reflectionLengthParagraph;
+
+  /// Settings submenu: whether reflections name people, projects, places
+  ///
+  /// In en, this message translates to:
+  /// **'Specifics'**
+  String get reflectionSpecifics;
+
+  /// Specifics option: may name the people, projects, and places heard
+  ///
+  /// In en, this message translates to:
+  /// **'Name specifics'**
+  String get reflectionSpecificsNameFreely;
+
+  /// Specifics option: themes only, no proper nouns
+  ///
+  /// In en, this message translates to:
+  /// **'Themes only'**
+  String get reflectionSpecificsThemes;
+
+  /// Specifics option: name a specific only when clearly central
+  ///
+  /// In en, this message translates to:
+  /// **'Let the week decide'**
+  String get reflectionSpecificsLetWeek;
+
+  /// Per-week action: re-run this week's reflection in the current style
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get reflectionRegenerate;
+
+  /// Per-week action and its confirm button: remove this week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get reflectionDelete;
+
+  /// Title of the delete-reflection confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this reflection?'**
+  String get reflectionDeleteTitle;
+
+  /// Body of the delete-reflection confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the reflection for this week. This cannot be undone.'**
+  String get reflectionDeleteBody;
+
+  /// Notice when a regenerate could not run because the model was unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reflect. Try again.'**
+  String get reflectionRegenerateFailed;
+
+  /// Reflections screen state: Apple Intelligence is available but not enabled
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is off'**
+  String get reflectionOffTitle;
+
+  /// Guidance when Apple Intelligence is off; there is no deep-link to the exact pane
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.'**
+  String get reflectionOffBody;
+
+  /// Button that opens the system Settings app
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get reflectionOpenSettings;
+
+  /// Reflections screen state: Apple Intelligence is enabled but the model is still downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready'**
+  String get reflectionPreparingTitle;
+
+  /// Body for the preparing/model-not-ready state
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is preparing on this device. Reflections start once it finishes.'**
+  String get reflectionPreparingBody;
+
+  /// Reflections screen state: this device cannot run Apple Intelligence at all
+  ///
+  /// In en, this message translates to:
+  /// **'Not available here'**
+  String get reflectionUnsupportedTitle;
+
+  /// Body for the unsupported-device / older-iOS state
+  ///
+  /// In en, this message translates to:
+  /// **'This device does not support Apple Intelligence, which weekly reflections needs.'**
+  String get reflectionUnsupportedBody;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

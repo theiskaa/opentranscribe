@@ -352,4 +352,88 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '删除录音';
+
+  @override
+  String get reflectionsTitle => '每周回顾';
+
+  @override
+  String get reflectionsEmptyTitle => '还没有回顾';
+
+  @override
+  String get reflectionsEmptyBody => '本周结束后，第一篇就会出现，取自你所记录的内容。';
+
+  @override
+  String get reflectionQuietWeek => '平静的一周。';
+
+  @override
+  String get reflectionVoice => '文风';
+
+  @override
+  String get reflectionVoiceLiterary => '文学化';
+
+  @override
+  String get reflectionVoiceObservational => '观察式';
+
+  @override
+  String get reflectionVoiceSparse => '简约';
+
+  @override
+  String get reflectionLength => '长度';
+
+  @override
+  String get reflectionLengthOneLine => '一行';
+
+  @override
+  String get reflectionLengthSentences => '几句话';
+
+  @override
+  String get reflectionLengthParagraph => '短段落';
+
+  @override
+  String get reflectionSpecifics => '细节';
+
+  @override
+  String get reflectionSpecificsNameFreely => '点明细节';
+
+  @override
+  String get reflectionSpecificsThemes => '仅主题';
+
+  @override
+  String get reflectionSpecificsLetWeek => '由本周决定';
+
+  @override
+  String get reflectionRegenerate => '重新生成';
+
+  @override
+  String get reflectionDelete => '删除';
+
+  @override
+  String get reflectionDeleteTitle => '删除这篇回顾？';
+
+  @override
+  String get reflectionDeleteBody => '将删除本周的回顾。此操作无法撤销。';
+
+  @override
+  String get reflectionRegenerateFailed => '无法生成回顾。请重试。';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence 已关闭';
+
+  @override
+  String get reflectionOffBody => '在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得每周回顾。';
+
+  @override
+  String get reflectionOpenSettings => '打开设置';
+
+  @override
+  String get reflectionPreparingTitle => '正在准备';
+
+  @override
+  String get reflectionPreparingBody => 'Apple Intelligence 正在此设备上准备。准备完成后即可开始回顾。';
+
+  @override
+  String get reflectionUnsupportedTitle => '此处不可用';
+
+  @override
+  String get reflectionUnsupportedBody => '此设备不支持每周回顾所需的 Apple Intelligence。';
 }

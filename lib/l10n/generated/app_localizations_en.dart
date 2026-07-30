@@ -378,4 +378,92 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Delete recordings';
+
+  @override
+  String get reflectionsTitle => 'Weekly reflections';
+
+  @override
+  String get reflectionsEmptyTitle => 'No reflections yet';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'The first arrives when your week closes, read back from what you recorded.';
+
+  @override
+  String get reflectionQuietWeek => 'A quiet week.';
+
+  @override
+  String get reflectionVoice => 'Voice';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literary';
+
+  @override
+  String get reflectionVoiceObservational => 'Observational';
+
+  @override
+  String get reflectionVoiceSparse => 'Sparse';
+
+  @override
+  String get reflectionLength => 'Length';
+
+  @override
+  String get reflectionLengthOneLine => 'One line';
+
+  @override
+  String get reflectionLengthSentences => 'A few sentences';
+
+  @override
+  String get reflectionLengthParagraph => 'Short paragraph';
+
+  @override
+  String get reflectionSpecifics => 'Specifics';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Name specifics';
+
+  @override
+  String get reflectionSpecificsThemes => 'Themes only';
+
+  @override
+  String get reflectionSpecificsLetWeek => 'Let the week decide';
+
+  @override
+  String get reflectionRegenerate => 'Regenerate';
+
+  @override
+  String get reflectionDelete => 'Delete';
+
+  @override
+  String get reflectionDeleteTitle => 'Delete this reflection?';
+
+  @override
+  String get reflectionDeleteBody => 'Removes the reflection for this week. This cannot be undone.';
+
+  @override
+  String get reflectionRegenerateFailed => 'Could not reflect. Try again.';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence is off';
+
+  @override
+  String get reflectionOffBody =>
+      'Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.';
+
+  @override
+  String get reflectionOpenSettings => 'Open Settings';
+
+  @override
+  String get reflectionPreparingTitle => 'Getting ready';
+
+  @override
+  String get reflectionPreparingBody =>
+      'Apple Intelligence is preparing on this device. Reflections start once it finishes.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Not available here';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'This device does not support Apple Intelligence, which weekly reflections needs.';
 }

@@ -355,4 +355,88 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '録音を削除';
+
+  @override
+  String get reflectionsTitle => '週次の振り返り';
+
+  @override
+  String get reflectionsEmptyTitle => 'まだ振り返りはありません';
+
+  @override
+  String get reflectionsEmptyBody => '最初の振り返りは今週が終わると届きます。記録した内容から読み解かれます。';
+
+  @override
+  String get reflectionQuietWeek => '静かな一週間。';
+
+  @override
+  String get reflectionVoice => '文体';
+
+  @override
+  String get reflectionVoiceLiterary => '文学的';
+
+  @override
+  String get reflectionVoiceObservational => '観察的';
+
+  @override
+  String get reflectionVoiceSparse => '簡素';
+
+  @override
+  String get reflectionLength => '長さ';
+
+  @override
+  String get reflectionLengthOneLine => '一行';
+
+  @override
+  String get reflectionLengthSentences => '数文';
+
+  @override
+  String get reflectionLengthParagraph => '短い段落';
+
+  @override
+  String get reflectionSpecifics => '具体性';
+
+  @override
+  String get reflectionSpecificsNameFreely => '具体的に書く';
+
+  @override
+  String get reflectionSpecificsThemes => 'テーマのみ';
+
+  @override
+  String get reflectionSpecificsLetWeek => '今週に委ねる';
+
+  @override
+  String get reflectionRegenerate => '再生成';
+
+  @override
+  String get reflectionDelete => '削除';
+
+  @override
+  String get reflectionDeleteTitle => 'この振り返りを削除しますか？';
+
+  @override
+  String get reflectionDeleteBody => '今週の振り返りを削除します。元に戻せません。';
+
+  @override
+  String get reflectionRegenerateFailed => '振り返りを作成できませんでした。もう一度お試しください。';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence がオフです';
+
+  @override
+  String get reflectionOffBody => '毎週の振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。';
+
+  @override
+  String get reflectionOpenSettings => '設定を開く';
+
+  @override
+  String get reflectionPreparingTitle => '準備中';
+
+  @override
+  String get reflectionPreparingBody => 'この端末で Apple Intelligence を準備しています。準備が完了すると振り返りが始まります。';
+
+  @override
+  String get reflectionUnsupportedTitle => 'ここでは利用できません';
+
+  @override
+  String get reflectionUnsupportedBody => 'この端末は、毎週の振り返りに必要な Apple Intelligence に対応していません。';
 }

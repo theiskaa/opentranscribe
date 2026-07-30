@@ -64,7 +64,9 @@ class FoundationModelsEngine implements ReflectionEngine {
     } on PlatformException catch (e) {
       // Only the native "could not run" reaches here; a guardrail refusal comes
       // back as empty text (silence) above, never as an error.
-      throw ReflectionUnavailable(e.code == _unavailableCode ? e.message : '${e.code}: ${e.message}');
+      throw ReflectionUnavailable(
+        e.code == _unavailableCode ? e.message : '${e.code}: ${e.message}',
+      );
     } on MissingPluginException catch (e) {
       // No plugin means the engine is not really here; treat as could-not-run so
       // the caller retries rather than persisting a false silence.

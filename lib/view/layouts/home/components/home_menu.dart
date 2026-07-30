@@ -107,14 +107,9 @@ class _HomeMenuState extends State<HomeMenu> {
   /// of the menu button. On native glass the submenu carries the languages, and
   /// these are never called.
   Future<int?> _openDropdown(List<String> tags, String current) {
-    final box = _anchor.currentContext?.findRenderObject();
-    final screen = MediaQuery.sizeOf(context);
-    final anchor = box is RenderBox && box.attached
-        ? box.localToGlobal(Offset.zero) & box.size
-        : Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
     return showAppDropdown(
       context,
-      anchor: anchor,
+      anchor: dropdownAnchorRect(_anchor, context),
       items: [
         for (final tag in tags)
           AppDropdownItem(
@@ -137,10 +132,8 @@ class _HomeMenuState extends State<HomeMenu> {
 
     final items = <AppMenuItem>[
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
-    ];
-    final defaultLangIndex = items.length;
-    items.add(
       AppMenuItem(
+        id: 'act:txlang',
         label: l10n.menuTranscriptionLanguage,
         icon: AppIcons.globe,
         children: [
@@ -152,17 +145,12 @@ class _HomeMenuState extends State<HomeMenu> {
             ),
         ],
       ),
-    );
-    items.add(
+      AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
       AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
-    );
-    items.add(const AppMenuItem.divider());
-    items.add(
+      const AppMenuItem.divider(),
       AppMenuItem(id: 'act:appearance', label: l10n.settingsAppearance, icon: AppIcons.moonFill),
-    );
-    final appLangIndex = items.length;
-    items.add(
       AppMenuItem(
+        id: 'act:applang',
         label: l10n.settingsAppLanguage,
         icon: AppIcons.textformat,
         children: [
@@ -176,49 +164,46 @@ class _HomeMenuState extends State<HomeMenu> {
             ),
         ],
       ),
-    );
-    items.add(const AppMenuItem.divider());
-    items.add(AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes));
-    if (kDebugMode) {
-      items.add(const AppMenuItem.divider());
-      items.add(
+      const AppMenuItem.divider(),
+      AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes),
+      if (kDebugMode) ...[
+        const AppMenuItem.divider(),
         const AppMenuItem(id: 'act:gallery', label: 'Widget gallery', icon: AppIcons.waveform),
-      );
-    }
+      ],
+    ];
 
     return AppMenuButton(
       key: _anchor,
       icon: AppIcons.ellipsis,
       color: widget.color,
       items: items,
-      // Fires only for the two parents on the fallback (every leaf carries an
-      // id, so it answers through onSelectedId instead).
-      onSelected: (index) {
-        if (index == defaultLangIndex) {
-          _pickDefaultLanguage(settings);
-        } else if (index == appLangIndex) {
-          _pickAppLanguage(appLang);
-        }
-      },
+      onSelected: (_) {},
       onSelectedId: (id) {
         if (id.startsWith('tx:')) {
           unawaited(context.read<SettingsCubit>().setLocale(id.substring(3)));
-        } else if (id.startsWith('app:')) {
+          return;
+        }
+        if (id.startsWith('app:')) {
           unawaited(context.read<AppLanguageCubit>().setLanguage(id.substring(4)));
-        } else {
-          switch (id) {
-            case 'act:models':
-              context.pushNamed(Routes.settingsModelsName);
-            case 'act:appearance':
-              context.pushNamed(Routes.settingsAppearanceName);
-            case 'act:cache':
-              context.pushNamed(Routes.settingsCacheName);
-            case 'act:gallery':
-              context.pushNamed(Routes.galleryName);
-            case 'act:source':
-              unawaited(openLink(kRepoUrl));
-              break;
-          }
+          return;
+        }
+        switch (id) {
+          case 'act:txlang':
+            _pickDefaultLanguage(settings);
+          case 'act:applang':
+            _pickAppLanguage(appLang);
+          case 'act:models':
+            context.pushNamed(Routes.settingsModelsName);
+          case 'act:appearance':
+            context.pushNamed(Routes.settingsAppearanceName);
+          case 'act:reflections':
+            context.pushNamed(Routes.reflectionsName);
+          case 'act:cache':
+            context.pushNamed(Routes.settingsCacheName);
+          case 'act:gallery':
+            context.pushNamed(Routes.galleryName);
+          case 'act:source':
+            unawaited(openLink(kRepoUrl));
         }
       },
     );

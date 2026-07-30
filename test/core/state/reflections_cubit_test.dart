@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -18,6 +19,9 @@ DateTime mondayStart(DateTime d) {
 }
 
 void main() {
+  // ReflectionsCubit registers a WidgetsBindingObserver, so the binding must exist.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   const key = 'test-encryption-key-0123456789ab';
   final now = DateTime(2026, 7, 29, 12);
   final lastWeek = DateTime(2026, 7, 20);
@@ -162,6 +166,23 @@ void main() {
 
     expect(cubit.state.regenerateFailed, isTrue);
     expect(cubit.state.regenerating, isNull);
+    await cubit.close();
+  });
+
+  test('re-probes availability when the app resumes', () async {
+    engine.availabilityResult = const ReflectionAvailability(
+      ReflectionAvailabilityStatus.notEnabled,
+    );
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.available, isFalse);
+
+    // Apple Intelligence enabled while backgrounded; resume must pick it up.
+    engine.availabilityResult = const ReflectionAvailability.available();
+    cubit.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await settle();
+
+    expect(cubit.state.available, isTrue);
     await cubit.close();
   });
 

@@ -5,13 +5,25 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
-/// One choice in a dropdown: a flagged, selectable row (see [SelectableRow]).
+/// One choice in a dropdown: a selectable row (see [SelectableRow]). [flag] is
+/// the leading flag chip for a language row; null for a plain choice (a
+/// reflection option) that shows just the label and its checkmark.
 class AppDropdownItem {
-  const AppDropdownItem({required this.label, required this.flag, this.selected = false});
+  const AppDropdownItem({required this.label, this.flag, this.selected = false});
 
   final String label;
-  final String flag;
+  final String? flag;
   final bool selected;
+}
+
+/// The screen-space rect to grow a dropdown from: [key]'s render box, or a
+/// top-right fallback when it is not laid out yet. Shared by the bar menus that
+/// open a fallback dropdown anchored to their own button.
+Rect dropdownAnchorRect(GlobalKey key, BuildContext context) {
+  final box = key.currentContext?.findRenderObject();
+  if (box is RenderBox && box.attached) return box.localToGlobal(Offset.zero) & box.size;
+  final screen = MediaQuery.sizeOf(context);
+  return Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
 }
 
 /// The dropdown's own metrics. The row estimate mirrors [SelectableRow]'s

@@ -382,4 +382,93 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Aufnahmen löschen';
+
+  @override
+  String get reflectionsTitle => 'Wöchentliche Rückblicke';
+
+  @override
+  String get reflectionsEmptyTitle => 'Noch keine Rückblicke';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'Der erste kommt, wenn Ihre Woche zu Ende geht, gelesen aus dem, was Sie aufgenommen haben.';
+
+  @override
+  String get reflectionQuietWeek => 'Eine ruhige Woche.';
+
+  @override
+  String get reflectionVoice => 'Stimme';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literarisch';
+
+  @override
+  String get reflectionVoiceObservational => 'Beobachtend';
+
+  @override
+  String get reflectionVoiceSparse => 'Knapp';
+
+  @override
+  String get reflectionLength => 'Länge';
+
+  @override
+  String get reflectionLengthOneLine => 'Eine Zeile';
+
+  @override
+  String get reflectionLengthSentences => 'Ein paar Sätze';
+
+  @override
+  String get reflectionLengthParagraph => 'Kurzer Absatz';
+
+  @override
+  String get reflectionSpecifics => 'Details';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Details benennen';
+
+  @override
+  String get reflectionSpecificsThemes => 'Nur Themen';
+
+  @override
+  String get reflectionSpecificsLetWeek => 'Die Woche entscheiden lassen';
+
+  @override
+  String get reflectionRegenerate => 'Neu erstellen';
+
+  @override
+  String get reflectionDelete => 'Löschen';
+
+  @override
+  String get reflectionDeleteTitle => 'Diesen Rückblick löschen?';
+
+  @override
+  String get reflectionDeleteBody =>
+      'Entfernt den Rückblick für diese Woche. Das lässt sich nicht rückgängig machen.';
+
+  @override
+  String get reflectionRegenerateFailed => 'Rückblick nicht möglich. Versuchen Sie es erneut.';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence ist aus';
+
+  @override
+  String get reflectionOffBody =>
+      'Schalten Sie es in den Einstellungen unter Apple Intelligence und Siri ein, um wöchentliche Rückblicke zu erhalten.';
+
+  @override
+  String get reflectionOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String get reflectionPreparingTitle => 'Wird vorbereitet';
+
+  @override
+  String get reflectionPreparingBody =>
+      'Apple Intelligence wird auf diesem Gerät vorbereitet. Rückblicke starten, sobald es fertig ist.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Hier nicht verfügbar';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'Dieses Gerät unterstützt Apple Intelligence nicht, das für wöchentliche Rückblicke nötig ist.';
 }

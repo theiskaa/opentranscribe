@@ -116,7 +116,9 @@ void main() {
 
   group('catchUp', () {
     test('reflects a closed week and stores its text, with the week material', () async {
-      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'shipped the migration', title: 'log')];
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 12), text: 'shipped the migration', title: 'log'),
+      ];
       engine.output = 'a week about the migration';
 
       await service.catchUp();
@@ -321,6 +323,29 @@ void main() {
       engine.failReflect = true;
 
       await expectLater(service.regenerate(lastWeek), throwsA(isA<ReflectionUnavailable>()));
+    });
+
+    test('keys off the stored week, not the current locale boundary', () async {
+      // A reflection stored under a Sunday-first week (07-19..07-25).
+      final sundayWeek = DateTime(2026, 7, 19);
+      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'old'));
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')]; // in that range
+      engine.output = 'new';
+      // A service whose locale (de) buckets Monday-first: regenerate must NOT
+      // re-key the stored Sunday week to a Monday one.
+      final deService = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'de',
+        clock: () => now,
+      );
+
+      await deService.regenerate(sundayWeek);
+
+      expect(store.read(sundayWeek)!.text, 'new'); // replaced in place
+      expect(store.read(DateTime(2026, 7, 20)), isNull); // not re-bucketed to Monday
     });
   });
 

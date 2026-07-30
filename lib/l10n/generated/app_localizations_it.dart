@@ -381,4 +381,93 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Elimina registrazioni';
+
+  @override
+  String get reflectionsTitle => 'Riflessioni settimanali';
+
+  @override
+  String get reflectionsEmptyTitle => 'Ancora nessuna riflessione';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'La prima arriva quando la tua settimana si chiude, rileggendo ciò che hai registrato.';
+
+  @override
+  String get reflectionQuietWeek => 'Una settimana tranquilla.';
+
+  @override
+  String get reflectionVoice => 'Voce';
+
+  @override
+  String get reflectionVoiceLiterary => 'Letteraria';
+
+  @override
+  String get reflectionVoiceObservational => 'Osservativa';
+
+  @override
+  String get reflectionVoiceSparse => 'Essenziale';
+
+  @override
+  String get reflectionLength => 'Lunghezza';
+
+  @override
+  String get reflectionLengthOneLine => 'Una riga';
+
+  @override
+  String get reflectionLengthSentences => 'Qualche frase';
+
+  @override
+  String get reflectionLengthParagraph => 'Paragrafo breve';
+
+  @override
+  String get reflectionSpecifics => 'Dettagli';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Nomina i dettagli';
+
+  @override
+  String get reflectionSpecificsThemes => 'Solo temi';
+
+  @override
+  String get reflectionSpecificsLetWeek => 'Lascia decidere alla settimana';
+
+  @override
+  String get reflectionRegenerate => 'Rigenera';
+
+  @override
+  String get reflectionDelete => 'Elimina';
+
+  @override
+  String get reflectionDeleteTitle => 'Eliminare questa riflessione?';
+
+  @override
+  String get reflectionDeleteBody =>
+      'Rimuove la riflessione di questa settimana. Non si può annullare.';
+
+  @override
+  String get reflectionRegenerateFailed => 'Riflessione non riuscita. Riprova.';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence è disattivato';
+
+  @override
+  String get reflectionOffBody =>
+      'Attivalo in Impostazioni, in Apple Intelligence e Siri, per ricevere le riflessioni settimanali.';
+
+  @override
+  String get reflectionOpenSettings => 'Apri Impostazioni';
+
+  @override
+  String get reflectionPreparingTitle => 'Preparazione in corso';
+
+  @override
+  String get reflectionPreparingBody =>
+      'Apple Intelligence si sta preparando su questo dispositivo. Le riflessioni iniziano quando ha finito.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Non disponibile qui';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'Questo dispositivo non supporta Apple Intelligence, necessario per le riflessioni settimanali.';
 }

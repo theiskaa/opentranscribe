@@ -121,13 +121,21 @@ class ReflectionService {
   /// (the user asked for this one) and lets a [ReflectionUnavailable] surface, so
   /// the caller can offer a retry instead of it being swallowed.
   Future<void> regenerate(DateTime weekStart) async {
-    final week = _weekOf(dateOnly(weekStart));
+    // Key off the STORED week as-is; do NOT re-bucket through the current
+    // locale (an app-language change could shift the boundary and orphan the
+    // reflection under a new key). Gather the week's entries by the same 7-day
+    // range, so this is locale-independent too.
+    final week = dateOnly(weekStart);
+    final end = week.add(const Duration(days: 7));
     final entries = [
       for (final e in _entries())
-        if (_weekOfEntry(e) == week) e,
+        if (_dayInWeek(dateOnly(e.createdAt.toLocal()), week, end)) e,
     ];
     await _reflectWeek(week, entries, force: true);
   }
+
+  bool _dayInWeek(DateTime day, DateTime start, DateTime end) =>
+      !day.isBefore(start) && day.isBefore(end);
 
   /// Removes a week's reflection.
   Future<void> deleteReflection(DateTime weekStart) async {
@@ -197,7 +205,11 @@ class ReflectionService {
         if (i.text.length <= share)
           i
         else
-          ReflectionEntryInput(weekday: i.weekday, text: i.text.substring(0, share), title: i.title),
+          ReflectionEntryInput(
+            weekday: i.weekday,
+            text: i.text.substring(0, share),
+            title: i.title,
+          ),
     ];
   }
 

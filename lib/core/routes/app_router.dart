@@ -12,6 +12,7 @@ import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart'
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
+import 'package:opentranscribe/view/layouts/reflections/screens/reflections_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
@@ -53,6 +54,12 @@ class AppRouter {
         // No transition: the splash cuts straight to it on a cold first launch.
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
+      ),
+      GoRoute(
+        path: Routes.reflections,
+        name: Routes.reflectionsName,
+        pageBuilder: (context, state) =>
+            SlidePage<void>(key: state.pageKey, child: const ReflectionsScreen()),
       ),
       GoRoute(
         path: Routes.entry,

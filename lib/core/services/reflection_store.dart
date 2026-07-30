@@ -44,6 +44,5 @@ class ReflectionStore {
     return reflections;
   }
 
-  Future<bool> delete(DateTime weekStart) =>
-      _storage.delete(_keyFor(Reflection.keyFor(weekStart)));
+  Future<bool> delete(DateTime weekStart) => _storage.delete(_keyFor(Reflection.keyFor(weekStart)));
 }

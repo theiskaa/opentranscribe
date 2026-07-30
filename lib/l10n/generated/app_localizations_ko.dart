@@ -356,4 +356,89 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '녹음 삭제';
+
+  @override
+  String get reflectionsTitle => '주간 돌아보기';
+
+  @override
+  String get reflectionsEmptyTitle => '아직 돌아보기가 없습니다';
+
+  @override
+  String get reflectionsEmptyBody => '첫 돌아보기는 이번 주가 끝나면 도착하며, 기록한 내용을 되짚어 만들어집니다.';
+
+  @override
+  String get reflectionQuietWeek => '조용한 한 주.';
+
+  @override
+  String get reflectionVoice => '문체';
+
+  @override
+  String get reflectionVoiceLiterary => '문학적';
+
+  @override
+  String get reflectionVoiceObservational => '관찰적';
+
+  @override
+  String get reflectionVoiceSparse => '간결';
+
+  @override
+  String get reflectionLength => '길이';
+
+  @override
+  String get reflectionLengthOneLine => '한 줄';
+
+  @override
+  String get reflectionLengthSentences => '몇 문장';
+
+  @override
+  String get reflectionLengthParagraph => '짧은 문단';
+
+  @override
+  String get reflectionSpecifics => '구체성';
+
+  @override
+  String get reflectionSpecificsNameFreely => '구체적으로 쓰기';
+
+  @override
+  String get reflectionSpecificsThemes => '주제만';
+
+  @override
+  String get reflectionSpecificsLetWeek => '이번 주에 맡기기';
+
+  @override
+  String get reflectionRegenerate => '다시 생성';
+
+  @override
+  String get reflectionDelete => '삭제';
+
+  @override
+  String get reflectionDeleteTitle => '이 돌아보기를 삭제할까요?';
+
+  @override
+  String get reflectionDeleteBody => '이번 주의 돌아보기를 삭제합니다. 되돌릴 수 없습니다.';
+
+  @override
+  String get reflectionRegenerateFailed => '돌아보기를 만들지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence가 꺼져 있습니다';
+
+  @override
+  String get reflectionOffBody => '주간 돌아보기를 받으려면 \'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜세요.';
+
+  @override
+  String get reflectionOpenSettings => '설정 열기';
+
+  @override
+  String get reflectionPreparingTitle => '준비 중';
+
+  @override
+  String get reflectionPreparingBody =>
+      '이 기기에서 Apple Intelligence를 준비하고 있습니다. 준비가 끝나면 돌아보기가 시작됩니다.';
+
+  @override
+  String get reflectionUnsupportedTitle => '여기서는 사용할 수 없습니다';
+
+  @override
+  String get reflectionUnsupportedBody => '이 기기는 주간 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.';
 }

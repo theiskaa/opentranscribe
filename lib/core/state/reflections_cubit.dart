@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
@@ -74,7 +74,7 @@ final class ReflectionsState {
 /// availability and reads settings + history on load and on each change; a
 /// generated reflection (from the foreground catch-up) refreshes the history
 /// through [ReflectionService.reflectionsChanged].
-class ReflectionsCubit extends Cubit<ReflectionsState> {
+class ReflectionsCubit extends Cubit<ReflectionsState> with WidgetsBindingObserver {
   ReflectionsCubit({
     required ReflectionService service,
     required ReflectionSettings settings,
@@ -86,6 +86,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
        _engine = engine,
        super(const ReflectionsState()) {
     _changedSub = _service.reflectionsChanged.listen((_) => _loadHistory());
+    WidgetsBinding.instance.addObserver(this);
     unawaited(load());
   }
 
@@ -116,6 +117,16 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     emit(state.copyWith(history: _store.all()));
   }
 
+  @override
+  // Named to avoid shadowing the cubit's own `state`.
+  // ignore: avoid_renaming_method_parameters
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    // Re-probe availability (and refresh settings + history) on return: the user
+    // may have enabled Apple Intelligence while the app was backgrounded, so the
+    // reflections surfaces must not stay frozen at their launch verdict.
+    if (lifecycle == AppLifecycleState.resumed) unawaited(load());
+  }
+
   /// Turns reflections on or off. Enabling kicks a catch-up so a due week lands
   /// without waiting for the next launch.
   Future<void> setEnabled(bool value) async {
@@ -144,6 +155,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
   /// [ReflectionsState.regenerateFailed] when the model could not run, rather
   /// than throwing at the UI.
   Future<void> regenerate(DateTime weekStart) async {
+    if (isClosed) return;
     emit(state.copyWith(regenerating: weekStart, regenerateFailed: false));
     try {
       await _service.regenerate(weekStart);
@@ -160,8 +172,14 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     // The changed stream refreshes history; nothing more to do.
   }
 
+  /// Clears the regenerate-failed flag once its notice has been shown.
+  void clearRegenerateFailed() {
+    if (!isClosed && state.regenerateFailed) emit(state.copyWith(regenerateFailed: false));
+  }
+
   @override
   Future<void> close() async {
+    WidgetsBinding.instance.removeObserver(this);
     await _changedSub?.cancel();
     return super.close();
   }

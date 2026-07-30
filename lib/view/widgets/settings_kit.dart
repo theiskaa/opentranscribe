@@ -72,17 +72,18 @@ class SettingsCard extends StatelessWidget {
 class SelectableRow extends StatelessWidget {
   const SelectableRow({
     required this.label,
-    required this.flag,
     required this.selected,
     required this.onTap,
+    this.flag,
     this.dimmed = false,
     super.key,
   });
 
   final String label;
 
-  /// The leading chip's flag emoji (see `localeFlag`).
-  final String flag;
+  /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
+  /// choice with no chip (a reflection option).
+  final String? flag;
   final bool selected;
 
   /// A kept-but-unavailable choice (an unsupported language): shown honestly,
@@ -102,17 +103,19 @@ class SelectableRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+            if (flag != null) ...[
+              Container(
+                width: tokens.iconTileSize,
+                height: tokens.iconTileSize,
+                alignment: Alignment.center,
+                decoration: SuperellipseDecoration(
+                  borderRadius: tokens.iconTileRadius,
+                  color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+                ),
+                child: LocaleFlag(flag!, size: 18),
               ),
-              child: LocaleFlag(flag, size: 18),
-            ),
-            const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: AppSpacing.md),
+            ],
             Expanded(
               child: Text(
                 label,

@@ -478,5 +478,117 @@
   "cacheClearConfirm": "Delete recordings",
   "@cacheClearConfirm": {
     "description": "Destructive confirm button on the clear sheet"
+  },
+  "reflectionsTitle": "Weekly reflections",
+  "@reflectionsTitle": {
+    "description": "Title of the reflections screen and its home-menu row"
+  },
+  "reflectionsEmptyTitle": "No reflections yet",
+  "@reflectionsEmptyTitle": {
+    "description": "Empty-state headline on the reflections screen before any week has been reflected"
+  },
+  "reflectionsEmptyBody": "The first arrives when your week closes, read back from what you recorded.",
+  "@reflectionsEmptyBody": {
+    "description": "Empty-state supporting line under the headline on the reflections screen"
+  },
+  "reflectionQuietWeek": "A quiet week.",
+  "@reflectionQuietWeek": {
+    "description": "Shown for a week the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionVoice": "Voice",
+  "@reflectionVoice": {
+    "description": "Settings submenu: the reflection voice"
+  },
+  "reflectionVoiceLiterary": "Literary",
+  "@reflectionVoiceLiterary": {
+    "description": "Voice option: reads the week back as a short reflective note"
+  },
+  "reflectionVoiceObservational": "Observational",
+  "@reflectionVoiceObservational": {
+    "description": "Voice option: reports the shape of the week plainly"
+  },
+  "reflectionVoiceSparse": "Sparse",
+  "@reflectionVoiceSparse": {
+    "description": "Voice option: nearly a log, minimal interpretation"
+  },
+  "reflectionLength": "Length",
+  "@reflectionLength": {
+    "description": "Settings submenu: how long a reflection may run"
+  },
+  "reflectionLengthOneLine": "One line",
+  "@reflectionLengthOneLine": {
+    "description": "Length option: a single sentence"
+  },
+  "reflectionLengthSentences": "A few sentences",
+  "@reflectionLengthSentences": {
+    "description": "Length option: up to three sentences"
+  },
+  "reflectionLengthParagraph": "Short paragraph",
+  "@reflectionLengthParagraph": {
+    "description": "Length option: up to a short paragraph"
+  },
+  "reflectionSpecifics": "Specifics",
+  "@reflectionSpecifics": {
+    "description": "Settings submenu: whether reflections name people, projects, places"
+  },
+  "reflectionSpecificsNameFreely": "Name specifics",
+  "@reflectionSpecificsNameFreely": {
+    "description": "Specifics option: may name the people, projects, and places heard"
+  },
+  "reflectionSpecificsThemes": "Themes only",
+  "@reflectionSpecificsThemes": {
+    "description": "Specifics option: themes only, no proper nouns"
+  },
+  "reflectionSpecificsLetWeek": "Let the week decide",
+  "@reflectionSpecificsLetWeek": {
+    "description": "Specifics option: name a specific only when clearly central"
+  },
+  "reflectionRegenerate": "Regenerate",
+  "@reflectionRegenerate": {
+    "description": "Per-week action: re-run this week's reflection in the current style"
+  },
+  "reflectionDelete": "Delete",
+  "@reflectionDelete": {
+    "description": "Per-week action and its confirm button: remove this week's reflection"
+  },
+  "reflectionDeleteTitle": "Delete this reflection?",
+  "@reflectionDeleteTitle": {
+    "description": "Title of the delete-reflection confirmation sheet"
+  },
+  "reflectionDeleteBody": "Removes the reflection for this week. This cannot be undone.",
+  "@reflectionDeleteBody": {
+    "description": "Body of the delete-reflection confirmation sheet"
+  },
+  "reflectionRegenerateFailed": "Could not reflect. Try again.",
+  "@reflectionRegenerateFailed": {
+    "description": "Notice when a regenerate could not run because the model was unavailable"
+  },
+  "reflectionOffTitle": "Apple Intelligence is off",
+  "@reflectionOffTitle": {
+    "description": "Reflections screen state: Apple Intelligence is available but not enabled"
+  },
+  "reflectionOffBody": "Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.",
+  "@reflectionOffBody": {
+    "description": "Guidance when Apple Intelligence is off; there is no deep-link to the exact pane"
+  },
+  "reflectionOpenSettings": "Open Settings",
+  "@reflectionOpenSettings": {
+    "description": "Button that opens the system Settings app"
+  },
+  "reflectionPreparingTitle": "Getting ready",
+  "@reflectionPreparingTitle": {
+    "description": "Reflections screen state: Apple Intelligence is enabled but the model is still downloading"
+  },
+  "reflectionPreparingBody": "Apple Intelligence is preparing on this device. Reflections start once it finishes.",
+  "@reflectionPreparingBody": {
+    "description": "Body for the preparing/model-not-ready state"
+  },
+  "reflectionUnsupportedTitle": "Not available here",
+  "@reflectionUnsupportedTitle": {
+    "description": "Reflections screen state: this device cannot run Apple Intelligence at all"
+  },
+  "reflectionUnsupportedBody": "This device does not support Apple Intelligence, which weekly reflections needs.",
+  "@reflectionUnsupportedBody": {
+    "description": "Body for the unsupported-device / older-iOS state"
   }
 }

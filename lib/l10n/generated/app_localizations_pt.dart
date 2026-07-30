@@ -380,4 +380,92 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Apagar gravações';
+
+  @override
+  String get reflectionsTitle => 'Reflexões semanais';
+
+  @override
+  String get reflectionsEmptyTitle => 'Ainda sem reflexões';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'A primeira chega quando a sua semana termina, a partir do que gravou.';
+
+  @override
+  String get reflectionQuietWeek => 'Uma semana tranquila.';
+
+  @override
+  String get reflectionVoice => 'Voz';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literária';
+
+  @override
+  String get reflectionVoiceObservational => 'Observadora';
+
+  @override
+  String get reflectionVoiceSparse => 'Contida';
+
+  @override
+  String get reflectionLength => 'Extensão';
+
+  @override
+  String get reflectionLengthOneLine => 'Uma linha';
+
+  @override
+  String get reflectionLengthSentences => 'Algumas frases';
+
+  @override
+  String get reflectionLengthParagraph => 'Parágrafo curto';
+
+  @override
+  String get reflectionSpecifics => 'Detalhes';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Nomear detalhes';
+
+  @override
+  String get reflectionSpecificsThemes => 'Apenas temas';
+
+  @override
+  String get reflectionSpecificsLetWeek => 'Deixar a semana decidir';
+
+  @override
+  String get reflectionRegenerate => 'Regenerar';
+
+  @override
+  String get reflectionDelete => 'Eliminar';
+
+  @override
+  String get reflectionDeleteTitle => 'Eliminar esta reflexão?';
+
+  @override
+  String get reflectionDeleteBody => 'Remove a reflexão desta semana. Não é possível desfazer.';
+
+  @override
+  String get reflectionRegenerateFailed => 'Não foi possível refletir. Tente novamente.';
+
+  @override
+  String get reflectionOffTitle => 'O Apple Intelligence está desligado';
+
+  @override
+  String get reflectionOffBody =>
+      'Ative-o nas Definições, em Apple Intelligence e Siri, para receber reflexões semanais.';
+
+  @override
+  String get reflectionOpenSettings => 'Abrir Definições';
+
+  @override
+  String get reflectionPreparingTitle => 'A preparar';
+
+  @override
+  String get reflectionPreparingBody =>
+      'O Apple Intelligence está a preparar-se neste dispositivo. As reflexões começam quando terminar.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Não disponível aqui';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'Este dispositivo não suporta o Apple Intelligence, necessário para as reflexões semanais.';
 }

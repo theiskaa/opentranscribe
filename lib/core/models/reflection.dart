@@ -20,13 +20,9 @@ final class Reflection {
   /// [weekStart] is a civil date, not an instant: it is normalized to its
   /// year/month/day and carries no timezone, because a week boundary is a
   /// calendar day, not a moment. [generatedAt] IS an instant, stored UTC.
-  Reflection({
-    required DateTime weekStart,
-    required DateTime generatedAt,
-    this.text,
-    this.voice,
-  }) : weekStart = dateOnly(weekStart),
-       generatedAt = generatedAt.toUtc();
+  Reflection({required DateTime weekStart, required DateTime generatedAt, this.text, this.voice})
+    : weekStart = dateOnly(weekStart),
+      generatedAt = generatedAt.toUtc();
 
   final DateTime weekStart;
   final DateTime generatedAt;

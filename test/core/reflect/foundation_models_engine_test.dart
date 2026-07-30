@@ -84,11 +84,7 @@ void main() {
       );
 
       expect(sent!['localeId'], 'en-US');
-      expect(sent!['style'], {
-        'voice': 'sparse',
-        'length': 'one_line',
-        'specificity': 'abstract',
-      });
+      expect(sent!['style'], {'voice': 'sparse', 'length': 'one_line', 'specificity': 'abstract'});
       expect(sent!['entries'], [
         {'weekday': 1, 'text': 'monday thoughts', 'title': 'standup'},
         {'weekday': 7, 'text': 'sunday walk'},

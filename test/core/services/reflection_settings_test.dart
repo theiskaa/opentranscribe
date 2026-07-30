@@ -31,11 +31,14 @@ void main() {
     await settings.setSpecificity(ReflectionSpecificity.abstractThemes);
 
     expect(settings.enabled, isFalse);
-    expect(settings.style, const ReflectionStyle(
-      voice: ReflectionVoice.sparse,
-      length: ReflectionLength.paragraph,
-      specificity: ReflectionSpecificity.abstractThemes,
-    ));
+    expect(
+      settings.style,
+      const ReflectionStyle(
+        voice: ReflectionVoice.sparse,
+        length: ReflectionLength.paragraph,
+        specificity: ReflectionSpecificity.abstractThemes,
+      ),
+    );
   });
 
   test('an unrecognized stored value falls back to the default', () async {

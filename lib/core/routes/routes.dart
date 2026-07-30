@@ -23,6 +23,12 @@ abstract final class Routes {
   static const settingsCache = '/settings/cache';
   static const settingsCacheName = 'settingsCache';
 
+  /// The weekly reflections screen: the history of past weeks and the settings
+  /// dropdown. Reached from the home menu when Apple Intelligence is available;
+  /// pushed over home.
+  static const reflections = '/reflections';
+  static const reflectionsName = 'reflections';
+
   /// Entry detail. Navigate by name with an `id` param; pushes over the shell.
   static const entry = '/entry/:id';
   static const entryName = 'entry';
