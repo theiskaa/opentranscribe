@@ -47,9 +47,6 @@ export default function Home() {
                   How it works
                 </a>
               </div>
-              <p className="boot boot-4 t-eyebrow hero-text mt-8">
-                Not on the App Store yet · MIT licensed
-              </p>
             </div>
 
             <div className={`${container} pb-24`}>
