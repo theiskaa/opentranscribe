@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/state/app_language_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -62,6 +63,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     // unfinalized file the reconcile sweep would discard.
     if (state == AppLifecycleState.detached) {
       unawaited(Deps.i.transcriptionService.finalizeActiveCapture());
+    } else if (state == AppLifecycleState.resumed) {
+      // Reflect any week that closed while the app was away. Single-flighted and
+      // a no-op when there is nothing due; never throws.
+      unawaited(Deps.i.reflectionService.catchUp());
     }
   }
 
@@ -81,6 +86,16 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
+          ),
+        ),
+        // Root-scoped so the Reflections screen and the home card (separate
+        // routes) read one source.
+        BlocProvider(
+          create: (_) => ReflectionsCubit(
+            service: Deps.i.reflectionService,
+            settings: Deps.i.reflectionSettings,
+            store: Deps.i.reflectionStore,
+            engine: Deps.i.reflectionEngine,
           ),
         ),
       ],

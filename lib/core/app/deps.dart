@@ -2,14 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/reflection_service.dart';
+import 'package:opentranscribe/core/services/reflection_settings.dart';
+import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
@@ -51,6 +57,10 @@ class Deps {
     required this.transcriptionSettings,
     required this.audioPlayer,
     required this.router,
+    required this.reflectionService,
+    required this.reflectionSettings,
+    required this.reflectionStore,
+    required this.reflectionEngine,
     required this.engineDescriptors,
   });
 
@@ -74,6 +84,20 @@ class Deps {
   /// [TranscriptionService.resolveAudioPath] first.
   final AudioPlayer audioPlayer;
   final AppRouter router;
+
+  /// The one owner of the weekly-reflection lifecycle: when a week closes, it
+  /// reads the week back on-device. Keeps its engine and store private.
+  final ReflectionService reflectionService;
+
+  /// The reflection preferences (on/off, voice, length, specificity).
+  final ReflectionSettings reflectionSettings;
+
+  /// The reflection history store, read by the reflection surfaces.
+  final ReflectionStore reflectionStore;
+
+  /// The reflection engine, exposed only so a surface can probe availability
+  /// (the gate). Nothing else names it; this is the composition root.
+  final ReflectionEngine reflectionEngine;
 
   /// The engines this build ships, as presentation facts for surfaces that list
   /// them. Built here because the composition root is the one place allowed to
@@ -123,10 +147,13 @@ class Deps {
     // Built before the service so a fresh recording's wave shape can be read
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
+    // Hoisted so both the transcription lifecycle and the reflection lifecycle
+    // read the same entries; the store is stateless, so sharing one is safe.
+    final entryStore = EntryStore(localService);
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engine,
-      store: EntryStore(localService),
+      store: entryStore,
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
     );
@@ -138,6 +165,20 @@ class Deps {
     // records.
     await transcriptionSettings.apply();
 
+    // The reflection backbone. FoundationModelsEngine is the ONE place naming
+    // Foundation Models; the service refuses it if it is not on-device. Nothing
+    // is generated here: catchUp runs off the critical path below.
+    final reflectionEngine = FoundationModelsEngine();
+    final reflectionSettings = ReflectionSettings(storage: localService);
+    final reflectionStore = ReflectionStore(localService);
+    final reflectionService = ReflectionService(
+      engine: reflectionEngine,
+      store: reflectionStore,
+      settings: reflectionSettings,
+      entries: entryStore.all,
+      language: () => AppLanguage.of(localService),
+    );
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
@@ -145,6 +186,10 @@ class Deps {
       transcriptionSettings: transcriptionSettings,
       audioPlayer: audioPlayer,
       router: AppRouter(),
+      reflectionService: reflectionService,
+      reflectionSettings: reflectionSettings,
+      reflectionStore: reflectionStore,
+      reflectionEngine: reflectionEngine,
       // The models screen renders this registry; whisper.cpp lands as one
       // more entry here, not new plumbing.
       engineDescriptors: [
@@ -156,6 +201,15 @@ class Deps {
       ],
     );
     _initialized = true;
+
+    // Reflect any closed, unreflected week now. Off the critical path: launch
+    // must not wait on the model. A no-op when disabled or when Apple
+    // Intelligence is unavailable; the foreground resume (view/app.dart) retries.
+    unawaited(
+      i.reflectionService.catchUp().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: launch reflection catch-up failed: $e');
+      }),
+    );
 
     // Recover or remove audio files no entry references (a kill mid-recording, a
     // save that never landed). Off the critical path: launch must not wait on it.
