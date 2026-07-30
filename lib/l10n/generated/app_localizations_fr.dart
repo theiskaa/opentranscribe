@@ -453,9 +453,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activez-le dans Réglages, sous Apple Intelligence et Siri, pour recevoir des réflexions hebdomadaires.';
 
   @override
-  String get reflectionOpenSettings => 'Ouvrir Réglages';
-
-  @override
   String get reflectionPreparingTitle => 'Préparation en cours';
 
   @override

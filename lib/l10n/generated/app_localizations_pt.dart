@@ -453,9 +453,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Ative-o nas Definições, em Apple Intelligence e Siri, para receber reflexões semanais.';
 
   @override
-  String get reflectionOpenSettings => 'Abrir Definições';
-
-  @override
   String get reflectionPreparingTitle => 'A preparar';
 
   @override

@@ -28,6 +28,42 @@ typedef ReflectionMenuLabels = ({
   String letWeekDecide,
 });
 
+/// One value/label pairing per dimension, the single source both the submenu
+/// items and the fallback dropdown draw from, so neither can drift out of step
+/// with the other (or with a reordered enum).
+List<(ReflectionVoice, String)> _voiceChoices(ReflectionMenuLabels labels) => [
+  (ReflectionVoice.literary, labels.literary),
+  (ReflectionVoice.observational, labels.observational),
+  (ReflectionVoice.sparse, labels.sparse),
+];
+
+List<(ReflectionLength, String)> _lengthChoices(ReflectionMenuLabels labels) => [
+  (ReflectionLength.oneLine, labels.oneLine),
+  (ReflectionLength.sentences, labels.sentences),
+  (ReflectionLength.paragraph, labels.paragraph),
+];
+
+List<(ReflectionSpecificity, String)> _specChoices(ReflectionMenuLabels labels) => [
+  (ReflectionSpecificity.nameFreely, labels.nameFreely),
+  (ReflectionSpecificity.abstractThemes, labels.themesOnly),
+  (ReflectionSpecificity.letWeekDecide, labels.letWeekDecide),
+];
+
+AppMenuItem _group<T extends Enum>({
+  required String id,
+  required String label,
+  required List<(T, String)> choices,
+  required T current,
+  required String Function(T) wireOf,
+}) => AppMenuItem(
+  id: id,
+  label: label,
+  children: [
+    for (final (value, text) in choices)
+      AppMenuItem(id: '$id:${wireOf(value)}', label: text, selected: value == current),
+  ],
+);
+
 /// Builds the nested settings menu: an on/off toggle, then Voice/Length/Specifics
 /// submenus. Pure, so the ids and `selected` flags are testable directly. On
 /// native glass the children answer through their ids; on the drawn fallback the
@@ -36,51 +72,36 @@ List<AppMenuItem> reflectionMenuItems({
   required bool enabled,
   required ReflectionStyle style,
   required ReflectionMenuLabels labels,
-}) {
-  AppMenuItem voice(ReflectionVoice v, String label) =>
-      AppMenuItem(id: 'r:voice:${v.wire}', label: label, selected: style.voice == v);
-  AppMenuItem length(ReflectionLength v, String label) =>
-      AppMenuItem(id: 'r:length:${v.wire}', label: label, selected: style.length == v);
-  AppMenuItem spec(ReflectionSpecificity v, String label) =>
-      AppMenuItem(id: 'r:spec:${v.wire}', label: label, selected: style.specificity == v);
-
-  return [
-    AppMenuItem(
-      id: 'r:toggle',
-      label: labels.reflections,
-      icon: AppIcons.calendar,
-      selected: enabled,
-    ),
-    const AppMenuItem.divider(),
-    AppMenuItem(
-      id: 'r:voice',
-      label: labels.voice,
-      children: [
-        voice(ReflectionVoice.literary, labels.literary),
-        voice(ReflectionVoice.observational, labels.observational),
-        voice(ReflectionVoice.sparse, labels.sparse),
-      ],
-    ),
-    AppMenuItem(
-      id: 'r:length',
-      label: labels.length,
-      children: [
-        length(ReflectionLength.oneLine, labels.oneLine),
-        length(ReflectionLength.sentences, labels.sentences),
-        length(ReflectionLength.paragraph, labels.paragraph),
-      ],
-    ),
-    AppMenuItem(
-      id: 'r:spec',
-      label: labels.specifics,
-      children: [
-        spec(ReflectionSpecificity.nameFreely, labels.nameFreely),
-        spec(ReflectionSpecificity.abstractThemes, labels.themesOnly),
-        spec(ReflectionSpecificity.letWeekDecide, labels.letWeekDecide),
-      ],
-    ),
-  ];
-}
+}) => [
+  AppMenuItem(
+    id: 'r:toggle',
+    label: labels.reflections,
+    icon: AppIcons.calendar,
+    selected: enabled,
+  ),
+  const AppMenuItem.divider(),
+  _group(
+    id: 'r:voice',
+    label: labels.voice,
+    choices: _voiceChoices(labels),
+    current: style.voice,
+    wireOf: (ReflectionVoice v) => v.wire,
+  ),
+  _group(
+    id: 'r:length',
+    label: labels.length,
+    choices: _lengthChoices(labels),
+    current: style.length,
+    wireOf: (ReflectionLength v) => v.wire,
+  ),
+  _group(
+    id: 'r:spec',
+    label: labels.specifics,
+    choices: _specChoices(labels),
+    current: style.specificity,
+    wireOf: (ReflectionSpecificity v) => v.wire,
+  ),
+];
 
 ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   reflections: l10n.reflectionsTitle,
@@ -116,20 +137,19 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
 
   /// The drawn fallback picker; native glass uses the real submenu instead.
   Future<void> _pickStyle<T extends Enum>(
-    List<T> values,
+    List<(T, String)> choices,
     T current,
-    List<String> labels,
     Future<void> Function(T) setter,
   ) async {
     final index = await showAppDropdown(
       context,
       anchor: dropdownAnchorRect(_anchor, context),
       items: [
-        for (final (i, v) in values.indexed)
-          AppDropdownItem(label: labels[i], selected: v == current),
+        for (final (value, label) in choices)
+          AppDropdownItem(label: label, selected: value == current),
       ],
     );
-    if (index != null && mounted) unawaited(setter(values[index]));
+    if (index != null && mounted) unawaited(setter(choices[index].$1));
   }
 
   /// Parent id opens the picker, a `<prefix>:<wire>` child applies the value.
@@ -137,14 +157,13 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
   bool _handleStyle<T extends Enum>(
     String id, {
     required String prefix,
-    required List<T> values,
+    required List<(T, String)> choices,
     required T current,
-    required List<String> labels,
     required T? Function(String?) fromWire,
     required Future<void> Function(T) setter,
   }) {
     if (id == prefix) {
-      unawaited(_pickStyle(values, current, labels, setter));
+      unawaited(_pickStyle(choices, current, setter));
       return true;
     }
     if (id.startsWith('$prefix:')) {
@@ -166,9 +185,8 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
     if (_handleStyle(
       id,
       prefix: 'r:voice',
-      values: ReflectionVoice.values,
+      choices: _voiceChoices(labels),
       current: style.voice,
-      labels: [labels.literary, labels.observational, labels.sparse],
       fromWire: ReflectionVoice.fromWire,
       setter: cubit.setVoice,
     )) {
@@ -177,9 +195,8 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
     if (_handleStyle(
       id,
       prefix: 'r:length',
-      values: ReflectionLength.values,
+      choices: _lengthChoices(labels),
       current: style.length,
-      labels: [labels.oneLine, labels.sentences, labels.paragraph],
       fromWire: ReflectionLength.fromWire,
       setter: cubit.setLength,
     )) {
@@ -188,9 +205,8 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
     _handleStyle(
       id,
       prefix: 'r:spec',
-      values: ReflectionSpecificity.values,
+      choices: _specChoices(labels),
       current: style.specificity,
-      labels: [labels.nameFreely, labels.themesOnly, labels.letWeekDecide],
       fromWire: ReflectionSpecificity.fromWire,
       setter: cubit.setSpecificity,
     );
@@ -205,7 +221,6 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
       icon: AppIcons.gearshape,
       color: widget.color,
       items: reflectionMenuItems(enabled: state.enabled, style: state.style, labels: labels),
-      onSelected: (_) {},
       onSelectedId: (id) => _onSelectedId(id, state, labels),
     );
   }

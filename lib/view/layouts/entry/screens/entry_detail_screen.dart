@@ -182,14 +182,7 @@ class _DetailViewState extends State<_DetailView> {
     final entries = context.read<EntriesCubit>();
     final tags = _transcribeTags(entry, settings);
 
-    // Anchor to the menu button that offered the action; if it is somehow
-    // gone (a rebuilt bar), a top-right stand-in keeps the growth corner.
-    final box = _menuAnchor.currentContext?.findRenderObject();
-    final screen = MediaQuery.sizeOf(context);
-    final anchor = box is RenderBox && box.attached
-        ? box.localToGlobal(Offset.zero) & box.size
-        : Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
-
+    final anchor = dropdownAnchorRect(_menuAnchor, context);
     final preselected = entry.effectiveLocaleId ?? settings.localeId;
     final index = await showAppDropdown(
       context,

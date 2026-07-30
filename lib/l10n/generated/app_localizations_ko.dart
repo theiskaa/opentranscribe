@@ -427,9 +427,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionOffBody => '주간 돌아보기를 받으려면 \'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜세요.';
 
   @override
-  String get reflectionOpenSettings => '설정 열기';
-
-  @override
   String get reflectionPreparingTitle => '준비 중';
 
   @override

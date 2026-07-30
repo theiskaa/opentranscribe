@@ -130,7 +130,6 @@
   "reflectionRegenerateFailed": "振り返りを作成できませんでした。もう一度お試しください。",
   "reflectionOffTitle": "Apple Intelligence がオフです",
   "reflectionOffBody": "毎週の振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。",
-  "reflectionOpenSettings": "設定を開く",
   "reflectionPreparingTitle": "準備中",
   "reflectionPreparingBody": "この端末で Apple Intelligence を準備しています。準備が完了すると振り返りが始まります。",
   "reflectionUnsupportedTitle": "ここでは利用できません",

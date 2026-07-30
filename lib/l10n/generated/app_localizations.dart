@@ -888,12 +888,6 @@ abstract class AppLocalizations {
   /// **'Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.'**
   String get reflectionOffBody;
 
-  /// Button that opens the system Settings app
-  ///
-  /// In en, this message translates to:
-  /// **'Open Settings'**
-  String get reflectionOpenSettings;
-
   /// Reflections screen state: Apple Intelligence is enabled but the model is still downloading
   ///
   /// In en, this message translates to:

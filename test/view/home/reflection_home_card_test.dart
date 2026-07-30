@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/view/layouts/reflections/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 
 /// Placement matches a section's day into a reflection's stored 7-day range, so
 /// it never depends on the current locale's week boundary. The widget is not

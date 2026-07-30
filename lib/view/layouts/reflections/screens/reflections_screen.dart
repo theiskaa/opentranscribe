@@ -26,6 +26,12 @@ import 'package:opentranscribe/view/widgets/sheet_message.dart';
 /// regenerate/delete menu, and the preferences in the top-bar settings dropdown.
 /// Reads the root-scoped [ReflectionsCubit]; the list refreshes itself when the
 /// foreground catch-up writes a new reflection.
+///
+/// Availability gates only the generation affordances (the settings dropdown,
+/// per-row regenerate), never stored history: home keeps showing the cards, so
+/// hiding their text here would strand what the user can already see. With no
+/// history the screen is a single editorial page, explaining either the empty
+/// first run or how to make the feature work.
 class ReflectionsScreen extends StatelessWidget {
   const ReflectionsScreen({super.key});
 
@@ -51,6 +57,24 @@ class ReflectionsScreen extends StatelessWidget {
     if ((confirmed ?? false) && context.mounted) unawaited(cubit.delete(reflection.weekStart));
   }
 
+  /// The editorial copy for a history-less screen: the first-run invitation
+  /// when the model runs here, else the state and what would make it work.
+  /// Instructions only for the off state: iOS has no public URL to the Apple
+  /// Intelligence & Siri pane (only the app's own Settings page), so a button
+  /// would land the user in the wrong place; the body says where to go instead.
+  (String, String) _editorialCopy(AppLocalizations l10n, ReflectionsState state) {
+    if (state.available) return (l10n.reflectionsEmptyTitle, l10n.reflectionsEmptyBody);
+    return switch (state.availability.status) {
+      ReflectionAvailabilityStatus.notEnabled => (l10n.reflectionOffTitle, l10n.reflectionOffBody),
+      ReflectionAvailabilityStatus.modelNotReady => (
+        l10n.reflectionPreparingTitle,
+        l10n.reflectionPreparingBody,
+      ),
+      // deviceNotEligible, unsupported (and the unreachable available).
+      _ => (l10n.reflectionUnsupportedTitle, l10n.reflectionUnsupportedBody),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -59,28 +83,20 @@ class ReflectionsScreen extends StatelessWidget {
     final cubit = context.watch<ReflectionsCubit>();
     final state = cubit.state;
 
-    // Unless Apple Intelligence is ready, the screen explains the state and
-    // offers the one action that helps (rather than being hidden). The settings
-    // dropdown only appears when there is something to configure.
-    if (!state.available) {
-      return AppScaffold(
-        background: theme.screens.settings,
-        onBack: () => context.pop(),
-        child: _Unavailable(status: state.availability.status),
-      );
-    }
-
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
-      actions: const [
-        Padding(
-          padding: EdgeInsets.only(top: AppSpacing.md),
-          child: ReflectionSettingsMenu(),
-        ),
+      actions: [
+        // Nothing to configure while the model cannot run; the editorial page
+        // below explains instead.
+        if (state.available)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md),
+            child: ReflectionSettingsMenu(color: theme.topBar.iconColor),
+          ),
       ],
       child: state.history.isEmpty
-          ? const _Empty()
+          ? _Editorial(copy: _editorialCopy(l10n, state))
           : ListView(
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -97,6 +113,7 @@ class ReflectionsScreen extends StatelessWidget {
                   ReflectionRow(
                     reflection: reflection,
                     regenerating: state.regenerating == reflection.weekStart,
+                    canRegenerate: state.available,
                     onRegenerate: () => unawaited(cubit.regenerate(reflection.weekStart)),
                     onDelete: () => unawaited(_confirmDelete(context, reflection)),
                     locale: locale,
@@ -109,62 +126,19 @@ class ReflectionsScreen extends StatelessWidget {
   }
 }
 
-/// The first-run state: nothing reflected yet. A title and a line of writing at
-/// the top left, the same first-page-of-the-journal vocabulary as home's empty
+/// The screen's editorial page: a display title and a line of writing at the
+/// top left, the same first-page-of-the-journal vocabulary as home's empty
 /// state, not a card floated in the middle. Scrollable so it sits under the
 /// frosted bar like the list it replaces.
-class _Empty extends StatelessWidget {
-  const _Empty();
+class _Editorial extends StatelessWidget {
+  const _Editorial({required this.copy});
+
+  final (String, String) copy;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppScaffold.topPaddingOf(context) + AppSpacing.xxxl,
-        AppSpacing.xxxl,
-        AppSpacing.xxl,
-      ),
-      children: [
-        Text(l10n.reflectionsEmptyTitle, style: AppType.display.copyWith(color: theme.text)),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          l10n.reflectionsEmptyBody,
-          style: AppType.body.copyWith(color: theme.textSecondary, height: 1.4),
-        ),
-      ],
-    );
-  }
-}
-
-/// Shown when Apple Intelligence is not ready: the state, and the one action
-/// that helps. Off -> a Settings jump (iOS has no deep-link to the Apple
-/// Intelligence pane, so it lands on the Settings app); preparing and
-/// unsupported are informational. Same editorial voice as the empty state.
-class _Unavailable extends StatelessWidget {
-  const _Unavailable({required this.status});
-
-  final ReflectionAvailabilityStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
-    // Instructions only: iOS has no public URL to the Apple Intelligence & Siri
-    // pane (only the app's own Settings page), so a button would land the user
-    // in the wrong place. The body says exactly where to go instead.
-    final (title, body) = switch (status) {
-      ReflectionAvailabilityStatus.notEnabled => (l10n.reflectionOffTitle, l10n.reflectionOffBody),
-      ReflectionAvailabilityStatus.modelNotReady => (
-        l10n.reflectionPreparingTitle,
-        l10n.reflectionPreparingBody,
-      ),
-      // deviceNotEligible, unsupported (and the unreachable available).
-      _ => (l10n.reflectionUnsupportedTitle, l10n.reflectionUnsupportedBody),
-    };
-
+    final (title, body) = copy;
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,

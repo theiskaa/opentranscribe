@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/view/widgets/anchored_popup.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
 /// One choice in a dropdown: a selectable row (see [SelectableRow]). [flag] is
@@ -42,36 +41,11 @@ Future<int?> showAppDropdown(
   BuildContext context, {
   required Rect anchor,
   required List<AppDropdownItem> items,
-}) {
-  // One-shot read: this runs from tap handlers, where select is illegal.
-  final motion = context.motionNow;
-  final reduceMotion = context.reduceMotion;
-  return showGeneralDialog<int>(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: '',
-    barrierColor: const Color(0x00000000),
-    transitionDuration: motion.indicator,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        _DropdownBody(anchor: anchor, items: items),
-    transitionBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
-      // Fade-only under Reduce Motion, like the menu and the sheet.
-      if (reduceMotion) return FadeTransition(opacity: curved, child: child);
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          // Out of the trigger's near corner, like the menu.
-          alignment: anchor.center.dx > MediaQuery.sizeOf(context).width / 2
-              ? Alignment.topRight
-              : Alignment.topLeft,
-          scale: Tween<double>(begin: 0.88, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
-  );
-}
+}) => showAnchoredPopup<int>(
+  context,
+  anchor: anchor,
+  builder: (_) => _DropdownBody(anchor: anchor, items: items),
+);
 
 class _DropdownBody extends StatefulWidget {
   const _DropdownBody({required this.anchor, required this.items});
@@ -104,7 +78,6 @@ class _DropdownBodyState extends State<_DropdownBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
 
@@ -129,19 +102,7 @@ class _DropdownBodyState extends State<_DropdownBody> {
           top: top,
           width: _width,
           height: height,
-          child: DecoratedBox(
-            decoration: SuperellipseDecoration(
-              borderRadius: AppRadius.card,
-              color: theme.surface,
-              border: BorderSide(color: theme.surfaceBorder),
-              shadows: [
-                BoxShadow(
-                  color: theme.shadow.withValues(alpha: 0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+          child: PopupSurface(
             child: SingleChildScrollView(
               controller: _scroll,
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),

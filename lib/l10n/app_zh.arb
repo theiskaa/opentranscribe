@@ -130,7 +130,6 @@
   "reflectionRegenerateFailed": "无法生成回顾。请重试。",
   "reflectionOffTitle": "Apple Intelligence 已关闭",
   "reflectionOffBody": "在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得每周回顾。",
-  "reflectionOpenSettings": "打开设置",
   "reflectionPreparingTitle": "正在准备",
   "reflectionPreparingBody": "Apple Intelligence 正在此设备上准备。准备完成后即可开始回顾。",
   "reflectionUnsupportedTitle": "此处不可用",

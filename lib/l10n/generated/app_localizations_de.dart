@@ -456,9 +456,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Schalten Sie es in den Einstellungen unter Apple Intelligence und Siri ein, um wöchentliche Rückblicke zu erhalten.';
 
   @override
-  String get reflectionOpenSettings => 'Einstellungen öffnen';
-
-  @override
   String get reflectionPreparingTitle => 'Wird vorbereitet';
 
   @override

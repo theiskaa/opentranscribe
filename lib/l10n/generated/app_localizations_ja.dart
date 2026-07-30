@@ -426,9 +426,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionOffBody => '毎週の振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。';
 
   @override
-  String get reflectionOpenSettings => '設定を開く';
-
-  @override
   String get reflectionPreparingTitle => '準備中';
 
   @override

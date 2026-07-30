@@ -455,9 +455,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Attivalo in Impostazioni, in Apple Intelligence e Siri, per ricevere le riflessioni settimanali.';
 
   @override
-  String get reflectionOpenSettings => 'Apri Impostazioni';
-
-  @override
   String get reflectionPreparingTitle => 'Preparazione in corso';
 
   @override

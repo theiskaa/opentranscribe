@@ -25,7 +25,7 @@ Map<int, Reflection> reflectionCardsForSections({
 }) {
   final day0 = dateOnly(today);
   bool covers(Reflection r, DateTime day) =>
-      !day.isBefore(r.weekStart) && day.isBefore(r.weekStart.add(const Duration(days: 7)));
+      !day.isBefore(r.weekStart) && day.isBefore(addDays(r.weekStart, 7));
   // Drop the open week (defensive: the service never reflects it anyway).
   final finished = [
     for (final r in reflections)
@@ -66,10 +66,7 @@ class ReflectionHomeCard extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.fromLTRB(theme.entryList.textColumnInset, 0, AppSpacing.xl, 0),
       child: reflection.isSilent
-          ? Text(
-              '·  ${l10n.reflectionQuietWeek}',
-              style: AppType.footnote.copyWith(color: theme.textSecondary),
-            )
+          ? _QuietWeekMarker(label: l10n.reflectionQuietWeek)
           : Touchable(
               onTap: onTap,
               child: DecoratedBox(
@@ -99,6 +96,27 @@ class ReflectionHomeCard extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// The silent week's one-line marker: a drawn bullet leading the localized
+/// label, so the glyph and its spacing never live inside a translation.
+class _QuietWeekMarker extends StatelessWidget {
+  const _QuietWeekMarker({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final style = AppType.footnote.copyWith(color: theme.textSecondary);
+    return Row(
+      children: [
+        Text('·', style: style),
+        const SizedBox(width: AppSpacing.sm),
+        Flexible(child: Text(label, style: style)),
+      ],
     );
   }
 }

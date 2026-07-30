@@ -423,9 +423,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionOffBody => '在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得每周回顾。';
 
   @override
-  String get reflectionOpenSettings => '打开设置';
-
-  @override
   String get reflectionPreparingTitle => '正在准备';
 
   @override

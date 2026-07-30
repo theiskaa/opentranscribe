@@ -571,10 +571,6 @@
   "@reflectionOffBody": {
     "description": "Guidance when Apple Intelligence is off; there is no deep-link to the exact pane"
   },
-  "reflectionOpenSettings": "Open Settings",
-  "@reflectionOpenSettings": {
-    "description": "Button that opens the system Settings app"
-  },
   "reflectionPreparingTitle": "Getting ready",
   "@reflectionPreparingTitle": {
     "description": "Reflections screen state: Apple Intelligence is enabled but the model is still downloading"

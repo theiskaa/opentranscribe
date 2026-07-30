@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
@@ -15,7 +16,7 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 /// month. The dash is an en dash (a range), not an em dash. Pure, so it is
 /// tested directly.
 String weekRangeLabel(DateTime weekStart, String locale) {
-  final end = weekStart.add(const Duration(days: 6));
+  final end = addDays(weekStart, 6);
   final start = DateFormat.MMMd(locale).format(weekStart);
   final endText = weekStart.month == end.month
       ? DateFormat.d(locale).format(end)
@@ -25,11 +26,14 @@ String weekRangeLabel(DateTime weekStart, String locale) {
 
 /// One week in the Reflections history: its range label and a trailing menu
 /// (Regenerate / Delete), over the reflection text or the "a quiet week" marker.
-/// A regenerating row shows the spinner in place of its body.
+/// A regenerating row shows the spinner in place of its body. Regenerate is
+/// offered only while the model can run ([canRegenerate]); delete always is, so
+/// history stays manageable after availability regresses.
 class ReflectionRow extends StatelessWidget {
   const ReflectionRow({
     required this.reflection,
     required this.regenerating,
+    required this.canRegenerate,
     required this.onRegenerate,
     required this.onDelete,
     required this.locale,
@@ -38,6 +42,7 @@ class ReflectionRow extends StatelessWidget {
 
   final Reflection reflection;
   final bool regenerating;
+  final bool canRegenerate;
   final VoidCallback onRegenerate;
   final VoidCallback onDelete;
   final String locale;
@@ -69,11 +74,12 @@ class ReflectionRow extends StatelessWidget {
                     iconSize: 18,
                     color: theme.textSecondary,
                     items: [
-                      AppMenuItem(
-                        id: 'regen',
-                        label: l10n.reflectionRegenerate,
-                        icon: AppIcons.arrowCounterclockwise,
-                      ),
+                      if (canRegenerate)
+                        AppMenuItem(
+                          id: 'regen',
+                          label: l10n.reflectionRegenerate,
+                          icon: AppIcons.arrowCounterclockwise,
+                        ),
                       AppMenuItem(
                         id: 'delete',
                         label: l10n.reflectionDelete,
@@ -81,31 +87,44 @@ class ReflectionRow extends StatelessWidget {
                         destructive: true,
                       ),
                     ],
-                    onSelected: (_) {},
                     onSelectedId: (id) => id == 'regen' ? onRegenerate() : onDelete(),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
-              if (regenerating)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: AppSpinner(size: 22, color: theme.textSecondary),
-                )
-              else if (reflection.isSilent)
-                Text(
-                  l10n.reflectionQuietWeek,
-                  style: AppType.body.copyWith(color: theme.textSecondary),
-                )
-              else
-                Text(
-                  reflection.text!,
-                  style: AppType.body.copyWith(color: theme.text, height: 1.4),
-                ),
+              _RowBody(reflection: reflection, regenerating: regenerating),
             ],
           ),
         ),
       ],
     );
+  }
+}
+
+/// The row's content under its label: the in-flight spinner, the quiet-week
+/// marker, or the reflection text.
+class _RowBody extends StatelessWidget {
+  const _RowBody({required this.reflection, required this.regenerating});
+
+  final Reflection reflection;
+  final bool regenerating;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    if (regenerating) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: AppSpinner(size: 22, color: theme.textSecondary),
+      );
+    }
+    if (reflection.isSilent) {
+      return Text(
+        l10n.reflectionQuietWeek,
+        style: AppType.body.copyWith(color: theme.textSecondary),
+      );
+    }
+    return Text(reflection.text!, style: AppType.body.copyWith(color: theme.text, height: 1.4));
   }
 }

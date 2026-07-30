@@ -24,7 +24,7 @@ import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart'
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
-import 'package:opentranscribe/view/layouts/reflections/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
@@ -395,6 +395,10 @@ class _HomeChromeState extends State<_HomeChrome> {
   }
 }
 
+/// Clearance under the last card so it clears the record button, matching the
+/// recorder screen's bottom inset.
+const double _listBottomInset = 42;
+
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
@@ -499,7 +503,7 @@ class _RecordsList extends StatelessWidget {
               },
             ),
         ],
-        const SizedBox(height: 42),
+        const SizedBox(height: _listBottomInset),
       ],
     );
   }

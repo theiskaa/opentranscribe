@@ -153,16 +153,15 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               AppNotice(message: _notice, onDismiss: () => setState(() => _notice = null)),
               _section('Menu'),
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: AppMenuButton(
                   icon: AppIcons.ellipsis,
-                  items: const [
+                  items: [
                     AppMenuItem(label: 'Rename', icon: AppIcons.textformat),
                     AppMenuItem(label: 'Re-transcribe', icon: AppIcons.arrowCounterclockwise),
                     AppMenuItem(label: 'Delete', icon: AppIcons.trash, destructive: true),
                   ],
-                  onSelected: (_) {},
                 ),
               ),
               _section('Wave glyph'),

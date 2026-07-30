@@ -39,7 +39,6 @@ class LanguageMenuButton extends StatelessWidget {
             selected: tag == current,
           ),
       ],
-      onSelected: (_) {},
       onSelectedId: onPick,
     );
   }

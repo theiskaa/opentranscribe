@@ -111,6 +111,10 @@ final class CalendarTheme {
 
   final Color weekdayLabelColor;
 
+  /// The weekday letter over an inert day, faded from [weekdayLabelColor] the
+  /// same way [disabledDayColor] mutes the number.
+  Color get disabledWeekdayLabelColor => weekdayLabelColor.withValues(alpha: 0.5);
+
   /// Days with records; every other day renders in [disabledDayColor] and does
   /// not respond.
   final Color dayNumberColor;

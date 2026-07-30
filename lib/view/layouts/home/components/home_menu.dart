@@ -128,7 +128,7 @@ class _HomeMenuState extends State<HomeMenu> {
     final appLang = context.watch<AppLanguageCubit>().state;
 
     final currentDefault = _currentDefault(settings);
-    final sourceLabel = _version == null ? l10n.menuSourceCode : '$_version';
+    final sourceLabel = _version ?? l10n.menuSourceCode;
 
     final items = <AppMenuItem>[
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
@@ -177,7 +177,6 @@ class _HomeMenuState extends State<HomeMenu> {
       icon: AppIcons.ellipsis,
       color: widget.color,
       items: items,
-      onSelected: (_) {},
       onSelectedId: (id) {
         if (id.startsWith('tx:')) {
           unawaited(context.read<SettingsCubit>().setLocale(id.substring(3)));
