@@ -19,3 +19,17 @@ DateTime startOfWeek(DateTime day, {String? localeId}) {
 
 /// [d] stripped to its civil date: year/month/day, no time, no timezone.
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// [days] after [d], as a civil date. Never `add(Duration(days: n))` for week
+/// math: Duration is epoch arithmetic, so across a DST change it lands an hour
+/// off the wall-clock day and a 7-day week edge quietly gains or loses a day.
+DateTime addDays(DateTime d, int days) => DateTime(d.year, d.month, d.day + days);
+
+/// Whole civil days from [from] to [to] (both dates). Computed in UTC because a
+/// local-time difference across a DST change is a fractional day, which
+/// `inDays` truncates.
+int daysBetween(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;

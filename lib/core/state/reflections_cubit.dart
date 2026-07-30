@@ -1,15 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
-import 'package:opentranscribe/core/services/reflection_store.dart';
 
 // The collaborators are private (a cubit owns them) and named parameters cannot
 // be private, so initializing formals do not apply.
@@ -42,15 +40,9 @@ final class ReflectionsState {
   /// surface can offer a retry. Cleared on the next action.
   final bool regenerateFailed;
 
-  /// The feature actually runs here.
+  /// The feature actually runs here. Surfaces stay visible regardless (the
+  /// screen explains an unavailable state); this gates only generation.
   bool get available => availability.isAvailable;
-
-  /// Eligible hardware: it can run, even if the user must still enable Apple
-  /// Intelligence or wait for the model. deviceNotEligible/unsupported are not
-  /// eligible and stay invisible.
-  bool get eligible =>
-      availability.status != ReflectionAvailabilityStatus.deviceNotEligible &&
-      availability.status != ReflectionAvailabilityStatus.unsupported;
 
   ReflectionsState copyWith({
     ReflectionAvailability? availability,
@@ -71,60 +63,43 @@ final class ReflectionsState {
 }
 
 /// Drives the reflection surfaces over the [ReflectionService]. Probes
-/// availability and reads settings + history on load and on each change; a
-/// generated reflection (from the foreground catch-up) refreshes the history
-/// through [ReflectionService.reflectionsChanged].
-class ReflectionsCubit extends Cubit<ReflectionsState> with WidgetsBindingObserver {
-  ReflectionsCubit({
-    required ReflectionService service,
-    required ReflectionSettings settings,
-    required ReflectionStore store,
-    required ReflectionEngine engine,
-  }) : _service = service,
-       _settings = settings,
-       _store = store,
-       _engine = engine,
-       super(const ReflectionsState()) {
+/// availability and reads settings + history on load; a generated reflection
+/// (from the foreground catch-up) refreshes the history through
+/// [ReflectionService.reflectionsChanged]. The app's lifecycle observer calls
+/// [load] on resume, so an Apple Intelligence toggle made in Settings is
+/// picked up without a relaunch.
+class ReflectionsCubit extends Cubit<ReflectionsState> {
+  ReflectionsCubit({required ReflectionService service, required ReflectionSettings settings})
+    : _service = service,
+      _settings = settings,
+      super(const ReflectionsState()) {
     _changedSub = _service.reflectionsChanged.listen((_) => _loadHistory());
-    WidgetsBinding.instance.addObserver(this);
     unawaited(load());
   }
 
   final ReflectionService _service;
   final ReflectionSettings _settings;
-  final ReflectionStore _store;
-  final ReflectionEngine _engine;
 
   StreamSubscription<void>? _changedSub;
 
   /// Re-probes availability and re-reads settings + history. Call on build and
   /// on resume, so enabling Apple Intelligence or a fresh reflection is picked up.
   Future<void> load() async {
-    final availability = await _engine.availability();
+    final availability = await _service.availability();
     if (isClosed) return;
     emit(
       state.copyWith(
         availability: availability,
         enabled: _settings.enabled,
         style: _settings.style,
-        history: _store.all(),
+        history: _service.history(),
       ),
     );
   }
 
   void _loadHistory() {
     if (isClosed) return;
-    emit(state.copyWith(history: _store.all()));
-  }
-
-  @override
-  // Named to avoid shadowing the cubit's own `state`.
-  // ignore: avoid_renaming_method_parameters
-  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
-    // Re-probe availability (and refresh settings + history) on return: the user
-    // may have enabled Apple Intelligence while the app was backgrounded, so the
-    // reflections surfaces must not stay frozen at their launch verdict.
-    if (lifecycle == AppLifecycleState.resumed) unawaited(load());
+    emit(state.copyWith(history: _service.history()));
   }
 
   /// Turns reflections on or off. Enabling kicks a catch-up so a due week lands
@@ -136,34 +111,34 @@ class ReflectionsCubit extends Cubit<ReflectionsState> with WidgetsBindingObserv
     if (value) unawaited(_service.catchUp());
   }
 
-  Future<void> setVoice(ReflectionVoice value) async {
-    await _settings.setVoice(value);
-    if (!isClosed) emit(state.copyWith(style: _settings.style));
-  }
+  Future<void> setVoice(ReflectionVoice value) => _setStyle(() => _settings.setVoice(value));
 
-  Future<void> setLength(ReflectionLength value) async {
-    await _settings.setLength(value);
-    if (!isClosed) emit(state.copyWith(style: _settings.style));
-  }
+  Future<void> setLength(ReflectionLength value) => _setStyle(() => _settings.setLength(value));
 
-  Future<void> setSpecificity(ReflectionSpecificity value) async {
-    await _settings.setSpecificity(value);
+  Future<void> setSpecificity(ReflectionSpecificity value) =>
+      _setStyle(() => _settings.setSpecificity(value));
+
+  Future<void> _setStyle(Future<void> Function() write) async {
+    await write();
     if (!isClosed) emit(state.copyWith(style: _settings.style));
   }
 
   /// Re-runs one week in the current style, replacing its stored result. Marks
-  /// [ReflectionsState.regenerateFailed] when the model could not run, rather
-  /// than throwing at the UI.
+  /// [ReflectionsState.regenerateFailed] on any failure rather than throwing at
+  /// the UI. One at a time: a second week's regenerate while one is in flight
+  /// would hijack the shared in-flight marker.
   Future<void> regenerate(DateTime weekStart) async {
-    if (isClosed) return;
+    if (isClosed || state.regenerating != null) return;
     emit(state.copyWith(regenerating: weekStart, regenerateFailed: false));
     try {
       await _service.regenerate(weekStart);
-      if (isClosed) return;
-      emit(state.copyWith(history: _store.all(), clearRegenerating: true));
-    } on ReflectionUnavailable {
-      if (isClosed) return;
-      emit(state.copyWith(clearRegenerating: true, regenerateFailed: true));
+    } catch (_) {
+      // Model unavailable or an unexpected failure (a storage write): either
+      // way the week kept its previous result, so surface the retry notice.
+      if (!isClosed) emit(state.copyWith(regenerateFailed: true));
+    } finally {
+      // Always clears, so no failure path can leave the row spinning forever.
+      if (!isClosed) emit(state.copyWith(history: _service.history(), clearRegenerating: true));
     }
   }
 
@@ -179,7 +154,6 @@ class ReflectionsCubit extends Cubit<ReflectionsState> with WidgetsBindingObserv
 
   @override
   Future<void> close() async {
-    WidgetsBinding.instance.removeObserver(this);
     await _changedSub?.cancel();
     return super.close();
   }

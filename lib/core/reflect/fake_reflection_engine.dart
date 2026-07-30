@@ -21,6 +21,10 @@ class FakeReflectionEngine implements ReflectionEngine {
   bool silent;
   bool failReflect;
 
+  /// Thrown as-is when set, for the unexpected-failure paths that must not be
+  /// read as the transient [ReflectionUnavailable].
+  Object? error;
+
   /// Holds [reflect] open until completed, so a test can exercise the
   /// single-flight guard with a call parked mid-generation.
   Future<void>? gate;
@@ -51,6 +55,7 @@ class FakeReflectionEngine implements ReflectionEngine {
     lastLocaleId = localeId;
     if (gate != null) await gate;
     if (failReflect) throw const ReflectionUnavailable('fake reflect failure');
+    if (error != null) throw error!;
     return silent ? null : output;
   }
 }

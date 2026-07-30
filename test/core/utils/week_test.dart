@@ -43,4 +43,19 @@ void main() {
     Intl.defaultLocale = 'de'; // ambient is Monday-first
     expect(startOfWeek(DateTime(2026, 7, 29), localeId: 'en_US'), DateTime(2026, 7, 26)); // Sun
   });
+
+  test('addDays stays on civil days, even across a DST transition', () {
+    // In a US timezone, epoch arithmetic (add(Duration(days: 7))) lands this on
+    // Mar 15 01:00; the civil constructor must land on midnight regardless of
+    // the timezone the suite runs in.
+    expect(addDays(DateTime(2026, 3, 8), 7), DateTime(2026, 3, 15));
+    expect(addDays(DateTime(2026, 10, 31), 7), DateTime(2026, 11, 7));
+    expect(addDays(DateTime(2026, 12, 29), 7), DateTime(2027, 1, 5)); // year edge
+  });
+
+  test('daysBetween counts whole civil days, immune to DST fractions', () {
+    expect(daysBetween(DateTime(2026, 3, 2), DateTime(2026, 3, 16)), 14); // spring-forward inside
+    expect(daysBetween(DateTime(2026, 10, 25), DateTime(2026, 11, 8)), 14); // fall-back inside
+    expect(daysBetween(DateTime(2026, 7, 20), DateTime(2026, 7, 20)), 0);
+  });
 }

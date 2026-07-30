@@ -30,6 +30,11 @@ class App extends StatefulWidget {
 class _AppState extends State<App> with WidgetsBindingObserver {
   late final ThemeCubit _themeCubit;
 
+  /// Hoisted like [_themeCubit] so the lifecycle observer below can reach it:
+  /// the resume re-probe belongs to the app's ONE observer, not to a second
+  /// observer inside the cubit.
+  late final ReflectionsCubit _reflectionsCubit;
+
   /// The startup splash sits above the router until its animation finishes, then
   /// removes itself for good. One cold-start affair, never shown again.
   bool _splashDone = false;
@@ -38,6 +43,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _themeCubit = ThemeCubit(storage: Deps.i.localService);
+    _reflectionsCubit = ReflectionsCubit(
+      service: Deps.i.reflectionService,
+      settings: Deps.i.reflectionSettings,
+    );
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -45,6 +54,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _themeCubit.close();
+    _reflectionsCubit.close();
     super.dispose();
   }
 
@@ -63,11 +73,16 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     // unfinalized file the reconcile sweep would discard.
     if (state == AppLifecycleState.detached) {
       unawaited(Deps.i.transcriptionService.finalizeActiveCapture());
-    } else if (state == AppLifecycleState.resumed) {
-      // Reflect any week that closed while the app was away. Single-flighted and
-      // a no-op when there is nothing due; never throws.
-      unawaited(Deps.i.reflectionService.catchUp());
+      return;
     }
+    if (state != AppLifecycleState.resumed) return;
+    // Reflect any week that closed while the app was away. Single-flighted and
+    // a no-op when there is nothing due; never throws.
+    unawaited(Deps.i.reflectionService.catchUp());
+    // Re-probe availability: the user may have toggled Apple Intelligence in
+    // Settings while backgrounded, and the surfaces must not stay frozen at
+    // their launch verdict.
+    unawaited(_reflectionsCubit.load());
   }
 
   @override
@@ -90,14 +105,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         ),
         // Root-scoped so the Reflections screen and the home card (separate
         // routes) read one source.
-        BlocProvider(
-          create: (_) => ReflectionsCubit(
-            service: Deps.i.reflectionService,
-            settings: Deps.i.reflectionSettings,
-            store: Deps.i.reflectionStore,
-            engine: Deps.i.reflectionEngine,
-          ),
-        ),
+        BlocProvider.value(value: _reflectionsCubit),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         // The app-level chrome only depends on the resolved theme; skip

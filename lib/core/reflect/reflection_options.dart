@@ -5,6 +5,8 @@
 /// cross-boundary contract, like SpeechEngine's error codes.
 library;
 
+import 'package:flutter/foundation.dart';
+
 /// How a reflection reads. [literary] is the default the other defaults are
 /// tuned to.
 enum ReflectionVoice {
@@ -67,6 +69,7 @@ T? _fromWire<T>(List<T> values, String Function(T) wireOf, String? wire) {
 
 /// The three knobs bundled, with the literary-tuned defaults. Handed to the
 /// engine on every [ReflectionEngine.reflect] call.
+@immutable
 final class ReflectionStyle {
   const ReflectionStyle({
     this.voice = ReflectionVoice.literary,

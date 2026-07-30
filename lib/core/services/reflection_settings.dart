@@ -20,15 +20,9 @@ class ReflectionSettings {
   static const _lengthKey = 'reflect.length';
   static const _specificityKey = 'reflect.specificity';
 
-  /// On by default on capable devices; the feature is invisible anyway where
-  /// Apple Intelligence is unavailable, so a stored true costs nothing there.
-  bool get enabled {
-    try {
-      return _storage.readString(_enabledKey) != 'false';
-    } catch (_) {
-      return true;
-    }
-  }
+  /// On by default on capable devices; where Apple Intelligence is unavailable
+  /// nothing generates anyway, so a stored true costs nothing there.
+  bool get enabled => _read(_enabledKey, (s) => s == null ? null : s != 'false', true);
 
   ReflectionVoice get voice => _read(_voiceKey, ReflectionVoice.fromWire, ReflectionVoice.fallback);
 

@@ -252,13 +252,68 @@ void main() {
         withText('a', DateTime(2026, 7, 20, 9), text: big),
         withText('b', DateTime(2026, 7, 22, 9), text: big),
         withText('c', DateTime(2026, 7, 24, 9), text: big),
-      ]; // 15000 chars, over the 8000 cap
+      ]; // 15000 Latin chars (~3750 tokens), over the ~2000-token budget
       await service.catchUp();
 
       final sent = engine.lastEntries!;
       expect(sent.length, 3); // no day dropped
       final total = sent.fold<int>(0, (sum, e) => sum + e.text.length);
-      expect(total, lessThanOrEqualTo(8000));
+      expect(total, lessThanOrEqualTo(8000)); // 2000 tokens at ~4 chars each
+    });
+
+    test('caps a heavy CJK week far tighter, near one token per character', () async {
+      // A character cap sized for Latin would pass ~8000 CJK chars straight
+      // into a context overflow, which the engine would report as silence and
+      // the service would store as a permanent false quiet week.
+      final big = '日' * 3000;
+      entries = [
+        withText('a', DateTime(2026, 7, 20, 9), text: big),
+        withText('b', DateTime(2026, 7, 22, 9), text: big),
+      ]; // ~6000 tokens, over budget despite being under 8000 chars
+      await service.catchUp();
+
+      final sent = engine.lastEntries!;
+      expect(sent.length, 2);
+      final total = sent.fold<int>(0, (sum, e) => sum + e.text.length);
+      expect(total, lessThanOrEqualTo(2000)); // 2000 tokens at ~1 char each
+    });
+
+    test('the cap trims on a code-point boundary, never through a surrogate pair', () async {
+      final big = '😀' * 9000; // 2 UTF-16 units per emoji, over the token budget
+      entries = [withText('a', DateTime(2026, 7, 20, 9), text: big)];
+      await service.catchUp();
+
+      final sent = engine.lastEntries!.single.text;
+      expect(sent.length, lessThan(big.length)); // actually trimmed
+      expect(sent.length.isEven, isTrue); // whole emoji only
+      // A split pair would leave an unpaired surrogate at the cut, which a
+      // decode-encode round trip would rewrite; intact text round-trips as-is.
+      final last = sent.codeUnitAt(sent.length - 1);
+      expect(last >= 0xDC00 && last <= 0xDFFF, isTrue); // a proper trail unit
+      expect(String.fromCharCodes(sent.runes), sent);
+    });
+
+    test('a language change that shifts the week boundary does not re-reflect history', () async {
+      // Ten Sunday-keyed weeks reflected under en; the user switches to de
+      // (Monday-first). The done-check must match by range overlap, or every
+      // stored week re-reflects into overlapping duplicates.
+      final sundayWeek = DateTime(2026, 7, 19);
+      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'kept'));
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final deService = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'de',
+        clock: () => now,
+      );
+
+      await deService.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.all().length, 1); // no Monday-keyed duplicate
+      expect(store.read(sundayWeek)!.text, 'kept');
     });
 
     test('stores the voice from generation start, not a change made mid-run', () async {
@@ -267,7 +322,10 @@ void main() {
       engine.gate = gate.future;
 
       final run = service.catchUp();
+      // Bounded so a regression fails fast instead of riding the suite timeout.
+      var spins = 0;
       while (engine.reflectCalls == 0) {
+        expect(++spins, lessThan(1000), reason: 'catchUp never reached reflect');
         await Future<void>.delayed(Duration.zero); // wait until parked in reflect
       }
       await settings.setVoice(ReflectionVoice.sparse); // change mid-generation
@@ -360,5 +418,26 @@ void main() {
     expect(store.read(lastWeek), isNull);
     expect(events, isNotEmpty);
     await sub.cancel();
+  });
+
+  test('deleteReflection keys off the stored week, not the current locale boundary', () async {
+    // A Sunday-keyed reflection (stored under en) deleted after a switch to de
+    // (Monday-first): re-bucketing would target the previous Monday's key and
+    // silently miss, leaving the row undeletable.
+    final sundayWeek = DateTime(2026, 7, 19);
+    await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'x'));
+    final deService = ReflectionService(
+      engine: engine,
+      store: store,
+      settings: settings,
+      entries: () => entries,
+      language: () => 'de',
+      clock: () => now,
+    );
+
+    await deService.deleteReflection(sundayWeek);
+
+    expect(store.read(sundayWeek), isNull);
+    expect(store.all(), isEmpty);
   });
 }

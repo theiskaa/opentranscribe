@@ -1,4 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -19,9 +20,6 @@ DateTime mondayStart(DateTime d) {
 }
 
 void main() {
-  // ReflectionsCubit registers a WidgetsBindingObserver, so the binding must exist.
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   const key = 'test-encryption-key-0123456789ab';
   final now = DateTime(2026, 7, 29, 12);
   final lastWeek = DateTime(2026, 7, 20);
@@ -51,8 +49,7 @@ void main() {
           ),
   );
 
-  ReflectionsCubit build() =>
-      ReflectionsCubit(service: service, settings: settings, store: store, engine: engine);
+  ReflectionsCubit build() => ReflectionsCubit(service: service, settings: settings);
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 10));
 
@@ -87,25 +84,20 @@ void main() {
     await cubit.close();
   });
 
-  test('available and eligible reflect the availability status', () async {
-    Future<void> check(
-      ReflectionAvailabilityStatus status, {
-      required bool available,
-      required bool eligible,
-    }) async {
+  test('available means the model can actually run, nothing else', () async {
+    Future<void> check(ReflectionAvailabilityStatus status, {required bool available}) async {
       engine.availabilityResult = ReflectionAvailability(status);
       final cubit = build();
       await cubit.load();
-      expect(cubit.state.available, available, reason: '$status available');
-      expect(cubit.state.eligible, eligible, reason: '$status eligible');
+      expect(cubit.state.available, available, reason: '$status');
       await cubit.close();
     }
 
-    await check(ReflectionAvailabilityStatus.available, available: true, eligible: true);
-    await check(ReflectionAvailabilityStatus.notEnabled, available: false, eligible: true);
-    await check(ReflectionAvailabilityStatus.modelNotReady, available: false, eligible: true);
-    await check(ReflectionAvailabilityStatus.deviceNotEligible, available: false, eligible: false);
-    await check(ReflectionAvailabilityStatus.unsupported, available: false, eligible: false);
+    await check(ReflectionAvailabilityStatus.available, available: true);
+    await check(ReflectionAvailabilityStatus.notEnabled, available: false);
+    await check(ReflectionAvailabilityStatus.modelNotReady, available: false);
+    await check(ReflectionAvailabilityStatus.deviceNotEligible, available: false);
+    await check(ReflectionAvailabilityStatus.unsupported, available: false);
   });
 
   test('setEnabled persists, reflects in state, and enabling kicks a catch-up', () async {
@@ -169,7 +161,45 @@ void main() {
     await cubit.close();
   });
 
-  test('re-probes availability when the app resumes', () async {
+  test('an unexpected regenerate failure still clears the spinner', () async {
+    // Not a ReflectionUnavailable: a storage-write StateError must not leave
+    // the row spinning forever, which only a catch-all/finally guarantees.
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    engine.error = StateError('persist failed');
+    final cubit = build();
+    await cubit.load();
+
+    await cubit.regenerate(lastWeek);
+
+    expect(cubit.state.regenerateFailed, isTrue);
+    expect(cubit.state.regenerating, isNull);
+    await cubit.close();
+  });
+
+  test('a second regenerate while one is in flight is ignored', () async {
+    // A shared in-flight marker: letting week B start mid-A would steal A's
+    // spinner and then have A's completion clear B's.
+    final weekBefore = DateTime(2026, 7, 13);
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'a'));
+    await store.save(Reflection(weekStart: weekBefore, generatedAt: now, text: 'b'));
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    final gate = Completer<void>();
+    engine.gate = gate.future;
+    final cubit = build();
+    await cubit.load();
+
+    final first = cubit.regenerate(lastWeek);
+    final second = cubit.regenerate(weekBefore);
+    expect(cubit.state.regenerating, lastWeek);
+    gate.complete();
+    await Future.wait([first, second]);
+
+    expect(engine.reflectCalls, 1);
+    expect(cubit.state.regenerating, isNull);
+    await cubit.close();
+  });
+
+  test('load re-probes availability, so a resume picks up a mid-life enable', () async {
     engine.availabilityResult = const ReflectionAvailability(
       ReflectionAvailabilityStatus.notEnabled,
     );
@@ -177,10 +207,10 @@ void main() {
     await cubit.load();
     expect(cubit.state.available, isFalse);
 
-    // Apple Intelligence enabled while backgrounded; resume must pick it up.
+    // Apple Intelligence enabled while backgrounded; the app's lifecycle
+    // observer calls load() on resume.
     engine.availabilityResult = const ReflectionAvailability.available();
-    cubit.didChangeAppLifecycleState(AppLifecycleState.resumed);
-    await settle();
+    await cubit.load();
 
     expect(cubit.state.available, isTrue);
     await cubit.close();

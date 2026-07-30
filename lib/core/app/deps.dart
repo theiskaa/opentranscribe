@@ -9,7 +9,6 @@ import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -59,8 +58,6 @@ class Deps {
     required this.router,
     required this.reflectionService,
     required this.reflectionSettings,
-    required this.reflectionStore,
-    required this.reflectionEngine,
     required this.engineDescriptors,
   });
 
@@ -86,18 +83,13 @@ class Deps {
   final AppRouter router;
 
   /// The one owner of the weekly-reflection lifecycle: when a week closes, it
-  /// reads the week back on-device. Keeps its engine and store private.
+  /// reads the week back on-device. Keeps its engine and store private, like
+  /// [TranscriptionService]: history and availability are read through it, so
+  /// nothing can bypass the on-device guard or the silence-is-a-result rule.
   final ReflectionService reflectionService;
 
   /// The reflection preferences (on/off, voice, length, specificity).
   final ReflectionSettings reflectionSettings;
-
-  /// The reflection history store, read by the reflection surfaces.
-  final ReflectionStore reflectionStore;
-
-  /// The reflection engine, exposed only so a surface can probe availability
-  /// (the gate). Nothing else names it; this is the composition root.
-  final ReflectionEngine reflectionEngine;
 
   /// The engines this build ships, as presentation facts for surfaces that list
   /// them. Built here because the composition root is the one place allowed to
@@ -188,8 +180,6 @@ class Deps {
       router: AppRouter(),
       reflectionService: reflectionService,
       reflectionSettings: reflectionSettings,
-      reflectionStore: reflectionStore,
-      reflectionEngine: reflectionEngine,
       // The models screen renders this registry; whisper.cpp lands as one
       // more entry here, not new plumbing.
       engineDescriptors: [

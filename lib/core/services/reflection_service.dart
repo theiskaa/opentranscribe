@@ -56,10 +56,13 @@ class ReflectionService {
   final DateTime Function() _clock;
   final DateTime Function(DateTime) _weekOf;
 
-  /// Soft ceiling on the transcript characters sent to the model for one week,
-  /// safely under the on-device context window, leaving room for the
-  /// instructions and the response.
-  static const _maxPromptChars = 8000;
+  /// Soft ceiling on the estimated prompt tokens for one week, safely under the
+  /// on-device model's ~4k context window, leaving room for the instructions
+  /// and the response. Budgeted in tokens, not characters: a character cap
+  /// sized for Latin text sails a CJK week (near one token per character)
+  /// straight into a context overflow, a deterministic failure that would be
+  /// stored as a false quiet week.
+  static const _maxPromptTokens = 2000;
 
   final StreamController<void> _changed = StreamController<void>.broadcast();
 
@@ -89,10 +92,17 @@ class ReflectionService {
       final byWeek = _entriesByWeek();
       final weeks = byWeek.keys.where((w) => w.isBefore(currentWeek)).toList()
         ..sort((a, b) => b.compareTo(a));
+      // Snapshot once: candidate weeks never overlap each other, so a save
+      // inside the loop cannot make a later candidate look covered.
+      final stored = _store.all();
 
       for (final week in weeks) {
-        // A stored reflection (text OR silence) is done; never re-run.
-        if (_store.read(week) != null) continue;
+        // A stored reflection (text OR silence) is done; never re-run. Done is
+        // judged by RANGE overlap, not exact key: an app-language change can
+        // shift the first-day-of-week, and the shifted candidate must still
+        // see the reflection written under the old boundary, or one language
+        // switch would re-reflect the whole history into overlapping duplicates.
+        if (_covered(week, stored)) continue;
         try {
           await _reflectWeek(week, byWeek[week]!);
         } on ReflectionUnavailable {
@@ -126,7 +136,7 @@ class ReflectionService {
     // reflection under a new key). Gather the week's entries by the same 7-day
     // range, so this is locale-independent too.
     final week = dateOnly(weekStart);
-    final end = week.add(const Duration(days: 7));
+    final end = addDays(week, 7);
     final entries = [
       for (final e in _entries())
         if (_dayInWeek(dateOnly(e.createdAt.toLocal()), week, end)) e,
@@ -137,9 +147,28 @@ class ReflectionService {
   bool _dayInWeek(DateTime day, DateTime start, DateTime end) =>
       !day.isBefore(start) && day.isBefore(end);
 
-  /// Removes a week's reflection.
+  /// Whether any of [stored] covers [week]'s 7-day range.
+  bool _covered(DateTime week, List<Reflection> stored) {
+    final end = addDays(week, 7);
+    for (final r in stored) {
+      if (r.weekStart.isBefore(end) && week.isBefore(addDays(r.weekStart, 7))) return true;
+    }
+    return false;
+  }
+
+  /// The stored history, newest week first, for the surfaces. The store itself
+  /// stays private so every write goes through this service.
+  List<Reflection> history() => _store.all();
+
+  /// Probes whether the on-device model can run right now. Live, never cached:
+  /// enabling Apple Intelligence mid-life must be seen on the next probe.
+  Future<ReflectionAvailability> availability() => _engine.availability();
+
+  /// Removes a week's reflection, keyed off the STORED week as-is, exactly like
+  /// [regenerate]: re-bucketing through the current locale would miss the record
+  /// after a first-day-shifting language change.
   Future<void> deleteReflection(DateTime weekStart) async {
-    await _store.delete(_weekOf(dateOnly(weekStart)));
+    await _store.delete(dateOnly(weekStart));
     _emitChanged();
   }
 
@@ -177,7 +206,7 @@ class ReflectionService {
 
   /// The week's entries as the engine sees them: chronological, transcript only,
   /// with the weekday it was recorded on. Untranscribed entries have nothing to
-  /// read and are dropped; the whole is capped to [_maxPromptChars].
+  /// read and are dropped; the whole is capped to [_maxPromptTokens].
   List<ReflectionEntryInput> _inputsFor(List<Entry> entries) {
     final ordered = [...entries]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     final inputs = <ReflectionEntryInput>[];
@@ -191,26 +220,58 @@ class ReflectionService {
     return _capped(inputs);
   }
 
-  /// Keeps the combined transcript text under [_maxPromptChars] so a heavy week
+  /// Keeps the combined transcript under [_maxPromptTokens] so a heavy week
   /// cannot overflow the small on-device context window (a deterministic
   /// failure). Every day is kept but trimmed to an equal share, so the week's
   /// shape survives at reduced detail rather than a day being dropped whole.
   List<ReflectionEntryInput> _capped(List<ReflectionEntryInput> inputs) {
     if (inputs.isEmpty) return inputs;
-    final total = inputs.fold<int>(0, (sum, i) => sum + i.text.length);
-    if (total <= _maxPromptChars) return inputs;
-    final share = _maxPromptChars ~/ inputs.length;
+    final total = inputs.fold<int>(0, (sum, i) => sum + _estimatedTokens(i.text));
+    if (total <= _maxPromptTokens) return inputs;
+    final share = _maxPromptTokens ~/ inputs.length;
     return [
       for (final i in inputs)
-        if (i.text.length <= share)
+        if (_estimatedTokens(i.text) <= share)
           i
         else
           ReflectionEntryInput(
             weekday: i.weekday,
-            text: i.text.substring(0, share),
+            text: _trimToTokens(i.text, share),
             title: i.title,
           ),
     ];
+  }
+
+  /// Whether [rune] belongs to a script the on-device tokenizer runs near one
+  /// token per character (CJK ideographs, kana, Hangul); everything else runs
+  /// near four characters per token. The budgeting below weighs code points in
+  /// quarter tokens so both densities share one integer budget.
+  static bool _denseRune(int rune) =>
+      (rune >= 0x2E80 && rune <= 0x9FFF) ||
+      (rune >= 0xAC00 && rune <= 0xD7AF) ||
+      (rune >= 0xF900 && rune <= 0xFAFF) ||
+      rune >= 0x20000;
+
+  static int _estimatedTokens(String text) {
+    var quarters = 0;
+    for (final rune in text.runes) {
+      quarters += _denseRune(rune) ? 4 : 1;
+    }
+    return (quarters + 3) ~/ 4;
+  }
+
+  /// [text] cut to at most [budget] estimated tokens. Walks code points, so the
+  /// cut can never split a surrogate pair into a mangled character.
+  static String _trimToTokens(String text, int budget) {
+    final quarters = budget * 4;
+    var used = 0;
+    var end = 0;
+    for (final rune in text.runes) {
+      used += _denseRune(rune) ? 4 : 1;
+      if (used > quarters) break;
+      end += rune > 0xFFFF ? 2 : 1;
+    }
+    return text.substring(0, end);
   }
 
   void _emitChanged() {
