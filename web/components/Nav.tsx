@@ -33,7 +33,7 @@ export default function Nav() {
               <a
                 key={l.href}
                 href={l.href}
-                className="t-eyebrow transition-colors hover:text-ink"
+                className="link-underline t-eyebrow text-ink-muted transition-colors hover:text-ink"
               >
                 {l.label}
               </a>
