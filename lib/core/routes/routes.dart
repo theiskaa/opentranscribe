@@ -23,9 +23,12 @@ abstract final class Routes {
   static const settingsCache = '/settings/cache';
   static const settingsCacheName = 'settingsCache';
 
-  /// The weekly reflections screen: the history of past weeks and the settings
-  /// dropdown. Reached from the home menu when Apple Intelligence is available;
-  /// pushed over home.
+  /// The ONE reflections surface: past weeks one page at a time, with the one
+  /// menu acting on the viewed week. Reached plain from the home menu (lands
+  /// on the newest closed week), or with a `week` query parameter
+  /// (yyyy-MM-dd, [Reflection.keyFor]) to land on a specific week - how a
+  /// home card opens its reflection. An unknown week falls back to the
+  /// newest.
   static const reflections = '/reflections';
   static const reflectionsName = 'reflections';
 

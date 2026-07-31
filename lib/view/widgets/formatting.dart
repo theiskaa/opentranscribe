@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/utils/week.dart';
 
 /// The one place display formatting for entries lives, so every surface renders
 /// the same shapes. Date formats take an explicit locale so they render in the
@@ -22,6 +23,32 @@ String entryDisplayTitle(Entry entry, [String? locale]) =>
 
 /// Wall-clock time of a moment, localized (e.g. 14:05 or 2:05 PM).
 String formatTime(DateTime utc, [String? locale]) => DateFormat.jm(locale).format(utc.toLocal());
+
+/// A week's label: "Jul 20 – 26", or "Jun 30 – Jul 6" across a month. A week
+/// not wholly inside [now]'s year closes with its year ("Dec 29 – Jan 4,
+/// 2026"), or every past January would shadow this one's. The dash is an en
+/// dash (a range), not an em dash. Tests pin [now]; callers omit it.
+String weekRangeLabel(DateTime weekStart, String locale, {DateTime? now}) {
+  final today = now ?? DateTime.now();
+  final end = addDays(weekStart, 6);
+  final start = DateFormat.MMMd(locale).format(weekStart);
+  if (weekStart.year != today.year || end.year != today.year) {
+    return '$start – ${DateFormat.yMMMd(locale).format(end)}';
+  }
+  final endText = weekStart.month == end.month
+      ? DateFormat.d(locale).format(end)
+      : DateFormat.MMMd(locale).format(end);
+  return '$start – $endText';
+}
+
+/// A day as reading meta: "Jul 27" inside [now]'s year, "Jul 27, 2025"
+/// outside it, so an old record dates itself. Tests pin [now]; callers omit
+/// it.
+String shortDateLabel(DateTime date, String locale, {DateTime? now}) {
+  final today = now ?? DateTime.now();
+  if (date.year == today.year) return DateFormat.MMMd(locale).format(date);
+  return DateFormat.yMMMd(locale).format(date);
+}
 
 /// A duration as m:ss, the audio-length shape for player surfaces.
 String formatClock(Duration d) {

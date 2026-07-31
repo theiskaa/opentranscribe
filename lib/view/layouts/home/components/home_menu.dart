@@ -7,10 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
-import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -19,10 +17,11 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 
 /// The one door out of home. It replaces the settings screen: every setting
-/// that used to live there is a row here (or a submenu, for the two language
-/// pickers, exactly like Transcribe-in on the entry screen), so leaving home is
-/// never more than one tap plus a choice. The GitHub row is the only thing that
-/// points outward; see the one rule in CLAUDE.md.
+/// that used to live there is a row here (or a submenu, for the app-language
+/// picker), so leaving home is never more than one tap plus a choice. The
+/// transcription default lives on the Transcription screen, not here. The
+/// GitHub row is the only thing that points outward; see the one rule in
+/// CLAUDE.md.
 class HomeMenu extends StatefulWidget {
   const HomeMenu({this.color, super.key});
 
@@ -43,7 +42,7 @@ class _HomeMenuState extends State<HomeMenu> {
   /// until the read lands; the Source row shows no mark until then.
   Uint8List? _githubBytes;
 
-  /// The menu button, which the fallback language dropdowns anchor to (the menu
+  /// The menu button, which the fallback language dropdown anchors to (the menu
   /// that offered the choice grew from the same spot).
   final GlobalKey _anchor = GlobalKey();
 
@@ -68,32 +67,8 @@ class _HomeMenuState extends State<HomeMenu> {
     }
   }
 
-  /// The transcription languages the default picker offers: the settings list
-  /// when it has loaded, else the service default alone, so a cold-start menu
-  /// still names one language rather than showing an empty submenu.
-  List<String> _defaultTags(SettingsState settings) {
-    final tags = settings.selectableLanguageTags();
-    if (tags.isNotEmpty) return tags;
-    final fallback = Deps.i.transcriptionService.localeId;
-    return fallback.isEmpty ? const [] : [fallback];
-  }
-
-  /// The transcription default in effect: the settings value once loaded, else
-  /// the service default, so a cold-start menu still checks one language.
-  String _currentDefault(SettingsState settings) =>
-      settings.localeId.isNotEmpty ? settings.localeId : Deps.i.transcriptionService.localeId;
-
   /// The app-language codes, one per supported UI locale.
   List<String> get _appCodes => [for (final l in AppLocalizations.supportedLocales) l.languageCode];
-
-  void _pickDefaultLanguage(SettingsState settings) async {
-    final tags = _defaultTags(settings);
-    if (tags.isEmpty) return;
-    final index = await _openDropdown(tags, _currentDefault(settings));
-    if (index != null && mounted) {
-      unawaited(context.read<SettingsCubit>().setLocale(tags[index]));
-    }
-  }
 
   void _pickAppLanguage(String current) async {
     final codes = _appCodes;
@@ -105,7 +80,7 @@ class _HomeMenuState extends State<HomeMenu> {
 
   /// The fallback picker (non-native platforms): the app's anchored dropdown out
   /// of the menu button. On native glass the submenu carries the languages, and
-  /// these are never called.
+  /// this is never called.
   Future<int?> _openDropdown(List<String> tags, String current) {
     return showAppDropdown(
       context,
@@ -124,27 +99,11 @@ class _HomeMenuState extends State<HomeMenu> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final settings = context.watch<SettingsCubit>().state;
     final appLang = context.watch<AppLanguageCubit>().state;
-
-    final currentDefault = _currentDefault(settings);
     final sourceLabel = _version ?? l10n.menuSourceCode;
 
     final items = <AppMenuItem>[
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
-      AppMenuItem(
-        id: 'act:txlang',
-        label: l10n.menuTranscriptionLanguage,
-        icon: AppIcons.globe,
-        children: [
-          for (final tag in _defaultTags(settings))
-            AppMenuItem(
-              id: 'tx:$tag',
-              label: '${localeFlag(tag)}  ${localeDisplayName(tag)}',
-              selected: tag == currentDefault,
-            ),
-        ],
-      ),
       AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
       AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
       const AppMenuItem.divider(),
@@ -178,17 +137,11 @@ class _HomeMenuState extends State<HomeMenu> {
       color: widget.color,
       items: items,
       onSelectedId: (id) {
-        if (id.startsWith('tx:')) {
-          unawaited(context.read<SettingsCubit>().setLocale(id.substring(3)));
-          return;
-        }
         if (id.startsWith('app:')) {
           unawaited(context.read<AppLanguageCubit>().setLanguage(id.substring(4)));
           return;
         }
         switch (id) {
-          case 'act:txlang':
-            _pickDefaultLanguage(settings);
           case 'act:applang':
             _pickAppLanguage(appLang);
           case 'act:models':

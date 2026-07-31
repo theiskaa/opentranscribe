@@ -91,6 +91,16 @@ final class PageIndicatorTheme {
   final double gap;
 }
 
+/// The home reflection card: a quiet panel on its own ground holding the
+/// week's excerpt.
+@immutable
+final class ReflectionCardTheme {
+  const ReflectionCardTheme({required this.background, required this.border});
+
+  final Color background;
+  final Color border;
+}
+
 /// The week strip under the date bar on home.
 @immutable
 final class CalendarTheme {

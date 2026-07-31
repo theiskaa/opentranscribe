@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
@@ -22,6 +23,7 @@ final class ReflectionsState {
     this.enabled = true,
     this.style = ReflectionStyle.defaults,
     this.history = const [],
+    this.timeline = const [],
     this.regenerating,
     this.regenerateFailed = false,
   });
@@ -32,6 +34,10 @@ final class ReflectionsState {
 
   /// Past weeks, newest first. Includes silent weeks (a quiet week).
   final List<Reflection> history;
+
+  /// The pager's spine: every closed week worth a page, OLDEST first (index 0
+  /// = oldest, last = the newest closed week, the landing page).
+  final List<ReflectionWeek> timeline;
 
   /// The week whose regenerate is in flight, or null.
   final DateTime? regenerating;
@@ -49,6 +55,7 @@ final class ReflectionsState {
     bool? enabled,
     ReflectionStyle? style,
     List<Reflection>? history,
+    List<ReflectionWeek>? timeline,
     DateTime? regenerating,
     bool clearRegenerating = false,
     bool? regenerateFailed,
@@ -57,6 +64,7 @@ final class ReflectionsState {
     enabled: enabled ?? this.enabled,
     style: style ?? this.style,
     history: history ?? this.history,
+    timeline: timeline ?? this.timeline,
     regenerating: clearRegenerating ? null : (regenerating ?? this.regenerating),
     regenerateFailed: regenerateFailed ?? this.regenerateFailed,
   );
@@ -88,18 +96,35 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     final availability = await _service.availability();
     if (isClosed) return;
     emit(
-      state.copyWith(
-        availability: availability,
-        enabled: _settings.enabled,
-        style: _settings.style,
-        history: _service.history(),
+      _withHistory(
+        state.copyWith(
+          availability: availability,
+          enabled: _settings.enabled,
+          style: _settings.style,
+        ),
       ),
     );
   }
 
   void _loadHistory() {
     if (isClosed) return;
-    emit(state.copyWith(history: _service.history()));
+    emit(_withHistory(state));
+  }
+
+  /// History plus everything derived from it, computed in one place so every
+  /// refresh path (load, the changed stream, a regenerate) agrees.
+  ReflectionsState _withHistory(ReflectionsState s) {
+    final history = _service.history();
+    return s.copyWith(
+      history: history,
+      timeline: reflectionTimeline(
+        history: history,
+        journaledWeeks: _service.journaledWeekStarts(),
+        deletedWeeks: _service.deletedWeeks(),
+        floor: _settings.floor,
+        currentWeekStart: _service.currentWeekStart(),
+      ),
+    );
   }
 
   /// Turns reflections on or off. Enabling kicks a catch-up so a due week lands
@@ -137,8 +162,8 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
       // way the week kept its previous result, so surface the retry notice.
       if (!isClosed) emit(state.copyWith(regenerateFailed: true));
     } finally {
-      // Always clears, so no failure path can leave the row spinning forever.
-      if (!isClosed) emit(state.copyWith(history: _service.history(), clearRegenerating: true));
+      // Always clears, so no failure path can leave the page spinning forever.
+      if (!isClosed) emit(_withHistory(state.copyWith(clearRegenerating: true)));
     }
   }
 

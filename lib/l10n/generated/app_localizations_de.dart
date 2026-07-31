@@ -49,9 +49,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homePullToRecord => 'Zum Aufnehmen ziehen';
 
   @override
-  String get menuTranscriptionLanguage => 'Transkription';
-
-  @override
   String get menuSourceCode => 'Quellcode';
 
   @override
@@ -248,7 +245,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Modelle';
+  String get settingsModels => 'Transkription';
 
   @override
   String get transcriptionLanguages => 'Sprachen';
@@ -396,7 +393,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cacheClearConfirm => 'Aufnahmen löschen';
 
   @override
-  String get reflectionsTitle => 'Wöchentliche Rückblicke';
+  String get reflectionsTitle => 'Rückblicke';
 
   @override
   String get reflectionsEmptyTitle => 'Noch keine Rückblicke';
@@ -407,6 +404,33 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => 'Eine ruhige Woche.';
+
+  @override
+  String get reflectionWaitingTitle => 'Noch nicht geschrieben';
+
+  @override
+  String get reflectionWaitingBody =>
+      'Diese Woche wird beim nächsten Öffnen gelesen, sobald Apple Intelligence bereit ist.';
+
+  @override
+  String get reflectionErasedTitle => 'Gelöscht';
+
+  @override
+  String get reflectionErasedBody =>
+      'Sie haben den Rückblick dieser Woche entfernt. Neu erstellen schreibt ihn erneut.';
+
+  @override
+  String get reflectionQuietBody => 'Nichts wurde zu einem Rückblick.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Geschrieben am $date';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return 'Rückblick auf $range';
+  }
 
   @override
   String get reflectionVoice => 'Stimme';

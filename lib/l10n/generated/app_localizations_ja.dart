@@ -45,9 +45,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homePullToRecord => '引いて録音';
 
   @override
-  String get menuTranscriptionLanguage => '文字起こし';
-
-  @override
   String get menuSourceCode => 'ソースコード';
 
   @override
@@ -233,7 +230,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'モデル';
+  String get settingsModels => '文字起こし';
 
   @override
   String get transcriptionLanguages => '言語';
@@ -366,7 +363,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cacheClearConfirm => '録音を削除';
 
   @override
-  String get reflectionsTitle => '週次の振り返り';
+  String get reflectionsTitle => '振り返り';
 
   @override
   String get reflectionsEmptyTitle => 'まだ振り返りはありません';
@@ -376,6 +373,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => '静かな一週間。';
+
+  @override
+  String get reflectionWaitingTitle => 'まだ書かれていません';
+
+  @override
+  String get reflectionWaitingBody => 'Apple Intelligence の準備が整った状態で次にジャーナルを開くと、この一週間が読み返されます。';
+
+  @override
+  String get reflectionErasedTitle => '消去済み';
+
+  @override
+  String get reflectionErasedBody => 'この週の振り返りを削除しました。再生成するともう一度書かれます。';
+
+  @override
+  String get reflectionQuietBody => '振り返りになるものはありませんでした。';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '$date に作成';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return '$rangeの振り返り';
+  }
 
   @override
   String get reflectionVoice => '文体';

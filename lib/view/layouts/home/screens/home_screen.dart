@@ -26,6 +26,7 @@ import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -50,6 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scroll = ScrollController();
 
   final SectionTracker _sections = SectionTracker();
+
+  /// The reflection history as of the last build (null before the first), and
+  /// the weeks whose card arrived while home was up: only those get the
+  /// entrance, and they keep their wrapper so a later rebuild cannot re-play it.
+  List<Reflection>? _seenReflections;
+  final Set<DateTime> _entranceWeeks = {};
   late final PullToRecordGesture _pullGesture = PullToRecordGesture(
     onArm: Haptics.selection,
     onDisarm: Haptics.light,
@@ -193,6 +200,11 @@ class _HomeScreenState extends State<HomeScreen> {
           // Cards are driven by the reflection history; watching it here rebuilds
           // home when a week is reflected, deleted, or regenerated.
           final reflections = context.watch<ReflectionsCubit>().state.history;
+          // Only a card that ARRIVES while home is up gets an entrance; the
+          // first build renders everything settled (no diff to run against).
+          final previous = _seenReflections;
+          if (previous != null) _entranceWeeks.addAll(newlyReflectedWeeks(previous, reflections));
+          _seenReflections = reflections;
           // After EVERY build: splitter positions move when entries are
           // added or renamed (card heights change), not only when the set
           // of days does.
@@ -222,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   key: _sections.listKey,
                   state: state,
                   reflections: reflections,
+                  entranceWeeks: _entranceWeeks,
                   controller: _scroll,
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
@@ -399,10 +412,32 @@ class _HomeChromeState extends State<_HomeChrome> {
 /// recorder screen's bottom inset.
 const double _listBottomInset = 42;
 
+/// One week's reflection slot in the timeline: the editorial card, opening
+/// the reflections pager landed on its week, entering with the app's rise
+/// only when it arrived while home was up.
+class _ReflectionCardSlot extends StatelessWidget {
+  const _ReflectionCardSlot({required this.reflection, required this.entrance});
+
+  final Reflection reflection;
+  final bool entrance;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = ReflectionHomeCard(
+      reflection: reflection,
+      onTap: () =>
+          context.pushNamed(Routes.reflectionsName, queryParameters: {'week': reflection.weekKey}),
+    );
+    if (!entrance) return card;
+    return EntranceRise(child: card);
+  }
+}
+
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
     required this.reflections,
+    required this.entranceWeeks,
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
@@ -416,6 +451,9 @@ class _RecordsList extends StatelessWidget {
 
   /// The reflection history, placed as cards at the top of each finished week.
   final List<Reflection> reflections;
+
+  /// Weeks whose card arrived while home was up; only these enter with motion.
+  final Set<DateTime> entranceWeeks;
   final ScrollController controller;
 
   /// Tracker-owned keys splitter label positions are read through.
@@ -457,9 +495,9 @@ class _RecordsList extends StatelessWidget {
         for (final (s, section) in sections.indexed) ...[
           if (cards[s] != null) ...[
             SizedBox(height: s == 0 ? 0 : AppSpacing.xxl),
-            ReflectionHomeCard(
+            _ReflectionCardSlot(
               reflection: cards[s]!,
-              onTap: () => context.pushNamed(Routes.reflectionsName),
+              entrance: entranceWeeks.contains(cards[s]!.weekStart),
             ),
             const SizedBox(height: AppSpacing.sm),
           ],

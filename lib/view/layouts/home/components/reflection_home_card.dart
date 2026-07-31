@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The reflection to show above the FIRST (most-recent) section of each finished
@@ -48,10 +49,25 @@ Map<int, Reflection> reflectionCardsForSections({
   return result;
 }
 
-/// The reflection at the top of a week in the home journal: a written reflection
-/// is a quiet surface card, tappable through to the Reflections screen; a silent
-/// week is a minimal marker instead. Horizontal insets only; the list owns the
-/// vertical spacing around it.
+/// Which weeks newly gained a written reflection between two history reads,
+/// so home can give ONLY the just-arrived card an entrance. A regenerated week
+/// (same weekStart, new generatedAt) is not new here: its arrival plays on the
+/// reflections surfaces, not as a second entrance in the timeline. Pure, so
+/// the diff is tested.
+Set<DateTime> newlyReflectedWeeks(List<Reflection> previous, List<Reflection> current) {
+  final before = {for (final r in previous) r.weekStart};
+  return {
+    for (final r in current)
+      if (!before.contains(r.weekStart)) r.weekStart,
+  };
+}
+
+/// The reflection at the top of a week in the home journal: a quiet bordered
+/// panel with an entry row's anatomy - the week it covers as the strong title
+/// ("Reflection of Jul 20 – 26"), the excerpt quiet under it - so it reads as
+/// journal matter, not chrome. A silent week is a minimal marker instead. The
+/// panel starts at the content margin, flush with the records' rail;
+/// horizontal insets only, the list owns the vertical spacing around it.
 class ReflectionHomeCard extends StatelessWidget {
   const ReflectionHomeCard({required this.reflection, required this.onTap, super.key});
 
@@ -61,41 +77,46 @@ class ReflectionHomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final card = theme.reflectionCard;
     final l10n = AppLocalizations.of(context)!;
-    // Land on the records' text column, aligned with the day splitter.
+    if (reflection.isSilent) {
+      // The marker reads as text, so it lands on the records' text column.
+      return Padding(
+        padding: EdgeInsets.fromLTRB(theme.entryList.textColumnInset, 0, AppSpacing.xl, 0),
+        child: _QuietWeekMarker(label: l10n.reflectionQuietWeek),
+      );
+    }
     return Padding(
-      padding: EdgeInsets.fromLTRB(theme.entryList.textColumnInset, 0, AppSpacing.xl, 0),
-      child: reflection.isSilent
-          ? _QuietWeekMarker(label: l10n.reflectionQuietWeek)
-          : Touchable(
-              onTap: onTap,
-              child: DecoratedBox(
-                decoration: SuperellipseDecoration(
-                  borderRadius: AppRadius.card,
-                  color: theme.surface,
-                  border: BorderSide(color: theme.surfaceBorder),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reflectionsTitle.toUpperCase(),
-                        style: AppType.eyebrow.copyWith(color: theme.accent),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        reflection.text!,
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.body.copyWith(color: theme.text, height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Touchable(
+        onTap: onTap,
+        child: Container(
+          decoration: SuperellipseDecoration(
+            color: card.background,
+            borderRadius: AppRadius.card,
+            border: BorderSide(color: card.border),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.reflectionOfWeek(weekRangeLabel(reflection.weekStart, localeTag(context))),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.headline.copyWith(color: theme.text),
               ),
-            ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                reflection.text!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -604,6 +604,36 @@ void main() {
     });
   });
 
+  group('surface pass-throughs', () {
+    test('journaledWeekStarts buckets by the injected week boundary', () {
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 9), text: 'x'),
+        withText('b', DateTime(2026, 7, 15, 9), text: 'y'),
+      ];
+      expect(service.journaledWeekStarts(), {lastWeek, twoWeeksAgo});
+    });
+
+    test('journaledWeekStarts ignores weeks holding only untranscribed entries', () {
+      // The catch-up has nothing to read there (_inputsFor drops empty
+      // transcripts), so a waiting page would promise a fill that never comes.
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 9), text: 'x'),
+        withText('b', DateTime(2026, 7, 15, 9)),
+      ];
+      expect(service.journaledWeekStarts(), {lastWeek});
+    });
+
+    test('currentWeekStart is the open week under the same boundary', () {
+      expect(service.currentWeekStart(), DateTime(2026, 7, 27));
+    });
+
+    test('deletedWeeks mirrors the store tombstones', () async {
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+      await service.deleteReflection(lastWeek);
+      expect(service.deletedWeeks(), [lastWeek]);
+    });
+  });
+
   test('deleteReflection removes a week and emits', () async {
     await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
     final events = <void>[];

@@ -45,9 +45,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homePullToRecord => '下拉录制';
 
   @override
-  String get menuTranscriptionLanguage => '转写';
-
-  @override
   String get menuSourceCode => '源代码';
 
   @override
@@ -231,7 +228,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => '模型';
+  String get settingsModels => '转写';
 
   @override
   String get transcriptionLanguages => '语言';
@@ -363,7 +360,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheClearConfirm => '删除录音';
 
   @override
-  String get reflectionsTitle => '每周回顾';
+  String get reflectionsTitle => '回顾';
 
   @override
   String get reflectionsEmptyTitle => '还没有回顾';
@@ -373,6 +370,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => '平静的一周。';
+
+  @override
+  String get reflectionWaitingTitle => '尚未写下';
+
+  @override
+  String get reflectionWaitingBody => '下次在 Apple Intelligence 就绪时打开日记，将会回顾这一周。';
+
+  @override
+  String get reflectionErasedTitle => '已抹掉';
+
+  @override
+  String get reflectionErasedBody => '你删除了这一周的回顾。重新生成会再次写下。';
+
+  @override
+  String get reflectionQuietBody => '这一周没有值得回顾的内容。';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '写于 $date';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return '$range的回顾';
+  }
 
   @override
   String get reflectionVoice => '文风';

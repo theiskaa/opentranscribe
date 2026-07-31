@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/fake_reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
@@ -230,6 +231,34 @@ void main() {
     await settle();
 
     expect(cubit.state.history, isNotEmpty);
+    await cubit.close();
+  });
+
+  test('the timeline derives with history and refreshes on change', () async {
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    final cubit = build();
+    await cubit.load();
+
+    // Journaled but unwritten: the closed week already earns a waiting page.
+    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.unreflected);
+
+    await service.catchUp();
+    await settle();
+    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.reflected);
+    await cubit.close();
+  });
+
+  test('a deleted week stays on the timeline as erased', () async {
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.reflected);
+
+    await cubit.delete(lastWeek);
+    await settle();
+
+    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.erased);
     await cubit.close();
   });
 }

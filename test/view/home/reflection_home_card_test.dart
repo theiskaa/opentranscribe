@@ -63,4 +63,31 @@ void main() {
     );
     expect(cards[0]!.text, 'sunday week');
   });
+
+  group('newlyReflectedWeeks (the entrance diff)', () {
+    test('detects an added week and ignores reorder', () {
+      final a = reflection(DateTime(2026, 7, 13), text: 'a');
+      final b = reflection(DateTime(2026, 7, 20), text: 'b');
+      expect(newlyReflectedWeeks([a], [b, a]), {DateTime(2026, 7, 20)});
+      expect(newlyReflectedWeeks([a, b], [b, a]), isEmpty);
+    });
+
+    test('a regenerated week (same start, new generatedAt) is not new on home', () {
+      // Its arrival plays on the reflections surfaces, not as a second
+      // timeline entrance.
+      final before = reflection(DateTime(2026, 7, 20), text: 'old');
+      final after = Reflection(
+        weekStart: DateTime(2026, 7, 20),
+        generatedAt: DateTime.utc(2026, 8, 4),
+        text: 'new',
+      );
+      expect(newlyReflectedWeeks([before], [after]), isEmpty);
+    });
+
+    test('a removed week is not new', () {
+      final a = reflection(DateTime(2026, 7, 13), text: 'a');
+      final b = reflection(DateTime(2026, 7, 20), text: 'b');
+      expect(newlyReflectedWeeks([a, b], [a]), isEmpty);
+    });
+  });
 }

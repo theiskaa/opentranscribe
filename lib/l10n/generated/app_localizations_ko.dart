@@ -45,9 +45,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homePullToRecord => '당겨서 녹음';
 
   @override
-  String get menuTranscriptionLanguage => '전사';
-
-  @override
   String get menuSourceCode => '소스 코드';
 
   @override
@@ -234,7 +231,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => '모델';
+  String get settingsModels => '전사';
 
   @override
   String get transcriptionLanguages => '언어';
@@ -367,7 +364,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cacheClearConfirm => '녹음 삭제';
 
   @override
-  String get reflectionsTitle => '주간 돌아보기';
+  String get reflectionsTitle => '돌아보기';
 
   @override
   String get reflectionsEmptyTitle => '아직 돌아보기가 없습니다';
@@ -377,6 +374,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => '조용한 한 주.';
+
+  @override
+  String get reflectionWaitingTitle => '아직 작성되지 않음';
+
+  @override
+  String get reflectionWaitingBody => 'Apple Intelligence가 준비된 상태로 저널을 다시 열면 이 주를 돌아봅니다.';
+
+  @override
+  String get reflectionErasedTitle => '지움';
+
+  @override
+  String get reflectionErasedBody => '이 주의 돌아보기를 삭제했습니다. 다시 생성하면 다시 작성됩니다.';
+
+  @override
+  String get reflectionQuietBody => '돌아볼 만한 것이 없었습니다.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '$date에 작성됨';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return '$range 돌아보기';
+  }
 
   @override
   String get reflectionVoice => '문체';

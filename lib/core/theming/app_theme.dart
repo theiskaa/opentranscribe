@@ -39,6 +39,7 @@ final class AppTheme {
     required this.navigation,
     required this.errorPill,
     required this.sheet,
+    required this.reflectionCard,
     this.motion = const AppMotion(),
   });
 
@@ -74,6 +75,7 @@ final class AppTheme {
     NavigationTheme? navigation,
     ErrorPillTheme? errorPill,
     SheetTheme? sheet,
+    ReflectionCardTheme? reflectionCard,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -221,6 +223,18 @@ final class AppTheme {
             chevron: textSecondary,
           ),
       sheet: sheet ?? SheetTheme(background: surface, grabberColor: hairline),
+      reflectionCard:
+          reflectionCard ??
+          ReflectionCardTheme(
+            // A ground a shade past the page rather than a chip resting on it:
+            // dark sinks toward black, light takes a faint paper gray.
+            background: Color.lerp(
+              background,
+              const Color(0xFF000000),
+              brightness == Brightness.dark ? 0.55 : 0.04,
+            )!,
+            border: surfaceBorder,
+          ),
       motion: motion,
     );
   }
@@ -264,6 +278,7 @@ final class AppTheme {
   final NavigationTheme navigation;
   final ErrorPillTheme errorPill;
   final SheetTheme sheet;
+  final ReflectionCardTheme reflectionCard;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.

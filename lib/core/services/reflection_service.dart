@@ -96,7 +96,7 @@ class ReflectionService {
       final availability = await _engine.availability();
       if (!availability.isAvailable) return;
 
-      final currentWeek = _weekOf(dateOnly(_clock()));
+      final currentWeek = currentWeekStart();
       final byWeek = _entriesByWeek();
       final weeks = byWeek.keys.where((w) => w.isBefore(currentWeek)).toList()
         ..sort((a, b) => b.compareTo(a));
@@ -107,11 +107,10 @@ class ReflectionService {
 
       for (final week in weeks) {
         // No backfill: a week that closed entirely before the feature first
-        // ran is history, not a queue. Judged by range, like the done-check,
-        // so a later first-day shift cannot pull a pre-feature week back over
-        // the line. This is also the churn bound: an upgrade with months of
-        // older entries reflects nothing from before its first post-floor week.
-        if (!addDays(week, 7).isAfter(floor)) continue;
+        // ran is history, not a queue. This is also the churn bound: an
+        // upgrade with months of older entries reflects nothing from before
+        // its first post-floor week.
+        if (!weekClearsFloor(week, floor)) continue;
         // A stored reflection (text OR silence) is done; never re-run. Done is
         // judged by RANGE overlap, not exact key: an app-language change can
         // shift the first-day-of-week, and the shifted candidate must still
@@ -122,7 +121,7 @@ class ReflectionService {
         // by the next open re-reflecting a week whose entries still exist.
         // Range-matched like the done-check, so a locale shift cannot
         // resurrect around the tombstone.
-        if (deleted.any((d) => _overlapsWeek(week, d))) continue;
+        if (deleted.any((d) => weeksOverlap(week, d))) continue;
         try {
           await _reflectWeek(week, byWeek[week]!);
         } on ReflectionUnavailable {
@@ -174,22 +173,34 @@ class ReflectionService {
   Future<DateTime> _ensureFloor() async {
     final stored = _settings.floor;
     if (stored != null) return stored;
-    final floor = _weekOf(dateOnly(_clock()));
+    final floor = currentWeekStart();
     await _settings.setFloor(floor);
     return floor;
   }
 
   /// Whether any of [stored] covers [week]'s 7-day range.
   bool _covered(DateTime week, List<Reflection> stored) =>
-      stored.any((r) => _overlapsWeek(week, r.weekStart));
-
-  /// Whether the 7-day ranges starting at [week] and [other] overlap.
-  bool _overlapsWeek(DateTime week, DateTime other) =>
-      other.isBefore(addDays(week, 7)) && week.isBefore(addDays(other, 7));
+      stored.any((r) => weeksOverlap(week, r.weekStart));
 
   /// The stored history, newest week first, for the surfaces. The store itself
   /// stays private so every write goes through this service.
   List<Reflection> history() => _store.all();
+
+  /// Week starts (app-language bucketing) holding at least one TRANSCRIBED
+  /// entry - the same material test as [_inputsFor]. An untranscribed-only
+  /// week is excluded so the pager never shows a waiting page the catch-up
+  /// would skip for having nothing to read.
+  Set<DateTime> journaledWeekStarts() => {
+    for (final e in _entries())
+      if (e.transcript?.fullText.trim().isNotEmpty ?? false) _weekOfEntry(e),
+  };
+
+  /// The open week's start under the app-language bucketing: the timeline's
+  /// ceiling, resolved here so surfaces never re-derive the boundary.
+  DateTime currentWeekStart() => _weekOf(dateOnly(_clock()));
+
+  /// The weeks the user erased (tombstones), stored starts as-is.
+  List<DateTime> deletedWeeks() => _store.deletedWeeks();
 
   /// Probes whether the on-device model can run right now. Live, never cached:
   /// enabling Apple Intelligence mid-life must be seen on the next probe.

@@ -48,10 +48,6 @@
   "@homePullToRecord": {
     "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
   },
-  "menuTranscriptionLanguage": "Transcription",
-  "@menuTranscriptionLanguage": {
-    "description": "Home menu row that opens the picker for the language recordings are transcribed in"
-  },
   "menuSourceCode": "Source code",
   "@menuSourceCode": {
     "description": "Home menu row linking to the public source repository, followed by the app version"
@@ -313,7 +309,7 @@
       }
     }
   },
-  "settingsModels": "Models",
+  "settingsModels": "Transcription",
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
@@ -491,7 +487,7 @@
   "@cacheClearConfirm": {
     "description": "Destructive confirm button on the clear sheet"
   },
-  "reflectionsTitle": "Weekly reflections",
+  "reflectionsTitle": "Reflections",
   "@reflectionsTitle": {
     "description": "Title of the reflections screen and its home-menu row"
   },
@@ -506,6 +502,44 @@
   "reflectionQuietWeek": "A quiet week.",
   "@reflectionQuietWeek": {
     "description": "Shown for a week the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionWaitingTitle": "Not written yet",
+  "@reflectionWaitingTitle": {
+    "description": "Pager state title: a closed, journaled week not yet written; the next catch-up may fill it"
+  },
+  "reflectionWaitingBody": "This week will be read back the next time the journal opens with Apple Intelligence ready.",
+  "@reflectionWaitingBody": {
+    "description": "Pager state body under the not-written-yet title"
+  },
+  "reflectionErasedTitle": "Erased",
+  "@reflectionErasedTitle": {
+    "description": "Pager state title: the user deleted this week's reflection"
+  },
+  "reflectionErasedBody": "You removed this week's reflection. Regenerate writes it again.",
+  "@reflectionErasedBody": {
+    "description": "Pager state body under the erased title; Regenerate re-writes the week"
+  },
+  "reflectionQuietBody": "Nothing rose to a reflection.",
+  "@reflectionQuietBody": {
+    "description": "Pager subline under the quiet-week marker"
+  },
+  "reflectionWrittenOn": "Written {date}",
+  "@reflectionWrittenOn": {
+    "description": "Detail meta: the day the reflection was generated; date is preformatted",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reflectionOfWeek": "Reflection of {range}",
+  "@reflectionOfWeek": {
+    "description": "Home card header naming the week a reflection covers; range is a preformatted date span",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
   },
   "reflectionVoice": "Voice",
   "@reflectionVoice": {

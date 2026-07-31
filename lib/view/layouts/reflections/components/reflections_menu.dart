@@ -3,17 +3,24 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
-/// The user-facing labels for the reflection settings menu, passed in so the
-/// item builder stays pure (testable without a BuildContext).
+/// The user-facing labels for the reflections menu, passed in so the item
+/// builder stays pure (testable without a BuildContext).
 typedef ReflectionMenuLabels = ({
   String reflections,
+  String regenerate,
+  String delete,
   String voice,
   String length,
   String specifics,
@@ -64,47 +71,64 @@ AppMenuItem _group<T extends Enum>({
   ],
 );
 
-/// Builds the nested settings menu: an on/off toggle, then Voice/Length/Specifics
-/// submenus. Pure, so the ids and `selected` flags are testable directly. On
-/// native glass the children answer through their ids; on the drawn fallback the
-/// parent ids open a follow-up dropdown (see [ReflectionSettingsMenu]).
-List<AppMenuItem> reflectionMenuItems({
+/// Builds the reflections menu in the locked navigation order: the on/off
+/// toggle first, then the Voice/Length/Specifics knobs, a divider, then
+/// Regenerate and Delete for the viewed week. [showSettings] is false when
+/// the model cannot run (the knobs would set nothing; Delete survives). Pure,
+/// so the ids, order, gating, and `selected` flags are testable directly. On
+/// native glass the submenu children answer through their ids; on the drawn
+/// fallback the parent ids open a follow-up dropdown.
+List<AppMenuItem> reflectionsMenuItems({
   required bool enabled,
   required ReflectionStyle style,
   required ReflectionMenuLabels labels,
+  required bool canRegenerate,
+  required bool canDelete,
+  required bool showSettings,
 }) => [
-  AppMenuItem(
-    id: 'r:toggle',
-    label: labels.reflections,
-    icon: AppIcons.calendar,
-    selected: enabled,
-  ),
-  const AppMenuItem.divider(),
-  _group(
-    id: 'r:voice',
-    label: labels.voice,
-    choices: _voiceChoices(labels),
-    current: style.voice,
-    wireOf: (ReflectionVoice v) => v.wire,
-  ),
-  _group(
-    id: 'r:length',
-    label: labels.length,
-    choices: _lengthChoices(labels),
-    current: style.length,
-    wireOf: (ReflectionLength v) => v.wire,
-  ),
-  _group(
-    id: 'r:spec',
-    label: labels.specifics,
-    choices: _specChoices(labels),
-    current: style.specificity,
-    wireOf: (ReflectionSpecificity v) => v.wire,
-  ),
+  if (showSettings) ...[
+    AppMenuItem(
+      id: 'r:toggle',
+      label: labels.reflections,
+      icon: AppIcons.calendar,
+      selected: enabled,
+    ),
+    // Its own section: the toggle's checkmark column would otherwise indent
+    // every knob row beneath it on the native menu.
+    const AppMenuItem.divider(),
+    _group(
+      id: 'r:voice',
+      label: labels.voice,
+      choices: _voiceChoices(labels),
+      current: style.voice,
+      wireOf: (ReflectionVoice v) => v.wire,
+    ),
+    _group(
+      id: 'r:length',
+      label: labels.length,
+      choices: _lengthChoices(labels),
+      current: style.length,
+      wireOf: (ReflectionLength v) => v.wire,
+    ),
+    _group(
+      id: 'r:spec',
+      label: labels.specifics,
+      choices: _specChoices(labels),
+      current: style.specificity,
+      wireOf: (ReflectionSpecificity v) => v.wire,
+    ),
+  ],
+  if (showSettings && (canRegenerate || canDelete)) const AppMenuItem.divider(),
+  if (canRegenerate)
+    AppMenuItem(id: 'r:regen', label: labels.regenerate, icon: AppIcons.arrowCounterclockwise),
+  if (canDelete)
+    AppMenuItem(id: 'r:delete', label: labels.delete, icon: AppIcons.trash, destructive: true),
 ];
 
 ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   reflections: l10n.reflectionsTitle,
+  regenerate: l10n.reflectionRegenerate,
+  delete: l10n.reflectionDelete,
   voice: l10n.reflectionVoice,
   length: l10n.reflectionLength,
   specifics: l10n.reflectionSpecifics,
@@ -119,19 +143,47 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   letWeekDecide: l10n.reflectionSpecificsLetWeek,
 );
 
-/// The top-bar settings control for the Reflections screen: the nested menu
-/// exactly like the language pickers. On native glass the submenus carry the
-/// choices; on the fallback a parent tap opens the drawn dropdown for that group.
-class ReflectionSettingsMenu extends StatefulWidget {
-  const ReflectionSettingsMenu({this.color, super.key});
+/// The confirm before an erase.
+Future<void> confirmDeleteReflection(BuildContext context, DateTime weekStart) async {
+  final l10n = AppLocalizations.of(context)!;
+  final cubit = context.read<ReflectionsCubit>();
+  final confirmed = await showAppSheet<bool>(
+    context,
+    builder: (context) => SheetMessage(
+      icon: AppIcons.trash,
+      title: l10n.reflectionDeleteTitle,
+      body: l10n.reflectionDeleteBody,
+      action: AppButton(
+        label: l10n.reflectionDelete,
+        variant: AppButtonVariant.danger,
+        onPressed: () {
+          Haptics.medium();
+          Navigator.of(context).pop(true);
+        },
+      ),
+    ),
+  );
+  if ((confirmed ?? false) && context.mounted) unawaited(cubit.delete(weekStart));
+}
+
+/// THE reflections menu - the surface has exactly one: the settings knobs
+/// over the VIEWED week's actions, gated by what the week holds and whether
+/// the model can run. Regenerate covers every status (an unreflected or
+/// erased week is "write it now"); Delete only what is stored, but even while
+/// the model is unavailable, so history stays manageable.
+class ReflectionsMenu extends StatefulWidget {
+  const ReflectionsMenu({required this.viewed, this.color, super.key});
+
+  /// The week the menu acts on; null renders a settings-only menu.
+  final ReflectionWeek? viewed;
 
   final Color? color;
 
   @override
-  State<ReflectionSettingsMenu> createState() => _ReflectionSettingsMenuState();
+  State<ReflectionsMenu> createState() => _ReflectionsMenuState();
 }
 
-class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
+class _ReflectionsMenuState extends State<ReflectionsMenu> {
   /// The menu button, which the fallback dropdowns anchor to.
   final GlobalKey _anchor = GlobalKey();
 
@@ -177,7 +229,16 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
   void _onSelectedId(String id, ReflectionsState state, ReflectionMenuLabels labels) {
     final cubit = context.read<ReflectionsCubit>();
     final style = state.style;
+    final viewed = widget.viewed;
 
+    if (id == 'r:regen') {
+      if (viewed != null) unawaited(cubit.regenerate(viewed.weekStart));
+      return;
+    }
+    if (id == 'r:delete') {
+      if (viewed != null) unawaited(confirmDeleteReflection(context, viewed.weekStart));
+      return;
+    }
     if (id == 'r:toggle') {
       unawaited(cubit.setEnabled(!state.enabled));
       return;
@@ -216,11 +277,19 @@ class _ReflectionSettingsMenuState extends State<ReflectionSettingsMenu> {
   Widget build(BuildContext context) {
     final labels = _labelsOf(AppLocalizations.of(context)!);
     final state = context.watch<ReflectionsCubit>().state;
+    final viewed = widget.viewed;
     return AppMenuButton(
       key: _anchor,
-      icon: AppIcons.gearshape,
+      icon: AppIcons.ellipsis,
       color: widget.color,
-      items: reflectionMenuItems(enabled: state.enabled, style: state.style, labels: labels),
+      items: reflectionsMenuItems(
+        enabled: state.enabled,
+        style: state.style,
+        labels: labels,
+        canRegenerate: viewed != null && state.available,
+        canDelete: viewed?.reflection != null,
+        showSettings: state.available,
+      ),
       onSelectedId: (id) => _onSelectedId(id, state, labels),
     );
   }

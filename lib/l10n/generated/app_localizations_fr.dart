@@ -49,9 +49,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homePullToRecord => 'Tirez pour enregistrer';
 
   @override
-  String get menuTranscriptionLanguage => 'Transcription';
-
-  @override
   String get menuSourceCode => 'Code source';
 
   @override
@@ -247,7 +244,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Modèles';
+  String get settingsModels => 'Transcription';
 
   @override
   String get transcriptionLanguages => 'Langues';
@@ -394,7 +391,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cacheClearConfirm => 'Supprimer les enregistrements';
 
   @override
-  String get reflectionsTitle => 'Réflexions hebdomadaires';
+  String get reflectionsTitle => 'Réflexions';
 
   @override
   String get reflectionsEmptyTitle => 'Aucune réflexion pour l\'instant';
@@ -405,6 +402,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => 'Une semaine calme.';
+
+  @override
+  String get reflectionWaitingTitle => 'Pas encore écrite';
+
+  @override
+  String get reflectionWaitingBody =>
+      'Cette semaine sera lue à la prochaine ouverture du journal, dès qu\'Apple Intelligence est prêt.';
+
+  @override
+  String get reflectionErasedTitle => 'Effacée';
+
+  @override
+  String get reflectionErasedBody =>
+      'Vous avez supprimé la réflexion de cette semaine. Régénérer l\'écrit à nouveau.';
+
+  @override
+  String get reflectionQuietBody => 'Rien n\'a donné lieu à une réflexion.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Écrite le $date';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return 'Réflexion du $range';
+  }
 
   @override
   String get reflectionVoice => 'Voix';

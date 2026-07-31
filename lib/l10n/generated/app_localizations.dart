@@ -180,12 +180,6 @@ abstract class AppLocalizations {
   /// **'Pull to record'**
   String get homePullToRecord;
 
-  /// Home menu row that opens the picker for the language recordings are transcribed in
-  ///
-  /// In en, this message translates to:
-  /// **'Transcription'**
-  String get menuTranscriptionLanguage;
-
   /// Home menu row linking to the public source repository, followed by the app version
   ///
   /// In en, this message translates to:
@@ -531,7 +525,7 @@ abstract class AppLocalizations {
   /// Settings row leading to the models screen (per-language on-device models)
   ///
   /// In en, this message translates to:
-  /// **'Models'**
+  /// **'Transcription'**
   String get settingsModels;
 
   /// Section label over the per-language model list on the models screen
@@ -771,7 +765,7 @@ abstract class AppLocalizations {
   /// Title of the reflections screen and its home-menu row
   ///
   /// In en, this message translates to:
-  /// **'Weekly reflections'**
+  /// **'Reflections'**
   String get reflectionsTitle;
 
   /// Empty-state headline on the reflections screen before any week has been reflected
@@ -791,6 +785,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A quiet week.'**
   String get reflectionQuietWeek;
+
+  /// Pager state title: a closed, journaled week not yet written; the next catch-up may fill it
+  ///
+  /// In en, this message translates to:
+  /// **'Not written yet'**
+  String get reflectionWaitingTitle;
+
+  /// Pager state body under the not-written-yet title
+  ///
+  /// In en, this message translates to:
+  /// **'This week will be read back the next time the journal opens with Apple Intelligence ready.'**
+  String get reflectionWaitingBody;
+
+  /// Pager state title: the user deleted this week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Erased'**
+  String get reflectionErasedTitle;
+
+  /// Pager state body under the erased title; Regenerate re-writes the week
+  ///
+  /// In en, this message translates to:
+  /// **'You removed this week\'s reflection. Regenerate writes it again.'**
+  String get reflectionErasedBody;
+
+  /// Pager subline under the quiet-week marker
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing rose to a reflection.'**
+  String get reflectionQuietBody;
+
+  /// Detail meta: the day the reflection was generated; date is preformatted
+  ///
+  /// In en, this message translates to:
+  /// **'Written {date}'**
+  String reflectionWrittenOn(String date);
+
+  /// Home card header naming the week a reflection covers; range is a preformatted date span
+  ///
+  /// In en, this message translates to:
+  /// **'Reflection of {range}'**
+  String reflectionOfWeek(String range);
 
   /// Settings submenu: the reflection voice
   ///

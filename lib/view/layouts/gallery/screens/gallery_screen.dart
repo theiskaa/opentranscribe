@@ -3,9 +3,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
+import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
@@ -198,6 +202,35 @@ class _GalleryScreenState extends State<GalleryScreen> {
               const _InkDemo(),
               const SizedBox(height: AppSpacing.xl),
               const _InkLinesDemo(),
+              _section('Ink reveal'),
+              const _InkRevealDemo(),
+              const SizedBox(height: AppSpacing.xl),
+              const _InkRevealPendingDemo(),
+              _section('Reflections'),
+              ReflectionHomeCard(
+                reflection: Reflection(
+                  weekStart: DateTime(2026, 7, 20),
+                  generatedAt: DateTime.utc(2026, 7, 27),
+                  text:
+                      'The week kept circling back to the launch, and the launch held. '
+                      'Between the late nights there was a gym visit that finally stuck '
+                      'and a dinner that turned into a walk.',
+                ),
+                onTap: () {},
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReflectionHomeCard(
+                reflection: Reflection(
+                  weekStart: DateTime(2026, 7, 13),
+                  generatedAt: DateTime.utc(2026, 7, 20),
+                ),
+                onTap: () {},
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                reflectionMetaLine(voiceLabel: 'Literary', writtenLabel: 'Written Jul 27'),
+                style: AppType.footnote.copyWith(color: theme.textSecondary),
+              ),
               _section('Sheets'),
               AppButton(
                 label: 'Message',
@@ -446,5 +479,56 @@ class _GalleryTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const AppTopBar(frosted: true, leading: AppBackButton());
+  }
+}
+
+/// The write-on the reflections pager runs: the text arrives as its own ink
+/// and settles. Tap to replay (a fresh element restarts the reveal).
+class _InkRevealDemo extends StatefulWidget {
+  const _InkRevealDemo();
+
+  @override
+  State<_InkRevealDemo> createState() => _InkRevealDemoState();
+}
+
+class _InkRevealDemoState extends State<_InkRevealDemo> {
+  int _generation = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: () => setState(() => _generation++),
+      child: InkReveal(
+        key: ValueKey(_generation),
+        phase: InkPhase.write,
+        color: theme.text,
+        background: theme.background,
+        child: Text(
+          'Tap to replay. This paragraph writes itself the way a weekly '
+          'reflection arrives: its own ink shimmers, holds a beat, then '
+          'resolves into the words.',
+          style: AppType.body.copyWith(color: theme.text, height: 1.45),
+        ),
+      ),
+    );
+  }
+}
+
+/// The pending state: the placeholder cloud a regenerate shimmers while the
+/// model writes. It never resolves here; the pager's does when words land.
+class _InkRevealPendingDemo extends StatelessWidget {
+  const _InkRevealPendingDemo();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return InkReveal(
+      phase: InkPhase.pending,
+      color: theme.text,
+      background: theme.background,
+      placeholderLines: 3,
+      child: const SizedBox.shrink(),
+    );
   }
 }

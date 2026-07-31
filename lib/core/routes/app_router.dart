@@ -58,8 +58,10 @@ class AppRouter {
       GoRoute(
         path: Routes.reflections,
         name: Routes.reflectionsName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const ReflectionsScreen()),
+        pageBuilder: (context, state) => SlidePage<void>(
+          key: state.pageKey,
+          child: ReflectionsScreen(initialWeekKey: state.uri.queryParameters['week']),
+        ),
       ),
       GoRoute(
         path: Routes.entry,

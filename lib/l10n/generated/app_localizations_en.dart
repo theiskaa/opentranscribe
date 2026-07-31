@@ -49,9 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePullToRecord => 'Pull to record';
 
   @override
-  String get menuTranscriptionLanguage => 'Transcription';
-
-  @override
   String get menuSourceCode => 'Source code';
 
   @override
@@ -246,7 +243,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Models';
+  String get settingsModels => 'Transcription';
 
   @override
   String get transcriptionLanguages => 'Languages';
@@ -392,7 +389,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheClearConfirm => 'Delete recordings';
 
   @override
-  String get reflectionsTitle => 'Weekly reflections';
+  String get reflectionsTitle => 'Reflections';
 
   @override
   String get reflectionsEmptyTitle => 'No reflections yet';
@@ -403,6 +400,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionQuietWeek => 'A quiet week.';
+
+  @override
+  String get reflectionWaitingTitle => 'Not written yet';
+
+  @override
+  String get reflectionWaitingBody =>
+      'This week will be read back the next time the journal opens with Apple Intelligence ready.';
+
+  @override
+  String get reflectionErasedTitle => 'Erased';
+
+  @override
+  String get reflectionErasedBody =>
+      'You removed this week\'s reflection. Regenerate writes it again.';
+
+  @override
+  String get reflectionQuietBody => 'Nothing rose to a reflection.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Written $date';
+  }
+
+  @override
+  String reflectionOfWeek(String range) {
+    return 'Reflection of $range';
+  }
 
   @override
   String get reflectionVoice => 'Voice';
