@@ -308,6 +308,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingModelsBody => '언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
 
   @override
+  String get onboardingReflectionsOn => '일주일에 한 번, 기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
+
+  @override
+  String get onboardingReflectionsPreparing => '이 기기에서 Apple Intelligence 준비가 끝나면 시작됩니다.';
+
+  @override
+  String get onboardingReflectionsOff => '\'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜면 이용할 수 있습니다.';
+
+  @override
   String get onboardingNext => '다음';
 
   @override

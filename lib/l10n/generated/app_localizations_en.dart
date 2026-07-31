@@ -321,6 +321,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Transcription runs offline once a language is on your device. You can add more anytime from the menu.';
 
   @override
+  String get onboardingReflectionsOn =>
+      'Once a week, your entries read back as a short reflection, entirely on this device.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Starts once Apple Intelligence finishes preparing on this device.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.';
+
+  @override
   String get onboardingNext => 'Next';
 
   @override

@@ -307,6 +307,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingModelsBody => '言語が端末に入れば、文字起こしはオフラインで動作します。メニューからいつでも追加できます。';
 
   @override
+  String get onboardingReflectionsOn => '週に一度、記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'この端末で Apple Intelligence の準備が完了すると始まります。';
+
+  @override
+  String get onboardingReflectionsOff => '「設定」の「Apple Intelligence と Siri」でオンにすると利用できます。';
+
+  @override
   String get onboardingNext => '次へ';
 
   @override

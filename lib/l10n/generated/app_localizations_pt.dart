@@ -323,6 +323,18 @@ class AppLocalizationsPt extends AppLocalizations {
       'A transcrição corre offline assim que um idioma estiver no seu dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
 
   @override
+  String get onboardingReflectionsOn =>
+      'Uma vez por semana, as suas entradas tornam-se uma breve reflexão, inteiramente neste dispositivo.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Começa assim que o Apple Intelligence estiver pronto neste dispositivo.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Ative o Apple Intelligence nas Definições, em Apple Intelligence e Siri, para as receber.';
+
+  @override
   String get onboardingNext => 'Seguinte';
 
   @override

@@ -414,6 +414,18 @@
   "@onboardingModelsBody": {
     "description": "Body on the model-download onboarding step"
   },
+  "onboardingReflectionsOn": "Once a week, your entries read back as a short reflection, entirely on this device.",
+  "@onboardingReflectionsOn": {
+    "description": "Onboarding model step, Apple Intelligence available: what reflections do"
+  },
+  "onboardingReflectionsPreparing": "Starts once Apple Intelligence finishes preparing on this device.",
+  "@onboardingReflectionsPreparing": {
+    "description": "Onboarding model step: Apple Intelligence enabled but the model still downloading"
+  },
+  "onboardingReflectionsOff": "Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.",
+  "@onboardingReflectionsOff": {
+    "description": "Onboarding model step: eligible hardware with Apple Intelligence off; instructions only"
+  },
   "onboardingNext": "Next",
   "@onboardingNext": {
     "description": "Button advancing to the next onboarding step"

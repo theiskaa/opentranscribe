@@ -325,6 +325,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Transkription läuft offline, sobald eine Sprache auf Ihrem Gerät ist. Weitere können Sie jederzeit über das Menü hinzufügen.';
 
   @override
+  String get onboardingReflectionsOn =>
+      'Einmal pro Woche werden Ihre Aufnahmen zu einem kurzen Rückblick, ganz auf diesem Gerät.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Startet, sobald Apple Intelligence auf diesem Gerät bereit ist.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Schalten Sie Apple Intelligence in den Einstellungen unter Apple Intelligence und Siri ein, um sie zu erhalten.';
+
+  @override
   String get onboardingNext => 'Weiter';
 
   @override

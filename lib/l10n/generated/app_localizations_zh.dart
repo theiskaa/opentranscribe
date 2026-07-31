@@ -305,6 +305,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingModelsBody => '只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。';
 
   @override
+  String get onboardingReflectionsOn => '每周一次，你的记录会汇成一段简短回顾，完全在此设备上完成。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'Apple Intelligence 在此设备上准备完成后即会开始。';
+
+  @override
+  String get onboardingReflectionsOff => '在“设置”的“Apple Intelligence 与 Siri”中开启即可使用。';
+
+  @override
   String get onboardingNext => '下一步';
 
   @override

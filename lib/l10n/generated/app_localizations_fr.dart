@@ -324,6 +324,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'La transcription fonctionne hors ligne une fois qu\'une langue est sur votre appareil. Vous pouvez en ajouter à tout moment depuis le menu.';
 
   @override
+  String get onboardingReflectionsOn =>
+      'Une fois par semaine, vos entrées deviennent une courte réflexion, entièrement sur cet appareil.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Commence dès qu\'Apple Intelligence est prêt sur cet appareil.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Activez Apple Intelligence dans Réglages, sous Apple Intelligence et Siri, pour les recevoir.';
+
+  @override
   String get onboardingNext => 'Suivant';
 
   @override

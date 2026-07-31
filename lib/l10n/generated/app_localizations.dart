@@ -672,6 +672,24 @@ abstract class AppLocalizations {
   /// **'Transcription runs offline once a language is on your device. You can add more anytime from the menu.'**
   String get onboardingModelsBody;
 
+  /// Onboarding model step, Apple Intelligence available: what reflections do
+  ///
+  /// In en, this message translates to:
+  /// **'Once a week, your entries read back as a short reflection, entirely on this device.'**
+  String get onboardingReflectionsOn;
+
+  /// Onboarding model step: Apple Intelligence enabled but the model still downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Starts once Apple Intelligence finishes preparing on this device.'**
+  String get onboardingReflectionsPreparing;
+
+  /// Onboarding model step: eligible hardware with Apple Intelligence off; instructions only
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.'**
+  String get onboardingReflectionsOff;
+
   /// Button advancing to the next onboarding step
   ///
   /// In en, this message translates to:
