@@ -59,6 +59,9 @@ void main() {
     await storage.init(encryptionKey: key);
     store = ReflectionStore(storage);
     settings = ReflectionSettings(storage: storage);
+    // The feature predates the test weeks, so the no-backfill floor never
+    // interferes with the catch-ups these tests kick.
+    await settings.setFloor(DateTime(2026, 6, 8));
     engine = FakeReflectionEngine();
     entries = [];
     service = ReflectionService(

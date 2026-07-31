@@ -36,8 +36,10 @@ final class Reflection {
 
   bool get isSilent => text == null;
 
-  /// yyyy-MM-dd, the stable storage key for this week's reflection. The one
-  /// place the key format lives, so save and read can never drift apart.
+  /// yyyy-MM-dd, the stable storage key for this week's reflection, and the
+  /// wire format for any stored week date (the settings floor writes through
+  /// it and reads back with an ISO-8601 parse). The one place the format
+  /// lives, so writers and readers can never drift apart.
   static String keyFor(DateTime weekStart) {
     final d = dateOnly(weekStart);
     final month = d.month.toString().padLeft(2, '0');

@@ -22,6 +22,11 @@ import 'package:opentranscribe/core/utils/week.dart';
 /// The trigger is the foreground: [catchUp] runs at launch and on resume. There
 /// is no server and no schedule; a closed week is reflected the next time the
 /// app is opened.
+///
+/// A reflection is an immutable record of the week as it was heard. Deleting
+/// source entries afterwards never cascades into the history (an emptied week
+/// keeps its text; an explicit [regenerate] of one records an honest silence);
+/// the user's per-week [deleteReflection] is the only eraser.
 class ReflectionService {
   ReflectionService({
     required ReflectionEngine engine,
@@ -74,15 +79,18 @@ class ReflectionService {
   bool _running = false;
 
   /// Reflects every closed, unreflected week that has material, newest week
-  /// first. Cheap and safe to call often. A no-op when reflections are disabled
-  /// or Apple Intelligence is unavailable: no generation, no error, nothing
-  /// surfaced. Never throws.
+  /// first, never reaching below the no-backfill floor. Cheap and safe to call
+  /// often. A no-op when reflections are disabled or Apple Intelligence is
+  /// unavailable: no generation, no error, nothing surfaced. Never throws.
   Future<void> catchUp() async {
     if (_running || !_settings.enabled) return;
     // Claimed BEFORE the availability await: a resume racing the launch kick
     // must not both slip past the guard while the first is probing.
     _running = true;
     try {
+      // Recorded before the availability gate: the floor marks when the
+      // FEATURE first ran, not when Apple Intelligence first answered.
+      final floor = await _ensureFloor();
       // Availability is probed live, so enabling Apple Intelligence mid-life is
       // picked up on the next open rather than needing a relaunch.
       final availability = await _engine.availability();
@@ -95,14 +103,26 @@ class ReflectionService {
       // Snapshot once: candidate weeks never overlap each other, so a save
       // inside the loop cannot make a later candidate look covered.
       final stored = _store.all();
+      final deleted = _store.deletedWeeks();
 
       for (final week in weeks) {
+        // No backfill: a week that closed entirely before the feature first
+        // ran is history, not a queue. Judged by range, like the done-check,
+        // so a later first-day shift cannot pull a pre-feature week back over
+        // the line. This is also the churn bound: an upgrade with months of
+        // older entries reflects nothing from before its first post-floor week.
+        if (!addDays(week, 7).isAfter(floor)) continue;
         // A stored reflection (text OR silence) is done; never re-run. Done is
         // judged by RANGE overlap, not exact key: an app-language change can
         // shift the first-day-of-week, and the shifted candidate must still
         // see the reflection written under the old boundary, or one language
         // switch would re-reflect the whole history into overlapping duplicates.
         if (_covered(week, stored)) continue;
+        // An erased week stays erased: the user's delete must not be overruled
+        // by the next open re-reflecting a week whose entries still exist.
+        // Range-matched like the done-check, so a locale shift cannot
+        // resurrect around the tombstone.
+        if (deleted.any((d) => _overlapsWeek(week, d))) continue;
         try {
           await _reflectWeek(week, byWeek[week]!);
         } on ReflectionUnavailable {
@@ -147,14 +167,25 @@ class ReflectionService {
   bool _dayInWeek(DateTime day, DateTime start, DateTime end) =>
       !day.isBefore(start) && day.isBefore(end);
 
-  /// Whether any of [stored] covers [week]'s 7-day range.
-  bool _covered(DateTime week, List<Reflection> stored) {
-    final end = addDays(week, 7);
-    for (final r in stored) {
-      if (r.weekStart.isBefore(end) && week.isBefore(addDays(r.weekStart, 7))) return true;
-    }
-    return false;
+  /// The no-backfill floor, recorded exactly once: the app-language week start
+  /// of the day the feature first ran. [regenerate] needs no floor check
+  /// because it can only target a stored reflection, and nothing below the
+  /// floor ever stores one.
+  Future<DateTime> _ensureFloor() async {
+    final stored = _settings.floor;
+    if (stored != null) return stored;
+    final floor = _weekOf(dateOnly(_clock()));
+    await _settings.setFloor(floor);
+    return floor;
   }
+
+  /// Whether any of [stored] covers [week]'s 7-day range.
+  bool _covered(DateTime week, List<Reflection> stored) =>
+      stored.any((r) => _overlapsWeek(week, r.weekStart));
+
+  /// Whether the 7-day ranges starting at [week] and [other] overlap.
+  bool _overlapsWeek(DateTime week, DateTime other) =>
+      other.isBefore(addDays(week, 7)) && week.isBefore(addDays(other, 7));
 
   /// The stored history, newest week first, for the surfaces. The store itself
   /// stays private so every write goes through this service.

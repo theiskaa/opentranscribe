@@ -1,15 +1,18 @@
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 
 // The storage is private and named parameters cannot be, so an initializing
 // formal does not apply.
 // ignore_for_file: prefer_initializing_formals
 
-/// Persists the weekly-reflection preferences: whether reflections run, and the
-/// three style knobs. LocalService-backed like the other settings holders.
-/// Reads are defensive: a corrupt or absent value falls back to the default
-/// (reflections on, the literary-tuned style), never throws. The defaults track
-/// [ReflectionVoice.literary]; changing any knob affects future weeks only.
+/// Persists the weekly-reflection preferences (whether reflections run, the
+/// three style knobs) plus one piece of machinery state: the no-backfill
+/// [floor] the service records on first run. LocalService-backed like the
+/// other settings holders. Reads are defensive: a corrupt or absent value
+/// falls back to its default (reflections on, the literary-tuned style, no
+/// floor yet), never throws. The defaults track [ReflectionVoice.literary];
+/// changing any knob affects future weeks only.
 class ReflectionSettings {
   ReflectionSettings({required LocalService storage}) : _storage = storage;
 
@@ -19,6 +22,7 @@ class ReflectionSettings {
   static const _voiceKey = 'reflect.voice';
   static const _lengthKey = 'reflect.length';
   static const _specificityKey = 'reflect.specificity';
+  static const _floorKey = 'reflect.floor';
 
   /// On by default on capable devices; where Apple Intelligence is unavailable
   /// nothing generates anyway, so a stored true costs nothing there.
@@ -34,6 +38,15 @@ class ReflectionSettings {
 
   ReflectionStyle get style =>
       ReflectionStyle(voice: voice, length: length, specificity: specificity);
+
+  /// The no-backfill floor: the week start of the day the feature first ran,
+  /// or null before the service has recorded it. Weeks that closed entirely
+  /// before it are never reflected, so an upgrade cannot churn pre-feature
+  /// history through the model. Written once, by the service.
+  DateTime? get floor =>
+      _read<DateTime?>(_floorKey, (s) => s == null ? null : DateTime.tryParse(s), null);
+
+  Future<void> setFloor(DateTime week) => _storage.write(_floorKey, Reflection.keyFor(week));
 
   Future<void> setEnabled(bool value) => _storage.write(_enabledKey, value ? 'true' : 'false');
 

@@ -6,6 +6,11 @@ import 'package:opentranscribe/core/models/reflection.dart';
 /// straight off the key prefix, like [EntryStore], so there is no separate index
 /// to keep in sync.
 ///
+/// A [delete] leaves a tombstone under its own prefix: the user erased that
+/// week's record, and the catch-up honors the erasure instead of quietly
+/// re-reflecting a week whose entries still exist. [save] clears the marker, so
+/// a tombstone and a row never coexist.
+///
 /// Reads are defensive: a single corrupt or schema-incompatible record is
 /// skipped, never allowed to hide the rest.
 class ReflectionStore {
@@ -14,11 +19,16 @@ class ReflectionStore {
   final LocalService _storage;
 
   static const _prefix = 'reflection:';
+  static const _deletedPrefix = 'reflection.deleted:';
 
   String _keyFor(String weekKey) => '$_prefix$weekKey';
 
-  Future<void> save(Reflection reflection) =>
-      _storage.writeJson(_keyFor(reflection.weekKey), reflection.toJson());
+  String _deletedKeyFor(String weekKey) => '$_deletedPrefix$weekKey';
+
+  Future<void> save(Reflection reflection) async {
+    await _storage.delete(_deletedKeyFor(reflection.weekKey));
+    await _storage.writeJson(_keyFor(reflection.weekKey), reflection.toJson());
+  }
 
   Reflection? read(DateTime weekStart) {
     final key = _keyFor(Reflection.keyFor(weekStart));
@@ -44,5 +54,21 @@ class ReflectionStore {
     return reflections;
   }
 
-  Future<bool> delete(DateTime weekStart) => _storage.delete(_keyFor(Reflection.keyFor(weekStart)));
+  /// Removes a week's reflection and records the removal as a tombstone.
+  Future<bool> delete(DateTime weekStart) async {
+    final weekKey = Reflection.keyFor(weekStart);
+    await _storage.write(_deletedKeyFor(weekKey), weekKey);
+    return _storage.delete(_keyFor(weekKey));
+  }
+
+  /// The week starts the user deleted, unordered. Unparseable markers are
+  /// skipped like corrupt rows.
+  List<DateTime> deletedWeeks() {
+    final weeks = <DateTime>[];
+    for (final key in _storage.findKeysWithPrefix(_deletedPrefix)) {
+      final week = DateTime.tryParse(key.substring(_deletedPrefix.length));
+      if (week != null) weeks.add(week);
+    }
+    return weeks;
+  }
 }

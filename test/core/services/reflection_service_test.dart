@@ -96,6 +96,9 @@ void main() {
     await storage.init(encryptionKey: key);
     store = ReflectionStore(storage);
     settings = ReflectionSettings(storage: storage);
+    // The feature has been present since long before the test weeks, so the
+    // no-backfill floor never interferes; the floor group covers it directly.
+    await settings.setFloor(DateTime(2026, 6, 8));
     engine = FakeReflectionEngine();
     entries = [];
     service = build();
@@ -353,6 +356,200 @@ void main() {
 
       expect(store.read(DateTime(2026, 7, 20)), isNotNull); // Monday-first week
       expect(store.read(DateTime(2026, 7, 19)), isNull); // not the Sunday-first week
+    });
+  });
+
+  group('deletion interplay', () {
+    // The decided story: a reflection is an immutable record of the week as it
+    // was heard, and the user's per-week delete is the only eraser, in BOTH
+    // directions: deleting entries never erases the reflection, and deleting
+    // the reflection is never undone by the next catch-up.
+
+    test('a deleted reflection stays deleted while its entries live on', () async {
+      // The confirm sheet says "cannot be undone"; without the tombstone the
+      // next catch-up would see an uncovered week with material and quietly
+      // write a fresh reflection the user never asked for.
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      await service.catchUp();
+      expect(store.read(lastWeek), isNotNull);
+
+      await service.deleteReflection(lastWeek);
+      engine.reflectCalls = 0;
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.read(lastWeek), isNull);
+    });
+
+    test('a language change cannot resurrect a deleted week', () async {
+      // Deleted under a Sunday-first boundary; a Monday-first catch-up must
+      // not treat the shifted candidate as a fresh, uncovered week.
+      final sundayWeek = DateTime(2026, 7, 19);
+      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'x'));
+      await service.deleteReflection(sundayWeek);
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final deService = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'de',
+        clock: () => now,
+      );
+
+      await deService.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.all(), isEmpty);
+    });
+
+    test('deleting a reflected week\'s entries later leaves its reflection untouched', () async {
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'as heard'));
+      // That week's own entries are gone, but another week still has material,
+      // so the pin survives a real catch-up pass rather than an empty loop.
+      entries = [withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago')];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(twoWeeksAgo), isNotNull);
+      expect(store.read(lastWeek)!.text, 'as heard');
+    });
+
+    test('a week emptied to zero regenerates to an honest silence, without the model', () async {
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'as heard'));
+      entries = []; // the user asked to re-run a week that no longer holds anything
+
+      await service.regenerate(lastWeek);
+
+      expect(engine.reflectCalls, 0);
+      expect(store.read(lastWeek)!.isSilent, isTrue);
+    });
+
+    test('an unreflected week whose entries were all deleted simply never reflects', () async {
+      entries = []; // material existed once, gone before any catch-up ran
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.all(), isEmpty);
+    });
+  });
+
+  group('no-backfill floor', () {
+    test('weeks that closed before the feature first ran are never reflected', () async {
+      await settings.setFloor(DateTime(2026, 7, 27)); // first run in the current week
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 12), text: 'last week'),
+        withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago'),
+      ];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.all(), isEmpty);
+    });
+
+    test('the feature-start week itself reflects once it closes', () async {
+      await settings.setFloor(lastWeek); // first run during the now-closed week
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 12), text: 'that week'),
+        withText('b', DateTime(2026, 7, 15, 12), text: 'before the feature'),
+      ];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(lastWeek), isNotNull);
+      expect(store.read(twoWeeksAgo), isNull);
+    });
+
+    test('the floor is recorded on first run, once, and holds fresh installs to it', () async {
+      // A fresh install: no stored floor, but older weeks already hold entries.
+      SharedPreferences.setMockInitialValues({});
+      storage = LocalService();
+      await storage.init(encryptionKey: key);
+      store = ReflectionStore(storage);
+      settings = ReflectionSettings(storage: storage);
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'pre-feature week')];
+      service = build();
+
+      await service.catchUp();
+
+      // First run recorded the current week as the floor and reflected nothing.
+      expect(settings.floor, DateTime(2026, 7, 27));
+      expect(engine.reflectCalls, 0);
+      expect(store.all(), isEmpty);
+
+      // A later run (clock a week on) leaves the recorded floor untouched.
+      final later = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'en',
+        clock: () => DateTime(2026, 8, 5, 12),
+        weekOf: mondayStart,
+      );
+      await later.catchUp();
+      expect(settings.floor, DateTime(2026, 7, 27));
+    });
+
+    test('the floor is recorded even while Apple Intelligence is unavailable', () async {
+      // The floor marks when the FEATURE first ran, not when the model first
+      // answered: a user journaling with AI off must still get those weeks
+      // filled once it comes on, not floored away at the first answer.
+      SharedPreferences.setMockInitialValues({});
+      storage = LocalService();
+      await storage.init(encryptionKey: key);
+      store = ReflectionStore(storage);
+      settings = ReflectionSettings(storage: storage);
+      engine.availabilityResult = const ReflectionAvailability(
+        ReflectionAvailabilityStatus.notEnabled,
+      );
+      entries = [withText('a', DateTime(2026, 7, 29, 12), text: 'with AI off')];
+      service = build();
+
+      await service.catchUp();
+      expect(settings.floor, DateTime(2026, 7, 27)); // recorded despite the gate
+
+      // The week journaled in the gap fills once the model answers.
+      engine.availabilityResult = const ReflectionAvailability.available();
+      final later = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'en',
+        clock: () => DateTime(2026, 8, 5, 12),
+        weekOf: mondayStart,
+      );
+      await later.catchUp();
+      expect(store.read(DateTime(2026, 7, 27)), isNotNull);
+    });
+
+    test('a first-day-of-week shift cannot pull a pre-feature week over the floor', () async {
+      await settings.setFloor(DateTime(2026, 7, 19)); // Sunday-first floor (en)
+      entries = [
+        withText('a', DateTime(2026, 7, 8, 12), text: 'fully before the floor'),
+        withText('b', DateTime(2026, 7, 15, 12), text: 'week straddling the floor day'),
+      ];
+      // Monday-first bucketing (de): weeks Jul 6-12 (ends before the floor day,
+      // skipped) and Jul 13-19 (overlaps the floor day, in-feature).
+      final deService = ReflectionService(
+        engine: engine,
+        store: store,
+        settings: settings,
+        entries: () => entries,
+        language: () => 'de',
+        clock: () => now,
+      );
+
+      await deService.catchUp();
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(DateTime(2026, 7, 13)), isNotNull);
+      expect(store.read(DateTime(2026, 7, 6)), isNull);
     });
   });
 

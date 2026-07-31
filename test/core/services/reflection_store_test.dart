@@ -61,12 +61,22 @@ void main() {
     expect(weeks, ['2026-07-20', '2026-07-13', '2026-07-06']);
   });
 
-  test('delete removes a week', () async {
+  test('delete removes a week and leaves a tombstone', () async {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'gone'));
     await store.delete(DateTime(2026, 7, 20));
 
     expect(store.read(DateTime(2026, 7, 20)), isNull);
     expect(store.all(), isEmpty);
+    expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+  });
+
+  test('save clears a week\'s tombstone, so marker and row never coexist', () async {
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+    await store.delete(DateTime(2026, 7, 20));
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'again'));
+
+    expect(store.deletedWeeks(), isEmpty);
+    expect(store.read(DateTime(2026, 7, 20))!.text, 'again');
   });
 
   test('all() skips a corrupt record and keeps the valid ones', () async {

@@ -46,6 +46,17 @@ void main() {
     expect(settings.voice, ReflectionVoice.literary);
   });
 
+  test('the floor is absent until recorded, then round-trips as a date', () async {
+    expect(settings.floor, isNull);
+    await settings.setFloor(DateTime(2026, 7, 20));
+    expect(settings.floor, DateTime(2026, 7, 20));
+  });
+
+  test('an unreadable floor reads as absent, never throws', () async {
+    await storage.write('reflect.floor', 'not-a-date');
+    expect(settings.floor, isNull);
+  });
+
   test('an undecryptable store falls back to defaults, never throws', () async {
     SharedPreferences.setMockInitialValues({'reflect.enabled': 'not-ciphertext'});
     storage = LocalService();

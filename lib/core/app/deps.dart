@@ -88,7 +88,8 @@ class Deps {
   /// nothing can bypass the on-device guard or the silence-is-a-result rule.
   final ReflectionService reflectionService;
 
-  /// The reflection preferences (on/off, voice, length, specificity).
+  /// The reflection preferences (on/off, voice, length, specificity), plus the
+  /// service-recorded no-backfill floor.
   final ReflectionSettings reflectionSettings;
 
   /// The engines this build ships, as presentation facts for surfaces that list
