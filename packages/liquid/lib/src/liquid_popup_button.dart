@@ -14,16 +14,13 @@ class LiquidPopupButtonEntry {
     this.isSelected = false,
   }) : isDivider = false;
 
-  const LiquidPopupButtonEntry.submenu({
-    required this.label,
-    required this.children,
-    this.icon,
-  }) : value = '__submenu__',
-       iconBytes = null,
-       isDivider = false,
-       causesNavigation = false,
-       isDestructive = false,
-       isSelected = false;
+  const LiquidPopupButtonEntry.submenu({required this.label, required this.children, this.icon})
+    : value = '__submenu__',
+      iconBytes = null,
+      isDivider = false,
+      causesNavigation = false,
+      isDestructive = false,
+      isSelected = false;
 
   /// Creates a divider entry that visually separates menu items.
   const LiquidPopupButtonEntry.divider()
@@ -70,8 +67,7 @@ class LiquidPopupButtonEntry {
     'label': label,
     if (icon != null) 'icon': icon,
     if (iconBytes != null) 'iconBytes': iconBytes,
-    if (children.isNotEmpty)
-      'children': children.map((e) => e.toMap()).toList(),
+    if (children.isNotEmpty) 'children': children.map((e) => e.toMap()).toList(),
     if (isDivider) 'isDivider': true,
     if (isDestructive) 'isDestructive': true,
     if (isSelected) 'isSelected': true,
@@ -144,8 +140,7 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
     if (widget.buttonLabel != null) 'buttonLabel': widget.buttonLabel,
     if (widget.icon != null) 'icon': widget.icon,
     if (widget.iconPointSize != null) 'iconPointSize': widget.iconPointSize,
-    if (widget.itemIconPointSize != null)
-      'itemIconPointSize': widget.itemIconPointSize,
+    if (widget.itemIconPointSize != null) 'itemIconPointSize': widget.itemIconPointSize,
     if (widget.isDark != null) 'isDark': widget.isDark,
   };
 
@@ -199,10 +194,7 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
   /// Delay before restoring visibility after navigation.
   static const _restoreDelay = Duration(milliseconds: 500);
 
-  LiquidPopupButtonEntry? _findEntryByValue(
-    List<LiquidPopupButtonEntry> entries,
-    String value,
-  ) {
+  LiquidPopupButtonEntry? _findEntryByValue(List<LiquidPopupButtonEntry> entries, String value) {
     for (final entry in entries) {
       if (entry.value == value) return entry;
       if (entry.children.isNotEmpty) {
