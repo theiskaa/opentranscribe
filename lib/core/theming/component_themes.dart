@@ -128,6 +128,7 @@ final class ScrubberTheme {
     this.height = 34.0,
     this.topBand = 32.0,
     this.slack = 24.0,
+    this.sinkDistance = 12.0,
   });
 
   /// The frost tint drawn over the blur, translucent so text reads through.
@@ -144,6 +145,9 @@ final class ScrubberTheme {
   /// Directional travel a scroll needs before the capsule hides or returns,
   /// so pixel jitter never flickers it.
   final double slack;
+
+  /// How far the capsule sinks toward the screen edge as its fade runs out.
+  final double sinkDistance;
 }
 
 /// The week strip under the date bar on home.

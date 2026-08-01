@@ -59,6 +59,17 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
 
   bool get _attached => widget.controller.hasClients;
 
+  @override
+  void dispose() {
+    // An unmount mid-grab must release the screen's hold on the page physics;
+    // post-frame because this can run inside the parent's own rebuild.
+    if (_pointer != null) {
+      _pointer = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => widget.onScrubEnd());
+    }
+    super.dispose();
+  }
+
   void _down(PointerDownEvent event) {
     if (!_attached || _pointer != null) return;
     _pointer = event.pointer;

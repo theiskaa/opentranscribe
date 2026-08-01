@@ -173,15 +173,24 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
     setState(() => _scrubberShown = shown);
   }
 
+  /// A scrub flip always rebuilds: the pages render settled while the finger
+  /// owns the position, and the landed page's write-on resumes on release.
   void _setScrubbing({required bool value, required int count}) {
-    _scrubbing = value;
-    _refreshScrubber(count: count);
+    if (!mounted || _scrubbing == value) return;
+    setState(() {
+      _scrubbing = value;
+      _scrubberShown = _visibleFor(count);
+    });
   }
 
   /// Keeps the VIEWED WEEK stable when the timeline changes length: pages are
   /// remapped by identity, not position (the WeekCalendar lesson).
   PageController _configure(List<ReflectionWeek> timeline) {
     final page = pageForWeek(timeline, _viewedWeek);
+    // Pin identity to the resolved page NOW: a null or unknown week left
+    // unresolved would re-resolve against a grown timeline later and teleport
+    // the pager off the week the user was reading.
+    _viewedWeek = timeline[page].weekStart;
     final controller = _controller;
     if (controller != null && timeline.length == _pageCount) return controller;
     final old = controller;
@@ -273,7 +282,10 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                 physics: _EagerPagePhysics(settledPage: () => _settledPage, held: () => _scrubbing),
                 itemCount: timeline.length,
                 onPageChanged: (page) {
-                  Haptics.selection();
+                  // Pages flown through mid-scrub tick neither the hand nor
+                  // the ledger; the scrubber answers the grab and the settle
+                  // itself, and only a real commit spends a write-on.
+                  if (!_scrubbing) Haptics.selection();
                   final week = timeline[page];
                   setState(() {
                     _viewedWeek = week.weekStart;
@@ -284,7 +296,7 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                     // Committing to a page whose ink already runs spends its
                     // write-on; see [_revealed].
                     final key = revealKeyFor(week);
-                    if (_started.contains(key)) _revealed.add(key);
+                    if (!_scrubbing && _started.contains(key)) _revealed.add(key);
                   });
                 },
                 itemBuilder: (context, page) {
@@ -292,6 +304,7 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                   return _WeekPage(
                     week: week,
                     regenerating: state.regenerating == week.weekStart,
+                    scrubbing: _scrubbing,
                     revealed: _revealed,
                     length: state.style.length,
                     disabled: !state.enabled,
@@ -328,7 +341,9 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                     curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
                     builder: (context, fade, _) {
                       if (fade <= 0) return const SizedBox.shrink();
-                      final sink = context.reduceMotion ? 0.0 : (1 - fade) * 12;
+                      final sink = context.reduceMotion
+                          ? 0.0
+                          : (1 - fade) * theme.scrubber.sinkDistance;
                       return Transform.translate(
                         offset: Offset(0, sink),
                         child: ReflectionScrubber(
@@ -360,6 +375,7 @@ class _WeekPage extends StatelessWidget {
   const _WeekPage({
     required this.week,
     required this.regenerating,
+    required this.scrubbing,
     required this.revealed,
     required this.length,
     required this.disabled,
@@ -371,6 +387,9 @@ class _WeekPage extends StatelessWidget {
 
   final ReflectionWeek week;
   final bool regenerating;
+
+  /// A finger owns the scrubber: pages fly by settled, starting no write-ons.
+  final bool scrubbing;
   final Set<String> revealed;
   final ReflectionLength length;
 
@@ -415,6 +434,7 @@ class _WeekPage extends StatelessWidget {
           _PageBody(
             week: week,
             regenerating: regenerating,
+            scrubbing: scrubbing,
             revealed: revealed,
             length: length,
             onWriteStarted: onWriteStarted,
@@ -437,6 +457,7 @@ class _PageBody extends StatelessWidget {
   const _PageBody({
     required this.week,
     required this.regenerating,
+    required this.scrubbing,
     required this.revealed,
     required this.length,
     required this.onWriteStarted,
@@ -444,6 +465,7 @@ class _PageBody extends StatelessWidget {
 
   final ReflectionWeek week;
   final bool regenerating;
+  final bool scrubbing;
   final Set<String> revealed;
   final ReflectionLength length;
   final VoidCallback onWriteStarted;
@@ -463,12 +485,18 @@ class _PageBody extends StatelessWidget {
           // 50% crossing, which read as the page refusing to load mid-drag.
           // Whether that start SPENDS the replay is the parent ledger's call.
           InkReveal(
-            phase: inkPhaseFor(week: week, regenerating: regenerating, revealed: revealed),
+            phase: inkPhaseFor(
+              week: week,
+              regenerating: regenerating,
+              scrubbing: scrubbing,
+              revealed: revealed,
+            ),
             color: theme.text,
             background: theme.screens.settings,
             placeholderLines: pendingLinesFor(
               week: week,
               width: MediaQuery.sizeOf(context).width - AppSpacing.xl * 2,
+              fontSize: MediaQuery.textScalerOf(context).scale(AppType.body.fontSize!),
               length: length,
             ),
             onWriteStarted: onWriteStarted,

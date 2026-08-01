@@ -71,10 +71,6 @@ class InkReveal extends StatefulWidget {
 }
 
 class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
-  /// How long the formed cloud holds before it may resolve, so a fast arrival
-  /// still reads as ink becoming words rather than a blink.
-  static const Duration _writeHold = Duration(milliseconds: 500);
-
   /// Wraps the child so its last painted frame can be captured.
   final GlobalKey _textKey = GlobalKey();
 
@@ -185,7 +181,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
   }
 
   void _holdThen(int run) {
-    Future<void>.delayed(_writeHold, () {
+    Future<void>.delayed(context.motionNow.inkHold, () {
       if (!mounted || run != _run) return;
       _inkHeld = true;
       _tryResolve(run);
@@ -252,7 +248,8 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     final width = box.size.width;
     if (width <= 0) return false;
     const style = AppType.body;
-    final fontSize = style.fontSize!;
+    // The reader's text scale sizes the cloud like the text it stands for.
+    final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize!);
     final lineHeight = fontSize * style.height!;
     _releaseInk();
     _inkPoints = placeholderInkPoints(

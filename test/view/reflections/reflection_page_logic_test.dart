@@ -18,30 +18,43 @@ void main() {
     ),
   );
 
+  InkPhase phaseFor(
+    ReflectionWeek week, {
+    bool regenerating = false,
+    bool scrubbing = false,
+    Set<String> revealed = const {},
+  }) =>
+      inkPhaseFor(week: week, regenerating: regenerating, scrubbing: scrubbing, revealed: revealed);
+
   test('the first view of a reflected week writes on', () {
-    expect(inkPhaseFor(week: reflected(), regenerating: false, revealed: const {}), InkPhase.write);
+    expect(phaseFor(reflected()), InkPhase.write);
   });
 
   test('a week already revealed this visit arrives settled', () {
     final week = reflected();
-    final revealed = {revealKeyFor(week)};
-    expect(inkPhaseFor(week: week, regenerating: false, revealed: revealed), InkPhase.settled);
+    expect(phaseFor(week, revealed: {revealKeyFor(week)}), InkPhase.settled);
   });
 
   test('a regenerating week is pending even when previously revealed', () {
     final week = reflected();
-    final revealed = {revealKeyFor(week)};
-    expect(inkPhaseFor(week: week, regenerating: true, revealed: revealed), InkPhase.pending);
+    expect(phaseFor(week, regenerating: true, revealed: {revealKeyFor(week)}), InkPhase.pending);
+  });
+
+  test('a scrub renders an unrevealed week settled, so flying past starts no write', () {
+    expect(phaseFor(reflected(), scrubbing: true), InkPhase.settled);
+  });
+
+  test('a regenerating week stays pending under a scrub', () {
+    expect(phaseFor(reflected(), regenerating: true, scrubbing: true), InkPhase.pending);
   });
 
   test('a regenerate changes the ledger key, so the new words re-arrive', () {
     // Marked at reveal START: an interrupted reveal does not replay on return,
     // but a new generatedAt is a different key and earns its arrival again.
     final first = reflected();
-    final revealed = {revealKeyFor(first)};
     final rewritten = reflected(generatedAt: DateTime.utc(2026, 7, 28));
     expect(revealKeyFor(rewritten), isNot(revealKeyFor(first)));
-    expect(inkPhaseFor(week: rewritten, regenerating: false, revealed: revealed), InkPhase.write);
+    expect(phaseFor(rewritten, revealed: {revealKeyFor(first)}), InkPhase.write);
   });
 
   test('placeholder height follows the length knob', () {
@@ -71,10 +84,45 @@ void main() {
         text: 'x' * 400,
       ),
     );
-    final shortLines = pendingLinesFor(week: short, width: 360, length: ReflectionLength.paragraph);
-    final longLines = pendingLinesFor(week: long, width: 360, length: ReflectionLength.paragraph);
+    final shortLines = pendingLinesFor(
+      week: short,
+      width: 360,
+      fontSize: 17,
+      length: ReflectionLength.paragraph,
+    );
+    final longLines = pendingLinesFor(
+      week: long,
+      width: 360,
+      fontSize: 17,
+      length: ReflectionLength.paragraph,
+    );
     expect(shortLines, 1);
     expect(longLines, greaterThan(shortLines));
+  });
+
+  test('a larger accessibility text scale deepens the cloud with the text', () {
+    final week = ReflectionWeek(
+      weekStart: weekStart,
+      status: ReflectionWeekStatus.reflected,
+      reflection: Reflection(
+        weekStart: weekStart,
+        generatedAt: DateTime.utc(2026, 7, 27),
+        text: 'x' * 400,
+      ),
+    );
+    final plain = pendingLinesFor(
+      week: week,
+      width: 360,
+      fontSize: 17,
+      length: ReflectionLength.paragraph,
+    );
+    final scaled = pendingLinesFor(
+      week: week,
+      width: 360,
+      fontSize: 17 * 1.6,
+      length: ReflectionLength.paragraph,
+    );
+    expect(scaled, greaterThan(plain));
   });
 
   test('a week with no text falls back to the length knob', () {
@@ -84,7 +132,7 @@ void main() {
       reflection: Reflection(weekStart: weekStart, generatedAt: DateTime.utc(2026, 7, 27)),
     );
     expect(
-      pendingLinesFor(week: silent, width: 360, length: ReflectionLength.sentences),
+      pendingLinesFor(week: silent, width: 360, fontSize: 17, length: ReflectionLength.sentences),
       placeholderLinesFor(ReflectionLength.sentences),
     );
   });

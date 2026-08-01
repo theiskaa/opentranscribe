@@ -69,6 +69,11 @@ void main() {
     expect(idsOf(build(canRegenerate: false, showSettings: false)), ['r:delete']);
   });
 
+  test('nothing at all when the model cannot run and the week stores nothing, '
+      'so the screen drops the ellipsis instead of opening an empty menu', () {
+    expect(build(canRegenerate: false, canDelete: false, showSettings: false), isEmpty);
+  });
+
   test('the toggle row reflects enabled and carries the toggle id', () {
     final on = build().singleWhere((i) => i.id == 'r:toggle');
     expect(on.selected, isTrue);

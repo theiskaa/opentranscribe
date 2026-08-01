@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
@@ -10,12 +9,17 @@ import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 /// rule, not widget state: the write-on plays once per week per screen visit
 /// (a browse back and forth must not replay a 1.3s arrival), while a
 /// regenerate always goes through pending and re-arrives (new words earn it).
+/// A scrub renders pages settled: weeks flown through under the finger must
+/// not start captures, write-ons, or ledger spends, and the landed page
+/// re-earns its write once the grip releases.
 InkPhase inkPhaseFor({
   required ReflectionWeek week,
   required bool regenerating,
+  required bool scrubbing,
   required Set<String> revealed,
 }) {
   if (regenerating) return InkPhase.pending;
+  if (scrubbing) return InkPhase.settled;
   if (revealed.contains(revealKeyFor(week))) return InkPhase.settled;
   return InkPhase.write;
 }
@@ -140,19 +144,17 @@ double dashRimScale({
   return scale.clamp(0.5, 1);
 }
 
-/// The pending cloud's height for [week] at the page's text [width]: shaped
-/// like the text it replaces, falling back to the [length] knob when the week
-/// holds none (a first write, an erased or silent week).
+/// The pending cloud's height for [week] at the page's text [width] and the
+/// reader's scaled [fontSize]: shaped like the text it replaces, falling back
+/// to the [length] knob when the week holds none (a first write, an erased or
+/// silent week).
 int pendingLinesFor({
   required ReflectionWeek week,
   required double width,
+  required double fontSize,
   required ReflectionLength length,
 }) {
   final text = week.reflection?.text;
   if (text == null || text.isEmpty) return placeholderLinesFor(length);
-  return estimateTextInkLines(
-    characters: text.length,
-    width: width,
-    fontSize: AppType.body.fontSize!,
-  );
+  return estimateTextInkLines(characters: text.length, width: width, fontSize: fontSize);
 }

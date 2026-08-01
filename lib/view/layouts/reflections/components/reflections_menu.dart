@@ -278,18 +278,22 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
     final labels = _labelsOf(AppLocalizations.of(context)!);
     final state = context.watch<ReflectionsCubit>().state;
     final viewed = widget.viewed;
+    final items = reflectionsMenuItems(
+      enabled: state.enabled,
+      style: state.style,
+      labels: labels,
+      canRegenerate: viewed != null && state.available,
+      canDelete: viewed?.reflection != null,
+      showSettings: state.available,
+    );
+    // No applicable item (the model cannot run and the week stores nothing):
+    // no button, rather than an ellipsis that opens an empty menu.
+    if (items.isEmpty) return const SizedBox.shrink();
     return AppMenuButton(
       key: _anchor,
       icon: AppIcons.ellipsis,
       color: widget.color,
-      items: reflectionsMenuItems(
-        enabled: state.enabled,
-        style: state.style,
-        labels: labels,
-        canRegenerate: viewed != null && state.available,
-        canDelete: viewed?.reflection != null,
-        showSettings: state.available,
-      ),
+      items: items,
       onSelectedId: (id) => _onSelectedId(id, state, labels),
     );
   }

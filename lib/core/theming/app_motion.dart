@@ -36,6 +36,7 @@ final class AppMotion {
     this.ditherReveal = const Duration(milliseconds: 450),
     this.inkDissolve = const Duration(milliseconds: 600),
     this.inkResolve = const Duration(milliseconds: 850),
+    this.inkHold = const Duration(milliseconds: 500),
     this.inkLoop = const Duration(seconds: 6),
     this.errorBlink = const Duration(milliseconds: 1000),
     this.errorShake = const Duration(milliseconds: 400),
@@ -122,6 +123,10 @@ final class AppMotion {
   /// The ink resolving back into the new transcript once the run lands. Slower
   /// than [inkDissolve] on purpose: the arrival takes its time.
   final Duration inkResolve;
+
+  /// How long a formed ink cloud holds before it may resolve, so a fast
+  /// arrival still reads as ink becoming words rather than a blink.
+  final Duration inkHold;
 
   /// One lap of the ink shimmer's seamless loop. Long, because every spark
   /// pulses a few times per lap and faster laps read as boiling.
