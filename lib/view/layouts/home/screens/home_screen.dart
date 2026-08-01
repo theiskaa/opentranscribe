@@ -199,12 +199,17 @@ class _HomeScreenState extends State<HomeScreen> {
           _sections.prune(state.entryDays);
           // Cards are driven by the reflection history; watching it here rebuilds
           // home when a week is reflected, deleted, or regenerated.
-          final reflections = context.watch<ReflectionsCubit>().state.history;
+          final reflectionsState = context.watch<ReflectionsCubit>().state;
+          final reflections = reflectionsState.history;
           // Only a card that ARRIVES while home is up gets an entrance; the
-          // first build renders everything settled (no diff to run against).
-          final previous = _seenReflections;
-          if (previous != null) _entranceWeeks.addAll(newlyReflectedWeeks(previous, reflections));
-          _seenReflections = reflections;
+          // first LOADED build seeds the ledger settled. Diffing before the
+          // cubit's first real read would run against its empty placeholder
+          // and mark the whole history newly arrived.
+          if (reflectionsState.loaded) {
+            final previous = _seenReflections;
+            if (previous != null) _entranceWeeks.addAll(newlyReflectedWeeks(previous, reflections));
+            _seenReflections = reflections;
+          }
           // After EVERY build: splitter positions move when entries are
           // added or renamed (card heights change), not only when the set
           // of days does.
@@ -416,7 +421,7 @@ const double _listBottomInset = 42;
 /// the reflections pager landed on its week, entering with the app's rise
 /// only when it arrived while home was up.
 class _ReflectionCardSlot extends StatelessWidget {
-  const _ReflectionCardSlot({required this.reflection, required this.entrance});
+  const _ReflectionCardSlot({required this.reflection, required this.entrance, super.key});
 
   final Reflection reflection;
   final bool entrance;
@@ -495,7 +500,10 @@ class _RecordsList extends StatelessWidget {
         for (final (s, section) in sections.indexed) ...[
           if (cards[s] != null) ...[
             SizedBox(height: s == 0 ? 0 : AppSpacing.xxl),
+            // Keyed so an entry insert or delete above cannot re-inflate the
+            // slot at its shifted index and replay the entrance.
             _ReflectionCardSlot(
+              key: ValueKey(cards[s]!.weekStart),
               reflection: cards[s]!,
               entrance: entranceWeeks.contains(cards[s]!.weekStart),
             ),

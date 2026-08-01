@@ -88,6 +88,16 @@ void main() {
     await cubit.close();
   });
 
+  test('loaded stays false until the first real history read emits', () async {
+    final cubit = build();
+
+    expect(cubit.state.loaded, isFalse);
+
+    await cubit.load();
+    expect(cubit.state.loaded, isTrue);
+    await cubit.close();
+  });
+
   test('available means the model can actually run, nothing else', () async {
     Future<void> check(ReflectionAvailabilityStatus status, {required bool available}) async {
       engine.availabilityResult = ReflectionAvailability(status);

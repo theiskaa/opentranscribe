@@ -26,6 +26,7 @@ final class ReflectionsState {
     this.timeline = const [],
     this.regenerating,
     this.regenerateFailed = false,
+    this.loaded = false,
   });
 
   final ReflectionAvailability availability;
@@ -46,6 +47,11 @@ final class ReflectionsState {
   /// surface can offer a retry. Cleared on the next action.
   final bool regenerateFailed;
 
+  /// True once [history] reflects a real read of the store. Before that it is
+  /// only the initial empty placeholder, and a surface diffing arrivals
+  /// against it would mark the entire history as newly arrived.
+  final bool loaded;
+
   /// The feature actually runs here. Surfaces stay visible regardless (the
   /// screen explains an unavailable state); this gates only generation.
   bool get available => availability.isAvailable;
@@ -59,6 +65,7 @@ final class ReflectionsState {
     DateTime? regenerating,
     bool clearRegenerating = false,
     bool? regenerateFailed,
+    bool? loaded,
   }) => ReflectionsState(
     availability: availability ?? this.availability,
     enabled: enabled ?? this.enabled,
@@ -67,6 +74,7 @@ final class ReflectionsState {
     timeline: timeline ?? this.timeline,
     regenerating: clearRegenerating ? null : (regenerating ?? this.regenerating),
     regenerateFailed: regenerateFailed ?? this.regenerateFailed,
+    loaded: loaded ?? this.loaded,
   );
 }
 
@@ -116,6 +124,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
   ReflectionsState _withHistory(ReflectionsState s) {
     final history = _service.history();
     return s.copyWith(
+      loaded: true,
       history: history,
       timeline: reflectionTimeline(
         history: history,
