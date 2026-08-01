@@ -33,6 +33,7 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
+    this.ditherReveal = const Duration(milliseconds: 450),
     this.inkDissolve = const Duration(milliseconds: 600),
     this.inkResolve = const Duration(milliseconds: 850),
     this.inkLoop = const Duration(seconds: 6),
@@ -108,6 +109,11 @@ final class AppMotion {
   /// read as breathing rather than vibration, and it only runs while a finger
   /// is holding the gesture past its threshold.
   final Duration pullWave;
+
+  /// A surface materializing or decomposing through the ordered-dither
+  /// ladder: long enough for the frontier wave to read as travel, short
+  /// enough to answer the toggle that asked for it.
+  final Duration ditherReveal;
 
   /// The text dissolving into its invisible-ink shimmer when a re-transcribe
   /// starts. One-shot.

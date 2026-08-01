@@ -5,69 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
-
-/// The classic normalized 8x8 ordered-dither thresholds. NOT the website's
-/// values: its recursive bayer is unnormalized (tops out past 1, so some of
-/// its cells can never light); this is the corrected matrix, a touch denser
-/// at equal tone.
-const _bayer = [
-  [0, 32, 8, 40, 2, 34, 10, 42],
-  [48, 16, 56, 24, 50, 18, 58, 26],
-  [12, 44, 4, 36, 14, 46, 6, 38],
-  [60, 28, 52, 20, 62, 30, 54, 22],
-  [3, 35, 11, 43, 1, 33, 9, 41],
-  [51, 19, 59, 27, 49, 17, 57, 25],
-  [15, 47, 7, 39, 13, 45, 5, 37],
-  [63, 31, 55, 23, 61, 29, 53, 21],
-];
-
-/// The ordered-dither threshold for cell ([x], [y]); tiles every 8 cells.
-/// Pure, so the pattern is tested.
-double ditherBayer8(int x, int y) => _bayer[y % 8][x % 8] / 64;
-
-/// A deterministic per-cell jitter in [0, 1), the shader's sin-dot hash.
-double ditherHash(double x, double y) {
-  final s = math.sin(x * 41.31 + y * 289.17) * 43758.5453;
-  return s - s.floorToDouble();
-}
-
-double _smooth(double t) => t * t * (3 - 2 * t);
-
-/// Smooth value noise in [0, 1): the hash at integer corners, blended with a
-/// smoothstep so the field drifts without seams. Pure, so bounds are tested.
-double ditherNoise(double x, double y) {
-  final ix = x.floorToDouble();
-  final iy = y.floorToDouble();
-  final fx = _smooth(x - ix);
-  final fy = _smooth(y - iy);
-  final a = ditherHash(ix, iy);
-  final b = ditherHash(ix + 1, iy);
-  final c = ditherHash(ix, iy + 1);
-  final d = ditherHash(ix + 1, iy + 1);
-  return _lerp(_lerp(a, b, fx), _lerp(c, d, fx), fy);
-}
-
-/// Three octaves of [ditherNoise], the breathing texture. In [0, ~0.9).
-double ditherFbm(double x, double y) {
-  var sum = 0.0;
-  var amp = 0.5;
-  var px = x;
-  var py = y;
-  for (var i = 0; i < 3; i++) {
-    sum += amp * ditherNoise(px, py);
-    px = px * 2.03 + 1.7;
-    py = py * 2.03 + 9.2;
-    amp *= 0.5;
-  }
-  return sum;
-}
-
-double _lerp(double a, double b, double t) => a + (b - a) * t;
-
-double _smoothstep(double lo, double hi, double v) {
-  final t = ((v - lo) / (hi - lo)).clamp(0.0, 1.0);
-  return _smooth(t);
-}
+import 'package:opentranscribe/view/widgets/dither.dart';
 
 /// A quiet corner of living dither: cells lit by an ordered-dither threshold
 /// against a glow that breathes on drifting noise, the website background's
@@ -216,18 +154,13 @@ class _DitherPainter extends CustomPainter {
         final dx = 1 - qx;
         final dy = size.height / size.width - qy;
         final d = math.sqrt(dx * dx + dy * dy);
-        var glow = 1 - _smoothstep(0.05, 0.95, d);
-        glow = _smooth(glow);
+        var glow = 1 - ditherSmoothstep(0.05, 0.95, d);
+        glow = ditherSmoothstep(0, 1, glow);
         if (glow <= 0) continue;
 
         final breathe = 0.82 + 0.34 * (ditherFbm(qx * 2.6 + t, qy * 2.6 - t * 0.6) - 0.5);
         final tone = glow * 0.4 * breathe;
-        final threshold = _lerp(
-          ditherBayer8(col, row),
-          ditherHash(col.toDouble(), row.toDouble()),
-          0.06,
-        );
-        if (tone <= threshold) continue;
+        if (tone <= ditherThreshold(col, row)) continue;
         // One flat token color where the web modulates its shade by glow:
         // the theme owns the dimness here.
         canvas.drawRect(Rect.fromLTWH(x, y, cell, cell), paint);

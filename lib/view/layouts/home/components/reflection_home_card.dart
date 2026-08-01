@@ -3,11 +3,10 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/home/components/dither_field.dart';
+import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -78,7 +77,6 @@ class ReflectionHomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final card = theme.reflectionCard;
     final l10n = AppLocalizations.of(context)!;
     if (reflection.isSilent) {
       // The marker reads as text, so it lands on the records' text column.
@@ -91,47 +89,24 @@ class ReflectionHomeCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Touchable(
         onTap: onTap,
-        child: DecoratedBox(
-          decoration: SuperellipseDecoration(
-            color: card.background,
-            borderRadius: AppRadius.card,
-            border: BorderSide(color: card.border),
-          ),
-          child: ClipPath(
-            clipper: const ShapeBorderClipper(shape: Superellipse(radius: AppRadius.card)),
-            child: Stack(
+        child: DitherCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // A dim breath of dither in the panel's far corner, under the
-                // excerpt's tail; sized to die out well before the text.
-                const Positioned(
-                  right: 0,
-                  bottom: 0,
-                  width: _CornerDither.width,
-                  height: _CornerDither.height,
-                  child: IgnorePointer(child: _CornerDither()),
+                Text(
+                  l10n.reflectionOfWeek(weekRangeLabel(reflection.weekStart, localeTag(context))),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.headline.copyWith(color: theme.text),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reflectionOfWeek(
-                          weekRangeLabel(reflection.weekStart, localeTag(context)),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.headline.copyWith(color: theme.text),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        reflection.text!,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  reflection.text!,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
                 ),
               ],
             ),
@@ -139,20 +114,6 @@ class ReflectionHomeCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _CornerDither extends StatelessWidget {
-  const _CornerDither();
-
-  /// The patch is layout, not theme: tuned so the glow dies before the text
-  /// column at every card height.
-  static const width = 150.0;
-  static const height = 96.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return DitherField(color: context.theme.reflectionCard.dither);
   }
 }
 

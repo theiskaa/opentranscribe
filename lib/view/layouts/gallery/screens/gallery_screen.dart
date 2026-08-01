@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
@@ -26,6 +27,8 @@ import 'package:opentranscribe/view/widgets/glass_capsule.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
+import 'package:opentranscribe/view/widgets/dither.dart';
+import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
@@ -153,6 +156,17 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               _section('Glass capsule'),
               const _GlassCapsuleDemo(),
+              _section('Dither reveal'),
+              const _DitherRevealDemo(),
+              _section('Dither field'),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 150,
+                  height: 96,
+                  child: DitherField(color: theme.reflectionCard.dither),
+                ),
+              ),
               _section('Notice'),
               AppButton(
                 label: 'Show notice',
@@ -533,6 +547,73 @@ class _InkRevealPendingDemo extends StatelessWidget {
       background: theme.background,
       placeholderLines: 3,
       child: const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Tap to decompose the panel into dither dots and back: the disabled
+/// notice's arrival, posed over the gallery's own background as the cover.
+class _DitherRevealDemo extends StatefulWidget {
+  const _DitherRevealDemo();
+
+  @override
+  State<_DitherRevealDemo> createState() => _DitherRevealDemoState();
+}
+
+class _DitherRevealDemoState extends State<_DitherRevealDemo> with SingleTickerProviderStateMixin {
+  late final AnimationController _reveal = AnimationController(vsync: this, value: 1);
+  late final CurvedAnimation _wave = CurvedAnimation(parent: _reveal, curve: Curves.easeInOut);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reveal.duration = context.motionNow.ditherReveal;
+  }
+
+  void _toggle() {
+    final show = _reveal.value <= 0.5;
+    if (context.reduceMotion) {
+      _reveal.value = show ? 1 : 0;
+      return;
+    }
+    if (show) {
+      _reveal.forward();
+    } else {
+      _reveal.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _wave.dispose();
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: _toggle,
+      child: AnimatedBuilder(
+        animation: _wave,
+        builder: (context, child) =>
+            DitherReveal(progress: _wave.value, cover: theme.background, child: child!),
+        child: Container(
+          width: double.infinity,
+          decoration: SuperellipseDecoration(
+            color: theme.settings.cardBackground,
+            borderRadius: AppRadius.card,
+            border: BorderSide(color: theme.settings.cardBorder),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            'Tap to dissolve this panel into dither dots and summon it back, '
+            'cell by cell up the Bayer ladder.',
+            style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+          ),
+        ),
+      ),
     );
   }
 }
