@@ -24,7 +24,7 @@ class ReflectionSettings {
   static const _specificityKey = 'reflect.specificity';
   static const _floorKey = 'reflect.floor';
 
-  /// On by default on capable devices; where Apple Intelligence is unavailable
+  /// On by default on capable devices; where the on-device model is unavailable
   /// nothing generates anyway, so a stored true costs nothing there.
   bool get enabled => _read(_enabledKey, (s) => s == null ? null : s != 'false', true);
 

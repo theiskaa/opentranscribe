@@ -82,7 +82,7 @@ final class ReflectionsState {
 /// availability and reads settings + history on load; a generated reflection
 /// (from the foreground catch-up) refreshes the history through
 /// [ReflectionService.reflectionsChanged]. The app's lifecycle observer calls
-/// [load] on resume, so an Apple Intelligence toggle made in Settings is
+/// [load] on resume, so making the on-device model available in Settings is
 /// picked up without a relaunch.
 class ReflectionsCubit extends Cubit<ReflectionsState> {
   ReflectionsCubit({required ReflectionService service, required ReflectionSettings settings})
@@ -99,7 +99,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
   StreamSubscription<void>? _changedSub;
 
   /// Re-probes availability and re-reads settings + history. Call on build and
-  /// on resume, so enabling Apple Intelligence or a fresh reflection is picked up.
+  /// on resume, so an enabled model or a fresh reflection is picked up.
   Future<void> load() async {
     final availability = await _service.availability();
     if (isClosed) return;

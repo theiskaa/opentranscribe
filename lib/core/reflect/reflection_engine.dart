@@ -18,27 +18,21 @@ enum ReflectionAvailabilityStatus {
 
 @immutable
 final class ReflectionAvailability {
-  const ReflectionAvailability(this.status, {this.detail});
+  const ReflectionAvailability(this.status);
 
-  const ReflectionAvailability.available()
-    : status = ReflectionAvailabilityStatus.available,
-      detail = null;
+  const ReflectionAvailability.available() : status = ReflectionAvailabilityStatus.available;
 
-  const ReflectionAvailability.unsupported()
-    : status = ReflectionAvailabilityStatus.unsupported,
-      detail = null;
+  const ReflectionAvailability.unsupported() : status = ReflectionAvailabilityStatus.unsupported;
 
   final ReflectionAvailabilityStatus status;
-  final String? detail;
 
   bool get isAvailable => status == ReflectionAvailabilityStatus.available;
 
   @override
-  bool operator ==(Object other) =>
-      other is ReflectionAvailability && other.status == status && other.detail == detail;
+  bool operator ==(Object other) => other is ReflectionAvailability && other.status == status;
 
   @override
-  int get hashCode => Object.hash(status, detail);
+  int get hashCode => status.hashCode;
 }
 
 /// One day's material from a week, as the engine sees it. Text only: no audio

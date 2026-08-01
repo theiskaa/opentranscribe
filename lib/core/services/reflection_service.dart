@@ -88,7 +88,7 @@ class ReflectionService {
 
   /// Reflects every closed, unreflected week that has material, newest week
   /// first, never reaching below the no-backfill floor. Cheap and safe to call
-  /// often. A no-op when reflections are disabled or Apple Intelligence is
+  /// often. A no-op when reflections are disabled or the on-device model is
   /// unavailable: no generation, no error, nothing surfaced. Never throws.
   Future<void> catchUp() async {
     if (_running || !_settings.enabled) return;
@@ -97,10 +97,10 @@ class ReflectionService {
     _running = true;
     try {
       // Recorded before the availability gate: the floor marks when the
-      // FEATURE first ran, not when Apple Intelligence first answered.
+      // FEATURE first ran, not when the model first answered.
       final floor = await _ensureFloor();
       if (floor == null) return;
-      // Availability is probed live, so enabling Apple Intelligence mid-life is
+      // Availability is probed live, so enabling the model mid-life is
       // picked up on the next open rather than needing a relaunch.
       final availability = await _engine.availability();
       if (!availability.isAvailable) return;
@@ -204,13 +204,12 @@ class ReflectionService {
   /// stays private so every write goes through this service.
   List<Reflection> history() => _store.all();
 
-  /// Week starts (app-language bucketing) holding at least one TRANSCRIBED
-  /// entry - the same material test as [_inputsFor]. An untranscribed-only
-  /// week is excluded so the pager never shows a waiting page the catch-up
-  /// would skip for having nothing to read.
+  /// Week starts (app-language bucketing) holding at least one entry with
+  /// material. An untranscribed-only week is excluded so the pager never
+  /// shows a waiting page the catch-up would skip for having nothing to read.
   Set<DateTime> journaledWeekStarts() => {
     for (final e in _entries())
-      if (e.transcript?.fullText.trim().isNotEmpty ?? false) _weekOfEntry(e),
+      if (_hasMaterial(e)) _weekOfEntry(e),
   };
 
   /// The open week's start under the app-language bucketing: the timeline's
@@ -221,7 +220,7 @@ class ReflectionService {
   List<DateTime> deletedWeeks() => _store.deletedWeeks();
 
   /// Probes whether the on-device model can run right now. Live, never cached:
-  /// enabling Apple Intelligence mid-life must be seen on the next probe.
+  /// enabling the on-device model mid-life must be seen on the next probe.
   Future<ReflectionAvailability> availability() => _engine.availability();
 
   /// Removes a week's reflection, keyed off the STORED week as-is, exactly like
@@ -276,20 +275,24 @@ class ReflectionService {
   /// first day. createdAt is stored UTC; a week boundary is a civil/local day.
   DateTime _weekOfEntry(Entry e) => _weekOf(dateOnly(e.createdAt.toLocal()));
 
-  /// The week's entries as the engine sees them: chronological, transcript only,
-  /// with the weekday it was recorded on. Untranscribed entries have nothing to
-  /// read and are dropped; the whole is capped to [_maxPromptTokens].
+  /// The one material test, shared by generation and the surfaces: an entry
+  /// counts only once it carries transcribed text.
+  static bool _hasMaterial(Entry e) => e.transcript?.fullText.trim().isNotEmpty ?? false;
+
+  /// The week's entries as the engine sees them: chronological, material only,
+  /// with the weekday each was recorded on; the whole is capped to
+  /// [_maxPromptTokens].
   List<ReflectionEntryInput> _inputsFor(List<Entry> entries) {
     final ordered = [...entries]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final inputs = <ReflectionEntryInput>[];
-    for (final e in ordered) {
-      final text = e.transcript?.fullText.trim();
-      if (text == null || text.isEmpty) continue;
-      inputs.add(
-        ReflectionEntryInput(weekday: e.createdAt.toLocal().weekday, text: text, title: e.title),
-      );
-    }
-    return _capped(inputs);
+    return _capped([
+      for (final e in ordered)
+        if (_hasMaterial(e))
+          ReflectionEntryInput(
+            weekday: e.createdAt.toLocal().weekday,
+            text: e.transcript!.fullText.trim(),
+            title: e.title,
+          ),
+    ]);
   }
 
   /// Keeps the combined transcripts AND titles under [_maxPromptTokens] so a

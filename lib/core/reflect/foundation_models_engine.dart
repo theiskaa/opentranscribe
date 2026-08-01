@@ -38,9 +38,9 @@ class FoundationModelsEngine implements ReflectionEngine {
     try {
       final result = await _methods.invokeMapMethod<String, dynamic>('availability');
       return ReflectionAvailability(_statusFrom(result?['status'] as String?));
-    } on PlatformException catch (e) {
+    } on PlatformException {
       // A preflight probe never throws; an unreadable state reads as absent.
-      return ReflectionAvailability(ReflectionAvailabilityStatus.unsupported, detail: e.message);
+      return const ReflectionAvailability.unsupported();
     } on MissingPluginException {
       return const ReflectionAvailability.unsupported();
     }
