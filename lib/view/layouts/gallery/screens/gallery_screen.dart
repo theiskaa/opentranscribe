@@ -28,6 +28,7 @@ import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
 import 'package:opentranscribe/view/widgets/dither.dart';
+import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
@@ -165,6 +166,18 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   width: 150,
                   height: 96,
                   child: DitherField(color: theme.reflectionCard.dither),
+                ),
+              ),
+              _section('Dither card'),
+              DitherCard(
+                patch: const Size(120, 72),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Text(
+                    'The reflection family\'s card surface, with the corner '
+                    'breath of dither sized by its patch.',
+                    style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+                  ),
                 ),
               ),
               _section('Notice'),

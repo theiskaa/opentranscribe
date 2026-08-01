@@ -108,7 +108,7 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
     if (context.reduceMotion) {
       widget.controller.jumpToPage(target);
     } else {
-      // weekHome: the settle answers a touch, like the calendar's tap-home.
+      // weekHome: the settle answers a touch, so it moves at touch speed.
       widget.controller.animateToPage(
         target,
         duration: context.motionNow.weekHome,

@@ -39,7 +39,7 @@ class _DitherFieldState extends State<DitherField> with SingleTickerProviderStat
   final ValueNotifier<double> _time = ValueNotifier(0);
 
   // Not lazy: a ticker first touched in dispose would be created during
-  // teardown (the waveform's lesson).
+  // teardown.
   late final Ticker _ticker;
 
   /// Carried across stops, so a restart (paint returning, a Reduce Motion

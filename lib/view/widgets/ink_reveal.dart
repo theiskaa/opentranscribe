@@ -124,8 +124,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
 
     if (widget.phase == InkPhase.write) {
       // New words landed while the cloud was up: resolve into them. No fresh
-      // capture; the cloud already carries the old shape (or the placeholder),
-      // exactly the first-transcribe grammar.
+      // capture; the cloud already carries the old shape (or the placeholder).
       _resolveArrival();
       return;
     }
