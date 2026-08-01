@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -287,42 +288,65 @@ class ReflectionService {
     return _capped(inputs);
   }
 
-  /// Keeps the combined transcript under [_maxPromptTokens] so a heavy week
-  /// cannot overflow the small on-device context window (a deterministic
-  /// failure). Every day is kept but trimmed to an equal share, so the week's
-  /// shape survives at reduced detail rather than a day being dropped whole.
+  /// Keeps the combined transcripts AND titles under [_maxPromptTokens] so a
+  /// heavy week cannot overflow the small on-device context window (a
+  /// deterministic failure). Every day is kept but trimmed to an equal share,
+  /// so the week's shape survives at reduced detail rather than a day being
+  /// dropped whole; a title spends from its entry's share, since the prompt
+  /// carries both.
   List<ReflectionEntryInput> _capped(List<ReflectionEntryInput> inputs) {
     if (inputs.isEmpty) return inputs;
-    final total = inputs.fold<int>(0, (sum, i) => sum + _estimatedTokens(i.text));
+    final total = inputs.fold<int>(0, (sum, i) => sum + _inputTokens(i));
     if (total <= _maxPromptTokens) return inputs;
     final share = _maxPromptTokens ~/ inputs.length;
     return [
       for (final i in inputs)
-        if (_estimatedTokens(i.text) <= share)
+        if (_inputTokens(i) <= share)
           i
         else
           ReflectionEntryInput(
             weekday: i.weekday,
-            text: _trimToTokens(i.text, share),
+            text: _trimToTokens(i.text, math.max(0, share - _titleTokens(i))),
             title: i.title,
           ),
     ];
   }
 
-  /// Whether [rune] belongs to a script the on-device tokenizer runs near one
-  /// token per character (CJK ideographs, kana, Hangul); everything else runs
-  /// near four characters per token. The budgeting below weighs code points in
-  /// quarter tokens so both densities share one integer budget.
-  static bool _denseRune(int rune) =>
-      (rune >= 0x2E80 && rune <= 0x9FFF) ||
-      (rune >= 0xAC00 && rune <= 0xD7AF) ||
-      (rune >= 0xF900 && rune <= 0xFAFF) ||
-      rune >= 0x20000;
+  static int _titleTokens(ReflectionEntryInput i) =>
+      i.title == null ? 0 : _estimatedTokens(i.title!);
+
+  static int _inputTokens(ReflectionEntryInput i) => _estimatedTokens(i.text) + _titleTokens(i);
+
+  /// Estimated quarter-tokens for one code point, so every density shares one
+  /// integer budget. The on-device tokenizer runs near one token per character
+  /// for CJK ideographs, kana, Hangul, and the space-less South-East Asian
+  /// scripts; near two characters per token for the non-Latin alphabetic
+  /// scripts; and near four characters per token for everything else.
+  static int _runeQuarters(int rune) {
+    if ((rune >= 0x0E00 && rune <= 0x0EFF) || // Thai, Lao
+        (rune >= 0x1000 && rune <= 0x109F) || // Myanmar
+        (rune >= 0x1780 && rune <= 0x17FF) || // Khmer
+        (rune >= 0x2E80 && rune <= 0x9FFF) ||
+        (rune >= 0xAC00 && rune <= 0xD7AF) ||
+        (rune >= 0xF900 && rune <= 0xFAFF) ||
+        rune >= 0x20000) {
+      return 4;
+    }
+    if ((rune >= 0x0370 && rune <= 0x03FF) || // Greek
+        (rune >= 0x0400 && rune <= 0x04FF) || // Cyrillic
+        (rune >= 0x0590 && rune <= 0x05FF) || // Hebrew
+        (rune >= 0x0600 && rune <= 0x06FF) || // Arabic
+        (rune >= 0x0900 && rune <= 0x097F)) {
+      // Devanagari
+      return 2;
+    }
+    return 1;
+  }
 
   static int _estimatedTokens(String text) {
     var quarters = 0;
     for (final rune in text.runes) {
-      quarters += _denseRune(rune) ? 4 : 1;
+      quarters += _runeQuarters(rune);
     }
     return (quarters + 3) ~/ 4;
   }
@@ -334,7 +358,7 @@ class ReflectionService {
     var used = 0;
     var end = 0;
     for (final rune in text.runes) {
-      used += _denseRune(rune) ? 4 : 1;
+      used += _runeQuarters(rune);
       if (used > quarters) break;
       end += rune > 0xFFFF ? 2 : 1;
     }

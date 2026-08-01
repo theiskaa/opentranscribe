@@ -290,6 +290,52 @@ void main() {
       expect(total, lessThanOrEqualTo(2000)); // 2000 tokens at ~1 char each
     });
 
+    test('caps a heavy Thai week as tight as CJK, near one token per character', () async {
+      final big = 'ก' * 3000;
+      entries = [
+        withText('a', DateTime(2026, 7, 20, 9), text: big),
+        withText('b', DateTime(2026, 7, 22, 9), text: big),
+      ];
+      await service.catchUp();
+
+      final sent = engine.lastEntries!;
+      expect(sent.length, 2);
+      final total = sent.fold<int>(0, (sum, e) => sum + e.text.length);
+      expect(total, lessThanOrEqualTo(2000));
+    });
+
+    test('caps a heavy Cyrillic week near two characters per token', () async {
+      final big = 'д' * 5000;
+      entries = [
+        withText('a', DateTime(2026, 7, 20, 9), text: big),
+        withText('b', DateTime(2026, 7, 22, 9), text: big),
+      ];
+      await service.catchUp();
+
+      final sent = engine.lastEntries!;
+      expect(sent.length, 2);
+      final total = sent.fold<int>(0, (sum, e) => sum + e.text.length);
+      expect(total, lessThanOrEqualTo(4000));
+    });
+
+    test('titles spend from the prompt budget too, since the prompt carries them', () async {
+      final text = 'x' * 2600;
+      final title = 't' * 400;
+      entries = [
+        withText('a', DateTime(2026, 7, 20, 9), text: text, title: title),
+        withText('b', DateTime(2026, 7, 22, 9), text: text, title: title),
+        withText('c', DateTime(2026, 7, 24, 9), text: text, title: title),
+      ];
+      await service.catchUp();
+
+      final sent = engine.lastEntries!;
+      expect(sent.length, 3);
+      expect(sent.map((e) => e.title), everyElement(title));
+      final total = sent.fold<int>(0, (sum, e) => sum + e.text.length + e.title!.length);
+      expect(total, lessThanOrEqualTo(8000));
+      expect(sent.first.text.length, lessThan(text.length));
+    });
+
     test('the cap trims on a code-point boundary, never through a surrogate pair', () async {
       final big = '😀' * 9000; // 2 UTF-16 units per emoji, over the token budget
       entries = [withText('a', DateTime(2026, 7, 20, 9), text: big)];
