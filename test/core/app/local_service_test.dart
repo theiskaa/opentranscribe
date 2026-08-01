@@ -24,11 +24,11 @@ void main() {
   });
 
   test('the stored form is the versioned ciphertext, not plaintext', () async {
-    await storage.write('language', 'ka');
+    await storage.write('language', 'a-plaintext-marker-no-ciphertext-contains');
     final raw = (await SharedPreferences.getInstance()).getString('language');
     expect(raw, isNotNull);
     expect(raw, startsWith('v2:'));
-    expect(raw, isNot(contains('ka')));
+    expect(raw, isNot(contains('a-plaintext-marker-no-ciphertext-contains')));
   });
 
   test('an empty string round-trips (padding cannot encrypt zero bytes)', () async {
