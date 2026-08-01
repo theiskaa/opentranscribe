@@ -140,7 +140,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 - Navigation: add the path and name to `Routes`, wire the `GoRoute` in `app_router.dart`, and navigate with `context.goNamed(Routes.<x>Name)`. Never hardcode a path at a call site.
 - State: one cubit per concern under `core/state/`; screens consume them via `BlocProvider`/`BlocBuilder`. Business logic belongs in a cubit or a service, not in a widget.
 - Widgets: reusable ones in `view/widgets/`, screen-specific ones in that domain's `components/`. Prefer small, composable, `const` widgets over deep build methods.
-- Writing (comments, docs, commit messages): plain and terse. No em-dashes. Comment the why, not the what, and match the density and voice of the file you are editing. Doc comments on a contract state the guarantees a caller may rely on, including what an implementation must not do.
+- Writing (comments, docs, commit messages): plain and terse. No em-dashes. **Comments only when needed: the default is no comment.** One earns its place only by stating a why or a constraint the code cannot express; never narrate what code does, its history, or the change that produced it. Tests carry no comments; the test name is the explanation. Doc comments on a contract state the guarantees a caller may rely on, including what an implementation must not do.
 
 ## Commit style
 
