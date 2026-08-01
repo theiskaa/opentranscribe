@@ -26,8 +26,11 @@ class ReflectionStore {
   String _deletedKeyFor(String weekKey) => '$_deletedPrefix$weekKey';
 
   Future<void> save(Reflection reflection) async {
-    await _storage.delete(_deletedKeyFor(reflection.weekKey));
+    // Row before marker: a failure between the writes then leaves both behind
+    // (the fresh row wins) instead of neither, which would read as an erased
+    // week for the catch-up to quietly refill.
     await _storage.writeJson(_keyFor(reflection.weekKey), reflection.toJson());
+    await _storage.delete(_deletedKeyFor(reflection.weekKey));
   }
 
   Reflection? read(DateTime weekStart) {

@@ -72,7 +72,7 @@ void main() {
           ),
   );
 
-  ReflectionService build() => ReflectionService(
+  ReflectionService build({Duration? reflectTimeout}) => ReflectionService(
     engine: engine,
     store: store,
     settings: settings,
@@ -80,7 +80,16 @@ void main() {
     language: () => 'en',
     clock: () => now,
     weekOf: mondayStart,
+    reflectTimeout: reflectTimeout,
   );
+
+  Future<void> untilParkedInReflect() async {
+    var spins = 0;
+    while (engine.reflectCalls == 0) {
+      expect(++spins, lessThan(1000), reason: 'never reached reflect');
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
 
   setUpAll(() async {
     await initializeDateFormatting();
@@ -325,18 +334,65 @@ void main() {
       engine.gate = gate.future;
 
       final run = service.catchUp();
-      // Bounded so a regression fails fast instead of riding the suite timeout.
-      var spins = 0;
-      while (engine.reflectCalls == 0) {
-        expect(++spins, lessThan(1000), reason: 'catchUp never reached reflect');
-        await Future<void>.delayed(Duration.zero); // wait until parked in reflect
-      }
+      await untilParkedInReflect();
       await settings.setVoice(ReflectionVoice.sparse); // change mid-generation
       gate.complete();
       await run;
 
       // The captured style wins: the text was generated as literary.
       expect(store.read(lastWeek)!.voice, ReflectionVoice.literary);
+    });
+
+    test('a generation that never returns times out, freeing the next run to retry', () async {
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      engine.gate = Completer<void>().future;
+      service = build(reflectTimeout: const Duration(milliseconds: 20));
+
+      await service.catchUp();
+      expect(store.read(lastWeek), isNull);
+
+      engine.gate = null;
+      await service.catchUp();
+      expect(store.read(lastWeek), isNotNull);
+    });
+
+    test('disabling mid-run stops the remaining backlog', () async {
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 12), text: 'last week'),
+        withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago'),
+      ];
+      final gate = Completer<void>();
+      engine.gate = gate.future;
+
+      final run = service.catchUp();
+      await untilParkedInReflect();
+      await settings.setEnabled(false);
+      gate.complete();
+      await run;
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(twoWeeksAgo), isNull);
+    });
+
+    test('a regenerate finishing mid-catch-up is not overwritten by the loop', () async {
+      entries = [
+        withText('a', DateTime(2026, 7, 22, 12), text: 'last week'),
+        withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago'),
+      ];
+      final gate = Completer<void>();
+      engine.gate = gate.future;
+
+      final run = service.catchUp();
+      await untilParkedInReflect();
+      engine.gate = null;
+      engine.output = 'the user version';
+      await service.regenerate(twoWeeksAgo);
+      engine.output = 'the loop version';
+      gate.complete();
+      await run;
+
+      expect(engine.reflectCalls, 2);
+      expect(store.read(twoWeeksAgo)!.text, 'the user version');
     });
 
     test('buckets by the app language week, not the ambient Intl locale', () async {
@@ -401,6 +457,34 @@ void main() {
 
       expect(engine.reflectCalls, 0);
       expect(store.all(), isEmpty);
+    });
+
+    test('a delete landed mid-generation wins over the in-flight save', () async {
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final gate = Completer<void>();
+      engine.gate = gate.future;
+
+      final run = service.regenerate(lastWeek);
+      await untilParkedInReflect();
+      await service.deleteReflection(lastWeek);
+      gate.complete();
+      await run;
+
+      expect(store.read(lastWeek), isNull);
+      expect(store.deletedWeeks(), [lastWeek]);
+    });
+
+    test('regenerating an erased week saves through its own tombstone', () async {
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+      await service.deleteReflection(lastWeek);
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      engine.output = 'fresh';
+
+      await service.regenerate(lastWeek);
+
+      expect(store.read(lastWeek)!.text, 'fresh');
+      expect(store.deletedWeeks(), isEmpty);
     });
 
     test('deleting a reflected week\'s entries later leaves its reflection untouched', () async {
@@ -578,6 +662,15 @@ void main() {
       engine.failReflect = true;
 
       await expectLater(service.regenerate(lastWeek), throwsA(isA<ReflectionUnavailable>()));
+    });
+
+    test('a timed-out regenerate surfaces as unavailable, so the caller can retry', () async {
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      engine.gate = Completer<void>().future;
+      service = build(reflectTimeout: const Duration(milliseconds: 20));
+
+      await expectLater(service.regenerate(lastWeek), throwsA(isA<ReflectionUnavailable>()));
+      expect(store.read(lastWeek), isNull);
     });
 
     test('keys off the stored week, not the current locale boundary', () async {

@@ -36,12 +36,14 @@ class ReflectionService {
     required String Function() language,
     DateTime Function()? clock,
     DateTime Function(DateTime)? weekOf,
+    Duration? reflectTimeout,
   }) : _engine = engine,
        _store = store,
        _settings = settings,
        _entries = entries,
        _language = language,
        _clock = clock ?? DateTime.now,
+       _reflectTimeout = reflectTimeout ?? const Duration(minutes: 3),
        // Resolve the week boundary from the app language explicitly, not the
        // ambient Intl locale: the launch catch-up can run before the first
        // frame sets that global, which would bucket weeks against the wrong
@@ -60,6 +62,11 @@ class ReflectionService {
   final String Function() _language;
   final DateTime Function() _clock;
   final DateTime Function(DateTime) _weekOf;
+
+  /// Bound on one generation. Without it a hung engine call would hold the
+  /// catch-up single-flight, and a regenerate's in-flight marker, until
+  /// relaunch; a timeout instead reads as the transient could-not-run.
+  final Duration _reflectTimeout;
 
   /// Soft ceiling on the estimated prompt tokens for one week, safely under the
   /// on-device model's ~4k context window, leaving room for the instructions
@@ -100,28 +107,31 @@ class ReflectionService {
       final byWeek = _entriesByWeek();
       final weeks = byWeek.keys.where((w) => w.isBefore(currentWeek)).toList()
         ..sort((a, b) => b.compareTo(a));
-      // Snapshot once: candidate weeks never overlap each other, so a save
-      // inside the loop cannot make a later candidate look covered.
-      final stored = _store.all();
-      final deleted = _store.deletedWeeks();
 
       for (final week in weeks) {
+        // Disabling mid-run stops the rest of the backlog, not just the next open.
+        if (!_settings.enabled) break;
         // No backfill: a week that closed entirely before the feature first
         // ran is history, not a queue. This is also the churn bound: an
         // upgrade with months of older entries reflects nothing from before
         // its first post-floor week.
         if (!weekClearsFloor(week, floor)) continue;
+        // Stored rows and tombstones are re-read every iteration, not
+        // snapshotted before the loop: the generation awaits are long enough
+        // for a user regenerate or delete to land, and acting on a stale
+        // snapshot would overwrite it.
+        //
         // A stored reflection (text OR silence) is done; never re-run. Done is
         // judged by RANGE overlap, not exact key: an app-language change can
         // shift the first-day-of-week, and the shifted candidate must still
         // see the reflection written under the old boundary, or one language
         // switch would re-reflect the whole history into overlapping duplicates.
-        if (_covered(week, stored)) continue;
+        if (_covered(week, _store.all())) continue;
         // An erased week stays erased: the user's delete must not be overruled
         // by the next open re-reflecting a week whose entries still exist.
         // Range-matched like the done-check, so a locale shift cannot
         // resurrect around the tombstone.
-        if (deleted.any((d) => weeksOverlap(week, d))) continue;
+        if (_tombstoned(week)) continue;
         try {
           await _reflectWeek(week, byWeek[week]!);
         } on ReflectionUnavailable {
@@ -182,6 +192,9 @@ class ReflectionService {
   bool _covered(DateTime week, List<Reflection> stored) =>
       stored.any((r) => weeksOverlap(week, r.weekStart));
 
+  /// Whether a user erasure covers [week]'s 7-day range.
+  bool _tombstoned(DateTime week) => _store.deletedWeeks().any((d) => weeksOverlap(week, d));
+
   /// The stored history, newest week first, for the surfaces. The store itself
   /// stays private so every write goes through this service.
   List<Reflection> history() => _store.all();
@@ -224,9 +237,21 @@ class ReflectionService {
     // Read the style ONCE, before the await, so the persisted voice is the one
     // the text was actually generated with even if a setting changes mid-run.
     final style = _settings.style;
+    final erased = _tombstoned(week);
     final text = inputs.isEmpty
         ? null
-        : await _engine.reflect(entries: inputs, style: style, localeId: _language());
+        : await _engine
+              .reflect(entries: inputs, style: style, localeId: _language())
+              .timeout(
+                _reflectTimeout,
+                onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
+              );
+
+    // A delete that landed during the generation wins: saving now would clear
+    // the tombstone the user just wrote and resurrect the week. A tombstone
+    // that predates the run is a regenerate of an erased week, which the user
+    // asked for, so that one saves through.
+    if (!erased && _tombstoned(week)) return;
 
     await _store.save(
       Reflection(weekStart: week, generatedAt: _clock(), text: text, voice: style.voice),

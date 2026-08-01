@@ -5,6 +5,11 @@ import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _DeleteFails extends LocalService {
+  @override
+  Future<bool> delete(String key) async => throw StateError('delete refused');
+}
+
 void main() {
   const key = 'test-encryption-key-0123456789ab';
 
@@ -78,6 +83,25 @@ void main() {
     expect(store.deletedWeeks(), isEmpty);
     expect(store.read(DateTime(2026, 7, 20))!.text, 'again');
   });
+
+  test(
+    'save writes the row before clearing the tombstone, so a failure cannot erase both',
+    () async {
+      await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+      await store.delete(DateTime(2026, 7, 20));
+      final failing = _DeleteFails();
+      await failing.init(encryptionKey: key);
+      final failingStore = ReflectionStore(failing);
+
+      await expectLater(
+        failingStore.save(reflection(DateTime(2026, 7, 20), text: 'again')),
+        throwsStateError,
+      );
+
+      expect(store.read(DateTime(2026, 7, 20))!.text, 'again');
+      expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+    },
+  );
 
   test('all() skips a corrupt record and keeps the valid ones', () async {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'good'));
