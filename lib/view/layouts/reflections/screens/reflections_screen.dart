@@ -277,7 +277,11 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                 // OUTSIDE the eager physics, and its half-page rule settles
                 // every in-range release before ours is ever asked.
                 pageSnapping: false,
-                physics: _EagerPagePhysics(settledPage: () => _settledPage, held: () => _scrubbing),
+                physics: _EagerPagePhysics(
+                  settledPage: () => _settledPage,
+                  held: () => _scrubbing,
+                  turnSpring: theme.motion.weekTurnSpring,
+                ),
                 itemCount: timeline.length,
                 onPageChanged: (page) {
                   // Pages flown through mid-scrub tick neither the hand nor
@@ -581,7 +585,12 @@ class _Editorial extends StatelessWidget {
 /// page, or any flick, commits - anchored on the last RESTED page the state
 /// supplies (reading the live rounding here would rebuild the 50% rule).
 class _EagerPagePhysics extends ScrollPhysics {
-  const _EagerPagePhysics({required this.settledPage, required this.held, super.parent});
+  const _EagerPagePhysics({
+    required this.settledPage,
+    required this.held,
+    required this.turnSpring,
+    super.parent,
+  });
 
   /// The page the pager last came to rest on.
   final ValueGetter<int> settledPage;
@@ -591,9 +600,17 @@ class _EagerPagePhysics extends ScrollPhysics {
   /// Held means no simulation; the scrubber settles explicitly on release.
   final ValueGetter<bool> held;
 
+  /// The settle's own spring ([AppMotion.weekTurnSpring]), softer than the
+  /// framework default so the ink bridge pours at the turn's liquid pace.
+  final SpringDescription turnSpring;
+
   @override
-  _EagerPagePhysics applyTo(ScrollPhysics? ancestor) =>
-      _EagerPagePhysics(settledPage: settledPage, held: held, parent: buildParent(ancestor));
+  _EagerPagePhysics applyTo(ScrollPhysics? ancestor) => _EagerPagePhysics(
+    settledPage: settledPage,
+    held: held,
+    turnSpring: turnSpring,
+    parent: buildParent(ancestor),
+  );
 
   @override
   bool get allowImplicitScrolling => false;
@@ -612,6 +629,12 @@ class _EagerPagePhysics extends ScrollPhysics {
       position.maxScrollExtent,
     );
     if ((pixels - position.pixels).abs() < tolerance.distance) return null;
-    return ScrollSpringSimulation(spring, position.pixels, pixels, velocity, tolerance: tolerance);
+    return ScrollSpringSimulation(
+      turnSpring,
+      position.pixels,
+      pixels,
+      velocity,
+      tolerance: tolerance,
+    );
   }
 }

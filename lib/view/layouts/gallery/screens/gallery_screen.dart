@@ -656,8 +656,8 @@ class _GlassCapsuleDemo extends StatelessWidget {
           sigma: scrubber.blurSigma,
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            // Posed mid-slide, so both rims show their continuous shrink.
-            child: ScrubberDashes(count: 20, position: 9.4),
+            // Posed mid-flow, so the stream and both rim shrinks all show.
+            child: ScrubberDots(count: 20, position: 9.4),
           ),
         ),
       ],

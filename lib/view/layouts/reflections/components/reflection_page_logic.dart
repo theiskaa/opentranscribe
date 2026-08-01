@@ -69,7 +69,7 @@ int eagerPageTarget({
 /// Where a scrub drag puts the pager: the page under the finger, one week per
 /// [pitch] of travel from the [anchorPage] grabbed at pointer-down - so
 /// touching the capsule never teleports, and dx > 0 moves toward newer weeks
-/// (the dashes slide under the finger 1:1). Clamped to the timeline; a
+/// (the dots slide under the finger 1:1). Clamped to the timeline; a
 /// timeline of one (or none) pins to 0. Pure, so the mapping is a tested rule.
 double scrubPage({
   required double anchorPage,
@@ -79,6 +79,32 @@ double scrubPage({
 }) {
   if (count <= 1) return 0;
   return (anchorPage + dx / pitch).clamp(0, count - 1).toDouble();
+}
+
+/// Where a capsule TAP sends the pager: the tapped half picks the direction,
+/// right of [width]'s middle toward newer weeks and left toward older
+/// (matching the scrub's dx), one week per tap, clamped to the timeline.
+/// Pure, so the tap rule is tested.
+int scrubTapTarget({
+  required int page,
+  required double dx,
+  required double width,
+  required int count,
+}) {
+  if (count <= 1) return 0;
+  final target = dx >= width / 2 ? page + 1 : page - 1;
+  return target.clamp(0, count - 1);
+}
+
+/// The page a capsule tap builds from: the still-in-flight previous tap's
+/// [pending] target, so rapid taps chain one week EACH instead of re-rounding
+/// the same unfinished transfer back to its start. A pending target more than
+/// a hair over a page away is stale (something else moved the pager) and the
+/// live rounding wins; the caller also drops [pending] once the pager rests
+/// or a drag takes the position over. Pure, so the chaining rule is tested.
+int tapChainBase({required double page, required int? pending}) {
+  if (pending == null || (page - pending).abs() > 1.2) return page.round();
+  return pending;
 }
 
 /// Whether the scrubber capsule shows. Never for a single page (nothing to
@@ -121,18 +147,18 @@ bool scrubberVisible({
   return (shown: false, anchor: high);
 }
 
-/// How far the dash strip has slid, in SLOT units (pitch-agnostic; paint
+/// How far the dot strip has slid, in SLOT units (pitch-agnostic; paint
 /// multiplies by the pitch): centers [position] in a [max]-slot viewport,
 /// pinned at both ends so the rims only shrink where pages truly lie beyond.
-double dashStripShift({required int count, required double position, required int max}) {
+double stripShift({required int count, required double position, required int max}) {
   if (count <= max) return 0;
   return (position - (max - 1) / 2).clamp(0, (count - max).toDouble()).toDouble();
 }
 
-/// A dash's width scale at viewport [slot]: full inside, ramping down to 0.5
+/// A dot's size scale at viewport [slot]: full inside, ramping down to 0.5
 /// at a rim that has more pages beyond it, so the shrink reads as an
 /// ellipsis and the strip's slide as motion.
-double dashRimScale({
+double rimScale({
   required double slot,
   required double shift,
   required int count,
@@ -142,6 +168,37 @@ double dashRimScale({
   if (shift > 0) scale = math.min(scale, 0.5 + slot * 0.5);
   if (shift < count - max) scale = math.min(scale, 0.5 + (max - 1 - slot) * 0.5);
   return scale.clamp(0.5, 1);
+}
+
+/// The ink's transfer between adjacent dots, driven 1:1 by the fractional
+/// page ([t] = the fraction toward the next dot), so a half-finished swipe
+/// holds the stream mid-flow and backing out reverses it. Three poses of one
+/// liquid-bridge motion: the source blob drains ([bridgeDrain]) as a pinched
+/// stream reaches across ([bridgeNeck]) and the destination swells full
+/// ([bridgeFill]).
+///
+/// [bridgeDrain] is the ink remaining in the source dot: full at rest,
+/// bleeding away as the stream carries it over, empty before the page lands.
+double bridgeDrain(double t) => 1 - _smoothstep((t.clamp(0, 1) - 0.08) / 0.84);
+
+/// The destination dot's fill: empty until the stream arrives, then filling
+/// with a small swell PAST full before settling back, the follow-through of
+/// the landing. Exactly 1 once the page rests.
+double bridgeFill(double t) {
+  final x = ((t.clamp(0, 1) - 0.08) / 0.92).clamp(0.0, 1.0);
+  if (x <= 0) return 0;
+  const c = 1.2;
+  final u = x - 1;
+  return 1 + (c + 1) * u * u * u + c * u * u;
+}
+
+/// The connecting stream's presence: nothing at either rest, strongest
+/// mid-transfer when the ink is truly in between.
+double bridgeNeck(double t) => math.sin(math.pi * t.clamp(0, 1));
+
+double _smoothstep(double x) {
+  final t = x.clamp(0.0, 1.0);
+  return t * t * (3 - 2 * t);
 }
 
 /// The pending cloud's height for [week] at the page's text [width] and the

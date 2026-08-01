@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
@@ -186,6 +188,51 @@ void main() {
     });
   });
 
+  group('scrubTapTarget', () {
+    test('the right half turns one week newer, the left half one older', () {
+      expect(scrubTapTarget(page: 3, dx: 80, width: 100, count: 10), 4);
+      expect(scrubTapTarget(page: 3, dx: 20, width: 100, count: 10), 2);
+    });
+
+    test('the exact middle counts as the right half', () {
+      expect(scrubTapTarget(page: 3, dx: 50, width: 100, count: 10), 4);
+    });
+
+    test('a tap at either end of the timeline stays in range', () {
+      expect(scrubTapTarget(page: 0, dx: 10, width: 100, count: 10), 0);
+      expect(scrubTapTarget(page: 9, dx: 90, width: 100, count: 10), 9);
+    });
+
+    test('a timeline of one (or none) pins to the only page', () {
+      expect(scrubTapTarget(page: 0, dx: 90, width: 100, count: 1), 0);
+      expect(scrubTapTarget(page: 0, dx: 90, width: 100, count: 0), 0);
+    });
+  });
+
+  group('tapChainBase', () {
+    test('with nothing in flight the live rounding is the base', () {
+      expect(tapChainBase(page: 3.0, pending: null), 3);
+      expect(tapChainBase(page: 3.6, pending: null), 4);
+    });
+
+    test('an unfinished turn chains from its own target, not from re-rounding the transfer', () {
+      expect(tapChainBase(page: 3.3, pending: 4), 4);
+      expect(tapChainBase(page: 4.7, pending: 4), 4);
+    });
+
+    test('a pending target left far behind by another motion is stale, so the rounding wins', () {
+      expect(tapChainBase(page: 6.0, pending: 4), 6);
+      expect(tapChainBase(page: 1.4, pending: 4), 1);
+    });
+
+    test('the staleness boundary pins where chaining gives way to the live page', () {
+      expect(tapChainBase(page: 5.1, pending: 4), 4);
+      expect(tapChainBase(page: 5.3, pending: 4), 5);
+      expect(tapChainBase(page: 2.9, pending: 4), 4);
+      expect(tapChainBase(page: 2.7, pending: 4), 3);
+    });
+  });
+
   group('scrubberVisible', () {
     test('a single page never shows a scrubber, whatever else is true', () {
       expect(
@@ -263,43 +310,106 @@ void main() {
     });
   });
 
-  group('dashStripShift', () {
+  group('stripShift', () {
     test('a strip that fits never slides', () {
-      expect(dashStripShift(count: 5, position: 4, max: 7), 0);
+      expect(stripShift(count: 5, position: 4, max: 7), 0);
     });
 
     test('mid-range the viewed page rides the center, fractionally', () {
-      expect(dashStripShift(count: 30, position: 15, max: 7), 12);
-      expect(dashStripShift(count: 30, position: 15.5, max: 7), 12.5);
+      expect(stripShift(count: 30, position: 15, max: 7), 12);
+      expect(stripShift(count: 30, position: 15.5, max: 7), 12.5);
     });
 
     test('the strip pins at both ends', () {
-      expect(dashStripShift(count: 30, position: 1, max: 7), 0);
-      expect(dashStripShift(count: 30, position: 29, max: 7), 23);
+      expect(stripShift(count: 30, position: 1, max: 7), 0);
+      expect(stripShift(count: 30, position: 29, max: 7), 23);
     });
   });
 
-  group('dashRimScale', () {
-    test('dashes stand full size away from the rims', () {
-      expect(dashRimScale(slot: 3, shift: 12, count: 30, max: 7), 1);
+  group('rimScale', () {
+    test('dots stand full size away from the rims', () {
+      expect(rimScale(slot: 3, shift: 12, count: 30, max: 7), 1);
     });
 
-    test('a rim with pages beyond it shrinks its dash, down to half', () {
-      expect(dashRimScale(slot: 0, shift: 12, count: 30, max: 7), 0.5);
-      expect(dashRimScale(slot: 0.5, shift: 12, count: 30, max: 7), 0.75);
-      expect(dashRimScale(slot: 6, shift: 12, count: 30, max: 7), 0.5);
+    test('a rim with pages beyond it shrinks its dot, down to half', () {
+      expect(rimScale(slot: 0, shift: 12, count: 30, max: 7), 0.5);
+      expect(rimScale(slot: 0.5, shift: 12, count: 30, max: 7), 0.75);
+      expect(rimScale(slot: 6, shift: 12, count: 30, max: 7), 0.5);
     });
 
     test('a pinned side stays full: nothing lies beyond it', () {
-      expect(dashRimScale(slot: 0, shift: 0, count: 30, max: 7), 1);
-      expect(dashRimScale(slot: 6, shift: 23, count: 30, max: 7), 1);
+      expect(rimScale(slot: 0, shift: 0, count: 30, max: 7), 1);
+      expect(rimScale(slot: 6, shift: 23, count: 30, max: 7), 1);
     });
 
     test('a barely overflowing strip mid-slide shrinks both rims at once, '
         'each taking the smaller of the two live ramps', () {
-      expect(dashRimScale(slot: 0, shift: 0.5, count: 8, max: 7), 0.5);
-      expect(dashRimScale(slot: 6, shift: 0.5, count: 8, max: 7), 0.5);
-      expect(dashRimScale(slot: 3, shift: 0.5, count: 8, max: 7), 1);
+      expect(rimScale(slot: 0, shift: 0.5, count: 8, max: 7), 0.5);
+      expect(rimScale(slot: 6, shift: 0.5, count: 8, max: 7), 0.5);
+      expect(rimScale(slot: 3, shift: 0.5, count: 8, max: 7), 1);
+    });
+  });
+
+  group('bridge transfer', () {
+    test('the stream is absent at either rest and strongest mid-transfer, symmetrically', () {
+      expect(bridgeNeck(0), 0);
+      expect(bridgeNeck(1), closeTo(0, 1e-9));
+      expect(bridgeNeck(0.5), 1);
+      expect(bridgeNeck(0.2), closeTo(bridgeNeck(0.8), 1e-9));
+    });
+
+    test('the source blob is full at rest and only ever drains as the ink flows over', () {
+      expect(bridgeDrain(0), 1);
+      expect(bridgeDrain(0.3), lessThan(1));
+      expect(bridgeDrain(0.92), closeTo(0, 1e-9));
+      expect(bridgeDrain(1), 0);
+      var previous = 2.0;
+      for (var t = 0.0; t <= 1.0; t += 0.05) {
+        final drain = bridgeDrain(t);
+        expect(drain, lessThanOrEqualTo(previous));
+        previous = drain;
+      }
+    });
+
+    test('the destination fills as the source drains, swells past full, '
+        'and settles exactly full at rest', () {
+      expect(bridgeFill(0), 0);
+      expect(bridgeFill(0.08), 0);
+      expect(bridgeFill(1), closeTo(1, 1e-9));
+      var peak = 0.0;
+      for (var t = 0.0; t <= 1.0; t += 0.01) {
+        peak = math.max(peak, bridgeFill(t));
+      }
+      expect(peak, greaterThan(1));
+      expect(peak, lessThan(1.25));
+    });
+
+    test('some ink is always visible across the whole transfer', () {
+      for (var t = 0.0; t <= 1.0; t += 0.02) {
+        final visible = bridgeDrain(t) + bridgeFill(t);
+        expect(visible, greaterThan(0.5), reason: 't=$t');
+      }
+    });
+
+    test('mid-transfer both blobs stand, so the stream always has two ends to pinch between', () {
+      for (var t = 0.25; t <= 0.75; t += 0.05) {
+        expect(bridgeDrain(t), greaterThan(0.05), reason: 't=$t');
+        expect(bridgeFill(t), greaterThan(0.05), reason: 't=$t');
+      }
+    });
+
+    test('out-of-range input clamps to the resting poses, never overshooting', () {
+      expect(bridgeDrain(-0.2), 1);
+      expect(bridgeFill(-0.2), 0);
+      expect(bridgeNeck(-0.2), 0);
+      expect(bridgeDrain(1.5), 0);
+      expect(bridgeFill(1.5), closeTo(1, 1e-9));
+      expect(bridgeNeck(1.5), closeTo(0, 1e-9));
+    });
+
+    test('the ink handed off at a dot matches the next transfer\'s source, so no pop', () {
+      expect(bridgeFill(1), closeTo(bridgeDrain(0), 1e-9));
+      expect(bridgeNeck(1), closeTo(bridgeNeck(0), 1e-9));
     });
   });
 }
