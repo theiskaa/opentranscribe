@@ -448,6 +448,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionRegenerateFailed => '无法生成回顾。请重试。';
 
   @override
+  String get reflectionsDisabledTitle => '回顾已关闭';
+
+  @override
+  String get reflectionsDisabledBody => '进行中的一周结束时将不会被写下。';
+
+  @override
+  String get reflectionsDisabledEnable => '开启';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence 已关闭';
 
   @override

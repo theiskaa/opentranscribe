@@ -58,6 +58,7 @@ final class ButtonTheme {
     required this.secondaryBorder,
     this.disabledOpacity = 0.5,
     this.height = 52.0,
+    this.compactHeight = 36.0,
     this.radius = AppRadius.pill,
   });
 
@@ -74,6 +75,9 @@ final class ButtonTheme {
   final Color secondaryBorder;
   final double disabledOpacity;
   final double height;
+
+  /// An inline card action, sized to sit inside content rather than end it.
+  final double compactHeight;
   final double radius;
 }
 

@@ -451,6 +451,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionRegenerateFailed => '振り返りを作成できませんでした。もう一度お試しください。';
 
   @override
+  String get reflectionsDisabledTitle => '振り返りはオフです';
+
+  @override
+  String get reflectionsDisabledBody => '進行中の一週間は、週が終わっても書かれません。';
+
+  @override
+  String get reflectionsDisabledEnable => 'オンにする';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence がオフです';
 
   @override

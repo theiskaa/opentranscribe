@@ -452,6 +452,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionRegenerateFailed => '돌아보기를 만들지 못했습니다. 다시 시도하세요.';
 
   @override
+  String get reflectionsDisabledTitle => '돌아보기가 꺼져 있습니다';
+
+  @override
+  String get reflectionsDisabledBody => '진행 중인 주는 주가 끝나도 작성되지 않습니다.';
+
+  @override
+  String get reflectionsDisabledEnable => '켜기';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence가 꺼져 있습니다';
 
   @override

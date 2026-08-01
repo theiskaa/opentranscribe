@@ -609,6 +609,18 @@
   "@reflectionRegenerateFailed": {
     "description": "Notice when a regenerate could not run because the model was unavailable"
   },
+  "reflectionsDisabledTitle": "Reflections are off",
+  "@reflectionsDisabledTitle": {
+    "description": "Notice card on the pager when the user has disabled reflections"
+  },
+  "reflectionsDisabledBody": "The open week will not be written when it closes.",
+  "@reflectionsDisabledBody": {
+    "description": "Body of the disabled notice; the card's button reenables"
+  },
+  "reflectionsDisabledEnable": "Turn on",
+  "@reflectionsDisabledEnable": {
+    "description": "The disabled notice card's button: reenables reflections in place"
+  },
   "reflectionOffTitle": "Apple Intelligence is off",
   "@reflectionOffTitle": {
     "description": "Reflections screen state: Apple Intelligence is available but not enabled"

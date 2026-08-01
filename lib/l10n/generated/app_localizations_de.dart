@@ -485,6 +485,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionRegenerateFailed => 'Rückblick nicht möglich. Versuchen Sie es erneut.';
 
   @override
+  String get reflectionsDisabledTitle => 'Rückblicke sind aus';
+
+  @override
+  String get reflectionsDisabledBody =>
+      'Die laufende Woche wird bei ihrem Abschluss nicht geschrieben.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Einschalten';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence ist aus';
 
   @override

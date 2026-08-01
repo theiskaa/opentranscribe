@@ -484,6 +484,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionRegenerateFailed => 'Riflessione non riuscita. Riprova.';
 
   @override
+  String get reflectionsDisabledTitle => 'Le riflessioni sono disattivate';
+
+  @override
+  String get reflectionsDisabledBody => 'La settimana in corso non sarà scritta alla sua chiusura.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Attiva';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence è disattivato';
 
   @override

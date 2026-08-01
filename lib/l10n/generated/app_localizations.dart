@@ -930,6 +930,24 @@ abstract class AppLocalizations {
   /// **'Could not reflect. Try again.'**
   String get reflectionRegenerateFailed;
 
+  /// Notice card on the pager when the user has disabled reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections are off'**
+  String get reflectionsDisabledTitle;
+
+  /// Body of the disabled notice; the card's button reenables
+  ///
+  /// In en, this message translates to:
+  /// **'The open week will not be written when it closes.'**
+  String get reflectionsDisabledBody;
+
+  /// The disabled notice card's button: reenables reflections in place
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get reflectionsDisabledEnable;
+
   /// Reflections screen state: Apple Intelligence is available but not enabled
   ///
   /// In en, this message translates to:

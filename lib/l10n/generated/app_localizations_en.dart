@@ -480,6 +480,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reflectionRegenerateFailed => 'Could not reflect. Try again.';
 
   @override
+  String get reflectionsDisabledTitle => 'Reflections are off';
+
+  @override
+  String get reflectionsDisabledBody => 'The open week will not be written when it closes.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Turn on';
+
+  @override
   String get reflectionOffTitle => 'Apple Intelligence is off';
 
   @override
