@@ -103,10 +103,14 @@ final class PageIndicatorTheme {
 /// week's excerpt.
 @immutable
 final class ReflectionCardTheme {
-  const ReflectionCardTheme({required this.background, required this.border});
+  const ReflectionCardTheme({required this.background, required this.border, required this.dither});
 
   final Color background;
   final Color border;
+
+  /// The corner dither's cell color. Dim by construction: the field sits
+  /// under the excerpt's tail and must never contest the text.
+  final Color dither;
 }
 
 /// The reflections pager's floating scrubber capsule: a small frosted pill at

@@ -236,6 +236,8 @@ final class AppTheme {
               brightness == Brightness.dark ? 0.55 : 0.04,
             )!,
             border: surfaceBorder,
+            // Low-alpha ink on dark needs a touch more to read at all.
+            dither: text.withValues(alpha: brightness == Brightness.dark ? 0.14 : 0.10),
           ),
       scrubber:
           scrubber ??
