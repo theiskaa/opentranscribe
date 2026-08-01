@@ -52,6 +52,12 @@ void main() {
     expect(settings.floor, DateTime(2026, 7, 20));
   });
 
+  test('floorRecorded reports the record even when it cannot be parsed', () async {
+    expect(settings.floorRecorded, isFalse);
+    await storage.write('reflect.floor', 'not-a-date');
+    expect(settings.floorRecorded, isTrue);
+  });
+
   test('an unreadable floor reads as absent, never throws', () async {
     await storage.write('reflect.floor', 'not-a-date');
     expect(settings.floor, isNull);

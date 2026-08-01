@@ -658,6 +658,16 @@ void main() {
       expect(store.read(DateTime(2026, 7, 27)), isNotNull);
     });
 
+    test('a floor record that fails to parse is preserved, never re-recorded at today', () async {
+      await storage.write('reflect.floor', 'not-a-date');
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(storage.readString('reflect.floor'), 'not-a-date');
+    });
+
     test('a first-day-of-week shift cannot pull a pre-feature week over the floor', () async {
       await settings.setFloor(DateTime(2026, 7, 19)); // Sunday-first floor (en)
       entries = [

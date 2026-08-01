@@ -99,6 +99,7 @@ class ReflectionService {
       // Recorded before the availability gate: the floor marks when the
       // FEATURE first ran, not when Apple Intelligence first answered.
       final floor = await _ensureFloor();
+      if (floor == null) return;
       // Availability is probed live, so enabling Apple Intelligence mid-life is
       // picked up on the next open rather than needing a relaunch.
       final availability = await _engine.availability();
@@ -178,12 +179,15 @@ class ReflectionService {
       !day.isBefore(start) && day.isBefore(end);
 
   /// The no-backfill floor, recorded exactly once: the app-language week start
-  /// of the day the feature first ran. [regenerate] needs no floor check
-  /// because it can only target a stored reflection, and nothing below the
-  /// floor ever stores one.
-  Future<DateTime> _ensureFloor() async {
+  /// of the day the feature first ran. Null when a record exists but cannot be
+  /// parsed; the catch-up then sits the run out, because re-recording at the
+  /// current week would permanently orphan the journaled weeks below the true
+  /// floor. [regenerate] never checks the floor: it is the user's explicit
+  /// per-week ask, so the no-backfill rule deliberately does not apply.
+  Future<DateTime?> _ensureFloor() async {
     final stored = _settings.floor;
     if (stored != null) return stored;
+    if (_settings.floorRecorded) return null;
     final floor = currentWeekStart();
     await _settings.setFloor(floor);
     return floor;

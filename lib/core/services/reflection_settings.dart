@@ -46,6 +46,12 @@ class ReflectionSettings {
   DateTime? get floor =>
       _read<DateTime?>(_floorKey, (s) => s == null ? null : DateTime.tryParse(s), null);
 
+  /// Whether a floor record exists at all, parseable or not. Corruption must
+  /// not read as absence: the service would otherwise re-record the floor at
+  /// the current week and permanently orphan the journaled weeks below the
+  /// true one.
+  bool get floorRecorded => _storage.containsKey(_floorKey);
+
   Future<void> setFloor(DateTime week) => _storage.write(_floorKey, Reflection.keyFor(week));
 
   Future<void> setEnabled(bool value) => _storage.write(_enabledKey, value ? 'true' : 'false');
