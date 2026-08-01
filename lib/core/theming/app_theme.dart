@@ -247,6 +247,8 @@ final class AppTheme {
             // against the reading text.
             tint: background.withValues(alpha: TopBarTheme.frostAlpha),
             border: surfaceBorder,
+            ink: accent,
+            track: accent.withValues(alpha: 0.25),
           ),
       motion: motion,
     );

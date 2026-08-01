@@ -25,6 +25,11 @@ final class AppMotion {
     this.subtitleRoll = const Duration(milliseconds: 120),
     this.weekSlide = const Duration(milliseconds: 300),
     this.weekHome = const Duration(milliseconds: 180),
+    this.weekTurn = const Duration(milliseconds: 420),
+    this.weekTurnCurve = Curves.easeInOutCubic,
+    this.weekTurnResumeCurve = Curves.easeOutCubic,
+    this.weekTurnFloor = 0.35,
+    this.weekTurnSpring = const SpringDescription(mass: 1, stiffness: 170, damping: 26),
     this.pageSlide = const Duration(milliseconds: 300),
     this.dayGlide = const Duration(milliseconds: 320),
     this.dayGlideCurve = Curves.easeOutCubic,
@@ -87,6 +92,28 @@ final class AppMotion {
   /// The strip paging home on a title TAP: quicker than [weekSlide]'s
   /// scroll-following travel, because it answers a touch, not a scroll.
   final Duration weekHome;
+
+  /// The reflections pager turning a week from a capsule tap or a scrub
+  /// release: deliberately slower than [weekHome], so the ink's liquid
+  /// transfer reads as flow rather than a blink; eased both ends because the
+  /// pager is already on screen moving from A to B.
+  final Duration weekTurn;
+  final Curve weekTurnCurve;
+
+  /// The curve for a week-turn RESUMED mid-flight (rapid capsule taps): eased
+  /// out only, so a chained tap moves immediately and decelerates in.
+  /// Restarting [weekTurnCurve]'s slow opening from a standstill would trap
+  /// stacked taps in its first phase.
+  final Curve weekTurnResumeCurve;
+
+  /// The shortest share of [weekTurn] a sub-week settle may take, so even a
+  /// nudge back to the nearest dot still visibly flows rather than snapping.
+  final double weekTurnFloor;
+
+  /// The pager settling after a swipe releases: critically damped and softer
+  /// than the framework's page spring, so the ink bridge pours across at the
+  /// same liquid pace instead of snapping.
+  final SpringDescription weekTurnSpring;
 
   /// A full-screen pager advancing one page on a button tap (onboarding's Next).
   final Duration pageSlide;

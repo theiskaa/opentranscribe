@@ -118,22 +118,33 @@ final class ReflectionCardTheme {
 }
 
 /// The reflections pager's floating scrubber capsule: a small frosted pill at
-/// bottom center holding the dash indicator.
+/// bottom center holding the ink dot strip.
 @immutable
 final class ScrubberTheme {
   const ScrubberTheme({
     required this.tint,
     required this.border,
+    required this.ink,
+    required this.track,
     this.blurSigma = 30.0,
-    this.height = 34.0,
+    this.height = 38.0,
     this.topBand = 32.0,
     this.slack = 24.0,
     this.sinkDistance = 12.0,
+    this.dotSize = 9.0,
+    this.gap = 10.0,
+    this.activeScale = 1.4,
+    this.neckWaist = 0.6,
+    this.inkStretch = 0.25,
   });
 
   /// The frost tint drawn over the blur, translucent so text reads through.
   final Color tint;
   final Color border;
+
+  /// The moving position blob, and the empty dots it travels between.
+  final Color ink;
+  final Color track;
   final double blurSigma;
 
   /// Visual capsule height; the touch target is padded past 44 around it.
@@ -148,6 +159,24 @@ final class ScrubberTheme {
 
   /// How far the capsule sinks toward the screen edge as its fade runs out.
   final double sinkDistance;
+
+  /// The dot strip's geometry, the scrubber's own: the capsule is a grabbable
+  /// control, not a passive marker. One dot plus one [gap] is also the
+  /// scrub's pitch, one week of travel.
+  final double dotSize;
+  final double gap;
+
+  /// The resting ink dot's size over an empty dot, so position reads by
+  /// weight as well as color.
+  final double activeScale;
+
+  /// The connecting stream's waist, as a fraction of the smaller blob it
+  /// bridges: below 1 the neck pinches, which is what reads as liquid.
+  final double neckWaist;
+
+  /// How much each blob elongates toward the stream while it runs (height
+  /// compresses in step, so the ink keeps its volume).
+  final double inkStretch;
 }
 
 /// The week strip under the date bar on home.
