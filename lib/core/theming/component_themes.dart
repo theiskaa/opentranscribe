@@ -11,6 +11,10 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 /// The blurred top bar content scrolls under.
 @immutable
 final class TopBarTheme {
+  /// The frost recipe's tint alpha, shared with every drawn glass surface
+  /// (the scrubber capsule) so "the top bar's material" stays one number.
+  static const frostAlpha = 0.55;
+
   const TopBarTheme({
     required this.background,
     required this.titleColor,
@@ -82,6 +86,7 @@ final class PageIndicatorTheme {
     this.dashWidth = 18.0,
     this.dashHeight = 3.0,
     this.gap = 8.0,
+    this.activeBulge = 3.0,
   });
 
   final Color active;
@@ -89,6 +94,9 @@ final class PageIndicatorTheme {
   final double dashWidth;
   final double dashHeight;
   final double gap;
+
+  /// Extra width on the active dash, so position reads by shape too.
+  final double activeBulge;
 }
 
 /// The home reflection card: a quiet panel on its own ground holding the
@@ -99,6 +107,35 @@ final class ReflectionCardTheme {
 
   final Color background;
   final Color border;
+}
+
+/// The reflections pager's floating scrubber capsule: a small frosted pill at
+/// bottom center holding the dash indicator.
+@immutable
+final class ScrubberTheme {
+  const ScrubberTheme({
+    required this.tint,
+    required this.border,
+    this.blurSigma = 30.0,
+    this.height = 34.0,
+    this.topBand = 32.0,
+    this.slack = 24.0,
+  });
+
+  /// The frost tint drawn over the blur, translucent so text reads through.
+  final Color tint;
+  final Color border;
+  final double blurSigma;
+
+  /// Visual capsule height; the touch target is padded past 44 around it.
+  final double height;
+
+  /// Reading depth inside which the capsule always shows.
+  final double topBand;
+
+  /// Directional travel a scroll needs before the capsule hides or returns,
+  /// so pixel jitter never flickers it.
+  final double slack;
 }
 
 /// The week strip under the date bar on home.

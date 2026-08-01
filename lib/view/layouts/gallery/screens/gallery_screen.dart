@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -21,6 +22,7 @@ import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/glass_capsule.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
@@ -149,6 +151,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 onTap: () => setState(() => _page = (_page + 1) % 4),
                 child: PageIndicator(count: 4, index: _page),
               ),
+              _section('Glass capsule'),
+              const _GlassCapsuleDemo(),
               _section('Notice'),
               AppButton(
                 label: 'Show notice',
@@ -529,6 +533,40 @@ class _InkRevealPendingDemo extends StatelessWidget {
       background: theme.background,
       placeholderLines: 3,
       child: const SizedBox.shrink(),
+    );
+  }
+}
+
+/// The floating scrubber material over busy text, so the frost itself is what
+/// the gallery shows: the paragraph must read through the capsule as glass.
+class _GlassCapsuleDemo extends StatelessWidget {
+  const _GlassCapsuleDemo();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final scrubber = theme.scrubber;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Text(
+          'The capsule floats over reading text like this line and the next, '
+          'and what sits beneath it stays legible through the frost rather '
+          'than being cut off by a solid band.',
+          style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
+        ),
+        GlassCapsule(
+          height: scrubber.height,
+          tint: scrubber.tint,
+          border: scrubber.border,
+          sigma: scrubber.blurSigma,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            // Posed mid-slide, so both rims show their continuous shrink.
+            child: ScrubberDashes(count: 20, position: 9.4),
+          ),
+        ),
+      ],
     );
   }
 }

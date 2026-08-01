@@ -15,6 +15,7 @@ final class AppMotion {
     this.pressScale = 0.96,
     this.pressIcon = const Duration(milliseconds: 120),
     this.pressIconScale = 0.92,
+    this.grabScale = 1.06,
     this.indicator = const Duration(milliseconds: 250),
     this.indicatorCurve = Curves.easeOutCubic,
     this.crossfade = const Duration(milliseconds: 200),
@@ -55,6 +56,10 @@ final class AppMotion {
   final double pressScale;
   final Duration pressIcon;
   final double pressIconScale;
+
+  /// A grabbable control swelling under the finger (the scrubber capsule):
+  /// growth, where a press shrinks, because the grip holds rather than pushes.
+  final double grabScale;
   final Duration indicator;
   final Curve indicatorCurve;
   final Duration crossfade;

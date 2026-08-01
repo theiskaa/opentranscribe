@@ -40,6 +40,7 @@ final class AppTheme {
     required this.errorPill,
     required this.sheet,
     required this.reflectionCard,
+    required this.scrubber,
     this.motion = const AppMotion(),
   });
 
@@ -76,6 +77,7 @@ final class AppTheme {
     ErrorPillTheme? errorPill,
     SheetTheme? sheet,
     ReflectionCardTheme? reflectionCard,
+    ScrubberTheme? scrubber,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -235,6 +237,15 @@ final class AppTheme {
             )!,
             border: surfaceBorder,
           ),
+      scrubber:
+          scrubber ??
+          ScrubberTheme(
+            // The top bar's exact frost recipe: the page color over the blur
+            // reads as clean glass, where a surface-gray tint went muddy
+            // against the reading text.
+            tint: background.withValues(alpha: TopBarTheme.frostAlpha),
+            border: surfaceBorder,
+          ),
       motion: motion,
     );
   }
@@ -279,6 +290,7 @@ final class AppTheme {
   final ErrorPillTheme errorPill;
   final SheetTheme sheet;
   final ReflectionCardTheme reflectionCard;
+  final ScrubberTheme scrubber;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.

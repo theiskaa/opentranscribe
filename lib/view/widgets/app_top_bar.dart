@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
@@ -161,7 +162,7 @@ class AppTopBar extends StatelessWidget {
                 // from the midpoint, so content shows through as frost.
                 ? EdgeFade(
                     height: chromeHeight + bar.fadeTail,
-                    color: bar.background.withValues(alpha: 0.55),
+                    color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
                     sigma: bar.blurSigma,
                   )
                 : EdgeFade(

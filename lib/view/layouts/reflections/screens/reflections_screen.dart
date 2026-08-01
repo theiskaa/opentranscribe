@@ -15,6 +15,7 @@ import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_page_logic.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflections_menu.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
@@ -26,8 +27,10 @@ import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 /// range as the title, the reflection drawn below with the invisible-ink
 /// reveal - swiped between horizontally (oldest first; the landing page is
 /// the newest closed week, and the open week is never a page). The page IS
-/// the chrome: a plain range title, no switcher, no position strip. ONE
-/// top-bar menu acts on the viewed week and carries the settings knobs.
+/// the chrome, with one floating exception: a frosted scrubber capsule at
+/// bottom center reads (and drives) the position, fading away once the user
+/// scrolls into the text. ONE top-bar menu acts on the viewed week and
+/// carries the settings knobs.
 /// Reads the root-scoped [ReflectionsCubit];
 /// a week filling via the foreground catch-up updates its page in place.
 ///
@@ -98,6 +101,10 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
   }
 }
 
+/// Where the capsule rests above the screen's bottom edge. Shared with the
+/// pages' bottom inset, so the text always clears the seat.
+double _capsuleSeat(BuildContext context) => MediaQuery.paddingOf(context).bottom + AppSpacing.xl;
+
 /// The pager body: owns the controller, the viewed week, and the reveal ledger
 /// (which weeks already wrote themselves on this visit).
 class _WeekPagerView extends StatefulWidget {
@@ -134,23 +141,62 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
   /// from here when the pager commits to a page whose ink already runs.
   final Set<String> _started = {};
 
+  /// The reading fold ([scrubberScrollFold]): off once the reader travels
+  /// down, back on the first deliberate move up. The anchor is the extremum
+  /// offset since the last flip.
+  bool _scrollShown = true;
+  double _scrollAnchor = 0;
+
+  /// True while the pager itself is in horizontal motion.
+  bool _pagerActive = false;
+
+  /// True while a finger owns the scrubber (also holds the page physics).
+  bool _scrubbing = false;
+
+  /// The capsule's last computed visibility; notifications setState only when
+  /// the rule flips, never per scroll tick.
+  bool _scrubberShown = false;
+
+  bool _visibleFor(int count) => scrubberVisible(
+    count: count,
+    readingShown: _scrollShown,
+    pagerActive: _pagerActive,
+    scrubbing: _scrubbing,
+  );
+
+  void _refreshScrubber({required int count}) {
+    final shown = _visibleFor(count);
+    if (shown == _scrubberShown) return;
+    setState(() => _scrubberShown = shown);
+  }
+
+  void _setScrubbing({required bool value, required int count}) {
+    _scrubbing = value;
+    _refreshScrubber(count: count);
+  }
+
   /// Keeps the VIEWED WEEK stable when the timeline changes length: pages are
   /// remapped by identity, not position (the WeekCalendar lesson).
   PageController _configure(List<ReflectionWeek> timeline) {
     final page = pageForWeek(timeline, _viewedWeek);
-    var controller = _controller;
+    final controller = _controller;
     if (controller != null && timeline.length == _pageCount) return controller;
     final old = controller;
-    controller = PageController(initialPage: page);
-    _controller = controller;
+    final fresh = PageController(initialPage: page);
+    _controller = fresh;
     _pageCount = timeline.length;
     _settledPage = page;
     if (old != null) {
       // The PageView still holds the old controller until it rebuilds;
-      // disposing mid-build would detach a dead ChangeNotifier.
-      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+      // disposing mid-build would detach a dead ChangeNotifier. And the
+      // swap keeps the OLD scroll position (initialPage only applies to a
+      // first attach), so land the kept week explicitly once attached.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        old.dispose();
+        if (fresh.hasClients && fresh.page?.round() != page) fresh.jumpToPage(page);
+      });
     }
-    return controller;
+    return fresh;
   }
 
   @override
@@ -168,6 +214,11 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
     final timeline = state.timeline;
     final controller = _configure(timeline);
     final viewed = timeline[pageForWeek(timeline, _viewedWeek)];
+    // Recomputed every build so a fresh timeline (a 1-page history) lands
+    // right without waiting for a scroll tick; notifications only setState
+    // when this flips.
+    final shown = _visibleFor(timeline.length);
+    _scrubberShown = shown;
 
     return AppScaffold(
       background: theme.screens.settings,
@@ -176,52 +227,119 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
       // Like the entry screen: the pages run full height and wash under the
       // frosted bar (their top padding clears it), so the bar reads as
       // translucent over the reading text rather than a solid band.
-      // The anchor listens for the pager's own rest, not the pages' vertical
-      // scrolls bubbling through.
-      child: NotificationListener<ScrollEndNotification>(
+      // One listener reads both axes: the pager's own rest anchors the eager
+      // physics, and the pages' vertical scrolls drive the capsule's fade.
+      child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          if (notification.metrics.axis == Axis.horizontal) {
+          final horizontal = notification.metrics.axis == Axis.horizontal;
+          // Only true movement counts as activity: a settled swipe trails a
+          // UserScrollNotification(idle) AFTER its End, which would latch
+          // the flag back on and defeat the reading fold for good.
+          final moving =
+              notification is ScrollStartNotification ||
+              notification is ScrollUpdateNotification ||
+              notification is OverscrollNotification;
+          if (horizontal && moving) _pagerActive = true;
+          if (horizontal && notification is ScrollEndNotification) {
             _settledPage = controller.page?.round() ?? _settledPage;
+            _pagerActive = false;
           }
+          if (!horizontal && notification is ScrollUpdateNotification) {
+            final fold = scrubberScrollFold(
+              shown: _scrollShown,
+              anchor: _scrollAnchor,
+              offset: notification.metrics.pixels,
+              slack: theme.scrubber.slack,
+              topBand: theme.scrubber.topBand,
+            );
+            _scrollShown = fold.shown;
+            _scrollAnchor = fold.anchor;
+          }
+          _refreshScrubber(count: timeline.length);
           return false;
         },
-        child: PageView.builder(
-          controller: controller,
-          // Snapping would stack the framework's PageScrollPhysics OUTSIDE
-          // the eager physics, and its half-page rule settles every in-range
-          // release before ours is ever asked.
-          pageSnapping: false,
-          physics: _EagerPagePhysics(settledPage: () => _settledPage),
-          itemCount: timeline.length,
-          onPageChanged: (page) {
-            Haptics.selection();
-            final week = timeline[page];
-            setState(() {
-              _viewedWeek = week.weekStart;
-              // Committing to a page whose ink already runs spends its
-              // write-on; see [_revealed].
-              final key = revealKeyFor(week);
-              if (_started.contains(key)) _revealed.add(key);
-            });
-          },
-          itemBuilder: (context, page) {
-            final week = timeline[page];
-            return _WeekPage(
-              week: week,
-              regenerating: state.regenerating == week.weekStart,
-              revealed: _revealed,
-              length: state.style.length,
-              notice: state.regenerateFailed ? l10n.reflectionRegenerateFailed : null,
-              onNoticeDismiss: cubit.clearRegenerateFailed,
-              onWriteStarted: () {
-                if (!mounted) return;
-                final key = revealKeyFor(week);
-                _started.add(key);
-                if (week.weekStart != viewed.weekStart) return;
-                setState(() => _revealed.add(key));
-              },
-            );
-          },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: PageView.builder(
+                controller: controller,
+                // Snapping would stack the framework's PageScrollPhysics
+                // OUTSIDE the eager physics, and its half-page rule settles
+                // every in-range release before ours is ever asked.
+                pageSnapping: false,
+                physics: _EagerPagePhysics(settledPage: () => _settledPage, held: () => _scrubbing),
+                itemCount: timeline.length,
+                onPageChanged: (page) {
+                  Haptics.selection();
+                  final week = timeline[page];
+                  setState(() {
+                    _viewedWeek = week.weekStart;
+                    // A fresh page always rests at its top (pages are
+                    // disposed off screen), so the fold starts shown.
+                    _scrollShown = true;
+                    _scrollAnchor = 0;
+                    // Committing to a page whose ink already runs spends its
+                    // write-on; see [_revealed].
+                    final key = revealKeyFor(week);
+                    if (_started.contains(key)) _revealed.add(key);
+                  });
+                },
+                itemBuilder: (context, page) {
+                  final week = timeline[page];
+                  return _WeekPage(
+                    week: week,
+                    regenerating: state.regenerating == week.weekStart,
+                    revealed: _revealed,
+                    length: state.style.length,
+                    notice: state.regenerateFailed ? l10n.reflectionRegenerateFailed : null,
+                    onNoticeDismiss: cubit.clearRegenerateFailed,
+                    onWriteStarted: () {
+                      if (!mounted) return;
+                      final key = revealKeyFor(week);
+                      _started.add(key);
+                      if (week.weekStart != viewed.weekStart) return;
+                      setState(() => _revealed.add(key));
+                    },
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _capsuleSeat(context),
+              child: Center(
+                child: IgnorePointer(
+                  ignoring: !shown,
+                  // Mirrored along one path: a soft rise in, a quicker sink
+                  // out. The fade rides a single fraction into the scrubber
+                  // rather than an Opacity layer: a BackdropFilter inside
+                  // one samples the layer's own empty buffer, so the blur
+                  // would pop instead of fading. Reduce Motion keeps only
+                  // the fade; a fully-hidden capsule builds nothing.
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: shown ? 1.0 : 0.0),
+                    duration: shown ? theme.motion.indicator : theme.motion.crossfade,
+                    curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
+                    builder: (context, fade, _) {
+                      if (fade <= 0) return const SizedBox.shrink();
+                      final sink = context.reduceMotion ? 0.0 : (1 - fade) * 12;
+                      return Transform.translate(
+                        offset: Offset(0, sink),
+                        child: ReflectionScrubber(
+                          controller: controller,
+                          count: timeline.length,
+                          fade: fade,
+                          onScrubStart: () => _setScrubbing(value: true, count: timeline.length),
+                          onScrubEnd: () => _setScrubbing(value: false, count: timeline.length),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -266,7 +384,9 @@ class _WeekPage extends StatelessWidget {
         // row and only melts across the tail, so the title clears the wash.
         AppTopBar.heightOf(context) + theme.topBar.fadeTail,
         AppSpacing.xl,
-        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+        // Past the floating capsule too, so a short page's last lines never
+        // rest under it.
+        _capsuleSeat(context) + theme.scrubber.height + AppSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,20 +540,26 @@ class _Editorial extends StatelessWidget {
 /// page, or any flick, commits - anchored on the last RESTED page the state
 /// supplies (reading the live rounding here would rebuild the 50% rule).
 class _EagerPagePhysics extends ScrollPhysics {
-  const _EagerPagePhysics({required this.settledPage, super.parent});
+  const _EagerPagePhysics({required this.settledPage, required this.held, super.parent});
 
   /// The page the pager last came to rest on.
   final ValueGetter<int> settledPage;
 
+  /// True while a scrub owns the position: every jumpTo ends in a ballistic
+  /// kick, and the snap it would start here fights the finger between moves.
+  /// Held means no simulation; the scrubber settles explicitly on release.
+  final ValueGetter<bool> held;
+
   @override
   _EagerPagePhysics applyTo(ScrollPhysics? ancestor) =>
-      _EagerPagePhysics(settledPage: settledPage, parent: buildParent(ancestor));
+      _EagerPagePhysics(settledPage: settledPage, held: held, parent: buildParent(ancestor));
 
   @override
   bool get allowImplicitScrolling => false;
 
   @override
   Simulation? createBallisticSimulation(ScrollMetrics position, double velocity) {
+    if (held()) return null;
     // Overscroll keeps the framework's edge spring.
     if (position.outOfRange) return super.createBallisticSimulation(position, velocity);
     final tolerance = toleranceFor(position);
