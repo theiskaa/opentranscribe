@@ -131,7 +131,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 
 - Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
 - Fakes live in `test/support/`. Inject them through constructors; no test may reach a real platform channel or real storage.
-- Test names read as sentences about behavior, not about method names. Comment the reasoning a test encodes when it is not obvious from the expectation.
+- Test names read as sentences about behavior, not about method names. Tests carry no comments; the name is the explanation, so put the reasoning there.
 
 ## Conventions
 
