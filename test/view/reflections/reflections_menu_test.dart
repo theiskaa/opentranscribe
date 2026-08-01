@@ -3,8 +3,6 @@ import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflections_menu.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 
-/// The one menu's structure (order, ids, gating, selected flags) is pure and
-/// testable; the AppMenuButton it feeds is not pumped.
 const ReflectionMenuLabels _labels = (
   reflections: 'Reflections',
   regenerate: 'Regenerate',
@@ -41,9 +39,9 @@ Iterable<String?> idsOf(List<AppMenuItem> items) =>
     items.where((i) => !i.isDivider).map((i) => i.id);
 
 void main() {
-  test('the base order: toggle, then the knobs, then the viewed week\'s actions', () {
+  test('the base order: toggle, then the knobs, then the viewed week\'s actions, '
+      'with delete the only destructive one', () {
     expect(idsOf(build()), ['r:toggle', 'r:voice', 'r:length', 'r:spec', 'r:regen', 'r:delete']);
-    // Delete is the destructive one; regenerate is not.
     expect(build().singleWhere((i) => i.id == 'r:delete').destructive, isTrue);
     expect(build().singleWhere((i) => i.id == 'r:regen').destructive, isFalse);
   });
@@ -54,8 +52,8 @@ void main() {
     expect(items.any((i) => i.isDivider), isFalse);
   });
 
-  test('an unreflected or erased week offers regenerate without delete', () {
-    // Nothing stored means nothing to erase; regenerate IS "write it now".
+  test('an unreflected or erased week offers regenerate without delete: '
+      'nothing stored means nothing to erase', () {
     expect(idsOf(build(canDelete: false)), [
       'r:toggle',
       'r:voice',

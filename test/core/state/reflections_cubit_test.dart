@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
@@ -12,56 +11,27 @@ import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-DateTime mondayStart(DateTime d) {
-  final day = DateTime(d.year, d.month, d.day);
-  return day.subtract(Duration(days: day.weekday - 1));
-}
+import '../../support/reflection_fixtures.dart';
 
 void main() {
-  const key = 'test-encryption-key-0123456789ab';
   final now = DateTime(2026, 7, 29, 12);
   final lastWeek = DateTime(2026, 7, 20);
 
-  late LocalService storage;
   late ReflectionStore store;
   late ReflectionSettings settings;
   late FakeReflectionEngine engine;
   late List<Entry> entries;
   late ReflectionService service;
 
-  Entry withText(String id, DateTime createdAt, {String? text}) => Entry(
-    id: id,
-    createdAt: createdAt,
-    audioPath: null,
-    duration: const Duration(seconds: 1),
-    transcript: text == null
-        ? null
-        : Transcript(
-            fullText: text,
-            segments: [
-              TranscriptSegment(text: text, start: Duration.zero, end: const Duration(seconds: 1)),
-            ],
-            localeId: 'en-US',
-            engineId: 'fake',
-            createdAt: createdAt,
-          ),
-  );
-
   ReflectionsCubit build() => ReflectionsCubit(service: service, settings: settings);
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 10));
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    storage = LocalService();
-    await storage.init(encryptionKey: key);
-    store = ReflectionStore(storage);
-    settings = ReflectionSettings(storage: storage);
-    // The feature predates the test weeks, so the no-backfill floor never
-    // interferes with the catch-ups these tests kick.
+    final fresh = await reflectionStorage();
+    store = fresh.store;
+    settings = fresh.settings;
     await settings.setFloor(DateTime(2026, 6, 8));
     engine = FakeReflectionEngine();
     entries = [];
@@ -126,7 +96,6 @@ void main() {
     await cubit.setEnabled(true);
     await settle();
     expect(cubit.state.enabled, isTrue);
-    // Enabling caught up the due week without waiting for a relaunch.
     expect(engine.reflectCalls, 1);
     expect(store.read(lastWeek), isNotNull);
     await cubit.close();
@@ -176,8 +145,6 @@ void main() {
   });
 
   test('an unexpected regenerate failure still clears the spinner', () async {
-    // Not a ReflectionUnavailable: a storage-write StateError must not leave
-    // the row spinning forever, which only a catch-all/finally guarantees.
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     engine.error = StateError('persist failed');
     final cubit = build();
@@ -190,9 +157,7 @@ void main() {
     await cubit.close();
   });
 
-  test('a second regenerate while one is in flight is ignored', () async {
-    // A shared in-flight marker: letting week B start mid-A would steal A's
-    // spinner and then have A's completion clear B's.
+  test('a second regenerate, even for another week, is ignored while one is in flight', () async {
     final weekBefore = DateTime(2026, 7, 13);
     await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'a'));
     await store.save(Reflection(weekStart: weekBefore, generatedAt: now, text: 'b'));
@@ -221,8 +186,6 @@ void main() {
     await cubit.load();
     expect(cubit.state.available, isFalse);
 
-    // Apple Intelligence enabled while backgrounded; the app's lifecycle
-    // observer calls load() on resume.
     engine.availabilityResult = const ReflectionAvailability.available();
     await cubit.load();
 
@@ -236,7 +199,6 @@ void main() {
     await cubit.load();
     expect(cubit.state.history, isEmpty);
 
-    // The foreground catch-up path writes a reflection and notifies.
     await service.catchUp();
     await settle();
 
@@ -244,12 +206,12 @@ void main() {
     await cubit.close();
   });
 
-  test('the timeline derives with history and refreshes on change', () async {
+  test('the timeline pages a journaled but unwritten closed week as waiting, '
+      'and refreshes on change', () async {
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     final cubit = build();
     await cubit.load();
 
-    // Journaled but unwritten: the closed week already earns a waiting page.
     expect(cubit.state.timeline.single.status, ReflectionWeekStatus.unreflected);
 
     await service.catchUp();

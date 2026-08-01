@@ -49,8 +49,6 @@ void main() {
   });
 
   test('a regenerate changes the ledger key, so the new words re-arrive', () {
-    // Marked at reveal START: an interrupted reveal does not replay on return,
-    // but a new generatedAt is a different key and earns its arrival again.
     final first = reflected();
     final rewritten = reflected(generatedAt: DateTime.utc(2026, 7, 28));
     expect(revealKeyFor(rewritten), isNot(revealKeyFor(first)));
@@ -63,9 +61,7 @@ void main() {
     expect(placeholderLinesFor(ReflectionLength.paragraph), 8);
   });
 
-  test('a regenerate cloud is shaped like the text it replaces', () {
-    // 400 chars at a 360pt measure lays out to a handful of lines: the cloud
-    // must scale with the old text, not sit at the knob's fixed height.
+  test('a regenerate cloud is shaped like the text it replaces, not the knob\'s fixed height', () {
     final short = ReflectionWeek(
       weekStart: weekStart,
       status: ReflectionWeekStatus.reflected,
@@ -143,16 +139,13 @@ void main() {
       expect(eagerPageTarget(page: 2.75, from: 3, flick: 0), 2);
     });
 
-    test('exactly at the threshold the page springs home (the comparison is strict)', () {
-      // A binary-exact threshold: 3.2 - 3 lands a hair over 0.2 in doubles
-      // and would test float noise, not the rule.
+    test('exactly at the threshold the page springs home, checked at a binary-exact 0.25 '
+        'so the strict comparison is the rule under test, not float noise', () {
       expect(eagerPageTarget(page: 3.25, from: 3, flick: 0, threshold: 0.25), 3);
       expect(eagerPageTarget(page: 2.75, from: 3, flick: 0, threshold: 0.25), 3);
     });
 
-    test('under the threshold the page springs home', () {
-      // The framework would demand 50%; the whole point is committing early,
-      // but a graze must still return.
+    test('a graze under the threshold still springs home despite the eager commit', () {
       expect(eagerPageTarget(page: 3.1, from: 3, flick: 0), 3);
       expect(eagerPageTarget(page: 2.9, from: 3, flick: 0), 3);
     });
@@ -162,9 +155,8 @@ void main() {
       expect(eagerPageTarget(page: 2.95, from: 3, flick: -1), 2);
     });
 
-    test('a stale anchor re-anchors to the nearest page', () {
-      // A second swipe can start before the first settles: the anchor is then
-      // a full page behind and must not drag the target back.
+    test('a stale anchor from a swipe still settling re-anchors to the nearest page '
+        'instead of dragging the target back', () {
       expect(eagerPageTarget(page: 4.3, from: 3, flick: 0), 5);
       expect(eagerPageTarget(page: 4.1, from: 3, flick: 0), 4);
     });
@@ -176,10 +168,12 @@ void main() {
       expect(scrubPage(anchorPage: 3, dx: -52, pitch: 26, count: 10), 1);
     });
 
-    test('a touch without movement holds the anchor', () {
-      // Responding on pointer-down must never teleport the pager.
-      expect(scrubPage(anchorPage: 6.0, dx: 0, pitch: 26, count: 10), 6.0);
-    });
+    test(
+      'a touch without movement holds the anchor, so pointer-down never teleports the pager',
+      () {
+        expect(scrubPage(anchorPage: 6.0, dx: 0, pitch: 26, count: 10), 6.0);
+      },
+    );
 
     test('the scrub clamps at both ends of the timeline', () {
       expect(scrubPage(anchorPage: 8, dx: 1000, pitch: 26, count: 10), 9);
@@ -233,15 +227,14 @@ void main() {
       required double offset,
     }) => scrubberScrollFold(shown: shown, anchor: anchor, offset: offset, slack: 24, topBand: 32);
 
-    test('inside the top band it always shows, even mid-hide', () {
+    test('inside the top band it always shows, even mid-hide, '
+        'and overscroll bounce counts as the top', () {
       expect(fold(shown: false, anchor: 400, offset: 20).shown, isTrue);
-      // Overscroll bounce (negative offsets) counts as the top.
       expect(fold(shown: false, anchor: 400, offset: -10).shown, isTrue);
     });
 
     test('a slack of downward travel hides it, and only past the slack exactly', () {
       expect(fold(shown: true, anchor: 100, offset: 120).shown, isTrue);
-      // Exactly one slack of travel still shows: hiding starts PAST it.
       expect(fold(shown: true, anchor: 100, offset: 124).shown, isTrue);
       expect(fold(shown: true, anchor: 100, offset: 125).shown, isFalse);
     });
@@ -259,9 +252,8 @@ void main() {
       }
     });
 
-    test('the anchor ratchets to the extremum since the last flip', () {
-      // Shown: the anchor chases the lowest point, so travel measures from
-      // the turnaround, not from wherever the fold last ran.
+    test('the anchor ratchets to the extremum since the last flip, '
+        'so travel measures from the turnaround', () {
       var state = fold(shown: true, anchor: 200, offset: 150);
       expect(state.anchor, 150);
       state = fold(shown: state.shown, anchor: state.anchor, offset: 170);
@@ -303,9 +295,8 @@ void main() {
       expect(dashRimScale(slot: 6, shift: 23, count: 30, max: 7), 1);
     });
 
-    test('a barely overflowing strip mid-slide shrinks both rims at once', () {
-      // count 8 through 7 slots at shift 0.5: pages lie beyond both rims, so
-      // both ramps are live and each rim takes the smaller of the two.
+    test('a barely overflowing strip mid-slide shrinks both rims at once, '
+        'each taking the smaller of the two live ramps', () {
       expect(dashRimScale(slot: 0, shift: 0.5, count: 8, max: 7), 0.5);
       expect(dashRimScale(slot: 6, shift: 0.5, count: 8, max: 7), 0.5);
       expect(dashRimScale(slot: 3, shift: 0.5, count: 8, max: 7), 1);

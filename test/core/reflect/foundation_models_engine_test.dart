@@ -5,9 +5,6 @@ import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 
-/// Pins the channel contract with ReflectionEngine.swift: the availability
-/// status strings, the reflect payload shape, and the silence-vs-failure split.
-/// This is where native/Dart drift would surface.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -54,7 +51,6 @@ void main() {
     });
 
     test('a missing plugin reads as unsupported', () async {
-      // No handler registered: the messenger reports MissingPluginException.
       expect((await engine.availability()).status, ReflectionAvailabilityStatus.unsupported);
     });
   });
@@ -123,9 +119,8 @@ void main() {
       );
     });
 
-    test('a deterministic native rejection is NOT the transient signal', () async {
-      // bad_args mapped to ReflectionUnavailable would read as retry-later and
-      // head-of-line-block every older week in the catch-up loop.
+    test('a deterministic native rejection is NOT the transient signal, '
+        'which as retry-later would head-of-line-block the catch-up loop', () async {
       mock((call) async => throw PlatformException(code: 'bad_args', message: 'malformed'));
       await expectLater(
         engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
@@ -134,7 +129,6 @@ void main() {
     });
 
     test('a missing plugin throws ReflectionUnavailable (retry, not false silence)', () async {
-      // No handler: could-not-run, which must be distinguishable from silence.
       await expectLater(
         engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
         throwsA(isA<ReflectionUnavailable>()),

@@ -23,13 +23,11 @@ void main() {
     final back = Reflection.fromJson(r.toJson());
     expect(back, r);
     expect(back.isSilent, isTrue);
-    // A silent week stores no text key at all, so it reads back as null, not ''.
     expect(r.toJson().containsKey('text'), isFalse);
   });
 
   test('weekStart is a civil date: time and timezone are dropped', () {
     final r = Reflection(
-      // A wall-clock instant on the boundary day, in some local zone.
       weekStart: DateTime(2026, 7, 20, 23, 59),
       generatedAt: DateTime.utc(2026, 7, 26),
     );

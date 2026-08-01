@@ -92,4 +92,23 @@ void main() {
       expect(v, lessThan(0.9));
     }
   });
+
+  test('ditherSmoothstep clamps flat outside its edges', () {
+    expect(ditherSmoothstep(0.2, 0.8, -1), 0);
+    expect(ditherSmoothstep(0.2, 0.8, 0.2), 0);
+    expect(ditherSmoothstep(0.2, 0.8, 0.8), 1);
+    expect(ditherSmoothstep(0.2, 0.8, 2), 1);
+  });
+
+  test('ditherSmoothstep eases through its band, symmetric about the midpoint', () {
+    expect(ditherSmoothstep(0.2, 0.8, 0.5), closeTo(0.5, 1e-9));
+    expect(ditherSmoothstep(0.2, 0.8, 0.35), lessThan(0.25));
+    expect(ditherSmoothstep(0.2, 0.8, 0.65), greaterThan(0.75));
+    var previous = -1.0;
+    for (var v = 0.0; v <= 1.0; v += 0.05) {
+      final s = ditherSmoothstep(0.2, 0.8, v);
+      expect(s, greaterThanOrEqualTo(previous));
+      previous = s;
+    }
+  });
 }

@@ -44,7 +44,6 @@ void main() {
   test('read matches on the civil date, ignoring a time-of-day', () async {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'x'));
 
-    // A caller that hands in an instant on the same day still resolves it.
     expect(store.read(DateTime(2026, 7, 20, 14, 30)), isNotNull);
   });
 

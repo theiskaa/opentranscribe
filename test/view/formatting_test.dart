@@ -10,22 +10,19 @@ void main() {
   final thisYear = DateTime(2026, 7, 30);
 
   test('weekRangeLabel shares the month across a same-month week', () {
-    // 2026-07-20 (Mon) .. 2026-07-26 (Sun)
     expect(weekRangeLabel(DateTime(2026, 7, 20), 'en_US', now: thisYear), 'Jul 20 – 26');
   });
 
   test('weekRangeLabel names both months across a month seam', () {
-    // 2026-06-29 .. 2026-07-05
     expect(weekRangeLabel(DateTime(2026, 6, 29), 'en_US', now: thisYear), 'Jun 29 – Jul 5');
   });
 
-  test('weekRangeLabel dates a week outside the current year', () {
-    // Without the year, every past July would shadow this one's.
+  test('weekRangeLabel dates a week outside the current year, '
+      'so a past July cannot pass for this one', () {
     expect(weekRangeLabel(DateTime(2025, 7, 21), 'en_US', now: thisYear), 'Jul 21 – Jul 27, 2025');
   });
 
-  test('weekRangeLabel dates a week straddling the year seam', () {
-    // The end's year pins the whole range; the start needs none of its own.
+  test('weekRangeLabel dates a week straddling the year seam with the end\'s year alone', () {
     expect(weekRangeLabel(DateTime(2025, 12, 29), 'en_US', now: thisYear), 'Dec 29 – Jan 4, 2026');
   });
 
@@ -48,9 +45,8 @@ void main() {
     expect(formatBytes(1230000000), '1.2 GB');
   });
 
-  test('formatBytes never renders 1000 of a unit at either seam', () {
-    // Rounding reaches 1000 just under each threshold; the unit must step up
-    // with the rounding, at the KB seam and the MB seam alike.
+  test('formatBytes never renders 1000 of a unit at either seam: '
+      'the unit steps up with the rounding', () {
     expect(formatBytes(999500), '1.0 MB');
     expect(formatBytes(999999), '1.0 MB');
     expect(formatBytes(999940000), '999.9 MB');
@@ -59,7 +55,6 @@ void main() {
   });
 
   test('formatBytes renders the decimal in the given locale', () {
-    // The separator is the locale's, so sizes read like the rest of the app.
     expect(formatBytes(1500000, 'de'), '1,5 MB');
     expect(formatBytes(1500000, 'en'), '1.5 MB');
   });

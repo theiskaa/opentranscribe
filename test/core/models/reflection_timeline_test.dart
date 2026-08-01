@@ -3,7 +3,6 @@ import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 
 void main() {
-  // Monday-first July 2026 weeks; the open week starts 2026-07-27.
   final currentWeek = DateTime(2026, 7, 27);
   final lastWeek = DateTime(2026, 7, 20);
   final twoWeeksAgo = DateTime(2026, 7, 13);
@@ -61,7 +60,6 @@ void main() {
 
   test('a journaled week with nothing stored waits, and only above the floor', () {
     final weeks = timeline(journaled: {lastWeek, threeWeeksAgo}, floor: twoWeeksAgo);
-    // threeWeeksAgo closed entirely before the floor: never a page.
     expect(weeks.map((w) => w.weekStart), [lastWeek]);
     expect(weeks.single.status, ReflectionWeekStatus.unreflected);
   });
@@ -95,25 +93,21 @@ void main() {
     ]);
   });
 
-  test('two overlapping tombstones collapse to one erased page', () {
-    // A first-day shift can leave the same erased week under two keys; the
-    // first claims the page, the second must dedupe against it by range.
+  test('two tombstones left overlapping by a first-day shift collapse to one erased page', () {
     final sundayWeek = DateTime(2026, 7, 19);
     final weeks = timeline(deleted: [sundayWeek, lastWeek]);
     expect(weeks.single.weekStart, sundayWeek);
     expect(weeks.single.status, ReflectionWeekStatus.erased);
   });
 
-  test('a below-floor tombstone still earns its erased page', () {
-    // The floor gates only waiting pages: an erasure implies a reflection
-    // once existed there, and the erased state carries the regenerate route.
+  test('a below-floor tombstone still earns its erased page, '
+      'since the floor gates only waiting pages', () {
     final belowFloor = DateTime(2026, 5, 4);
     final weeks = timeline(deleted: [belowFloor]);
     expect(weeks.single.status, ReflectionWeekStatus.erased);
   });
 
   test('a first-day shift cannot page the same week twice', () {
-    // Stored under a Sunday-first boundary; journaled re-bucketed Monday-first.
     final sundayWeek = DateTime(2026, 7, 19);
     final weeks = timeline(
       history: [stored(sundayWeek, text: 'x')],
@@ -133,7 +127,7 @@ void main() {
     expect(pageForWeek(weeks, twoWeeksAgo), 0);
     expect(pageForWeek(weeks, lastWeek), 1);
     expect(pageForWeek(weeks, null), 1);
-    expect(pageForWeek(weeks, DateTime(2020, 1, 6)), 1); // vanished week: land newest
+    expect(pageForWeek(weeks, DateTime(2020, 1, 6)), 1);
     expect(pageForWeek(const [], null), -1);
   });
 }
