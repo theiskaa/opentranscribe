@@ -7,13 +7,9 @@ import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
-import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
-import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
 /// The user-facing labels for the reflections menu, passed in so the item
 /// builder stays pure (testable without a BuildContext).
@@ -143,29 +139,6 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   letWeekDecide: l10n.reflectionSpecificsLetWeek,
 );
 
-/// The confirm before an erase.
-Future<void> confirmDeleteReflection(BuildContext context, DateTime weekStart) async {
-  final l10n = AppLocalizations.of(context)!;
-  final cubit = context.read<ReflectionsCubit>();
-  final confirmed = await showAppSheet<bool>(
-    context,
-    builder: (context) => SheetMessage(
-      icon: AppIcons.trash,
-      title: l10n.reflectionDeleteTitle,
-      body: l10n.reflectionDeleteBody,
-      action: AppButton(
-        label: l10n.reflectionDelete,
-        variant: AppButtonVariant.danger,
-        onPressed: () {
-          Haptics.medium();
-          Navigator.of(context).pop(true);
-        },
-      ),
-    ),
-  );
-  if ((confirmed ?? false) && context.mounted) unawaited(cubit.delete(weekStart));
-}
-
 /// THE reflections menu - the surface has exactly one: the settings knobs
 /// over the VIEWED week's actions, gated by what the week holds and whether
 /// the model can run. Regenerate covers every status (an unreflected or
@@ -236,7 +209,10 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       return;
     }
     if (id == 'r:delete') {
-      if (viewed != null) unawaited(confirmDeleteReflection(context, viewed.weekStart));
+      // Straight through, no confirm: the menu already took a deliberate tap to
+      // open and a second on a row marked destructive, the same bar the entry
+      // delete holds itself to.
+      if (viewed != null) unawaited(cubit.delete(viewed.weekStart));
       return;
     }
     if (id == 'r:toggle') {
