@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
+import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
@@ -85,16 +86,25 @@ final class ReflectionsState {
 /// [load] on resume, so making the on-device model available in Settings is
 /// picked up without a relaunch.
 class ReflectionsCubit extends Cubit<ReflectionsState> {
-  ReflectionsCubit({required ReflectionService service, required ReflectionSettings settings})
-    : _service = service,
-      _settings = settings,
-      super(const ReflectionsState()) {
+  ReflectionsCubit({
+    required ReflectionService service,
+    required ReflectionSettings settings,
+    ReflectionNotifier? notifier,
+  }) : _service = service,
+       _settings = settings,
+       _notifier = notifier,
+       super(const ReflectionsState()) {
     _changedSub = _service.reflectionsChanged.listen((_) => _loadHistory());
     unawaited(load());
   }
 
   final ReflectionService _service;
   final ReflectionSettings _settings;
+
+  /// Reconciles the weekly notification when reflections are turned on or off:
+  /// disabling the feature must also drop its nudge. Optional so tests without a
+  /// notification stack still build the cubit.
+  final ReflectionNotifier? _notifier;
 
   StreamSubscription<void>? _changedSub;
 
@@ -143,6 +153,8 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     if (isClosed) return;
     emit(state.copyWith(enabled: _settings.enabled));
     if (value) unawaited(_service.catchUp());
+    // Enabling may make the nudge eligible; disabling must cancel it.
+    unawaited(_notifier?.sync());
   }
 
   Future<void> setVoice(ReflectionVoice value) => _setStyle(() => _settings.setVoice(value));

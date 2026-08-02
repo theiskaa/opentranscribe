@@ -8,10 +8,14 @@ import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
+import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
@@ -58,6 +62,9 @@ class Deps {
     required this.router,
     required this.reflectionService,
     required this.reflectionSettings,
+    required this.notificationScheduler,
+    required this.notificationSettings,
+    required this.reflectionNotifier,
     required this.engineDescriptors,
   });
 
@@ -91,6 +98,20 @@ class Deps {
   /// The reflection preferences (on/off, voice, length, specificity), plus the
   /// service-recorded no-backfill floor.
   final ReflectionSettings reflectionSettings;
+
+  /// Local, on-device notification scheduling. Generic: it names no feature, so
+  /// a surface asks it for permission and drives it through the notifier below.
+  final NotificationScheduler notificationScheduler;
+
+  /// The local-notification preferences (the weekly reflection nudge and its
+  /// fire time). Generic, like [notificationScheduler].
+  final NotificationSettings notificationSettings;
+
+  /// The one reflection-aware piece: it decides when the weekly nudge should be
+  /// scheduled and reconciles the OS's pending notification with the settings.
+  /// Driven by [ReflectionNotifier.sync] at launch, on resume, and after a
+  /// settings change.
+  final ReflectionNotifier reflectionNotifier;
 
   /// The engines this build ships, as presentation facts for surfaces that list
   /// them. Built here because the composition root is the one place allowed to
@@ -172,6 +193,20 @@ class Deps {
       language: () => AppLanguage.of(localService),
     );
 
+    // The notification backbone. The scheduler and settings are generic; the
+    // notifier holds the reflection-only policy. It probes the engine's
+    // availability directly (not through the service) so it stays decoupled
+    // from the entry lifecycle.
+    final notificationSettings = NotificationSettings(storage: localService);
+    final notificationScheduler = PlatformNotificationScheduler();
+    final reflectionNotifier = ReflectionNotifier(
+      scheduler: notificationScheduler,
+      notifySettings: notificationSettings,
+      reflectionSettings: reflectionSettings,
+      availability: reflectionEngine.availability,
+      language: () => AppLanguage.of(localService),
+    );
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
@@ -181,6 +216,9 @@ class Deps {
       router: AppRouter(),
       reflectionService: reflectionService,
       reflectionSettings: reflectionSettings,
+      notificationScheduler: notificationScheduler,
+      notificationSettings: notificationSettings,
+      reflectionNotifier: reflectionNotifier,
       // The models screen renders this registry; whisper.cpp lands as one
       // more entry here, not new plumbing.
       engineDescriptors: [
@@ -199,6 +237,15 @@ class Deps {
     unawaited(
       i.reflectionService.catchUp().catchError((Object e) {
         if (kDebugMode) debugPrint('deps: launch reflection catch-up failed: $e');
+      }),
+    );
+
+    // Reconcile the weekly nudge with the world as it is now: availability, the
+    // model's enabled state, or the locale week boundary may have changed since
+    // it was last scheduled. Off the critical path, like the catch-up.
+    unawaited(
+      i.reflectionNotifier.sync().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: launch notification sync failed: $e');
       }),
     );
 

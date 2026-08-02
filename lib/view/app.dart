@@ -46,6 +46,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _reflectionsCubit = ReflectionsCubit(
       service: Deps.i.reflectionService,
       settings: Deps.i.reflectionSettings,
+      notifier: Deps.i.reflectionNotifier,
     );
     WidgetsBinding.instance.addObserver(this);
   }
@@ -79,6 +80,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     // Reflect any week that closed while the app was away. Single-flighted and
     // a no-op when there is nothing due; never throws.
     unawaited(Deps.i.reflectionService.catchUp());
+    // Reconcile the weekly nudge: the user may have changed notification
+    // permission (or Apple Intelligence) in Settings while backgrounded.
+    unawaited(Deps.i.reflectionNotifier.sync());
     // Re-probe availability: the user may have toggled Apple Intelligence in
     // Settings while backgrounded, and the surfaces must not stay frozen at
     // their launch verdict.
