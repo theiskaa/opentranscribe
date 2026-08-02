@@ -478,4 +478,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody => '이 기기는 주간 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.';
+
+  @override
+  String get settingsNotifications => '알림';
+
+  @override
+  String get notifyWeeklyReflection => '주간 돌아보기';
+
+  @override
+  String get notifyWeeklyReflectionInfo => '새로운 한 주를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.';
+
+  @override
+  String get notifyTime => '시간';
+
+  @override
+  String get notifyPermissionDenied => '설정에서 알림이 꺼져 있습니다.';
+
+  @override
+  String get notifyOpenSettings => '설정 열기';
+
+  @override
+  String get notifyWeeklyTitle => '이번 주가 준비되었어요';
+
+  @override
+  String get notifyWeeklyBody => '열어서 이번 주 돌아보기를 읽어보세요.';
+
+  @override
+  String get timeSet => '설정';
 }

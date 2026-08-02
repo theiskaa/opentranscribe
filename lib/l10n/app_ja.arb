@@ -145,5 +145,14 @@
   "reflectionPreparingTitle": "準備中",
   "reflectionPreparingBody": "この端末で Apple Intelligence を準備しています。準備が完了すると振り返りが始まります。",
   "reflectionUnsupportedTitle": "ここでは利用できません",
-  "reflectionUnsupportedBody": "この端末は、毎週の振り返りに必要な Apple Intelligence に対応していません。"
+  "reflectionUnsupportedBody": "この端末は、毎週の振り返りに必要な Apple Intelligence に対応していません。",
+  "settingsNotifications": "通知",
+  "notifyWeeklyReflection": "毎週の振り返り",
+  "notifyWeeklyReflectionInfo": "新しい週を読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。",
+  "notifyTime": "時刻",
+  "notifyPermissionDenied": "通知は「設定」でオフになっています。",
+  "notifyOpenSettings": "設定を開く",
+  "notifyWeeklyTitle": "今週の振り返りができました",
+  "notifyWeeklyBody": "開いて今週の振り返りを読む。",
+  "timeSet": "設定"
 }

@@ -476,4 +476,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody => 'この端末は、毎週の振り返りに必要な Apple Intelligence に対応していません。';
+
+  @override
+  String get settingsNotifications => '通知';
+
+  @override
+  String get notifyWeeklyReflection => '毎週の振り返り';
+
+  @override
+  String get notifyWeeklyReflectionInfo => '新しい週を読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。';
+
+  @override
+  String get notifyTime => '時刻';
+
+  @override
+  String get notifyPermissionDenied => '通知は「設定」でオフになっています。';
+
+  @override
+  String get notifyOpenSettings => '設定を開く';
+
+  @override
+  String get notifyWeeklyTitle => '今週の振り返りができました';
+
+  @override
+  String get notifyWeeklyBody => '開いて今週の振り返りを読む。';
+
+  @override
+  String get timeSet => '設定';
 }

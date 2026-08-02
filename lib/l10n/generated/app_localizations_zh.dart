@@ -473,4 +473,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody => '此设备不支持每周回顾所需的 Apple Intelligence。';
+
+  @override
+  String get settingsNotifications => '通知';
+
+  @override
+  String get notifyWeeklyReflection => '每周回顾';
+
+  @override
+  String get notifyWeeklyReflectionInfo => '新的一周可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。';
+
+  @override
+  String get notifyTime => '时间';
+
+  @override
+  String get notifyPermissionDenied => '通知已在“设置”中关闭。';
+
+  @override
+  String get notifyOpenSettings => '打开设置';
+
+  @override
+  String get notifyWeeklyTitle => '本周回顾已就绪';
+
+  @override
+  String get notifyWeeklyBody => '打开以阅读本周回顾。';
+
+  @override
+  String get timeSet => '设定';
 }

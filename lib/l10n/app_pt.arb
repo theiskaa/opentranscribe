@@ -145,5 +145,14 @@
   "reflectionPreparingTitle": "A preparar",
   "reflectionPreparingBody": "O Apple Intelligence está a preparar-se neste dispositivo. As reflexões começam quando terminar.",
   "reflectionUnsupportedTitle": "Não disponível aqui",
-  "reflectionUnsupportedBody": "Este dispositivo não suporta o Apple Intelligence, necessário para as reflexões semanais."
+  "reflectionUnsupportedBody": "Este dispositivo não suporta o Apple Intelligence, necessário para as reflexões semanais.",
+  "settingsNotifications": "Notificações",
+  "notifyWeeklyReflection": "Reflexões semanais",
+  "notifyWeeklyReflectionInfo": "Um lembrete quando uma nova semana está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.",
+  "notifyTime": "Hora",
+  "notifyPermissionDenied": "As notificações estão desativadas nas Definições.",
+  "notifyOpenSettings": "Abrir Definições",
+  "notifyWeeklyTitle": "A tua semana está pronta",
+  "notifyWeeklyBody": "Abre para ler a reflexão desta semana.",
+  "timeSet": "Definir"
 }

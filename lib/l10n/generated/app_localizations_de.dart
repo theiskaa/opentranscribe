@@ -514,4 +514,32 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get reflectionUnsupportedBody =>
       'Dieses Gerät unterstützt Apple Intelligence nicht, das für wöchentliche Rückblicke nötig ist.';
+
+  @override
+  String get settingsNotifications => 'Mitteilungen';
+
+  @override
+  String get notifyWeeklyReflection => 'Wöchentliche Rückblicke';
+
+  @override
+  String get notifyWeeklyReflectionInfo =>
+      'Ein Hinweis, sobald eine neue Woche zum Lesen bereit ist. Er erscheint auf deinem Gerät; nichts wird irgendwohin gesendet.';
+
+  @override
+  String get notifyTime => 'Uhrzeit';
+
+  @override
+  String get notifyPermissionDenied => 'Mitteilungen sind in den Einstellungen deaktiviert.';
+
+  @override
+  String get notifyOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String get notifyWeeklyTitle => 'Deine Woche ist bereit';
+
+  @override
+  String get notifyWeeklyBody => 'Öffnen, um den Rückblick dieser Woche zu lesen.';
+
+  @override
+  String get timeSet => 'Einstellen';
 }

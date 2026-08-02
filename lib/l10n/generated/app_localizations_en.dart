@@ -508,4 +508,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reflectionUnsupportedBody =>
       'This device does not support Apple Intelligence, which weekly reflections needs.';
+
+  @override
+  String get settingsNotifications => 'Notifications';
+
+  @override
+  String get notifyWeeklyReflection => 'Weekly reflections';
+
+  @override
+  String get notifyWeeklyReflectionInfo =>
+      'A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.';
+
+  @override
+  String get notifyTime => 'Time';
+
+  @override
+  String get notifyPermissionDenied => 'Notifications are turned off in Settings.';
+
+  @override
+  String get notifyOpenSettings => 'Open Settings';
+
+  @override
+  String get notifyWeeklyTitle => 'Your week is ready';
+
+  @override
+  String get notifyWeeklyBody => 'Open to read this week\'s reflection.';
+
+  @override
+  String get timeSet => 'Set';
 }

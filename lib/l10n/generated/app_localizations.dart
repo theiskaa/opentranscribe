@@ -983,6 +983,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This device does not support Apple Intelligence, which weekly reflections needs.'**
   String get reflectionUnsupportedBody;
+
+  /// Home menu row and heading for the notifications settings screen
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsNotifications;
+
+  /// Toggle label: the weekly reflection notification
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reflections'**
+  String get notifyWeeklyReflection;
+
+  /// Footnote under the weekly reflection notification toggle
+  ///
+  /// In en, this message translates to:
+  /// **'A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.'**
+  String get notifyWeeklyReflectionInfo;
+
+  /// Row label for the time the weekly notification fires
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get notifyTime;
+
+  /// Shown when notification permission was denied; the row deep-links to iOS Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are turned off in Settings.'**
+  String get notifyPermissionDenied;
+
+  /// Action to open this app's page in iOS Settings to grant notification permission
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get notifyOpenSettings;
+
+  /// Title of the weekly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your week is ready'**
+  String get notifyWeeklyTitle;
+
+  /// Body of the weekly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read this week\'s reflection.'**
+  String get notifyWeeklyBody;
+
+  /// Confirm button in the time picker sheet; commits the chosen time
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get timeSet;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

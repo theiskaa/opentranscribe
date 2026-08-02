@@ -145,5 +145,14 @@
   "reflectionPreparingTitle": "正在准备",
   "reflectionPreparingBody": "Apple Intelligence 正在此设备上准备。准备完成后即可开始回顾。",
   "reflectionUnsupportedTitle": "此处不可用",
-  "reflectionUnsupportedBody": "此设备不支持每周回顾所需的 Apple Intelligence。"
+  "reflectionUnsupportedBody": "此设备不支持每周回顾所需的 Apple Intelligence。",
+  "settingsNotifications": "通知",
+  "notifyWeeklyReflection": "每周回顾",
+  "notifyWeeklyReflectionInfo": "新的一周可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。",
+  "notifyTime": "时间",
+  "notifyPermissionDenied": "通知已在“设置”中关闭。",
+  "notifyOpenSettings": "打开设置",
+  "notifyWeeklyTitle": "本周回顾已就绪",
+  "notifyWeeklyBody": "打开以阅读本周回顾。",
+  "timeSet": "设定"
 }

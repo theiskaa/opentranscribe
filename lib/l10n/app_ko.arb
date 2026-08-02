@@ -145,5 +145,14 @@
   "reflectionPreparingTitle": "준비 중",
   "reflectionPreparingBody": "이 기기에서 Apple Intelligence를 준비하고 있습니다. 준비가 끝나면 돌아보기가 시작됩니다.",
   "reflectionUnsupportedTitle": "여기서는 사용할 수 없습니다",
-  "reflectionUnsupportedBody": "이 기기는 주간 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다."
+  "reflectionUnsupportedBody": "이 기기는 주간 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.",
+  "settingsNotifications": "알림",
+  "notifyWeeklyReflection": "주간 돌아보기",
+  "notifyWeeklyReflectionInfo": "새로운 한 주를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.",
+  "notifyTime": "시간",
+  "notifyPermissionDenied": "설정에서 알림이 꺼져 있습니다.",
+  "notifyOpenSettings": "설정 열기",
+  "notifyWeeklyTitle": "이번 주가 준비되었어요",
+  "notifyWeeklyBody": "열어서 이번 주 돌아보기를 읽어보세요.",
+  "timeSet": "설정"
 }

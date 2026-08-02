@@ -644,5 +644,41 @@
   "reflectionUnsupportedBody": "This device does not support Apple Intelligence, which weekly reflections needs.",
   "@reflectionUnsupportedBody": {
     "description": "Body for the unsupported-device / older-iOS state"
+  },
+  "settingsNotifications": "Notifications",
+  "@settingsNotifications": {
+    "description": "Home menu row and heading for the notifications settings screen"
+  },
+  "notifyWeeklyReflection": "Weekly reflections",
+  "@notifyWeeklyReflection": {
+    "description": "Toggle label: the weekly reflection notification"
+  },
+  "notifyWeeklyReflectionInfo": "A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.",
+  "@notifyWeeklyReflectionInfo": {
+    "description": "Footnote under the weekly reflection notification toggle"
+  },
+  "notifyTime": "Time",
+  "@notifyTime": {
+    "description": "Row label for the time the weekly notification fires"
+  },
+  "notifyPermissionDenied": "Notifications are turned off in Settings.",
+  "@notifyPermissionDenied": {
+    "description": "Shown when notification permission was denied; the row deep-links to iOS Settings"
+  },
+  "notifyOpenSettings": "Open Settings",
+  "@notifyOpenSettings": {
+    "description": "Action to open this app's page in iOS Settings to grant notification permission"
+  },
+  "notifyWeeklyTitle": "Your week is ready",
+  "@notifyWeeklyTitle": {
+    "description": "Title of the weekly local notification; generic, never reflection text"
+  },
+  "notifyWeeklyBody": "Open to read this week's reflection.",
+  "@notifyWeeklyBody": {
+    "description": "Body of the weekly local notification; generic, never reflection text"
+  },
+  "timeSet": "Set",
+  "@timeSet": {
+    "description": "Confirm button in the time picker sheet; commits the chosen time"
   }
 }

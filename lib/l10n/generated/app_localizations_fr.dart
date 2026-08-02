@@ -510,4 +510,32 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get reflectionUnsupportedBody =>
       'Cet appareil ne prend pas en charge Apple Intelligence, nécessaire aux réflexions hebdomadaires.';
+
+  @override
+  String get settingsNotifications => 'Notifications';
+
+  @override
+  String get notifyWeeklyReflection => 'Réflexions hebdomadaires';
+
+  @override
+  String get notifyWeeklyReflectionInfo =>
+      'Un rappel quand une nouvelle semaine est prête à lire. Il se déclenche sur votre appareil ; rien n\'est envoyé où que ce soit.';
+
+  @override
+  String get notifyTime => 'Heure';
+
+  @override
+  String get notifyPermissionDenied => 'Les notifications sont désactivées dans Réglages.';
+
+  @override
+  String get notifyOpenSettings => 'Ouvrir Réglages';
+
+  @override
+  String get notifyWeeklyTitle => 'Votre semaine est prête';
+
+  @override
+  String get notifyWeeklyBody => 'Ouvrez pour lire la réflexion de cette semaine.';
+
+  @override
+  String get timeSet => 'Définir';
 }
