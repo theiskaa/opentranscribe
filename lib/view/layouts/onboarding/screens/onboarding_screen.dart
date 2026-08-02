@@ -29,7 +29,10 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OnboardingCubit(service: Deps.i.transcriptionService),
+      create: (_) => OnboardingCubit(
+        service: Deps.i.transcriptionService,
+        scheduler: Deps.i.notificationScheduler,
+      ),
       child: const _OnboardingView(),
     );
   }
