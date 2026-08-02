@@ -58,6 +58,10 @@ class _DetailView extends StatefulWidget {
 class _DetailViewState extends State<_DetailView> {
   final FocusNode _titleFocus = FocusNode();
 
+  /// The reading region's selection focus. Unfocusing it clears a live
+  /// selection, so a re-transcribe can drop one before the ink capture.
+  final FocusNode _selectionFocus = FocusNode();
+
   /// The bar's menu button, which the Transcribe-in dropdown anchors to (the
   /// menu that offered the action grew from the same spot).
   final GlobalKey _menuAnchor = GlobalKey();
@@ -79,7 +83,18 @@ class _DetailViewState extends State<_DetailView> {
     // Leaving the screen silences playback; the cubit closes with the provider.
     _player?.stopAndDetach();
     _titleFocus.dispose();
+    _selectionFocus.dispose();
     super.dispose();
+  }
+
+  /// Starts a re-transcribe after dropping any live selection, one frame later
+  /// so the cleared paragraph paints before the shimmer grabs its last frame: a
+  /// selection left standing would bake its highlight wash into the ink.
+  void _startRetranscribe(EntriesCubit entries, Entry entry, {String? localeId}) {
+    _selectionFocus.unfocus();
+    WidgetsBinding.instance.endOfFrame.then((_) {
+      if (mounted) unawaited(entries.retranscribe(entry, localeId: localeId));
+    });
   }
 
   /// Action row ids: the list shrinks when an entry loses its audio, and a
@@ -140,7 +155,7 @@ class _DetailViewState extends State<_DetailView> {
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.
-        if (entry.hasAudio) unawaited(context.read<EntriesCubit>().retranscribe(entry));
+        if (entry.hasAudio) _startRetranscribe(context.read<EntriesCubit>(), entry);
       case _actDelete:
         // Straight through, no confirm. The menu already took a deliberate tap
         // to open and a second one to land on a row marked destructive; a sheet
@@ -150,7 +165,7 @@ class _DetailViewState extends State<_DetailView> {
       default:
         // A language leaf; its id is the tag itself.
         if (entry.hasAudio) {
-          unawaited(context.read<EntriesCubit>().retranscribe(entry, localeId: id));
+          _startRetranscribe(context.read<EntriesCubit>(), entry, localeId: id);
         }
     }
   }
@@ -198,7 +213,7 @@ class _DetailViewState extends State<_DetailView> {
       ],
     );
     if (index == null) return;
-    unawaited(entries.retranscribe(entry, localeId: tags[index]));
+    _startRetranscribe(entries, entry, localeId: tags[index]);
   }
 
   @override
@@ -263,6 +278,7 @@ class _DetailViewState extends State<_DetailView> {
               // and not as text squeezed between two bars.
               Positioned.fill(
                 child: SelectableProse(
+                  focusNode: _selectionFocus,
                   child: SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
                       AppSpacing.xl,

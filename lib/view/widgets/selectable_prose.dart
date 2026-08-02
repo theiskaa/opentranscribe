@@ -10,13 +10,19 @@ import 'package:flutter/widgets.dart';
 /// Wrap the whole scrollable reading region, not each `Text`: a [SelectableRegion]
 /// only clears its selection on a tap that lands INSIDE it, so a region hugging
 /// the text can never be dismissed by tapping the surrounding page.
+///
+/// Pass a [focusNode] to clear the selection from outside the region: a
+/// [SelectableRegion] drops its selection when its focus node loses focus, so an
+/// owner can `focusNode.unfocus()` to dismiss a lingering selection before an
+/// action that would otherwise capture it.
 class SelectableProse extends StatelessWidget {
-  const SelectableProse({required this.child, super.key});
+  const SelectableProse({required this.child, this.focusNode, super.key});
 
   final Widget child;
+  final FocusNode? focusNode;
 
   @override
-  Widget build(BuildContext context) => SelectionArea(child: child);
+  Widget build(BuildContext context) => SelectionArea(focusNode: focusNode, child: child);
 }
 
 /// Tints the platform selection handles, caret, and toolbar from the theme.
