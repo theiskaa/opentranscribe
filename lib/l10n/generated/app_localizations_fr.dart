@@ -546,4 +546,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get notifyReflectionsUnavailable =>
       'Cet appareil ne peut pas générer de réflexions, il n\'y a donc pas de rappel hebdomadaire à envoyer.';
+
+  @override
+  String get themeRequestInfo =>
+      'Vous voulez OpenTranscribe dans un thème absent d\'ici ? Ouvrez une issue sur GitHub et nous l\'ajouterons dans une prochaine version.';
+
+  @override
+  String get themeRequestLink => 'Demander un thème sur GitHub';
 }

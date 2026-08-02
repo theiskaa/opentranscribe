@@ -156,5 +156,7 @@
   "notifyWeeklyBody": "Apri per leggere la riflessione di questa settimana.",
   "notifyNeedsReflections": "Il promemoria settimanale arriva quando una nuova settimana è pronta da leggere. Le riflessioni sono disattivate al momento.",
   "notifyTurnOnReflections": "Attiva le riflessioni",
-  "notifyReflectionsUnavailable": "Questo dispositivo non può generare riflessioni, quindi non c'è alcun promemoria settimanale da inviare."
+  "notifyReflectionsUnavailable": "Questo dispositivo non può generare riflessioni, quindi non c'è alcun promemoria settimanale da inviare.",
+  "themeRequestInfo": "Vuoi OpenTranscribe in un tema non presente qui? Apri una issue su GitHub e lo aggiungeremo in una prossima versione.",
+  "themeRequestLink": "Richiedi un tema su GitHub"
 }

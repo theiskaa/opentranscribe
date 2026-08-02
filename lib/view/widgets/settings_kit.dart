@@ -454,12 +454,17 @@ class SectionInfoLink extends StatelessWidget {
     required this.text,
     required this.linkLabel,
     required this.onTap,
+    this.icon = AppIcons.chevronForward,
     super.key,
   });
 
   final String text;
   final String linkLabel;
   final VoidCallback onTap;
+
+  /// The trailing glyph after the link. Defaults to a forward chevron for an
+  /// in-app jump; pass [AppIcons.arrowUpRight] for a link that leaves the app.
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -485,7 +490,7 @@ class SectionInfoLink extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.xxs),
-                AppIcon(AppIcons.chevronForward, size: 10, color: theme.accent),
+                AppIcon(icon, size: 10, color: theme.accent),
               ],
             ),
           ),

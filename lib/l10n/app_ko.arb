@@ -156,5 +156,7 @@
   "notifyWeeklyBody": "열어서 이번 주 돌아보기를 읽어보세요.",
   "notifyNeedsReflections": "새로운 한 주를 읽을 수 있을 때 주간 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.",
   "notifyTurnOnReflections": "돌아보기 켜기",
-  "notifyReflectionsUnavailable": "이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다."
+  "notifyReflectionsUnavailable": "이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다.",
+  "themeRequestInfo": "여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다.",
+  "themeRequestLink": "GitHub에서 테마 요청하기"
 }

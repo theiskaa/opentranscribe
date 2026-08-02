@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -76,6 +80,13 @@ class AppearanceScreen extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SectionInfoLink(
+            text: l10n.themeRequestInfo,
+            linkLabel: l10n.themeRequestLink,
+            icon: AppIcons.arrowUpRight,
+            onTap: () => unawaited(openLink(kNewIssueUrl)),
           ),
         ],
       ),

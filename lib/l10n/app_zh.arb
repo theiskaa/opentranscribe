@@ -156,5 +156,7 @@
   "notifyWeeklyBody": "打开以阅读本周回顾。",
   "notifyNeedsReflections": "新的一周可供阅读时会收到每周提醒。回顾目前已关闭。",
   "notifyTurnOnReflections": "开启回顾",
-  "notifyReflectionsUnavailable": "此设备无法生成回顾，因此没有每周提醒可发送。"
+  "notifyReflectionsUnavailable": "此设备无法生成回顾，因此没有每周提醒可发送。",
+  "themeRequestInfo": "想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。",
+  "themeRequestLink": "在 GitHub 上申请主题"
 }

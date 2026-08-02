@@ -511,4 +511,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifyReflectionsUnavailable => '이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다.';
+
+  @override
+  String get themeRequestInfo =>
+      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다.';
+
+  @override
+  String get themeRequestLink => 'GitHub에서 테마 요청하기';
 }

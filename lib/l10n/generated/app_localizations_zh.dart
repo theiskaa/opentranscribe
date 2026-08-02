@@ -506,4 +506,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有每周提醒可发送。';
+
+  @override
+  String get themeRequestInfo => '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。';
+
+  @override
+  String get themeRequestLink => '在 GitHub 上申请主题';
 }

@@ -509,4 +509,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する毎週の通知はありません。';
+
+  @override
+  String get themeRequestInfo =>
+      'ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。';
+
+  @override
+  String get themeRequestLink => 'GitHub でテーマをリクエスト';
 }

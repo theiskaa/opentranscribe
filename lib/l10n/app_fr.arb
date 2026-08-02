@@ -156,5 +156,7 @@
   "notifyWeeklyBody": "Ouvrez pour lire la réflexion de cette semaine.",
   "notifyNeedsReflections": "Le rappel hebdomadaire arrive quand une nouvelle semaine est prête à lire. Les réflexions sont désactivées pour le moment.",
   "notifyTurnOnReflections": "Activer les réflexions",
-  "notifyReflectionsUnavailable": "Cet appareil ne peut pas générer de réflexions, il n'y a donc pas de rappel hebdomadaire à envoyer."
+  "notifyReflectionsUnavailable": "Cet appareil ne peut pas générer de réflexions, il n'y a donc pas de rappel hebdomadaire à envoyer.",
+  "themeRequestInfo": "Vous voulez OpenTranscribe dans un thème absent d'ici ? Ouvrez une issue sur GitHub et nous l'ajouterons dans une prochaine version.",
+  "themeRequestLink": "Demander un thème sur GitHub"
 }

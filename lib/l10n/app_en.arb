@@ -688,5 +688,13 @@
   "notifyReflectionsUnavailable": "This device can't generate reflections, so there's no weekly nudge to send.",
   "@notifyReflectionsUnavailable": {
     "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
+  },
+  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release.",
+  "@themeRequestInfo": {
+    "description": "Footer under the theme grid on the appearance screen; precedes the request-a-theme link"
+  },
+  "themeRequestLink": "Request a theme on GitHub",
+  "@themeRequestLink": {
+    "description": "Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser"
   }
 }

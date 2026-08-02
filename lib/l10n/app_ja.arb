@@ -156,5 +156,7 @@
   "notifyWeeklyBody": "開いて今週の振り返りを読む。",
   "notifyNeedsReflections": "新しい週を読む準備ができると、毎週の通知が届きます。今は振り返りがオフになっています。",
   "notifyTurnOnReflections": "振り返りをオンにする",
-  "notifyReflectionsUnavailable": "このデバイスは振り返りを生成できないため、送信する毎週の通知はありません。"
+  "notifyReflectionsUnavailable": "このデバイスは振り返りを生成できないため、送信する毎週の通知はありません。",
+  "themeRequestInfo": "ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。",
+  "themeRequestLink": "GitHub でテーマをリクエスト"
 }

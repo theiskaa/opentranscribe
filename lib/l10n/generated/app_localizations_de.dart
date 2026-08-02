@@ -550,4 +550,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get notifyReflectionsUnavailable =>
       'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen wöchentlichen Hinweis.';
+
+  @override
+  String get themeRequestInfo =>
+      'Möchtest du OpenTranscribe in einem Theme, das hier fehlt? Öffne ein Issue auf GitHub, und wir fügen es in einer kommenden Version hinzu.';
+
+  @override
+  String get themeRequestLink => 'Theme auf GitHub anfragen';
 }

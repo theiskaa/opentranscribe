@@ -1049,6 +1049,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This device can\'t generate reflections, so there\'s no weekly nudge to send.'**
   String get notifyReflectionsUnavailable;
+
+  /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link
+  ///
+  /// In en, this message translates to:
+  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.'**
+  String get themeRequestInfo;
+
+  /// Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser
+  ///
+  /// In en, this message translates to:
+  /// **'Request a theme on GitHub'**
+  String get themeRequestLink;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

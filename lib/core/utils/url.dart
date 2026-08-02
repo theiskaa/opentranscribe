@@ -3,6 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 /// The project repository, the one outward link the app offers.
 const kRepoUrl = 'https://github.com/theiskaa/opentranscribe';
 
+/// The new-issue page, where a user can request a theme (or anything else).
+const kNewIssueUrl = '$kRepoUrl/issues/new';
+
 /// Hands a link to the system browser. The APP opens no socket - the OS does,
 /// for a public URL that carries no user data. This is the one place the app
 /// points outward; see the one rule in CLAUDE.md.

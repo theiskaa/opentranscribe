@@ -544,4 +544,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifyReflectionsUnavailable =>
       'This device can\'t generate reflections, so there\'s no weekly nudge to send.';
+
+  @override
+  String get themeRequestInfo =>
+      'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.';
+
+  @override
+  String get themeRequestLink => 'Request a theme on GitHub';
 }
