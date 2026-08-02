@@ -18,6 +18,12 @@ abstract final class AppIcons {
   /// SF Symbol `arrow.up.right`.
   static const IconData arrowUpRight = IconData(0x10012F, fontFamily: _family);
 
+  /// SF Symbol `bell`.
+  static const IconData bell = IconData(0x1002D9, fontFamily: _family);
+
+  /// SF Symbol `bell.fill`.
+  static const IconData bellFill = IconData(0x1002DA, fontFamily: _family);
+
   /// SF Symbol `calendar`.
   static const IconData calendar = IconData(0x100249, fontFamily: _family);
 
@@ -100,6 +106,8 @@ abstract final class AppIcons {
         0x1008FA: 'apple.logo',
         0x100149: 'arrow.counterclockwise',
         0x10012F: 'arrow.up.right',
+        0x1002D9: 'bell',
+        0x1002DA: 'bell.fill',
         0x100249: 'calendar',
         0x100185: 'checkmark',
         0x100BF6: 'chevron.backward',
