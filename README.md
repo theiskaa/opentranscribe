@@ -12,13 +12,11 @@
   <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
 </p>
 
-opentranscribe is a voice journal for iOS with no network layer. Capture, transcription, and storage all happen on the device, and there is no account, no sync, no telemetry, and no code path anywhere in the app that opens a socket. Airplane mode is not a supported mode, it is the only mode there is.
+opentranscribe is a voice journal for iOS with no network layer. Capture, transcription, reflection, and storage all happen on the device, and there is no account, no sync, no telemetry, and no code path anywhere in the app that opens a socket. Airplane mode is not a supported mode, it is the only mode there is.
 
 <img alt="Recording with live text, a finished entry, the week, and the on-device language models" src="assets/readme/showcase.png" width="760">
 
-Transcription sits behind one contract, `TranscriptionEngine`. Apple's Speech framework is the first implementation, `SpeechAnalyzer` on iOS 26 and `SFSpeechRecognizer` below it, and whisper.cpp is meant to land as a second one without the rest of the app noticing. An engine that does not declare itself on-device is refused at construction, so the offline guarantee is a property of the code.
-
-Live text is painted while you speak and then thrown away. What gets saved is a batch pass over the finished file, which is why the raw audio is kept by default: any entry can be transcribed again later, in another language or by a better engine. Keeping audio is a choice, though. The Cache screen shows what the recordings occupy, can clear the audio of already-transcribed entries, and holds a keep-audio switch that, when off, deletes each recording once its transcription succeeds. Speech models are per-language and live on the device, so the Models screen manages them, including the cap iOS 26 puts on how many languages one app may hold.
+Transcription and reflection run on-device behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, each refused at construction unless it declares itself on-device. Recordings and entries stay encrypted in the app's own storage. How it fits together, and how to work on it, is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## At rest
 
@@ -33,25 +31,14 @@ flutter pub get
 flutter run -d ios
 ```
 
-Debug builds fall back to a development storage key. A release build refuses to start without a real one:
+A release build refuses to start without a real storage key:
 
 ```sh
 flutter run --release --dart-define=STORAGE_KEY=<your-32-char-key>
 ```
 
-## Development
-
-```sh
-flutter analyze      # must be clean
-flutter test         # must be green
-dart format .        # 100 columns
-flutter gen-l10n     # after editing lib/l10n/app_en.arb
-```
-
-Two layers, `lib/core/` for everything non-UI and `lib/view/` for the rest, with dependencies as typed fields on one composition root. The app imports neither `material.dart` nor `cupertino.dart`, draws every control itself, and has no widget tests. [CLAUDE.md](CLAUDE.md) is the full working contract.
-
 ## Contributing
 
-Issues and pull requests are welcome; anything opening a socket does not belong here. Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md), and security issues have a private channel in [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome; anything opening a socket does not belong here. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md), and security issues have a private channel in [SECURITY.md](SECURITY.md).
 
 opentranscribe is MIT-licensed. See [LICENSE](LICENSE).
