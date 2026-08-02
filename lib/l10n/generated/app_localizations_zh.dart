@@ -266,6 +266,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
 
   @override
+  String get onboardingReflectTitle => '每周回顾';
+
+  @override
+  String get onboardingReflectLine => '每周一次，你的记录会汇成一段简短的笔记，全部在设备上完成。';
+
+  @override
   String get onboardingSource => '开源';
 
   @override
@@ -275,7 +281,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingPermissionsTitle => '允许访问';
 
   @override
-  String get onboardingPermissionsBody => '两者都完全在你的设备上运行。';
+  String get onboardingPermissionsBody => '这一切都完全在你的设备上运行。';
 
   @override
   String get onboardingMicName => '麦克风';
@@ -288,6 +294,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
+
+  @override
+  String get onboardingNotifyName => '通知';
+
+  @override
+  String get onboardingNotifyReason => '回顾准备好时，每周提醒你一次。';
 
   @override
   String get onboardingAllow => '允许';
@@ -437,12 +449,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reflectionDelete => '删除';
-
-  @override
-  String get reflectionDeleteTitle => '删除这篇回顾？';
-
-  @override
-  String get reflectionDeleteBody => '将删除本周的回顾。此操作无法撤销。';
 
   @override
   String get reflectionRegenerateFailed => '无法生成回顾。请重试。';

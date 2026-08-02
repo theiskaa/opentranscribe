@@ -594,6 +594,18 @@ abstract class AppLocalizations {
   /// **'No account, no cloud. Airplane mode changes nothing.'**
   String get onboardingPrivateLine;
 
+  /// Title of the intro row about weekly reflections, eligible hardware only
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reflections'**
+  String get onboardingReflectTitle;
+
+  /// One-line explanation under the weekly reflections intro row
+  ///
+  /// In en, this message translates to:
+  /// **'Once a week, your entries read back as a short note, all on device.'**
+  String get onboardingReflectLine;
+
   /// Title of the intro row that opens the open-source repository
   ///
   /// In en, this message translates to:
@@ -615,7 +627,7 @@ abstract class AppLocalizations {
   /// Subtitle reassuring that the requested permissions stay on-device
   ///
   /// In en, this message translates to:
-  /// **'Both work entirely on your device.'**
+  /// **'Everything here works entirely on your device.'**
   String get onboardingPermissionsBody;
 
   /// Name of the microphone permission row
@@ -641,6 +653,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'To turn your recordings into text, on device.'**
   String get onboardingSpeechReason;
+
+  /// Name of the optional notification permission row, eligible hardware only
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get onboardingNotifyName;
+
+  /// One-line reason the app asks for notifications
+  ///
+  /// In en, this message translates to:
+  /// **'For a weekly nudge when a reflection is ready.'**
+  String get onboardingNotifyReason;
 
   /// Button that requests a permission
   ///
@@ -906,23 +930,11 @@ abstract class AppLocalizations {
   /// **'Regenerate'**
   String get reflectionRegenerate;
 
-  /// Per-week action and its confirm button: remove this week's reflection
+  /// Per-week menu action: remove this week's reflection
   ///
   /// In en, this message translates to:
   /// **'Delete'**
   String get reflectionDelete;
-
-  /// Title of the delete-reflection confirmation sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Delete this reflection?'**
-  String get reflectionDeleteTitle;
-
-  /// Body of the delete-reflection confirmation sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Removes the reflection for this week. This cannot be undone.'**
-  String get reflectionDeleteBody;
 
   /// Notice when a regenerate could not run because the model was unavailable
   ///

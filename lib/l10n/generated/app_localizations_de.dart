@@ -285,6 +285,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingPrivateLine => 'Kein Konto, keine Cloud. Der Flugmodus ändert nichts.';
 
   @override
+  String get onboardingReflectTitle => 'Wöchentliche Rückblicke';
+
+  @override
+  String get onboardingReflectLine =>
+      'Einmal pro Woche werden Ihre Einträge zu einer kurzen Notiz, ganz auf dem Gerät.';
+
+  @override
   String get onboardingSource => 'Open Source';
 
   @override
@@ -294,7 +301,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Zugriff erlauben';
 
   @override
-  String get onboardingPermissionsBody => 'Beides läuft vollständig auf Ihrem Gerät.';
+  String get onboardingPermissionsBody => 'Alles hier läuft vollständig auf Ihrem Gerät.';
 
   @override
   String get onboardingMicName => 'Mikrofon';
@@ -307,6 +314,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingSpeechReason => 'Um Ihre Aufnahmen auf dem Gerät in Text umzuwandeln.';
+
+  @override
+  String get onboardingNotifyName => 'Mitteilungen';
+
+  @override
+  String get onboardingNotifyReason =>
+      'Für einen wöchentlichen Hinweis, wenn ein Rückblick bereit ist.';
 
   @override
   String get onboardingAllow => 'Erlauben';
@@ -473,13 +487,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reflectionDelete => 'Löschen';
-
-  @override
-  String get reflectionDeleteTitle => 'Diesen Rückblick löschen?';
-
-  @override
-  String get reflectionDeleteBody =>
-      'Entfernt den Rückblick für diese Woche. Das lässt sich nicht rückgängig machen.';
 
   @override
   String get reflectionRegenerateFailed => 'Rückblick nicht möglich. Versuchen Sie es erneut.';

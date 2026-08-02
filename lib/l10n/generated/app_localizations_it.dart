@@ -284,6 +284,13 @@ class AppLocalizationsIt extends AppLocalizations {
       'Nessun account, nessun cloud. La modalità aereo non cambia nulla.';
 
   @override
+  String get onboardingReflectTitle => 'Riflessioni settimanali';
+
+  @override
+  String get onboardingReflectLine =>
+      'Una volta a settimana, le tue voci tornano come una breve nota, tutto sul dispositivo.';
+
+  @override
   String get onboardingSource => 'Open source';
 
   @override
@@ -293,7 +300,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Consenti l\'accesso';
 
   @override
-  String get onboardingPermissionsBody => 'Entrambi funzionano interamente sul tuo dispositivo.';
+  String get onboardingPermissionsBody => 'Tutto questo funziona interamente sul tuo dispositivo.';
 
   @override
   String get onboardingMicName => 'Microfono';
@@ -307,6 +314,13 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get onboardingSpeechReason =>
       'Per trasformare le registrazioni in testo, sul dispositivo.';
+
+  @override
+  String get onboardingNotifyName => 'Notifiche';
+
+  @override
+  String get onboardingNotifyReason =>
+      'Per un promemoria settimanale quando una riflessione è pronta.';
 
   @override
   String get onboardingAllow => 'Consenti';
@@ -472,13 +486,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get reflectionDelete => 'Elimina';
-
-  @override
-  String get reflectionDeleteTitle => 'Eliminare questa riflessione?';
-
-  @override
-  String get reflectionDeleteBody =>
-      'Rimuove la riflessione di questa settimana. Non si può annullare.';
 
   @override
   String get reflectionRegenerateFailed => 'Riflessione non riuscita. Riprova.';

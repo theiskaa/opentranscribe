@@ -362,6 +362,14 @@
   "@onboardingPrivateLine": {
     "description": "One-line explanation under the privacy intro row"
   },
+  "onboardingReflectTitle": "Weekly reflections",
+  "@onboardingReflectTitle": {
+    "description": "Title of the intro row about weekly reflections, eligible hardware only"
+  },
+  "onboardingReflectLine": "Once a week, your entries read back as a short note, all on device.",
+  "@onboardingReflectLine": {
+    "description": "One-line explanation under the weekly reflections intro row"
+  },
   "onboardingSource": "Open source",
   "@onboardingSource": {
     "description": "Title of the intro row that opens the open-source repository"
@@ -374,7 +382,7 @@
   "@onboardingPermissionsTitle": {
     "description": "Headline on the permissions onboarding step"
   },
-  "onboardingPermissionsBody": "Both work entirely on your device.",
+  "onboardingPermissionsBody": "Everything here works entirely on your device.",
   "@onboardingPermissionsBody": {
     "description": "Subtitle reassuring that the requested permissions stay on-device"
   },
@@ -393,6 +401,14 @@
   "onboardingSpeechReason": "To turn your recordings into text, on device.",
   "@onboardingSpeechReason": {
     "description": "One-line reason the app needs speech recognition"
+  },
+  "onboardingNotifyName": "Notifications",
+  "@onboardingNotifyName": {
+    "description": "Name of the optional notification permission row, eligible hardware only"
+  },
+  "onboardingNotifyReason": "For a weekly nudge when a reflection is ready.",
+  "@onboardingNotifyReason": {
+    "description": "One-line reason the app asks for notifications"
   },
   "onboardingAllow": "Allow",
   "@onboardingAllow": {
@@ -595,15 +611,7 @@
   },
   "reflectionDelete": "Delete",
   "@reflectionDelete": {
-    "description": "Per-week action and its confirm button: remove this week's reflection"
-  },
-  "reflectionDeleteTitle": "Delete this reflection?",
-  "@reflectionDeleteTitle": {
-    "description": "Title of the delete-reflection confirmation sheet"
-  },
-  "reflectionDeleteBody": "Removes the reflection for this week. This cannot be undone.",
-  "@reflectionDeleteBody": {
-    "description": "Body of the delete-reflection confirmation sheet"
+    "description": "Per-week menu action: remove this week's reflection"
   },
   "reflectionRegenerateFailed": "Could not reflect. Try again.",
   "@reflectionRegenerateFailed": {

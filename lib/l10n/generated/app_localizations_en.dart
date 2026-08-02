@@ -281,6 +281,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingPrivateLine => 'No account, no cloud. Airplane mode changes nothing.';
 
   @override
+  String get onboardingReflectTitle => 'Weekly reflections';
+
+  @override
+  String get onboardingReflectLine =>
+      'Once a week, your entries read back as a short note, all on device.';
+
+  @override
   String get onboardingSource => 'Open source';
 
   @override
@@ -290,7 +297,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Allow access';
 
   @override
-  String get onboardingPermissionsBody => 'Both work entirely on your device.';
+  String get onboardingPermissionsBody => 'Everything here works entirely on your device.';
 
   @override
   String get onboardingMicName => 'Microphone';
@@ -303,6 +310,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingSpeechReason => 'To turn your recordings into text, on device.';
+
+  @override
+  String get onboardingNotifyName => 'Notifications';
+
+  @override
+  String get onboardingNotifyReason => 'For a weekly nudge when a reflection is ready.';
 
   @override
   String get onboardingAllow => 'Allow';
@@ -469,12 +482,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionDelete => 'Delete';
-
-  @override
-  String get reflectionDeleteTitle => 'Delete this reflection?';
-
-  @override
-  String get reflectionDeleteBody => 'Removes the reflection for this week. This cannot be undone.';
 
   @override
   String get reflectionRegenerateFailed => 'Could not reflect. Try again.';

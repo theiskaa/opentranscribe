@@ -282,6 +282,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingPrivateLine => 'Sem conta, sem nuvem. O modo de voo não muda nada.';
 
   @override
+  String get onboardingReflectTitle => 'Reflexões semanais';
+
+  @override
+  String get onboardingReflectLine =>
+      'Uma vez por semana, as suas entradas voltam como uma nota breve, tudo no dispositivo.';
+
+  @override
   String get onboardingSource => 'Código aberto';
 
   @override
@@ -291,7 +298,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Conceder acesso';
 
   @override
-  String get onboardingPermissionsBody => 'Ambos funcionam inteiramente no seu dispositivo.';
+  String get onboardingPermissionsBody => 'Tudo isto funciona inteiramente no seu dispositivo.';
 
   @override
   String get onboardingMicName => 'Microfone';
@@ -305,6 +312,13 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get onboardingSpeechReason =>
       'Para transformar as suas gravações em texto, no dispositivo.';
+
+  @override
+  String get onboardingNotifyName => 'Notificações';
+
+  @override
+  String get onboardingNotifyReason =>
+      'Para um lembrete semanal quando uma reflexão estiver pronta.';
 
   @override
   String get onboardingAllow => 'Permitir';
@@ -471,12 +485,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reflectionDelete => 'Eliminar';
-
-  @override
-  String get reflectionDeleteTitle => 'Eliminar esta reflexão?';
-
-  @override
-  String get reflectionDeleteBody => 'Remove a reflexão desta semana. Não é possível desfazer.';
 
   @override
   String get reflectionRegenerateFailed => 'Não foi possível refletir. Tente novamente.';

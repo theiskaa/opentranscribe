@@ -269,6 +269,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingPrivateLine => '계정도, 클라우드도 없습니다. 비행기 모드에서도 그대로 동작합니다.';
 
   @override
+  String get onboardingReflectTitle => '주간 돌아보기';
+
+  @override
+  String get onboardingReflectLine => '일주일에 한 번, 기록이 짧은 노트로 정리됩니다. 모두 이 기기에서.';
+
+  @override
   String get onboardingSource => '오픈 소스';
 
   @override
@@ -278,7 +284,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingPermissionsTitle => '접근 허용';
 
   @override
-  String get onboardingPermissionsBody => '둘 다 전적으로 기기에서 처리됩니다.';
+  String get onboardingPermissionsBody => '모든 기능이 전적으로 기기에서 처리됩니다.';
 
   @override
   String get onboardingMicName => '마이크';
@@ -291,6 +297,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingSpeechReason => '녹음을 기기에서 텍스트로 바꾸기 위해서입니다.';
+
+  @override
+  String get onboardingNotifyName => '알림';
+
+  @override
+  String get onboardingNotifyReason => '돌아보기가 준비되면 주간 알림을 보내드립니다.';
 
   @override
   String get onboardingAllow => '허용';
@@ -441,12 +453,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reflectionDelete => '삭제';
-
-  @override
-  String get reflectionDeleteTitle => '이 돌아보기를 삭제할까요?';
-
-  @override
-  String get reflectionDeleteBody => '이번 주의 돌아보기를 삭제합니다. 되돌릴 수 없습니다.';
 
   @override
   String get reflectionRegenerateFailed => '돌아보기를 만들지 못했습니다. 다시 시도하세요.';

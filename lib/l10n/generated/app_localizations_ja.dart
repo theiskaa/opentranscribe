@@ -268,6 +268,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingPrivateLine => 'アカウントもクラウドもありません。機内モードでも変わりなく使えます。';
 
   @override
+  String get onboardingReflectTitle => '週に一度の振り返り';
+
+  @override
+  String get onboardingReflectLine => '週に一度、記録が短いノートとして返ってきます。すべてこの端末上で。';
+
+  @override
   String get onboardingSource => 'オープンソース';
 
   @override
@@ -277,7 +283,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingPermissionsTitle => 'アクセスを許可';
 
   @override
-  String get onboardingPermissionsBody => 'どちらも完全に端末内で動作します。';
+  String get onboardingPermissionsBody => 'すべて完全に端末内で動作します。';
 
   @override
   String get onboardingMicName => 'マイク';
@@ -290,6 +296,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingSpeechReason => '録音をテキストに変換するため。処理は端末内で行われます。';
+
+  @override
+  String get onboardingNotifyName => '通知';
+
+  @override
+  String get onboardingNotifyReason => '振り返りが用意できたら週に一度お知らせします。';
 
   @override
   String get onboardingAllow => '許可';
@@ -440,12 +452,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reflectionDelete => '削除';
-
-  @override
-  String get reflectionDeleteTitle => 'この振り返りを削除しますか？';
-
-  @override
-  String get reflectionDeleteBody => '今週の振り返りを削除します。元に戻せません。';
 
   @override
   String get reflectionRegenerateFailed => '振り返りを作成できませんでした。もう一度お試しください。';

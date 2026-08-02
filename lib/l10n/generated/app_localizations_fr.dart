@@ -283,6 +283,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingPrivateLine => 'Aucun compte, aucun cloud. Le mode avion n\'y change rien.';
 
   @override
+  String get onboardingReflectTitle => 'Réflexions hebdomadaires';
+
+  @override
+  String get onboardingReflectLine =>
+      'Une fois par semaine, vos entrées reviennent en une courte note, entièrement sur l\'appareil.';
+
+  @override
   String get onboardingSource => 'Open source';
 
   @override
@@ -292,7 +299,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Autoriser l\'accès';
 
   @override
-  String get onboardingPermissionsBody => 'Les deux fonctionnent entièrement sur votre appareil.';
+  String get onboardingPermissionsBody => 'Tout cela fonctionne entièrement sur votre appareil.';
 
   @override
   String get onboardingMicName => 'Micro';
@@ -306,6 +313,12 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get onboardingSpeechReason =>
       'Pour transformer vos enregistrements en texte, sur l\'appareil.';
+
+  @override
+  String get onboardingNotifyName => 'Notifications';
+
+  @override
+  String get onboardingNotifyReason => 'Pour un rappel hebdomadaire quand une réflexion est prête.';
 
   @override
   String get onboardingAllow => 'Autoriser';
@@ -471,12 +484,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reflectionDelete => 'Supprimer';
-
-  @override
-  String get reflectionDeleteTitle => 'Supprimer cette réflexion ?';
-
-  @override
-  String get reflectionDeleteBody => 'Supprime la réflexion de cette semaine. Irréversible.';
 
   @override
   String get reflectionRegenerateFailed => 'Réflexion impossible. Réessayez.';
