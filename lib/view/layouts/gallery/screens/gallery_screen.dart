@@ -34,6 +34,8 @@ import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// The widget gallery: every design-system widget in its states, for eyeballing
@@ -50,6 +52,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
   bool _toggle = true;
   int _page = 0;
   String? _notice;
+  int _hour = 9;
+  int _minute = 0;
 
   static const _icons = [
     AppIcons.micFill,
@@ -75,6 +79,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     AppIcons.sunMax,
     AppIcons.icloud,
     AppIcons.calendar,
+    AppIcons.bell,
     AppIcons.textformat,
   ];
 
@@ -144,6 +149,20 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   AppToggle(value: _toggle, onChanged: (v) => setState(() => _toggle = v)),
                   const SizedBox(width: AppSpacing.lg),
                   const AppToggle(value: true, onChanged: null),
+                ],
+              ),
+              _section('Time field'),
+              SettingsCard(
+                children: [
+                  TimeField(
+                    label: 'Time',
+                    hour: _hour,
+                    minute: _minute,
+                    onChanged: (h, m) => setState(() {
+                      _hour = h;
+                      _minute = m;
+                    }),
+                  ),
                 ],
               ),
               _section('Text field'),

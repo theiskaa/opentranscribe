@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -126,6 +127,115 @@ class SelectableRow extends StatelessWidget {
               ),
             ),
             if (active) AppIcon(AppIcons.checkmark, size: 14, color: theme.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A settings row whose whole width toggles a switch: an icon tile, a label,
+/// and the drawn [AppToggle]. The row is the 44pt touch target the 31pt switch
+/// alone would miss; the knob's own tap wins the arena and carries the haptic,
+/// so the row does not double-fire.
+class SettingsToggleRow extends StatelessWidget {
+  const SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    return Touchable(
+      onTap: () => onChanged(!value),
+      haptic: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: tokens.iconTileBackground,
+              ),
+              child: AppIcon(icon, size: 16, color: theme.text),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+            ),
+            AppToggle(value: value, onChanged: onChanged),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A tappable settings row that performs an action: a leading tile + glyph, a
+/// label, and an optional trailing accent word followed by a chevron. [tint]
+/// colours the tile and glyph for a row that must read as a warning rather than
+/// neutral (a denied-permission prompt).
+class SettingsActionRow extends StatelessWidget {
+  const SettingsActionRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing,
+    this.tint,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? trailing;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final accent = tint ?? theme.text;
+    return Touchable(
+      onTap: onTap,
+      haptic: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: tint == null ? tokens.iconTileBackground : tint!.withValues(alpha: 0.14),
+              ),
+              child: AppIcon(icon, size: 16, color: accent),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+            ),
+            if (trailing != null) ...[
+              Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            AppIcon(AppIcons.chevronForward, size: 14, color: theme.textSecondary),
           ],
         ),
       ),

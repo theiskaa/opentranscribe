@@ -19,7 +19,6 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
-import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
@@ -92,7 +91,7 @@ class _CacheView extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           SettingsCard(
             children: [
-              _ToggleRow(
+              SettingsToggleRow(
                 icon: AppIcons.micFill,
                 label: l10n.cacheKeepAudio,
                 value: settings.keepAudio,
@@ -283,56 +282,6 @@ class _ReclaimableRow extends StatelessWidget {
           ),
           Text(size, style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary)),
         ],
-      ),
-    );
-  }
-}
-
-class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.settings;
-    // The whole row toggles, not just the 31pt switch: the one control in
-    // this flow that would otherwise miss the 44pt touch target. The row
-    // buzzes like the knob would (the knob's own tap wins the arena and
-    // carries its own haptic, so no double fire).
-    return Touchable(
-      onTap: () => onChanged(!value),
-      haptic: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: tokens.iconTileBackground,
-              ),
-              child: AppIcon(icon, size: 16, color: theme.text),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
-            ),
-            AppToggle(value: value, onChanged: onChanged),
-          ],
-        ),
       ),
     );
   }
