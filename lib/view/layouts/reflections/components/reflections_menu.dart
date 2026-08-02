@@ -199,13 +199,26 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
     return false;
   }
 
+  /// Drops any live text selection, then regenerates one frame later so the
+  /// cleared page paints before the ink reveal captures its last frame: a
+  /// selection left standing would bake its highlight wash into the dissolving
+  /// ink. The page owns its own SelectableRegion, so the active selection holds
+  /// the primary focus; unfocusing it is what clears it. Mirrors the entry
+  /// screen's re-transcribe.
+  void _startRegenerate(ReflectionsCubit cubit, DateTime weekStart) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    WidgetsBinding.instance.endOfFrame.then((_) {
+      if (mounted) unawaited(cubit.regenerate(weekStart));
+    });
+  }
+
   void _onSelectedId(String id, ReflectionsState state, ReflectionMenuLabels labels) {
     final cubit = context.read<ReflectionsCubit>();
     final style = state.style;
     final viewed = widget.viewed;
 
     if (id == 'r:regen') {
-      if (viewed != null) unawaited(cubit.regenerate(viewed.weekStart));
+      if (viewed != null) _startRegenerate(cubit, viewed.weekStart);
       return;
     }
     if (id == 'r:delete') {
