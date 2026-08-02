@@ -154,5 +154,7 @@
   "notifyOpenSettings": "Apri Impostazioni",
   "notifyWeeklyTitle": "La tua settimana è pronta",
   "notifyWeeklyBody": "Apri per leggere la riflessione di questa settimana.",
-  "timeSet": "Imposta"
+  "notifyNeedsReflections": "Il promemoria settimanale arriva quando una nuova settimana è pronta da leggere. Le riflessioni sono disattivate al momento.",
+  "notifyTurnOnReflections": "Attiva le riflessioni",
+  "notifyReflectionsUnavailable": "Questo dispositivo non può generare riflessioni, quindi non c'è alcun promemoria settimanale da inviare."
 }

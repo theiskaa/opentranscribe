@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/notifications_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -39,6 +40,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsB
       scheduler: Deps.i.notificationScheduler,
       settings: Deps.i.notificationSettings,
       notifier: Deps.i.reflectionNotifier,
+      reflectionSettings: Deps.i.reflectionSettings,
+      availability: Deps.i.reflectionService.availability,
     );
     WidgetsBinding.instance.addObserver(this);
   }
@@ -73,6 +76,11 @@ class _NotificationsView extends StatelessWidget {
     final cubit = context.read<NotificationsCubit>();
     final state = context.watch<NotificationsCubit>().state;
 
+    // A weekly nudge is only meaningful when reflections can produce one. When
+    // they cannot, the toggle is inert and the footer explains why rather than
+    // offering a switch that silently does nothing.
+    final usable = state.nudgeUsable;
+
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
@@ -91,10 +99,10 @@ class _NotificationsView extends StatelessWidget {
                     icon: AppIcons.bellFill,
                     label: l10n.notifyWeeklyReflection,
                     value: state.weeklyEnabled,
-                    onChanged: (on) => unawaited(cubit.setWeeklyEnabled(on)),
+                    onChanged: usable ? (on) => unawaited(cubit.setWeeklyEnabled(on)) : null,
                   ),
                   AnimatedReveal(
-                    visible: state.weeklyEnabled && !state.permissionBlocked,
+                    visible: usable && state.weeklyEnabled && !state.permissionBlocked,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -113,7 +121,7 @@ class _NotificationsView extends StatelessWidget {
               ),
             ],
           ),
-          if (state.permissionBlocked) ...[
+          if (usable && state.permissionBlocked) ...[
             const SizedBox(height: AppSpacing.md),
             SettingsCard(
               children: [
@@ -128,9 +136,29 @@ class _NotificationsView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.md),
-          SectionInfo(l10n.notifyWeeklyReflectionInfo),
+          // Availability first: an unsupported device can't run reflections, so
+          // never offer it the turn-on link even when the pref also reads off.
+          if (!state.reflectionsAvailable)
+            SectionInfo(l10n.notifyReflectionsUnavailable)
+          else if (!state.reflectionsEnabled)
+            SectionInfoLink(
+              text: l10n.notifyNeedsReflections,
+              linkLabel: l10n.notifyTurnOnReflections,
+              onTap: () => unawaited(_openReflections(context, cubit)),
+            )
+          else
+            SectionInfo(l10n.notifyWeeklyReflectionInfo),
         ],
       ),
     );
+  }
+
+  /// Opens the reflections surface (where reflections are switched on) and
+  /// re-reads state on return, so enabling them there lights this screen up
+  /// without a relaunch. A same-app push is not an app resume, so the lifecycle
+  /// observer would not catch it.
+  Future<void> _openReflections(BuildContext context, NotificationsCubit cubit) async {
+    await context.pushNamed(Routes.reflectionsName);
+    if (context.mounted) unawaited(cubit.load());
   }
 }

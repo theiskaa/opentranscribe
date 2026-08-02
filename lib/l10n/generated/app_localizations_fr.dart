@@ -537,5 +537,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notifyWeeklyBody => 'Ouvrez pour lire la réflexion de cette semaine.';
 
   @override
-  String get timeSet => 'Définir';
+  String get notifyNeedsReflections =>
+      'Le rappel hebdomadaire arrive quand une nouvelle semaine est prête à lire. Les réflexions sont désactivées pour le moment.';
+
+  @override
+  String get notifyTurnOnReflections => 'Activer les réflexions';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Cet appareil ne peut pas générer de réflexions, il n\'y a donc pas de rappel hebdomadaire à envoyer.';
 }

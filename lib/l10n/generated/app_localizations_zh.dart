@@ -499,5 +499,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifyWeeklyBody => '打开以阅读本周回顾。';
 
   @override
-  String get timeSet => '设定';
+  String get notifyNeedsReflections => '新的一周可供阅读时会收到每周提醒。回顾目前已关闭。';
+
+  @override
+  String get notifyTurnOnReflections => '开启回顾';
+
+  @override
+  String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有每周提醒可发送。';
 }

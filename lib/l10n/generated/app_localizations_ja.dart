@@ -502,5 +502,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notifyWeeklyBody => '開いて今週の振り返りを読む。';
 
   @override
-  String get timeSet => '設定';
+  String get notifyNeedsReflections => '新しい週を読む準備ができると、毎週の通知が届きます。今は振り返りがオフになっています。';
+
+  @override
+  String get notifyTurnOnReflections => '振り返りをオンにする';
+
+  @override
+  String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する毎週の通知はありません。';
 }

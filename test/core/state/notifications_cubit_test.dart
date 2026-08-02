@@ -26,22 +26,34 @@ void main() {
   build({
     NotificationPermission permission = NotificationPermission.authorized,
     bool grant = true,
+    bool reflectionsEnabled = true,
+    bool available = true,
   }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
+    await reflect.setEnabled(reflectionsEnabled);
+    availability() async => available
+        ? const ReflectionAvailability.available()
+        : const ReflectionAvailability.unsupported();
     final scheduler = FakeNotificationScheduler(permission: permission, grant: grant);
     final notifier = ReflectionNotifier(
       scheduler: scheduler,
       notifySettings: notify,
       reflectionSettings: reflect,
-      availability: () async => const ReflectionAvailability.available(),
+      availability: availability,
       language: () => 'en',
       clock: () => DateTime(2026, 8, 2, 10),
     );
-    final cubit = NotificationsCubit(scheduler: scheduler, settings: notify, notifier: notifier);
+    final cubit = NotificationsCubit(
+      scheduler: scheduler,
+      settings: notify,
+      notifier: notifier,
+      reflectionSettings: reflect,
+      availability: availability,
+    );
     await cubit.load();
     return (cubit: cubit, scheduler: scheduler, notify: notify);
   }
@@ -123,5 +135,48 @@ void main() {
     expect(b.cubit.state.minute, 45);
     expect(b.notify.hour(key), 21);
     expect(b.notify.minute(key), 45);
+  });
+
+  test('reflections on and available make the nudge usable', () async {
+    final b = await build();
+
+    expect(b.cubit.state.reflectionsEnabled, isTrue);
+    expect(b.cubit.state.reflectionsAvailable, isTrue);
+    expect(b.cubit.state.nudgeUsable, isTrue);
+  });
+
+  test('reflections switched off make the nudge unusable', () async {
+    final b = await build(reflectionsEnabled: false);
+
+    expect(b.cubit.state.reflectionsEnabled, isFalse);
+    expect(b.cubit.state.nudgeUsable, isFalse);
+  });
+
+  test('an unavailable model makes the nudge unusable', () async {
+    final b = await build(available: false);
+
+    expect(b.cubit.state.reflectionsAvailable, isFalse);
+    expect(b.cubit.state.nudgeUsable, isFalse);
+  });
+
+  test('enabling while reflections are off neither prompts nor stores the intent', () async {
+    final b = await build(
+      permission: NotificationPermission.notDetermined,
+      reflectionsEnabled: false,
+    );
+    await b.cubit.setWeeklyEnabled(true);
+
+    expect(b.scheduler.permissionRequests, 0);
+    expect(b.cubit.state.weeklyEnabled, isFalse);
+    expect(b.notify.enabled(key), isFalse);
+  });
+
+  test('enabling while the model is unavailable neither prompts nor stores the intent', () async {
+    final b = await build(permission: NotificationPermission.notDetermined, available: false);
+    await b.cubit.setWeeklyEnabled(true);
+
+    expect(b.scheduler.permissionRequests, 0);
+    expect(b.cubit.state.weeklyEnabled, isFalse);
+    expect(b.notify.enabled(key), isFalse);
   });
 }

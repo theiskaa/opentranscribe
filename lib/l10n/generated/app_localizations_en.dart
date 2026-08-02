@@ -535,5 +535,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifyWeeklyBody => 'Open to read this week\'s reflection.';
 
   @override
-  String get timeSet => 'Set';
+  String get notifyNeedsReflections =>
+      'The weekly nudge arrives when a new week is ready to read. Reflections are off right now.';
+
+  @override
+  String get notifyTurnOnReflections => 'Turn on reflections';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'This device can\'t generate reflections, so there\'s no weekly nudge to send.';
 }

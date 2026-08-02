@@ -154,5 +154,7 @@
   "notifyOpenSettings": "Einstellungen öffnen",
   "notifyWeeklyTitle": "Deine Woche ist bereit",
   "notifyWeeklyBody": "Öffnen, um den Rückblick dieser Woche zu lesen.",
-  "timeSet": "Einstellen"
+  "notifyNeedsReflections": "Der wöchentliche Hinweis kommt, sobald eine neue Woche zum Lesen bereit ist. Rückblicke sind gerade aus.",
+  "notifyTurnOnReflections": "Rückblicke einschalten",
+  "notifyReflectionsUnavailable": "Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen wöchentlichen Hinweis."
 }

@@ -537,5 +537,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get notifyWeeklyBody => 'Abre para ler a reflexão desta semana.';
 
   @override
-  String get timeSet => 'Definir';
+  String get notifyNeedsReflections =>
+      'O lembrete semanal chega quando uma nova semana está pronta para ler. As reflexões estão desativadas no momento.';
+
+  @override
+  String get notifyTurnOnReflections => 'Ativar reflexões';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Este dispositivo não consegue gerar reflexões, portanto não há lembrete semanal para enviar.';
 }

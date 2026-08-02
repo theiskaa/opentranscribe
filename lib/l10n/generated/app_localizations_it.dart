@@ -539,5 +539,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get notifyWeeklyBody => 'Apri per leggere la riflessione di questa settimana.';
 
   @override
-  String get timeSet => 'Imposta';
+  String get notifyNeedsReflections =>
+      'Il promemoria settimanale arriva quando una nuova settimana è pronta da leggere. Le riflessioni sono disattivate al momento.';
+
+  @override
+  String get notifyTurnOnReflections => 'Attiva le riflessioni';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Questo dispositivo non può generare riflessioni, quindi non c\'è alcun promemoria settimanale da inviare.';
 }

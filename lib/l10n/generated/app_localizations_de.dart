@@ -541,5 +541,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notifyWeeklyBody => 'Öffnen, um den Rückblick dieser Woche zu lesen.';
 
   @override
-  String get timeSet => 'Einstellen';
+  String get notifyNeedsReflections =>
+      'Der wöchentliche Hinweis kommt, sobald eine neue Woche zum Lesen bereit ist. Rückblicke sind gerade aus.';
+
+  @override
+  String get notifyTurnOnReflections => 'Rückblicke einschalten';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen wöchentlichen Hinweis.';
 }

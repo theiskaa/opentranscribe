@@ -154,5 +154,7 @@
   "notifyOpenSettings": "설정 열기",
   "notifyWeeklyTitle": "이번 주가 준비되었어요",
   "notifyWeeklyBody": "열어서 이번 주 돌아보기를 읽어보세요.",
-  "timeSet": "설정"
+  "notifyNeedsReflections": "새로운 한 주를 읽을 수 있을 때 주간 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.",
+  "notifyTurnOnReflections": "돌아보기 켜기",
+  "notifyReflectionsUnavailable": "이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다."
 }

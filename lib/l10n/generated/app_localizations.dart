@@ -1032,11 +1032,23 @@ abstract class AppLocalizations {
   /// **'Open to read this week\'s reflection.'**
   String get notifyWeeklyBody;
 
-  /// Confirm button in the time picker sheet; commits the chosen time
+  /// Footer on the notifications screen when reflections are switched off; precedes the turn-on link
   ///
   /// In en, this message translates to:
-  /// **'Set'**
-  String get timeSet;
+  /// **'The weekly nudge arrives when a new week is ready to read. Reflections are off right now.'**
+  String get notifyNeedsReflections;
+
+  /// Bold inline link after notifyNeedsReflections; opens the reflections screen where reflections are enabled
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on reflections'**
+  String get notifyTurnOnReflections;
+
+  /// Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t generate reflections, so there\'s no weekly nudge to send.'**
+  String get notifyReflectionsUnavailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

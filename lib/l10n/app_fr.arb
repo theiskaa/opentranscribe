@@ -154,5 +154,7 @@
   "notifyOpenSettings": "Ouvrir Réglages",
   "notifyWeeklyTitle": "Votre semaine est prête",
   "notifyWeeklyBody": "Ouvrez pour lire la réflexion de cette semaine.",
-  "timeSet": "Définir"
+  "notifyNeedsReflections": "Le rappel hebdomadaire arrive quand une nouvelle semaine est prête à lire. Les réflexions sont désactivées pour le moment.",
+  "notifyTurnOnReflections": "Activer les réflexions",
+  "notifyReflectionsUnavailable": "Cet appareil ne peut pas générer de réflexions, il n'y a donc pas de rappel hebdomadaire à envoyer."
 }

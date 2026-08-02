@@ -504,5 +504,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifyWeeklyBody => '열어서 이번 주 돌아보기를 읽어보세요.';
 
   @override
-  String get timeSet => '설정';
+  String get notifyNeedsReflections => '새로운 한 주를 읽을 수 있을 때 주간 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.';
+
+  @override
+  String get notifyTurnOnReflections => '돌아보기 켜기';
+
+  @override
+  String get notifyReflectionsUnavailable => '이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다.';
 }
