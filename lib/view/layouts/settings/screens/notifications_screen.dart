@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/animated_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
@@ -80,19 +81,36 @@ class _NotificationsView extends StatelessWidget {
           const SizedBox(height: 10),
           SettingsCard(
             children: [
-              SettingsToggleRow(
-                icon: AppIcons.bellFill,
-                label: l10n.notifyWeeklyReflection,
-                value: state.weeklyEnabled,
-                onChanged: (on) => unawaited(cubit.setWeeklyEnabled(on)),
+              // One combined child so the card draws no divider of its own: the
+              // time row carries its divider inside the reveal, and the two fold
+              // away together when the toggle turns off.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingsToggleRow(
+                    icon: AppIcons.bellFill,
+                    label: l10n.notifyWeeklyReflection,
+                    value: state.weeklyEnabled,
+                    onChanged: (on) => unawaited(cubit.setWeeklyEnabled(on)),
+                  ),
+                  AnimatedReveal(
+                    visible: state.weeklyEnabled && !state.permissionBlocked,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SettingsDivider(),
+                        TimeField(
+                          label: l10n.notifyTime,
+                          hour: state.hour,
+                          minute: state.minute,
+                          onChanged: (hour, minute) =>
+                              unawaited(cubit.setTime(hour: hour, minute: minute)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              if (state.weeklyEnabled && !state.permissionBlocked)
-                TimeField(
-                  label: l10n.notifyTime,
-                  hour: state.hour,
-                  minute: state.minute,
-                  onChanged: (hour, minute) => unawaited(cubit.setTime(hour: hour, minute: minute)),
-                ),
             ],
           ),
           if (state.permissionBlocked) ...[

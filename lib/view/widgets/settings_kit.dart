@@ -53,16 +53,25 @@ class SettingsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (final (i, child) in children.indexed) ...[
-            if (i > 0)
-              Padding(
-                padding: EdgeInsets.only(left: tokens.dividerInset),
-                child: Container(height: 1, color: tokens.dividerColor),
-              ),
-            child,
-          ],
+          for (final (i, child) in children.indexed) ...[if (i > 0) const SettingsDivider(), child],
         ],
       ),
+    );
+  }
+}
+
+/// The inset hairline [SettingsCard] draws between its rows. Exposed so a row
+/// that reveals itself can carry its own leading divider and fold it away with
+/// the row (see [AnimatedReveal]).
+class SettingsDivider extends StatelessWidget {
+  const SettingsDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.settings;
+    return Padding(
+      padding: EdgeInsets.only(left: tokens.dividerInset),
+      child: Container(height: 1, color: tokens.dividerColor),
     );
   }
 }

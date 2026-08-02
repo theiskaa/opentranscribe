@@ -34,6 +34,7 @@ import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/animated_reveal.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
@@ -50,6 +51,7 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
   bool _toggle = true;
+  bool _reveal = true;
   int _page = 0;
   String? _notice;
   int _hour = 9;
@@ -162,6 +164,40 @@ class _GalleryScreenState extends State<GalleryScreen> {
                       _hour = h;
                       _minute = m;
                     }),
+                  ),
+                ],
+              ),
+              _section('Animated reveal'),
+              SettingsCard(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SettingsToggleRow(
+                        icon: AppIcons.bellFill,
+                        label: 'Reveal a row',
+                        value: _reveal,
+                        onChanged: (v) => setState(() => _reveal = v),
+                      ),
+                      AnimatedReveal(
+                        visible: _reveal,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SettingsDivider(),
+                            TimeField(
+                              label: 'Time',
+                              hour: _hour,
+                              minute: _minute,
+                              onChanged: (h, m) => setState(() {
+                                _hour = h;
+                                _minute = m;
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -18,6 +18,7 @@ final class AppMotion {
     this.grabScale = 1.06,
     this.indicator = const Duration(milliseconds: 250),
     this.indicatorCurve = Curves.easeOutCubic,
+    this.expand = const Duration(milliseconds: 260),
     this.crossfade = const Duration(milliseconds: 200),
     this.pageDash = const Duration(milliseconds: 200),
     this.digitRoll = const Duration(milliseconds: 200),
@@ -69,6 +70,10 @@ final class AppMotion {
   final double grabScale;
   final Duration indicator;
   final Curve indicatorCurve;
+
+  /// How long a settings sub-row takes to expand or collapse in AnimatedReveal
+  /// (the curves and Reduce-Motion behavior live in the widget).
+  final Duration expand;
   final Duration crossfade;
 
   /// The onboarding dash indicator's color and position glide.
