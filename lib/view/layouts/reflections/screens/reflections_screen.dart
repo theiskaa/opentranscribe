@@ -23,6 +23,7 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
+import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// The reflections week pager: each closed week is a full reading page - its
 /// range as the title, the reflection drawn below with the invisible-ink
@@ -412,36 +413,38 @@ class _WeekPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        // Past the bar and its fade tail: the material is opaque through the
-        // row and only melts across the tail, so the title clears the wash.
-        AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-        AppSpacing.xl,
-        // Past the floating capsule too, so a short page's last lines never
-        // rest under it.
-        _capsuleSeat(context) + theme.scrubber.height + AppSpacing.xxl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ReflectionsDisabledSlot(disabled: disabled, onEnable: onEnable),
-          AppNotice(message: notice, onDismiss: onNoticeDismiss),
-          Text(
-            weekRangeLabel(week.weekStart, localeTag(context)),
-            style: AppType.display2.copyWith(color: theme.text),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          _PageBody(
-            week: week,
-            regenerating: regenerating,
-            scrubbing: scrubbing,
-            revealed: revealed,
-            length: length,
-            onWriteStarted: onWriteStarted,
-          ),
-        ],
+    return SelectableProse(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          // Past the bar and its fade tail: the material is opaque through the
+          // row and only melts across the tail, so the title clears the wash.
+          AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+          AppSpacing.xl,
+          // Past the floating capsule too, so a short page's last lines never
+          // rest under it.
+          _capsuleSeat(context) + theme.scrubber.height + AppSpacing.xxl,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ReflectionsDisabledSlot(disabled: disabled, onEnable: onEnable),
+            AppNotice(message: notice, onDismiss: onNoticeDismiss),
+            Text(
+              weekRangeLabel(week.weekStart, localeTag(context)),
+              style: AppType.display2.copyWith(color: theme.text),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _PageBody(
+              week: week,
+              regenerating: regenerating,
+              scrubbing: scrubbing,
+              revealed: revealed,
+              length: length,
+              onWriteStarted: onWriteStarted,
+            ),
+          ],
+        ),
       ),
     );
   }

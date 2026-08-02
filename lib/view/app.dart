@@ -16,6 +16,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
+import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// The root widget, wired to the router with the journal cubits provided above
 /// it. Owns the [ThemeCubit] and feeds it platform brightness changes so the
@@ -148,9 +149,15 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                     },
                   );
                 }
-                return DefaultTextStyle(
-                  style: AppType.body.copyWith(color: theme.text),
-                  child: child ?? const SizedBox.shrink(),
+                // Above the router's navigator, so it also tints the text
+                // selection handles and menu, which render in the root overlay.
+                return SelectionTheme(
+                  accent: theme.accent,
+                  brightness: theme.brightness,
+                  child: DefaultTextStyle(
+                    style: AppType.body.copyWith(color: theme.text),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 );
               },
             ),

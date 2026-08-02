@@ -26,6 +26,7 @@ import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
 /// a wave you can scrub, then what was said. Reads [EntriesCubit] so
@@ -261,64 +262,66 @@ class _DetailViewState extends State<_DetailView> {
               // than pinning to the floor, so the transcript reads as a page
               // and not as text squeezed between two bars.
               Positioned.fill(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.xl,
-                    // Past the bar AND its fade tail: the material is opaque
-                    // through the row and only melts across the tail, so
-                    // content starting inside it would sit under the wash.
-                    AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                    AppSpacing.xl,
-                    // Clear the pinned dock when it shows, so the last line can
-                    // never hide behind it; otherwise just the home indicator.
-                    dockHeight > 0
-                        ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
-                        : bottomInset + AppSpacing.xxxl,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _TitleField(entry: entry, focusNode: _titleFocus),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
-                        ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
-                        ' \u00b7 ${formatClock(entry.duration)}'
-                        '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
-                        style: AppType.digits(
-                          AppType.footnote,
-                        ).copyWith(color: theme.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      // Discarded audio: the document flows from the metadata
-                      // straight into what it says. Animated, so a discard
-                      // landing mid-read collapses the player instead of
-                      // snapping ~80px of layout in one frame.
-                      AnimatedSize(
-                        duration: context.reduceMotion
-                            ? Duration.zero
-                            : context.motionNow.indicator,
-                        curve: context.motionNow.indicatorCurve,
-                        alignment: Alignment.topCenter,
-                        // The switcher fades the wave out while the size eases
-                        // the gap closed, so nothing hard-cuts mid-read.
-                        child: AnimatedSwitcher(
+                child: SelectableProse(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.xl,
+                      // Past the bar AND its fade tail: the material is opaque
+                      // through the row and only melts across the tail, so
+                      // content starting inside it would sit under the wash.
+                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                      AppSpacing.xl,
+                      // Clear the pinned dock when it shows, so the last line can
+                      // never hide behind it; otherwise just the home indicator.
+                      dockHeight > 0
+                          ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
+                          : bottomInset + AppSpacing.xxxl,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _TitleField(entry: entry, focusNode: _titleFocus),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
+                          ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
+                          ' \u00b7 ${formatClock(entry.duration)}'
+                          '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
+                          style: AppType.digits(
+                            AppType.footnote,
+                          ).copyWith(color: theme.textSecondary),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        // Discarded audio: the document flows from the metadata
+                        // straight into what it says. Animated, so a discard
+                        // landing mid-read collapses the player instead of
+                        // snapping ~80px of layout in one frame.
+                        AnimatedSize(
                           duration: context.reduceMotion
                               ? Duration.zero
                               : context.motionNow.indicator,
-                          child: !entry.hasAudio
-                              ? const SizedBox(width: double.infinity)
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    WavePlayer(entry: entry),
-                                    const SizedBox(height: AppSpacing.xxl),
-                                  ],
-                                ),
+                          curve: context.motionNow.indicatorCurve,
+                          alignment: Alignment.topCenter,
+                          // The switcher fades the wave out while the size eases
+                          // the gap closed, so nothing hard-cuts mid-read.
+                          child: AnimatedSwitcher(
+                            duration: context.reduceMotion
+                                ? Duration.zero
+                                : context.motionNow.indicator,
+                            child: !entry.hasAudio
+                                ? const SizedBox(width: double.infinity)
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      WavePlayer(entry: entry),
+                                      const SizedBox(height: AppSpacing.xxl),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                      TranscriptView(entry: entry, busy: busy),
-                    ],
+                        TranscriptView(entry: entry, busy: busy),
+                      ],
+                    ),
                   ),
                 ),
               ),

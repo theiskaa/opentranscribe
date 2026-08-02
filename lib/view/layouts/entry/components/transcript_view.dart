@@ -347,7 +347,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             ? null
             : activeSegmentIndex(segments, player.position),
         builder: (context, active) {
-          final highlight = Paint()..color = theme.player.activeSegmentHighlight;
           return Text.rich(
             TextSpan(
               children: [
@@ -362,7 +361,10 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
                       // hearing makes the page worse at it; the lit segment
                       // carries a mark instead, so following the audio costs the
                       // rest of the text nothing.
-                      background: i == active ? highlight : null,
+                      // backgroundColor, not a background Paint: a Paint counts as
+                      // a layout change and would rebuild the selectables each
+                      // tick, dropping any active selection mid-playback.
+                      backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
                     ),
                   ),
               ],
