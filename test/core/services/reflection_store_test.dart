@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -118,5 +119,38 @@ void main() {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'good'));
 
     expect(store.all().map((r) => r.weekKey).toList(), ['2026-07-20']);
+  });
+
+  Reflection periodReflection(DateTime start, ReflectionPeriod period, {String? text}) =>
+      Reflection(
+        weekStart: start,
+        generatedAt: DateTime.utc(2026, 8, 3),
+        period: period,
+        text: text,
+      );
+
+  test('a day, its week, and its month on the same start do not collide', () async {
+    final start = DateTime(2026, 8, 3);
+    await store.save(periodReflection(start, ReflectionPeriod.daily, text: 'day'));
+    await store.save(periodReflection(start, ReflectionPeriod.weekly, text: 'week'));
+    await store.save(periodReflection(start, ReflectionPeriod.monthly, text: 'month'));
+
+    expect(store.read(start, period: ReflectionPeriod.daily)!.text, 'day');
+    expect(store.read(start)!.text, 'week');
+    expect(store.read(start, period: ReflectionPeriod.monthly)!.text, 'month');
+    expect(store.all().length, 3);
+  });
+
+  test('deleting one period leaves the others and tombstones only that period', () async {
+    final start = DateTime(2026, 8, 3);
+    await store.save(periodReflection(start, ReflectionPeriod.daily, text: 'day'));
+    await store.save(periodReflection(start, ReflectionPeriod.weekly, text: 'week'));
+
+    await store.delete(start, period: ReflectionPeriod.daily);
+
+    expect(store.read(start, period: ReflectionPeriod.daily), isNull);
+    expect(store.read(start)!.text, 'week');
+    expect(store.deletedWeeks(), isEmpty);
+    expect(store.deletedRefs().single, (period: ReflectionPeriod.daily, start: start));
   });
 }

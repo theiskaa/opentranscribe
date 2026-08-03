@@ -22,7 +22,7 @@ enum ReflectionVoice {
 
   /// The voice for a stored [wire] value, or null when unrecognized (a record
   /// from a future build); callers fall back rather than throw.
-  static ReflectionVoice? fromWire(String? wire) => _fromWire(values, (v) => v.wire, wire);
+  static ReflectionVoice? fromWire(String? wire) => enumFromWire(values, (v) => v.wire, wire);
 }
 
 /// How long a reflection may run. Silence is always allowed regardless.
@@ -38,7 +38,7 @@ enum ReflectionLength {
   /// Tuned to [ReflectionVoice.literary].
   static const fallback = ReflectionLength.sentences;
 
-  static ReflectionLength? fromWire(String? wire) => _fromWire(values, (v) => v.wire, wire);
+  static ReflectionLength? fromWire(String? wire) => enumFromWire(values, (v) => v.wire, wire);
 }
 
 /// Whether a reflection may name the specifics it heard (people, projects,
@@ -55,12 +55,13 @@ enum ReflectionSpecificity {
   /// Tuned to [ReflectionVoice.literary].
   static const fallback = ReflectionSpecificity.nameFreely;
 
-  static ReflectionSpecificity? fromWire(String? wire) => _fromWire(values, (v) => v.wire, wire);
+  static ReflectionSpecificity? fromWire(String? wire) => enumFromWire(values, (v) => v.wire, wire);
 }
 
-/// The enum whose [wireOf] matches [wire], or null. Shared by the option enums
-/// so a stored value from a future build falls back instead of throwing.
-T? _fromWire<T>(List<T> values, String Function(T) wireOf, String? wire) {
+/// The enum whose [wireOf] matches [wire], or null. Shared by the reflection
+/// wire enums so a stored value from a future build falls back instead of
+/// throwing.
+T? enumFromWire<T>(List<T> values, String Function(T) wireOf, String? wire) {
   for (final v in values) {
     if (wireOf(v) == wire) return v;
   }

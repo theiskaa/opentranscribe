@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 
 void main() {
   test('round-trips a written reflection through JSON', () {
@@ -54,5 +55,40 @@ void main() {
     );
 
     expect(r.generatedAt.isUtc, isTrue);
+  });
+
+  test('round-trips its period through JSON', () {
+    final r = Reflection(
+      weekStart: DateTime(2026, 8),
+      generatedAt: DateTime.utc(2026, 8, 1, 9),
+      period: ReflectionPeriod.monthly,
+      text: 'August held steady.',
+    );
+
+    expect(Reflection.fromJson(r.toJson()).period, ReflectionPeriod.monthly);
+    expect(Reflection.fromJson(r.toJson()), r);
+  });
+
+  test('a record with no period reads back as weekly', () {
+    final json = {
+      'weekStart': '2026-07-20',
+      'generatedAt': DateTime.utc(2026, 7, 26).toIso8601String(),
+      'text': 'x',
+    };
+
+    expect(Reflection.fromJson(json).period, ReflectionPeriod.weekly);
+  });
+
+  test('the same start under two periods is two distinct records', () {
+    final at = DateTime.utc(2026, 8, 3);
+    final day = Reflection(
+      weekStart: DateTime(2026, 8, 3),
+      generatedAt: at,
+      period: ReflectionPeriod.daily,
+    );
+    final week = Reflection(weekStart: DateTime(2026, 8, 3), generatedAt: at);
+
+    expect(day == week, isFalse);
+    expect(day.hashCode == week.hashCode, isFalse);
   });
 }

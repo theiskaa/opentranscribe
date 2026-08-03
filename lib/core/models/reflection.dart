@@ -1,29 +1,38 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 
-/// One week's reflection, stored like any other local entry data. Keyed by
-/// [weekStart], the civil date of the week's first day (aligned to the app's
-/// locale week model). A week has exactly one reflection.
+/// One period's reflection, stored like any other local entry data. Keyed by
+/// [period] plus [weekStart], the civil date of the period's first day (its day,
+/// its locale week's first day, or the first of its month). A given period has
+/// exactly one reflection per start, and the same start date under two periods
+/// is two distinct records.
 ///
 /// [text] null is SILENCE: the observer ran and had nothing to say, the valid
 /// default outcome, rendered as "a quiet week". It is a stored result, not an
-/// absence: no stored reflection at all means the week is not yet reflected. So
-/// a silent week is never re-run, while an unreflected one still is.
+/// absence: no stored reflection at all means the period is not yet reflected.
+/// So a silent period is never re-run, while an unreflected one still is.
 ///
-/// A reflection is an immutable snapshot of the week as it read then; later
-/// edits to that week's entries do not change it. A user may regenerate one
+/// A reflection is an immutable snapshot of the period as it read then; later
+/// edits to that period's entries do not change it. A user may regenerate one
 /// explicitly, which replaces it.
 @immutable
 final class Reflection {
   /// [weekStart] is a civil date, not an instant: it is normalized to its
-  /// year/month/day and carries no timezone, because a week boundary is a
+  /// year/month/day and carries no timezone, because a period boundary is a
   /// calendar day, not a moment. [generatedAt] IS an instant, stored UTC.
-  Reflection({required DateTime weekStart, required DateTime generatedAt, this.text, this.voice})
-    : weekStart = dateOnly(weekStart),
-      generatedAt = generatedAt.toUtc();
+  Reflection({
+    required DateTime weekStart,
+    required DateTime generatedAt,
+    this.period = ReflectionPeriod.weekly,
+    this.text,
+    this.voice,
+  }) : weekStart = dateOnly(weekStart),
+       generatedAt = generatedAt.toUtc();
 
+  final ReflectionPeriod period;
   final DateTime weekStart;
   final DateTime generatedAt;
 
@@ -36,8 +45,8 @@ final class Reflection {
 
   bool get isSilent => text == null;
 
-  /// yyyy-MM-dd, the stable storage key for this week's reflection, and the
-  /// wire format for any stored week date (the settings floor writes through
+  /// yyyy-MM-dd, the stable date segment of a reflection's storage key, and the
+  /// wire format for any stored period start (the settings floor writes through
   /// it and reads back with an ISO-8601 parse). The one place the format
   /// lives, so writers and readers can never drift apart.
   static String keyFor(DateTime weekStart) {
@@ -50,6 +59,7 @@ final class Reflection {
   String get weekKey => keyFor(weekStart);
 
   Map<String, dynamic> toJson() => {
+    'period': period.wire,
     'weekStart': weekKey,
     'generatedAt': generatedAt.toIso8601String(),
     if (text != null) 'text': text,
@@ -57,6 +67,7 @@ final class Reflection {
   };
 
   factory Reflection.fromJson(Map<String, dynamic> json) => Reflection(
+    period: ReflectionPeriod.fromWire(json['period'] as String?) ?? ReflectionPeriod.fallback,
     weekStart: DateTime.parse(json['weekStart'] as String),
     generatedAt: DateTime.parse(json['generatedAt'] as String),
     // Absent on a silent week (nothing to say) and present otherwise.
@@ -67,11 +78,12 @@ final class Reflection {
   @override
   bool operator ==(Object other) =>
       other is Reflection &&
+      other.period == period &&
       other.weekStart == weekStart &&
       other.generatedAt == generatedAt &&
       other.text == text &&
       other.voice == voice;
 
   @override
-  int get hashCode => Object.hash(weekStart, generatedAt, text, voice);
+  int get hashCode => Object.hash(period, weekStart, generatedAt, text, voice);
 }
