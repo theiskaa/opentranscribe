@@ -11,7 +11,6 @@ import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
