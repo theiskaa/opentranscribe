@@ -27,7 +27,6 @@ dependencies:
 
   shared_preferences: ^2.5.4
   encrypt: ^5.0.3
-  lottie: ^3.3.2
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.1
 
@@ -42,7 +41,6 @@ flutter:
   uses-material-design: false
 
   assets:
-    - assets/animations/
     - assets/brand/
 
   fonts:
