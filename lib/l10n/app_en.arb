@@ -539,9 +539,17 @@
   "@reflectionsEmptyBody": {
     "description": "Empty-state supporting line under the headline on the reflections screen"
   },
+  "reflectionQuietDay": "A quiet day.",
+  "@reflectionQuietDay": {
+    "description": "Shown for a day the observer had nothing to say about (a stored silence)"
+  },
   "reflectionQuietWeek": "A quiet week.",
   "@reflectionQuietWeek": {
     "description": "Shown for a week the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionQuietMonth": "A quiet month.",
+  "@reflectionQuietMonth": {
+    "description": "Shown for a month the observer had nothing to say about (a stored silence)"
   },
   "reflectionWaitingTitle": "Not written yet",
   "@reflectionWaitingTitle": {

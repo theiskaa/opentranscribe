@@ -430,7 +430,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The first arrives when your week closes, read back from what you recorded.';
 
   @override
+  String get reflectionQuietDay => 'A quiet day.';
+
+  @override
   String get reflectionQuietWeek => 'A quiet week.';
+
+  @override
+  String get reflectionQuietMonth => 'A quiet month.';
 
   @override
   String get reflectionWaitingTitle => 'Not written yet';

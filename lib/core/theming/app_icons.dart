@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 28-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 32-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -24,8 +24,14 @@ abstract final class AppIcons {
   /// SF Symbol `bell.fill`.
   static const IconData bellFill = IconData(0x1002DA, fontFamily: _family);
 
-  /// SF Symbol `calendar`.
+  /// SF Symbol `calendar` (the monthly reflection marker).
   static const IconData calendar = IconData(0x100249, fontFamily: _family);
+
+  /// SF Symbol `1.calendar` (the daily reflection marker).
+  static const IconData oneCalendar = IconData(0x103326, fontFamily: _family);
+
+  /// SF Symbol `7.calendar` (the weekly reflection marker).
+  static const IconData sevenCalendar = IconData(0x10332C, fontFamily: _family);
 
   /// SF Symbol `checkmark`.
   static const IconData checkmark = IconData(0x100185, fontFamily: _family);
@@ -109,6 +115,8 @@ abstract final class AppIcons {
         0x1002D9: 'bell',
         0x1002DA: 'bell.fill',
         0x100249: 'calendar',
+        0x103326: '1.calendar',
+        0x10332C: '7.calendar',
         0x100185: 'checkmark',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',

@@ -53,10 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final SectionTracker _sections = SectionTracker();
 
   /// The reflection history as of the last build (null before the first), and
-  /// the weeks whose card arrived while home was up: only those get the
-  /// entrance, and they keep their wrapper so a later rebuild cannot re-play it.
+  /// the cards that arrived while home was up: only those get the entrance, and
+  /// they keep their wrapper so a later rebuild cannot re-play it.
   List<Reflection>? _seenReflections;
-  final Set<DateTime> _entranceWeeks = {};
+  final Set<ReflectionCardKey> _enteredCards = {};
   late final PullToRecordGesture _pullGesture = PullToRecordGesture(
     onArm: Haptics.selection,
     onDisarm: Haptics.light,
@@ -198,9 +198,9 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, state) {
           _sections.prune(state.entryDays);
           // Cards are driven by the reflection history; watching it here rebuilds
-          // home when a week is reflected, deleted, or regenerated. Home reads
-          // the weekly-pinned source, not the screen's viewed period, so paging
-          // the reflections screen to Day/Month never disturbs home's cards.
+          // home when a period is reflected, deleted, or regenerated. Home reads
+          // every enabled period's reflections, independent of the screen's
+          // viewed period, so paging that screen never disturbs home's cards.
           final reflectionsState = context.watch<ReflectionsCubit>().state;
           final reflections = reflectionsState.homeReflections;
           // Only a card that ARRIVES while home is up gets an entrance; the
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // and mark the whole history newly arrived.
           if (reflectionsState.loaded) {
             final previous = _seenReflections;
-            if (previous != null) _entranceWeeks.addAll(newlyReflectedWeeks(previous, reflections));
+            if (previous != null) _enteredCards.addAll(newlyReflected(previous, reflections));
             _seenReflections = reflections;
           }
           // After EVERY build: splitter positions move when entries are
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   key: _sections.listKey,
                   state: state,
                   reflections: reflections,
-                  entranceWeeks: _entranceWeeks,
+                  enteredCards: _enteredCards,
                   controller: _scroll,
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
@@ -419,9 +419,9 @@ class _HomeChromeState extends State<_HomeChrome> {
 /// recorder screen's bottom inset.
 const double _listBottomInset = 42;
 
-/// One week's reflection slot in the timeline: the editorial card, opening
-/// the reflections pager landed on its week, entering with the app's rise
-/// only when it arrived while home was up.
+/// One period's reflection slot in the timeline: the editorial card, opening
+/// the reflections pager landed on its period and start, entering with the
+/// app's rise only when it arrived while home was up.
 class _ReflectionCardSlot extends StatelessWidget {
   const _ReflectionCardSlot({required this.reflection, required this.entrance, super.key});
 
@@ -432,8 +432,10 @@ class _ReflectionCardSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = ReflectionHomeCard(
       reflection: reflection,
-      onTap: () =>
-          context.pushNamed(Routes.reflectionsName, queryParameters: {'week': reflection.weekKey}),
+      onTap: () => context.pushNamed(
+        Routes.reflectionsName,
+        queryParameters: {'period': reflection.period.wire, 'week': reflection.weekKey},
+      ),
     );
     if (!entrance) return card;
     return EntranceRise(child: card);
@@ -444,7 +446,7 @@ class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
     required this.reflections,
-    required this.entranceWeeks,
+    required this.enteredCards,
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
@@ -456,11 +458,11 @@ class _RecordsList extends StatelessWidget {
 
   final HomeState state;
 
-  /// The reflection history, placed as cards at the top of each finished week.
+  /// The reflection history, placed as cards at the top of each finished period.
   final List<Reflection> reflections;
 
-  /// Weeks whose card arrived while home was up; only these enter with motion.
-  final Set<DateTime> entranceWeeks;
+  /// Cards that arrived while home was up; only these enter with motion.
+  final Set<ReflectionCardKey> enteredCards;
   final ScrollController controller;
 
   /// Tracker-owned keys splitter label positions are read through.
@@ -484,7 +486,8 @@ class _RecordsList extends StatelessWidget {
     // indicator.
     final clearance = MediaQuery.paddingOf(context).bottom;
 
-    // A reflection card sits above the first section of each finished week.
+    // A card sits above the first section of each finished period; a section can
+    // stack a month, a week, and a day card.
     final cards = reflectionCardsForSections(
       sectionDays: [for (final section in sections) section.day],
       reflections: reflections,
@@ -501,14 +504,18 @@ class _RecordsList extends StatelessWidget {
       children: [
         for (final (s, section) in sections.indexed) ...[
           if (cards[s] != null) ...[
-            SizedBox(height: s == 0 ? 0 : AppSpacing.xxl),
-            // Keyed so an entry insert or delete above cannot re-inflate the
-            // slot at its shifted index and replay the entrance.
-            _ReflectionCardSlot(
-              key: ValueKey(cards[s]!.weekStart),
-              reflection: cards[s]!,
-              entrance: entranceWeeks.contains(cards[s]!.weekStart),
-            ),
+            for (final (c, reflection) in cards[s]!.indexed) ...[
+              // A group's top clears the day above (xxl); a stacked card sits
+              // tight under the one before it so the month/week/day read as one.
+              SizedBox(height: c > 0 ? AppSpacing.sm : (s == 0 ? 0 : AppSpacing.xxl)),
+              // Keyed so an entry insert or delete above cannot re-inflate the
+              // slot at its shifted index and replay the entrance.
+              _ReflectionCardSlot(
+                key: ValueKey(cardKeyOf(reflection)),
+                reflection: reflection,
+                entrance: enteredCards.contains(cardKeyOf(reflection)),
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
           ],
           Padding(

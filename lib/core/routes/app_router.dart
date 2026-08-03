@@ -61,7 +61,10 @@ class AppRouter {
         name: Routes.reflectionsName,
         pageBuilder: (context, state) => SlidePage<void>(
           key: state.pageKey,
-          child: ReflectionsScreen(initialWeekKey: state.uri.queryParameters['week']),
+          child: ReflectionsScreen(
+            initialPeriod: state.uri.queryParameters['period'],
+            initialWeekKey: state.uri.queryParameters['week'],
+          ),
         ),
       ),
       GoRoute(

@@ -47,10 +47,14 @@ import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 /// [initialWeekKey] and lands on its week, with the same pages and the same
 /// menu as the plain open.
 class ReflectionsScreen extends StatefulWidget {
-  const ReflectionsScreen({this.initialWeekKey, super.key});
+  const ReflectionsScreen({this.initialPeriod, this.initialWeekKey, super.key});
 
-  /// yyyy-MM-dd ([Reflection.keyFor]) of the week to land on; null (or an
-  /// unknown week) lands on the newest closed week.
+  /// The period wire to land on (a home card deep-links its own period); null or
+  /// unknown keeps the current viewed period.
+  final String? initialPeriod;
+
+  /// yyyy-MM-dd ([Reflection.keyFor]) of the start to land on; null (or an
+  /// unknown one) lands on the newest closed page.
   final String? initialWeekKey;
 
   @override
@@ -61,10 +65,15 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
   @override
   void initState() {
     super.initState();
+    final cubit = context.read<ReflectionsCubit>();
     // Recording an entry emits nothing on the cubit (only reflection writes
     // do), so the timeline inputs can be stale mid-session; opening the
     // surface re-reads them.
-    unawaited(context.read<ReflectionsCubit>().load());
+    unawaited(cubit.load());
+    // A home card deep-links its period; land on it (a no-op when already there
+    // or the period is off with no history, since it re-derives the view).
+    final period = ReflectionPeriod.fromWire(widget.initialPeriod);
+    if (period != null) cubit.setViewedPeriod(period);
   }
 
   @override

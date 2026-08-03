@@ -88,6 +88,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
     AppIcons.sunMax,
     AppIcons.icloud,
     AppIcons.calendar,
+    AppIcons.oneCalendar,
+    AppIcons.sevenCalendar,
     AppIcons.bell,
     AppIcons.textformat,
   ];

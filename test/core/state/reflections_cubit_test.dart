@@ -307,7 +307,7 @@ void main() {
     await cubit.close();
   });
 
-  test('home reflections stay weekly when the viewed period switches', () async {
+  test('home reflections span every enabled period and do not follow the viewed one', () async {
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'the week'));
     await store.save(
@@ -320,12 +320,33 @@ void main() {
     );
     final cubit = build();
     await cubit.load();
-    expect(cubit.state.homeReflections.map((r) => r.text), ['the week']);
+    final home = {for (final r in cubit.state.homeReflections) r.text};
+    expect(home, {'the week', 'a day'});
 
     cubit.setViewedPeriod(ReflectionPeriod.daily);
 
     expect(cubit.state.history.map((r) => r.text), ['a day']);
-    expect(cubit.state.homeReflections.map((r) => r.text), ['the week']);
+    expect({for (final r in cubit.state.homeReflections) r.text}, home);
+    await cubit.close();
+  });
+
+  test('a disabled period keeps its cards off home while staying browsable', () async {
+    await settings.setEnabled(false);
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'the week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        weekStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.homeReflections.map((r) => r.text), ['a day']);
+    expect(cubit.state.periods, contains(ReflectionPeriod.weekly));
     await cubit.close();
   });
 

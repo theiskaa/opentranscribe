@@ -403,7 +403,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionsEmptyBody => '첫 돌아보기는 이번 주가 끝나면 도착하며, 기록한 내용을 되짚어 만들어집니다.';
 
   @override
+  String get reflectionQuietDay => 'A quiet day.';
+
+  @override
   String get reflectionQuietWeek => '조용한 한 주.';
+
+  @override
+  String get reflectionQuietMonth => 'A quiet month.';
 
   @override
   String get reflectionWaitingTitle => '아직 작성되지 않음';

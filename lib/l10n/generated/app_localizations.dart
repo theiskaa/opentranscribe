@@ -840,11 +840,23 @@ abstract class AppLocalizations {
   /// **'The first arrives when your week closes, read back from what you recorded.'**
   String get reflectionsEmptyBody;
 
+  /// Shown for a day the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet day.'**
+  String get reflectionQuietDay;
+
   /// Shown for a week the observer had nothing to say about (a stored silence)
   ///
   /// In en, this message translates to:
   /// **'A quiet week.'**
   String get reflectionQuietWeek;
+
+  /// Shown for a month the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet month.'**
+  String get reflectionQuietMonth;
 
   /// Pager state title: a closed, journaled week not yet written; the next catch-up may fill it
   ///

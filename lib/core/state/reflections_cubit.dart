@@ -59,10 +59,10 @@ final class ReflectionsState {
   /// The viewed period's past reflections, newest first. Includes silences.
   final List<Reflection> history;
 
-  /// The reflections the HOME timeline cards read: weekly, independent of
-  /// [viewedPeriod], so switching the reflections screen to another period
-  /// never disturbs home's cards. (Phase 5 widens home to every enabled
-  /// period; this is the pinned weekly source until then.)
+  /// The reflections the HOME timeline cards read: every ENABLED period's,
+  /// independent of [viewedPeriod], so paging the reflections screen never
+  /// disturbs home's cards. A period turned off drops its cards from home while
+  /// keeping them browsable on the screen.
   final List<Reflection> homeReflections;
 
   /// The pager's spine for the viewed period: every closed period worth a page,
@@ -198,7 +198,10 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
       enabled: enabledByPeriod[period]!,
       style: _settings.styleFor(period),
       history: history,
-      homeReflections: histories[ReflectionPeriod.weekly]!,
+      homeReflections: [
+        for (final p in ReflectionPeriod.values)
+          if (enabledByPeriod[p]!) ...histories[p]!,
+      ],
       timeline: reflectionTimeline(
         period: period,
         history: history,

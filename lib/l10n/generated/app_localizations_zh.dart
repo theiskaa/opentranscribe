@@ -399,7 +399,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionsEmptyBody => '本周结束后，第一篇就会出现，取自你所记录的内容。';
 
   @override
+  String get reflectionQuietDay => 'A quiet day.';
+
+  @override
   String get reflectionQuietWeek => '平静的一周。';
+
+  @override
+  String get reflectionQuietMonth => 'A quiet month.';
 
   @override
   String get reflectionWaitingTitle => '尚未写下';

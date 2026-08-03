@@ -402,7 +402,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionsEmptyBody => '最初の振り返りは今週が終わると届きます。記録した内容から読み解かれます。';
 
   @override
+  String get reflectionQuietDay => 'A quiet day.';
+
+  @override
   String get reflectionQuietWeek => '静かな一週間。';
+
+  @override
+  String get reflectionQuietMonth => 'A quiet month.';
 
   @override
   String get reflectionWaitingTitle => 'まだ書かれていません';
