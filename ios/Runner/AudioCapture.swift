@@ -617,27 +617,14 @@ final class AudioCaptureSession {
 /// denied / undetermined.
 enum AudioPermission {
   static func ensure(_ completion: @escaping (String) -> Void) {
-    if #available(iOS 17.0, *) {
-      switch AVAudioApplication.shared.recordPermission {
-      case .granted: completion("granted")
-      case .denied: completion("denied")
-      case .undetermined:
-        AVAudioApplication.requestRecordPermission { granted in
-          DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
-        }
-      @unknown default: completion("undetermined")
+    switch AVAudioApplication.shared.recordPermission {
+    case .granted: completion("granted")
+    case .denied: completion("denied")
+    case .undetermined:
+      AVAudioApplication.requestRecordPermission { granted in
+        DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
       }
-    } else {
-      let session = AVAudioSession.sharedInstance()
-      switch session.recordPermission {
-      case .granted: completion("granted")
-      case .denied: completion("denied")
-      case .undetermined:
-        session.requestRecordPermission { granted in
-          DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
-        }
-      @unknown default: completion("undetermined")
-      }
+    @unknown default: completion("undetermined")
     }
   }
 }
@@ -691,9 +678,7 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         instance?.statusSink?(status)
         // Fan out to the Live Activity AFTER Dart: the island is a mirror of
         // capture state, never a participant in it.
-        if #available(iOS 16.2, *) {
-          RecordingLiveActivityController.shared.handle(status)
-        }
+        RecordingLiveActivityController.shared.handle(status)
       }
     }
     // onLevel already fires on main.

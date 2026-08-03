@@ -148,7 +148,7 @@ final class LiquidIconButtonView: LiquidNativeView {
       )
       config.cornerStyle = .capsule
       button.configuration = config
-    } else if #available(iOS 15.0, *) {
+    } else {
       // Fallback: tinted pill style
       var config = UIButton.Configuration.tinted()
       config.image = image
@@ -159,15 +159,6 @@ final class LiquidIconButtonView: LiquidNativeView {
       )
       config.cornerStyle = .capsule
       button.configuration = config
-      button.tintColor = .label
-    } else {
-      // Fallback for older iOS
-      button.setTitle(nil, for: .normal)
-      button.setImage(image, for: .normal)
-      button.contentEdgeInsets = UIEdgeInsets(
-        top: 10, left: 10, bottom: 10, right: 10
-      )
-      button.backgroundColor = .tertiarySystemFill
       button.tintColor = .label
     }
 

@@ -206,16 +206,11 @@ final class LiquidIconButtonGroupView: LiquidNativeView {
     button.isEnabled = enabled
     button.translatesAutoresizingMaskIntoConstraints = false
 
-    if #available(iOS 15.0, *) {
-      var config = UIButton.Configuration.plain()
-      config.image = image
-      config.preferredSymbolConfigurationForImage = symbolConfig
-      config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
-      button.configuration = config
-    } else {
-      button.setImage(image, for: .normal)
-      button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
-    }
+    var config = UIButton.Configuration.plain()
+    config.image = image
+    config.preferredSymbolConfigurationForImage = symbolConfig
+    config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+    button.configuration = config
     return button
   }
 

@@ -81,9 +81,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
   private func configureAction() {
     // “More”-поведение: по тапу — сразу меню
     button.showsMenuAsPrimaryAction = true
-    if #available(iOS 15.0, *) {
-      button.changesSelectionAsPrimaryAction = false
-    }
+    button.changesSelectionAsPrimaryAction = false
   }
 
   private func apply(_ params: [String: Any]) {
@@ -163,16 +161,11 @@ final class LiquidPopupMenuView: LiquidNativeView {
     if bare {
       // Invisible on purpose: the Flutter row underneath is the visible
       // control, and the menu itself is the feedback.
-      if #available(iOS 15.0, *) {
-        var config = UIButton.Configuration.plain()
-        config.image = nil
-        config.title = nil
-        config.baseBackgroundColor = .clear
-        button.configuration = config
-      } else {
-        button.setTitle(nil, for: .normal)
-        button.setImage(nil, for: .normal)
-      }
+      var config = UIButton.Configuration.plain()
+      config.image = nil
+      config.title = nil
+      config.baseBackgroundColor = .clear
+      button.configuration = config
       button.backgroundColor = .clear
       button.tintColor = .clear
       return
@@ -199,7 +192,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
       )
       config.cornerStyle = .capsule
       button.configuration = config
-    } else if #available(iOS 15.0, *) {
+    } else {
       // Старый стиль – tinted pill
       var config = UIButton.Configuration.tinted()
       config.image = image
@@ -210,15 +203,6 @@ final class LiquidPopupMenuView: LiquidNativeView {
       )
       config.cornerStyle = .capsule
       button.configuration = config
-      button.tintColor = .label
-    } else {
-      // Фолбэк для очень старых iOS
-      button.setTitle(nil, for: .normal)
-      button.setImage(image, for: .normal)
-      button.contentEdgeInsets = UIEdgeInsets(
-        top: 10, left: 10, bottom: 10, right: 10
-      )
-      button.backgroundColor = .tertiarySystemFill
       button.tintColor = .label
     }
 
@@ -326,35 +310,22 @@ final class LiquidPopupMenuView: LiquidNativeView {
 
     if let nested = item["children"] as? [[String: Any]], !nested.isEmpty {
       let submenuChildren = nested.compactMap(buildMenuElement)
-      if #available(iOS 13.0, *) {
-        return UIMenu(
-          title: title, image: image, identifier: nil, options: [], children: submenuChildren)
-      }
-      return UIMenu(title: title, children: submenuChildren)
+      return UIMenu(
+        title: title, image: image, identifier: nil, options: [], children: submenuChildren)
     }
 
     let value = item["value"] as? String
     let isSelected = (item["isSelected"] as? NSNumber)?.boolValue
       ?? (item["isSelected"] as? Bool ?? false)
-    if #available(iOS 13.0, *) {
-      let attributes: UIMenuElement.Attributes = isDestructive ? [.destructive] : []
-      return UIAction(
-        title: title,
-        image: image,
-        identifier: nil,
-        discoverabilityTitle: nil,
-        attributes: attributes,
-        state: isSelected ? .on : .off
-      ) { [weak self] _ in
-        guard let self, let value else { return }
-        // Delay callback to next runloop cycle to let UIMenu dismiss animation complete
-        DispatchQueue.main.async {
-          self.channel.invokeMethod("onSelected", arguments: value)
-        }
-      }
-    }
-
-    return UIAction(title: title, state: isSelected ? .on : .off) { [weak self] _ in
+    let attributes: UIMenuElement.Attributes = isDestructive ? [.destructive] : []
+    return UIAction(
+      title: title,
+      image: image,
+      identifier: nil,
+      discoverabilityTitle: nil,
+      attributes: attributes,
+      state: isSelected ? .on : .off
+    ) { [weak self] _ in
       guard let self, let value else { return }
       // Delay callback to next runloop cycle to let UIMenu dismiss animation complete
       DispatchQueue.main.async {
