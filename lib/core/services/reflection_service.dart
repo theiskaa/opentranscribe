@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/utils/week.dart';
@@ -15,19 +16,20 @@ import 'package:opentranscribe/core/utils/week.dart';
 // cannot be private, so initializing formals do not apply.
 // ignore_for_file: prefer_initializing_formals
 
-/// Owns the weekly-reflection lifecycle: which week to reflect, gathering its
-/// entries, asking the engine, and persisting the result (text or a stored
-/// silence). The engine and store stay private here so nothing bypasses the
-/// on-device guard or the silence-is-a-result rule.
+/// Owns the reflection lifecycle across every enabled period: which period to
+/// reflect, gathering its entries, asking the engine, and persisting the result
+/// (text or a stored silence). The engine and store stay private here so
+/// nothing bypasses the on-device guard or the silence-is-a-result rule. Each
+/// period is an independent stream with its own enable flag, style, and floor.
 ///
 /// The trigger is the foreground: [catchUp] runs at launch and on resume. There
-/// is no server and no schedule; a closed week is reflected the next time the
+/// is no server and no schedule; a closed period is reflected the next time the
 /// app is opened.
 ///
-/// A reflection is an immutable record of the week as it was heard. Deleting
-/// source entries afterwards never cascades into the history (an emptied week
+/// A reflection is an immutable record of the period as it was heard. Deleting
+/// source entries afterwards never cascades into the history (an emptied period
 /// keeps its text; an explicit [regenerate] of one records an honest silence);
-/// the user's per-week [deleteReflection] is the only eraser.
+/// the user's per-period [deleteReflection] is the only eraser.
 class ReflectionService {
   ReflectionService({
     required ReflectionEngine engine,
@@ -48,7 +50,8 @@ class ReflectionService {
        // Resolve the week boundary from the app language explicitly, not the
        // ambient Intl locale: the launch catch-up can run before the first
        // frame sets that global, which would bucket weeks against the wrong
-       // first-day. Tests inject a fixed [weekOf].
+       // first-day. Daily and monthly boundaries are locale-independent and
+       // resolved directly. Tests inject a fixed [weekOf].
        _weekOf = weekOf ?? ((d) => startOfWeek(d, localeId: language())) {
     // The one rule, enforced in code: reflections never leave the device.
     if (!_engine.onDeviceOnly) {
@@ -69,14 +72,6 @@ class ReflectionService {
   /// relaunch; a timeout instead reads as the transient could-not-run.
   final Duration _reflectTimeout;
 
-  /// Soft ceiling on the estimated prompt tokens for one week, safely under the
-  /// on-device model's ~4k context window, leaving room for the instructions
-  /// and the response. Budgeted in tokens, not characters: a character cap
-  /// sized for Latin text sails a CJK week (near one token per character)
-  /// straight into a context overflow, a deterministic failure that would be
-  /// stored as a false quiet week.
-  static const _maxPromptTokens = 2000;
-
   final StreamController<void> _changed = StreamController<void>.broadcast();
 
   /// Fires whenever a reflection is written, regenerated, or deleted, so a
@@ -86,135 +81,151 @@ class ReflectionService {
   /// Single-flights [catchUp]: a resume racing the launch kick must not run twice.
   bool _running = false;
 
-  /// Reflects every closed, unreflected week that has material, newest week
-  /// first, never reaching below the no-backfill floor. Cheap and safe to call
-  /// often. A no-op when reflections are disabled or the on-device model is
-  /// unavailable: no generation, no error, nothing surfaced. Never throws.
+  /// Reflects every closed, unreflected period that has material, for each
+  /// enabled period, newest first, never reaching below that period's
+  /// no-backfill floor. Cheap and safe to call often. A no-op when no period is
+  /// enabled or the on-device model is unavailable: no generation, no error,
+  /// nothing surfaced. Never throws.
   Future<void> catchUp() async {
-    if (_running || !_settings.enabled) return;
+    if (_running || !_settings.anyEnabled) return;
     // Claimed BEFORE the availability await: a resume racing the launch kick
     // must not both slip past the guard while the first is probing.
     _running = true;
     try {
-      // Recorded before the availability gate: the floor marks when the
-      // FEATURE first ran, not when the model first answered.
-      final floor = await _ensureFloor();
-      if (floor == null) return;
-      // Availability is probed live, so enabling the model mid-life is
-      // picked up on the next open rather than needing a relaunch.
-      final availability = await _engine.availability();
-      if (!availability.isAvailable) return;
-
-      final currentWeek = currentWeekStart();
-      final byWeek = _entriesByWeek();
-      final weeks = byWeek.keys.where((w) => w.isBefore(currentWeek)).toList()
-        ..sort((a, b) => b.compareTo(a));
-
-      for (final week in weeks) {
-        // Disabling mid-run stops the rest of the backlog, not just the next open.
-        if (!_settings.enabled) break;
-        // No backfill: a week that closed entirely before the feature first
-        // ran is history, not a queue. This is also the churn bound: an
-        // upgrade with months of older entries reflects nothing from before
-        // its first post-floor week.
-        if (!weekClearsFloor(week, floor)) continue;
-        // Stored rows and tombstones are re-read every iteration, not
-        // snapshotted before the loop: the generation awaits are long enough
-        // for a user regenerate or delete to land, and acting on a stale
-        // snapshot would overwrite it.
-        //
-        // A stored reflection (text OR silence) is done; never re-run. Done is
-        // judged by RANGE overlap, not exact key: an app-language change can
-        // shift the first-day-of-week, and the shifted candidate must still
-        // see the reflection written under the old boundary, or one language
-        // switch would re-reflect the whole history into overlapping duplicates.
-        if (_covered(week, _store.all())) continue;
-        // An erased week stays erased: the user's delete must not be overruled
-        // by the next open re-reflecting a week whose entries still exist.
-        // Range-matched like the done-check, so a locale shift cannot
-        // resurrect around the tombstone.
-        if (_tombstoned(week)) continue;
+      for (final period in ReflectionPeriod.values) {
+        if (!_settings.enabledFor(period)) continue;
         try {
-          await _reflectWeek(week, byWeek[week]!);
-        } on ReflectionUnavailable {
-          // The MODEL is not usable right now (system-level, transient). Stop
-          // and leave the rest unreflected; the next open retries all. A
-          // deterministic per-week failure comes back as silence, not this, so
-          // it never reaches here to head-of-line-block older weeks.
-          break;
+          await _catchUpPeriod(period);
         } catch (e) {
-          // A one-off per-week failure (e.g. a storage write) must not block
-          // the other weeks, nor escape: skip it, it stays eligible.
-          if (kDebugMode) debugPrint('reflection: week $week failed: $e');
+          // One period's setup failure (a floor write, say) must not deny the
+          // others their pass this open. catchUp is fired unawaited from launch
+          // and resume, so it must never throw either.
+          if (kDebugMode) debugPrint('reflection: ${period.wire} catch-up failed: $e');
         }
       }
-    } catch (e) {
-      // catchUp is fired unawaited from launch and resume, so it must never
-      // throw: a failure before the loop (a read) is logged and swallowed.
-      if (kDebugMode) debugPrint('reflection: catch-up failed: $e');
     } finally {
       _running = false;
     }
   }
 
-  /// Force-reflects one week in the CURRENT style, replacing any stored result.
-  /// The explicit per-week action. Unlike [catchUp] it ignores the enabled flag
-  /// (the user asked for this one) and lets a [ReflectionUnavailable] surface, so
-  /// the caller can offer a retry instead of it being swallowed.
-  Future<void> regenerate(DateTime weekStart) async {
-    // Key off the STORED week as-is; do NOT re-bucket through the current
-    // locale (an app-language change could shift the boundary and orphan the
-    // reflection under a new key). Gather the week's entries by the same 7-day
-    // range, so this is locale-independent too.
-    final week = dateOnly(weekStart);
-    final end = addDays(week, 7);
-    final entries = [
-      for (final e in _entries())
-        if (_dayInWeek(dateOnly(e.createdAt.toLocal()), week, end)) e,
-    ];
-    await _reflectWeek(week, entries, force: true);
+  Future<void> _catchUpPeriod(ReflectionPeriod period) async {
+    // Recorded before the availability gate: the floor marks when this period
+    // first ran, not when the model first answered.
+    final floor = await _ensureFloor(period);
+    if (floor == null) return;
+    // Availability is probed live, so enabling the model mid-life is picked up
+    // on the next open rather than needing a relaunch.
+    final availability = await _engine.availability();
+    if (!availability.isAvailable) return;
+
+    final current = _currentStart(period);
+    final byStart = _entriesByPeriod(period);
+    final starts = byStart.keys.where((s) => s.isBefore(current)).toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    for (final start in starts) {
+      // Disabling mid-run stops the rest of this period's backlog.
+      if (!_settings.enabledFor(period)) break;
+      // No backfill: a period that closed entirely before this period first ran
+      // is history, not a queue. This is also the churn bound.
+      if (!clearsFloor(start, period, floor)) continue;
+      // Stored rows and tombstones are re-read every iteration, not snapshotted
+      // before the loop: the generation awaits are long enough for a user
+      // regenerate or delete to land, and acting on a stale snapshot would
+      // overwrite it.
+      //
+      // A stored reflection (text OR silence) is done; never re-run. Done is
+      // judged by RANGE overlap, not exact key: an app-language change can shift
+      // the first-day-of-week, and the shifted candidate must still see the
+      // reflection written under the old boundary, or one language switch would
+      // re-reflect the whole history into overlapping duplicates.
+      if (_covered(period, start, _store.all())) continue;
+      // An erased period stays erased: the user's delete must not be overruled
+      // by the next open re-reflecting a period whose entries still exist.
+      if (_tombstoned(period, start)) continue;
+      try {
+        await _reflectPeriod(period, start, byStart[start]!);
+      } on ReflectionUnavailable {
+        // The MODEL is not usable right now (system-level, transient). Stop and
+        // leave the rest unreflected; the next open retries all. A deterministic
+        // per-period failure comes back as silence, not this, so it never
+        // reaches here to head-of-line-block older periods.
+        break;
+      } catch (e) {
+        // A one-off per-period failure (e.g. a storage write) must not block the
+        // other periods, nor escape: skip it, it stays eligible.
+        if (kDebugMode) debugPrint('reflection: ${period.wire} $start failed: $e');
+      }
+    }
   }
 
-  bool _dayInWeek(DateTime day, DateTime start, DateTime end) =>
+  /// Force-reflects one [period] at [start] in that period's CURRENT style,
+  /// replacing any stored result. The explicit per-period action. Unlike
+  /// [catchUp] it ignores the enabled flag (the user asked for this one) and
+  /// lets a [ReflectionUnavailable] surface, so the caller can offer a retry
+  /// instead of it being swallowed.
+  Future<void> regenerate(
+    DateTime start, {
+    ReflectionPeriod period = ReflectionPeriod.weekly,
+  }) async {
+    // Key off the STORED start as-is; do NOT re-bucket through the current
+    // locale (an app-language change could shift the boundary and orphan the
+    // reflection under a new key). Gather the entries by the same range, so this
+    // is locale-independent too.
+    final periodStart = dateOnly(start);
+    final end = nextPeriodStart(periodStart, period);
+    final entries = [
+      for (final e in _entries())
+        if (_inRange(dateOnly(e.createdAt.toLocal()), periodStart, end)) e,
+    ];
+    await _reflectPeriod(period, periodStart, entries, force: true);
+  }
+
+  bool _inRange(DateTime day, DateTime start, DateTime end) =>
       !day.isBefore(start) && day.isBefore(end);
 
-  /// The no-backfill floor, recorded exactly once: the app-language week start
-  /// of the day the feature first ran. Null when a record exists but cannot be
-  /// parsed; the catch-up then sits the run out, because re-recording at the
-  /// current week would permanently orphan the journaled weeks below the true
-  /// floor. [regenerate] never checks the floor: it is the user's explicit
-  /// per-week ask, so the no-backfill rule deliberately does not apply.
-  Future<DateTime?> _ensureFloor() async {
-    final stored = _settings.floor;
+  /// [period]'s no-backfill floor, recorded exactly once: the period start of
+  /// the day it first ran. Null when a record exists but cannot be parsed; the
+  /// catch-up then sits the period out, because re-recording at the current
+  /// period would permanently orphan the journaled periods below the true floor.
+  /// [regenerate] never checks the floor: it is the user's explicit per-period
+  /// ask, so the no-backfill rule deliberately does not apply.
+  Future<DateTime?> _ensureFloor(ReflectionPeriod period) async {
+    final stored = _settings.floorFor(period);
     if (stored != null) return stored;
-    if (_settings.floorRecorded) return null;
-    final floor = currentWeekStart();
-    await _settings.setFloor(floor);
+    if (_settings.floorRecordedFor(period)) return null;
+    final floor = _currentStart(period);
+    await _settings.setFloorFor(period, floor);
     return floor;
   }
 
-  /// Whether any of [stored] covers [week]'s 7-day range.
-  bool _covered(DateTime week, List<Reflection> stored) =>
-      stored.any((r) => weeksOverlap(week, r.weekStart));
+  /// Whether any of [stored] for [period] covers [start]'s range.
+  bool _covered(ReflectionPeriod period, DateTime start, List<Reflection> stored) =>
+      stored.any((r) => r.period == period && periodsOverlap(start, r.weekStart, period));
 
-  /// Whether a user erasure covers [week]'s 7-day range.
-  bool _tombstoned(DateTime week) => _store.deletedWeeks().any((d) => weeksOverlap(week, d));
+  /// Whether a user erasure of [period] covers [start]'s range.
+  bool _tombstoned(ReflectionPeriod period, DateTime start) =>
+      _store.deletedRefs().any((d) => d.period == period && periodsOverlap(start, d.start, period));
 
-  /// The stored history, newest week first, for the surfaces. The store itself
-  /// stays private so every write goes through this service.
-  List<Reflection> history() => _store.all();
+  /// The stored weekly history, newest first, for the surfaces still on the
+  /// weekly timeline. The store itself stays private so every write goes through
+  /// this service.
+  List<Reflection> history() => [
+    for (final r in _store.all())
+      if (r.period == ReflectionPeriod.weekly) r,
+  ];
 
   /// Week starts (app-language bucketing) holding at least one entry with
-  /// material. An untranscribed-only week is excluded so the pager never
-  /// shows a waiting page the catch-up would skip for having nothing to read.
+  /// material. An untranscribed-only week is excluded so the pager never shows a
+  /// waiting page the catch-up would skip for having nothing to read.
   Set<DateTime> journaledWeekStarts() => {
     for (final e in _entries())
-      if (_hasMaterial(e)) _weekOfEntry(e),
+      if (_hasMaterial(e)) _startOfEntry(ReflectionPeriod.weekly, e),
   };
 
   /// The open week's start under the app-language bucketing: the timeline's
   /// ceiling, resolved here so surfaces never re-derive the boundary.
-  DateTime currentWeekStart() => _weekOf(dateOnly(_clock()));
+  DateTime currentWeekStart() => _currentStart(ReflectionPeriod.weekly);
 
   /// The weeks the user erased (tombstones), stored starts as-is.
   List<DateTime> deletedWeeks() => _store.deletedWeeks();
@@ -223,96 +234,135 @@ class ReflectionService {
   /// enabling the on-device model mid-life must be seen on the next probe.
   Future<ReflectionAvailability> availability() => _engine.availability();
 
-  /// Removes a week's reflection, keyed off the STORED week as-is, exactly like
-  /// [regenerate]: re-bucketing through the current locale would miss the record
-  /// after a first-day-shifting language change.
-  Future<void> deleteReflection(DateTime weekStart) async {
-    await _store.delete(dateOnly(weekStart));
+  /// Removes a [period]'s reflection at [start], keyed off the STORED start
+  /// as-is, exactly like [regenerate]: re-bucketing through the current locale
+  /// would miss the record after a first-day-shifting language change.
+  Future<void> deleteReflection(
+    DateTime start, {
+    ReflectionPeriod period = ReflectionPeriod.weekly,
+  }) async {
+    await _store.delete(dateOnly(start), period: period);
     _emitChanged();
   }
 
-  Future<void> _reflectWeek(DateTime week, List<Entry> entries, {bool force = false}) async {
-    final inputs = _inputsFor(entries);
-    // Nothing transcribed to read. On catch-up, leave the week unreflected so a
-    // later transcription can still produce one. On an explicit regenerate, the
-    // user asked, so record an honest silence.
+  Future<void> _reflectPeriod(
+    ReflectionPeriod period,
+    DateTime start,
+    List<Entry> entries, {
+    bool force = false,
+  }) async {
+    final inputs = _inputsFor(period, entries);
+    // Nothing transcribed to read. On catch-up, leave the period unreflected so
+    // a later transcription can still produce one. On an explicit regenerate,
+    // the user asked, so record an honest silence.
     if (inputs.isEmpty && !force) return;
 
     // Read the style ONCE, before the await, so the persisted voice is the one
     // the text was actually generated with even if a setting changes mid-run.
-    final style = _settings.style;
-    final erased = _tombstoned(week);
+    final style = _settings.styleFor(period);
+    final erased = _tombstoned(period, start);
     final text = inputs.isEmpty
         ? null
         : await _engine
-              .reflect(entries: inputs, style: style, localeId: _language())
+              .reflect(period: period, entries: inputs, style: style, localeId: _language())
               .timeout(
                 _reflectTimeout,
                 onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
               );
 
     // A delete that landed during the generation wins: saving now would clear
-    // the tombstone the user just wrote and resurrect the week. A tombstone
-    // that predates the run is a regenerate of an erased week, which the user
+    // the tombstone the user just wrote and resurrect the period. A tombstone
+    // that predates the run is a regenerate of an erased period, which the user
     // asked for, so that one saves through.
-    if (!erased && _tombstoned(week)) return;
+    if (!erased && _tombstoned(period, start)) return;
 
     await _store.save(
-      Reflection(weekStart: week, generatedAt: _clock(), text: text, voice: style.voice),
+      Reflection(
+        period: period,
+        weekStart: start,
+        generatedAt: _clock(),
+        text: text,
+        voice: style.voice,
+      ),
     );
     _emitChanged();
   }
 
-  Map<DateTime, List<Entry>> _entriesByWeek() {
-    final byWeek = <DateTime, List<Entry>>{};
+  Map<DateTime, List<Entry>> _entriesByPeriod(ReflectionPeriod period) {
+    final byStart = <DateTime, List<Entry>>{};
     for (final e in _entries()) {
-      (byWeek[_weekOfEntry(e)] ??= []).add(e);
+      (byStart[_startOfEntry(period, e)] ??= []).add(e);
     }
-    return byWeek;
+    return byStart;
   }
 
-  /// The week an entry belongs to: its LOCAL civil date resolved to the week's
-  /// first day. createdAt is stored UTC; a week boundary is a civil/local day.
-  DateTime _weekOfEntry(Entry e) => _weekOf(dateOnly(e.createdAt.toLocal()));
+  /// The [period] start an entry belongs to: its LOCAL civil date resolved to
+  /// the period's first day. createdAt is stored UTC; a period boundary is a
+  /// civil/local day.
+  DateTime _startOfEntry(ReflectionPeriod period, Entry e) =>
+      _startOf(dateOnly(e.createdAt.toLocal()), period);
+
+  /// The current open period's start: the timeline's ceiling for [period].
+  DateTime _currentStart(ReflectionPeriod period) => _startOf(dateOnly(_clock()), period);
+
+  /// The [period] start containing [day]. Weekly routes through the injected
+  /// app-language boundary; daily and monthly are locale-independent and share
+  /// the one boundary the timeline also resolves through.
+  DateTime _startOf(DateTime day, ReflectionPeriod period) =>
+      period == ReflectionPeriod.weekly ? _weekOf(day) : startOfPeriod(day, period);
 
   /// The one material test, shared by generation and the surfaces: an entry
   /// counts only once it carries transcribed text.
   static bool _hasMaterial(Entry e) => e.transcript?.fullText.trim().isNotEmpty ?? false;
 
-  /// The week's entries as the engine sees them: chronological, material only,
-  /// with the weekday each was recorded on; the whole is capped to
-  /// [_maxPromptTokens].
-  List<ReflectionEntryInput> _inputsFor(List<Entry> entries) {
+  /// The period's entries as the engine sees them: chronological, material only,
+  /// each tagged with the civil date it was recorded on; the whole is capped to
+  /// the period's token budget.
+  List<ReflectionEntryInput> _inputsFor(ReflectionPeriod period, List<Entry> entries) {
     final ordered = [...entries]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return _capped([
+    return _capped(period, [
       for (final e in ordered)
         if (_hasMaterial(e))
           ReflectionEntryInput(
-            weekday: e.createdAt.toLocal().weekday,
+            date: dateOnly(e.createdAt.toLocal()),
             text: e.transcript!.fullText.trim(),
             title: e.title,
           ),
     ]);
   }
 
-  /// Keeps the combined transcripts AND titles under [_maxPromptTokens] so a
-  /// heavy week cannot overflow the small on-device context window (a
-  /// deterministic failure). Every day is kept but trimmed to an equal share,
-  /// so the week's shape survives at reduced detail rather than a day being
+  /// Soft ceiling on the estimated prompt tokens for one [period], safely under
+  /// the on-device model's ~4k context window with room for the instructions and
+  /// the response. Scaled by how much a period holds: a day is small, a month
+  /// several times a week. Budgeted in tokens, not characters: a character cap
+  /// sized for Latin text sails a CJK period (near one token per character)
+  /// straight into a context overflow, a deterministic failure that would be
+  /// stored as a false quiet period. First-draft sizes; tuned on-device.
+  static int _maxPromptTokensFor(ReflectionPeriod period) => switch (period) {
+    ReflectionPeriod.daily => 800,
+    ReflectionPeriod.weekly => 2000,
+    ReflectionPeriod.monthly => 3000,
+  };
+
+  /// Keeps the combined transcripts AND titles under the period's budget so a
+  /// heavy period cannot overflow the small on-device context window (a
+  /// deterministic failure). Every entry is kept but trimmed to an equal share,
+  /// so the period's shape survives at reduced detail rather than an entry being
   /// dropped whole; a title spends from its entry's share, since the prompt
   /// carries both.
-  List<ReflectionEntryInput> _capped(List<ReflectionEntryInput> inputs) {
+  List<ReflectionEntryInput> _capped(ReflectionPeriod period, List<ReflectionEntryInput> inputs) {
     if (inputs.isEmpty) return inputs;
+    final max = _maxPromptTokensFor(period);
     final total = inputs.fold<int>(0, (sum, i) => sum + _inputTokens(i));
-    if (total <= _maxPromptTokens) return inputs;
-    final share = _maxPromptTokens ~/ inputs.length;
+    if (total <= max) return inputs;
+    final share = max ~/ inputs.length;
     return [
       for (final i in inputs)
         if (_inputTokens(i) <= share)
           i
         else
           ReflectionEntryInput(
-            weekday: i.weekday,
+            date: i.date,
             text: _trimToTokens(i.text, math.max(0, share - _titleTokens(i))),
             title: i.title,
           ),

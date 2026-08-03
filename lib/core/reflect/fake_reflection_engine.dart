@@ -1,6 +1,7 @@
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 
 /// Deterministic reflection engine for tests and dev harnesses. On-device by
 /// contract, like the real one. Configure its [availabilityResult], its
@@ -32,6 +33,7 @@ class FakeReflectionEngine implements ReflectionEngine {
   List<ReflectionEntryInput>? lastEntries;
   ReflectionStyle? lastStyle;
   String? lastLocaleId;
+  ReflectionPeriod? lastPeriod;
   int reflectCalls = 0;
 
   @override
@@ -45,6 +47,7 @@ class FakeReflectionEngine implements ReflectionEngine {
 
   @override
   Future<String?> reflect({
+    required ReflectionPeriod period,
     required List<ReflectionEntryInput> entries,
     required ReflectionStyle style,
     required String localeId,
@@ -53,6 +56,7 @@ class FakeReflectionEngine implements ReflectionEngine {
     lastEntries = entries;
     lastStyle = style;
     lastLocaleId = localeId;
+    lastPeriod = period;
     if (gate != null) await gate;
     if (failReflect) throw const ReflectionUnavailable('fake reflect failure');
     if (error != null) throw error!;

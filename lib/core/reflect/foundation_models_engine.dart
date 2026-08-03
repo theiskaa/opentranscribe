@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 
 // Channel identifier. Must match ReflectionEngine.swift.
 const _controlChannel = 'opentranscribe/reflect';
@@ -48,12 +49,14 @@ class FoundationModelsEngine implements ReflectionEngine {
 
   @override
   Future<String?> reflect({
+    required ReflectionPeriod period,
     required List<ReflectionEntryInput> entries,
     required ReflectionStyle style,
     required String localeId,
   }) async {
     try {
       final result = await _methods.invokeMapMethod<String, dynamic>('reflect', {
+        'period': period.wire,
         'entries': [for (final e in entries) e.toWire()],
         'style': style.toWire(),
         'localeId': localeId,
@@ -65,7 +68,7 @@ class FoundationModelsEngine implements ReflectionEngine {
       // A guardrail refusal comes back as empty text (silence) above, never as
       // an error. Only "could not run" maps to the transient signal; any other
       // code (a deterministic rejection like bad_args) must not, or it would
-      // read as retry-later and head-of-line-block every older week.
+      // read as retry-later and head-of-line-block every older period.
       if (e.code == _unavailableCode) throw ReflectionUnavailable(e.message);
       throw StateError('reflect failed: ${e.code}: ${e.message}');
     } on MissingPluginException catch (e) {

@@ -3,10 +3,11 @@ import Foundation
 import FoundationModels
 
 // Apple Foundation Models behind the Dart ReflectionEngine contract. It reads a
-// week's entries back as a short observation, using ONLY the on-device model
-// (SystemLanguageModel.default) - never Private Cloud Compute, never a server.
-// Silence is a valid, expected result: an empty response, or a guardrail
-// refusal, both come back as empty text, which Dart reads as "a quiet week".
+// period's entries (a day, a week, or a month) back as a short observation,
+// using ONLY the on-device model (SystemLanguageModel.default) - never Private
+// Cloud Compute, never a server. Silence is a valid, expected result: an empty
+// response, or a guardrail refusal, both come back as empty text, which Dart
+// reads as a quiet period (a quiet day, week, or month).
 
 /// Channel error codes. Cross-boundary contract with foundation_models_engine.dart.
 private enum ReflectErrorCode: String {
@@ -40,7 +41,9 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
         result(ReflectErrorCode.badArgs.error("reflect: missing or malformed arguments"))
         return
       }
-      reflect(entries: entries, style: style, localeId: localeId, result: result)
+      // Absent period means an older caller; weekly is the historical default.
+      let period = (args["period"] as? String) ?? "weekly"
+      reflect(entries: entries, style: style, localeId: localeId, period: period, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -68,7 +71,7 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
   }
 
   private func reflect(
-    entries: [[String: Any]], style: [String: Any], localeId: String,
+    entries: [[String: Any]], style: [String: Any], localeId: String, period: String,
     result: @escaping FlutterResult
   ) {
     guard #available(iOS 26.0, *) else {
@@ -82,8 +85,8 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
       return
     }
 
-    let instructions = buildInstructions(style: style, localeId: localeId)
-    let prompt = buildPrompt(entries: entries, localeId: localeId)
+    let instructions = buildInstructions(style: style, localeId: localeId, period: period)
+    let prompt = buildPrompt(entries: entries, localeId: localeId, period: period)
 
     Task {
       do {
@@ -102,13 +105,14 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
     }
   }
 
-  /// Splits generation failures by what they mean for the WEEK. Transient
+  /// Splits generation failures by what they mean for the PERIOD. Transient
   /// system conditions (throttled, model assets evicted, another request in
-  /// flight) are could-not-run: the week stays unreflected and the next open
-  /// retries, because persisting them would permanently mislabel a real week as
-  /// quiet. Everything else means the model ran and produced nothing usable for
-  /// this input (a refusal, an overflow, a decode failure): terminal for this
-  /// week, so silence, never a retry that would head-of-line-block older weeks.
+  /// flight) are could-not-run: the period stays unreflected and the next open
+  /// retries, because persisting them would permanently mislabel a real period
+  /// as quiet. Everything else means the model ran and produced nothing usable
+  /// for this input (a refusal, an overflow, a decode failure): terminal for
+  /// this period, so silence, never a retry that would head-of-line-block older
+  /// periods.
   @available(iOS 26.0, *)
   private func generationOutcome(for error: LanguageModelSession.GenerationError) -> Any {
     switch error {
@@ -119,17 +123,28 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// The English noun for a period, for the observer instructions and prompt
+  /// scaffolding. Weekly is the default for any unrecognized value.
+  private func periodNoun(_ period: String) -> String {
+    switch period {
+    case "daily": return "day"
+    case "monthly": return "month"
+    default: return "week"
+    }
+  }
+
   /// The observer contract, plus the three user knobs. The non-negotiables are
   /// the base: observe, never address the person, never advise, and prefer
   /// silence over filler. First-draft copy; tuned on-device.
-  private func buildInstructions(style: [String: Any], localeId: String) -> String {
+  private func buildInstructions(style: [String: Any], localeId: String, period: String) -> String {
+    let noun = periodNoun(period)
     var lines: [String] = [
-      "You read a person's week back to them from their own voice-journal entries.",
-      "You are only an observer. You notice what recurred, what shifted, the shape of the week.",
+      "You read a person's \(noun) back to them from their own voice-journal entries.",
+      "You are only an observer. You notice what recurred, what shifted, the shape of the \(noun).",
       "You never address the person, and never advise, comfort, encourage, reassure, or judge.",
       "You do not use the word \"you\", imperatives, greetings, or sign-offs.",
       "You never invent anything that is not in the entries.",
-      "If the week holds nothing worth noticing, you reply with nothing at all. An empty reply is correct and expected; never pad it with filler.",
+      "If the \(noun) holds nothing worth noticing, you reply with nothing at all. An empty reply is correct and expected; never pad it with filler.",
     ]
 
     switch style["voice"] as? String {
@@ -137,7 +152,7 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
       lines.append(
         "Write as tersely as possible, close to a log: state what recurred, with minimal interpretation.")
     case "observational":
-      lines.append("Write plainly, reporting the shape of the week with a little warmth.")
+      lines.append("Write plainly, reporting the shape of the \(noun) with a little warmth.")
     default:  // literary
       lines.append(
         "Write a few plain, quietly evocative sentences, like a short reflective note.")
@@ -158,7 +173,7 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
         "Refer to themes only (work, family, a trip). Do not name specific people, projects, or places.")
     case "let_week_decide":
       lines.append(
-        "Name a specific person, project, or place only when it is clearly central to the week; otherwise keep to themes.")
+        "Name a specific person, project, or place only when it is clearly central to the \(noun); otherwise keep to themes.")
     default:  // name_freely
       lines.append("You may name the specific people, projects, and places you heard.")
     }
@@ -173,26 +188,41 @@ final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
     return lines.joined(separator: " ")
   }
 
-  private func buildPrompt(entries: [[String: Any]], localeId: String) -> String {
-    // Weekday names in the reflection's own language, so the prompt does not
-    // mix English scaffolding into a non-English week. weekdaySymbols is
-    // Sunday-first; the wire weekday is Dart's 1=Monday..7=Sunday.
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: localeId)
-    let weekdays = formatter.weekdaySymbols ?? []
-    var lines: [String] = ["This week's entries, in order:", ""]
+  private func buildPrompt(entries: [[String: Any]], localeId: String, period: String) -> String {
+    let noun = periodNoun(period)
+    let label = dayLabeller(period: period, localeId: localeId)
+    var lines: [String] = ["This \(noun)'s entries, in order:", ""]
     for entry in entries {
-      let weekday = entry["weekday"] as? Int ?? 0
-      let dayName = (weekday >= 1 && weekday <= 7 && weekdays.count == 7) ? weekdays[weekday % 7] : ""
+      let dayLabel = label(entry["date"] as? String ?? "")
       let text = (entry["text"] as? String) ?? ""
-      var head = dayName
+      var head = dayLabel
       if let title = entry["title"] as? String, !title.isEmpty {
-        head = head.isEmpty ? title : "\(dayName) - \(title)"
+        head = head.isEmpty ? title : "\(dayLabel) - \(title)"
       }
       lines.append(head.isEmpty ? text : "\(head): \(text)")
     }
     lines.append("")
-    lines.append("Read this week back.")
+    lines.append("Read this \(noun) back.")
     return lines.joined(separator: "\n")
+  }
+
+  /// Builds the per-entry day label for a period, in the reflection's own
+  /// language so the prompt never mixes English scaffolding into a non-English
+  /// read. A day within a week is its weekday name; a day within a month is its
+  /// month-day; a single day needs no label. The wire date is `yyyy-MM-dd`.
+  private func dayLabeller(period: String, localeId: String) -> (String) -> String {
+    if period == "daily" { return { _ in "" } }
+    let iso = DateFormatter()
+    iso.locale = Locale(identifier: "en_US_POSIX")
+    iso.dateFormat = "yyyy-MM-dd"
+    let out = DateFormatter()
+    out.locale = Locale(identifier: localeId)
+    // A month read is one month, so the day-of-month alone locates each entry;
+    // a week read wants the weekday name.
+    out.setLocalizedDateFormatFromTemplate(period == "monthly" ? "d" : "EEEE")
+    return { dateString in
+      guard let date = iso.date(from: dateString) else { return "" }
+      return out.string(from: date)
+    }
   }
 }

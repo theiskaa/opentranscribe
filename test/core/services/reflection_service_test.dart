@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/reflect/fake_reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
@@ -25,6 +26,7 @@ class _OffDeviceEngine implements ReflectionEngine {
   Future<ReflectionAvailability> availability() async => const ReflectionAvailability.available();
   @override
   Future<String?> reflect({
+    required ReflectionPeriod period,
     required List<ReflectionEntryInput> entries,
     required ReflectionStyle style,
     required String localeId,
@@ -114,10 +116,15 @@ void main() {
       expect(r.isSilent, isFalse);
       expect(r.voice, ReflectionVoice.literary);
       expect(engine.lastEntries, [
-        const ReflectionEntryInput(weekday: 3, text: 'shipped the migration', title: 'log'),
+        ReflectionEntryInput(
+          date: DateTime(2026, 7, 22),
+          text: 'shipped the migration',
+          title: 'log',
+        ),
       ]);
       expect(engine.lastStyle, ReflectionStyle.defaults);
       expect(engine.lastLocaleId, 'en');
+      expect(engine.lastPeriod, ReflectionPeriod.weekly);
     });
 
     test('silence is stored as a quiet week and never re-run', () async {
@@ -567,13 +574,13 @@ void main() {
     });
 
     test('a floor record that fails to parse is preserved, never re-recorded at today', () async {
-      await storage.write('reflect.floor', 'not-a-date');
+      await storage.write('reflect.weekly.floor', 'not-a-date');
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
 
       await service.catchUp();
 
       expect(engine.reflectCalls, 0);
-      expect(storage.readString('reflect.floor'), 'not-a-date');
+      expect(storage.readString('reflect.weekly.floor'), 'not-a-date');
     });
 
     test('a first-day-of-week shift cannot pull a pre-feature week over the floor', () async {
@@ -639,6 +646,84 @@ void main() {
 
       expect(store.read(sundayWeek)!.text, 'new');
       expect(store.read(DateTime(2026, 7, 20)), isNull);
+    });
+  });
+
+  group('periods beyond weekly', () {
+    test('reflects each closed day when daily is enabled', () async {
+      await settings.setEnabledFor(ReflectionPeriod.weekly, false);
+      await settings.setEnabledFor(ReflectionPeriod.daily, true);
+      await settings.setFloorFor(ReflectionPeriod.daily, DateTime(2026, 6, 8));
+      entries = [
+        withText('a', DateTime(2026, 7, 27, 9), text: 'monday'),
+        withText('b', DateTime(2026, 7, 28, 9), text: 'tuesday'),
+      ];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 2);
+      expect(engine.lastPeriod, ReflectionPeriod.daily);
+      expect(store.read(DateTime(2026, 7, 27), period: ReflectionPeriod.daily), isNotNull);
+      expect(store.read(DateTime(2026, 7, 28), period: ReflectionPeriod.daily), isNotNull);
+    });
+
+    test('does not reflect the current, still-open day', () async {
+      await settings.setEnabledFor(ReflectionPeriod.weekly, false);
+      await settings.setEnabledFor(ReflectionPeriod.daily, true);
+      await settings.setFloorFor(ReflectionPeriod.daily, DateTime(2026, 6, 8));
+      entries = [withText('a', DateTime(2026, 7, 29, 9), text: 'today')];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 0);
+      expect(store.read(DateTime(2026, 7, 29), period: ReflectionPeriod.daily), isNull);
+    });
+
+    test('reflects a closed month as one read of all its entries', () async {
+      await settings.setEnabledFor(ReflectionPeriod.weekly, false);
+      await settings.setEnabledFor(ReflectionPeriod.monthly, true);
+      await settings.setFloorFor(ReflectionPeriod.monthly, DateTime(2026));
+      entries = [
+        withText('a', DateTime(2026, 6, 10, 9), text: 'june'),
+        withText('b', DateTime(2026, 6, 20, 9), text: 'june again'),
+      ];
+
+      await service.catchUp();
+
+      expect(engine.reflectCalls, 1);
+      expect(engine.lastPeriod, ReflectionPeriod.monthly);
+      expect(engine.lastEntries!.length, 2);
+      expect(store.read(DateTime(2026, 6), period: ReflectionPeriod.monthly), isNotNull);
+    });
+
+    test('a daily reflection inside a week does not mark that week covered', () async {
+      await store.save(
+        Reflection(
+          period: ReflectionPeriod.daily,
+          weekStart: DateTime(2026, 7, 22),
+          generatedAt: now,
+          text: 'a single day',
+        ),
+      );
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+
+      await service.catchUp();
+
+      expect(store.read(lastWeek), isNotNull);
+    });
+
+    test('history stays weekly even when other periods have rows', () async {
+      await store.save(
+        Reflection(
+          period: ReflectionPeriod.daily,
+          weekStart: lastWeek,
+          generatedAt: now,
+          text: 'day',
+        ),
+      );
+      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'week'));
+
+      expect(service.history().map((r) => r.text), ['week']);
     });
   });
 

@@ -4,6 +4,7 @@ import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_exception.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -57,11 +58,11 @@ void main() {
 
   group('reflect', () {
     final entries = [
-      const ReflectionEntryInput(weekday: 1, text: 'monday thoughts', title: 'standup'),
-      const ReflectionEntryInput(weekday: 7, text: 'sunday walk'),
+      ReflectionEntryInput(date: DateTime(2026, 7, 20), text: 'monday thoughts', title: 'standup'),
+      ReflectionEntryInput(date: DateTime(2026, 7, 26), text: 'sunday walk'),
     ];
 
-    test('serializes entries, style, and locale under the agreed keys', () async {
+    test('serializes period, entries, style, and locale under the agreed keys', () async {
       Map<String, Object?>? sent;
       mock((call) async {
         expect(call.method, 'reflect');
@@ -70,6 +71,7 @@ void main() {
       });
 
       await engine.reflect(
+        period: ReflectionPeriod.monthly,
         entries: entries,
         style: const ReflectionStyle(
           voice: ReflectionVoice.sparse,
@@ -80,17 +82,23 @@ void main() {
       );
 
       expect(sent!['localeId'], 'en-US');
+      expect(sent!['period'], 'monthly');
       expect(sent!['style'], {'voice': 'sparse', 'length': 'one_line', 'specificity': 'abstract'});
       expect(sent!['entries'], [
-        {'weekday': 1, 'text': 'monday thoughts', 'title': 'standup'},
-        {'weekday': 7, 'text': 'sunday walk'},
+        {'date': '2026-07-20', 'text': 'monday thoughts', 'title': 'standup'},
+        {'date': '2026-07-26', 'text': 'sunday walk'},
       ]);
     });
 
     test('returns trimmed text', () async {
       mock((call) async => {'text': '  a reflection  '});
       expect(
-        await engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        await engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         'a reflection',
       );
     });
@@ -98,7 +106,12 @@ void main() {
     test('empty text is silence (null), not a failure', () async {
       mock((call) async => {'text': '   '});
       expect(
-        await engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        await engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         isNull,
       );
     });
@@ -106,7 +119,12 @@ void main() {
     test('a missing text key is silence (null)', () async {
       mock((call) async => <String, Object?>{});
       expect(
-        await engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        await engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         isNull,
       );
     });
@@ -114,7 +132,12 @@ void main() {
     test('the native "unavailable" code throws ReflectionUnavailable', () async {
       mock((call) async => throw PlatformException(code: 'unavailable', message: 'model busy'));
       await expectLater(
-        engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         throwsA(isA<ReflectionUnavailable>()),
       );
     });
@@ -123,14 +146,24 @@ void main() {
         'which as retry-later would head-of-line-block the catch-up loop', () async {
       mock((call) async => throw PlatformException(code: 'bad_args', message: 'malformed'));
       await expectLater(
-        engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         throwsA(isA<StateError>()),
       );
     });
 
     test('a missing plugin throws ReflectionUnavailable (retry, not false silence)', () async {
       await expectLater(
-        engine.reflect(entries: entries, style: ReflectionStyle.defaults, localeId: 'en-US'),
+        engine.reflect(
+          period: ReflectionPeriod.weekly,
+          entries: entries,
+          style: ReflectionStyle.defaults,
+          localeId: 'en-US',
+        ),
         throwsA(isA<ReflectionUnavailable>()),
       );
     });
