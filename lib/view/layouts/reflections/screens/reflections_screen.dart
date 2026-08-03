@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -17,6 +16,7 @@ import 'package:opentranscribe/view/layouts/reflections/components/disabled_card
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_page_logic.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflections_menu.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
@@ -64,24 +64,6 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
     unawaited(context.read<ReflectionsCubit>().load());
   }
 
-  /// The editorial copy for an empty screen: the first-run invitation when
-  /// the model runs here, else the state and what would make it work.
-  /// Instructions only for the off state: iOS has no public URL to the Apple
-  /// Intelligence & Siri pane (only the app's own Settings page), so a button
-  /// would land the user in the wrong place; the body says where to go instead.
-  (String, String) _editorialCopy(AppLocalizations l10n, ReflectionsState state) {
-    if (state.available) return (l10n.reflectionsEmptyTitle, l10n.reflectionsEmptyBody);
-    return switch (state.availability.status) {
-      ReflectionAvailabilityStatus.notEnabled => (l10n.reflectionOffTitle, l10n.reflectionOffBody),
-      ReflectionAvailabilityStatus.modelNotReady => (
-        l10n.reflectionPreparingTitle,
-        l10n.reflectionPreparingBody,
-      ),
-      // deviceNotEligible, unsupported (and the unreachable available).
-      _ => (l10n.reflectionUnsupportedTitle, l10n.reflectionUnsupportedBody),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -96,7 +78,13 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
       return AppScaffold(
         background: theme.screens.settings,
         onBack: () => context.pop(),
-        child: _Editorial(copy: _editorialCopy(l10n, state)),
+        child: _Editorial(
+          copy: reflectionEditorialCopy(
+            l10n,
+            available: state.available,
+            status: state.availability.status,
+          ),
+        ),
       );
     }
     return _WeekPagerView(initialWeekKey: widget.initialWeekKey);
@@ -528,27 +516,12 @@ class _PageBody extends StatelessWidget {
         ],
       );
     }
-    final (title, body, marker) = switch (week.status) {
-      ReflectionWeekStatus.silent => (l10n.reflectionQuietWeek, l10n.reflectionQuietBody, true),
-      // The erased page drops the bullet: an absence the user authored, not a
-      // quiet one the model recorded.
-      ReflectionWeekStatus.erased => (l10n.reflectionErasedTitle, l10n.reflectionErasedBody, false),
-      // unreflected (reflected handled above).
-      _ => (l10n.reflectionWaitingTitle, l10n.reflectionWaitingBody, false),
-    };
-    final titleStyle = AppType.title.copyWith(color: theme.textSecondary);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (marker) ...[Text('·', style: titleStyle), const SizedBox(width: AppSpacing.sm)],
-            Flexible(child: Text(title, style: titleStyle)),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(body, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.4)),
-      ],
+    // reflected is handled above, so the placeholder is always present here.
+    final placeholder = reflectionWeekPlaceholder(l10n, week.status)!;
+    return ReflectionWeekPlaceholder(
+      title: placeholder.title,
+      body: placeholder.body,
+      marker: placeholder.marker,
     );
   }
 }
@@ -564,8 +537,6 @@ class _Editorial extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final (title, body) = copy;
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
@@ -573,11 +544,7 @@ class _Editorial extends StatelessWidget {
         AppSpacing.xxxl,
         AppSpacing.xxl,
       ),
-      children: [
-        Text(title, style: AppType.display.copyWith(color: theme.text)),
-        const SizedBox(height: AppSpacing.md),
-        Text(body, style: AppType.body.copyWith(color: theme.textSecondary, height: 1.4)),
-      ],
+      children: [ReflectionEditorialBody(copy: copy)],
     );
   }
 }
