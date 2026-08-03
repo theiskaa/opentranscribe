@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 
 void main() {
   final currentWeek = DateTime(2026, 7, 27);
@@ -18,11 +19,12 @@ void main() {
     List<DateTime> deleted = const [],
     DateTime? floor,
   }) => reflectionTimeline(
+    period: ReflectionPeriod.weekly,
     history: history,
-    journaledWeeks: journaled,
-    deletedWeeks: deleted,
+    journaledStarts: journaled,
+    deletedStarts: deleted,
     floor: floor ?? oldFloor,
-    currentWeekStart: currentWeek,
+    currentStart: currentWeek,
   );
 
   test('orders oldest first, so the last page is the newest closed week', () {
@@ -66,11 +68,12 @@ void main() {
 
   test('a null floor (catch-up never ran) yields no waiting pages at all', () {
     final weeks = reflectionTimeline(
+      period: ReflectionPeriod.weekly,
       history: [],
-      journaledWeeks: {lastWeek},
-      deletedWeeks: const [],
+      journaledStarts: {lastWeek},
+      deletedStarts: const [],
       floor: null,
-      currentWeekStart: currentWeek,
+      currentStart: currentWeek,
     );
     expect(weeks, isEmpty);
   });

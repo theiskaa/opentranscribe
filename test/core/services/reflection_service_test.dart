@@ -723,36 +723,36 @@ void main() {
       );
       await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'week'));
 
-      expect(service.history().map((r) => r.text), ['week']);
+      expect(service.historyFor(ReflectionPeriod.weekly).map((r) => r.text), ['week']);
     });
   });
 
   group('surface pass-throughs', () {
-    test('journaledWeekStarts buckets by the injected week boundary', () {
+    test('journaledStartsFor buckets by the injected week boundary', () {
       entries = [
         withText('a', DateTime(2026, 7, 22, 9), text: 'x'),
         withText('b', DateTime(2026, 7, 15, 9), text: 'y'),
       ];
-      expect(service.journaledWeekStarts(), {lastWeek, twoWeeksAgo});
+      expect(service.journaledStartsFor(ReflectionPeriod.weekly), {lastWeek, twoWeeksAgo});
     });
 
-    test('journaledWeekStarts ignores weeks holding only untranscribed entries, '
+    test('journaledStartsFor ignores weeks holding only untranscribed entries, '
         'so no waiting page promises a fill that never comes', () {
       entries = [
         withText('a', DateTime(2026, 7, 22, 9), text: 'x'),
         withText('b', DateTime(2026, 7, 15, 9)),
       ];
-      expect(service.journaledWeekStarts(), {lastWeek});
+      expect(service.journaledStartsFor(ReflectionPeriod.weekly), {lastWeek});
     });
 
-    test('currentWeekStart is the open week under the same boundary', () {
-      expect(service.currentWeekStart(), DateTime(2026, 7, 27));
+    test('currentStartFor is the open week under the same boundary', () {
+      expect(service.currentStartFor(ReflectionPeriod.weekly), DateTime(2026, 7, 27));
     });
 
-    test('deletedWeeks mirrors the store tombstones', () async {
+    test('deletedStartsFor mirrors the store tombstones', () async {
       await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
       await service.deleteReflection(lastWeek);
-      expect(service.deletedWeeks(), [lastWeek]);
+      expect(service.deletedStartsFor(ReflectionPeriod.weekly), [lastWeek]);
     });
   });
 

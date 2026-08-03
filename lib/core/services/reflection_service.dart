@@ -207,28 +207,30 @@ class ReflectionService {
   bool _tombstoned(ReflectionPeriod period, DateTime start) =>
       _store.deletedRefs().any((d) => d.period == period && periodsOverlap(start, d.start, period));
 
-  /// The stored weekly history, newest first, for the surfaces still on the
-  /// weekly timeline. The store itself stays private so every write goes through
-  /// this service.
-  List<Reflection> history() => [
+  /// [period]'s stored history, newest first, for the surfaces. The store stays
+  /// private so every write goes through this service.
+  List<Reflection> historyFor(ReflectionPeriod period) => [
     for (final r in _store.all())
-      if (r.period == ReflectionPeriod.weekly) r,
+      if (r.period == period) r,
   ];
 
-  /// Week starts (app-language bucketing) holding at least one entry with
-  /// material. An untranscribed-only week is excluded so the pager never shows a
-  /// waiting page the catch-up would skip for having nothing to read.
-  Set<DateTime> journaledWeekStarts() => {
+  /// [period] starts holding at least one entry with material. An
+  /// untranscribed-only period is excluded so the pager never shows a waiting
+  /// page the catch-up would skip for having nothing to read.
+  Set<DateTime> journaledStartsFor(ReflectionPeriod period) => {
     for (final e in _entries())
-      if (_hasMaterial(e)) _startOfEntry(ReflectionPeriod.weekly, e),
+      if (_hasMaterial(e)) _startOfEntry(period, e),
   };
 
-  /// The open week's start under the app-language bucketing: the timeline's
-  /// ceiling, resolved here so surfaces never re-derive the boundary.
-  DateTime currentWeekStart() => _currentStart(ReflectionPeriod.weekly);
+  /// The open [period]'s start: the timeline's ceiling, resolved here so
+  /// surfaces never re-derive the boundary.
+  DateTime currentStartFor(ReflectionPeriod period) => _currentStart(period);
 
-  /// The weeks the user erased (tombstones), stored starts as-is.
-  List<DateTime> deletedWeeks() => _store.deletedWeeks();
+  /// The [period] starts the user erased (tombstones), stored starts as-is.
+  List<DateTime> deletedStartsFor(ReflectionPeriod period) => [
+    for (final ref in _store.deletedRefs())
+      if (ref.period == period) ref.start,
+  ];
 
   /// Probes whether the on-device model can run right now. Live, never cached:
   /// enabling the on-device model mid-life must be seen on the next probe.

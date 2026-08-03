@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/fake_reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
@@ -217,6 +218,52 @@ void main() {
     await service.catchUp();
     await settle();
     expect(cubit.state.timeline.single.status, ReflectionWeekStatus.reflected);
+    await cubit.close();
+  });
+
+  test('setViewedPeriod switches enabled, style, and history to that period', () async {
+    await settings.setEnabled(false);
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await settings.setVoiceFor(ReflectionPeriod.daily, ReflectionVoice.sparse);
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        weekStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
+    expect(cubit.state.enabled, isFalse);
+    expect(cubit.state.history, isEmpty);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
+    expect(cubit.state.enabled, isTrue);
+    expect(cubit.state.style.voice, ReflectionVoice.sparse);
+    expect(cubit.state.history.map((r) => r.text), ['a day']);
+    await cubit.close();
+  });
+
+  test('switching period drops an in-flight regenerate marker', () async {
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    final gate = Completer<void>();
+    engine.gate = gate.future;
+    final cubit = build();
+    await cubit.load();
+
+    final run = cubit.regenerate(lastWeek);
+    expect(cubit.state.regenerating, lastWeek);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    expect(cubit.state.regenerating, isNull);
+
+    gate.complete();
+    await run;
     await cubit.close();
   });
 
