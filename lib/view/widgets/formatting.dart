@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 
 /// The one place display formatting for entries lives, so every surface renders
@@ -49,6 +50,20 @@ String shortDateLabel(DateTime date, String locale, {DateTime? now}) {
   if (date.year == today.year) return DateFormat.MMMd(locale).format(date);
   return DateFormat.yMMMd(locale).format(date);
 }
+
+/// A reflection page's title for its [period] starting at [start]: the day
+/// ("Jul 27"), the week's range ("Jul 20 – 26"), or the month ("August"). A
+/// start outside [now]'s year carries the year, so an old page dates itself.
+/// Tests pin [now]; callers omit it.
+String periodRangeLabel(ReflectionPeriod period, DateTime start, String locale, {DateTime? now}) =>
+    switch (period) {
+      ReflectionPeriod.daily => shortDateLabel(start, locale, now: now),
+      ReflectionPeriod.weekly => weekRangeLabel(start, locale, now: now),
+      ReflectionPeriod.monthly =>
+        start.year == (now ?? DateTime.now()).year
+            ? DateFormat.MMMM(locale).format(start)
+            : DateFormat.yMMMM(locale).format(start),
+    };
 
 /// A duration as m:ss, the audio-length shape for player surfaces.
 String formatClock(Duration d) {

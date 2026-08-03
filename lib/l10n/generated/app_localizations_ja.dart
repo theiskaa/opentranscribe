@@ -378,6 +378,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionsTitle => '振り返り';
 
   @override
+  String get reflectionPeriodDay => 'Day';
+
+  @override
+  String get reflectionPeriodWeek => 'Week';
+
+  @override
+  String get reflectionPeriodMonth => 'Month';
+
+  @override
+  String get reflectionDaily => 'Daily';
+
+  @override
+  String get reflectionWeekly => 'Weekly';
+
+  @override
+  String get reflectionMonthly => 'Monthly';
+
+  @override
   String get reflectionsEmptyTitle => 'まだ振り返りはありません';
 
   @override

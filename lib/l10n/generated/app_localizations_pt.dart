@@ -408,6 +408,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reflectionsTitle => 'Reflexões';
 
   @override
+  String get reflectionPeriodDay => 'Day';
+
+  @override
+  String get reflectionPeriodWeek => 'Week';
+
+  @override
+  String get reflectionPeriodMonth => 'Month';
+
+  @override
+  String get reflectionDaily => 'Daily';
+
+  @override
+  String get reflectionWeekly => 'Weekly';
+
+  @override
+  String get reflectionMonthly => 'Monthly';
+
+  @override
   String get reflectionsEmptyTitle => 'Ainda sem reflexões';
 
   @override

@@ -198,9 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, state) {
           _sections.prune(state.entryDays);
           // Cards are driven by the reflection history; watching it here rebuilds
-          // home when a week is reflected, deleted, or regenerated.
+          // home when a week is reflected, deleted, or regenerated. Home reads
+          // the weekly-pinned source, not the screen's viewed period, so paging
+          // the reflections screen to Day/Month never disturbs home's cards.
           final reflectionsState = context.watch<ReflectionsCubit>().state;
-          final reflections = reflectionsState.history;
+          final reflections = reflectionsState.homeReflections;
           // Only a card that ARRIVES while home is up gets an entrance; the
           // first LOADED build seeds the ledger settled. Diffing before the
           // cubit's first real read would run against its empty placeholder

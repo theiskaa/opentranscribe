@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -14,7 +15,9 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 /// The user-facing labels for the reflections menu, passed in so the item
 /// builder stays pure (testable without a BuildContext).
 typedef ReflectionMenuLabels = ({
-  String reflections,
+  String daily,
+  String weekly,
+  String monthly,
   String regenerate,
   String delete,
   String voice,
@@ -30,6 +33,12 @@ typedef ReflectionMenuLabels = ({
   String themesOnly,
   String letWeekDecide,
 });
+
+String _periodLabel(ReflectionMenuLabels labels, ReflectionPeriod period) => switch (period) {
+  ReflectionPeriod.daily => labels.daily,
+  ReflectionPeriod.weekly => labels.weekly,
+  ReflectionPeriod.monthly => labels.monthly,
+};
 
 /// One value/label pairing per dimension, the single source both the submenu
 /// items and the fallback dropdown draw from, so neither can drift out of step
@@ -67,15 +76,16 @@ AppMenuItem _group<T extends Enum>({
   ],
 );
 
-/// Builds the reflections menu in the locked navigation order: the on/off
-/// toggle first, then the Voice/Length/Specifics knobs, a divider, then
-/// Regenerate and Delete for the viewed week. [showSettings] is false when
-/// the model cannot run (the knobs would set nothing; Delete survives). Pure,
-/// so the ids, order, gating, and `selected` flags are testable directly. On
-/// native glass the submenu children answer through their ids; on the drawn
-/// fallback the parent ids open a follow-up dropdown.
+/// Builds the reflections menu in the locked navigation order: the three
+/// per-period on/off toggles first, then the Voice/Length/Specifics knobs for
+/// the viewed period, a divider, then Regenerate and Delete for the viewed
+/// page. [showSettings] is false when the model cannot run (the knobs would set
+/// nothing; Delete survives). Pure, so the ids, order, gating, and `selected`
+/// flags are testable directly. On native glass the submenu children answer
+/// through their ids; on the drawn fallback the parent ids open a follow-up
+/// dropdown.
 List<AppMenuItem> reflectionsMenuItems({
-  required bool enabled,
+  required Map<ReflectionPeriod, bool> enabledByPeriod,
   required ReflectionStyle style,
   required ReflectionMenuLabels labels,
   required bool canRegenerate,
@@ -83,14 +93,14 @@ List<AppMenuItem> reflectionsMenuItems({
   required bool showSettings,
 }) => [
   if (showSettings) ...[
-    AppMenuItem(
-      id: 'r:toggle',
-      label: labels.reflections,
-      icon: AppIcons.calendar,
-      selected: enabled,
-    ),
-    // Its own section: the toggle's checkmark column would otherwise indent
-    // every knob row beneath it on the native menu.
+    for (final period in ReflectionPeriod.values)
+      AppMenuItem(
+        id: 'r:${period.wire}',
+        label: _periodLabel(labels, period),
+        selected: enabledByPeriod[period] ?? false,
+      ),
+    // Its own section: the toggles' checkmark column would otherwise indent
+    // every knob row beneath them on the native menu.
     const AppMenuItem.divider(),
     _group(
       id: 'r:voice',
@@ -122,7 +132,9 @@ List<AppMenuItem> reflectionsMenuItems({
 ];
 
 ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
-  reflections: l10n.reflectionsTitle,
+  daily: l10n.reflectionDaily,
+  weekly: l10n.reflectionWeekly,
+  monthly: l10n.reflectionMonthly,
   regenerate: l10n.reflectionRegenerate,
   delete: l10n.reflectionDelete,
   voice: l10n.reflectionVoice,
@@ -139,11 +151,12 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   letWeekDecide: l10n.reflectionSpecificsLetWeek,
 );
 
-/// THE reflections menu - the surface has exactly one: the settings knobs
-/// over the VIEWED week's actions, gated by what the week holds and whether
-/// the model can run. Regenerate covers every status (an unreflected or
-/// erased week is "write it now"); Delete only what is stored, but even while
-/// the model is unavailable, so history stays manageable.
+/// THE reflections menu - the surface has exactly one: the three per-period
+/// on/off toggles, the viewed period's style knobs, then the VIEWED page's
+/// actions, gated by what the page holds and whether the model can run.
+/// Regenerate covers every status (an unreflected or erased page is "write it
+/// now"); Delete only what is stored, but even while the model is unavailable,
+/// so history stays manageable.
 class ReflectionsMenu extends StatefulWidget {
   const ReflectionsMenu({required this.viewed, this.color, super.key});
 
@@ -228,9 +241,11 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       if (viewed != null) unawaited(cubit.delete(viewed.weekStart));
       return;
     }
-    if (id == 'r:toggle') {
-      unawaited(cubit.setEnabled(!state.enabled));
-      return;
+    for (final period in ReflectionPeriod.values) {
+      if (id == 'r:${period.wire}') {
+        unawaited(cubit.setPeriodEnabled(period, !(state.enabledByPeriod[period] ?? false)));
+        return;
+      }
     }
     if (_handleStyle(
       id,
@@ -268,7 +283,7 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
     final state = context.watch<ReflectionsCubit>().state;
     final viewed = widget.viewed;
     final items = reflectionsMenuItems(
-      enabled: state.enabled,
+      enabledByPeriod: state.enabledByPeriod,
       style: state.style,
       labels: labels,
       canRegenerate: viewed != null && state.available,

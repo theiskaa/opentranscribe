@@ -26,6 +26,7 @@ import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
+import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
 import 'package:opentranscribe/view/widgets/glass_capsule.dart';
@@ -57,6 +58,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
   bool _toggle = true;
   bool _reveal = true;
+  int _segment = 1;
   int _page = 0;
   String? _notice;
   int _hour = 9;
@@ -157,6 +159,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   const SizedBox(width: AppSpacing.lg),
                   const AppToggle(value: true, onChanged: null),
                 ],
+              ),
+              _section('Segmented control'),
+              AppSegmentedControl<int>(
+                segments: const [(0, 'Day'), (1, 'Week'), (2, 'Month')],
+                selected: _segment,
+                onChanged: (v) => setState(() => _segment = v),
               ),
               _section('Time field'),
               SettingsCard(

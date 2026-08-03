@@ -375,6 +375,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionsTitle => '回顾';
 
   @override
+  String get reflectionPeriodDay => 'Day';
+
+  @override
+  String get reflectionPeriodWeek => 'Week';
+
+  @override
+  String get reflectionPeriodMonth => 'Month';
+
+  @override
+  String get reflectionDaily => 'Daily';
+
+  @override
+  String get reflectionWeekly => 'Weekly';
+
+  @override
+  String get reflectionMonthly => 'Monthly';
+
+  @override
   String get reflectionsEmptyTitle => '还没有回顾';
 
   @override

@@ -9,14 +9,11 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
-import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Appearance: two independent axes. A System / Light / Dark segment picks HOW
 /// the appearance is decided; the theme grid picks WHICH family. They do not
@@ -103,8 +100,6 @@ class _ModeSelector extends StatelessWidget {
   final ValueChanged<AppThemeMode> onChanged;
 
   static const _modes = [AppThemeMode.system, AppThemeMode.light, AppThemeMode.dark];
-  static const _height = 40.0;
-  static const _inset = 3.0;
 
   String _label(AppThemeMode m, AppLocalizations l10n) => switch (m) {
     AppThemeMode.system => l10n.themeSystem,
@@ -114,65 +109,11 @@ class _ModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final index = _modes.indexOf(mode);
-    final reduce = context.reduceMotion;
-
-    return DecoratedBox(
-      decoration: SuperellipseDecoration(
-        borderRadius: _height / 2,
-        color: theme.surface,
-        border: BorderSide(color: theme.surfaceBorder),
-      ),
-      child: SizedBox(
-        height: _height,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final segWidth = constraints.maxWidth / _modes.length;
-            return Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: reduce ? Duration.zero : theme.motion.indicator,
-                  curve: theme.motion.indicatorCurve,
-                  left: index * segWidth + _inset,
-                  top: _inset,
-                  bottom: _inset,
-                  width: segWidth - 2 * _inset,
-                  child: DecoratedBox(
-                    decoration: SuperellipseDecoration(
-                      borderRadius: (_height - 2 * _inset) / 2,
-                      color: theme.accent,
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    for (final m in _modes)
-                      Expanded(
-                        child: Touchable(
-                          onTap: () {
-                            Haptics.selection();
-                            onChanged(m);
-                          },
-                          child: Center(
-                            child: Text(
-                              _label(m, l10n),
-                              style: AppType.subhead.copyWith(
-                                color: m == mode ? theme.onAccent : theme.textSecondary,
-                                fontWeight: m == mode ? FontWeight.w600 : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
-      ),
+    return AppSegmentedControl<AppThemeMode>(
+      segments: [for (final m in _modes) (m, _label(m, l10n))],
+      selected: mode,
+      onChanged: onChanged,
     );
   }
 }

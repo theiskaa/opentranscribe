@@ -792,6 +792,42 @@ abstract class AppLocalizations {
   /// **'Reflections'**
   String get reflectionsTitle;
 
+  /// Day segment label on the reflections period switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get reflectionPeriodDay;
+
+  /// Week segment label on the reflections period switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get reflectionPeriodWeek;
+
+  /// Month segment label on the reflections period switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get reflectionPeriodMonth;
+
+  /// Menu toggle label for daily reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get reflectionDaily;
+
+  /// Menu toggle label for weekly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get reflectionWeekly;
+
+  /// Menu toggle label for monthly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get reflectionMonthly;
+
   /// Empty-state headline on the reflections screen before any week has been reflected
   ///
   /// In en, this message translates to:

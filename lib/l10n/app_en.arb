@@ -507,6 +507,30 @@
   "@reflectionsTitle": {
     "description": "Title of the reflections screen and its home-menu row"
   },
+  "reflectionPeriodDay": "Day",
+  "@reflectionPeriodDay": {
+    "description": "Day segment label on the reflections period switcher"
+  },
+  "reflectionPeriodWeek": "Week",
+  "@reflectionPeriodWeek": {
+    "description": "Week segment label on the reflections period switcher"
+  },
+  "reflectionPeriodMonth": "Month",
+  "@reflectionPeriodMonth": {
+    "description": "Month segment label on the reflections period switcher"
+  },
+  "reflectionDaily": "Daily",
+  "@reflectionDaily": {
+    "description": "Menu toggle label for daily reflections"
+  },
+  "reflectionWeekly": "Weekly",
+  "@reflectionWeekly": {
+    "description": "Menu toggle label for weekly reflections"
+  },
+  "reflectionMonthly": "Monthly",
+  "@reflectionMonthly": {
+    "description": "Menu toggle label for monthly reflections"
+  },
   "reflectionsEmptyTitle": "No reflections yet",
   "@reflectionsEmptyTitle": {
     "description": "Empty-state headline on the reflections screen before any week has been reflected"

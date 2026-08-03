@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflections_menu.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 
 const ReflectionMenuLabels _labels = (
-  reflections: 'Reflections',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
   regenerate: 'Regenerate',
   delete: 'Delete',
   voice: 'Voice',
@@ -21,13 +24,19 @@ const ReflectionMenuLabels _labels = (
   letWeekDecide: 'Let the week decide',
 );
 
+const _weeklyOnly = {
+  ReflectionPeriod.daily: false,
+  ReflectionPeriod.weekly: true,
+  ReflectionPeriod.monthly: false,
+};
+
 List<AppMenuItem> build({
-  bool enabled = true,
+  Map<ReflectionPeriod, bool> enabledByPeriod = _weeklyOnly,
   bool canRegenerate = true,
   bool canDelete = true,
   bool showSettings = true,
 }) => reflectionsMenuItems(
-  enabled: enabled,
+  enabledByPeriod: enabledByPeriod,
   style: ReflectionStyle.defaults,
   labels: _labels,
   canRegenerate: canRegenerate,
@@ -39,23 +48,34 @@ Iterable<String?> idsOf(List<AppMenuItem> items) =>
     items.where((i) => !i.isDivider).map((i) => i.id);
 
 void main() {
-  test('the base order: toggle, then the knobs, then the viewed week\'s actions, '
-      'with delete the only destructive one', () {
-    expect(idsOf(build()), ['r:toggle', 'r:voice', 'r:length', 'r:spec', 'r:regen', 'r:delete']);
+  test('the base order: the three period toggles, then the knobs, then the viewed '
+      'page actions, with delete the only destructive one', () {
+    expect(idsOf(build()), [
+      'r:daily',
+      'r:weekly',
+      'r:monthly',
+      'r:voice',
+      'r:length',
+      'r:spec',
+      'r:regen',
+      'r:delete',
+    ]);
     expect(build().singleWhere((i) => i.id == 'r:delete').destructive, isTrue);
     expect(build().singleWhere((i) => i.id == 'r:regen').destructive, isFalse);
   });
 
-  test('without settings the menu is actions only: no toggle, no knobs, no divider', () {
+  test('without settings the menu is actions only: no toggles, no knobs, no divider', () {
     final items = build(showSettings: false);
     expect(idsOf(items), ['r:regen', 'r:delete']);
     expect(items.any((i) => i.isDivider), isFalse);
   });
 
-  test('an unreflected or erased week offers regenerate without delete: '
+  test('an unreflected or erased page offers regenerate without delete: '
       'nothing stored means nothing to erase', () {
     expect(idsOf(build(canDelete: false)), [
-      'r:toggle',
+      'r:daily',
+      'r:weekly',
+      'r:monthly',
       'r:voice',
       'r:length',
       'r:spec',
@@ -67,21 +87,27 @@ void main() {
     expect(idsOf(build(canRegenerate: false, showSettings: false)), ['r:delete']);
   });
 
-  test('nothing at all when the model cannot run and the week stores nothing, '
+  test('nothing at all when the model cannot run and the page stores nothing, '
       'so the screen drops the ellipsis instead of opening an empty menu', () {
     expect(build(canRegenerate: false, canDelete: false, showSettings: false), isEmpty);
   });
 
-  test('the toggle row reflects enabled and carries the toggle id', () {
-    final on = build().singleWhere((i) => i.id == 'r:toggle');
-    expect(on.selected, isTrue);
-    final off = build(enabled: false).singleWhere((i) => i.id == 'r:toggle');
-    expect(off.selected, isFalse);
+  test('each period toggle reflects its own enabled flag', () {
+    final items = build(
+      enabledByPeriod: {
+        ReflectionPeriod.daily: true,
+        ReflectionPeriod.weekly: false,
+        ReflectionPeriod.monthly: true,
+      },
+    );
+    expect(items.singleWhere((i) => i.id == 'r:daily').selected, isTrue);
+    expect(items.singleWhere((i) => i.id == 'r:weekly').selected, isFalse);
+    expect(items.singleWhere((i) => i.id == 'r:monthly').selected, isTrue);
   });
 
   test('the current voice, length, and specificity children are marked selected', () {
     final items = reflectionsMenuItems(
-      enabled: true,
+      enabledByPeriod: _weeklyOnly,
       style: const ReflectionStyle(
         voice: ReflectionVoice.sparse,
         length: ReflectionLength.oneLine,

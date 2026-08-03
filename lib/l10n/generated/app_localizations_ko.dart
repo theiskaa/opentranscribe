@@ -379,6 +379,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionsTitle => '돌아보기';
 
   @override
+  String get reflectionPeriodDay => 'Day';
+
+  @override
+  String get reflectionPeriodWeek => 'Week';
+
+  @override
+  String get reflectionPeriodMonth => 'Month';
+
+  @override
+  String get reflectionDaily => 'Daily';
+
+  @override
+  String get reflectionWeekly => 'Weekly';
+
+  @override
+  String get reflectionMonthly => 'Monthly';
+
+  @override
   String get reflectionsEmptyTitle => '아직 돌아보기가 없습니다';
 
   @override

@@ -222,9 +222,12 @@ void main() {
   });
 
   test('setViewedPeriod switches enabled, style, and history to that period', () async {
+    // Weekly off but with stored history keeps it in the switcher alongside
+    // daily, so the switch between them is observable.
     await settings.setEnabled(false);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await settings.setVoiceFor(ReflectionPeriod.daily, ReflectionVoice.sparse);
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'a week'));
     await store.save(
       Reflection(
         period: ReflectionPeriod.daily,
@@ -237,7 +240,7 @@ void main() {
     await cubit.load();
     expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
     expect(cubit.state.enabled, isFalse);
-    expect(cubit.state.history, isEmpty);
+    expect(cubit.state.history.map((r) => r.text), ['a week']);
 
     cubit.setViewedPeriod(ReflectionPeriod.daily);
 
@@ -248,7 +251,86 @@ void main() {
     await cubit.close();
   });
 
+  test('the switcher offers a period that is enabled or holds history', () async {
+    await settings.setEnabledFor(ReflectionPeriod.monthly, true);
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        weekStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.periods, [
+      ReflectionPeriod.daily,
+      ReflectionPeriod.weekly,
+      ReflectionPeriod.monthly,
+    ]);
+    expect(cubit.state.enabledByPeriod, {
+      ReflectionPeriod.daily: false,
+      ReflectionPeriod.weekly: true,
+      ReflectionPeriod.monthly: true,
+    });
+    await cubit.close();
+  });
+
+  test('setPeriodEnabled turns a period on, adds it to the switcher, and catches up', () async {
+    entries = [withText('a', DateTime(2026, 7, 28, 9), text: 'tuesday')];
+    await settings.setFloorFor(ReflectionPeriod.daily, DateTime(2026, 6, 8));
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.periods, [ReflectionPeriod.weekly]);
+
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, true);
+    await settle();
+
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isTrue);
+    expect(cubit.state.periods, contains(ReflectionPeriod.daily));
+    expect(store.read(DateTime(2026, 7, 28), period: ReflectionPeriod.daily), isNotNull);
+    await cubit.close();
+  });
+
+  test('turning off the viewed period with no history snaps the view away', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    final cubit = build();
+    await cubit.load();
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
+
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, false);
+
+    expect(cubit.state.periods, isNot(contains(ReflectionPeriod.daily)));
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
+    await cubit.close();
+  });
+
+  test('home reflections stay weekly when the viewed period switches', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'the week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        weekStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.homeReflections.map((r) => r.text), ['the week']);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+
+    expect(cubit.state.history.map((r) => r.text), ['a day']);
+    expect(cubit.state.homeReflections.map((r) => r.text), ['the week']);
+    await cubit.close();
+  });
+
   test('switching period drops an in-flight regenerate marker', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     final gate = Completer<void>();

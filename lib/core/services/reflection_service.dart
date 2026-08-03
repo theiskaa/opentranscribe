@@ -214,6 +214,17 @@ class ReflectionService {
       if (r.period == period) r,
   ];
 
+  /// Every period's stored history, newest first, from ONE store read: the
+  /// surface that shows more than one period at a time (the reflections cubit)
+  /// groups here instead of scanning the store once per period.
+  Map<ReflectionPeriod, List<Reflection>> historiesByPeriod() {
+    final byPeriod = {for (final p in ReflectionPeriod.values) p: <Reflection>[]};
+    for (final r in _store.all()) {
+      byPeriod[r.period]!.add(r);
+    }
+    return byPeriod;
+  }
+
   /// [period] starts holding at least one entry with material. An
   /// untranscribed-only period is excluded so the pager never shows a waiting
   /// page the catch-up would skip for having nothing to read.

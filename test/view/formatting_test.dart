@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 
 void main() {
@@ -8,6 +9,28 @@ void main() {
   });
 
   final thisYear = DateTime(2026, 7, 30);
+
+  test('periodRangeLabel titles a day, a week range, and a month', () {
+    expect(
+      periodRangeLabel(ReflectionPeriod.daily, DateTime(2026, 7, 27), 'en_US', now: thisYear),
+      'Jul 27',
+    );
+    expect(
+      periodRangeLabel(ReflectionPeriod.weekly, DateTime(2026, 7, 20), 'en_US', now: thisYear),
+      'Jul 20 – 26',
+    );
+    expect(
+      periodRangeLabel(ReflectionPeriod.monthly, DateTime(2026, 8), 'en_US', now: thisYear),
+      'August',
+    );
+  });
+
+  test('periodRangeLabel dates a month outside the current year', () {
+    expect(
+      periodRangeLabel(ReflectionPeriod.monthly, DateTime(2025, 8), 'en_US', now: thisYear),
+      'August 2025',
+    );
+  });
 
   test('weekRangeLabel shares the month across a same-month week', () {
     expect(weekRangeLabel(DateTime(2026, 7, 20), 'en_US', now: thisYear), 'Jul 20 – 26');
