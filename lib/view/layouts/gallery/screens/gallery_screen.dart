@@ -4,13 +4,18 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/reflection_timeline.dart';
+import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/disabled_card.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -317,6 +322,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 reflectionMetaLine(voiceLabel: 'Literary', writtenLabel: 'Written Jul 27'),
                 style: AppType.footnote.copyWith(color: theme.textSecondary),
               ),
+              _section('Reflection states'),
+              const _ReflectionStatesDemo(),
               _section('Sheets'),
               AppButton(
                 label: 'Message',
@@ -682,6 +689,114 @@ class _DitherRevealDemoState extends State<_DitherRevealDemo> with SingleTickerP
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Every reflection state a page or the empty screen can land in, posed for
+/// review with the real copy: the four empty-timeline editorials (tap to
+/// cycle), the three week-page placeholders, the disabled notice card (toggle
+/// to watch it dither in and out), and the transient regenerate failure.
+class _ReflectionStatesDemo extends StatefulWidget {
+  const _ReflectionStatesDemo();
+
+  @override
+  State<_ReflectionStatesDemo> createState() => _ReflectionStatesDemoState();
+}
+
+class _ReflectionStatesDemoState extends State<_ReflectionStatesDemo> {
+  static const _editorials = <(String, bool, ReflectionAvailabilityStatus)>[
+    ('First run', true, ReflectionAvailabilityStatus.available),
+    ('Apple Intelligence off', false, ReflectionAvailabilityStatus.notEnabled),
+    ('Model preparing', false, ReflectionAvailabilityStatus.modelNotReady),
+    ('Unsupported device', false, ReflectionAvailabilityStatus.unsupported),
+  ];
+
+  static const _weeks = <(String, ReflectionWeekStatus)>[
+    ('Quiet week', ReflectionWeekStatus.silent),
+    ('Erased', ReflectionWeekStatus.erased),
+    ('Waiting', ReflectionWeekStatus.unreflected),
+  ];
+
+  int _editorial = 0;
+  bool _disabled = true;
+  String? _notice;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final (editorialLabel, available, status) = _editorials[_editorial];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Caption('Editorial: $editorialLabel (tap to cycle)'),
+        Touchable(
+          onTap: () => setState(() => _editorial = (_editorial + 1) % _editorials.length),
+          child: ReflectionEditorialBody(
+            copy: reflectionEditorialCopy(l10n, available: available, status: status),
+          ),
+        ),
+        for (final (label, week) in _weeks) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _Caption(label),
+          _ReflectionWeekExample(status: week),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        const _Caption('Disabled notice (toggle to dither in and out)'),
+        AppButton(
+          label: _disabled ? 'Enable reflections' : 'Disable reflections',
+          variant: AppButtonVariant.secondary,
+          onPressed: () => setState(() => _disabled = !_disabled),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ReflectionsDisabledSlot(
+          disabled: _disabled,
+          onEnable: () => setState(() => _disabled = false),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        const _Caption('Regenerate failure'),
+        AppButton(
+          label: 'Show failure notice',
+          variant: AppButtonVariant.secondary,
+          onPressed: () => setState(() => _notice = l10n.reflectionRegenerateFailed),
+        ),
+        AppNotice(message: _notice, onDismiss: () => setState(() => _notice = null)),
+      ],
+    );
+  }
+}
+
+/// One week page's no-text placeholder, resolved from the shared state mapping
+/// so the gallery shows exactly what the pager renders.
+class _ReflectionWeekExample extends StatelessWidget {
+  const _ReflectionWeekExample({required this.status});
+
+  final ReflectionWeekStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = reflectionWeekPlaceholder(AppLocalizations.of(context)!, status)!;
+    return ReflectionWeekPlaceholder(
+      title: placeholder.title,
+      body: placeholder.body,
+      marker: placeholder.marker,
+    );
+  }
+}
+
+/// A small monochrome label above a gallery example, naming the state being
+/// posed. Debug-only, so it is deliberately not localized.
+class _Caption extends StatelessWidget {
+  const _Caption(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Text(text, style: AppType.footnote.copyWith(color: theme.textSecondary)),
     );
   }
 }
