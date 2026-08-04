@@ -91,8 +91,8 @@ class AppearanceScreen extends StatelessWidget {
   }
 }
 
-/// A three-way appearance switch: System / Light / Dark. The selected pill's
-/// accent fill slides between segments; under Reduce Motion it jumps.
+/// A three-way appearance switch: System / Light / Dark, on the app's
+/// segmented control.
 class _ModeSelector extends StatelessWidget {
   const _ModeSelector({required this.mode, required this.onChanged});
 
