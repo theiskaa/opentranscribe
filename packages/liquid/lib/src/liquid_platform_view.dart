@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -31,17 +33,18 @@ class LiquidPlatformView extends StatefulWidget {
   /// (re)created — e.g. an `initialIndex` the native side ignores after its
   /// first apply. A change to these keys alone does not push an `update` to
   /// the live native view, so a parent rebuild can't disturb it mid-animation,
-  /// while a recreated view (after being covered) still receives the current
-  /// values through [creationParams].
+  /// while a genuinely recreated view (a theme-change teardown) still receives
+  /// the current values through [creationParams].
   final Set<String> creationOnlyParamKeys;
 
   final LiquidMethodCallHandler? onMethodCall;
   final ValueChanged<MethodChannel>? onChannelReady;
 
-  /// Built in place of the native view while this route is being covered by
-  /// another route. Defaults to an empty box, which simply hides the native
-  /// view during the transition. Provide a Flutter stand-in here if a blank gap
-  /// looks too abrupt.
+  /// Painted in place of the offstage native view while this route is covered
+  /// by another route, and kept over it for a beat after the return re-stages
+  /// it. Defaults to an empty box, which simply hides the native view during
+  /// the transition. Provide a Flutter stand-in here if a blank gap looks too
+  /// abrupt.
   final WidgetBuilder? placeholderBuilder;
 
   @override
@@ -54,12 +57,26 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
 
   /// Whether this view's route is currently being covered by another route.
   ///
-  /// iOS platform views (`UiKitView`) are composited above the Flutter layer and
-  /// are not reliably torn down while they sit behind a route pushed on top.
-  /// This leaves visual "ghosts" (e.g. a lingering button shadow) on screen for
-  /// a moment after navigating. While covered we drop the native view from the
-  /// tree so nothing can linger, then bring it back on return.
+  /// While covered the native view stays MOUNTED but offstage. Unmounting a
+  /// `UiKitView` disposes the native view over an async channel, which can
+  /// leave it lingering on screen for a moment after navigating; recreating
+  /// one on return forces the engine to rebuild its platform-view layer
+  /// split, which flashes Flutter content composited around other platform
+  /// views, at the pop's first frame or its last, whichever the timing picks.
+  /// Offstage merely drops the live view from the frame: the engine removes
+  /// and re-adds it in step with painting, the same churn-free path as a view
+  /// scrolling out of sight, and the placeholder twin carries the look
+  /// meanwhile.
   bool _covered = false;
+
+  /// True from an uncover until the re-staged native view is back in the
+  /// frame. The placeholder stays painted over it for that beat, so the
+  /// engine re-adding the view to the scene never flashes through.
+  bool _settling = false;
+
+  /// Bumped on every cover flip so a stale settle future cannot drop the
+  /// placeholder of a later cycle.
+  int _coverCycle = 0;
 
   /// The hosting route's [ModalRoute.secondaryAnimation], which runs whenever
   /// another route is pushed on top of this one (in the same navigator). It is
@@ -80,24 +97,28 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
   }
 
   /// Covered from the moment another route starts animating in until it is
-  /// fully gone (`dismissed`), the return transition included: re-creating
-  /// every dropped native view at the first frame of a pop forces the engine
-  /// to rebuild its platform-view layer split mid-transition, which drops
-  /// frames of Flutter content composited above other platform views. The
-  /// placeholder carries the look until the route settles.
+  /// fully gone (`dismissed`), the return transition included: staging a
+  /// platform view reallocates the overlay textures the engine composites
+  /// Flutter content into, and doing that while the covering route is still
+  /// visible blinks ITS content (composited around its own platform views).
+  /// Held to the settle, the re-stage lands in the same frame the covering
+  /// route's views leave, and the placeholder rides over its first frames.
   bool _isCovered(AnimationStatus? status) => status != null && status != AnimationStatus.dismissed;
 
   void _onSecondaryStatusChanged(AnimationStatus status) {
     final covered = _isCovered(status);
     if (covered != _covered && mounted) {
-      if (covered) _releaseChannel();
-      setState(() => _covered = covered);
+      _coverCycle++;
+      setState(() {
+        _covered = covered;
+        _settling = !covered && widget.placeholderBuilder != null;
+      });
+      if (_settling) unawaited(_dropPlaceholderWhenSettled());
     }
   }
 
-  /// The messenger retains a handler until it is cleared, and every recreation
-  /// after a cover mints a new channel, so a stale registration would leak per
-  /// navigation.
+  /// The messenger retains the handler until it is cleared; the view (and its
+  /// channel) lives across covers, so only dispose releases it.
   void _releaseChannel() {
     _channel?.setMethodCallHandler(null);
     _channel = null;
@@ -116,11 +137,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
       return const SizedBox.shrink();
     }
 
-    if (_covered) {
-      return widget.placeholderBuilder?.call(context) ?? const SizedBox.shrink();
-    }
-
-    return UiKitView(
+    final view = UiKitView(
       viewType: widget.viewType,
       creationParams: widget.creationParams,
       creationParamsCodec: const StandardMessageCodec(),
@@ -130,6 +147,17 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
         Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
       },
     );
+
+    if (!_covered && !_settling) return view;
+    // Riding above the live view, the placeholder must not eat the touches
+    // the native view is about to own back.
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Offstage(offstage: _covered, child: view),
+        IgnorePointer(child: widget.placeholderBuilder?.call(context) ?? const SizedBox.shrink()),
+      ],
+    );
   }
 
   void _onPlatformViewCreated(int id) {
@@ -137,6 +165,16 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
     _channel = channel;
     widget.onChannelReady?.call(channel);
     channel.setMethodCallHandler(widget.onMethodCall);
+  }
+
+  /// Two frames past the uncover: one for the engine to re-add the native
+  /// view to the scene, one for its layout to land.
+  Future<void> _dropPlaceholderWhenSettled() async {
+    final cycle = _coverCycle;
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || cycle != _coverCycle || !_settling) return;
+    setState(() => _settling = false);
   }
 
   @override

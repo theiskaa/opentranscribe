@@ -29,8 +29,9 @@ class LiquidEdgeFade extends StatelessWidget {
   final bool isDark;
   final double fadeFrom;
 
-  /// Shown while this route is covered by another; pass the drawn fallback so
-  /// the bar does not vanish during transitions.
+  /// Shown while this route is covered by another, and carried over the native
+  /// material's first frames after a return; pass the drawn fallback so the
+  /// bar neither vanishes nor flashes during transitions.
   final WidgetBuilder? placeholderBuilder;
 
   @override
