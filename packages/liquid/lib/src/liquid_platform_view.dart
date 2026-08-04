@@ -79,23 +79,34 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
     }
   }
 
-  /// Covered while another route is animating in (`forward`) or resting on top
-  /// (`completed`). As soon as the cover starts animating away (`reverse`) the
-  /// native view comes back, so it is present throughout the return transition
-  /// instead of popping in only when the animation finishes.
-  bool _isCovered(AnimationStatus? status) =>
-      status == AnimationStatus.forward || status == AnimationStatus.completed;
+  /// Covered from the moment another route starts animating in until it is
+  /// fully gone (`dismissed`), the return transition included: re-creating
+  /// every dropped native view at the first frame of a pop forces the engine
+  /// to rebuild its platform-view layer split mid-transition, which drops
+  /// frames of Flutter content composited above other platform views. The
+  /// placeholder carries the look until the route settles.
+  bool _isCovered(AnimationStatus? status) => status != null && status != AnimationStatus.dismissed;
 
   void _onSecondaryStatusChanged(AnimationStatus status) {
     final covered = _isCovered(status);
     if (covered != _covered && mounted) {
+      if (covered) _releaseChannel();
       setState(() => _covered = covered);
     }
+  }
+
+  /// The messenger retains a handler until it is cleared, and every recreation
+  /// after a cover mints a new channel, so a stale registration would leak per
+  /// navigation.
+  void _releaseChannel() {
+    _channel?.setMethodCallHandler(null);
+    _channel = null;
   }
 
   @override
   void dispose() {
     _secondaryAnimation?.removeStatusListener(_onSecondaryStatusChanged);
+    _releaseChannel();
     super.dispose();
   }
 

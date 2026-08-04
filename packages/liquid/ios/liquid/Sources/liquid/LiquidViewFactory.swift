@@ -52,6 +52,13 @@ class LiquidNativeView: NSObject, FlutterPlatformView {
     }
   }
 
+  // The messenger retains the handler until it is cleared, and every recreation
+  // of a platform view mints a new channel, so a stale registration would leak
+  // per navigation.
+  deinit {
+    channel.setMethodCallHandler(nil)
+  }
+
   func view() -> UIView {
     rootView
   }
