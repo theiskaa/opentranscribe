@@ -50,5 +50,18 @@ public class LiquidPlugin: NSObject, FlutterPlugin {
       LiquidAppBarView(registrar: registrar, viewId: viewId, arguments: args)
     }
     registrar.register(appBarFactory, withId: "liquid_app_bar")
+
+    let segmentedControlFactory = LiquidViewFactory(
+      registrar: registrar, viewType: "liquid_segmented_control"
+    ) { _, viewId, args in
+      LiquidSegmentedControlView(registrar: registrar, viewId: viewId, arguments: args)
+    }
+    registrar.register(segmentedControlFactory, withId: "liquid_segmented_control")
+
+    let edgeFadeFactory = LiquidViewFactory(registrar: registrar, viewType: "liquid_edge_fade") {
+      _, viewId, args in
+      LiquidEdgeFadeView(registrar: registrar, viewId: viewId, arguments: args)
+    }
+    registrar.register(edgeFadeFactory, withId: "liquid_edge_fade")
   }
 }

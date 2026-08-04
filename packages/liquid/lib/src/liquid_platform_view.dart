@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -14,11 +15,17 @@ class LiquidPlatformView extends StatefulWidget {
     this.onMethodCall,
     this.onChannelReady,
     this.placeholderBuilder,
+    this.hitTestBehavior = PlatformViewHitTestBehavior.opaque,
     super.key,
   });
 
   final String viewType;
   final Map<String, dynamic> creationParams;
+
+  /// Pass [PlatformViewHitTestBehavior.transparent] for purely decorative
+  /// views (the edge-fade material) so touches fall through to Flutter content
+  /// behind them.
+  final PlatformViewHitTestBehavior hitTestBehavior;
 
   /// Keys in [creationParams] that only matter when the native view is
   /// (re)created — e.g. an `initialIndex` the native side ignores after its
@@ -106,6 +113,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
       viewType: widget.viewType,
       creationParams: widget.creationParams,
       creationParamsCodec: const StandardMessageCodec(),
+      hitTestBehavior: widget.hitTestBehavior,
       onPlatformViewCreated: _onPlatformViewCreated,
       gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{
         Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
