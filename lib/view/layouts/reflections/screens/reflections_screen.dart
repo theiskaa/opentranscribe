@@ -25,7 +25,6 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
-import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// The reflections week pager: each closed week is a full reading page - its
@@ -81,45 +80,28 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final state = context.watch<ReflectionsCubit>().state;
-    // The switcher is chrome above BOTH states: an enabled period with nothing
-    // to show yet still needs its segment, or there would be no way back to it.
-    final hasSwitcher = state.periods.length > 1;
 
     // Timeline alone, not history: deleting the only reflection leaves a
     // tombstone (history empty, an erased page in the timeline), and that
     // page carries the regenerate route back. The first-run editorial there
-    // would be a dead end.
-    final Widget content = state.timeline.isEmpty
-        ? AppScaffold(
-            background: theme.screens.settings,
-            onBack: () => context.pop(),
-            child: _Editorial(
-              copy: reflectionEditorialCopy(
-                l10n,
-                available: state.available,
-                status: state.availability.status,
-              ),
-              switcherInset: hasSwitcher,
-            ),
-          )
-        : _WeekPagerView(initialWeekKey: widget.initialWeekKey, hasSwitcher: hasSwitcher);
-
-    if (!hasSwitcher) return content;
-    return Stack(
-      children: [
-        content,
-        Positioned(
-          top: AppScaffold.topPaddingOf(context),
-          left: AppSpacing.xl,
-          right: AppSpacing.xl,
-          child: PeriodSwitcher(
-            periods: state.periods,
-            selected: state.viewedPeriod,
-            onChanged: (period) => context.read<ReflectionsCubit>().setViewedPeriod(period),
+    // would be a dead end. The switcher rides the bar title in both states (it
+    // hides itself when there is only one period), so a period with nothing to
+    // show yet is still reachable.
+    if (state.timeline.isEmpty) {
+      return AppScaffold(
+        background: theme.screens.settings,
+        onBack: () => context.pop(),
+        titleWidget: const PeriodSwitcher(),
+        child: _Editorial(
+          copy: reflectionEditorialCopy(
+            l10n,
+            available: state.available,
+            status: state.availability.status,
           ),
         ),
-      ],
-    );
+      );
+    }
+    return _WeekPagerView(initialWeekKey: widget.initialWeekKey);
   }
 }
 
@@ -127,21 +109,12 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
 /// pages' bottom inset, so the text always clears the seat.
 double _capsuleSeat(BuildContext context) => MediaQuery.paddingOf(context).bottom + AppSpacing.xl;
 
-/// How far content insets past the floating period switcher when it is [shown]:
-/// the control's height and a breath. One source, so every surface that clears
-/// it stays in step.
-double _switcherInset(bool shown) => shown ? AppSegmentedControl.height + AppSpacing.lg : 0;
-
 /// The pager body: owns the controller, the viewed week, and the reveal ledger
 /// (which weeks already wrote themselves on this visit).
 class _WeekPagerView extends StatefulWidget {
-  const _WeekPagerView({this.initialWeekKey, this.hasSwitcher = false});
+  const _WeekPagerView({this.initialWeekKey});
 
   final String? initialWeekKey;
-
-  /// The period switcher floats above the pager, so the pages inset their tops
-  /// past it.
-  final bool hasSwitcher;
 
   @override
   State<_WeekPagerView> createState() => _WeekPagerViewState();
@@ -278,6 +251,7 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
+      titleWidget: const PeriodSwitcher(),
       actions: [ReflectionsMenu(viewed: viewed, color: theme.topBar.iconColor)],
       // Like the entry screen: the pages run full height and wash under the
       // frosted bar (their top padding clears it), so the bar reads as
@@ -351,7 +325,6 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                   return _WeekPage(
                     week: week,
                     period: state.viewedPeriod,
-                    switcherInset: widget.hasSwitcher,
                     regenerating: state.regenerating == week.weekStart,
                     scrubbing: _scrubbing,
                     revealed: _revealed,
@@ -424,7 +397,6 @@ class _WeekPage extends StatelessWidget {
   const _WeekPage({
     required this.week,
     required this.period,
-    required this.switcherInset,
     required this.regenerating,
     required this.scrubbing,
     required this.revealed,
@@ -440,10 +412,6 @@ class _WeekPage extends StatelessWidget {
 
   /// The viewed period, for the page's range title.
   final ReflectionPeriod period;
-
-  /// The period switcher floats over the page top; when shown, the content
-  /// insets past it so the title clears the capsule.
-  final bool switcherInset;
   final bool regenerating;
 
   /// A finger owns the scrubber: pages fly by settled, starting no write-ons.
@@ -474,8 +442,7 @@ class _WeekPage extends StatelessWidget {
           AppSpacing.xl,
           // Past the bar and its fade tail: the material is opaque through the
           // row and only melts across the tail, so the title clears the wash.
-          // With a period switcher floating below the bar, clear that too.
-          AppTopBar.heightOf(context) + theme.topBar.fadeTail + _switcherInset(switcherInset),
+          AppTopBar.heightOf(context) + theme.topBar.fadeTail,
           AppSpacing.xl,
           // Past the floating capsule too, so a short page's last lines never
           // rest under it.
@@ -599,19 +566,16 @@ class _PageBody extends StatelessWidget {
 /// state, not a card floated in the middle. Scrollable so it sits under the
 /// frosted bar like the pager it replaces.
 class _Editorial extends StatelessWidget {
-  const _Editorial({required this.copy, this.switcherInset = false});
+  const _Editorial({required this.copy});
 
   final (String, String) copy;
-
-  /// Inset the copy past the floating period switcher when it is shown.
-  final bool switcherInset;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        AppScaffold.topPaddingOf(context) + AppSpacing.xxxl + _switcherInset(switcherInset),
+        AppScaffold.topPaddingOf(context) + AppSpacing.xxxl,
         AppSpacing.xxxl,
         AppSpacing.xxl,
       ),
