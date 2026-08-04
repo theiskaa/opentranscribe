@@ -418,13 +418,13 @@
   "@onboardingOpenSettings": {
     "description": "Shown when a permission was denied; opens the system Settings"
   },
-  "onboardingModelsTitle": "Download a language",
+  "onboardingModelsTitle": "Set up transcription",
   "@onboardingModelsTitle": {
-    "description": "Headline on the model-download onboarding step"
+    "description": "Headline on the transcription-setup onboarding step"
   },
-  "onboardingModelsBody": "Transcription runs offline once a language is on your device. You can add more anytime from the menu.",
+  "onboardingModelsBody": "It runs offline once your language is on the device. You can add more anytime from the menu.",
   "@onboardingModelsBody": {
-    "description": "Body on the model-download onboarding step"
+    "description": "Body on the transcription-setup onboarding step"
   },
   "onboardingReflectionsOn": "Your entries read back as a short reflection, entirely on this device.",
   "@onboardingReflectionsOn": {

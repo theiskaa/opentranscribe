@@ -327,11 +327,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingOpenSettings => 'Ativar nas Definições';
 
   @override
-  String get onboardingModelsTitle => 'Transferir um idioma';
+  String get onboardingModelsTitle => 'Configurar a transcrição';
 
   @override
   String get onboardingModelsBody =>
-      'A transcrição corre offline assim que um idioma estiver no seu dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
+      'Corre offline assim que o seu idioma estiver no dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
 
   @override
   String get onboardingReflectionsOn =>

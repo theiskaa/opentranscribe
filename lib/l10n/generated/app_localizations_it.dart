@@ -329,11 +329,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get onboardingOpenSettings => 'Abilita in Impostazioni';
 
   @override
-  String get onboardingModelsTitle => 'Scarica una lingua';
+  String get onboardingModelsTitle => 'Configura la trascrizione';
 
   @override
   String get onboardingModelsBody =>
-      'La trascrizione funziona offline una volta che una lingua è sul tuo dispositivo. Puoi aggiungerne altre in qualsiasi momento dal menu.';
+      'Funziona offline una volta che la tua lingua è sul dispositivo. Puoi aggiungerne altre in qualsiasi momento dal menu.';
 
   @override
   String get onboardingReflectionsOn =>

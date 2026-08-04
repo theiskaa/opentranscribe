@@ -323,11 +323,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingOpenSettings => 'Enable in Settings';
 
   @override
-  String get onboardingModelsTitle => 'Download a language';
+  String get onboardingModelsTitle => 'Set up transcription';
 
   @override
   String get onboardingModelsBody =>
-      'Transcription runs offline once a language is on your device. You can add more anytime from the menu.';
+      'It runs offline once your language is on the device. You can add more anytime from the menu.';
 
   @override
   String get onboardingReflectionsOn =>

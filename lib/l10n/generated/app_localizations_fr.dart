@@ -327,11 +327,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingOpenSettings => 'Activer dans les Réglages';
 
   @override
-  String get onboardingModelsTitle => 'Télécharger une langue';
+  String get onboardingModelsTitle => 'Configurer la transcription';
 
   @override
   String get onboardingModelsBody =>
-      'La transcription fonctionne hors ligne une fois qu\'une langue est sur votre appareil. Vous pouvez en ajouter à tout moment depuis le menu.';
+      'Elle fonctionne hors ligne une fois votre langue installée sur l\'appareil. Vous pouvez en ajouter à tout moment depuis le menu.';
 
   @override
   String get onboardingReflectionsOn =>

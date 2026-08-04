@@ -310,10 +310,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingOpenSettings => '設定で有効にする';
 
   @override
-  String get onboardingModelsTitle => '言語をダウンロード';
+  String get onboardingModelsTitle => '文字起こしを設定';
 
   @override
-  String get onboardingModelsBody => '言語が端末に入れば、文字起こしはオフラインで動作します。メニューからいつでも追加できます。';
+  String get onboardingModelsBody => 'お使いの言語が端末に入れば、オフラインで動作します。メニューからいつでも追加できます。';
 
   @override
   String get onboardingReflectionsOn => '記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';

@@ -678,16 +678,16 @@ abstract class AppLocalizations {
   /// **'Enable in Settings'**
   String get onboardingOpenSettings;
 
-  /// Headline on the model-download onboarding step
+  /// Headline on the transcription-setup onboarding step
   ///
   /// In en, this message translates to:
-  /// **'Download a language'**
+  /// **'Set up transcription'**
   String get onboardingModelsTitle;
 
-  /// Body on the model-download onboarding step
+  /// Body on the transcription-setup onboarding step
   ///
   /// In en, this message translates to:
-  /// **'Transcription runs offline once a language is on your device. You can add more anytime from the menu.'**
+  /// **'It runs offline once your language is on the device. You can add more anytime from the menu.'**
   String get onboardingModelsBody;
 
   /// Onboarding model step, Apple Intelligence available: what reflections do

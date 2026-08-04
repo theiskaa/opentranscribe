@@ -308,10 +308,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingOpenSettings => '在“设置”中启用';
 
   @override
-  String get onboardingModelsTitle => '下载一种语言';
+  String get onboardingModelsTitle => '设置转写';
 
   @override
-  String get onboardingModelsBody => '只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+  String get onboardingModelsBody => '只要设备上有了你的语言，转写就会离线进行。你随时可以从菜单中添加更多。';
 
   @override
   String get onboardingReflectionsOn => '你的记录会汇成一段简短回顾，完全在此设备上完成。';

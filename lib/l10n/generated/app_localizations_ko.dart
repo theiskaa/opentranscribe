@@ -311,10 +311,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingOpenSettings => '설정에서 사용 설정';
 
   @override
-  String get onboardingModelsTitle => '언어 다운로드';
+  String get onboardingModelsTitle => '전사 설정';
 
   @override
-  String get onboardingModelsBody => '언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
+  String get onboardingModelsBody => '사용하는 언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
 
   @override
   String get onboardingReflectionsOn => '기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
