@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 
 /// The editorial copy for an empty timeline: the first-run invitation when the
 /// model runs here, otherwise the state and what would make it work. The off
@@ -50,11 +51,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
   // The bullet marks a silence the model recorded; the erased page drops it,
   // an absence the user authored, not one the period held.
   ReflectionWeekStatus.silent => (
-    title: switch (period) {
-      ReflectionPeriod.daily => l10n.reflectionQuietDay,
-      ReflectionPeriod.weekly => l10n.reflectionQuietWeek,
-      ReflectionPeriod.monthly => l10n.reflectionQuietMonth,
-    },
+    title: reflectionQuietLabel(l10n, period),
     body: l10n.reflectionQuietBody,
     marker: true,
   ),

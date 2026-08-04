@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 
 /// The one place display formatting for entries lives, so every surface renders
 /// the same shapes. Date formats take an explicit locale so they render in the
@@ -64,6 +65,15 @@ String periodRangeLabel(ReflectionPeriod period, DateTime start, String locale, 
             ? DateFormat.MMMM(locale).format(start)
             : DateFormat.yMMMM(locale).format(start),
     };
+
+/// The "quiet period" marker for [period]: a day, week, or month the model
+/// recorded as silence. One place so the home card and the pager name a
+/// silence identically.
+String reflectionQuietLabel(AppLocalizations l10n, ReflectionPeriod period) => switch (period) {
+  ReflectionPeriod.daily => l10n.reflectionQuietDay,
+  ReflectionPeriod.weekly => l10n.reflectionQuietWeek,
+  ReflectionPeriod.monthly => l10n.reflectionQuietMonth,
+};
 
 /// A duration as m:ss, the audio-length shape for player surfaces.
 String formatClock(Duration d) {

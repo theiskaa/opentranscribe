@@ -92,12 +92,6 @@ class ReflectionHomeCard extends StatelessWidget {
   final Reflection reflection;
   final VoidCallback onTap;
 
-  static String _quietLabel(AppLocalizations l10n, ReflectionPeriod period) => switch (period) {
-    ReflectionPeriod.daily => l10n.reflectionQuietDay,
-    ReflectionPeriod.weekly => l10n.reflectionQuietWeek,
-    ReflectionPeriod.monthly => l10n.reflectionQuietMonth,
-  };
-
   /// The numbered-calendar glyph that marks a card's period at a glance:
   /// 1.calendar for a day, 7.calendar for a week, the full calendar for a month.
   static IconData _periodIcon(ReflectionPeriod period) => switch (period) {
@@ -115,7 +109,7 @@ class ReflectionHomeCard extends StatelessWidget {
       // The marker reads as text, so it lands on the records' text column.
       return Padding(
         padding: EdgeInsets.fromLTRB(theme.entryList.textColumnInset, 0, AppSpacing.xl, 0),
-        child: _QuietMarker(icon: _periodIcon(period), label: _quietLabel(l10n, period)),
+        child: _QuietMarker(icon: _periodIcon(period), label: reflectionQuietLabel(l10n, period)),
       );
     }
     return Padding(
