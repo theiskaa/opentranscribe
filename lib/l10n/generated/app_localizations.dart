@@ -898,7 +898,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Reflection of {range}'**
-  String reflectionOfWeek(String range);
+  String reflectionOfPeriod(String range);
 
   /// Settings submenu: the reflection voice
   ///
@@ -970,7 +970,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Let it decide'**
-  String get reflectionSpecificsLetWeek;
+  String get reflectionSpecificsLetPeriod;
 
   /// Per-period action: re-run this reflection in the current style
   ///

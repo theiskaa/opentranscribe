@@ -18,7 +18,7 @@ typedef ReflectionCardKey = (ReflectionPeriod period, DateTime start);
 
 /// [r]'s card identity. The one place the key is formed, so placement dedup and
 /// entrance tracking can never key by different things.
-ReflectionCardKey cardKeyOf(Reflection r) => (r.period, r.weekStart);
+ReflectionCardKey cardKeyOf(Reflection r) => (r.period, r.periodStart);
 
 /// The reflections to show above the home timeline sections, keyed by section
 /// index. Each enabled period places a card above the FIRST (most-recent)
@@ -36,7 +36,7 @@ Map<int, List<Reflection>> reflectionCardsForSections({
   required DateTime today,
 }) {
   final day0 = dateOnly(today);
-  bool covers(Reflection r, DateTime day) => periodContains(r.weekStart, r.period, day);
+  bool covers(Reflection r, DateTime day) => periodContains(r.periodStart, r.period, day);
   // Drop the open period (defensive: the service never reflects it anyway).
   final finished = [
     for (final r in reflections)
@@ -132,8 +132,8 @@ class ReflectionHomeCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        l10n.reflectionOfWeek(
-                          periodRangeLabel(period, reflection.weekStart, localeTag(context)),
+                        l10n.reflectionOfPeriod(
+                          periodRangeLabel(period, reflection.periodStart, localeTag(context)),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

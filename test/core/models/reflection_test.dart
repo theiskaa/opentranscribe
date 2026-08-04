@@ -6,7 +6,7 @@ import 'package:opentranscribe/core/reflect/reflection_period.dart';
 void main() {
   test('round-trips a written reflection through JSON', () {
     final r = Reflection(
-      weekStart: DateTime(2026, 7, 20),
+      periodStart: DateTime(2026, 7, 20),
       generatedAt: DateTime.utc(2026, 7, 26, 9),
       text: 'Work threaded through most of the week.',
       voice: ReflectionVoice.literary,
@@ -17,7 +17,7 @@ void main() {
 
   test('round-trips a silent reflection: null text survives as silence', () {
     final r = Reflection(
-      weekStart: DateTime(2026, 7, 20),
+      periodStart: DateTime(2026, 7, 20),
       generatedAt: DateTime.utc(2026, 7, 26, 9),
     );
 
@@ -27,19 +27,19 @@ void main() {
     expect(r.toJson().containsKey('text'), isFalse);
   });
 
-  test('weekStart is a civil date: time and timezone are dropped', () {
+  test('periodStart is a civil date: time and timezone are dropped', () {
     final r = Reflection(
-      weekStart: DateTime(2026, 7, 20, 23, 59),
+      periodStart: DateTime(2026, 7, 20, 23, 59),
       generatedAt: DateTime.utc(2026, 7, 26),
     );
 
-    expect(r.weekStart, DateTime(2026, 7, 20));
-    expect(r.weekKey, '2026-07-20');
+    expect(r.periodStart, DateTime(2026, 7, 20));
+    expect(r.periodKey, '2026-07-20');
   });
 
   test('an unrecognized stored voice reads back as null, not a throw', () {
     final json = {
-      'weekStart': '2026-07-20',
+      'periodStart': '2026-07-20',
       'generatedAt': DateTime.utc(2026, 7, 26).toIso8601String(),
       'text': 'x',
       'voice': 'from_a_future_build',
@@ -50,7 +50,7 @@ void main() {
 
   test('generatedAt is normalized to UTC', () {
     final r = Reflection(
-      weekStart: DateTime(2026, 7, 20),
+      periodStart: DateTime(2026, 7, 20),
       generatedAt: DateTime.utc(2026, 7, 26, 9),
     );
 
@@ -59,7 +59,7 @@ void main() {
 
   test('round-trips its period through JSON', () {
     final r = Reflection(
-      weekStart: DateTime(2026, 8),
+      periodStart: DateTime(2026, 8),
       generatedAt: DateTime.utc(2026, 8, 1, 9),
       period: ReflectionPeriod.monthly,
       text: 'August held steady.',
@@ -71,7 +71,7 @@ void main() {
 
   test('a record with no period reads back as weekly', () {
     final json = {
-      'weekStart': '2026-07-20',
+      'periodStart': '2026-07-20',
       'generatedAt': DateTime.utc(2026, 7, 26).toIso8601String(),
       'text': 'x',
     };
@@ -82,11 +82,11 @@ void main() {
   test('the same start under two periods is two distinct records', () {
     final at = DateTime.utc(2026, 8, 3);
     final day = Reflection(
-      weekStart: DateTime(2026, 8, 3),
+      periodStart: DateTime(2026, 8, 3),
       generatedAt: at,
       period: ReflectionPeriod.daily,
     );
-    final week = Reflection(weekStart: DateTime(2026, 8, 3), generatedAt: at);
+    final week = Reflection(periodStart: DateTime(2026, 8, 3), generatedAt: at);
 
     expect(day == week, isFalse);
     expect(day.hashCode == week.hashCode, isFalse);

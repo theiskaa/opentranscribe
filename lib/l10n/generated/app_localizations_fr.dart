@@ -463,7 +463,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String reflectionOfWeek(String range) {
+  String reflectionOfPeriod(String range) {
     return 'Réflexion du $range';
   }
 
@@ -501,7 +501,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reflectionSpecificsThemes => 'Thèmes seulement';
 
   @override
-  String get reflectionSpecificsLetWeek => 'Laisser décider';
+  String get reflectionSpecificsLetPeriod => 'Laisser décider';
 
   @override
   String get reflectionRegenerate => 'Régénérer';

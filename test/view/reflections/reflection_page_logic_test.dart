@@ -8,25 +8,25 @@ import 'package:opentranscribe/view/layouts/reflections/components/reflection_pa
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 
 void main() {
-  final weekStart = DateTime(2026, 7, 20);
+  final periodStart = DateTime(2026, 7, 20);
 
-  ReflectionWeek reflected({DateTime? generatedAt}) => ReflectionWeek(
-    weekStart: weekStart,
-    status: ReflectionWeekStatus.reflected,
+  ReflectionPage reflected({DateTime? generatedAt}) => ReflectionPage(
+    periodStart: periodStart,
+    status: ReflectionPageStatus.reflected,
     reflection: Reflection(
-      weekStart: weekStart,
+      periodStart: periodStart,
       generatedAt: generatedAt ?? DateTime.utc(2026, 7, 27),
       text: 'a week',
     ),
   );
 
   InkPhase phaseFor(
-    ReflectionWeek week, {
+    ReflectionPage week, {
     bool regenerating = false,
     bool scrubbing = false,
     Set<String> revealed = const {},
   }) =>
-      inkPhaseFor(week: week, regenerating: regenerating, scrubbing: scrubbing, revealed: revealed);
+      inkPhaseFor(page: week, regenerating: regenerating, scrubbing: scrubbing, revealed: revealed);
 
   test('the first view of a reflected week writes on', () {
     expect(phaseFor(reflected()), InkPhase.write);
@@ -64,32 +64,32 @@ void main() {
   });
 
   test('a regenerate cloud is shaped like the text it replaces, not the knob\'s fixed height', () {
-    final short = ReflectionWeek(
-      weekStart: weekStart,
-      status: ReflectionWeekStatus.reflected,
+    final short = ReflectionPage(
+      periodStart: periodStart,
+      status: ReflectionPageStatus.reflected,
       reflection: Reflection(
-        weekStart: weekStart,
+        periodStart: periodStart,
         generatedAt: DateTime.utc(2026, 7, 27),
         text: 'One brief line.',
       ),
     );
-    final long = ReflectionWeek(
-      weekStart: weekStart,
-      status: ReflectionWeekStatus.reflected,
+    final long = ReflectionPage(
+      periodStart: periodStart,
+      status: ReflectionPageStatus.reflected,
       reflection: Reflection(
-        weekStart: weekStart,
+        periodStart: periodStart,
         generatedAt: DateTime.utc(2026, 7, 27),
         text: 'x' * 400,
       ),
     );
     final shortLines = pendingLinesFor(
-      week: short,
+      page: short,
       width: 360,
       fontSize: 17,
       length: ReflectionLength.paragraph,
     );
     final longLines = pendingLinesFor(
-      week: long,
+      page: long,
       width: 360,
       fontSize: 17,
       length: ReflectionLength.paragraph,
@@ -99,23 +99,23 @@ void main() {
   });
 
   test('a larger accessibility text scale deepens the cloud with the text', () {
-    final week = ReflectionWeek(
-      weekStart: weekStart,
-      status: ReflectionWeekStatus.reflected,
+    final week = ReflectionPage(
+      periodStart: periodStart,
+      status: ReflectionPageStatus.reflected,
       reflection: Reflection(
-        weekStart: weekStart,
+        periodStart: periodStart,
         generatedAt: DateTime.utc(2026, 7, 27),
         text: 'x' * 400,
       ),
     );
     final plain = pendingLinesFor(
-      week: week,
+      page: week,
       width: 360,
       fontSize: 17,
       length: ReflectionLength.paragraph,
     );
     final scaled = pendingLinesFor(
-      week: week,
+      page: week,
       width: 360,
       fontSize: 17 * 1.6,
       length: ReflectionLength.paragraph,
@@ -124,13 +124,13 @@ void main() {
   });
 
   test('a week with no text falls back to the length knob', () {
-    final silent = ReflectionWeek(
-      weekStart: weekStart,
-      status: ReflectionWeekStatus.silent,
-      reflection: Reflection(weekStart: weekStart, generatedAt: DateTime.utc(2026, 7, 27)),
+    final silent = ReflectionPage(
+      periodStart: periodStart,
+      status: ReflectionPageStatus.silent,
+      reflection: Reflection(periodStart: periodStart, generatedAt: DateTime.utc(2026, 7, 27)),
     );
     expect(
-      pendingLinesFor(week: silent, width: 360, fontSize: 17, length: ReflectionLength.sentences),
+      pendingLinesFor(page: silent, width: 360, fontSize: 17, length: ReflectionLength.sentences),
       placeholderLinesFor(ReflectionLength.sentences),
     );
   });

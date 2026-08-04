@@ -21,7 +21,7 @@ const ReflectionMenuLabels _labels = (
   paragraph: 'Short paragraph',
   nameFreely: 'Name specifics',
   themesOnly: 'Themes only',
-  letWeekDecide: 'Let the week decide',
+  letPeriodDecide: 'Let the week decide',
 );
 
 const _weeklyOnly = {

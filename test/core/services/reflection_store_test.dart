@@ -17,8 +17,8 @@ void main() {
   late LocalService storage;
   late ReflectionStore store;
 
-  Reflection reflection(DateTime weekStart, {String? text}) => Reflection(
-    weekStart: weekStart,
+  Reflection reflection(DateTime periodStart, {String? text}) => Reflection(
+    periodStart: periodStart,
     generatedAt: DateTime.utc(2026, 8, 3),
     text: text,
     voice: ReflectionVoice.literary,
@@ -61,7 +61,7 @@ void main() {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'new'));
     await store.save(reflection(DateTime(2026, 7, 13), text: 'mid'));
 
-    final weeks = store.all().map((r) => r.weekKey).toList();
+    final weeks = store.all().map((r) => r.periodKey).toList();
 
     expect(weeks, ['2026-07-20', '2026-07-13', '2026-07-06']);
   });
@@ -107,7 +107,7 @@ void main() {
     await store.save(reflection(DateTime(2026, 7, 20), text: 'good'));
     await storage.writeJson('reflection:bad', {'nope': 1});
 
-    expect(store.all().map((r) => r.weekKey).toList(), ['2026-07-20']);
+    expect(store.all().map((r) => r.periodKey).toList(), ['2026-07-20']);
     expect(store.read(DateTime(2026, 7, 20)), isNotNull);
   });
 
@@ -118,12 +118,12 @@ void main() {
     store = ReflectionStore(storage);
     await store.save(reflection(DateTime(2026, 7, 20), text: 'good'));
 
-    expect(store.all().map((r) => r.weekKey).toList(), ['2026-07-20']);
+    expect(store.all().map((r) => r.periodKey).toList(), ['2026-07-20']);
   });
 
   Reflection periodReflection(DateTime start, ReflectionPeriod period, {String? text}) =>
       Reflection(
-        weekStart: start,
+        periodStart: start,
         generatedAt: DateTime.utc(2026, 8, 3),
         period: period,
         text: text,

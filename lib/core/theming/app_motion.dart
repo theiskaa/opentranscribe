@@ -26,11 +26,11 @@ final class AppMotion {
     this.subtitleRoll = const Duration(milliseconds: 120),
     this.weekSlide = const Duration(milliseconds: 300),
     this.weekHome = const Duration(milliseconds: 180),
-    this.weekTurn = const Duration(milliseconds: 420),
-    this.weekTurnCurve = Curves.easeInOutCubic,
-    this.weekTurnResumeCurve = Curves.easeOutCubic,
-    this.weekTurnFloor = 0.35,
-    this.weekTurnSpring = const SpringDescription(mass: 1, stiffness: 170, damping: 26),
+    this.periodTurn = const Duration(milliseconds: 420),
+    this.periodTurnCurve = Curves.easeInOutCubic,
+    this.periodTurnResumeCurve = Curves.easeOutCubic,
+    this.periodTurnFloor = 0.35,
+    this.periodTurnSpring = const SpringDescription(mass: 1, stiffness: 170, damping: 26),
     this.pageSlide = const Duration(milliseconds: 300),
     this.dayGlide = const Duration(milliseconds: 320),
     this.dayGlideCurve = Curves.easeOutCubic,
@@ -102,23 +102,23 @@ final class AppMotion {
   /// release: deliberately slower than [weekHome], so the ink's liquid
   /// transfer reads as flow rather than a blink; eased both ends because the
   /// pager is already on screen moving from A to B.
-  final Duration weekTurn;
-  final Curve weekTurnCurve;
+  final Duration periodTurn;
+  final Curve periodTurnCurve;
 
   /// The curve for a week-turn RESUMED mid-flight (rapid capsule taps): eased
   /// out only, so a chained tap moves immediately and decelerates in.
-  /// Restarting [weekTurnCurve]'s slow opening from a standstill would trap
+  /// Restarting [periodTurnCurve]'s slow opening from a standstill would trap
   /// stacked taps in its first phase.
-  final Curve weekTurnResumeCurve;
+  final Curve periodTurnResumeCurve;
 
-  /// The shortest share of [weekTurn] a sub-week settle may take, so even a
+  /// The shortest share of [periodTurn] a sub-week settle may take, so even a
   /// nudge back to the nearest dot still visibly flows rather than snapping.
-  final double weekTurnFloor;
+  final double periodTurnFloor;
 
   /// The pager settling after a swipe releases: critically damped and softer
   /// than the framework's page spring, so the ink bridge pours across at the
   /// same liquid pace instead of snapping.
-  final SpringDescription weekTurnSpring;
+  final SpringDescription periodTurnSpring;
 
   /// A full-screen pager advancing one page on a button tap (onboarding's Next).
   final Duration pageSlide;

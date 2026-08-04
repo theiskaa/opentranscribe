@@ -42,25 +42,25 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 /// waiting for the next catch-up. The quiet marker names the viewed [period] so
 /// a day, week, and month each read as themselves. Null for a reflected page,
 /// whose text renders through the ink reveal instead.
-({String title, String body, bool marker})? reflectionWeekPlaceholder(
+({String title, String body, bool marker})? reflectionPlaceholderContent(
   AppLocalizations l10n,
-  ReflectionWeekStatus status,
+  ReflectionPageStatus status,
   ReflectionPeriod period,
 ) => switch (status) {
-  ReflectionWeekStatus.reflected => null,
+  ReflectionPageStatus.reflected => null,
   // The bullet marks a silence the model recorded; the erased page drops it,
   // an absence the user authored, not one the period held.
-  ReflectionWeekStatus.silent => (
+  ReflectionPageStatus.silent => (
     title: reflectionQuietLabel(l10n, period),
     body: l10n.reflectionQuietBody,
     marker: true,
   ),
-  ReflectionWeekStatus.erased => (
+  ReflectionPageStatus.erased => (
     title: l10n.reflectionErasedTitle,
     body: l10n.reflectionErasedBody,
     marker: false,
   ),
-  ReflectionWeekStatus.unreflected => (
+  ReflectionPageStatus.unreflected => (
     title: l10n.reflectionWaitingTitle,
     body: l10n.reflectionWaitingBody,
     marker: false,
@@ -90,11 +90,11 @@ class ReflectionEditorialBody extends StatelessWidget {
   }
 }
 
-/// A week page with no reflection to read: its [title] over a [body], with an
+/// A page with no reflection to read: its [title] over a [body], with an
 /// optional bullet [marker] for a recorded silence. Left-aligned in the page's
 /// own flow under the range title.
-class ReflectionWeekPlaceholder extends StatelessWidget {
-  const ReflectionWeekPlaceholder({
+class ReflectionPlaceholder extends StatelessWidget {
+  const ReflectionPlaceholder({
     required this.title,
     required this.body,
     required this.marker,

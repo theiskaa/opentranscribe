@@ -6,35 +6,35 @@ import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
 /// The ink phase for a reflected page. Pure, so the replay policy is a tested
-/// rule, not widget state: the write-on plays once per week per screen visit
+/// rule, not widget state: the write-on plays once per page per screen visit
 /// (a browse back and forth must not replay a 1.3s arrival), while a
 /// regenerate always goes through pending and re-arrives (new words earn it).
-/// A scrub renders pages settled: weeks flown through under the finger must
+/// A scrub renders pages settled: pages flown through under the finger must
 /// not start captures, write-ons, or ledger spends, and the landed page
 /// re-earns its write once the grip releases.
 InkPhase inkPhaseFor({
-  required ReflectionWeek week,
+  required ReflectionPage page,
   required bool regenerating,
   required bool scrubbing,
   required Set<String> revealed,
 }) {
   if (regenerating) return InkPhase.pending;
   if (scrubbing) return InkPhase.settled;
-  if (revealed.contains(revealKeyFor(week))) return InkPhase.settled;
+  if (revealed.contains(revealKeyFor(page))) return InkPhase.settled;
   return InkPhase.write;
 }
 
-/// The replay ledger's key: week AND generation instant, so a regenerated
-/// week (same weekStart, new generatedAt) reads as unrevealed and its new
+/// The replay ledger's key: page AND generation instant, so a regenerated
+/// page (same periodStart, new generatedAt) reads as unrevealed and its new
 /// words arrive again. The ledger marks a write once its page is (or
 /// becomes) the pager's current page: an arrival interrupted mid-read does
 /// not replay, but a neighbor peeked and abandoned keeps its write unspent.
-String revealKeyFor(ReflectionWeek week) {
-  final at = week.reflection?.generatedAt.toIso8601String() ?? '';
-  return '${week.weekStart.toIso8601String()}|$at';
+String revealKeyFor(ReflectionPage page) {
+  final at = page.reflection?.generatedAt.toIso8601String() ?? '';
+  return '${page.periodStart.toIso8601String()}|$at';
 }
 
-/// Placeholder cloud height for a week being written, from the user's length
+/// Placeholder cloud height for a page being written, from the user's length
 /// knob: the forming ink should look like the reflection it becomes.
 int placeholderLinesFor(ReflectionLength length) => switch (length) {
   ReflectionLength.oneLine => 3,
@@ -44,7 +44,7 @@ int placeholderLinesFor(ReflectionLength length) => switch (length) {
 
 /// Where an eager pager settles after a release: any flick commits in its
 /// direction, and a plain drag commits once it clears [threshold] of a page -
-/// far short of the framework's half-page midpoint, so turning a week feels
+/// far short of the framework's half-page midpoint, so turning a page feels
 /// immediate. [from] is the page the gesture STARTED from (the last settled
 /// page, not the live rounding, which would recreate the 50% rule); a stale
 /// anchor more than a page away re-anchors to the nearest page. The caller
@@ -66,9 +66,9 @@ int eagerPageTarget({
   return anchor;
 }
 
-/// Where a scrub drag puts the pager: the page under the finger, one week per
+/// Where a scrub drag puts the pager: the page under the finger, one page per
 /// [pitch] of travel from the [anchorPage] grabbed at pointer-down - so
-/// touching the capsule never teleports, and dx > 0 moves toward newer weeks
+/// touching the capsule never teleports, and dx > 0 moves toward newer pages
 /// (the dots slide under the finger 1:1). Clamped to the timeline; a
 /// timeline of one (or none) pins to 0. Pure, so the mapping is a tested rule.
 double scrubPage({
@@ -82,8 +82,8 @@ double scrubPage({
 }
 
 /// Where a capsule TAP sends the pager: the tapped half picks the direction,
-/// right of [width]'s middle toward newer weeks and left toward older
-/// (matching the scrub's dx), one week per tap, clamped to the timeline.
+/// right of [width]'s middle toward newer pages and left toward older
+/// (matching the scrub's dx), one page per tap, clamped to the timeline.
 /// Pure, so the tap rule is tested.
 int scrubTapTarget({
   required int page,
@@ -97,7 +97,7 @@ int scrubTapTarget({
 }
 
 /// The page a capsule tap builds from: the still-in-flight previous tap's
-/// [pending] target, so rapid taps chain one week EACH instead of re-rounding
+/// [pending] target, so rapid taps chain one page EACH instead of re-rounding
 /// the same unfinished transfer back to its start. A pending target more than
 /// a hair over a page away is stale (something else moved the pager) and the
 /// live rounding wins; the caller also drops [pending] once the pager rests
@@ -201,17 +201,17 @@ double _smoothstep(double x) {
   return t * t * (3 - 2 * t);
 }
 
-/// The pending cloud's height for [week] at the page's text [width] and the
+/// The pending cloud's height for [page] at the page's text [width] and the
 /// reader's scaled [fontSize]: shaped like the text it replaces, falling back
-/// to the [length] knob when the week holds none (a first write, an erased or
-/// silent week).
+/// to the [length] knob when the page holds none (a first write, an erased or
+/// silent page).
 int pendingLinesFor({
-  required ReflectionWeek week,
+  required ReflectionPage page,
   required double width,
   required double fontSize,
   required ReflectionLength length,
 }) {
-  final text = week.reflection?.text;
+  final text = page.reflection?.text;
   if (text == null || text.isEmpty) return placeholderLinesFor(length);
   return estimateTextInkLines(characters: text.length, width: width, fontSize: fontSize);
 }

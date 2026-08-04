@@ -7,8 +7,12 @@ Reflection reflection(
   DateTime start, {
   ReflectionPeriod period = ReflectionPeriod.weekly,
   String? text,
-}) =>
-    Reflection(weekStart: start, period: period, generatedAt: DateTime.utc(2026, 8, 3), text: text);
+}) => Reflection(
+  periodStart: start,
+  period: period,
+  generatedAt: DateTime.utc(2026, 8, 3),
+  text: text,
+);
 
 void main() {
   final today = DateTime(2026, 7, 29);
@@ -113,7 +117,7 @@ void main() {
         'its arrival plays on the reflections surfaces instead', () {
       final before = reflection(DateTime(2026, 7, 20), text: 'old');
       final after = Reflection(
-        weekStart: DateTime(2026, 7, 20),
+        periodStart: DateTime(2026, 7, 20),
         generatedAt: DateTime.utc(2026, 8, 4),
         text: 'new',
       );

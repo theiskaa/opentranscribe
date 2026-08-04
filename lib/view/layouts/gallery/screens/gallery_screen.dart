@@ -311,7 +311,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               _section('Reflections'),
               ReflectionHomeCard(
                 reflection: Reflection(
-                  weekStart: DateTime(2026, 7, 20),
+                  periodStart: DateTime(2026, 7, 20),
                   generatedAt: DateTime.utc(2026, 7, 27),
                   text:
                       'The week kept circling back to the launch, and the launch held. '
@@ -323,7 +323,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               const SizedBox(height: AppSpacing.lg),
               ReflectionHomeCard(
                 reflection: Reflection(
-                  weekStart: DateTime(2026, 7, 13),
+                  periodStart: DateTime(2026, 7, 13),
                   generatedAt: DateTime.utc(2026, 7, 20),
                 ),
                 onTap: () {},
@@ -723,10 +723,10 @@ class _ReflectionStatesDemoState extends State<_ReflectionStatesDemo> {
     ('Unsupported device', false, ReflectionAvailabilityStatus.unsupported),
   ];
 
-  static const _weeks = <(String, ReflectionWeekStatus)>[
-    ('Quiet week', ReflectionWeekStatus.silent),
-    ('Erased', ReflectionWeekStatus.erased),
-    ('Waiting', ReflectionWeekStatus.unreflected),
+  static const _placeholders = <(String, ReflectionPageStatus)>[
+    ('Quiet', ReflectionPageStatus.silent),
+    ('Erased', ReflectionPageStatus.erased),
+    ('Waiting', ReflectionPageStatus.unreflected),
   ];
 
   int _editorial = 0;
@@ -747,10 +747,10 @@ class _ReflectionStatesDemoState extends State<_ReflectionStatesDemo> {
             copy: reflectionEditorialCopy(l10n, available: available, status: status),
           ),
         ),
-        for (final (label, week) in _weeks) ...[
+        for (final (label, status) in _placeholders) ...[
           const SizedBox(height: AppSpacing.xl),
           _Caption(label),
-          _ReflectionWeekExample(status: week),
+          _ReflectionPlaceholderExample(status: status),
         ],
         const SizedBox(height: AppSpacing.xl),
         const _Caption('Disabled notice (toggle to dither in and out)'),
@@ -779,19 +779,19 @@ class _ReflectionStatesDemoState extends State<_ReflectionStatesDemo> {
 
 /// One week page's no-text placeholder, resolved from the shared state mapping
 /// so the gallery shows exactly what the pager renders.
-class _ReflectionWeekExample extends StatelessWidget {
-  const _ReflectionWeekExample({required this.status});
+class _ReflectionPlaceholderExample extends StatelessWidget {
+  const _ReflectionPlaceholderExample({required this.status});
 
-  final ReflectionWeekStatus status;
+  final ReflectionPageStatus status;
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = reflectionWeekPlaceholder(
+    final placeholder = reflectionPlaceholderContent(
       AppLocalizations.of(context)!,
       status,
       ReflectionPeriod.weekly,
     )!;
-    return ReflectionWeekPlaceholder(
+    return ReflectionPlaceholder(
       title: placeholder.title,
       body: placeholder.body,
       marker: placeholder.marker,

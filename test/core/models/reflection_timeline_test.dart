@@ -11,9 +11,9 @@ void main() {
   final oldFloor = DateTime(2026, 6, 8);
 
   Reflection stored(DateTime week, {String? text}) =>
-      Reflection(weekStart: week, generatedAt: DateTime.utc(2026, 7, 27), text: text);
+      Reflection(periodStart: week, generatedAt: DateTime.utc(2026, 7, 27), text: text);
 
-  List<ReflectionWeek> timeline({
+  List<ReflectionPage> timeline({
     List<Reflection> history = const [],
     Set<DateTime> journaled = const {},
     List<DateTime> deleted = const [],
@@ -34,7 +34,7 @@ void main() {
         stored(threeWeeksAgo, text: 'old'),
       ],
     );
-    expect(weeks.map((w) => w.weekStart), [threeWeeksAgo, lastWeek]);
+    expect(weeks.map((w) => w.periodStart), [threeWeeksAgo, lastWeek]);
   });
 
   test('the open week is never a page, whatever claims it', () {
@@ -54,16 +54,16 @@ void main() {
       ],
     );
     expect(weeks.map((w) => w.status), [
-      ReflectionWeekStatus.silent,
-      ReflectionWeekStatus.reflected,
+      ReflectionPageStatus.silent,
+      ReflectionPageStatus.reflected,
     ]);
     expect(weeks.last.reflection!.text, 'x');
   });
 
   test('a journaled week with nothing stored waits, and only above the floor', () {
     final weeks = timeline(journaled: {lastWeek, threeWeeksAgo}, floor: twoWeeksAgo);
-    expect(weeks.map((w) => w.weekStart), [lastWeek]);
-    expect(weeks.single.status, ReflectionWeekStatus.unreflected);
+    expect(weeks.map((w) => w.periodStart), [lastWeek]);
+    expect(weeks.single.status, ReflectionPageStatus.unreflected);
   });
 
   test('a null floor (catch-up never ran) yields no waiting pages at all', () {
@@ -81,7 +81,7 @@ void main() {
   test('a stored reflection below the floor still gets its page (dev devices)', () {
     final belowFloor = DateTime(2026, 5, 4);
     final weeks = timeline(history: [stored(belowFloor, text: 'kept')]);
-    expect(weeks.single.status, ReflectionWeekStatus.reflected);
+    expect(weeks.single.status, ReflectionPageStatus.reflected);
   });
 
   test('a tombstone is an erased page, outranked by a stored row, outranking journaled', () {
@@ -91,23 +91,23 @@ void main() {
       deleted: [lastWeek, twoWeeksAgo],
     );
     expect(weeks.map((w) => w.status), [
-      ReflectionWeekStatus.erased,
-      ReflectionWeekStatus.reflected,
+      ReflectionPageStatus.erased,
+      ReflectionPageStatus.reflected,
     ]);
   });
 
   test('two tombstones left overlapping by a first-day shift collapse to one erased page', () {
     final sundayWeek = DateTime(2026, 7, 19);
     final weeks = timeline(deleted: [sundayWeek, lastWeek]);
-    expect(weeks.single.weekStart, sundayWeek);
-    expect(weeks.single.status, ReflectionWeekStatus.erased);
+    expect(weeks.single.periodStart, sundayWeek);
+    expect(weeks.single.status, ReflectionPageStatus.erased);
   });
 
   test('a below-floor tombstone still earns its erased page, '
       'since the floor gates only waiting pages', () {
     final belowFloor = DateTime(2026, 5, 4);
     final weeks = timeline(deleted: [belowFloor]);
-    expect(weeks.single.status, ReflectionWeekStatus.erased);
+    expect(weeks.single.status, ReflectionPageStatus.erased);
   });
 
   test('a first-day shift cannot page the same week twice', () {
@@ -117,20 +117,20 @@ void main() {
       journaled: {lastWeek},
     );
     expect(weeks.length, 1);
-    expect(weeks.single.weekStart, sundayWeek);
+    expect(weeks.single.periodStart, sundayWeek);
   });
 
-  test('pageForWeek answers the index, the last page for absent or null, -1 for empty', () {
+  test('pageForStart answers the index, the last page for absent or null, -1 for empty', () {
     final weeks = timeline(
       history: [
         stored(lastWeek, text: 'a'),
         stored(twoWeeksAgo, text: 'b'),
       ],
     );
-    expect(pageForWeek(weeks, twoWeeksAgo), 0);
-    expect(pageForWeek(weeks, lastWeek), 1);
-    expect(pageForWeek(weeks, null), 1);
-    expect(pageForWeek(weeks, DateTime(2020, 1, 6)), 1);
-    expect(pageForWeek(const [], null), -1);
+    expect(pageForStart(weeks, twoWeeksAgo), 0);
+    expect(pageForStart(weeks, lastWeek), 1);
+    expect(pageForStart(weeks, null), 1);
+    expect(pageForStart(weeks, DateTime(2020, 1, 6)), 1);
+    expect(pageForStart(const [], null), -1);
   });
 }

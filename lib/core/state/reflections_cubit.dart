@@ -68,7 +68,7 @@ final class ReflectionsState {
   /// The pager's spine for the viewed period: every closed period worth a page,
   /// OLDEST first (index 0 = oldest, last = the newest closed one, the landing
   /// page).
-  final List<ReflectionWeek> timeline;
+  final List<ReflectionPage> timeline;
 
   /// The period start whose regenerate is in flight, or null.
   final DateTime? regenerating;
@@ -95,7 +95,7 @@ final class ReflectionsState {
     ReflectionStyle? style,
     List<Reflection>? history,
     List<Reflection>? homeReflections,
-    List<ReflectionWeek>? timeline,
+    List<ReflectionPage>? timeline,
     DateTime? regenerating,
     bool clearRegenerating = false,
     bool? regenerateFailed,

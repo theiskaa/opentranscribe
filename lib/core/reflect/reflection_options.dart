@@ -46,7 +46,7 @@ enum ReflectionLength {
 enum ReflectionSpecificity {
   nameFreely('name_freely'),
   abstractThemes('abstract'),
-  letWeekDecide('let_week_decide');
+  letPeriodDecide('let_period_decide');
 
   const ReflectionSpecificity(this.wire);
 

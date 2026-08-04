@@ -428,7 +428,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String reflectionOfWeek(String range) {
+  String reflectionOfPeriod(String range) {
     return '$range的回顾';
   }
 
@@ -466,7 +466,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionSpecificsThemes => '仅主题';
 
   @override
-  String get reflectionSpecificsLetWeek => '由它决定';
+  String get reflectionSpecificsLetPeriod => '由它决定';
 
   @override
   String get reflectionRegenerate => '重新生成';

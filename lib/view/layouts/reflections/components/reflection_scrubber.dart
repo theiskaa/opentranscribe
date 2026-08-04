@@ -11,10 +11,10 @@ import 'package:opentranscribe/view/layouts/reflections/components/reflection_pa
 import 'package:opentranscribe/view/widgets/glass_capsule.dart';
 
 /// The pager's floating position capsule: a frosted pill holding the ink dot
-/// strip, scrubbable - a drag flies through weeks at one week per dot of
+/// strip, scrubbable - a drag flies through pages at one page per dot of
 /// travel ([scrubPage]), anchored where the finger crosses the touch slop so
 /// the scrub starts 1:1 with no jump - and tappable: a tap on either half
-/// turns one week in that direction ([scrubTapTarget]). A raw [Listener] with
+/// turns one page in that direction ([scrubTapTarget]). A raw [Listener] with
 /// an opaque hit test owns the pointer directly, so the pager underneath
 /// never contends for it. The capsule also just tracks ordinary pager swipes
 /// through the controller it listens to.
@@ -141,16 +141,16 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
       _flowTarget = null;
     } else {
       final motion = context.motionNow;
-      // The full weekTurn pour for a whole-week turn; a sub-dot settle takes
+      // The full periodTurn pour for a whole-page turn; a sub-dot settle takes
       // its proportional share, floored so even a nudge still flows. A turn
       // resumed mid-flight eases OUT only: restarting the two-ended curve
       // would trap rapid taps in its slow first phase forever.
-      final distance = (live - target).abs().clamp(motion.weekTurnFloor, 1.0);
+      final distance = (live - target).abs().clamp(motion.periodTurnFloor, 1.0);
       final midFlight = (live - live.round()).abs() > 0.01;
       final settle = widget.controller.animateToPage(
         target,
-        duration: Duration(milliseconds: (motion.weekTurn.inMilliseconds * distance).round()),
-        curve: midFlight ? motion.weekTurnResumeCurve : motion.weekTurnCurve,
+        duration: Duration(milliseconds: (motion.periodTurn.inMilliseconds * distance).round()),
+        curve: midFlight ? motion.periodTurnResumeCurve : motion.periodTurnCurve,
       );
       // Drop the chain base once THIS turn lands, so a later swipe-then-tap
       // reads the live page, not a spent target. The equality guard leaves a
@@ -165,8 +165,8 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
   }
 
   /// A release whose finger never crossed the touch slop is a TAP, and the
-  /// tapped half turns one week in its direction, chaining from an unfinished
-  /// turn's own target so rapid taps advance a week each; a real scrub
+  /// tapped half turns one page in its direction, chaining from an unfinished
+  /// turn's own target so rapid taps advance a page each; a real scrub
   /// settles where it left off.
   int _releaseTarget(PointerEvent event) {
     final page = widget.controller.page ?? 0;
@@ -226,15 +226,15 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
   }
 }
 
-/// The capsule's dot strip: one dot per week slides past a fixed [maxVisible]
+/// The capsule's dot strip: one dot per page slides past a fixed [maxVisible]
 /// window as the FRACTIONAL page moves, and the position is INK, one liquid
-/// blob at home in the current week's dot. Moving between weeks the ink
+/// blob at home in the current page's dot. Moving between pages the ink
 /// MORPHS across as a liquid bridge: the source blob drains ([bridgeDrain])
 /// while a pinched stream reaches over ([bridgeNeck]) and the destination
 /// swells full with a soft follow-through ([bridgeFill]) - venom flowing
 /// from dot to dot, never leaving the line. Driven 1:1 by the page fraction,
 /// so a swipe holds the stream mid-flow and backing out reverses it; being
-/// scroll-driven it needs no Reduce Motion gate. A rim with more weeks
+/// scroll-driven it needs no Reduce Motion gate. A rim with more pages
 /// beyond it shrinks its dots on a continuous ramp that reads as an ellipsis.
 class ScrubberDots extends StatelessWidget {
   const ScrubberDots({required this.count, required this.position, super.key});

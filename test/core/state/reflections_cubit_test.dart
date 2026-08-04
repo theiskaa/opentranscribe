@@ -48,7 +48,7 @@ void main() {
   });
 
   test('loads availability, settings, and history on build', () async {
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'kept'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'kept'));
     final cubit = build();
     await cubit.load();
 
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('regenerate replaces the week and clears the in-flight marker', () async {
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'old'));
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     engine.output = 'new';
     final cubit = build();
@@ -160,8 +160,8 @@ void main() {
 
   test('a second regenerate, even for another week, is ignored while one is in flight', () async {
     final weekBefore = DateTime(2026, 7, 13);
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'a'));
-    await store.save(Reflection(weekStart: weekBefore, generatedAt: now, text: 'b'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a'));
+    await store.save(Reflection(periodStart: weekBefore, generatedAt: now, text: 'b'));
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     final gate = Completer<void>();
     engine.gate = gate.future;
@@ -213,11 +213,11 @@ void main() {
     final cubit = build();
     await cubit.load();
 
-    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.unreflected);
+    expect(cubit.state.timeline.single.status, ReflectionPageStatus.unreflected);
 
     await service.catchUp();
     await settle();
-    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.reflected);
+    expect(cubit.state.timeline.single.status, ReflectionPageStatus.reflected);
     await cubit.close();
   });
 
@@ -227,11 +227,11 @@ void main() {
     await settings.setEnabled(false);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await settings.setVoiceFor(ReflectionPeriod.daily, ReflectionVoice.sparse);
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
     await store.save(
       Reflection(
         period: ReflectionPeriod.daily,
-        weekStart: DateTime(2026, 7, 28),
+        periodStart: DateTime(2026, 7, 28),
         generatedAt: now,
         text: 'a day',
       ),
@@ -256,7 +256,7 @@ void main() {
     await store.save(
       Reflection(
         period: ReflectionPeriod.daily,
-        weekStart: DateTime(2026, 7, 28),
+        periodStart: DateTime(2026, 7, 28),
         generatedAt: now,
         text: 'a day',
       ),
@@ -309,11 +309,11 @@ void main() {
 
   test('home reflections span every enabled period and do not follow the viewed one', () async {
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'the week'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'the week'));
     await store.save(
       Reflection(
         period: ReflectionPeriod.daily,
-        weekStart: DateTime(2026, 7, 28),
+        periodStart: DateTime(2026, 7, 28),
         generatedAt: now,
         text: 'a day',
       ),
@@ -333,11 +333,11 @@ void main() {
   test('a disabled period keeps its cards off home while staying browsable', () async {
     await settings.setEnabled(false);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'the week'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'the week'));
     await store.save(
       Reflection(
         period: ReflectionPeriod.daily,
-        weekStart: DateTime(2026, 7, 28),
+        periodStart: DateTime(2026, 7, 28),
         generatedAt: now,
         text: 'a day',
       ),
@@ -352,7 +352,7 @@ void main() {
 
   test('switching period drops an in-flight regenerate marker', () async {
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     final gate = Completer<void>();
     engine.gate = gate.future;
@@ -372,15 +372,15 @@ void main() {
 
   test('a deleted week stays on the timeline as erased', () async {
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
     final cubit = build();
     await cubit.load();
-    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.reflected);
+    expect(cubit.state.timeline.single.status, ReflectionPageStatus.reflected);
 
     await cubit.delete(lastWeek);
     await settle();
 
-    expect(cubit.state.timeline.single.status, ReflectionWeekStatus.erased);
+    expect(cubit.state.timeline.single.status, ReflectionPageStatus.erased);
     await cubit.close();
   });
 }

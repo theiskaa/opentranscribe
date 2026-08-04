@@ -63,7 +63,7 @@ class AppRouter {
           key: state.pageKey,
           child: ReflectionsScreen(
             initialPeriod: state.uri.queryParameters['period'],
-            initialWeekKey: state.uri.queryParameters['week'],
+            initialStartKey: state.uri.queryParameters['week'],
           ),
         ),
       ),

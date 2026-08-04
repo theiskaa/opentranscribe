@@ -29,7 +29,7 @@ class ReflectionStore {
       '$_deletedPrefix${period.wire}:$dateKey';
 
   Future<void> save(Reflection reflection) async {
-    final dateKey = reflection.weekKey;
+    final dateKey = reflection.periodKey;
     // Row before marker: a failure between the writes then leaves both behind
     // (the fresh row wins) instead of neither, which would read as an erased
     // period for the catch-up to quietly refill.
@@ -60,7 +60,7 @@ class ReflectionStore {
       }
     }
     reflections.sort((a, b) {
-      final byStart = b.weekStart.compareTo(a.weekStart);
+      final byStart = b.periodStart.compareTo(a.periodStart);
       return byStart != 0 ? byStart : a.period.index.compareTo(b.period.index);
     });
     return reflections;

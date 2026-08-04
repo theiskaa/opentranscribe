@@ -191,7 +191,7 @@ void main() {
     });
 
     test('an already-reflected week is left untouched', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'kept'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'kept'));
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
 
       await service.catchUp();
@@ -329,7 +329,7 @@ void main() {
 
     test('a language change that shifts the week boundary does not re-reflect history', () async {
       final sundayWeek = DateTime(2026, 7, 19);
-      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'kept'));
+      await store.save(Reflection(periodStart: sundayWeek, generatedAt: now, text: 'kept'));
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       final deService = build(language: 'de', weekOf: null);
 
@@ -434,7 +434,7 @@ void main() {
 
     test('a language change cannot resurrect a deleted week', () async {
       final sundayWeek = DateTime(2026, 7, 19);
-      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'x'));
+      await store.save(Reflection(periodStart: sundayWeek, generatedAt: now, text: 'x'));
       await service.deleteReflection(sundayWeek);
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       final deService = build(language: 'de', weekOf: null);
@@ -446,7 +446,7 @@ void main() {
     });
 
     test('a delete landed mid-generation wins over the in-flight save', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'old'));
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       final gate = Completer<void>();
       engine.gate = gate.future;
@@ -462,7 +462,7 @@ void main() {
     });
 
     test('regenerating an erased week saves through its own tombstone', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'old'));
       await service.deleteReflection(lastWeek);
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       engine.output = 'fresh';
@@ -475,7 +475,7 @@ void main() {
 
     test('deleting a reflected week\'s entries later leaves its reflection '
         'untouched by a real catch-up pass', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'as heard'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'as heard'));
       entries = [withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago')];
 
       await service.catchUp();
@@ -486,7 +486,7 @@ void main() {
     });
 
     test('a week emptied to zero regenerates to an honest silence, without the model', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'as heard'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'as heard'));
       entries = [];
 
       await service.regenerate(lastWeek);
@@ -601,7 +601,7 @@ void main() {
 
   group('regenerate', () {
     test('replaces a stored reflection in the current style', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'old'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'old'));
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       engine.output = 'new';
 
@@ -637,7 +637,7 @@ void main() {
 
     test('keys off the stored week, not the current locale boundary', () async {
       final sundayWeek = DateTime(2026, 7, 19);
-      await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'old'));
+      await store.save(Reflection(periodStart: sundayWeek, generatedAt: now, text: 'old'));
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
       engine.output = 'new';
       final deService = build(language: 'de', weekOf: null);
@@ -700,7 +700,7 @@ void main() {
       await store.save(
         Reflection(
           period: ReflectionPeriod.daily,
-          weekStart: DateTime(2026, 7, 22),
+          periodStart: DateTime(2026, 7, 22),
           generatedAt: now,
           text: 'a single day',
         ),
@@ -716,12 +716,12 @@ void main() {
       await store.save(
         Reflection(
           period: ReflectionPeriod.daily,
-          weekStart: lastWeek,
+          periodStart: lastWeek,
           generatedAt: now,
           text: 'day',
         ),
       );
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'week'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'week'));
 
       expect(service.historyFor(ReflectionPeriod.weekly).map((r) => r.text), ['week']);
     });
@@ -750,14 +750,14 @@ void main() {
     });
 
     test('deletedStartsFor mirrors the store tombstones', () async {
-      await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+      await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
       await service.deleteReflection(lastWeek);
       expect(service.deletedStartsFor(ReflectionPeriod.weekly), [lastWeek]);
     });
   });
 
   test('deleteReflection removes a week and emits', () async {
-    await store.save(Reflection(weekStart: lastWeek, generatedAt: now, text: 'x'));
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
     final events = <void>[];
     final sub = service.reflectionsChanged.listen(events.add);
 
@@ -772,7 +772,7 @@ void main() {
   test('deleteReflection keys off the stored week, not the current locale boundary, '
       'so no row is left undeletable', () async {
     final sundayWeek = DateTime(2026, 7, 19);
-    await store.save(Reflection(weekStart: sundayWeek, generatedAt: now, text: 'x'));
+    await store.save(Reflection(periodStart: sundayWeek, generatedAt: now, text: 'x'));
     final deService = build(language: 'de', weekOf: null);
 
     await deService.deleteReflection(sundayWeek);

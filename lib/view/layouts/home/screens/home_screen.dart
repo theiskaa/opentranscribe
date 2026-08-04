@@ -434,7 +434,7 @@ class _ReflectionCardSlot extends StatelessWidget {
       reflection: reflection,
       onTap: () => context.pushNamed(
         Routes.reflectionsName,
-        queryParameters: {'period': reflection.period.wire, 'week': reflection.weekKey},
+        queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
       ),
     );
     if (!entrance) return card;

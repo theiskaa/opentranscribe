@@ -27,26 +27,26 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
-/// The reflections week pager: each closed week is a full reading page - its
+/// The reflections pager: each closed period is a full reading page - its
 /// range as the title, the reflection drawn below with the invisible-ink
 /// reveal - swiped between horizontally (oldest first; the landing page is
-/// the newest closed week, and the open week is never a page). The page IS
+/// the newest closed period, and the open period is never a page). The page IS
 /// the chrome, with one floating exception: a frosted scrubber capsule at
 /// bottom center reads (and drives) the position, fading away once the user
-/// scrolls into the text. ONE top-bar menu acts on the viewed week and
+/// scrolls into the text. ONE top-bar menu acts on the viewed page and
 /// carries the settings knobs.
 /// Reads the root-scoped [ReflectionsCubit];
-/// a week filling via the foreground catch-up updates its page in place.
+/// a period filling via the foreground catch-up updates its page in place.
 ///
 /// Availability gates only generation affordances, never stored history. With
 /// an empty timeline the screen is a single editorial page, explaining either
 /// the empty first run or how to make the feature work.
 ///
 /// This is the ONE reflections surface: a home card deep-links here through
-/// [initialWeekKey] and lands on its week, with the same pages and the same
+/// [initialStartKey] and lands on its page, with the same pages and the same
 /// menu as the plain open.
 class ReflectionsScreen extends StatefulWidget {
-  const ReflectionsScreen({this.initialPeriod, this.initialWeekKey, super.key});
+  const ReflectionsScreen({this.initialPeriod, this.initialStartKey, super.key});
 
   /// The period wire to land on (a home card deep-links its own period); null or
   /// unknown keeps the current viewed period.
@@ -54,7 +54,7 @@ class ReflectionsScreen extends StatefulWidget {
 
   /// yyyy-MM-dd ([Reflection.keyFor]) of the start to land on; null (or an
   /// unknown one) lands on the newest closed page.
-  final String? initialWeekKey;
+  final String? initialStartKey;
 
   @override
   State<ReflectionsScreen> createState() => _ReflectionsScreenState();
@@ -101,7 +101,7 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
         ),
       );
     }
-    return _WeekPagerView(initialWeekKey: widget.initialWeekKey);
+    return _PeriodPagerView(initialStartKey: widget.initialStartKey);
   }
 }
 
@@ -109,18 +109,18 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
 /// pages' bottom inset, so the text always clears the seat.
 double _capsuleSeat(BuildContext context) => MediaQuery.paddingOf(context).bottom + AppSpacing.xl;
 
-/// The pager body: owns the controller, the viewed week, and the reveal ledger
-/// (which weeks already wrote themselves on this visit).
-class _WeekPagerView extends StatefulWidget {
-  const _WeekPagerView({this.initialWeekKey});
+/// The pager body: owns the controller, the viewed page, and the reveal ledger
+/// (which pages already wrote themselves on this visit).
+class _PeriodPagerView extends StatefulWidget {
+  const _PeriodPagerView({this.initialStartKey});
 
-  final String? initialWeekKey;
+  final String? initialStartKey;
 
   @override
-  State<_WeekPagerView> createState() => _WeekPagerViewState();
+  State<_PeriodPagerView> createState() => _PeriodPagerViewState();
 }
 
-class _WeekPagerViewState extends State<_WeekPagerView> {
+class _PeriodPagerViewState extends State<_PeriodPagerView> {
   PageController? _controller;
   int _pageCount = 0;
 
@@ -129,23 +129,23 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
   /// page would recreate the framework's half-page commit rule.
   int _settledPage = 0;
 
-  /// The viewed page's week identity; null lands on the newest closed week.
-  /// Seeded from the deep-link key when a home card opened its week
-  /// ([pageForWeek] falls back to the newest page for an unknown week).
-  late DateTime? _viewedWeek = DateTime.tryParse(widget.initialWeekKey ?? '');
+  /// The viewed page's identity; null lands on the newest closed page.
+  /// Seeded from the deep-link key when a home card opened its page
+  /// ([pageForStart] falls back to the newest page for an unknown one).
+  late DateTime? _viewedStart = DateTime.tryParse(widget.initialStartKey ?? '');
 
   /// The period the pager is currently showing. A switch to another period is a
   /// wholly new timeline, so the reveal ledger and the viewed identity reset.
   ReflectionPeriod? _shownPeriod;
 
-  /// Weeks whose write-on this visit already SPENT: the write began while the
-  /// week was the current page, or the pager committed to it mid-write. A
+  /// Pages whose write-on this visit already SPENT: the write began while the
+  /// page was current, or the pager committed to it mid-write. A
   /// peeked-then-abandoned neighbor starts writing (its first pixel is its
   /// cue) but is not spent, so backing out below the commit threshold does
   /// not eat the arrival. A regenerate changes the key and re-earns it.
   final Set<String> _revealed = {};
 
-  /// Weeks whose write-on has begun at all, spent or not; [_revealed] takes
+  /// Pages whose write-on has begun at all, spent or not; [_revealed] takes
   /// from here when the pager commits to a page whose ink already runs.
   final Set<String> _started = {};
 
@@ -188,14 +188,14 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
     });
   }
 
-  /// Keeps the VIEWED WEEK stable when the timeline changes length: pages are
+  /// Keeps the VIEWED PAGE stable when the timeline changes length: pages are
   /// remapped by identity, not position.
-  PageController _configure(List<ReflectionWeek> timeline) {
-    final page = pageForWeek(timeline, _viewedWeek);
-    // Pin identity to the resolved page NOW: a null or unknown week left
+  PageController _configure(List<ReflectionPage> timeline) {
+    final page = pageForStart(timeline, _viewedStart);
+    // Pin identity to the resolved page NOW: a null or unknown one left
     // unresolved would re-resolve against a grown timeline later and teleport
-    // the pager off the week the user was reading.
-    _viewedWeek = timeline[page].weekStart;
+    // the pager off the page the user was reading.
+    _viewedStart = timeline[page].periodStart;
     final controller = _controller;
     if (controller != null && timeline.length == _pageCount) return controller;
     final old = controller;
@@ -207,7 +207,7 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
       // The PageView still holds the old controller until it rebuilds;
       // disposing mid-build would detach a dead ChangeNotifier. And the
       // swap keeps the OLD scroll position (initialPage only applies to a
-      // first attach), so land the kept week explicitly once attached.
+      // first attach), so land the kept page explicitly once attached.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         old.dispose();
         if (fresh.hasClients && fresh.page?.round() != page) fresh.jumpToPage(page);
@@ -229,19 +229,19 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
     final cubit = context.watch<ReflectionsCubit>();
     final state = cubit.state;
     // A period switch is a different timeline entirely: drop the reveal ledger
-    // and land on that period's newest page, never a stale week identity.
+    // and land on that period's newest page, never a stale page identity.
     if (_shownPeriod != state.viewedPeriod) {
       if (_shownPeriod != null) {
         _revealed.clear();
         _started.clear();
-        _viewedWeek = null;
+        _viewedStart = null;
         _pageCount = 0;
       }
       _shownPeriod = state.viewedPeriod;
     }
     final timeline = state.timeline;
     final controller = _configure(timeline);
-    final viewed = timeline[pageForWeek(timeline, _viewedWeek)];
+    final viewed = timeline[pageForStart(timeline, _viewedStart)];
     // Recomputed every build so a fresh timeline (a 1-page history) lands
     // right without waiting for a scroll tick; notifications only setState
     // when this flips.
@@ -299,33 +299,33 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                 physics: _EagerPagePhysics(
                   settledPage: () => _settledPage,
                   held: () => _scrubbing,
-                  turnSpring: theme.motion.weekTurnSpring,
+                  turnSpring: theme.motion.periodTurnSpring,
                 ),
                 itemCount: timeline.length,
-                onPageChanged: (page) {
+                onPageChanged: (index) {
                   // Pages flown through mid-scrub tick neither the hand nor
                   // the ledger; the scrubber answers the grab and the settle
                   // itself, and only a real commit spends a write-on.
                   if (!_scrubbing) Haptics.selection();
-                  final week = timeline[page];
+                  final page = timeline[index];
                   setState(() {
-                    _viewedWeek = week.weekStart;
+                    _viewedStart = page.periodStart;
                     // A fresh page always rests at its top (pages are
                     // disposed off screen), so the fold starts shown.
                     _scrollShown = true;
                     _scrollAnchor = 0;
                     // Committing to a page whose ink already runs spends its
                     // write-on; see [_revealed].
-                    final key = revealKeyFor(week);
+                    final key = revealKeyFor(page);
                     if (!_scrubbing && _started.contains(key)) _revealed.add(key);
                   });
                 },
-                itemBuilder: (context, page) {
-                  final week = timeline[page];
-                  return _WeekPage(
-                    week: week,
+                itemBuilder: (context, index) {
+                  final page = timeline[index];
+                  return _PeriodPage(
+                    page: page,
                     period: state.viewedPeriod,
-                    regenerating: state.regenerating == week.weekStart,
+                    regenerating: state.regenerating == page.periodStart,
                     scrubbing: _scrubbing,
                     revealed: _revealed,
                     length: state.style.length,
@@ -335,9 +335,9 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
                     onNoticeDismiss: cubit.clearRegenerateFailed,
                     onWriteStarted: () {
                       if (!mounted) return;
-                      final key = revealKeyFor(week);
+                      final key = revealKeyFor(page);
                       _started.add(key);
-                      if (week.weekStart != viewed.weekStart) return;
+                      if (page.periodStart != viewed.periodStart) return;
                       setState(() => _revealed.add(key));
                     },
                   );
@@ -388,14 +388,14 @@ class _WeekPagerViewState extends State<_WeekPagerView> {
   }
 }
 
-/// One week's page: ONE vertical scroll holding the range title and the
+/// One period's page: ONE vertical scroll holding the range title and the
 /// state's body, so a long reflection reads to its end with the title
-/// scrolling away naturally. Reflected and regenerating weeks render through
+/// scrolling away naturally. Reflected and regenerating pages render through
 /// the SAME [InkReveal] element, so a regenerate dissolves the words on
 /// screen instead of swapping widgets.
-class _WeekPage extends StatelessWidget {
-  const _WeekPage({
-    required this.week,
+class _PeriodPage extends StatelessWidget {
+  const _PeriodPage({
+    required this.page,
     required this.period,
     required this.regenerating,
     required this.scrubbing,
@@ -408,7 +408,7 @@ class _WeekPage extends StatelessWidget {
     required this.onWriteStarted,
   });
 
-  final ReflectionWeek week;
+  final ReflectionPage page;
 
   /// The viewed period, for the page's range title.
   final ReflectionPeriod period;
@@ -420,7 +420,7 @@ class _WeekPage extends StatelessWidget {
   final ReflectionLength length;
 
   /// The user turned reflections off: every page carries the standing notice
-  /// card, since history stays readable while the open week goes unwritten.
+  /// card, since history stays readable while the open period goes unwritten.
   final bool disabled;
 
   /// The notice card's button: reenables in place (the card then dissolves).
@@ -454,12 +454,12 @@ class _WeekPage extends StatelessWidget {
             ReflectionsDisabledSlot(disabled: disabled, onEnable: onEnable),
             AppNotice(message: notice, onDismiss: onNoticeDismiss),
             Text(
-              periodRangeLabel(period, week.weekStart, localeTag(context)),
+              periodRangeLabel(period, page.periodStart, localeTag(context)),
               style: AppType.display2.copyWith(color: theme.text),
             ),
             const SizedBox(height: AppSpacing.xl),
             _PageBody(
-              week: week,
+              page: page,
               period: period,
               regenerating: regenerating,
               scrubbing: scrubbing,
@@ -484,7 +484,7 @@ String? _voiceLabelOf(AppLocalizations l10n, ReflectionVoice? voice) => switch (
 
 class _PageBody extends StatelessWidget {
   const _PageBody({
-    required this.week,
+    required this.page,
     required this.period,
     required this.regenerating,
     required this.scrubbing,
@@ -493,7 +493,7 @@ class _PageBody extends StatelessWidget {
     required this.onWriteStarted,
   });
 
-  final ReflectionWeek week;
+  final ReflectionPage page;
 
   /// The viewed period, so a quiet page names itself (day, week, month).
   final ReflectionPeriod period;
@@ -508,8 +508,8 @@ class _PageBody extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
 
-    if (regenerating || week.status == ReflectionWeekStatus.reflected) {
-      final reflection = week.reflection;
+    if (regenerating || page.status == ReflectionPageStatus.reflected) {
+      final reflection = page.reflection;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -519,7 +519,7 @@ class _PageBody extends StatelessWidget {
           // Whether that start SPENDS the replay is the parent ledger's call.
           InkReveal(
             phase: inkPhaseFor(
-              week: week,
+              page: page,
               regenerating: regenerating,
               scrubbing: scrubbing,
               revealed: revealed,
@@ -527,7 +527,7 @@ class _PageBody extends StatelessWidget {
             color: theme.text,
             background: theme.screens.settings,
             placeholderLines: pendingLinesFor(
-              week: week,
+              page: page,
               width: MediaQuery.sizeOf(context).width - AppSpacing.xl * 2,
               fontSize: MediaQuery.textScalerOf(context).scale(AppType.body.fontSize!),
               length: length,
@@ -557,8 +557,8 @@ class _PageBody extends StatelessWidget {
       );
     }
     // reflected is handled above, so the placeholder is always present here.
-    final placeholder = reflectionWeekPlaceholder(l10n, week.status, period)!;
-    return ReflectionWeekPlaceholder(
+    final placeholder = reflectionPlaceholderContent(l10n, page.status, period)!;
+    return ReflectionPlaceholder(
       title: placeholder.title,
       body: placeholder.body,
       marker: placeholder.marker,
@@ -591,7 +591,7 @@ class _Editorial extends StatelessWidget {
 
 /// Page physics that commit early: the framework's [PageScrollPhysics] rounds
 /// to the nearest page, demanding a half-viewport drag before a slow release
-/// turns the week. This settles by [eagerPageTarget] instead - a fifth of a
+/// turns the page. This settles by [eagerPageTarget] instead - a fifth of a
 /// page, or any flick, commits - anchored on the last RESTED page the state
 /// supplies (reading the live rounding here would rebuild the 50% rule).
 class _EagerPagePhysics extends ScrollPhysics {
@@ -610,7 +610,7 @@ class _EagerPagePhysics extends ScrollPhysics {
   /// Held means no simulation; the scrubber settles explicitly on release.
   final ValueGetter<bool> held;
 
-  /// The settle's own spring ([AppMotion.weekTurnSpring]), softer than the
+  /// The settle's own spring ([AppMotion.periodTurnSpring]), softer than the
   /// framework default so the ink bridge pours at the turn's liquid pace.
   final SpringDescription turnSpring;
 

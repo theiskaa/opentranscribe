@@ -201,7 +201,7 @@ class ReflectionService {
 
   /// Whether any of [stored] for [period] covers [start]'s range.
   bool _covered(ReflectionPeriod period, DateTime start, List<Reflection> stored) =>
-      stored.any((r) => r.period == period && periodsOverlap(start, r.weekStart, period));
+      stored.any((r) => r.period == period && periodsOverlap(start, r.periodStart, period));
 
   /// Whether a user erasure of [period] covers [start]'s range.
   bool _tombstoned(ReflectionPeriod period, DateTime start) =>
@@ -292,7 +292,7 @@ class ReflectionService {
     await _store.save(
       Reflection(
         period: period,
-        weekStart: start,
+        periodStart: start,
         generatedAt: _clock(),
         text: text,
         voice: style.voice,

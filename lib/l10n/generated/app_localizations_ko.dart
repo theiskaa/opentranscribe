@@ -432,7 +432,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String reflectionOfWeek(String range) {
+  String reflectionOfPeriod(String range) {
     return '$range 돌아보기';
   }
 
@@ -470,7 +470,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionSpecificsThemes => '주제만';
 
   @override
-  String get reflectionSpecificsLetWeek => '알아서 정하도록';
+  String get reflectionSpecificsLetPeriod => '알아서 정하도록';
 
   @override
   String get reflectionRegenerate => '다시 생성';

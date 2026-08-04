@@ -48,43 +48,54 @@ void main() {
     }
   });
 
-  test('reflectionWeekPlaceholder is null for a reflected week', () {
+  test('reflectionPlaceholderContent is null for a reflected week', () {
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.reflected, ReflectionPeriod.weekly),
+      reflectionPlaceholderContent(l10n, ReflectionPageStatus.reflected, ReflectionPeriod.weekly),
       isNull,
     );
   });
 
-  test('reflectionWeekPlaceholder marks only a recorded silence', () {
+  test('reflectionPlaceholderContent marks only a recorded silence', () {
     const p = ReflectionPeriod.weekly;
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, p)?.marker, isTrue);
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased, p)?.marker, isFalse);
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected, p)?.marker, isFalse);
+    expect(reflectionPlaceholderContent(l10n, ReflectionPageStatus.silent, p)?.marker, isTrue);
+    expect(reflectionPlaceholderContent(l10n, ReflectionPageStatus.erased, p)?.marker, isFalse);
+    expect(
+      reflectionPlaceholderContent(l10n, ReflectionPageStatus.unreflected, p)?.marker,
+      isFalse,
+    );
   });
 
-  test('reflectionWeekPlaceholder gives each state its own title', () {
+  test('reflectionPlaceholderContent gives each state its own title', () {
     const p = ReflectionPeriod.weekly;
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, p)?.title,
+      reflectionPlaceholderContent(l10n, ReflectionPageStatus.silent, p)?.title,
       l10n.reflectionQuietWeek,
     );
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased, p)?.title,
+      reflectionPlaceholderContent(l10n, ReflectionPageStatus.erased, p)?.title,
       l10n.reflectionErasedTitle,
     );
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected, p)?.title,
+      reflectionPlaceholderContent(l10n, ReflectionPageStatus.unreflected, p)?.title,
       l10n.reflectionWaitingTitle,
     );
   });
 
-  test('reflectionWeekPlaceholder names the silence after the viewed period', () {
+  test('reflectionPlaceholderContent names the silence after the viewed period', () {
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, ReflectionPeriod.daily)?.title,
+      reflectionPlaceholderContent(
+        l10n,
+        ReflectionPageStatus.silent,
+        ReflectionPeriod.daily,
+      )?.title,
       l10n.reflectionQuietDay,
     );
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, ReflectionPeriod.monthly)?.title,
+      reflectionPlaceholderContent(
+        l10n,
+        ReflectionPageStatus.silent,
+        ReflectionPeriod.monthly,
+      )?.title,
       l10n.reflectionQuietMonth,
     );
   });

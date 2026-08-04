@@ -580,8 +580,8 @@
       }
     }
   },
-  "reflectionOfWeek": "Reflection of {range}",
-  "@reflectionOfWeek": {
+  "reflectionOfPeriod": "Reflection of {range}",
+  "@reflectionOfPeriod": {
     "description": "Home card header naming the period a reflection covers; range is a preformatted date span",
     "placeholders": {
       "range": {
@@ -633,8 +633,8 @@
   "@reflectionSpecificsThemes": {
     "description": "Specifics option: themes only, no proper nouns"
   },
-  "reflectionSpecificsLetWeek": "Let it decide",
-  "@reflectionSpecificsLetWeek": {
+  "reflectionSpecificsLetPeriod": "Let it decide",
+  "@reflectionSpecificsLetPeriod": {
     "description": "Specifics option: name a specific only when clearly central"
   },
   "reflectionRegenerate": "Regenerate",

@@ -31,7 +31,7 @@ typedef ReflectionMenuLabels = ({
   String paragraph,
   String nameFreely,
   String themesOnly,
-  String letWeekDecide,
+  String letPeriodDecide,
 });
 
 String _periodLabel(ReflectionMenuLabels labels, ReflectionPeriod period) => switch (period) {
@@ -58,7 +58,7 @@ List<(ReflectionLength, String)> _lengthChoices(ReflectionMenuLabels labels) => 
 List<(ReflectionSpecificity, String)> _specChoices(ReflectionMenuLabels labels) => [
   (ReflectionSpecificity.nameFreely, labels.nameFreely),
   (ReflectionSpecificity.abstractThemes, labels.themesOnly),
-  (ReflectionSpecificity.letWeekDecide, labels.letWeekDecide),
+  (ReflectionSpecificity.letPeriodDecide, labels.letPeriodDecide),
 ];
 
 AppMenuItem _group<T extends Enum>({
@@ -148,7 +148,7 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   paragraph: l10n.reflectionLengthParagraph,
   nameFreely: l10n.reflectionSpecificsNameFreely,
   themesOnly: l10n.reflectionSpecificsThemes,
-  letWeekDecide: l10n.reflectionSpecificsLetWeek,
+  letPeriodDecide: l10n.reflectionSpecificsLetPeriod,
 );
 
 /// THE reflections menu - the surface has exactly one: the three per-period
@@ -160,8 +160,8 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
 class ReflectionsMenu extends StatefulWidget {
   const ReflectionsMenu({required this.viewed, this.color, super.key});
 
-  /// The week the menu acts on; null renders a settings-only menu.
-  final ReflectionWeek? viewed;
+  /// The page the menu acts on; null renders a settings-only menu.
+  final ReflectionPage? viewed;
 
   final Color? color;
 
@@ -218,10 +218,10 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
   /// ink. The page owns its own SelectableRegion, so the active selection holds
   /// the primary focus; unfocusing it is what clears it. Mirrors the entry
   /// screen's re-transcribe.
-  void _startRegenerate(ReflectionsCubit cubit, DateTime weekStart) {
+  void _startRegenerate(ReflectionsCubit cubit, DateTime periodStart) {
     FocusManager.instance.primaryFocus?.unfocus();
     WidgetsBinding.instance.endOfFrame.then((_) {
-      if (mounted) unawaited(cubit.regenerate(weekStart));
+      if (mounted) unawaited(cubit.regenerate(periodStart));
     });
   }
 
@@ -231,14 +231,14 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
     final viewed = widget.viewed;
 
     if (id == 'r:regen') {
-      if (viewed != null) _startRegenerate(cubit, viewed.weekStart);
+      if (viewed != null) _startRegenerate(cubit, viewed.periodStart);
       return;
     }
     if (id == 'r:delete') {
       // Straight through, no confirm: the menu already took a deliberate tap to
       // open and a second on a row marked destructive, the same bar the entry
       // delete holds itself to.
-      if (viewed != null) unawaited(cubit.delete(viewed.weekStart));
+      if (viewed != null) unawaited(cubit.delete(viewed.periodStart));
       return;
     }
     for (final period in ReflectionPeriod.values) {
@@ -290,7 +290,7 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       canDelete: viewed?.reflection != null,
       showSettings: state.available,
     );
-    // No applicable item (the model cannot run and the week stores nothing):
+    // No applicable item (the model cannot run and the page stores nothing):
     // no button, rather than an ellipsis that opens an empty menu.
     if (items.isEmpty) return const SizedBox.shrink();
     return AppMenuButton(
