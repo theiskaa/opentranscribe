@@ -284,11 +284,11 @@ class AppLocalizationsIt extends AppLocalizations {
       'Nessun account, nessun cloud. La modalità aereo non cambia nulla.';
 
   @override
-  String get onboardingReflectTitle => 'Riflessioni settimanali';
+  String get onboardingReflectTitle => 'Riflessioni';
 
   @override
   String get onboardingReflectLine =>
-      'Una volta a settimana, le tue voci tornano come una breve nota, tutto sul dispositivo.';
+      'Le tue voci tornano come una breve nota, tutto sul dispositivo.';
 
   @override
   String get onboardingSource => 'Open source';
@@ -337,7 +337,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get onboardingReflectionsOn =>
-      'Una volta a settimana, le tue registrazioni diventano una breve riflessione, interamente su questo dispositivo.';
+      'Le tue registrazioni diventano una breve riflessione, interamente su questo dispositivo.';
 
   @override
   String get onboardingReflectionsPreparing =>
@@ -409,52 +409,51 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionsTitle => 'Riflessioni';
 
   @override
-  String get reflectionPeriodDay => 'Day';
+  String get reflectionPeriodDay => 'Giorno';
 
   @override
-  String get reflectionPeriodWeek => 'Week';
+  String get reflectionPeriodWeek => 'Settimana';
 
   @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriodMonth => 'Mese';
 
   @override
-  String get reflectionDaily => 'Daily';
+  String get reflectionDaily => 'Giornaliera';
 
   @override
-  String get reflectionWeekly => 'Weekly';
+  String get reflectionWeekly => 'Settimanale';
 
   @override
-  String get reflectionMonthly => 'Monthly';
+  String get reflectionMonthly => 'Mensile';
 
   @override
   String get reflectionsEmptyTitle => 'Ancora nessuna riflessione';
 
   @override
   String get reflectionsEmptyBody =>
-      'La prima arriva quando la tua settimana si chiude, rileggendo ciò che hai registrato.';
+      'La prima arriva dopo che hai scritto nel diario, rileggendo ciò che hai registrato.';
 
   @override
-  String get reflectionQuietDay => 'A quiet day.';
+  String get reflectionQuietDay => 'Una giornata tranquilla.';
 
   @override
   String get reflectionQuietWeek => 'Una settimana tranquilla.';
 
   @override
-  String get reflectionQuietMonth => 'A quiet month.';
+  String get reflectionQuietMonth => 'Un mese tranquillo.';
 
   @override
   String get reflectionWaitingTitle => 'Non ancora scritta';
 
   @override
   String get reflectionWaitingBody =>
-      'Questa settimana sarà letta alla prossima apertura del diario, quando Apple Intelligence è pronto.';
+      'Sarà riletta alla prossima apertura del diario, quando Apple Intelligence è pronto.';
 
   @override
   String get reflectionErasedTitle => 'Eliminata';
 
   @override
-  String get reflectionErasedBody =>
-      'Hai rimosso la riflessione di questa settimana. Rigenera la scrive di nuovo.';
+  String get reflectionErasedBody => 'Hai rimosso questa riflessione. Rigenera la scrive di nuovo.';
 
   @override
   String get reflectionQuietBody => 'Niente è diventato una riflessione.';
@@ -503,7 +502,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionSpecificsThemes => 'Solo temi';
 
   @override
-  String get reflectionSpecificsLetWeek => 'Lascia decidere alla settimana';
+  String get reflectionSpecificsLetWeek => 'Lascia decidere';
 
   @override
   String get reflectionRegenerate => 'Rigenera';
@@ -518,7 +517,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionsDisabledTitle => 'Le riflessioni sono disattivate';
 
   @override
-  String get reflectionsDisabledBody => 'La settimana in corso non sarà scritta alla sua chiusura.';
+  String get reflectionsDisabledBody =>
+      'Niente di nuovo sarà scritto mentre le riflessioni sono disattivate.';
 
   @override
   String get reflectionsDisabledEnable => 'Attiva';
@@ -528,7 +528,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get reflectionOffBody =>
-      'Attivalo in Impostazioni, in Apple Intelligence e Siri, per ricevere le riflessioni settimanali.';
+      'Attivalo in Impostazioni, in Apple Intelligence e Siri, per ricevere le riflessioni.';
 
   @override
   String get reflectionPreparingTitle => 'Preparazione in corso';
@@ -542,7 +542,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody =>
-      'Questo dispositivo non supporta Apple Intelligence, necessario per le riflessioni settimanali.';
+      'Questo dispositivo non supporta Apple Intelligence, necessario per le riflessioni.';
 
   @override
   String get settingsNotifications => 'Notifiche';

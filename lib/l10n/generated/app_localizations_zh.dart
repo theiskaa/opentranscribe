@@ -266,10 +266,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
 
   @override
-  String get onboardingReflectTitle => '每周回顾';
+  String get onboardingReflectTitle => '回顾';
 
   @override
-  String get onboardingReflectLine => '每周一次，你的记录会汇成一段简短的笔记，全部在设备上完成。';
+  String get onboardingReflectLine => '你的记录会汇成一段简短的笔记，全部在设备上完成。';
 
   @override
   String get onboardingSource => '开源';
@@ -314,7 +314,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingModelsBody => '只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。';
 
   @override
-  String get onboardingReflectionsOn => '每周一次，你的记录会汇成一段简短回顾，完全在此设备上完成。';
+  String get onboardingReflectionsOn => '你的记录会汇成一段简短回顾，完全在此设备上完成。';
 
   @override
   String get onboardingReflectionsPreparing => 'Apple Intelligence 在此设备上准备完成后即会开始。';
@@ -375,49 +375,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionsTitle => '回顾';
 
   @override
-  String get reflectionPeriodDay => 'Day';
+  String get reflectionPeriodDay => '日';
 
   @override
-  String get reflectionPeriodWeek => 'Week';
+  String get reflectionPeriodWeek => '周';
 
   @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriodMonth => '月';
 
   @override
-  String get reflectionDaily => 'Daily';
+  String get reflectionDaily => '每日';
 
   @override
-  String get reflectionWeekly => 'Weekly';
+  String get reflectionWeekly => '每周';
 
   @override
-  String get reflectionMonthly => 'Monthly';
+  String get reflectionMonthly => '每月';
 
   @override
   String get reflectionsEmptyTitle => '还没有回顾';
 
   @override
-  String get reflectionsEmptyBody => '本周结束后，第一篇就会出现，取自你所记录的内容。';
+  String get reflectionsEmptyBody => '有了日记之后，第一篇就会出现，取自你所记录的内容。';
 
   @override
-  String get reflectionQuietDay => 'A quiet day.';
+  String get reflectionQuietDay => '平静的一天。';
 
   @override
   String get reflectionQuietWeek => '平静的一周。';
 
   @override
-  String get reflectionQuietMonth => 'A quiet month.';
+  String get reflectionQuietMonth => '平静的一个月。';
 
   @override
   String get reflectionWaitingTitle => '尚未写下';
 
   @override
-  String get reflectionWaitingBody => '下次在 Apple Intelligence 就绪时打开日记，将会回顾这一周。';
+  String get reflectionWaitingBody => '下次在 Apple Intelligence 就绪时打开日记，就会回顾这段内容。';
 
   @override
   String get reflectionErasedTitle => '已抹掉';
 
   @override
-  String get reflectionErasedBody => '你删除了这一周的回顾。重新生成会再次写下。';
+  String get reflectionErasedBody => '你删除了这篇回顾。重新生成会再次写下。';
 
   @override
   String get reflectionQuietBody => '这一周没有值得回顾的内容。';
@@ -466,7 +466,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionSpecificsThemes => '仅主题';
 
   @override
-  String get reflectionSpecificsLetWeek => '由本周决定';
+  String get reflectionSpecificsLetWeek => '由它决定';
 
   @override
   String get reflectionRegenerate => '重新生成';
@@ -481,7 +481,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionsDisabledTitle => '回顾已关闭';
 
   @override
-  String get reflectionsDisabledBody => '进行中的一周结束时将不会被写下。';
+  String get reflectionsDisabledBody => '回顾关闭期间，将不会写下任何新内容。';
 
   @override
   String get reflectionsDisabledEnable => '开启';
@@ -490,7 +490,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionOffTitle => 'Apple Intelligence 已关闭';
 
   @override
-  String get reflectionOffBody => '在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得每周回顾。';
+  String get reflectionOffBody => '在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得回顾。';
 
   @override
   String get reflectionPreparingTitle => '正在准备';
@@ -502,7 +502,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionUnsupportedTitle => '此处不可用';
 
   @override
-  String get reflectionUnsupportedBody => '此设备不支持每周回顾所需的 Apple Intelligence。';
+  String get reflectionUnsupportedBody => '此设备不支持回顾所需的 Apple Intelligence。';
 
   @override
   String get settingsNotifications => '通知';

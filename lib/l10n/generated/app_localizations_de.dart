@@ -285,11 +285,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingPrivateLine => 'Kein Konto, keine Cloud. Der Flugmodus ändert nichts.';
 
   @override
-  String get onboardingReflectTitle => 'Wöchentliche Rückblicke';
+  String get onboardingReflectTitle => 'Rückblicke';
 
   @override
   String get onboardingReflectLine =>
-      'Einmal pro Woche werden Ihre Einträge zu einer kurzen Notiz, ganz auf dem Gerät.';
+      'Ihre Einträge werden zu einer kurzen Notiz, ganz auf dem Gerät.';
 
   @override
   String get onboardingSource => 'Open Source';
@@ -337,7 +337,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingReflectionsOn =>
-      'Einmal pro Woche werden Ihre Aufnahmen zu einem kurzen Rückblick, ganz auf diesem Gerät.';
+      'Ihre Einträge werden zu einem kurzen Rückblick, ganz auf diesem Gerät.';
 
   @override
   String get onboardingReflectionsPreparing =>
@@ -410,52 +410,52 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionsTitle => 'Rückblicke';
 
   @override
-  String get reflectionPeriodDay => 'Day';
+  String get reflectionPeriodDay => 'Tag';
 
   @override
-  String get reflectionPeriodWeek => 'Week';
+  String get reflectionPeriodWeek => 'Woche';
 
   @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriodMonth => 'Monat';
 
   @override
-  String get reflectionDaily => 'Daily';
+  String get reflectionDaily => 'Täglich';
 
   @override
-  String get reflectionWeekly => 'Weekly';
+  String get reflectionWeekly => 'Wöchentlich';
 
   @override
-  String get reflectionMonthly => 'Monthly';
+  String get reflectionMonthly => 'Monatlich';
 
   @override
   String get reflectionsEmptyTitle => 'Noch keine Rückblicke';
 
   @override
   String get reflectionsEmptyBody =>
-      'Der erste kommt, wenn Ihre Woche zu Ende geht, gelesen aus dem, was Sie aufgenommen haben.';
+      'Der erste kommt, sobald Sie etwas festgehalten haben, gelesen aus dem, was Sie aufgenommen haben.';
 
   @override
-  String get reflectionQuietDay => 'A quiet day.';
+  String get reflectionQuietDay => 'Ein ruhiger Tag.';
 
   @override
   String get reflectionQuietWeek => 'Eine ruhige Woche.';
 
   @override
-  String get reflectionQuietMonth => 'A quiet month.';
+  String get reflectionQuietMonth => 'Ein ruhiger Monat.';
 
   @override
   String get reflectionWaitingTitle => 'Noch nicht geschrieben';
 
   @override
   String get reflectionWaitingBody =>
-      'Diese Woche wird beim nächsten Öffnen gelesen, sobald Apple Intelligence bereit ist.';
+      'Dies wird beim nächsten Öffnen des Journals gelesen, sobald Apple Intelligence bereit ist.';
 
   @override
   String get reflectionErasedTitle => 'Gelöscht';
 
   @override
   String get reflectionErasedBody =>
-      'Sie haben den Rückblick dieser Woche entfernt. Neu erstellen schreibt ihn erneut.';
+      'Sie haben diesen Rückblick entfernt. Neu erstellen schreibt ihn erneut.';
 
   @override
   String get reflectionQuietBody => 'Nichts wurde zu einem Rückblick.';
@@ -504,7 +504,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionSpecificsThemes => 'Nur Themen';
 
   @override
-  String get reflectionSpecificsLetWeek => 'Die Woche entscheiden lassen';
+  String get reflectionSpecificsLetWeek => 'Es entscheiden lassen';
 
   @override
   String get reflectionRegenerate => 'Neu erstellen';
@@ -520,7 +520,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reflectionsDisabledBody =>
-      'Die laufende Woche wird bei ihrem Abschluss nicht geschrieben.';
+      'Solange Rückblicke aus sind, wird nichts Neues geschrieben.';
 
   @override
   String get reflectionsDisabledEnable => 'Einschalten';
@@ -530,7 +530,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reflectionOffBody =>
-      'Schalten Sie es in den Einstellungen unter Apple Intelligence und Siri ein, um wöchentliche Rückblicke zu erhalten.';
+      'Schalten Sie es in den Einstellungen unter Apple Intelligence und Siri ein, um Rückblicke zu erhalten.';
 
   @override
   String get reflectionPreparingTitle => 'Wird vorbereitet';
@@ -544,7 +544,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody =>
-      'Dieses Gerät unterstützt Apple Intelligence nicht, das für wöchentliche Rückblicke nötig ist.';
+      'Dieses Gerät unterstützt Apple Intelligence nicht, das für Rückblicke nötig ist.';
 
   @override
   String get settingsNotifications => 'Mitteilungen';

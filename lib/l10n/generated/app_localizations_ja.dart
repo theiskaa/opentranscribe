@@ -268,10 +268,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingPrivateLine => 'アカウントもクラウドもありません。機内モードでも変わりなく使えます。';
 
   @override
-  String get onboardingReflectTitle => '週に一度の振り返り';
+  String get onboardingReflectTitle => '振り返り';
 
   @override
-  String get onboardingReflectLine => '週に一度、記録が短いノートとして返ってきます。すべてこの端末上で。';
+  String get onboardingReflectLine => '記録が短いノートとして返ってきます。すべてこの端末上で。';
 
   @override
   String get onboardingSource => 'オープンソース';
@@ -316,7 +316,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingModelsBody => '言語が端末に入れば、文字起こしはオフラインで動作します。メニューからいつでも追加できます。';
 
   @override
-  String get onboardingReflectionsOn => '週に一度、記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
+  String get onboardingReflectionsOn => '記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
 
   @override
   String get onboardingReflectionsPreparing => 'この端末で Apple Intelligence の準備が完了すると始まります。';
@@ -378,49 +378,49 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionsTitle => '振り返り';
 
   @override
-  String get reflectionPeriodDay => 'Day';
+  String get reflectionPeriodDay => '日';
 
   @override
-  String get reflectionPeriodWeek => 'Week';
+  String get reflectionPeriodWeek => '週';
 
   @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriodMonth => '月';
 
   @override
-  String get reflectionDaily => 'Daily';
+  String get reflectionDaily => '毎日';
 
   @override
-  String get reflectionWeekly => 'Weekly';
+  String get reflectionWeekly => '毎週';
 
   @override
-  String get reflectionMonthly => 'Monthly';
+  String get reflectionMonthly => '毎月';
 
   @override
   String get reflectionsEmptyTitle => 'まだ振り返りはありません';
 
   @override
-  String get reflectionsEmptyBody => '最初の振り返りは今週が終わると届きます。記録した内容から読み解かれます。';
+  String get reflectionsEmptyBody => '最初の振り返りは、ジャーナルに書き留めると届きます。記録した内容から読み解かれます。';
 
   @override
-  String get reflectionQuietDay => 'A quiet day.';
+  String get reflectionQuietDay => '静かな一日。';
 
   @override
   String get reflectionQuietWeek => '静かな一週間。';
 
   @override
-  String get reflectionQuietMonth => 'A quiet month.';
+  String get reflectionQuietMonth => '静かな一ヶ月。';
 
   @override
   String get reflectionWaitingTitle => 'まだ書かれていません';
 
   @override
-  String get reflectionWaitingBody => 'Apple Intelligence の準備が整った状態で次にジャーナルを開くと、この一週間が読み返されます。';
+  String get reflectionWaitingBody => 'Apple Intelligence の準備が整った状態で次にジャーナルを開くと、読み返されます。';
 
   @override
   String get reflectionErasedTitle => '消去済み';
 
   @override
-  String get reflectionErasedBody => 'この週の振り返りを削除しました。再生成するともう一度書かれます。';
+  String get reflectionErasedBody => 'この振り返りを削除しました。再生成するともう一度書かれます。';
 
   @override
   String get reflectionQuietBody => '振り返りになるものはありませんでした。';
@@ -469,7 +469,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionSpecificsThemes => 'テーマのみ';
 
   @override
-  String get reflectionSpecificsLetWeek => '今週に委ねる';
+  String get reflectionSpecificsLetWeek => 'お任せする';
 
   @override
   String get reflectionRegenerate => '再生成';
@@ -484,7 +484,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionsDisabledTitle => '振り返りはオフです';
 
   @override
-  String get reflectionsDisabledBody => '進行中の一週間は、週が終わっても書かれません。';
+  String get reflectionsDisabledBody => '振り返りがオフの間は、新しいものは書かれません。';
 
   @override
   String get reflectionsDisabledEnable => 'オンにする';
@@ -493,7 +493,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionOffTitle => 'Apple Intelligence がオフです';
 
   @override
-  String get reflectionOffBody => '毎週の振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。';
+  String get reflectionOffBody => '振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。';
 
   @override
   String get reflectionPreparingTitle => '準備中';
@@ -505,7 +505,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionUnsupportedTitle => 'ここでは利用できません';
 
   @override
-  String get reflectionUnsupportedBody => 'この端末は、毎週の振り返りに必要な Apple Intelligence に対応していません。';
+  String get reflectionUnsupportedBody => 'この端末は、振り返りに必要な Apple Intelligence に対応していません。';
 
   @override
   String get settingsNotifications => '通知';

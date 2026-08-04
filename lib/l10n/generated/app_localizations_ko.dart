@@ -269,10 +269,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingPrivateLine => '계정도, 클라우드도 없습니다. 비행기 모드에서도 그대로 동작합니다.';
 
   @override
-  String get onboardingReflectTitle => '주간 돌아보기';
+  String get onboardingReflectTitle => '돌아보기';
 
   @override
-  String get onboardingReflectLine => '일주일에 한 번, 기록이 짧은 노트로 정리됩니다. 모두 이 기기에서.';
+  String get onboardingReflectLine => '기록이 짧은 노트로 정리됩니다. 모두 이 기기에서.';
 
   @override
   String get onboardingSource => '오픈 소스';
@@ -317,7 +317,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingModelsBody => '언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
 
   @override
-  String get onboardingReflectionsOn => '일주일에 한 번, 기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
+  String get onboardingReflectionsOn => '기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
 
   @override
   String get onboardingReflectionsPreparing => '이 기기에서 Apple Intelligence 준비가 끝나면 시작됩니다.';
@@ -379,49 +379,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionsTitle => '돌아보기';
 
   @override
-  String get reflectionPeriodDay => 'Day';
+  String get reflectionPeriodDay => '일';
 
   @override
-  String get reflectionPeriodWeek => 'Week';
+  String get reflectionPeriodWeek => '주';
 
   @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriodMonth => '월';
 
   @override
-  String get reflectionDaily => 'Daily';
+  String get reflectionDaily => '매일';
 
   @override
-  String get reflectionWeekly => 'Weekly';
+  String get reflectionWeekly => '매주';
 
   @override
-  String get reflectionMonthly => 'Monthly';
+  String get reflectionMonthly => '매월';
 
   @override
   String get reflectionsEmptyTitle => '아직 돌아보기가 없습니다';
 
   @override
-  String get reflectionsEmptyBody => '첫 돌아보기는 이번 주가 끝나면 도착하며, 기록한 내용을 되짚어 만들어집니다.';
+  String get reflectionsEmptyBody => '첫 돌아보기는 기록을 시작하면 도착하며, 기록한 내용을 되짚어 만들어집니다.';
 
   @override
-  String get reflectionQuietDay => 'A quiet day.';
+  String get reflectionQuietDay => '조용한 하루.';
 
   @override
   String get reflectionQuietWeek => '조용한 한 주.';
 
   @override
-  String get reflectionQuietMonth => 'A quiet month.';
+  String get reflectionQuietMonth => '조용한 한 달.';
 
   @override
   String get reflectionWaitingTitle => '아직 작성되지 않음';
 
   @override
-  String get reflectionWaitingBody => 'Apple Intelligence가 준비된 상태로 저널을 다시 열면 이 주를 돌아봅니다.';
+  String get reflectionWaitingBody => 'Apple Intelligence가 준비된 상태로 저널을 다시 열면 이 내용을 돌아봅니다.';
 
   @override
   String get reflectionErasedTitle => '지움';
 
   @override
-  String get reflectionErasedBody => '이 주의 돌아보기를 삭제했습니다. 다시 생성하면 다시 작성됩니다.';
+  String get reflectionErasedBody => '이 돌아보기를 삭제했습니다. 다시 생성하면 다시 작성됩니다.';
 
   @override
   String get reflectionQuietBody => '돌아볼 만한 것이 없었습니다.';
@@ -470,7 +470,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionSpecificsThemes => '주제만';
 
   @override
-  String get reflectionSpecificsLetWeek => '이번 주에 맡기기';
+  String get reflectionSpecificsLetWeek => '알아서 정하도록';
 
   @override
   String get reflectionRegenerate => '다시 생성';
@@ -485,7 +485,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionsDisabledTitle => '돌아보기가 꺼져 있습니다';
 
   @override
-  String get reflectionsDisabledBody => '진행 중인 주는 주가 끝나도 작성되지 않습니다.';
+  String get reflectionsDisabledBody => '돌아보기가 꺼져 있는 동안에는 새로운 내용이 작성되지 않습니다.';
 
   @override
   String get reflectionsDisabledEnable => '켜기';
@@ -494,7 +494,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionOffTitle => 'Apple Intelligence가 꺼져 있습니다';
 
   @override
-  String get reflectionOffBody => '주간 돌아보기를 받으려면 \'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜세요.';
+  String get reflectionOffBody => '돌아보기를 받으려면 \'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜세요.';
 
   @override
   String get reflectionPreparingTitle => '준비 중';
@@ -507,7 +507,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionUnsupportedTitle => '여기서는 사용할 수 없습니다';
 
   @override
-  String get reflectionUnsupportedBody => '이 기기는 주간 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.';
+  String get reflectionUnsupportedBody => '이 기기는 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.';
 
   @override
   String get settingsNotifications => '알림';

@@ -362,13 +362,13 @@
   "@onboardingPrivateLine": {
     "description": "One-line explanation under the privacy intro row"
   },
-  "onboardingReflectTitle": "Weekly reflections",
+  "onboardingReflectTitle": "Reflections",
   "@onboardingReflectTitle": {
-    "description": "Title of the intro row about weekly reflections, eligible hardware only"
+    "description": "Title of the intro row about reflections, eligible hardware only"
   },
-  "onboardingReflectLine": "Once a week, your entries read back as a short note, all on device.",
+  "onboardingReflectLine": "Your entries read back as a short note, all on device.",
   "@onboardingReflectLine": {
-    "description": "One-line explanation under the weekly reflections intro row"
+    "description": "One-line explanation under the reflections intro row"
   },
   "onboardingSource": "Open source",
   "@onboardingSource": {
@@ -426,7 +426,7 @@
   "@onboardingModelsBody": {
     "description": "Body on the model-download onboarding step"
   },
-  "onboardingReflectionsOn": "Once a week, your entries read back as a short reflection, entirely on this device.",
+  "onboardingReflectionsOn": "Your entries read back as a short reflection, entirely on this device.",
   "@onboardingReflectionsOn": {
     "description": "Onboarding model step, Apple Intelligence available: what reflections do"
   },
@@ -535,7 +535,7 @@
   "@reflectionsEmptyTitle": {
     "description": "Empty-state headline on the reflections screen before any week has been reflected"
   },
-  "reflectionsEmptyBody": "The first arrives when your week closes, read back from what you recorded.",
+  "reflectionsEmptyBody": "The first arrives once you have journaled, read back from what you recorded.",
   "@reflectionsEmptyBody": {
     "description": "Empty-state supporting line under the headline on the reflections screen"
   },
@@ -555,7 +555,7 @@
   "@reflectionWaitingTitle": {
     "description": "Pager state title: a closed, journaled week not yet written; the next catch-up may fill it"
   },
-  "reflectionWaitingBody": "This week will be read back the next time the journal opens with Apple Intelligence ready.",
+  "reflectionWaitingBody": "This will be read back the next time the journal opens with Apple Intelligence ready.",
   "@reflectionWaitingBody": {
     "description": "Pager state body under the not-written-yet title"
   },
@@ -563,9 +563,9 @@
   "@reflectionErasedTitle": {
     "description": "Pager state title: the user deleted this week's reflection"
   },
-  "reflectionErasedBody": "You removed this week's reflection. Regenerate writes it again.",
+  "reflectionErasedBody": "You removed this reflection. Regenerate writes it again.",
   "@reflectionErasedBody": {
-    "description": "Pager state body under the erased title; Regenerate re-writes the week"
+    "description": "Pager state body under the erased title; Regenerate re-writes the reflection"
   },
   "reflectionQuietBody": "Nothing rose to a reflection.",
   "@reflectionQuietBody": {
@@ -633,7 +633,7 @@
   "@reflectionSpecificsThemes": {
     "description": "Specifics option: themes only, no proper nouns"
   },
-  "reflectionSpecificsLetWeek": "Let the week decide",
+  "reflectionSpecificsLetWeek": "Let it decide",
   "@reflectionSpecificsLetWeek": {
     "description": "Specifics option: name a specific only when clearly central"
   },
@@ -653,7 +653,7 @@
   "@reflectionsDisabledTitle": {
     "description": "Notice card on the pager when the user has disabled reflections"
   },
-  "reflectionsDisabledBody": "The open week will not be written when it closes.",
+  "reflectionsDisabledBody": "Nothing new will be written while reflections are off.",
   "@reflectionsDisabledBody": {
     "description": "Body of the disabled notice; the card's button reenables"
   },
@@ -665,7 +665,7 @@
   "@reflectionOffTitle": {
     "description": "Reflections screen state: Apple Intelligence is available but not enabled"
   },
-  "reflectionOffBody": "Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.",
+  "reflectionOffBody": "Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.",
   "@reflectionOffBody": {
     "description": "Guidance when Apple Intelligence is off; there is no deep-link to the exact pane"
   },
@@ -681,7 +681,7 @@
   "@reflectionUnsupportedTitle": {
     "description": "Reflections screen state: this device cannot run Apple Intelligence at all"
   },
-  "reflectionUnsupportedBody": "This device does not support Apple Intelligence, which weekly reflections needs.",
+  "reflectionUnsupportedBody": "This device does not support Apple Intelligence, which reflections need.",
   "@reflectionUnsupportedBody": {
     "description": "Body for the unsupported-device / older-iOS state"
   },

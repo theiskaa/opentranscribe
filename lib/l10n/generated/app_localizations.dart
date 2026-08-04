@@ -594,16 +594,16 @@ abstract class AppLocalizations {
   /// **'No account, no cloud. Airplane mode changes nothing.'**
   String get onboardingPrivateLine;
 
-  /// Title of the intro row about weekly reflections, eligible hardware only
+  /// Title of the intro row about reflections, eligible hardware only
   ///
   /// In en, this message translates to:
-  /// **'Weekly reflections'**
+  /// **'Reflections'**
   String get onboardingReflectTitle;
 
-  /// One-line explanation under the weekly reflections intro row
+  /// One-line explanation under the reflections intro row
   ///
   /// In en, this message translates to:
-  /// **'Once a week, your entries read back as a short note, all on device.'**
+  /// **'Your entries read back as a short note, all on device.'**
   String get onboardingReflectLine;
 
   /// Title of the intro row that opens the open-source repository
@@ -693,7 +693,7 @@ abstract class AppLocalizations {
   /// Onboarding model step, Apple Intelligence available: what reflections do
   ///
   /// In en, this message translates to:
-  /// **'Once a week, your entries read back as a short reflection, entirely on this device.'**
+  /// **'Your entries read back as a short reflection, entirely on this device.'**
   String get onboardingReflectionsOn;
 
   /// Onboarding model step: Apple Intelligence enabled but the model still downloading
@@ -837,7 +837,7 @@ abstract class AppLocalizations {
   /// Empty-state supporting line under the headline on the reflections screen
   ///
   /// In en, this message translates to:
-  /// **'The first arrives when your week closes, read back from what you recorded.'**
+  /// **'The first arrives once you have journaled, read back from what you recorded.'**
   String get reflectionsEmptyBody;
 
   /// Shown for a day the observer had nothing to say about (a stored silence)
@@ -867,7 +867,7 @@ abstract class AppLocalizations {
   /// Pager state body under the not-written-yet title
   ///
   /// In en, this message translates to:
-  /// **'This week will be read back the next time the journal opens with Apple Intelligence ready.'**
+  /// **'This will be read back the next time the journal opens with Apple Intelligence ready.'**
   String get reflectionWaitingBody;
 
   /// Pager state title: the user deleted this week's reflection
@@ -876,10 +876,10 @@ abstract class AppLocalizations {
   /// **'Erased'**
   String get reflectionErasedTitle;
 
-  /// Pager state body under the erased title; Regenerate re-writes the week
+  /// Pager state body under the erased title; Regenerate re-writes the reflection
   ///
   /// In en, this message translates to:
-  /// **'You removed this week\'s reflection. Regenerate writes it again.'**
+  /// **'You removed this reflection. Regenerate writes it again.'**
   String get reflectionErasedBody;
 
   /// Pager subline under the quiet-week marker
@@ -969,7 +969,7 @@ abstract class AppLocalizations {
   /// Specifics option: name a specific only when clearly central
   ///
   /// In en, this message translates to:
-  /// **'Let the week decide'**
+  /// **'Let it decide'**
   String get reflectionSpecificsLetWeek;
 
   /// Per-week action: re-run this week's reflection in the current style
@@ -999,7 +999,7 @@ abstract class AppLocalizations {
   /// Body of the disabled notice; the card's button reenables
   ///
   /// In en, this message translates to:
-  /// **'The open week will not be written when it closes.'**
+  /// **'Nothing new will be written while reflections are off.'**
   String get reflectionsDisabledBody;
 
   /// The disabled notice card's button: reenables reflections in place
@@ -1017,7 +1017,7 @@ abstract class AppLocalizations {
   /// Guidance when Apple Intelligence is off; there is no deep-link to the exact pane
   ///
   /// In en, this message translates to:
-  /// **'Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.'**
+  /// **'Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.'**
   String get reflectionOffBody;
 
   /// Reflections screen state: Apple Intelligence is enabled but the model is still downloading
@@ -1041,7 +1041,7 @@ abstract class AppLocalizations {
   /// Body for the unsupported-device / older-iOS state
   ///
   /// In en, this message translates to:
-  /// **'This device does not support Apple Intelligence, which weekly reflections needs.'**
+  /// **'This device does not support Apple Intelligence, which reflections need.'**
   String get reflectionUnsupportedBody;
 
   /// Home menu row and heading for the notifications settings screen

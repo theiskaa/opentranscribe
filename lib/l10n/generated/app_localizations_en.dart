@@ -281,11 +281,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingPrivateLine => 'No account, no cloud. Airplane mode changes nothing.';
 
   @override
-  String get onboardingReflectTitle => 'Weekly reflections';
+  String get onboardingReflectTitle => 'Reflections';
 
   @override
-  String get onboardingReflectLine =>
-      'Once a week, your entries read back as a short note, all on device.';
+  String get onboardingReflectLine => 'Your entries read back as a short note, all on device.';
 
   @override
   String get onboardingSource => 'Open source';
@@ -332,7 +331,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingReflectionsOn =>
-      'Once a week, your entries read back as a short reflection, entirely on this device.';
+      'Your entries read back as a short reflection, entirely on this device.';
 
   @override
   String get onboardingReflectionsPreparing =>
@@ -427,7 +426,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionsEmptyBody =>
-      'The first arrives when your week closes, read back from what you recorded.';
+      'The first arrives once you have journaled, read back from what you recorded.';
 
   @override
   String get reflectionQuietDay => 'A quiet day.';
@@ -443,14 +442,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionWaitingBody =>
-      'This week will be read back the next time the journal opens with Apple Intelligence ready.';
+      'This will be read back the next time the journal opens with Apple Intelligence ready.';
 
   @override
   String get reflectionErasedTitle => 'Erased';
 
   @override
-  String get reflectionErasedBody =>
-      'You removed this week\'s reflection. Regenerate writes it again.';
+  String get reflectionErasedBody => 'You removed this reflection. Regenerate writes it again.';
 
   @override
   String get reflectionQuietBody => 'Nothing rose to a reflection.';
@@ -499,7 +497,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reflectionSpecificsThemes => 'Themes only';
 
   @override
-  String get reflectionSpecificsLetWeek => 'Let the week decide';
+  String get reflectionSpecificsLetWeek => 'Let it decide';
 
   @override
   String get reflectionRegenerate => 'Regenerate';
@@ -514,7 +512,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reflectionsDisabledTitle => 'Reflections are off';
 
   @override
-  String get reflectionsDisabledBody => 'The open week will not be written when it closes.';
+  String get reflectionsDisabledBody => 'Nothing new will be written while reflections are off.';
 
   @override
   String get reflectionsDisabledEnable => 'Turn on';
@@ -524,7 +522,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionOffBody =>
-      'Turn it on in Settings, under Apple Intelligence and Siri, to get weekly reflections.';
+      'Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.';
 
   @override
   String get reflectionPreparingTitle => 'Getting ready';
@@ -538,7 +536,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reflectionUnsupportedBody =>
-      'This device does not support Apple Intelligence, which weekly reflections needs.';
+      'This device does not support Apple Intelligence, which reflections need.';
 
   @override
   String get settingsNotifications => 'Notifications';
