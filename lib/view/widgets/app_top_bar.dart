@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
+import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
+import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
@@ -160,13 +162,13 @@ class AppTopBar extends StatelessWidget {
             child: frosted
                 // reeed's material: a translucent tint over the blur, faded
                 // from the midpoint, so content shows through as frost.
-                ? EdgeFade(
-                    height: chromeHeight + bar.fadeTail,
+                ? _BarMaterial(
+                    chromeHeight: chromeHeight,
                     color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
                     sigma: bar.blurSigma,
                   )
-                : EdgeFade(
-                    height: chromeHeight + bar.fadeTail,
+                : _BarMaterial(
+                    chromeHeight: chromeHeight,
                     color: bar.background,
                     sigma: bar.blurSigma,
                     // Opaque through the whole chrome (title row AND the
@@ -198,6 +200,44 @@ class AppTopBar extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The bar's material. On iOS 26 it is the native [LiquidEdgeFade]: a Flutter
+/// [EdgeFade] cannot cover a platform view (the engine injects a blur over it
+/// that breaks Liquid Glass into an opaque black rectangle), while the native
+/// material blurs platform views and Flutter content alike, so native glass
+/// controls may scroll under the bar. Below iOS 26 nothing native scrolls
+/// under, and the drawn [EdgeFade] stands. [sigma] only shapes the drawn
+/// fallback; the native blur radius is the system material's.
+class _BarMaterial extends StatelessWidget {
+  const _BarMaterial({
+    required this.chromeHeight,
+    required this.color,
+    required this.sigma,
+    this.fadeFrom = 0.5,
+  });
+
+  final double chromeHeight;
+  final Color color;
+  final double sigma;
+  final double fadeFrom;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final height = chromeHeight + theme.topBar.fadeTail;
+    final drawn = EdgeFade(height: height, color: color, sigma: sigma, fadeFrom: fadeFrom);
+    if (!PlatformCaps.nativeGlass) return drawn;
+
+    return LiquidEdgeFade(
+      height: height,
+      chromeHeight: chromeHeight,
+      color: color,
+      fadeFrom: fadeFrom,
+      isDark: theme.brightness == Brightness.dark,
+      placeholderBuilder: (_) => drawn,
     );
   }
 }
