@@ -533,7 +533,7 @@
   },
   "reflectionsEmptyTitle": "No reflections yet",
   "@reflectionsEmptyTitle": {
-    "description": "Empty-state headline on the reflections screen before any week has been reflected"
+    "description": "Empty-state headline on the reflections screen before any period has been reflected"
   },
   "reflectionsEmptyBody": "The first arrives once you have journaled, read back from what you recorded.",
   "@reflectionsEmptyBody": {
@@ -553,7 +553,7 @@
   },
   "reflectionWaitingTitle": "Not written yet",
   "@reflectionWaitingTitle": {
-    "description": "Pager state title: a closed, journaled week not yet written; the next catch-up may fill it"
+    "description": "Pager state title: a closed, journaled period not yet written; the next catch-up may fill it"
   },
   "reflectionWaitingBody": "This will be read back the next time the journal opens with Apple Intelligence ready.",
   "@reflectionWaitingBody": {
@@ -561,7 +561,7 @@
   },
   "reflectionErasedTitle": "Erased",
   "@reflectionErasedTitle": {
-    "description": "Pager state title: the user deleted this week's reflection"
+    "description": "Pager state title: the user deleted this reflection"
   },
   "reflectionErasedBody": "You removed this reflection. Regenerate writes it again.",
   "@reflectionErasedBody": {
@@ -569,7 +569,7 @@
   },
   "reflectionQuietBody": "Nothing rose to a reflection.",
   "@reflectionQuietBody": {
-    "description": "Pager subline under the quiet-week marker"
+    "description": "Pager subline under the quiet marker"
   },
   "reflectionWrittenOn": "Written {date}",
   "@reflectionWrittenOn": {
@@ -582,7 +582,7 @@
   },
   "reflectionOfWeek": "Reflection of {range}",
   "@reflectionOfWeek": {
-    "description": "Home card header naming the week a reflection covers; range is a preformatted date span",
+    "description": "Home card header naming the period a reflection covers; range is a preformatted date span",
     "placeholders": {
       "range": {
         "type": "String"
@@ -595,11 +595,11 @@
   },
   "reflectionVoiceLiterary": "Literary",
   "@reflectionVoiceLiterary": {
-    "description": "Voice option: reads the week back as a short reflective note"
+    "description": "Voice option: reads the period back as a short reflective note"
   },
   "reflectionVoiceObservational": "Observational",
   "@reflectionVoiceObservational": {
-    "description": "Voice option: reports the shape of the week plainly"
+    "description": "Voice option: reports the shape of the period plainly"
   },
   "reflectionVoiceSparse": "Sparse",
   "@reflectionVoiceSparse": {
@@ -639,11 +639,11 @@
   },
   "reflectionRegenerate": "Regenerate",
   "@reflectionRegenerate": {
-    "description": "Per-week action: re-run this week's reflection in the current style"
+    "description": "Per-period action: re-run this reflection in the current style"
   },
   "reflectionDelete": "Delete",
   "@reflectionDelete": {
-    "description": "Per-week menu action: remove this week's reflection"
+    "description": "Per-period menu action: remove this reflection"
   },
   "reflectionRegenerateFailed": "Could not reflect. Try again.",
   "@reflectionRegenerateFailed": {

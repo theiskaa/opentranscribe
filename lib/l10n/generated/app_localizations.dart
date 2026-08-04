@@ -828,7 +828,7 @@ abstract class AppLocalizations {
   /// **'Monthly'**
   String get reflectionMonthly;
 
-  /// Empty-state headline on the reflections screen before any week has been reflected
+  /// Empty-state headline on the reflections screen before any period has been reflected
   ///
   /// In en, this message translates to:
   /// **'No reflections yet'**
@@ -858,7 +858,7 @@ abstract class AppLocalizations {
   /// **'A quiet month.'**
   String get reflectionQuietMonth;
 
-  /// Pager state title: a closed, journaled week not yet written; the next catch-up may fill it
+  /// Pager state title: a closed, journaled period not yet written; the next catch-up may fill it
   ///
   /// In en, this message translates to:
   /// **'Not written yet'**
@@ -870,7 +870,7 @@ abstract class AppLocalizations {
   /// **'This will be read back the next time the journal opens with Apple Intelligence ready.'**
   String get reflectionWaitingBody;
 
-  /// Pager state title: the user deleted this week's reflection
+  /// Pager state title: the user deleted this reflection
   ///
   /// In en, this message translates to:
   /// **'Erased'**
@@ -882,7 +882,7 @@ abstract class AppLocalizations {
   /// **'You removed this reflection. Regenerate writes it again.'**
   String get reflectionErasedBody;
 
-  /// Pager subline under the quiet-week marker
+  /// Pager subline under the quiet marker
   ///
   /// In en, this message translates to:
   /// **'Nothing rose to a reflection.'**
@@ -894,7 +894,7 @@ abstract class AppLocalizations {
   /// **'Written {date}'**
   String reflectionWrittenOn(String date);
 
-  /// Home card header naming the week a reflection covers; range is a preformatted date span
+  /// Home card header naming the period a reflection covers; range is a preformatted date span
   ///
   /// In en, this message translates to:
   /// **'Reflection of {range}'**
@@ -906,13 +906,13 @@ abstract class AppLocalizations {
   /// **'Voice'**
   String get reflectionVoice;
 
-  /// Voice option: reads the week back as a short reflective note
+  /// Voice option: reads the period back as a short reflective note
   ///
   /// In en, this message translates to:
   /// **'Literary'**
   String get reflectionVoiceLiterary;
 
-  /// Voice option: reports the shape of the week plainly
+  /// Voice option: reports the shape of the period plainly
   ///
   /// In en, this message translates to:
   /// **'Observational'**
@@ -972,13 +972,13 @@ abstract class AppLocalizations {
   /// **'Let it decide'**
   String get reflectionSpecificsLetWeek;
 
-  /// Per-week action: re-run this week's reflection in the current style
+  /// Per-period action: re-run this reflection in the current style
   ///
   /// In en, this message translates to:
   /// **'Regenerate'**
   String get reflectionRegenerate;
 
-  /// Per-week menu action: remove this week's reflection
+  /// Per-period menu action: remove this reflection
   ///
   /// In en, this message translates to:
   /// **'Delete'**
