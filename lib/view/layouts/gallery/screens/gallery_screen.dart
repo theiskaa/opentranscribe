@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
@@ -785,7 +786,11 @@ class _ReflectionWeekExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = reflectionWeekPlaceholder(AppLocalizations.of(context)!, status)!;
+    final placeholder = reflectionWeekPlaceholder(
+      AppLocalizations.of(context)!,
+      status,
+      ReflectionPeriod.weekly,
+    )!;
     return ReflectionWeekPlaceholder(
       title: placeholder.title,
       body: placeholder.body,

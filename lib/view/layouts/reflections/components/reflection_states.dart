@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -35,19 +36,25 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
   };
 }
 
-/// The title and body a week's page shows when it holds no reflection text to
-/// read: a quiet week the model recorded, a page the user erased, or one still
-/// waiting for the next catch-up. Null for a reflected week, whose text renders
-/// through the ink reveal instead.
+/// The title and body a page shows when it holds no reflection text to read: a
+/// quiet period the model recorded, a page the user erased, or one still
+/// waiting for the next catch-up. The quiet marker names the viewed [period] so
+/// a day, week, and month each read as themselves. Null for a reflected page,
+/// whose text renders through the ink reveal instead.
 ({String title, String body, bool marker})? reflectionWeekPlaceholder(
   AppLocalizations l10n,
   ReflectionWeekStatus status,
+  ReflectionPeriod period,
 ) => switch (status) {
   ReflectionWeekStatus.reflected => null,
   // The bullet marks a silence the model recorded; the erased page drops it,
-  // an absence the user authored, not one the week held.
+  // an absence the user authored, not one the period held.
   ReflectionWeekStatus.silent => (
-    title: l10n.reflectionQuietWeek,
+    title: switch (period) {
+      ReflectionPeriod.daily => l10n.reflectionQuietDay,
+      ReflectionPeriod.weekly => l10n.reflectionQuietWeek,
+      ReflectionPeriod.monthly => l10n.reflectionQuietMonth,
+    },
     body: l10n.reflectionQuietBody,
     marker: true,
   ),

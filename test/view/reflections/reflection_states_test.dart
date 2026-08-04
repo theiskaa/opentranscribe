@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
 
@@ -48,27 +49,43 @@ void main() {
   });
 
   test('reflectionWeekPlaceholder is null for a reflected week', () {
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.reflected), isNull);
+    expect(
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.reflected, ReflectionPeriod.weekly),
+      isNull,
+    );
   });
 
   test('reflectionWeekPlaceholder marks only a recorded silence', () {
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent)?.marker, isTrue);
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased)?.marker, isFalse);
-    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected)?.marker, isFalse);
+    const p = ReflectionPeriod.weekly;
+    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, p)?.marker, isTrue);
+    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased, p)?.marker, isFalse);
+    expect(reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected, p)?.marker, isFalse);
   });
 
   test('reflectionWeekPlaceholder gives each state its own title', () {
+    const p = ReflectionPeriod.weekly;
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent)?.title,
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, p)?.title,
       l10n.reflectionQuietWeek,
     );
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased)?.title,
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.erased, p)?.title,
       l10n.reflectionErasedTitle,
     );
     expect(
-      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected)?.title,
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.unreflected, p)?.title,
       l10n.reflectionWaitingTitle,
+    );
+  });
+
+  test('reflectionWeekPlaceholder names the silence after the viewed period', () {
+    expect(
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, ReflectionPeriod.daily)?.title,
+      l10n.reflectionQuietDay,
+    );
+    expect(
+      reflectionWeekPlaceholder(l10n, ReflectionWeekStatus.silent, ReflectionPeriod.monthly)?.title,
+      l10n.reflectionQuietMonth,
     );
   });
 }

@@ -460,6 +460,7 @@ class _WeekPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             _PageBody(
               week: week,
+              period: period,
               regenerating: regenerating,
               scrubbing: scrubbing,
               revealed: revealed,
@@ -484,6 +485,7 @@ String? _voiceLabelOf(AppLocalizations l10n, ReflectionVoice? voice) => switch (
 class _PageBody extends StatelessWidget {
   const _PageBody({
     required this.week,
+    required this.period,
     required this.regenerating,
     required this.scrubbing,
     required this.revealed,
@@ -492,6 +494,9 @@ class _PageBody extends StatelessWidget {
   });
 
   final ReflectionWeek week;
+
+  /// The viewed period, so a quiet page names itself (day, week, month).
+  final ReflectionPeriod period;
   final bool regenerating;
   final bool scrubbing;
   final Set<String> revealed;
@@ -552,7 +557,7 @@ class _PageBody extends StatelessWidget {
       );
     }
     // reflected is handled above, so the placeholder is always present here.
-    final placeholder = reflectionWeekPlaceholder(l10n, week.status)!;
+    final placeholder = reflectionWeekPlaceholder(l10n, week.status, period)!;
     return ReflectionWeekPlaceholder(
       title: placeholder.title,
       body: placeholder.body,
