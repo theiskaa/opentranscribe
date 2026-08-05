@@ -409,13 +409,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionsTitle => 'Rückblicke';
 
   @override
-  String get reflectionPeriodDay => 'Tag';
-
-  @override
-  String get reflectionPeriodWeek => 'Woche';
-
-  @override
-  String get reflectionPeriodMonth => 'Monat';
+  String get reflectionPeriods => 'Zeiträume';
 
   @override
   String get reflectionDaily => 'Täglich';
@@ -509,7 +503,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionRegenerate => 'Neu erstellen';
 
   @override
-  String get reflectionDelete => 'Löschen';
+  String get reflectionDeleteDay => 'Tag löschen';
+
+  @override
+  String get reflectionDeleteWeek => 'Woche löschen';
+
+  @override
+  String get reflectionDeleteMonth => 'Monat löschen';
 
   @override
   String get reflectionRegenerateFailed => 'Rückblick nicht möglich. Versuchen Sie es erneut.';

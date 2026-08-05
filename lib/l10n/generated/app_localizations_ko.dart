@@ -379,13 +379,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionsTitle => '돌아보기';
 
   @override
-  String get reflectionPeriodDay => '일';
-
-  @override
-  String get reflectionPeriodWeek => '주';
-
-  @override
-  String get reflectionPeriodMonth => '월';
+  String get reflectionPeriods => '기간';
 
   @override
   String get reflectionDaily => '매일';
@@ -476,7 +470,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionRegenerate => '다시 생성';
 
   @override
-  String get reflectionDelete => '삭제';
+  String get reflectionDeleteDay => '하루 삭제';
+
+  @override
+  String get reflectionDeleteWeek => '한 주 삭제';
+
+  @override
+  String get reflectionDeleteMonth => '한 달 삭제';
 
   @override
   String get reflectionRegenerateFailed => '돌아보기를 만들지 못했습니다. 다시 시도하세요.';

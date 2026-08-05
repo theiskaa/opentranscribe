@@ -375,13 +375,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionsTitle => '回顾';
 
   @override
-  String get reflectionPeriodDay => '日';
-
-  @override
-  String get reflectionPeriodWeek => '周';
-
-  @override
-  String get reflectionPeriodMonth => '月';
+  String get reflectionPeriods => '周期';
 
   @override
   String get reflectionDaily => '每日';
@@ -472,7 +466,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionRegenerate => '重新生成';
 
   @override
-  String get reflectionDelete => '删除';
+  String get reflectionDeleteDay => '删除这一天';
+
+  @override
+  String get reflectionDeleteWeek => '删除这一周';
+
+  @override
+  String get reflectionDeleteMonth => '删除这个月';
 
   @override
   String get reflectionRegenerateFailed => '无法生成回顾。请重试。';

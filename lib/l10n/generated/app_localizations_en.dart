@@ -404,13 +404,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reflectionsTitle => 'Reflections';
 
   @override
-  String get reflectionPeriodDay => 'Day';
-
-  @override
-  String get reflectionPeriodWeek => 'Week';
-
-  @override
-  String get reflectionPeriodMonth => 'Month';
+  String get reflectionPeriods => 'Periods';
 
   @override
   String get reflectionDaily => 'Daily';
@@ -503,7 +497,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reflectionRegenerate => 'Regenerate';
 
   @override
-  String get reflectionDelete => 'Delete';
+  String get reflectionDeleteDay => 'Delete day';
+
+  @override
+  String get reflectionDeleteWeek => 'Delete week';
+
+  @override
+  String get reflectionDeleteMonth => 'Delete month';
 
   @override
   String get reflectionRegenerateFailed => 'Could not reflect. Try again.';

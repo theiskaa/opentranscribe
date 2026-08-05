@@ -408,13 +408,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionsTitle => 'Riflessioni';
 
   @override
-  String get reflectionPeriodDay => 'Giorno';
-
-  @override
-  String get reflectionPeriodWeek => 'Settimana';
-
-  @override
-  String get reflectionPeriodMonth => 'Mese';
+  String get reflectionPeriods => 'Periodi';
 
   @override
   String get reflectionDaily => 'Giornaliera';
@@ -507,7 +501,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionRegenerate => 'Rigenera';
 
   @override
-  String get reflectionDelete => 'Elimina';
+  String get reflectionDeleteDay => 'Elimina giorno';
+
+  @override
+  String get reflectionDeleteWeek => 'Elimina settimana';
+
+  @override
+  String get reflectionDeleteMonth => 'Elimina mese';
 
   @override
   String get reflectionRegenerateFailed => 'Riflessione non riuscita. Riprova.';

@@ -507,17 +507,9 @@
   "@reflectionsTitle": {
     "description": "Title of the reflections screen and its home-menu row"
   },
-  "reflectionPeriodDay": "Day",
-  "@reflectionPeriodDay": {
-    "description": "Day segment label on the reflections period switcher"
-  },
-  "reflectionPeriodWeek": "Week",
-  "@reflectionPeriodWeek": {
-    "description": "Week segment label on the reflections period switcher"
-  },
-  "reflectionPeriodMonth": "Month",
-  "@reflectionPeriodMonth": {
-    "description": "Month segment label on the reflections period switcher"
+  "reflectionPeriods": "Periods",
+  "@reflectionPeriods": {
+    "description": "Menu submenu holding the per-period on/off toggles"
   },
   "reflectionDaily": "Daily",
   "@reflectionDaily": {
@@ -641,9 +633,17 @@
   "@reflectionRegenerate": {
     "description": "Per-period action: re-run this reflection in the current style"
   },
-  "reflectionDelete": "Delete",
-  "@reflectionDelete": {
-    "description": "Per-period menu action: remove this reflection"
+  "reflectionDeleteDay": "Delete day",
+  "@reflectionDeleteDay": {
+    "description": "Menu action on a daily page: remove this day's reflection"
+  },
+  "reflectionDeleteWeek": "Delete week",
+  "@reflectionDeleteWeek": {
+    "description": "Menu action on a weekly page: remove this week's reflection"
+  },
+  "reflectionDeleteMonth": "Delete month",
+  "@reflectionDeleteMonth": {
+    "description": "Menu action on a monthly page: remove this month's reflection"
   },
   "reflectionRegenerateFailed": "Could not reflect. Try again.",
   "@reflectionRegenerateFailed": {

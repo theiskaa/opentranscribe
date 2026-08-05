@@ -792,23 +792,11 @@ abstract class AppLocalizations {
   /// **'Reflections'**
   String get reflectionsTitle;
 
-  /// Day segment label on the reflections period switcher
+  /// Menu submenu holding the per-period on/off toggles
   ///
   /// In en, this message translates to:
-  /// **'Day'**
-  String get reflectionPeriodDay;
-
-  /// Week segment label on the reflections period switcher
-  ///
-  /// In en, this message translates to:
-  /// **'Week'**
-  String get reflectionPeriodWeek;
-
-  /// Month segment label on the reflections period switcher
-  ///
-  /// In en, this message translates to:
-  /// **'Month'**
-  String get reflectionPeriodMonth;
+  /// **'Periods'**
+  String get reflectionPeriods;
 
   /// Menu toggle label for daily reflections
   ///
@@ -978,11 +966,23 @@ abstract class AppLocalizations {
   /// **'Regenerate'**
   String get reflectionRegenerate;
 
-  /// Per-period menu action: remove this reflection
+  /// Menu action on a daily page: remove this day's reflection
   ///
   /// In en, this message translates to:
-  /// **'Delete'**
-  String get reflectionDelete;
+  /// **'Delete day'**
+  String get reflectionDeleteDay;
+
+  /// Menu action on a weekly page: remove this week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete week'**
+  String get reflectionDeleteWeek;
+
+  /// Menu action on a monthly page: remove this month's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete month'**
+  String get reflectionDeleteMonth;
 
   /// Notice when a regenerate could not run because the model was unavailable
   ///

@@ -378,13 +378,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionsTitle => '振り返り';
 
   @override
-  String get reflectionPeriodDay => '日';
-
-  @override
-  String get reflectionPeriodWeek => '週';
-
-  @override
-  String get reflectionPeriodMonth => '月';
+  String get reflectionPeriods => '期間';
 
   @override
   String get reflectionDaily => '毎日';
@@ -475,7 +469,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionRegenerate => '再生成';
 
   @override
-  String get reflectionDelete => '削除';
+  String get reflectionDeleteDay => '日を削除';
+
+  @override
+  String get reflectionDeleteWeek => '週を削除';
+
+  @override
+  String get reflectionDeleteMonth => '月を削除';
 
   @override
   String get reflectionRegenerateFailed => '振り返りを作成できませんでした。もう一度お試しください。';
