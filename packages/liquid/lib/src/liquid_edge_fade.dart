@@ -13,7 +13,7 @@ class LiquidEdgeFade extends StatelessWidget {
     required this.height,
     required this.chromeHeight,
     required this.color,
-    required this.isDark,
+    this.isDark,
     this.fadeFrom = 0.5,
     this.placeholderBuilder,
     super.key,
@@ -26,7 +26,13 @@ class LiquidEdgeFade extends StatelessWidget {
   final double chromeHeight;
 
   final Color color;
-  final bool isDark;
+
+  /// Whether to use dark mode appearance.
+  ///
+  /// When specified, overrides the system's user interface style on iOS.
+  /// This ensures the native component matches Flutter's theme.
+  final bool? isDark;
+
   final double fadeFrom;
 
   /// Shown while this route is covered by another, and carried over the native
@@ -47,7 +53,7 @@ class LiquidEdgeFade extends StatelessWidget {
             'color': color.toARGB32(),
             'fadeFrom': fadeFrom,
             'chromeHeight': chromeHeight,
-            'isDark': isDark,
+            if (isDark != null) 'isDark': isDark,
           },
         ),
       ),
