@@ -170,7 +170,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
     final channel = MethodChannel('liquid/${widget.viewType}_$id');
     _channel = channel;
     widget.onChannelReady?.call(channel);
-    channel.setMethodCallHandler(widget.onMethodCall);
+    channel.setMethodCallHandler((call) async => widget.onMethodCall?.call(call));
   }
 
   /// Two frames past the uncover: one for the engine to re-add the native
