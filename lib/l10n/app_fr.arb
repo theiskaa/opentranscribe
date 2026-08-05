@@ -109,7 +109,7 @@
   "cacheKeepAudioInfo": "Si désactivé, chaque enregistrement est supprimé dès que sa transcription réussit. Ces entrées sont texte seul : pas de lecture, pas de retranscription par un meilleur moteur plus tard.",
   "cacheClear": "Effacer l'audio transcrit",
   "cacheClearTitle": "Effacer l'audio transcrit ?",
-  "cacheClearBody": "{count, plural, one {Supprime l'audio d'une entrée transcrite ({size}). Le texte reste. Irréversible.} other {Supprime l'audio de {count} entrées transcrites ({size}). Le texte reste. Irréversible.}}",
+  "cacheClearBody": "{count, plural, one {Supprime l'audio de {count} entrée transcrite ({size}). Le texte reste. Irréversible.} other {Supprime l'audio de {count} entrées transcrites ({size}). Le texte reste. Irréversible.}}",
   "cacheClearConfirm": "Supprimer les enregistrements",
   "cacheRecordingsCount": "{count, plural, one {{count} enregistrement} other {{count} enregistrements}}",
   "cacheReclaimableInfo": "Transcrit, peut être effacé",

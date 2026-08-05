@@ -109,7 +109,7 @@
   "cacheKeepAudioInfo": "Desligado, cada gravação é apagada assim que a transcrição é concluída. Essas entradas ficam só com texto: sem reprodução e sem nova transcrição por um motor melhor.",
   "cacheClear": "Apagar áudio transcrito",
   "cacheClearTitle": "Apagar áudio transcrito?",
-  "cacheClearBody": "{count, plural, one {Apaga o áudio de uma entrada transcrita ({size}). O texto fica. Não é possível desfazer.} other {Apaga o áudio de {count} entradas transcritas ({size}). O texto fica. Não é possível desfazer.}}",
+  "cacheClearBody": "{count, plural, one {Apaga o áudio de {count} entrada transcrita ({size}). O texto fica. Não é possível desfazer.} other {Apaga o áudio de {count} entradas transcritas ({size}). O texto fica. Não é possível desfazer.}}",
   "cacheClearConfirm": "Apagar gravações",
   "cacheRecordingsCount": "{count, plural, one {{count} gravação} other {{count} gravações}}",
   "cacheReclaimableInfo": "Transcrito, pode ser apagado",

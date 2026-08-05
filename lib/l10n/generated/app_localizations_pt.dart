@@ -395,7 +395,7 @@ class AppLocalizationsPt extends AppLocalizations {
       other:
           'Apaga o áudio de $count entradas transcritas ($size). O texto fica. Não é possível desfazer.',
       one:
-          'Apaga o áudio de uma entrada transcrita ($size). O texto fica. Não é possível desfazer.',
+          'Apaga o áudio de $count entrada transcrita ($size). O texto fica. Não é possível desfazer.',
     );
     return '$_temp0';
   }

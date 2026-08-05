@@ -395,7 +395,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Supprime l\'audio de $count entrées transcrites ($size). Le texte reste. Irréversible.',
-      one: 'Supprime l\'audio d\'une entrée transcrite ($size). Le texte reste. Irréversible.',
+      one: 'Supprime l\'audio de $count entrée transcrite ($size). Le texte reste. Irréversible.',
     );
     return '$_temp0';
   }
