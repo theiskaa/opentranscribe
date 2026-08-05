@@ -271,7 +271,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
       );
 
   /// The disabled page's TURN ON: restores [ReflectionSettings.defaultEnabled]'s
-  /// set, leaving daily the opt-in it starts as.
+  /// set - every period.
   Future<void> enableDefaults() async {
     for (final period in ReflectionPeriod.values) {
       if (ReflectionSettings.defaultEnabled(period)) {

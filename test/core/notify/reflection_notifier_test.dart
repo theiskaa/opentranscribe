@@ -228,6 +228,8 @@ void main() {
     test('a period with its nudge on but reflections off cancels only that period', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
+      await s.reflect.setEnabledFor(ReflectionPeriod.daily, false);
+      await s.reflect.setEnabledFor(ReflectionPeriod.monthly, false);
       await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.daily), true);
       await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);

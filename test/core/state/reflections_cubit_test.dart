@@ -93,6 +93,8 @@ void main() {
     await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
     expect(cubit.state.allDisabled, isFalse);
     await cubit.setPeriodEnabled(ReflectionPeriod.monthly, false);
+    expect(cubit.state.allDisabled, isFalse);
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, false);
     expect(cubit.state.allDisabled, isTrue);
 
     await cubit.setPeriodEnabled(ReflectionPeriod.daily, true);
@@ -121,18 +123,19 @@ void main() {
     await cubit.close();
   });
 
-  test('enableDefaults restores weekly and monthly while daily stays an opt-in', () async {
+  test('enableDefaults restores every period', () async {
     final cubit = build();
     await cubit.load();
     await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
     await cubit.setPeriodEnabled(ReflectionPeriod.monthly, false);
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, false);
     expect(cubit.state.allDisabled, isTrue);
 
     await cubit.enableDefaults();
     await settle();
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isTrue);
     expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isTrue);
     expect(cubit.state.enabledByPeriod[ReflectionPeriod.monthly], isTrue);
-    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isFalse);
     await cubit.close();
   });
 
@@ -303,6 +306,7 @@ void main() {
   });
 
   test('the switcher offers a period that is enabled or holds history', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, false);
     await settings.setEnabledFor(ReflectionPeriod.monthly, true);
     await store.save(
       Reflection(
@@ -331,6 +335,7 @@ void main() {
   test('setPeriodEnabled turns a period on, adds it to the switcher, and catches up', () async {
     entries = [withText('a', DateTime(2026, 7, 28, 9), text: 'tuesday')];
     await settings.setFloorFor(ReflectionPeriod.daily, DateTime(2026, 6, 8));
+    await settings.setEnabledFor(ReflectionPeriod.daily, false);
     final cubit = build();
     await cubit.load();
     expect(cubit.state.periods, [ReflectionPeriod.weekly, ReflectionPeriod.monthly]);

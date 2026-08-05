@@ -43,6 +43,7 @@ void main() {
     final reflect = ReflectionSettings(storage: storage);
     await reflect.setEnabledFor(weekly, reflectionsEnabled);
     await reflect.setEnabledFor(ReflectionPeriod.monthly, false);
+    await reflect.setEnabledFor(ReflectionPeriod.daily, false);
     availability() async => available
         ? const ReflectionAvailability.available()
         : const ReflectionAvailability.unsupported();
@@ -73,6 +74,7 @@ void main() {
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
     await reflect.setEnabledFor(ReflectionPeriod.monthly, false);
+    await reflect.setEnabledFor(ReflectionPeriod.daily, false);
     await notify.setEnabled(ReflectionNotifier.keyFor(weekly), true);
     final scheduler = FakeNotificationScheduler();
     final cubit = NotificationsCubit(
