@@ -131,11 +131,13 @@ void main() {
   });
 
   test('an undecryptable stored value falls back to the device locale', () async {
-    await build().setLocaleId('az-AZ');
-    // Reopen the same prefs under a different key: the stored tag no longer
-    // decrypts, and the getter must fall back rather than throw.
+    // A record that cannot decrypt (a corrupt store, or a STORAGE_KEY changed
+    // between builds): the getter must fall back rather than throw. Seeded
+    // malformed so the decrypt throws deterministically - a wrong-key reopen
+    // only sometimes fails PKCS7 padding, sometimes decrypts to garbage.
+    SharedPreferences.setMockInitialValues({'transcribe.localeId': 'v2:corrupt'});
     final other = LocalService();
-    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    await other.init(encryptionKey: key);
     final settings = TranscriptionSettings(
       storage: other,
       service: service,
