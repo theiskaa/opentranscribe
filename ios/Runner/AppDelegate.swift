@@ -31,5 +31,8 @@ import UIKit
     if let registrar = registry.registrar(forPlugin: "NotificationsPlugin") {
       NotificationsPlugin.register(with: registrar)
     }
+    if let registrar = registry.registrar(forPlugin: "StorageKeyPlugin") {
+      StorageKeyPlugin.register(with: registrar)
+    }
   }
 }
