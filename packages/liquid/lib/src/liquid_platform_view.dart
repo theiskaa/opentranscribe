@@ -148,14 +148,20 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
       },
     );
 
-    if (!_covered && !_settling) return view;
-    // Riding above the live view, the placeholder must not eat the touches
-    // the native view is about to own back.
+    // The tree shape is constant across cover flips: collapsing to a bare
+    // view when at rest would make Widget.canUpdate reject the update, and
+    // the replaced UiKitView element disposes and recreates the native view
+    // at the uncover frame - the exact layer-split churn the offstage path
+    // exists to avoid. Only the Offstage flag and the placeholder's presence
+    // ever change.
     return Stack(
       fit: StackFit.passthrough,
       children: [
         Offstage(offstage: _covered, child: view),
-        IgnorePointer(child: widget.placeholderBuilder?.call(context) ?? const SizedBox.shrink()),
+        if (_covered || _settling)
+          // Riding above the live view, the placeholder must not eat the
+          // touches the native view is about to own back.
+          IgnorePointer(child: widget.placeholderBuilder?.call(context) ?? const SizedBox.shrink()),
       ],
     );
   }
