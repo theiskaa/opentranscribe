@@ -5,7 +5,16 @@ import 'package:flutter/widgets.dart';
 /// points toward the corner keeps the curvature continuous, which is what makes
 /// native iOS cards read as "soft" rather than "stamped".
 class Superellipse extends ShapeBorder {
-  const Superellipse({required this.radius, this.smoothness = 0.6, this.side = BorderSide.none});
+  const Superellipse({
+    required this.radius,
+    this.smoothness = defaultSmoothness,
+    this.side = BorderSide.none,
+  });
+
+  /// The house corner: every superellipse in the app that does not choose its
+  /// own smoothness shares this one, so shapes drawn through [pathFor] match
+  /// shapes drawn through the decoration.
+  static const defaultSmoothness = 0.6;
 
   final double radius;
 
@@ -83,7 +92,7 @@ class SuperellipseDecoration extends ShapeDecoration {
     super.color,
     super.gradient,
     super.shadows,
-    double smoothness = 0.6,
+    double smoothness = Superellipse.defaultSmoothness,
     BorderSide border = BorderSide.none,
   }) : super(
          shape: Superellipse(radius: borderRadius, smoothness: smoothness, side: border),
