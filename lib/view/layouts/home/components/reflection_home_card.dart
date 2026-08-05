@@ -81,11 +81,11 @@ Set<ReflectionCardKey> newlyReflected(List<Reflection> previous, List<Reflection
 /// The reflection at the top of a period in the home journal: a quiet bordered
 /// panel with an entry row's anatomy - the period it covers as the strong title
 /// ("Reflection of Jul 20 – 26"), the excerpt quiet under it - so it reads as
-/// journal matter, not chrome. A DAILY card holds a single line (a day says
-/// little); a week or a month keeps the fuller excerpt. A silent period is a
-/// minimal marker instead. The panel starts at the content margin, flush with
-/// the records' rail; horizontal insets only, the list owns the vertical
-/// spacing around it.
+/// journal matter, not chrome. A DAILY card is the title alone (a day says
+/// little, and its records sit right below); a week or a month keeps a short
+/// two-line excerpt. A silent period is a minimal marker instead. The panel
+/// starts at the content margin, flush with the records' rail; horizontal
+/// insets only, the list owns the vertical spacing around it.
 class ReflectionHomeCard extends StatelessWidget {
   const ReflectionHomeCard({required this.reflection, required this.onTap, super.key});
 
@@ -142,13 +142,17 @@ class ReflectionHomeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  reflection.text!,
-                  maxLines: period == ReflectionPeriod.daily ? 1 : 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
-                ),
+                // A day card is its title alone; a week or a month carries a
+                // short two-line excerpt beneath it.
+                if (period != ReflectionPeriod.daily) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    reflection.text!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
+                  ),
+                ],
               ],
             ),
           ),
