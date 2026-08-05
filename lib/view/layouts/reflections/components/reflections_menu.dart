@@ -15,6 +15,7 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 /// The user-facing labels for the reflections menu, passed in so the item
 /// builder stays pure (testable without a BuildContext).
 typedef ReflectionMenuLabels = ({
+  String periods,
   String daily,
   String weekly,
   String monthly,
@@ -64,20 +65,22 @@ List<(ReflectionSpecificity, String)> _specChoices(ReflectionMenuLabels labels) 
 AppMenuItem _group<T extends Enum>({
   required String id,
   required String label,
+  required IconData icon,
   required List<(T, String)> choices,
   required T current,
   required String Function(T) wireOf,
 }) => AppMenuItem(
   id: id,
   label: label,
+  icon: icon,
   children: [
     for (final (value, text) in choices)
       AppMenuItem(id: '$id:${wireOf(value)}', label: text, selected: value == current),
   ],
 );
 
-/// Builds the reflections menu in the locked navigation order: the three
-/// per-period on/off toggles first, then the Voice/Length/Specifics knobs for
+/// Builds the reflections menu in the locked navigation order: the Periods
+/// submenu of on/off toggles first, then the Voice/Length/Specifics knobs for
 /// the viewed period, a divider, then Regenerate and Delete for the viewed
 /// page. [showSettings] is false when the model cannot run (the knobs would set
 /// nothing; Delete survives). Pure, so the ids, order, gating, and `selected`
@@ -93,18 +96,29 @@ List<AppMenuItem> reflectionsMenuItems({
   required bool showSettings,
 }) => [
   if (showSettings) ...[
-    for (final period in ReflectionPeriod.values)
-      AppMenuItem(
-        id: 'r:${period.wire}',
-        label: _periodLabel(labels, period),
-        selected: enabledByPeriod[period] ?? false,
-      ),
-    // Its own section: the toggles' checkmark column would otherwise indent
-    // every knob row beneath them on the native menu.
+    // The three toggles live in ONE submenu that stays presented across
+    // taps, so several periods flip in a single visit and their checkmarks
+    // stay a submenu affair: the top level then carries no state column,
+    // and every row sits on one grid with exactly one leading glyph.
+    AppMenuItem(
+      id: 'r:periods',
+      label: labels.periods,
+      icon: AppIcons.calendar,
+      children: [
+        for (final period in ReflectionPeriod.values)
+          AppMenuItem(
+            id: 'r:${period.wire}',
+            label: _periodLabel(labels, period),
+            selected: enabledByPeriod[period] ?? false,
+            keepsPresented: true,
+          ),
+      ],
+    ),
     const AppMenuItem.divider(),
     _group(
       id: 'r:voice',
       label: labels.voice,
+      icon: AppIcons.textQuote,
       choices: _voiceChoices(labels),
       current: style.voice,
       wireOf: (ReflectionVoice v) => v.wire,
@@ -112,6 +126,7 @@ List<AppMenuItem> reflectionsMenuItems({
     _group(
       id: 'r:length',
       label: labels.length,
+      icon: AppIcons.textAlignleft,
       choices: _lengthChoices(labels),
       current: style.length,
       wireOf: (ReflectionLength v) => v.wire,
@@ -119,6 +134,7 @@ List<AppMenuItem> reflectionsMenuItems({
     _group(
       id: 'r:spec',
       label: labels.specifics,
+      icon: AppIcons.sliderHorizontal3,
       choices: _specChoices(labels),
       current: style.specificity,
       wireOf: (ReflectionSpecificity v) => v.wire,
@@ -131,12 +147,18 @@ List<AppMenuItem> reflectionsMenuItems({
     AppMenuItem(id: 'r:delete', label: labels.delete, icon: AppIcons.trash, destructive: true),
 ];
 
-ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
+ReflectionMenuLabels _labelsOf(AppLocalizations l10n, ReflectionPeriod viewedPeriod) => (
+  periods: l10n.reflectionPeriods,
   daily: l10n.reflectionDaily,
   weekly: l10n.reflectionWeekly,
   monthly: l10n.reflectionMonthly,
   regenerate: l10n.reflectionRegenerate,
-  delete: l10n.reflectionDelete,
+  // Named for what falls: the viewed period's page, not an abstract record.
+  delete: switch (viewedPeriod) {
+    ReflectionPeriod.daily => l10n.reflectionDeleteDay,
+    ReflectionPeriod.weekly => l10n.reflectionDeleteWeek,
+    ReflectionPeriod.monthly => l10n.reflectionDeleteMonth,
+  },
   voice: l10n.reflectionVoice,
   length: l10n.reflectionLength,
   specifics: l10n.reflectionSpecifics,
@@ -151,7 +173,7 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n) => (
   letPeriodDecide: l10n.reflectionSpecificsLetPeriod,
 );
 
-/// THE reflections menu - the surface has exactly one: the three per-period
+/// THE reflections menu - the surface has exactly one: the Periods submenu's
 /// on/off toggles, the viewed period's style knobs, then the VIEWED page's
 /// actions, gated by what the page holds and whether the model can run.
 /// Regenerate covers every status (an unreflected or erased page is "write it
@@ -212,6 +234,24 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
     return false;
   }
 
+  /// The drawn fallback's period picker: one dropdown visit toggles one
+  /// period, while the native submenu instead stays presented across taps.
+  Future<void> _pickPeriod(ReflectionMenuLabels labels) async {
+    final cubit = context.read<ReflectionsCubit>();
+    final enabled = cubit.state.enabledByPeriod;
+    final index = await showAppDropdown(
+      context,
+      anchor: dropdownAnchorRect(_anchor, context),
+      items: [
+        for (final period in ReflectionPeriod.values)
+          AppDropdownItem(label: _periodLabel(labels, period), selected: enabled[period] ?? false),
+      ],
+    );
+    if (index == null || !mounted) return;
+    final period = ReflectionPeriod.values[index];
+    unawaited(cubit.setPeriodEnabled(period, !(cubit.state.enabledByPeriod[period] ?? false)));
+  }
+
   /// Drops any live text selection, then regenerates one frame later so the
   /// cleared page paints before the ink reveal captures its last frame: a
   /// selection left standing would bake its highlight wash into the dissolving
@@ -241,9 +281,16 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       if (viewed != null) unawaited(cubit.delete(viewed.periodStart));
       return;
     }
+    if (id == 'r:periods') {
+      unawaited(_pickPeriod(labels));
+      return;
+    }
     for (final period in ReflectionPeriod.values) {
       if (id == 'r:${period.wire}') {
-        unawaited(cubit.setPeriodEnabled(period, !(state.enabledByPeriod[period] ?? false)));
+        // The LIVE flag, not the build's snapshot: the held-open native menu
+        // can fire the same toggle twice inside one rebuild, and two
+        // snapshot-derived writes would both persist the first flip.
+        unawaited(cubit.setPeriodEnabled(period, !(cubit.state.enabledByPeriod[period] ?? false)));
         return;
       }
     }
@@ -279,8 +326,8 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final labels = _labelsOf(AppLocalizations.of(context)!);
     final state = context.watch<ReflectionsCubit>().state;
+    final labels = _labelsOf(AppLocalizations.of(context)!, state.viewedPeriod);
     final viewed = widget.viewed;
     final items = reflectionsMenuItems(
       enabledByPeriod: state.enabledByPeriod,

@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflections_menu.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 
 const ReflectionMenuLabels _labels = (
+  periods: 'Periods',
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
@@ -48,18 +50,9 @@ Iterable<String?> idsOf(List<AppMenuItem> items) =>
     items.where((i) => !i.isDivider).map((i) => i.id);
 
 void main() {
-  test('the base order: the three period toggles, then the knobs, then the viewed '
+  test('the base order: the periods submenu, then the knobs, then the viewed '
       'page actions, with delete the only destructive one', () {
-    expect(idsOf(build()), [
-      'r:daily',
-      'r:weekly',
-      'r:monthly',
-      'r:voice',
-      'r:length',
-      'r:spec',
-      'r:regen',
-      'r:delete',
-    ]);
+    expect(idsOf(build()), ['r:periods', 'r:voice', 'r:length', 'r:spec', 'r:regen', 'r:delete']);
     expect(build().singleWhere((i) => i.id == 'r:delete').destructive, isTrue);
     expect(build().singleWhere((i) => i.id == 'r:regen').destructive, isFalse);
   });
@@ -73,9 +66,7 @@ void main() {
   test('an unreflected or erased page offers regenerate without delete: '
       'nothing stored means nothing to erase', () {
     expect(idsOf(build(canDelete: false)), [
-      'r:daily',
-      'r:weekly',
-      'r:monthly',
+      'r:periods',
       'r:voice',
       'r:length',
       'r:spec',
@@ -92,7 +83,8 @@ void main() {
     expect(build(canRegenerate: false, canDelete: false, showSettings: false), isEmpty);
   });
 
-  test('each period toggle reflects its own enabled flag', () {
+  test('the period toggles live under the periods submenu, marked selected and '
+      'keeping the menu presented', () {
     final items = build(
       enabledByPeriod: {
         ReflectionPeriod.daily: true,
@@ -100,9 +92,16 @@ void main() {
         ReflectionPeriod.monthly: true,
       },
     );
-    expect(items.singleWhere((i) => i.id == 'r:daily').selected, isTrue);
-    expect(items.singleWhere((i) => i.id == 'r:weekly').selected, isFalse);
-    expect(items.singleWhere((i) => i.id == 'r:monthly').selected, isTrue);
+    final periods = items.singleWhere((i) => i.id == 'r:periods');
+    expect(periods.icon, AppIcons.calendar);
+    expect(periods.children.map((c) => c.id), ['r:daily', 'r:weekly', 'r:monthly']);
+    expect(periods.children.map((c) => c.selected), [true, false, true]);
+    for (final child in periods.children) {
+      expect(child.keepsPresented, isTrue);
+    }
+    for (final item in items.where((i) => !i.isDivider)) {
+      expect(item.icon, isNotNull);
+    }
   });
 
   test('the current voice, length, and specificity children are marked selected', () {
