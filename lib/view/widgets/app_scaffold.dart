@@ -27,8 +27,8 @@ class AppScaffold extends StatelessWidget {
   /// the material) - a screen whose own content carries the heading.
   final String? title;
 
-  /// A widget centered in the bar between the back control and the actions (the
-  /// reflections period switcher). Takes the place of a text [title].
+  /// A widget centered in the bar between the back control and the actions.
+  /// Takes the place of a text [title].
   final Widget? titleWidget;
   final Widget child;
   final Color? background;

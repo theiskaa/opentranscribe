@@ -18,10 +18,17 @@ import 'package:opentranscribe/view/widgets/glass_capsule.dart';
 /// an opaque hit test owns the pointer directly, so the pager underneath
 /// never contends for it. The capsule also just tracks ordinary pager swipes
 /// through the controller it listens to.
+///
+/// A drill swaps the timeline under the capsule, so [count] changes while the
+/// capsule stays mounted: the pill MORPHS to its new width and the ink pours
+/// across the strip to its new dot - the same size-change vocabulary as the
+/// page's unfolds - instead of snapping.
 class ReflectionScrubber extends StatefulWidget {
   const ReflectionScrubber({
     required this.controller,
     required this.count,
+    required this.timelineKey,
+    required this.restPage,
     required this.onScrubStart,
     required this.onScrubEnd,
     this.fade = 1,
@@ -30,6 +37,16 @@ class ReflectionScrubber extends StatefulWidget {
 
   final PageController controller;
   final int count;
+
+  /// The identity of the timeline the dots stand for. A drill swaps timelines
+  /// whose page counts may coincide, so the morph keys on this changing, not
+  /// on [count] alone.
+  final Object timelineKey;
+
+  /// The page the strip rests on while [controller] has no clients yet: a
+  /// drill hands the capsule a fresh pager whose first frame precedes its
+  /// attach, and falling back to 0 there would flash the ink to the first dot.
+  final int restPage;
 
   /// Show/hide fraction, 0..1. The caller drives the fade through here
   /// instead of an Opacity layer: a BackdropFilter inside one samples the
@@ -71,7 +88,27 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
   /// rests under a fresh touch or a drag owns the position.
   int? _flowTarget;
 
+  /// What the strip last painted, the morph's FROM state when a drill swaps
+  /// the timeline: the dot count lerps from [_fromCount] (dots melt out or
+  /// grow in at the tail, the pill's width following) and the ink pours from
+  /// [_pourFrom] to the live page, restarted by [_morphSeed]. [_fromCount]
+  /// clears once a morph lands, so a resting strip paints plain.
+  double _paintedPage = 0;
+  double? _paintedCount;
+  double _pourFrom = 0;
+  double? _fromCount;
+  int _morphSeed = 0;
+
   bool get _attached => widget.controller.hasClients;
+
+  @override
+  void didUpdateWidget(ReflectionScrubber old) {
+    super.didUpdateWidget(old);
+    if (old.count == widget.count && old.timelineKey == widget.timelineKey) return;
+    _fromCount = _paintedCount;
+    _pourFrom = _paintedPage.clamp(0, math.max(0, widget.count - 1)).toDouble();
+    _morphSeed++;
+  }
 
   @override
   void dispose() {
@@ -213,8 +250,32 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
                 child: ListenableBuilder(
                   listenable: widget.controller,
                   builder: (context, _) {
-                    final page = _attached ? (widget.controller.page ?? 0) : 0.0;
-                    return ScrubberDots(count: widget.count, position: page);
+                    final live =
+                        (_attached ? widget.controller.page : null) ?? widget.restPage.toDouble();
+                    final fromCount = _fromCount;
+                    if (fromCount == null) {
+                      _paintedPage = live;
+                      _paintedCount = widget.count.toDouble();
+                      return ScrubberDots(count: widget.count, position: live);
+                    }
+                    return TweenAnimationBuilder<double>(
+                      key: ValueKey(_morphSeed),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: context.reduceMotion ? Duration.zero : theme.motion.expand,
+                      curve: Curves.easeOutCubic,
+                      onEnd: () => _fromCount = null,
+                      builder: (context, t, _) {
+                        final visual = fromCount + (widget.count - fromCount) * t;
+                        final position = _pourFrom + (live - _pourFrom) * t;
+                        _paintedPage = position;
+                        _paintedCount = visual;
+                        return ScrubberDots(
+                          count: widget.count,
+                          position: position,
+                          visualCount: visual,
+                        );
+                      },
+                    );
                   },
                 ),
               ),
@@ -237,7 +298,7 @@ class _ReflectionScrubberState extends State<ReflectionScrubber> {
 /// scroll-driven it needs no Reduce Motion gate. A rim with more pages
 /// beyond it shrinks its dots on a continuous ramp that reads as an ellipsis.
 class ScrubberDots extends StatelessWidget {
-  const ScrubberDots({required this.count, required this.position, super.key});
+  const ScrubberDots({required this.count, required this.position, this.visualCount, super.key});
 
   /// At most this many dot slots in the viewport, the capsule's fixed width.
   static const maxVisible = 5;
@@ -247,17 +308,25 @@ class ScrubberDots extends StatelessWidget {
   /// Fractional page, straight off the controller.
   final double position;
 
+  /// The dot count as painted, fractional mid-morph ([ReflectionScrubber]'s
+  /// timeline swap): the tail dot scales with the fraction so dots grow in
+  /// and melt out one by one, and the strip's width follows the count
+  /// continuously. Null paints [count] at rest.
+  final double? visualCount;
+
   @override
   Widget build(BuildContext context) {
     final scrubber = context.theme.scrubber;
     final pitch = scrubber.dotSize + scrubber.gap;
+    final visual = visualCount ?? count.toDouble();
     // The active-scale allowance keeps the strip from breathing as ink moves.
     final width =
-        math.min(count, maxVisible) * pitch + scrubber.dotSize * (scrubber.activeScale - 1);
+        math.min(visual, maxVisible.toDouble()) * pitch +
+        scrubber.dotSize * (scrubber.activeScale - 1);
     return CustomPaint(
       size: Size(width, scrubber.height),
       painter: _DotStripPainter(
-        count: count,
+        count: visual,
         position: position.clamp(0, math.max(0, count - 1)).toDouble(),
         max: maxVisible,
         pitch: pitch,
@@ -286,7 +355,8 @@ class _DotStripPainter extends CustomPainter {
     required this.track,
   });
 
-  final int count;
+  /// Fractional mid-morph: the tail dot scales with the fraction.
+  final double count;
   final double position;
   final int max;
   final double pitch;
@@ -317,7 +387,8 @@ class _DotStripPainter extends CustomPainter {
 
     for (var i = math.max(0, shift.floor() - 1); i < count && i < shift + max + 1; i++) {
       final slot = i - shift;
-      final r = restR * rimScale(slot: slot, shift: shift, count: count, max: max);
+      final tail = (count - i).clamp(0.0, 1.0);
+      final r = restR * tail * rimScale(slot: slot, shift: shift, count: count, max: max);
       canvas.drawCircle(Offset(centerOf(slot), cy), r, trackPaint);
     }
 

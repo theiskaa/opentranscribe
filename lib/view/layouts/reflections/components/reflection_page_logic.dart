@@ -7,19 +7,19 @@ import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
 /// The ink phase for a reflected page. Pure, so the replay policy is a tested
 /// rule, not widget state: the write-on plays once per page per screen visit
-/// (a browse back and forth must not replay a 1.3s arrival), while a
+/// (a browse back and forth must not replay the arrival), while a
 /// regenerate always goes through pending and re-arrives (new words earn it).
-/// A scrub renders pages settled: pages flown through under the finger must
-/// not start captures, write-ons, or ledger spends, and the landed page
-/// re-earns its write once the grip releases.
+/// A hold (the scrubber's finger) renders pages settled: pages flown through
+/// under it must not start captures, write-ons, or ledger spends, and the
+/// landed page re-earns its write once the hold releases.
 InkPhase inkPhaseFor({
   required ReflectionPage page,
   required bool regenerating,
-  required bool scrubbing,
+  required bool held,
   required Set<String> revealed,
 }) {
   if (regenerating) return InkPhase.pending;
-  if (scrubbing) return InkPhase.settled;
+  if (held) return InkPhase.settled;
   if (revealed.contains(revealKeyFor(page))) return InkPhase.settled;
   return InkPhase.write;
 }
@@ -150,9 +150,11 @@ bool scrubberVisible({
 /// How far the dot strip has slid, in SLOT units (pitch-agnostic; paint
 /// multiplies by the pitch): centers [position] in a [max]-slot viewport,
 /// pinned at both ends so the rims only shrink where pages truly lie beyond.
-double stripShift({required int count, required double position, required int max}) {
+/// [count] is fractional mid-morph (the strip growing or melting between
+/// timelines), so the pin glides with it.
+double stripShift({required double count, required double position, required int max}) {
   if (count <= max) return 0;
-  return (position - (max - 1) / 2).clamp(0, (count - max).toDouble()).toDouble();
+  return (position - (max - 1) / 2).clamp(0, count - max).toDouble();
 }
 
 /// A dot's size scale at viewport [slot]: full inside, ramping down to 0.5
@@ -161,7 +163,7 @@ double stripShift({required int count, required double position, required int ma
 double rimScale({
   required double slot,
   required double shift,
-  required int count,
+  required double count,
   required int max,
 }) {
   var scale = 1.0;

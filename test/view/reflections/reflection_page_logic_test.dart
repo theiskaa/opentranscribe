@@ -23,10 +23,9 @@ void main() {
   InkPhase phaseFor(
     ReflectionPage week, {
     bool regenerating = false,
-    bool scrubbing = false,
+    bool held = false,
     Set<String> revealed = const {},
-  }) =>
-      inkPhaseFor(page: week, regenerating: regenerating, scrubbing: scrubbing, revealed: revealed);
+  }) => inkPhaseFor(page: week, regenerating: regenerating, held: held, revealed: revealed);
 
   test('the first view of a reflected week writes on', () {
     expect(phaseFor(reflected()), InkPhase.write);
@@ -42,12 +41,12 @@ void main() {
     expect(phaseFor(week, regenerating: true, revealed: {revealKeyFor(week)}), InkPhase.pending);
   });
 
-  test('a scrub renders an unrevealed week settled, so flying past starts no write', () {
-    expect(phaseFor(reflected(), scrubbing: true), InkPhase.settled);
+  test('a hold renders an unrevealed week settled, so flying past starts no write', () {
+    expect(phaseFor(reflected(), held: true), InkPhase.settled);
   });
 
-  test('a regenerating week stays pending under a scrub', () {
-    expect(phaseFor(reflected(), regenerating: true, scrubbing: true), InkPhase.pending);
+  test('a regenerating week stays pending under a hold', () {
+    expect(phaseFor(reflected(), regenerating: true, held: true), InkPhase.pending);
   });
 
   test('a regenerate changes the ledger key, so the new words re-arrive', () {
