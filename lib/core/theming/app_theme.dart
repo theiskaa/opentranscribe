@@ -144,6 +144,8 @@ final class AppTheme {
             tileFill: text.withValues(alpha: brightness == Brightness.dark ? 0.06 : 0.04),
             tileFillMuted: text.withValues(alpha: brightness == Brightness.dark ? 0.03 : 0.02),
             cursorBorder: text.withValues(alpha: brightness == Brightness.dark ? 0.38 : 0.25),
+            chipInk: text,
+            onChipInk: background,
           ),
       entryList:
           entryList ??

@@ -190,6 +190,8 @@ final class CalendarTheme {
     required this.tileFill,
     required this.tileFillMuted,
     required this.cursorBorder,
+    required this.chipInk,
+    required this.onChipInk,
     this.tileRadius = 14.0,
     this.tileGap = 5.0,
     this.dotSize = 4.0,
@@ -220,6 +222,17 @@ final class CalendarTheme {
 
   /// The soft border that marks the viewed day: where you are.
   final Color cursorBorder;
+
+  /// A chip filled solid: the reflections strip's "this day holds a
+  /// reflection", the one state strong enough to read as tappable.
+  final Color chipInk;
+  final Color onChipInk;
+
+  /// Density dots on the month page's week rows, one grammar with the chips:
+  /// full [todayDot] = a reflection, these two = entries only and nothing.
+  Color get dotEntries => todayDot.withValues(alpha: 0.35);
+  Color get dotEmpty => todayDot.withValues(alpha: 0.12);
+
   final double tileRadius;
 
   /// Breathing room between neighboring tiles.
