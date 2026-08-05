@@ -82,11 +82,11 @@ AppMenuItem _group<T extends Enum>({
 /// Builds the reflections menu in the locked navigation order: the Periods
 /// submenu of on/off toggles first, then the Voice/Length/Specifics knobs for
 /// the viewed period, a divider, then Regenerate and Delete for the viewed
-/// page. [showSettings] is false when the model cannot run (the knobs would set
-/// nothing; Delete survives). Pure, so the ids, order, gating, and `selected`
-/// flags are testable directly. On native glass the submenu children answer
-/// through their ids; on the drawn fallback the parent ids open a follow-up
-/// dropdown.
+/// page. [showSettings] false drops the Periods and style block (Delete
+/// survives), for a surface that only acts on a page. Pure, so the ids, order,
+/// gating, and `selected` flags are testable directly. On native glass the
+/// submenu children answer through their ids; on the drawn fallback the parent
+/// ids open a follow-up dropdown.
 List<AppMenuItem> reflectionsMenuItems({
   required Map<ReflectionPeriod, bool> enabledByPeriod,
   required ReflectionStyle style,
@@ -335,10 +335,14 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       labels: labels,
       canRegenerate: viewed != null && state.available,
       canDelete: viewed?.reflection != null,
-      showSettings: state.available,
+      // The Periods and style knobs are preferences that persist and apply
+      // once the model runs, so they stay reachable even while it cannot -
+      // the reader can set up what and how before anything generates. Only
+      // Regenerate, which needs the model, gates on availability.
+      showSettings: true,
     );
-    // No applicable item (the model cannot run and the page stores nothing):
-    // no button, rather than an ellipsis that opens an empty menu.
+    // Settings always render, so the menu always has something; the guard
+    // holds only for a hypothetical all-false caller.
     if (items.isEmpty) return const SizedBox.shrink();
     return AppMenuButton(
       key: _anchor,

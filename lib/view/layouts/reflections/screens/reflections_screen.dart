@@ -105,6 +105,7 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
       return AppScaffold(
         background: theme.screens.settings,
         onBack: () => context.pop(),
+        actions: [ReflectionsMenu(viewed: null, color: theme.topBar.iconColor)],
         child: _Editorial(
           copy: reflectionEditorialCopy(
             l10n,
