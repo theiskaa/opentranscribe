@@ -21,6 +21,7 @@ class AppMenuItem {
     this.iconBytes,
     this.destructive = false,
     this.selected = false,
+    this.keepsPresented = false,
     this.children = const [],
   }) : isDivider = false;
 
@@ -34,6 +35,7 @@ class AppMenuItem {
       iconBytes = null,
       destructive = false,
       selected = false,
+      keepsPresented = false,
       children = const [],
       isDivider = true;
 
@@ -63,6 +65,13 @@ class AppMenuItem {
   /// fallback menu ignores it; selection lists there run through the app's
   /// own dropdown instead.
   final bool selected;
+
+  /// Keeps the NATIVE menu presented when this item is selected - a toggle
+  /// row likely to be tapped again in the same visit - with its checkmark
+  /// refreshing in place. On native such a row's leading image IS its mark
+  /// (a checkmark, or a spacer when off), so any [icon] it carries is
+  /// discarded there. The fallback's surfaces are modal and still close.
+  final bool keepsPresented;
 
   /// Nested choices. NATIVE menus render a real submenu whose children answer
   /// through [AppMenuButton.onSelectedId] (each needs an [id]); the fallback
@@ -227,6 +236,10 @@ class AppMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    assert(
+      items.every((item) => item.children.every((child) => child.id != null)),
+      'Submenu children answer through ids; id-less ones collide on one value.',
+    );
     if (PlatformCaps.nativeGlass) {
       // The native menu answers with an entry's VALUE, not its position, so
       // positions are carried across as values ('i', or 'i.j' inside a
@@ -255,9 +268,13 @@ class AppMenuButton extends StatelessWidget {
                     iconBytes: item.iconBytes,
                     isDestructive: item.destructive,
                     isSelected: item.selected,
+                    keepsPresented: item.keepsPresented,
                   )
                 : LiquidPopupButtonEntry(
-                    value: '$i',
+                    // The parent never fires; its value's one job is the
+                    // STABLE identifier the keeps-presented refresh matches
+                    // the open submenu by, so the id beats the position.
+                    value: item.id == null ? '$i' : '#${item.id}',
                     label: item.label,
                     icon: _symbol(item.icon),
                     children: [
@@ -268,6 +285,7 @@ class AppMenuButton extends StatelessWidget {
                           icon: _symbol(child.icon),
                           isDestructive: child.destructive,
                           isSelected: child.selected,
+                          keepsPresented: child.keepsPresented,
                         ),
                     ],
                   ),
