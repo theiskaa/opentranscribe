@@ -37,6 +37,24 @@ class FakeNotificationScheduler implements NotificationScheduler {
   }
 
   @override
+  Future<void> scheduleDaily({
+    required String id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) async {
+    scheduled.add({
+      'method': 'scheduleDaily',
+      'id': id,
+      'hour': hour,
+      'minute': minute,
+      'title': title,
+      'body': body,
+    });
+  }
+
+  @override
   Future<void> scheduleWeekly({
     required String id,
     required int weekday,
@@ -46,8 +64,29 @@ class FakeNotificationScheduler implements NotificationScheduler {
     required String body,
   }) async {
     scheduled.add({
+      'method': 'scheduleWeekly',
       'id': id,
       'weekday': weekday,
+      'hour': hour,
+      'minute': minute,
+      'title': title,
+      'body': body,
+    });
+  }
+
+  @override
+  Future<void> scheduleMonthly({
+    required String id,
+    required int day,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) async {
+    scheduled.add({
+      'method': 'scheduleMonthly',
+      'id': id,
+      'day': day,
       'hour': hour,
       'minute': minute,
       'title': title,

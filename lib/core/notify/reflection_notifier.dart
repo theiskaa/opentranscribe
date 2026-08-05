@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart' show Locale;
 
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/utils/week.dart';
@@ -12,15 +13,16 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 // ignore_for_file: prefer_initializing_formals
 
 /// The one reflection-aware piece of the notification stack: it decides WHEN
-/// the weekly reflection nudge should exist and keeps the OS's pending
-/// notification in step with the settings. The [NotificationScheduler] it
+/// each period's reflection nudge should exist and keeps the OS's pending
+/// notifications in step with the settings. The [NotificationScheduler] it
 /// drives stays generic; the policy lives here.
 ///
-/// The nudge is scheduled only when everything lines up - the on-device model
-/// can run, reflections are enabled, the user turned the weekly notification
-/// on, and permission is granted - and cancelled the instant any of those stops
-/// holding. [sync] is the single entry point: call it after any of those inputs
-/// could have changed (a settings toggle, a catch-up, a resume).
+/// A period's nudge is scheduled only when everything lines up - the on-device
+/// model can run, that period's reflections are enabled, the user turned its
+/// notification on, and permission is granted - and cancelled the instant any
+/// of those stops holding. [sync] is the single entry point: call it after any
+/// of those inputs could have changed (a settings toggle, a catch-up, a
+/// resume).
 class ReflectionNotifier {
   ReflectionNotifier({
     required NotificationScheduler scheduler,
@@ -43,16 +45,21 @@ class ReflectionNotifier {
   final String Function() _language;
   final DateTime Function() _clock;
 
-  /// The weekly reflection nudge's identity: the scheduler's fixed notification
-  /// identifier (a reschedule under it replaces rather than stacks) and the key
-  /// its enabled flag and fire time persist under. Public so the settings
-  /// surface reads and writes the same slot this notifier schedules from.
-  static const key = 'reflect.weekly';
+  /// A period's nudge identity: the scheduler's notification identifier (a
+  /// reschedule under it replaces rather than stacks) and the key its enabled
+  /// flag persists under. Public so the settings surface reads and writes the
+  /// same slots this notifier schedules from.
+  static String keyFor(ReflectionPeriod period) => 'reflect.${period.wire}';
+
+  /// The one fire time shared by every period's nudge. A single slot on
+  /// purpose: the nudges differ in WHICH day they fire, not when in the day,
+  /// and one Time row is a calmer surface than three.
+  static const timeKey = 'reflect';
 
   bool _running = false;
   bool _pending = false;
 
-  /// Reconciles the OS's pending nudge with the current settings. Cheap and
+  /// Reconciles the OS's pending nudges with the current settings. Cheap and
   /// safe to call often; never throws (the scheduler swallows its own errors,
   /// and the strings fall back to English).
   ///
@@ -77,40 +84,80 @@ class ReflectionNotifier {
   }
 
   Future<void> _reconcile() async {
-    // The cheap local gates first: they rule out most cancels without an async
-    // hop, and leave only the genuinely-schedule case to probe for.
-    if (!_shouldSchedule) {
-      await _scheduler.cancel(key);
+    // The cheap local gate first: it rules out most cancels without an async
+    // hop, and leaves only the genuinely-schedule case to probe for.
+    if (!ReflectionPeriod.values.any(_shouldSchedule)) {
+      await _cancelAll();
       return;
     }
     if (await _scheduler.permissionStatus() != NotificationPermission.authorized) {
-      await _scheduler.cancel(key);
+      await _cancelAll();
       return;
     }
     // Availability last: never nudge a device that produces nothing. Probed
     // live, so enabling the model mid-life is picked up on the next sync.
     if (!(await _availability()).isAvailable) {
-      await _scheduler.cancel(key);
-      return;
-    }
-    // Re-read the cheap gates after the awaits: a toggle that landed while they
-    // were in flight must win, not schedule a nudge the user just turned off.
-    if (!_shouldSchedule) {
-      await _scheduler.cancel(key);
+      await _cancelAll();
       return;
     }
     final strings = _strings;
-    await _scheduler.scheduleWeekly(
-      id: key,
-      weekday: _boundaryWeekday(),
-      hour: _notifySettings.hour(key),
-      minute: _notifySettings.minute(key),
-      title: strings.notifyWeeklyTitle,
-      body: strings.notifyWeeklyBody,
-    );
+    for (final period in ReflectionPeriod.values) {
+      // Re-read the cheap gate after the awaits: a toggle that landed while
+      // they were in flight must win, not schedule a nudge the user just
+      // turned off.
+      if (_shouldSchedule(period)) {
+        await _schedule(period, strings);
+      } else {
+        await _scheduler.cancel(keyFor(period));
+      }
+    }
   }
 
-  bool get _shouldSchedule => _notifySettings.enabled(key) && _reflectionSettings.enabled;
+  bool _shouldSchedule(ReflectionPeriod period) =>
+      _notifySettings.enabled(keyFor(period)) && _reflectionSettings.enabledFor(period);
+
+  /// Cancelling an id with nothing pending is a native no-op, so a blanket
+  /// cancel is the simplest way to hold the "cancelled the instant any gate
+  /// stops holding" guarantee for every period at once.
+  Future<void> _cancelAll() async {
+    for (final period in ReflectionPeriod.values) {
+      await _scheduler.cancel(keyFor(period));
+    }
+  }
+
+  /// A period's trigger mirrors when its reflection becomes readable: daily
+  /// fires every day (yesterday closed at midnight), weekly on the locale's
+  /// week boundary, monthly on the 1st (the only day every month has).
+  Future<void> _schedule(ReflectionPeriod period, AppLocalizations strings) {
+    final key = keyFor(period);
+    final hour = _notifySettings.hour(timeKey);
+    final minute = _notifySettings.minute(timeKey);
+    return switch (period) {
+      ReflectionPeriod.daily => _scheduler.scheduleDaily(
+        id: key,
+        hour: hour,
+        minute: minute,
+        title: strings.notifyDailyTitle,
+        body: strings.notifyDailyBody,
+      ),
+      ReflectionPeriod.weekly => _scheduler.scheduleWeekly(
+        id: key,
+        weekday: _boundaryWeekday(),
+        hour: hour,
+        minute: minute,
+        title: strings.notifyWeeklyTitle,
+        body: strings.notifyWeeklyBody,
+      ),
+      ReflectionPeriod.monthly => _scheduler.scheduleMonthly(
+        id: key,
+        day: 1,
+        hour: hour,
+        minute: minute,
+        title: strings.notifyMonthlyTitle,
+        body: strings.notifyMonthlyBody,
+      ),
+    };
+  }
 
   /// The week's first day as a DateTime weekday (1=Mon..7=Sun), resolved from
   /// the app language so the nudge lands on the same boundary the week strip and

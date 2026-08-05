@@ -79,6 +79,42 @@ void main() {
     });
   });
 
+  group('scheduleDaily', () {
+    test('sends the identifier, time, and generic strings, with no day fields', () async {
+      Map<String, Object?>? sent;
+      mock((call) async {
+        expect(call.method, 'scheduleDaily');
+        sent = (call.arguments as Map).cast<String, Object?>();
+        return null;
+      });
+
+      await scheduler.scheduleDaily(
+        id: 'reflect.daily',
+        hour: 9,
+        minute: 30,
+        title: 'Your day is ready',
+        body: 'Open to read it.',
+      );
+
+      expect(sent, {
+        'identifier': 'reflect.daily',
+        'hour': 9,
+        'minute': 30,
+        'title': 'Your day is ready',
+        'body': 'Open to read it.',
+      });
+    });
+
+    test('a channel error is swallowed, not thrown', () async {
+      mock((call) async => throw PlatformException(code: 'schedule_failed'));
+      await scheduler.scheduleDaily(id: 'reflect.daily', hour: 9, minute: 0, title: 't', body: 'b');
+    });
+
+    test('a missing plugin is a silent no-op', () async {
+      await scheduler.scheduleDaily(id: 'reflect.daily', hour: 9, minute: 0, title: 't', body: 'b');
+    });
+  });
+
   group('scheduleWeekly', () {
     test('sends the identifier, weekday, time, and generic strings', () async {
       Map<String, Object?>? sent;
@@ -123,6 +159,58 @@ void main() {
       await scheduler.scheduleWeekly(
         id: 'reflect.weekly',
         weekday: 1,
+        hour: 9,
+        minute: 0,
+        title: 't',
+        body: 'b',
+      );
+    });
+  });
+
+  group('scheduleMonthly', () {
+    test('sends the identifier, day of month, time, and generic strings', () async {
+      Map<String, Object?>? sent;
+      mock((call) async {
+        expect(call.method, 'scheduleMonthly');
+        sent = (call.arguments as Map).cast<String, Object?>();
+        return null;
+      });
+
+      await scheduler.scheduleMonthly(
+        id: 'reflect.monthly',
+        day: 1,
+        hour: 9,
+        minute: 30,
+        title: 'Your month is ready',
+        body: 'Open to read it.',
+      );
+
+      expect(sent, {
+        'identifier': 'reflect.monthly',
+        'day': 1,
+        'hour': 9,
+        'minute': 30,
+        'title': 'Your month is ready',
+        'body': 'Open to read it.',
+      });
+    });
+
+    test('a channel error is swallowed, not thrown', () async {
+      mock((call) async => throw PlatformException(code: 'schedule_failed'));
+      await scheduler.scheduleMonthly(
+        id: 'reflect.monthly',
+        day: 1,
+        hour: 9,
+        minute: 0,
+        title: 't',
+        body: 'b',
+      );
+    });
+
+    test('a missing plugin is a silent no-op', () async {
+      await scheduler.scheduleMonthly(
+        id: 'reflect.monthly',
+        day: 1,
         hour: 9,
         minute: 0,
         title: 't',

@@ -663,7 +663,7 @@ abstract class AppLocalizations {
   /// One-line reason the app asks for notifications
   ///
   /// In en, this message translates to:
-  /// **'For a weekly nudge when a reflection is ready.'**
+  /// **'For a nudge when a reflection is ready.'**
   String get onboardingNotifyReason;
 
   /// Button that requests a permission
@@ -1050,19 +1050,31 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get settingsNotifications;
 
+  /// Toggle label: the daily reflection notification
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reflections'**
+  String get notifyDailyReflection;
+
   /// Toggle label: the weekly reflection notification
   ///
   /// In en, this message translates to:
   /// **'Weekly reflections'**
   String get notifyWeeklyReflection;
 
-  /// Footnote under the weekly reflection notification toggle
+  /// Toggle label: the monthly reflection notification
   ///
   /// In en, this message translates to:
-  /// **'A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.'**
-  String get notifyWeeklyReflectionInfo;
+  /// **'Monthly reflections'**
+  String get notifyMonthlyReflection;
 
-  /// Row label for the time the weekly notification fires
+  /// Footnote under the per-period reflection notification toggles
+  ///
+  /// In en, this message translates to:
+  /// **'A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.'**
+  String get notifyReflectionsInfo;
+
+  /// Row label for the shared time every enabled nudge fires at
   ///
   /// In en, this message translates to:
   /// **'Time'**
@@ -1080,6 +1092,18 @@ abstract class AppLocalizations {
   /// **'Open Settings'**
   String get notifyOpenSettings;
 
+  /// Title of the daily local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your day is ready'**
+  String get notifyDailyTitle;
+
+  /// Body of the daily local notification; at fire time the reflection covers yesterday. Generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read yesterday\'s reflection.'**
+  String get notifyDailyBody;
+
   /// Title of the weekly local notification; generic, never reflection text
   ///
   /// In en, this message translates to:
@@ -1089,13 +1113,25 @@ abstract class AppLocalizations {
   /// Body of the weekly local notification; generic, never reflection text
   ///
   /// In en, this message translates to:
-  /// **'Open to read this week\'s reflection.'**
+  /// **'Open to read last week\'s reflection.'**
   String get notifyWeeklyBody;
+
+  /// Title of the monthly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your month is ready'**
+  String get notifyMonthlyTitle;
+
+  /// Body of the monthly local notification; fires on the 1st, about the closed month. Generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read last month\'s reflection.'**
+  String get notifyMonthlyBody;
 
   /// Footer on the notifications screen when reflections are switched off; precedes the turn-on link
   ///
   /// In en, this message translates to:
-  /// **'The weekly nudge arrives when a new week is ready to read. Reflections are off right now.'**
+  /// **'Nudges arrive when a new reflection is ready to read. Reflections are off right now.'**
   String get notifyNeedsReflections;
 
   /// Bold inline link after notifyNeedsReflections; opens the reflections screen where reflections are enabled
@@ -1107,7 +1143,7 @@ abstract class AppLocalizations {
   /// Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action
   ///
   /// In en, this message translates to:
-  /// **'This device can\'t generate reflections, so there\'s no weekly nudge to send.'**
+  /// **'This device can\'t generate reflections, so there\'s no nudge to send.'**
   String get notifyReflectionsUnavailable;
 
   /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link

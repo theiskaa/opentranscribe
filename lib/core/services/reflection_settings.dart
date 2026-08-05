@@ -90,23 +90,6 @@ class ReflectionSettings {
     ReflectionPeriod.monthly => ReflectionLength.paragraph,
   };
 
-  // The weekly-period surface, for the consumers not yet moved onto the
-  // per-period API (the cubit, the notifier). They read and write weekly today;
-  // later phases point them at the *For methods and these fall away.
-  bool get enabled => enabledFor(ReflectionPeriod.weekly);
-  ReflectionVoice get voice => voiceFor(ReflectionPeriod.weekly);
-  ReflectionLength get length => lengthFor(ReflectionPeriod.weekly);
-  ReflectionSpecificity get specificity => specificityFor(ReflectionPeriod.weekly);
-  ReflectionStyle get style => styleFor(ReflectionPeriod.weekly);
-  DateTime? get floor => floorFor(ReflectionPeriod.weekly);
-  bool get floorRecorded => floorRecordedFor(ReflectionPeriod.weekly);
-  Future<void> setFloor(DateTime week) => setFloorFor(ReflectionPeriod.weekly, week);
-  Future<void> setEnabled(bool value) => setEnabledFor(ReflectionPeriod.weekly, value);
-  Future<void> setVoice(ReflectionVoice value) => setVoiceFor(ReflectionPeriod.weekly, value);
-  Future<void> setLength(ReflectionLength value) => setLengthFor(ReflectionPeriod.weekly, value);
-  Future<void> setSpecificity(ReflectionSpecificity value) =>
-      setSpecificityFor(ReflectionPeriod.weekly, value);
-
   T _read<T>(String key, T? Function(String?) fromWire, T fallback) {
     try {
       return fromWire(_storage.readString(key)) ?? fallback;

@@ -5,6 +5,7 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/utils/week.dart';
@@ -21,6 +22,7 @@ void main() {
   });
 
   final clock = DateTime(2026, 8, 2, 10);
+  const allKeys = ['reflect.daily', 'reflect.weekly', 'reflect.monthly'];
 
   Future<({NotificationSettings notify, ReflectionSettings reflect})> settings() async {
     SharedPreferences.setMockInitialValues({});
@@ -53,19 +55,19 @@ void main() {
     test('schedules the weekly nudge when everything lines up', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();
 
-      expect(scheduler.cancelled, isEmpty);
+      expect(scheduler.lastScheduled!['method'], 'scheduleWeekly');
       expect(scheduler.lastScheduled!['id'], 'reflect.weekly');
     });
 
     test('the weekday is the app-language week boundary', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();
@@ -73,43 +75,102 @@ void main() {
       expect(scheduler.lastScheduled!['weekday'], startOfWeek(clock, localeId: 'en').weekday);
     });
 
-    test('the hour and minute follow the notification settings', () async {
+    test('a daily nudge repeats on time alone, with no weekday', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
-      await s.notify.setTime(ReflectionNotifier.key, hour: 7, minute: 15);
+      await s.reflect.setEnabledFor(ReflectionPeriod.daily, true);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.daily), true);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();
 
-      expect(scheduler.lastScheduled!['hour'], 7);
-      expect(scheduler.lastScheduled!['minute'], 15);
+      final daily = scheduler.scheduled.singleWhere((m) => m['id'] == 'reflect.daily');
+      expect(daily['method'], 'scheduleDaily');
+      expect(daily.containsKey('weekday'), isFalse);
+      expect(daily.containsKey('day'), isFalse);
     });
 
-    test('the title and body are the generic app-language strings', () async {
+    test('a monthly nudge fires on the first of the month', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
+      await s.reflect.setEnabledFor(ReflectionPeriod.monthly, true);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.monthly), true);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      final monthly = scheduler.scheduled.singleWhere((m) => m['id'] == 'reflect.monthly');
+      expect(monthly['method'], 'scheduleMonthly');
+      expect(monthly['day'], 1);
+    });
+
+    test('every enabled period schedules under its own identifier', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      for (final period in ReflectionPeriod.values) {
+        await s.reflect.setEnabledFor(period, true);
+        await s.notify.setEnabled(ReflectionNotifier.keyFor(period), true);
+      }
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled.map((m) => m['id']), allKeys);
+      expect(scheduler.cancelled, isEmpty);
+    });
+
+    test('the shared time drives every period', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      for (final period in ReflectionPeriod.values) {
+        await s.reflect.setEnabledFor(period, true);
+        await s.notify.setEnabled(ReflectionNotifier.keyFor(period), true);
+      }
+      await s.notify.setTime(ReflectionNotifier.timeKey, hour: 7, minute: 5);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled, hasLength(3));
+      for (final scheduled in scheduler.scheduled) {
+        expect(scheduled['hour'], 7);
+        expect(scheduled['minute'], 5);
+      }
+    });
+
+    test('each period carries its own generic app-language strings', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      for (final period in ReflectionPeriod.values) {
+        await s.reflect.setEnabledFor(period, true);
+        await s.notify.setEnabled(ReflectionNotifier.keyFor(period), true);
+      }
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();
 
       final l10n = lookupAppLocalizations(const Locale('en'));
-      expect(scheduler.lastScheduled!['title'], l10n.notifyWeeklyTitle);
-      expect(scheduler.lastScheduled!['body'], l10n.notifyWeeklyBody);
+      final byId = {for (final m in scheduler.scheduled) m['id']: m};
+      expect(byId['reflect.daily']!['title'], l10n.notifyDailyTitle);
+      expect(byId['reflect.daily']!['body'], l10n.notifyDailyBody);
+      expect(byId['reflect.weekly']!['title'], l10n.notifyWeeklyTitle);
+      expect(byId['reflect.weekly']!['body'], l10n.notifyWeeklyBody);
+      expect(byId['reflect.monthly']!['title'], l10n.notifyMonthlyTitle);
+      expect(byId['reflect.monthly']!['body'], l10n.notifyMonthlyBody);
     });
 
     test('a changed time reschedules under the same identifier', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
+      final key = ReflectionNotifier.keyFor(ReflectionPeriod.weekly);
+      await s.notify.setEnabled(key, true);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();
-      await s.notify.setTime(ReflectionNotifier.key, hour: 21, minute: 0);
+      await s.notify.setTime(ReflectionNotifier.timeKey, hour: 21, minute: 0);
       await notifier.sync();
 
-      expect(scheduler.scheduled.map((s) => s['id']), everyElement('reflect.weekly'));
+      expect(scheduler.scheduled.map((m) => m['id']), everyElement('reflect.weekly'));
       expect(scheduler.lastScheduled!['hour'], 21);
     });
   });
@@ -123,8 +184,8 @@ void main() {
     }) async {
       final scheduler = FakeNotificationScheduler(permission: permission);
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, weeklyOn);
-      await s.reflect.setEnabled(reflectionsOn);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), weeklyOn);
+      await s.reflect.setEnabledFor(ReflectionPeriod.weekly, reflectionsOn);
       final notifier = await build(
         scheduler: scheduler,
         notify: s.notify,
@@ -135,27 +196,27 @@ void main() {
       return scheduler;
     }
 
-    test('cancels when the weekly toggle is off', () async {
+    test('cancels every period when the only enabled toggle turns off', () async {
       final scheduler = await syncWith(weeklyOn: false);
-      expect(scheduler.cancelled, ['reflect.weekly']);
+      expect(scheduler.cancelled, allKeys);
       expect(scheduler.scheduled, isEmpty);
     });
 
-    test('cancels when reflections are disabled', () async {
+    test('cancels every period when reflections are disabled', () async {
       final scheduler = await syncWith(reflectionsOn: false);
-      expect(scheduler.cancelled, ['reflect.weekly']);
+      expect(scheduler.cancelled, allKeys);
       expect(scheduler.scheduled, isEmpty);
     });
 
-    test('cancels when notification permission is not granted', () async {
+    test('cancels every period when notification permission is not granted', () async {
       final scheduler = await syncWith(permission: NotificationPermission.denied);
-      expect(scheduler.cancelled, ['reflect.weekly']);
+      expect(scheduler.cancelled, allKeys);
       expect(scheduler.scheduled, isEmpty);
     });
 
-    test('cancels when the on-device model cannot run', () async {
+    test('cancels every period when the on-device model cannot run', () async {
       final scheduler = await syncWith(availability: const ReflectionAvailability.unsupported());
-      expect(scheduler.cancelled, ['reflect.weekly']);
+      expect(scheduler.cancelled, allKeys);
       expect(scheduler.scheduled, isEmpty);
     });
 
@@ -164,11 +225,24 @@ void main() {
       expect(scheduler.scheduled, isEmpty);
     });
 
+    test('a period with its nudge on but reflections off cancels only that period', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.daily), true);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled.map((m) => m['id']), ['reflect.weekly']);
+      expect(scheduler.cancelled, ['reflect.daily', 'reflect.monthly']);
+    });
+
     test('a toggle-off that lands during the async probes cancels, never schedules', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
-      await s.notify.setEnabled(ReflectionNotifier.key, true);
-      scheduler.onPermissionProbe = () => s.reflect.setEnabled(false);
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
+      scheduler.onPermissionProbe = () => s.reflect.setEnabledFor(ReflectionPeriod.weekly, false);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
 
       await notifier.sync();

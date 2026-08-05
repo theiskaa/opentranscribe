@@ -317,8 +317,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingNotifyName => 'Notificações';
 
   @override
-  String get onboardingNotifyReason =>
-      'Para um lembrete semanal quando uma reflexão estiver pronta.';
+  String get onboardingNotifyReason => 'Para um lembrete quando uma reflexão estiver pronta.';
 
   @override
   String get onboardingAllow => 'Permitir';
@@ -547,11 +546,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsNotifications => 'Notificações';
 
   @override
+  String get notifyDailyReflection => 'Reflexões diárias';
+
+  @override
   String get notifyWeeklyReflection => 'Reflexões semanais';
 
   @override
-  String get notifyWeeklyReflectionInfo =>
-      'Um lembrete quando uma nova semana está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.';
+  String get notifyMonthlyReflection => 'Reflexões mensais';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.';
 
   @override
   String get notifyTime => 'Hora';
@@ -563,21 +568,33 @@ class AppLocalizationsPt extends AppLocalizations {
   String get notifyOpenSettings => 'Abrir Definições';
 
   @override
+  String get notifyDailyTitle => 'O teu dia está pronto';
+
+  @override
+  String get notifyDailyBody => 'Abre para ler a reflexão de ontem.';
+
+  @override
   String get notifyWeeklyTitle => 'A tua semana está pronta';
 
   @override
-  String get notifyWeeklyBody => 'Abre para ler a reflexão desta semana.';
+  String get notifyWeeklyBody => 'Abre para ler a reflexão da semana passada.';
+
+  @override
+  String get notifyMonthlyTitle => 'O teu mês está pronto';
+
+  @override
+  String get notifyMonthlyBody => 'Abre para ler a reflexão do mês passado.';
 
   @override
   String get notifyNeedsReflections =>
-      'O lembrete semanal chega quando uma nova semana está pronta para ler. As reflexões estão desativadas no momento.';
+      'Os lembretes chegam quando uma nova reflexão está pronta para ler. As reflexões estão desativadas no momento.';
 
   @override
   String get notifyTurnOnReflections => 'Ativar reflexões';
 
   @override
   String get notifyReflectionsUnavailable =>
-      'Este dispositivo não consegue gerar reflexões, portanto não há lembrete semanal para enviar.';
+      'Este dispositivo não consegue gerar reflexões, portanto não há lembrete para enviar.';
 
   @override
   String get themeRequestInfo =>

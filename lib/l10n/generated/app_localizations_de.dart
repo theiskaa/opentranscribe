@@ -319,8 +319,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingNotifyName => 'Mitteilungen';
 
   @override
-  String get onboardingNotifyReason =>
-      'Für einen wöchentlichen Hinweis, wenn ein Rückblick bereit ist.';
+  String get onboardingNotifyReason => 'Für einen Hinweis, wenn ein Rückblick bereit ist.';
 
   @override
   String get onboardingAllow => 'Erlauben';
@@ -550,11 +549,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsNotifications => 'Mitteilungen';
 
   @override
+  String get notifyDailyReflection => 'Tägliche Rückblicke';
+
+  @override
   String get notifyWeeklyReflection => 'Wöchentliche Rückblicke';
 
   @override
-  String get notifyWeeklyReflectionInfo =>
-      'Ein Hinweis, sobald eine neue Woche zum Lesen bereit ist. Er erscheint auf deinem Gerät; nichts wird irgendwohin gesendet.';
+  String get notifyMonthlyReflection => 'Monatliche Rückblicke';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Ein Hinweis, sobald ein neuer Rückblick zum Lesen bereit ist. Er erscheint auf deinem Gerät; nichts wird irgendwohin gesendet.';
 
   @override
   String get notifyTime => 'Uhrzeit';
@@ -566,21 +571,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notifyOpenSettings => 'Einstellungen öffnen';
 
   @override
+  String get notifyDailyTitle => 'Dein Tag ist bereit';
+
+  @override
+  String get notifyDailyBody => 'Öffnen, um den Rückblick von gestern zu lesen.';
+
+  @override
   String get notifyWeeklyTitle => 'Deine Woche ist bereit';
 
   @override
-  String get notifyWeeklyBody => 'Öffnen, um den Rückblick dieser Woche zu lesen.';
+  String get notifyWeeklyBody => 'Öffnen, um den Rückblick der letzten Woche zu lesen.';
+
+  @override
+  String get notifyMonthlyTitle => 'Dein Monat ist bereit';
+
+  @override
+  String get notifyMonthlyBody => 'Öffnen, um den Rückblick des letzten Monats zu lesen.';
 
   @override
   String get notifyNeedsReflections =>
-      'Der wöchentliche Hinweis kommt, sobald eine neue Woche zum Lesen bereit ist. Rückblicke sind gerade aus.';
+      'Hinweise kommen, sobald ein neuer Rückblick zum Lesen bereit ist. Rückblicke sind gerade aus.';
 
   @override
   String get notifyTurnOnReflections => 'Rückblicke einschalten';
 
   @override
   String get notifyReflectionsUnavailable =>
-      'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen wöchentlichen Hinweis.';
+      'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen Hinweis.';
 
   @override
   String get themeRequestInfo =>

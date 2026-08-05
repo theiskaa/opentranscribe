@@ -319,8 +319,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get onboardingNotifyName => 'Notifiche';
 
   @override
-  String get onboardingNotifyReason =>
-      'Per un promemoria settimanale quando una riflessione è pronta.';
+  String get onboardingNotifyReason => 'Per un promemoria quando una riflessione è pronta.';
 
   @override
   String get onboardingAllow => 'Consenti';
@@ -548,11 +547,17 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsNotifications => 'Notifiche';
 
   @override
+  String get notifyDailyReflection => 'Riflessioni giornaliere';
+
+  @override
   String get notifyWeeklyReflection => 'Riflessioni settimanali';
 
   @override
-  String get notifyWeeklyReflectionInfo =>
-      'Un promemoria quando una nuova settimana è pronta da leggere. Arriva sul tuo dispositivo; nulla viene inviato altrove.';
+  String get notifyMonthlyReflection => 'Riflessioni mensili';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Un promemoria quando una nuova riflessione è pronta da leggere. Arriva sul tuo dispositivo; nulla viene inviato altrove.';
 
   @override
   String get notifyTime => 'Ora';
@@ -564,21 +569,33 @@ class AppLocalizationsIt extends AppLocalizations {
   String get notifyOpenSettings => 'Apri Impostazioni';
 
   @override
+  String get notifyDailyTitle => 'La tua giornata è pronta';
+
+  @override
+  String get notifyDailyBody => 'Apri per leggere la riflessione di ieri.';
+
+  @override
   String get notifyWeeklyTitle => 'La tua settimana è pronta';
 
   @override
-  String get notifyWeeklyBody => 'Apri per leggere la riflessione di questa settimana.';
+  String get notifyWeeklyBody => 'Apri per leggere la riflessione della settimana scorsa.';
+
+  @override
+  String get notifyMonthlyTitle => 'Il tuo mese è pronto';
+
+  @override
+  String get notifyMonthlyBody => 'Apri per leggere la riflessione del mese scorso.';
 
   @override
   String get notifyNeedsReflections =>
-      'Il promemoria settimanale arriva quando una nuova settimana è pronta da leggere. Le riflessioni sono disattivate al momento.';
+      'I promemoria arrivano quando una nuova riflessione è pronta da leggere. Le riflessioni sono disattivate al momento.';
 
   @override
   String get notifyTurnOnReflections => 'Attiva le riflessioni';
 
   @override
   String get notifyReflectionsUnavailable =>
-      'Questo dispositivo non può generare riflessioni, quindi non c\'è alcun promemoria settimanale da inviare.';
+      'Questo dispositivo non può generare riflessioni, quindi non c\'è alcun promemoria da inviare.';
 
   @override
   String get themeRequestInfo =>

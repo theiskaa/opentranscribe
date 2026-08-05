@@ -318,7 +318,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingNotifyName => 'Notifications';
 
   @override
-  String get onboardingNotifyReason => 'Pour un rappel hebdomadaire quand une réflexion est prête.';
+  String get onboardingNotifyReason => 'Pour un rappel quand une réflexion est prête.';
 
   @override
   String get onboardingAllow => 'Autoriser';
@@ -547,11 +547,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsNotifications => 'Notifications';
 
   @override
+  String get notifyDailyReflection => 'Réflexions quotidiennes';
+
+  @override
   String get notifyWeeklyReflection => 'Réflexions hebdomadaires';
 
   @override
-  String get notifyWeeklyReflectionInfo =>
-      'Un rappel quand une nouvelle semaine est prête à lire. Il se déclenche sur votre appareil ; rien n\'est envoyé où que ce soit.';
+  String get notifyMonthlyReflection => 'Réflexions mensuelles';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Un rappel quand une nouvelle réflexion est prête à lire. Il se déclenche sur votre appareil ; rien n\'est envoyé où que ce soit.';
 
   @override
   String get notifyTime => 'Heure';
@@ -563,21 +569,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notifyOpenSettings => 'Ouvrir Réglages';
 
   @override
+  String get notifyDailyTitle => 'Votre journée est prête';
+
+  @override
+  String get notifyDailyBody => 'Ouvrez pour lire la réflexion d\'hier.';
+
+  @override
   String get notifyWeeklyTitle => 'Votre semaine est prête';
 
   @override
-  String get notifyWeeklyBody => 'Ouvrez pour lire la réflexion de cette semaine.';
+  String get notifyWeeklyBody => 'Ouvrez pour lire la réflexion de la semaine dernière.';
+
+  @override
+  String get notifyMonthlyTitle => 'Votre mois est prêt';
+
+  @override
+  String get notifyMonthlyBody => 'Ouvrez pour lire la réflexion du mois dernier.';
 
   @override
   String get notifyNeedsReflections =>
-      'Le rappel hebdomadaire arrive quand une nouvelle semaine est prête à lire. Les réflexions sont désactivées pour le moment.';
+      'Les rappels arrivent quand une nouvelle réflexion est prête à lire. Les réflexions sont désactivées pour le moment.';
 
   @override
   String get notifyTurnOnReflections => 'Activer les réflexions';
 
   @override
   String get notifyReflectionsUnavailable =>
-      'Cet appareil ne peut pas générer de réflexions, il n\'y a donc pas de rappel hebdomadaire à envoyer.';
+      'Cet appareil ne peut pas générer de réflexions, il n\'y a donc pas de rappel à envoyer.';
 
   @override
   String get themeRequestInfo =>

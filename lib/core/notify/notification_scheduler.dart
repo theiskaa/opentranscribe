@@ -9,8 +9,8 @@ const _channel = 'opentranscribe/notify';
 enum NotificationPermission { notDetermined, denied, authorized }
 
 /// Schedules and cancels LOCAL, on-device notifications. Generic on purpose: it
-/// names no feature, so any future weekly nudge reuses it unchanged. Nothing
-/// here reaches the network - UNUserNotificationCenter fires on the device, so
+/// names no feature, so any future nudge reuses it unchanged. Nothing here
+/// reaches the network - UNUserNotificationCenter fires on the device, so
 /// airplane mode is unaffected.
 abstract interface class NotificationScheduler {
   /// Asks the OS for permission, prompting once when undetermined, and returns
@@ -21,6 +21,17 @@ abstract interface class NotificationScheduler {
   /// The current authorization, without prompting.
   Future<NotificationPermission> permissionStatus();
 
+  /// (Re)schedules a repeating daily notification under [id]. A later call with
+  /// the same [id] REPLACES the pending one, so a changed time never stacks a
+  /// second notification.
+  Future<void> scheduleDaily({
+    required String id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  });
+
   /// (Re)schedules a repeating weekly notification under [id]. A later call with
   /// the same [id] REPLACES the pending one, so a changed time or weekday never
   /// stacks a second notification. [weekday] is 1=Mon..7=Sun (the DateTime
@@ -28,6 +39,19 @@ abstract interface class NotificationScheduler {
   Future<void> scheduleWeekly({
     required String id,
     required int weekday,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  });
+
+  /// (Re)schedules a repeating monthly notification under [id], firing on [day]
+  /// of each month. A later call with the same [id] REPLACES the pending one.
+  /// A [day] past a month's end skips that month entirely, so callers should
+  /// stay within 1..28.
+  Future<void> scheduleMonthly({
+    required String id,
+    required int day,
     required int hour,
     required int minute,
     required String title,
@@ -72,6 +96,21 @@ class PlatformNotificationScheduler implements NotificationScheduler {
   }
 
   @override
+  Future<void> scheduleDaily({
+    required String id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) => _quietInvoke('scheduleDaily', {
+    'identifier': id,
+    'hour': hour,
+    'minute': minute,
+    'title': title,
+    'body': body,
+  });
+
+  @override
   Future<void> scheduleWeekly({
     required String id,
     required int weekday,
@@ -82,6 +121,23 @@ class PlatformNotificationScheduler implements NotificationScheduler {
   }) => _quietInvoke('scheduleWeekly', {
     'identifier': id,
     'weekday': weekday,
+    'hour': hour,
+    'minute': minute,
+    'title': title,
+    'body': body,
+  });
+
+  @override
+  Future<void> scheduleMonthly({
+    required String id,
+    required int day,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) => _quietInvoke('scheduleMonthly', {
+    'identifier': id,
+    'day': day,
     'hour': hour,
     'minute': minute,
     'title': title,

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 
@@ -13,91 +14,107 @@ import 'package:opentranscribe/core/services/reflection_settings.dart';
 // be private, so initializing formals do not apply.
 // ignore_for_file: prefer_initializing_formals
 
-/// What the notifications screen renders: whether the weekly reflection nudge is
-/// on, the fire time, the OS permission (so a denied grant can be surfaced with
-/// a deep-link to Settings rather than a toggle that silently does nothing), and
-/// whether reflections can produce anything at all - the nudge is pointless when
-/// reflections are switched off or the on-device model is unavailable, exactly
-/// the cases the [ReflectionNotifier] cancels for.
+/// One period's row on the notifications screen: whether that period's
+/// reflections generate at all (the row exists only when true, because a nudge
+/// for a period that never produces is noise) and whether its nudge is on.
+@immutable
+final class NotificationSlot {
+  const NotificationSlot({this.reflectionEnabled = false, this.enabled = false});
+
+  final bool reflectionEnabled;
+  final bool enabled;
+
+  @override
+  bool operator ==(Object other) =>
+      other is NotificationSlot &&
+      other.reflectionEnabled == reflectionEnabled &&
+      other.enabled == enabled;
+
+  @override
+  int get hashCode => Object.hash(reflectionEnabled, enabled);
+}
+
+/// What the notifications screen renders: a slot per reflection period, the one
+/// fire time they all share, the OS permission (so a denied grant can be
+/// surfaced with a deep-link to Settings rather than toggles that silently do
+/// nothing), and whether the on-device model can produce anything at all - the
+/// nudges are pointless when it cannot, exactly the case the
+/// [ReflectionNotifier] cancels for.
 @immutable
 final class NotificationsState {
   const NotificationsState({
-    this.weeklyEnabled = false,
+    this.slots = const {},
     this.hour = NotificationSettings.defaultHour,
     this.minute = NotificationSettings.defaultMinute,
     this.permission = NotificationPermission.notDetermined,
-    this.reflectionsEnabled = true,
     this.reflectionsAvailable = true,
   });
 
-  final bool weeklyEnabled;
+  final Map<ReflectionPeriod, NotificationSlot> slots;
   final int hour;
   final int minute;
   final NotificationPermission permission;
 
-  /// Whether the user has reflections switched on. Optimistically true until the
-  /// first [NotificationsCubit.load], so the card never flashes blocked.
-  final bool reflectionsEnabled;
-
-  /// Whether the on-device model can generate a reflection at all. Optimistically
-  /// true until probed, for the same reason.
+  /// Whether the on-device model can generate a reflection at all.
+  /// Optimistically true until probed, so the rows never flash blocked.
   final bool reflectionsAvailable;
 
-  /// Whether a weekly nudge could ever fire: reflections are on AND the device
-  /// can produce one. When false the toggle is inert and the surface explains
-  /// why instead of offering a switch that does nothing.
-  bool get nudgeUsable => reflectionsEnabled && reflectionsAvailable;
+  NotificationSlot slotOf(ReflectionPeriod period) => slots[period] ?? const NotificationSlot();
 
-  /// The user wants the nudge but iOS notifications are off: the toggle stays on
+  /// The rows the screen renders, in enum order (daily, weekly, monthly).
+  List<ReflectionPeriod> get shownPeriods =>
+      ReflectionPeriod.values.where((p) => slotOf(p).reflectionEnabled).toList();
+
+  bool get anyNudgeEnabled =>
+      ReflectionPeriod.values.map(slotOf).any((slot) => slot.reflectionEnabled && slot.enabled);
+
+  /// The user wants a nudge but iOS notifications are off: the toggles stay on
   /// (honest to the stored intent) and the surface shows the needs-permission
   /// affordance, because the OS will fire nothing until permission is restored.
-  /// Only meaningful while [nudgeUsable]; a reflections block takes precedence.
-  bool get permissionBlocked => weeklyEnabled && permission == NotificationPermission.denied;
+  bool get permissionBlocked => anyNudgeEnabled && permission == NotificationPermission.denied;
 
   NotificationsState copyWith({
-    bool? weeklyEnabled,
+    Map<ReflectionPeriod, NotificationSlot>? slots,
     int? hour,
     int? minute,
     NotificationPermission? permission,
-    bool? reflectionsEnabled,
     bool? reflectionsAvailable,
   }) => NotificationsState(
-    weeklyEnabled: weeklyEnabled ?? this.weeklyEnabled,
+    slots: slots ?? this.slots,
     hour: hour ?? this.hour,
     minute: minute ?? this.minute,
     permission: permission ?? this.permission,
-    reflectionsEnabled: reflectionsEnabled ?? this.reflectionsEnabled,
     reflectionsAvailable: reflectionsAvailable ?? this.reflectionsAvailable,
   );
 
   @override
   bool operator ==(Object other) =>
       other is NotificationsState &&
-      other.weeklyEnabled == weeklyEnabled &&
+      mapEquals(other.slots, slots) &&
       other.hour == hour &&
       other.minute == minute &&
       other.permission == permission &&
-      other.reflectionsEnabled == reflectionsEnabled &&
       other.reflectionsAvailable == reflectionsAvailable;
 
   @override
   int get hashCode => Object.hash(
-    weeklyEnabled,
+    // MapEntry hashes by identity and entries are minted fresh per call, so
+    // hash the pairs' contents to stay consistent with mapEquals.
+    Object.hashAllUnordered(slots.entries.map((e) => Object.hash(e.key, e.value))),
     hour,
     minute,
     permission,
-    reflectionsEnabled,
     reflectionsAvailable,
   );
 }
 
-/// Drives the notifications screen. Turning the weekly nudge on requests
-/// notification permission contextually (never in onboarding). The toggle stores
+/// Drives the notifications screen. Turning a period's nudge on requests
+/// notification permission contextually (never in onboarding). A toggle stores
 /// the user's INTENT: a denied grant leaves it on but surfaces the block (the
-/// notifier cancels the OS notification meanwhile), so permission can be restored
-/// in Settings without re-toggling. Every change re-runs [ReflectionNotifier.sync]
-/// so the OS's pending notification tracks the settings at once, not on the next
-/// launch.
+/// notifier cancels the OS notification meanwhile), so permission can be
+/// restored in Settings without re-toggling. Every change re-runs
+/// [ReflectionNotifier.sync] so the OS's pending notifications track the
+/// settings at once, not on the next launch.
 class NotificationsCubit extends Cubit<NotificationsState> {
   NotificationsCubit({
     required NotificationScheduler scheduler,
@@ -110,7 +127,15 @@ class NotificationsCubit extends Cubit<NotificationsState> {
        _notifier = notifier,
        _reflectionSettings = reflectionSettings,
        _availability = availability,
-       super(const NotificationsState()) {
+       // Both settings holders read synchronously, so the rows are right from
+       // the first frame; only permission and availability need the async load.
+       super(
+         NotificationsState(
+           slots: _readSlots(settings, reflectionSettings),
+           hour: settings.hour(ReflectionNotifier.timeKey),
+           minute: settings.minute(ReflectionNotifier.timeKey),
+         ),
+       ) {
     unawaited(load());
   }
 
@@ -120,11 +145,20 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   final ReflectionSettings _reflectionSettings;
   final Future<ReflectionAvailability> Function() _availability;
 
-  static const _key = ReflectionNotifier.key;
+  static Map<ReflectionPeriod, NotificationSlot> _readSlots(
+    NotificationSettings settings,
+    ReflectionSettings reflectionSettings,
+  ) => {
+    for (final period in ReflectionPeriod.values)
+      period: NotificationSlot(
+        reflectionEnabled: reflectionSettings.enabledFor(period),
+        enabled: settings.enabled(ReflectionNotifier.keyFor(period)),
+      ),
+  };
 
   /// Re-reads the settings and re-probes permission and reflection availability.
   /// Call on build, on resume, and on returning from the reflections screen, so
-  /// a grant changed in iOS Settings or reflections switched on elsewhere is
+  /// a grant changed in iOS Settings or a period switched on elsewhere is
   /// reflected without a relaunch.
   Future<void> load() async {
     final permission = await _scheduler.permissionStatus();
@@ -132,30 +166,33 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     if (isClosed) return;
     emit(
       state.copyWith(
-        weeklyEnabled: _settings.enabled(_key),
-        hour: _settings.hour(_key),
-        minute: _settings.minute(_key),
+        slots: _readSlots(_settings, _reflectionSettings),
+        hour: _settings.hour(ReflectionNotifier.timeKey),
+        minute: _settings.minute(ReflectionNotifier.timeKey),
         permission: permission,
-        reflectionsEnabled: _reflectionSettings.enabled,
         reflectionsAvailable: availability.isAvailable,
       ),
     );
   }
 
-  Future<void> setWeeklyEnabled(bool value) async {
+  Future<void> setEnabled(ReflectionPeriod period, bool value) async {
+    final key = ReflectionNotifier.keyFor(period);
     if (value) {
       // Authoritative usability recheck before doing anything user-visible: the
-      // toggle renders optimistically enabled for the frames before the first
-      // load resolves, so a tap in that window must not fire an iOS permission
-      // prompt or store an intent the notifier will only cancel. Re-read the
-      // pref (sync) and re-probe availability, correct the state, and bail if a
+      // period's reflections may have been switched off elsewhere since this
+      // screen was built, and a tap then must not fire an iOS permission prompt
+      // or store an intent the notifier will only cancel. Re-read the pref
+      // (sync) and re-probe availability, correct the state, and bail if the
       // nudge could not fire.
-      final reflectionsEnabled = _reflectionSettings.enabled;
+      final reflectionEnabled = _reflectionSettings.enabledFor(period);
       final available = (await _availability()).isAvailable;
       if (isClosed) return;
-      if (!reflectionsEnabled || !available) {
+      if (!reflectionEnabled || !available) {
         emit(
-          state.copyWith(reflectionsEnabled: reflectionsEnabled, reflectionsAvailable: available),
+          state.copyWith(
+            slots: _readSlots(_settings, _reflectionSettings),
+            reflectionsAvailable: available,
+          ),
         );
         return;
       }
@@ -167,25 +204,32 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         await _scheduler.requestPermission();
         permission = await _scheduler.permissionStatus();
       }
-      await _settings.setEnabled(_key, true);
+      await _settings.setEnabled(key, true);
       unawaited(_notifier.sync());
       if (isClosed) return;
-      emit(state.copyWith(weeklyEnabled: true, permission: permission));
+      emit(
+        state.copyWith(slots: _readSlots(_settings, _reflectionSettings), permission: permission),
+      );
       return;
     }
-    await _settings.setEnabled(_key, false);
+    await _settings.setEnabled(key, false);
     unawaited(_notifier.sync());
     if (isClosed) return;
-    emit(state.copyWith(weeklyEnabled: false));
+    emit(state.copyWith(slots: _readSlots(_settings, _reflectionSettings)));
   }
 
   Future<void> setTime({required int hour, required int minute}) async {
-    await _settings.setTime(_key, hour: hour, minute: minute);
+    await _settings.setTime(ReflectionNotifier.timeKey, hour: hour, minute: minute);
     // Reschedule regardless of the cubit's lifetime: the notifier is app-scoped,
-    // and a persisted time change must move the pending nudge even if the screen
-    // has already closed.
+    // and a persisted time change must move the pending nudges even if the
+    // screen has already closed.
     unawaited(_notifier.sync());
     if (isClosed) return;
-    emit(state.copyWith(hour: _settings.hour(_key), minute: _settings.minute(_key)));
+    emit(
+      state.copyWith(
+        hour: _settings.hour(ReflectionNotifier.timeKey),
+        minute: _settings.minute(ReflectionNotifier.timeKey),
+      ),
+    );
   }
 }

@@ -19,21 +19,21 @@ void main() {
   });
 
   test('defaults: enabled, literary-tuned style', () {
-    expect(settings.enabled, isTrue);
-    expect(settings.voice, ReflectionVoice.literary);
-    expect(settings.length, ReflectionLength.sentences);
-    expect(settings.specificity, ReflectionSpecificity.nameFreely);
+    expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);
+    expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
+    expect(settings.lengthFor(ReflectionPeriod.weekly), ReflectionLength.sentences);
+    expect(settings.specificityFor(ReflectionPeriod.weekly), ReflectionSpecificity.nameFreely);
   });
 
   test('round-trips each knob', () async {
-    await settings.setEnabled(false);
-    await settings.setVoice(ReflectionVoice.sparse);
-    await settings.setLength(ReflectionLength.paragraph);
-    await settings.setSpecificity(ReflectionSpecificity.abstractThemes);
+    await settings.setEnabledFor(ReflectionPeriod.weekly, false);
+    await settings.setVoiceFor(ReflectionPeriod.weekly, ReflectionVoice.sparse);
+    await settings.setLengthFor(ReflectionPeriod.weekly, ReflectionLength.paragraph);
+    await settings.setSpecificityFor(ReflectionPeriod.weekly, ReflectionSpecificity.abstractThemes);
 
-    expect(settings.enabled, isFalse);
+    expect(settings.enabledFor(ReflectionPeriod.weekly), isFalse);
     expect(
-      settings.style,
+      settings.styleFor(ReflectionPeriod.weekly),
       const ReflectionStyle(
         voice: ReflectionVoice.sparse,
         length: ReflectionLength.paragraph,
@@ -44,24 +44,24 @@ void main() {
 
   test('an unrecognized stored value falls back to the default', () async {
     await storage.write('reflect.weekly.voice', 'from_a_future_build');
-    expect(settings.voice, ReflectionVoice.literary);
+    expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
   });
 
   test('the floor is absent until recorded, then round-trips as a date', () async {
-    expect(settings.floor, isNull);
-    await settings.setFloor(DateTime(2026, 7, 20));
-    expect(settings.floor, DateTime(2026, 7, 20));
+    expect(settings.floorFor(ReflectionPeriod.weekly), isNull);
+    await settings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 7, 20));
+    expect(settings.floorFor(ReflectionPeriod.weekly), DateTime(2026, 7, 20));
   });
 
   test('floorRecorded reports the record even when it cannot be parsed', () async {
-    expect(settings.floorRecorded, isFalse);
+    expect(settings.floorRecordedFor(ReflectionPeriod.weekly), isFalse);
     await storage.write('reflect.weekly.floor', 'not-a-date');
-    expect(settings.floorRecorded, isTrue);
+    expect(settings.floorRecordedFor(ReflectionPeriod.weekly), isTrue);
   });
 
   test('an unreadable floor reads as absent, never throws', () async {
     await storage.write('reflect.weekly.floor', 'not-a-date');
-    expect(settings.floor, isNull);
+    expect(settings.floorFor(ReflectionPeriod.weekly), isNull);
   });
 
   test('an undecryptable store falls back to defaults, never throws', () async {
@@ -70,8 +70,8 @@ void main() {
     await storage.init(encryptionKey: key);
     settings = ReflectionSettings(storage: storage);
 
-    expect(settings.enabled, isTrue);
-    expect(settings.voice, ReflectionVoice.literary);
+    expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);
+    expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
   });
 
   test('by default weekly is on while daily and monthly are off', () {

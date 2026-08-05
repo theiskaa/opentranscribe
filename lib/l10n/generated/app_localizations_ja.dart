@@ -301,7 +301,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingNotifyName => '通知';
 
   @override
-  String get onboardingNotifyReason => '振り返りが用意できたら週に一度お知らせします。';
+  String get onboardingNotifyReason => '振り返りが用意できたらお知らせします。';
 
   @override
   String get onboardingAllow => '許可';
@@ -511,10 +511,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsNotifications => '通知';
 
   @override
+  String get notifyDailyReflection => '毎日の振り返り';
+
+  @override
   String get notifyWeeklyReflection => '毎週の振り返り';
 
   @override
-  String get notifyWeeklyReflectionInfo => '新しい週を読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。';
+  String get notifyMonthlyReflection => '毎月の振り返り';
+
+  @override
+  String get notifyReflectionsInfo => '新しい振り返りを読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。';
 
   @override
   String get notifyTime => '時刻';
@@ -526,19 +532,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notifyOpenSettings => '設定を開く';
 
   @override
+  String get notifyDailyTitle => '昨日の振り返りができました';
+
+  @override
+  String get notifyDailyBody => '開いて昨日の振り返りを読む。';
+
+  @override
   String get notifyWeeklyTitle => '今週の振り返りができました';
 
   @override
-  String get notifyWeeklyBody => '開いて今週の振り返りを読む。';
+  String get notifyWeeklyBody => '開いて先週の振り返りを読む。';
 
   @override
-  String get notifyNeedsReflections => '新しい週を読む準備ができると、毎週の通知が届きます。今は振り返りがオフになっています。';
+  String get notifyMonthlyTitle => '先月の振り返りができました';
+
+  @override
+  String get notifyMonthlyBody => '開いて先月の振り返りを読む。';
+
+  @override
+  String get notifyNeedsReflections => '新しい振り返りを読む準備ができると、通知が届きます。今は振り返りがオフになっています。';
 
   @override
   String get notifyTurnOnReflections => '振り返りをオンにする';
 
   @override
-  String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する毎週の通知はありません。';
+  String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する通知はありません。';
 
   @override
   String get themeRequestInfo =>

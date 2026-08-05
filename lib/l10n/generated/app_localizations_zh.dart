@@ -299,7 +299,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingNotifyName => '通知';
 
   @override
-  String get onboardingNotifyReason => '回顾准备好时，每周提醒你一次。';
+  String get onboardingNotifyReason => '回顾准备好时提醒你。';
 
   @override
   String get onboardingAllow => '允许';
@@ -508,10 +508,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsNotifications => '通知';
 
   @override
+  String get notifyDailyReflection => '每日回顾';
+
+  @override
   String get notifyWeeklyReflection => '每周回顾';
 
   @override
-  String get notifyWeeklyReflectionInfo => '新的一周可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。';
+  String get notifyMonthlyReflection => '每月回顾';
+
+  @override
+  String get notifyReflectionsInfo => '新的回顾可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。';
 
   @override
   String get notifyTime => '时间';
@@ -523,19 +529,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifyOpenSettings => '打开设置';
 
   @override
+  String get notifyDailyTitle => '昨日回顾已就绪';
+
+  @override
+  String get notifyDailyBody => '打开以阅读昨日回顾。';
+
+  @override
   String get notifyWeeklyTitle => '本周回顾已就绪';
 
   @override
-  String get notifyWeeklyBody => '打开以阅读本周回顾。';
+  String get notifyWeeklyBody => '打开以阅读上周回顾。';
 
   @override
-  String get notifyNeedsReflections => '新的一周可供阅读时会收到每周提醒。回顾目前已关闭。';
+  String get notifyMonthlyTitle => '上月回顾已就绪';
+
+  @override
+  String get notifyMonthlyBody => '打开以阅读上月回顾。';
+
+  @override
+  String get notifyNeedsReflections => '新的回顾可供阅读时会收到提醒。回顾目前已关闭。';
 
   @override
   String get notifyTurnOnReflections => '开启回顾';
 
   @override
-  String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有每周提醒可发送。';
+  String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有提醒可发送。';
 
   @override
   String get themeRequestInfo => '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。';

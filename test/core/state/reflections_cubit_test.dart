@@ -33,7 +33,7 @@ void main() {
     final fresh = await reflectionStorage();
     store = fresh.store;
     settings = fresh.settings;
-    await settings.setFloor(DateTime(2026, 6, 8));
+    await settings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 6, 8));
     engine = FakeReflectionEngine();
     entries = [];
     service = ReflectionService(
@@ -92,7 +92,7 @@ void main() {
 
     await cubit.setEnabled(false);
     expect(cubit.state.enabled, isFalse);
-    expect(settings.enabled, isFalse);
+    expect(settings.enabledFor(ReflectionPeriod.weekly), isFalse);
 
     await cubit.setEnabled(true);
     await settle();
@@ -110,7 +110,7 @@ void main() {
     await cubit.setLength(ReflectionLength.oneLine);
     await cubit.setSpecificity(ReflectionSpecificity.abstractThemes);
 
-    expect(settings.style, cubit.state.style);
+    expect(settings.styleFor(ReflectionPeriod.weekly), cubit.state.style);
     expect(cubit.state.style.voice, ReflectionVoice.sparse);
     expect(cubit.state.style.length, ReflectionLength.oneLine);
     expect(cubit.state.style.specificity, ReflectionSpecificity.abstractThemes);
@@ -224,7 +224,7 @@ void main() {
   test('setViewedPeriod switches enabled, style, and history to that period', () async {
     // Weekly off but with stored history keeps it in the switcher alongside
     // daily, so the switch between them is observable.
-    await settings.setEnabled(false);
+    await settings.setEnabledFor(ReflectionPeriod.weekly, false);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await settings.setVoiceFor(ReflectionPeriod.daily, ReflectionVoice.sparse);
     await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
@@ -331,7 +331,7 @@ void main() {
   });
 
   test('a disabled period keeps its cards off home while staying browsable', () async {
-    await settings.setEnabled(false);
+    await settings.setEnabledFor(ReflectionPeriod.weekly, false);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'the week'));
     await store.save(

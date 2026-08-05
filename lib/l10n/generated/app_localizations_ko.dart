@@ -302,7 +302,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingNotifyName => '알림';
 
   @override
-  String get onboardingNotifyReason => '돌아보기가 준비되면 주간 알림을 보내드립니다.';
+  String get onboardingNotifyReason => '돌아보기가 준비되면 알림을 보내드립니다.';
 
   @override
   String get onboardingAllow => '허용';
@@ -513,10 +513,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsNotifications => '알림';
 
   @override
+  String get notifyDailyReflection => '일간 돌아보기';
+
+  @override
   String get notifyWeeklyReflection => '주간 돌아보기';
 
   @override
-  String get notifyWeeklyReflectionInfo => '새로운 한 주를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.';
+  String get notifyMonthlyReflection => '월간 돌아보기';
+
+  @override
+  String get notifyReflectionsInfo => '새로운 돌아보기를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.';
 
   @override
   String get notifyTime => '시간';
@@ -528,19 +534,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifyOpenSettings => '설정 열기';
 
   @override
+  String get notifyDailyTitle => '어제 하루가 준비되었어요';
+
+  @override
+  String get notifyDailyBody => '열어서 어제의 돌아보기를 읽어보세요.';
+
+  @override
   String get notifyWeeklyTitle => '이번 주가 준비되었어요';
 
   @override
-  String get notifyWeeklyBody => '열어서 이번 주 돌아보기를 읽어보세요.';
+  String get notifyWeeklyBody => '열어서 지난주 돌아보기를 읽어보세요.';
 
   @override
-  String get notifyNeedsReflections => '새로운 한 주를 읽을 수 있을 때 주간 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.';
+  String get notifyMonthlyTitle => '지난달이 준비되었어요';
+
+  @override
+  String get notifyMonthlyBody => '열어서 지난달 돌아보기를 읽어보세요.';
+
+  @override
+  String get notifyNeedsReflections => '새로운 돌아보기를 읽을 수 있을 때 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.';
 
   @override
   String get notifyTurnOnReflections => '돌아보기 켜기';
 
   @override
-  String get notifyReflectionsUnavailable => '이 기기는 돌아보기를 생성할 수 없어 보낼 주간 알림이 없습니다.';
+  String get notifyReflectionsUnavailable => '이 기기는 돌아보기를 생성할 수 없어 보낼 알림이 없습니다.';
 
   @override
   String get themeRequestInfo =>

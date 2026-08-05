@@ -314,7 +314,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingNotifyName => 'Notifications';
 
   @override
-  String get onboardingNotifyReason => 'For a weekly nudge when a reflection is ready.';
+  String get onboardingNotifyReason => 'For a nudge when a reflection is ready.';
 
   @override
   String get onboardingAllow => 'Allow';
@@ -542,11 +542,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsNotifications => 'Notifications';
 
   @override
+  String get notifyDailyReflection => 'Daily reflections';
+
+  @override
   String get notifyWeeklyReflection => 'Weekly reflections';
 
   @override
-  String get notifyWeeklyReflectionInfo =>
-      'A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.';
+  String get notifyMonthlyReflection => 'Monthly reflections';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.';
 
   @override
   String get notifyTime => 'Time';
@@ -558,21 +564,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifyOpenSettings => 'Open Settings';
 
   @override
+  String get notifyDailyTitle => 'Your day is ready';
+
+  @override
+  String get notifyDailyBody => 'Open to read yesterday\'s reflection.';
+
+  @override
   String get notifyWeeklyTitle => 'Your week is ready';
 
   @override
-  String get notifyWeeklyBody => 'Open to read this week\'s reflection.';
+  String get notifyWeeklyBody => 'Open to read last week\'s reflection.';
+
+  @override
+  String get notifyMonthlyTitle => 'Your month is ready';
+
+  @override
+  String get notifyMonthlyBody => 'Open to read last month\'s reflection.';
 
   @override
   String get notifyNeedsReflections =>
-      'The weekly nudge arrives when a new week is ready to read. Reflections are off right now.';
+      'Nudges arrive when a new reflection is ready to read. Reflections are off right now.';
 
   @override
   String get notifyTurnOnReflections => 'Turn on reflections';
 
   @override
   String get notifyReflectionsUnavailable =>
-      'This device can\'t generate reflections, so there\'s no weekly nudge to send.';
+      'This device can\'t generate reflections, so there\'s no nudge to send.';
 
   @override
   String get themeRequestInfo =>

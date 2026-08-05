@@ -14,7 +14,7 @@ class NotificationSettings {
 
   final LocalService _storage;
 
-  /// The fire time defaults: a civil morning hour, when a just-closed week is
+  /// The fire time defaults: a civil morning hour, when a just-closed period is
   /// worth reading. Both user-configurable per key.
   static const defaultHour = 9;
   static const defaultMinute = 0;

@@ -406,7 +406,7 @@
   "@onboardingNotifyName": {
     "description": "Name of the optional notification permission row, eligible hardware only"
   },
-  "onboardingNotifyReason": "For a weekly nudge when a reflection is ready.",
+  "onboardingNotifyReason": "For a nudge when a reflection is ready.",
   "@onboardingNotifyReason": {
     "description": "One-line reason the app asks for notifications"
   },
@@ -689,17 +689,25 @@
   "@settingsNotifications": {
     "description": "Home menu row and heading for the notifications settings screen"
   },
+  "notifyDailyReflection": "Daily reflections",
+  "@notifyDailyReflection": {
+    "description": "Toggle label: the daily reflection notification"
+  },
   "notifyWeeklyReflection": "Weekly reflections",
   "@notifyWeeklyReflection": {
     "description": "Toggle label: the weekly reflection notification"
   },
-  "notifyWeeklyReflectionInfo": "A nudge when a new week is ready to read. It fires on your device; nothing is sent anywhere.",
-  "@notifyWeeklyReflectionInfo": {
-    "description": "Footnote under the weekly reflection notification toggle"
+  "notifyMonthlyReflection": "Monthly reflections",
+  "@notifyMonthlyReflection": {
+    "description": "Toggle label: the monthly reflection notification"
+  },
+  "notifyReflectionsInfo": "A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.",
+  "@notifyReflectionsInfo": {
+    "description": "Footnote under the per-period reflection notification toggles"
   },
   "notifyTime": "Time",
   "@notifyTime": {
-    "description": "Row label for the time the weekly notification fires"
+    "description": "Row label for the shared time every enabled nudge fires at"
   },
   "notifyPermissionDenied": "Notifications are turned off in Settings.",
   "@notifyPermissionDenied": {
@@ -709,15 +717,31 @@
   "@notifyOpenSettings": {
     "description": "Action to open this app's page in iOS Settings to grant notification permission"
   },
+  "notifyDailyTitle": "Your day is ready",
+  "@notifyDailyTitle": {
+    "description": "Title of the daily local notification; generic, never reflection text"
+  },
+  "notifyDailyBody": "Open to read yesterday's reflection.",
+  "@notifyDailyBody": {
+    "description": "Body of the daily local notification; at fire time the reflection covers yesterday. Generic, never reflection text"
+  },
   "notifyWeeklyTitle": "Your week is ready",
   "@notifyWeeklyTitle": {
     "description": "Title of the weekly local notification; generic, never reflection text"
   },
-  "notifyWeeklyBody": "Open to read this week's reflection.",
+  "notifyWeeklyBody": "Open to read last week's reflection.",
   "@notifyWeeklyBody": {
     "description": "Body of the weekly local notification; generic, never reflection text"
   },
-  "notifyNeedsReflections": "The weekly nudge arrives when a new week is ready to read. Reflections are off right now.",
+  "notifyMonthlyTitle": "Your month is ready",
+  "@notifyMonthlyTitle": {
+    "description": "Title of the monthly local notification; generic, never reflection text"
+  },
+  "notifyMonthlyBody": "Open to read last month's reflection.",
+  "@notifyMonthlyBody": {
+    "description": "Body of the monthly local notification; fires on the 1st, about the closed month. Generic, never reflection text"
+  },
+  "notifyNeedsReflections": "Nudges arrive when a new reflection is ready to read. Reflections are off right now.",
   "@notifyNeedsReflections": {
     "description": "Footer on the notifications screen when reflections are switched off; precedes the turn-on link"
   },
@@ -725,7 +749,7 @@
   "@notifyTurnOnReflections": {
     "description": "Bold inline link after notifyNeedsReflections; opens the reflections screen where reflections are enabled"
   },
-  "notifyReflectionsUnavailable": "This device can't generate reflections, so there's no weekly nudge to send.",
+  "notifyReflectionsUnavailable": "This device can't generate reflections, so there's no nudge to send.",
   "@notifyReflectionsUnavailable": {
     "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
   },

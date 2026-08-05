@@ -82,7 +82,7 @@ void main() {
     storage = fresh.storage;
     store = fresh.store;
     settings = fresh.settings;
-    await settings.setFloor(DateTime(2026, 6, 8));
+    await settings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 6, 8));
     engine = FakeReflectionEngine();
     entries = [];
     service = build();
@@ -165,7 +165,7 @@ void main() {
     });
 
     test('does nothing when reflections are disabled', () async {
-      await settings.setEnabled(false);
+      await settings.setEnabledFor(ReflectionPeriod.weekly, false);
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
 
       await service.catchUp();
@@ -347,7 +347,7 @@ void main() {
 
       final run = service.catchUp();
       await untilParkedInReflect();
-      await settings.setVoice(ReflectionVoice.sparse);
+      await settings.setVoiceFor(ReflectionPeriod.weekly, ReflectionVoice.sparse);
       gate.complete();
       await run;
 
@@ -377,7 +377,7 @@ void main() {
 
       final run = service.catchUp();
       await untilParkedInReflect();
-      await settings.setEnabled(false);
+      await settings.setEnabledFor(ReflectionPeriod.weekly, false);
       gate.complete();
       await run;
 
@@ -507,7 +507,7 @@ void main() {
 
   group('no-backfill floor', () {
     test('weeks that closed before the feature first ran are never reflected', () async {
-      await settings.setFloor(DateTime(2026, 7, 27));
+      await settings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 7, 27));
       entries = [
         withText('a', DateTime(2026, 7, 22, 12), text: 'last week'),
         withText('b', DateTime(2026, 7, 15, 12), text: 'two weeks ago'),
@@ -520,7 +520,7 @@ void main() {
     });
 
     test('the feature-start week itself reflects once it closes', () async {
-      await settings.setFloor(lastWeek);
+      await settings.setFloorFor(ReflectionPeriod.weekly, lastWeek);
       entries = [
         withText('a', DateTime(2026, 7, 22, 12), text: 'that week'),
         withText('b', DateTime(2026, 7, 15, 12), text: 'before the feature'),
@@ -543,13 +543,13 @@ void main() {
 
       await service.catchUp();
 
-      expect(settings.floor, DateTime(2026, 7, 27));
+      expect(settings.floorFor(ReflectionPeriod.weekly), DateTime(2026, 7, 27));
       expect(engine.reflectCalls, 0);
       expect(store.all(), isEmpty);
 
       final later = build(clock: () => DateTime(2026, 8, 5, 12));
       await later.catchUp();
-      expect(settings.floor, DateTime(2026, 7, 27));
+      expect(settings.floorFor(ReflectionPeriod.weekly), DateTime(2026, 7, 27));
     });
 
     test('the floor is recorded even while the on-device model is unavailable, '
@@ -565,7 +565,7 @@ void main() {
       service = build();
 
       await service.catchUp();
-      expect(settings.floor, DateTime(2026, 7, 27));
+      expect(settings.floorFor(ReflectionPeriod.weekly), DateTime(2026, 7, 27));
 
       engine.availabilityResult = const ReflectionAvailability.available();
       final later = build(clock: () => DateTime(2026, 8, 5, 12));
@@ -584,7 +584,7 @@ void main() {
     });
 
     test('a first-day-of-week shift cannot pull a pre-feature week over the floor', () async {
-      await settings.setFloor(DateTime(2026, 7, 19));
+      await settings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 7, 19));
       entries = [
         withText('a', DateTime(2026, 7, 8, 12), text: 'fully before the floor'),
         withText('b', DateTime(2026, 7, 15, 12), text: 'week straddling the floor day'),
