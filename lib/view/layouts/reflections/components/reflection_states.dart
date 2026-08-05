@@ -49,11 +49,12 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 ) => switch (status) {
   ReflectionPageStatus.reflected => null,
   // The bullet marks a silence the model recorded; the erased page drops it,
-  // an absence the user authored, not one the period held.
+  // an absence the user authored, not one the period held. A quiet month
+  // drops it too: at that height the title alone carries the silence.
   ReflectionPageStatus.silent => (
     title: reflectionQuietLabel(l10n, period),
     body: l10n.reflectionQuietBody,
-    marker: true,
+    marker: period != ReflectionPeriod.monthly,
   ),
   ReflectionPageStatus.erased => (
     title: l10n.reflectionErasedTitle,

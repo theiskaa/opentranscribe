@@ -65,6 +65,25 @@ void main() {
     );
   });
 
+  test('reflectionPlaceholderContent leaves a quiet month unmarked', () {
+    expect(
+      reflectionPlaceholderContent(
+        l10n,
+        ReflectionPageStatus.silent,
+        ReflectionPeriod.monthly,
+      )?.marker,
+      isFalse,
+    );
+    expect(
+      reflectionPlaceholderContent(
+        l10n,
+        ReflectionPageStatus.silent,
+        ReflectionPeriod.daily,
+      )?.marker,
+      isTrue,
+    );
+  });
+
   test('reflectionPlaceholderContent gives each state its own title', () {
     const p = ReflectionPeriod.weekly;
     expect(
