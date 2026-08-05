@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:encrypt/encrypt.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 import 'package:opentranscribe/core/app/local_service.dart';
 
@@ -66,4 +67,90 @@ void main() {
     await storage.delete('temp');
     expect(storage.containsKey('temp'), isFalse);
   });
+
+  test('a v2 record with no second separator throws a format error', () async {
+    SharedPreferences.setMockInitialValues({'bad': 'v2:only-one-part'});
+    final reopened = LocalService();
+    await reopened.init(encryptionKey: key);
+
+    expect(() => reopened.readString('bad'), throwsA(isA<FormatException>()));
+  });
+
+  test('a v2 record with garbage ciphertext throws', () async {
+    final validIv = IV.fromSecureRandom(16).base64;
+
+    SharedPreferences.setMockInitialValues({'nonBase64': 'v2:$validIv:not-base64!!'});
+    final nonBase64 = LocalService();
+    await nonBase64.init(encryptionKey: key);
+    expect(() => nonBase64.readString('nonBase64'), throwsA(isA<FormatException>()));
+
+    final shortBlock = base64.encode(utf8.encode('short'));
+    SharedPreferences.setMockInitialValues({'wrongBlock': 'v2:$validIv:$shortBlock'});
+    final wrongBlock = LocalService();
+    await wrongBlock.init(encryptionKey: key);
+    expect(() => wrongBlock.readString('wrongBlock'), throwsA(isA<ArgumentError>()));
+  });
+
+  test('a v2 record that does not decrypt under the current key throws', () async {
+    const fixedIv = 'AAECAwQFBgcICQoLDA0ODw==';
+    const fixedCiphertext = 'EBESExQVFhcYGRobHB0eHw==';
+    SharedPreferences.setMockInitialValues({'undecryptable': 'v2:$fixedIv:$fixedCiphertext'});
+    final reopened = LocalService();
+    await reopened.init(encryptionKey: key);
+
+    expect(() => reopened.readString('undecryptable'), throwsA(isA<ArgumentError>()));
+  });
+
+  test('a legacy record that is not valid Fernet throws', () async {
+    SharedPreferences.setMockInitialValues({'legacyBad': 'not-fernet-ciphertext-at-all'});
+    final reopened = LocalService();
+    await reopened.init(encryptionKey: key);
+
+    expect(() => reopened.readString('legacyBad'), throwsA(isA<StateError>()));
+  });
+
+  test('readJson on an encrypted non-JSON payload throws a format error', () async {
+    await storage.write('notJson', 'a-plain-string-not-json');
+
+    expect(() => storage.readJson('notJson', (json) => json), throwsA(isA<FormatException>()));
+  });
+
+  test('a string list persists as per-element ciphertext', () async {
+    await storage.write('tags', ['alpha', 'beta']);
+
+    final raw = (await SharedPreferences.getInstance()).getStringList('tags');
+
+    expect(raw, hasLength(2));
+    expect(raw![0], startsWith('v2:'));
+    expect(raw[1], startsWith('v2:'));
+    expect(raw.join(), isNot(contains('alpha')));
+    expect(raw.join(), isNot(contains('beta')));
+  });
+
+  group('a refusing platform store', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      SharedPreferencesStorePlatform.instance = _RefusingStore();
+      storage = LocalService();
+      await storage.init(encryptionKey: key);
+    });
+
+    test('a refused platform write surfaces as a StateError', () async {
+      expect(storage.write('k', 'v'), throwsA(isA<StateError>()));
+    });
+
+    test('a refused platform delete surfaces as a StateError', () async {
+      expect(storage.delete('k'), throwsA(isA<StateError>()));
+    });
+  });
+}
+
+class _RefusingStore extends InMemorySharedPreferencesStore {
+  _RefusingStore() : super.empty();
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async => false;
+
+  @override
+  Future<bool> remove(String key) async => false;
 }
