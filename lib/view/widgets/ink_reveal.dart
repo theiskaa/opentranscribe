@@ -103,6 +103,11 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
   /// while the parent still says [InkPhase.write].
   bool _done = false;
 
+  /// The current run is a write-on arrival, which pours on the quick
+  /// [AppMotion.inkWrite] clocks; a regenerate's dissolve-and-resolve keeps
+  /// the slow [AppMotion.inkResolve] pace, which its fresh words earn.
+  bool _quick = false;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +150,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     _inkHeld = false;
     _arrivalQueued = false;
     _done = false;
+    _quick = false;
     final prepared = hadText && _capture() || _preparePlaceholder();
     if (!prepared) return;
     setState(() => _shimmering = true);
@@ -180,7 +186,8 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
   }
 
   void _holdThen(int run) {
-    Future<void>.delayed(context.motionNow.inkHold, () {
+    final motion = context.motionNow;
+    Future<void>.delayed(_quick ? motion.inkWriteHold : motion.inkHold, () {
       if (!mounted || run != _run) return;
       _inkHeld = true;
       _tryResolve(run);
@@ -190,7 +197,8 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
   void _tryResolve(int run) {
     if (run != _run || !_inkHeld || !_arrivalQueued || !_shimmering) return;
     _markStarted();
-    _reveal.duration = context.motionNow.inkResolve;
+    final motion = context.motionNow;
+    _reveal.duration = _quick ? motion.inkWrite : motion.inkResolve;
     _reveal.forward().whenComplete(() {
       if (!mounted || run != _run) return;
       setState(() {
@@ -215,6 +223,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     setState(() => _shimmering = true);
     _markStarted();
     _inkHeld = false;
+    _quick = true;
     _arrivalQueued = true; // the words are already here; only the hold gates
     _reveal.value = 0;
     _clock

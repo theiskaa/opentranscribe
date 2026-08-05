@@ -43,6 +43,8 @@ final class AppMotion {
     this.inkDissolve = const Duration(milliseconds: 600),
     this.inkResolve = const Duration(milliseconds: 850),
     this.inkHold = const Duration(milliseconds: 500),
+    this.inkWrite = const Duration(milliseconds: 400),
+    this.inkWriteHold = const Duration(milliseconds: 120),
     this.inkLoop = const Duration(seconds: 6),
     this.errorBlink = const Duration(milliseconds: 1000),
     this.errorShake = const Duration(milliseconds: 400),
@@ -71,8 +73,9 @@ final class AppMotion {
   final Duration indicator;
   final Curve indicatorCurve;
 
-  /// How long a settings sub-row takes to expand or collapse in AnimatedReveal
-  /// (the curves and Reduce-Motion behavior live in the widget).
+  /// How long a piece takes to grow into or out of its seat: the settings
+  /// sub-rows in AnimatedReveal, the reflections drill unfolds, the scrubber
+  /// strip's morph (curves and Reduce-Motion behavior live in the widgets).
   final Duration expand;
   final Duration crossfade;
 
@@ -159,6 +162,15 @@ final class AppMotion {
   /// How long a formed ink cloud holds before it may resolve, so a fast
   /// arrival still reads as ink becoming words rather than a blink.
   final Duration inkHold;
+
+  /// A page writing itself on arrival (a drill landing, a page scrolled into
+  /// view): a fraction of [inkResolve]'s pour, because an arrival answers
+  /// navigation while a regenerate carries work.
+  final Duration inkWrite;
+
+  /// The arrival write-on's hold, next to [inkHold]: just long enough that
+  /// ink is seen becoming words rather than blinking.
+  final Duration inkWriteHold;
 
   /// One lap of the ink shimmer's seamless loop. Long, because every spark
   /// pulses a few times per lap and faster laps read as boiling.
