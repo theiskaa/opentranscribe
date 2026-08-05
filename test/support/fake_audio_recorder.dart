@@ -18,8 +18,10 @@ class FakeAudioRecorder implements AudioRecorder {
     this.throwOnStart = false,
     this.throwOnPause = false,
     this.throwOnResume = false,
+    this.resumeRouteChanged = false,
     this.stopDelay,
     this.startDelay,
+    this.pauseGate,
     this.probe,
   });
 
@@ -48,6 +50,17 @@ class FakeAudioRecorder implements AudioRecorder {
   /// When true, [pause] / [resume] throw, to exercise failure paths.
   final bool throwOnPause;
   final bool throwOnResume;
+
+  /// When true, [resume] tears the session down, emits `interrupted` on
+  /// [status], then throws - modeling AudioCapture.swift's resume() finding a
+  /// route change: teardown, `onStatus?("interrupted")`, then `throw
+  /// CaptureError.routeChanged`, all before the Dart await settles.
+  final bool resumeRouteChanged;
+
+  /// Awaited inside [pause] before it does anything else, so a test can hold a
+  /// pause round trip open (gate not yet completed) while it lands a
+  /// concurrent stop, then release it to see how the delayed pause resolves.
+  final Future<void>? pauseGate;
 
   /// The last value passed to [setBackupExcluded], for assertions.
   bool? backupExcluded;
@@ -97,9 +110,15 @@ class FakeAudioRecorder implements AudioRecorder {
 
   @override
   Future<void> pause() async {
+    // Snapshotted before the gate: a concurrent stop landing while this call is
+    // held open must not retroactively change what this ALREADY-ISSUED call
+    // sees, mirroring a native call whose checks ran before the race.
+    final wasCapturing = _capturing;
+    final wasPaused = paused;
+    if (pauseGate != null) await pauseGate;
     if (throwOnPause) throw const CaptureFailed('fake pause failure', 'capture_failed');
-    if (!_capturing) throw const CaptureFailed('not recording', 'not_running');
-    if (paused) throw const CaptureFailed('already paused', 'already_paused');
+    if (!wasCapturing) throw const CaptureFailed('not recording', 'not_running');
+    if (wasPaused) throw const CaptureFailed('already paused', 'already_paused');
     paused = true;
     _status.add(CaptureStatus.paused);
   }
@@ -108,6 +127,16 @@ class FakeAudioRecorder implements AudioRecorder {
   Future<void> resume() async {
     if (throwOnResume) throw const CaptureFailed('fake resume failure', 'capture_failed');
     if (!_capturing || !paused) throw const CaptureFailed('not paused', 'not_paused');
+    if (resumeRouteChanged) {
+      _capturing = false;
+      paused = false;
+      _status.add(CaptureStatus.interrupted);
+      // Let the status listener run (and flip the service's own bookkeeping)
+      // before this call fails, matching the native ordering: teardown and the
+      // status emit happen before the throw.
+      await Future<void>.delayed(Duration.zero);
+      throw const CaptureFailed('fake route changed', 'route_changed');
+    }
     paused = false;
     _status.add(CaptureStatus.recording);
   }

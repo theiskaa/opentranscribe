@@ -381,6 +381,45 @@ void main() {
     await service.dispose();
   });
 
+  test('a stop that wins mid-pause leaves the take idle, not paused', () async {
+    final gate = Completer<void>();
+    final rec = FakeAudioRecorder(pauseGate: gate.future);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final pausing = cubit.pause();
+    // The stop lands and fully finalizes while the pause round trip is still
+    // held open on the gate: it owns the outcome from here.
+    await cubit.stop();
+    expect(service.isRecording, isFalse);
+    gate.complete();
+    await pausing;
+
+    expect(cubit.state.status, isNot(RecorderStatus.paused));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a pause failing after a stop already won the race surfaces no error', () async {
+    final gate = Completer<void>();
+    final rec = FakeAudioRecorder(pauseGate: gate.future, throwOnPause: true);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final pausing = cubit.pause();
+    await cubit.stop();
+    expect(service.isRecording, isFalse);
+    gate.complete();
+    await pausing;
+
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('pause during an in-flight start waits it out quietly', () async {
     final (cubit, service) = build(
       recorder: FakeAudioRecorder(startDelay: const Duration(milliseconds: 20)),

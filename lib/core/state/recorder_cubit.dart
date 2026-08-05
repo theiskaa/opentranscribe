@@ -286,6 +286,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       }
       if (!_service.isRecording) return;
       await _service.pauseRecording();
+      // A stop can also land DURING this await: pauseRecording then returns
+      // normally (its own entry guard already passed) but the service is no
+      // longer recording, so this pause must not paint paused chrome over a
+      // session the stop already ended.
+      if (!_service.isRecording) return;
       _timer?.cancel();
       _timer = null;
       // Bank the run so the frozen clock is exact, not whatever the last
@@ -298,7 +303,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       // check above and the pause await: the stop owns the outcome, so pausing a
       // take that is already ending is not a user-facing error.
     } catch (e) {
-      emit(state.copyWith(error: _kind(e)));
+      // A stop that landed mid-pause can also make the recorder-level call fail
+      // (the native session is already torn down): the stop owns that outcome
+      // too, so only a genuine pause failure on a session still alive is
+      // user-facing.
+      if (_service.isRecording) emit(state.copyWith(error: _kind(e)));
     } finally {
       _switching = false;
     }
