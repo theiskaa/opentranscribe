@@ -440,15 +440,22 @@ class ReflectionService {
     final share = max ~/ inputs.length;
     return [
       for (final i in inputs)
-        if (_inputTokens(i) <= share)
-          i
-        else
-          ReflectionEntryInput(
-            date: i.date,
-            text: _trimToTokens(i.text, math.max(0, share - _titleTokens(i))),
-            title: i.title,
-          ),
+        if (_inputTokens(i) <= share) i else _trimmedToShare(i, share),
     ];
+  }
+
+  /// Trims both [i]'s title and text to fit within [share]: the title spends
+  /// from the share first, since the prompt carries both, so a title longer
+  /// than the whole share cannot itself blow the budget.
+  ReflectionEntryInput _trimmedToShare(ReflectionEntryInput i, int share) {
+    var title = i.title == null ? null : _trimToTokens(i.title!, share);
+    if (title != null && title.isEmpty) title = null;
+    final spent = title == null ? 0 : _estimatedTokens(title);
+    return ReflectionEntryInput(
+      date: i.date,
+      text: _trimToTokens(i.text, math.max(0, share - spent)),
+      title: title,
+    );
   }
 
   static int _titleTokens(ReflectionEntryInput i) =>

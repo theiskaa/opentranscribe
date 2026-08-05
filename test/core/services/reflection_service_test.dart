@@ -314,6 +314,24 @@ void main() {
       expect(sent.first.text.length, lessThan(text.length));
     });
 
+    test('a title alone larger than its entry\'s whole share is trimmed too, '
+        'never surviving whole into an overflowing prompt', () async {
+      final title = 'a' * 5000;
+      entries = [
+        withText('a', DateTime(2026, 7, 20, 9), text: 'x', title: title),
+        withText('b', DateTime(2026, 7, 22, 9), text: 'x', title: title),
+      ];
+      await service.catchUp();
+
+      final sent = engine.lastEntries!;
+      expect(sent.length, 2);
+      for (final e in sent) {
+        expect(e.title!.length, lessThan(title.length));
+      }
+      final total = sent.fold<int>(0, (sum, e) => sum + e.text.length + (e.title?.length ?? 0));
+      expect(total, lessThanOrEqualTo(8000));
+    });
+
     test('the cap trims on a code-point boundary, never through a surrogate pair', () async {
       final big = '😀' * 9000;
       entries = [withText('a', DateTime(2026, 7, 20, 9), text: big)];
