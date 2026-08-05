@@ -20,6 +20,7 @@ class LiquidIconButton extends StatefulWidget {
     this.semanticLabel,
     this.isDark,
     this.tintColor,
+    this.placeholderBuilder,
     super.key,
   });
 
@@ -58,6 +59,9 @@ class LiquidIconButton extends StatefulWidget {
   /// When null, the system label color is used.
   final Color? tintColor;
 
+  /// Built in place of the native view while this route is covered by another.
+  final WidgetBuilder? placeholderBuilder;
+
   @override
   State<LiquidIconButton> createState() => _LiquidIconButtonState();
 }
@@ -92,6 +96,7 @@ class _LiquidIconButtonState extends State<LiquidIconButton> {
             viewType: 'liquid_icon_button',
             creationParams: _params,
             onMethodCall: _handleMethodCall,
+            placeholderBuilder: widget.placeholderBuilder,
           ),
         ),
       ),

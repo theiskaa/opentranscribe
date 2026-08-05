@@ -97,6 +97,7 @@ class LiquidPopupButton extends StatefulWidget {
     this.size = 44,
     this.bare = false,
     this.isDark,
+    this.placeholderBuilder,
     super.key,
   }) : assert(items.length > 0, 'At least one item is required');
 
@@ -134,6 +135,9 @@ class LiquidPopupButton extends StatefulWidget {
   /// This ensures the native component matches Flutter's theme.
   final bool? isDark;
 
+  /// Built in place of the native view while this route is covered by another.
+  final WidgetBuilder? placeholderBuilder;
+
   @override
   State<LiquidPopupButton> createState() => _LiquidPopupButtonState();
 }
@@ -165,6 +169,7 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
             viewType: 'liquid_popup_button',
             creationParams: _params,
             onMethodCall: _handleMethodCall,
+            placeholderBuilder: widget.placeholderBuilder,
           ),
         ),
       );
@@ -190,6 +195,7 @@ class _LiquidPopupButtonState extends State<LiquidPopupButton> {
                 viewType: 'liquid_popup_button',
                 creationParams: _params,
                 onMethodCall: _handleMethodCall,
+                placeholderBuilder: widget.placeholderBuilder,
               ),
             ),
           ),
