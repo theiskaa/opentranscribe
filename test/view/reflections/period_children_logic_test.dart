@@ -171,6 +171,30 @@ void main() {
       expect(crumb, (period: ReflectionPeriod.monthly, start: DateTime(2026, 6)));
     });
 
+    test('a week straddling into the next month climbs there when only that '
+        'month is stored', () {
+      final crumb = breadcrumbTarget(
+        period: ReflectionPeriod.weekly,
+        start: DateTime(2026, 6, 29),
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.monthly: {DateTime(2026, 7)},
+        },
+      );
+      expect(crumb, (period: ReflectionPeriod.monthly, start: DateTime(2026, 7)));
+    });
+
+    test('a straddling week still prefers its start day\'s month when both '
+        'neighbors are stored', () {
+      final crumb = breadcrumbTarget(
+        period: ReflectionPeriod.weekly,
+        start: DateTime(2026, 6, 29),
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.monthly: {DateTime(2026, 6), DateTime(2026, 7)},
+        },
+      );
+      expect(crumb, (period: ReflectionPeriod.monthly, start: DateTime(2026, 6)));
+    });
+
     test('a week has no crumb when its month holds no reflection', () {
       final crumb = breadcrumbTarget(
         period: ReflectionPeriod.weekly,

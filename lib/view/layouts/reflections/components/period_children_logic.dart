@@ -75,7 +75,9 @@ typedef BreadcrumbTarget = ({ReflectionPeriod period, DateTime start});
 /// hierarchy: back pops the route instead). A day climbs to its NEAREST
 /// stored ancestor - the containing week, else the day's month - so a
 /// deep-linked day whose week went unwritten still reshapes up rather than
-/// abruptly leaving. A week climbs to its START day's month; a month is the
+/// abruptly leaving. A week climbs to a stored month that lists it as a row -
+/// its start day's month first, else the month its tail reaches into, since a
+/// month's edge weeks straddle into the neighboring month; a month is the
 /// top. Only stored pages are offered - the same rule that gates drilling
 /// down, so up and down traverse the same set of pages and a climb can never
 /// land where no page exists.
@@ -97,9 +99,11 @@ BreadcrumbTarget? breadcrumbTarget({
       if (months.contains(month)) return (period: ReflectionPeriod.monthly, start: month);
       return null;
     case ReflectionPeriod.weekly:
-      final month = DateTime(start.year, start.month);
-      if (!months.contains(month)) return null;
-      return (period: ReflectionPeriod.monthly, start: month);
+      for (final day in [start, addDays(start, 6)]) {
+        final month = DateTime(day.year, day.month);
+        if (months.contains(month)) return (period: ReflectionPeriod.monthly, start: month);
+      }
+      return null;
     case ReflectionPeriod.monthly:
       return null;
   }
