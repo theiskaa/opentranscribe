@@ -322,7 +322,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       _startTimer();
       emit(state.copyWith(status: RecorderStatus.recording));
     } catch (e) {
-      emit(state.copyWith(error: _kind(e)));
+      // A route change discovered mid-resume tears the session down and
+      // finalizes it as an interruption (see AudioCapture.swift's resume()):
+      // that path owns the outcome, so this must not also paint an error over
+      // its calm "we saved your recording" notice.
+      if (_service.isRecording || _service.isPaused) emit(state.copyWith(error: _kind(e)));
     } finally {
       _switching = false;
     }
@@ -473,7 +477,9 @@ class RecorderCubit extends Cubit<RecorderState> {
     // matches what was actually recorded.
     _elapsedBase = _currentElapsed();
     _runStart = null;
-    emit(state.copyWith(live: false, elapsed: _elapsedBase, interrupted: true));
+    // clearError: a stale error from a losing resume/pause must not share the
+    // screen with the calm "we saved your recording" notice this emit paints.
+    emit(state.copyWith(live: false, elapsed: _elapsedBase, interrupted: true, clearError: true));
   }
 
   /// The interruption's own save failed. Recover the audio's record (so it is not

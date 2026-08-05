@@ -317,6 +317,24 @@ void main() {
     await service.dispose();
   });
 
+  test('a resume that dies to a route change ends interrupted with no leftover error', () async {
+    final rec = FakeAudioRecorder(resumeRouteChanged: true);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+    await cubit.pause();
+
+    await cubit.resume();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(cubit.state.interrupted, isTrue);
+    expect(cubit.state.error, isNull);
+    expect(cubit.state.live, isFalse);
+    expect(service.isRecording, isFalse);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a second resume inside the first one is a quiet no-op', () async {
     final (cubit, service) = build();
     await cubit.start();
