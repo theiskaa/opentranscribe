@@ -17,7 +17,7 @@ flutter pub get
 flutter run -d ios
 ```
 
-The storage encryption key is a build-time secret and is never committed. Debug builds fall back to a development key; a release build refuses to start without a real one:
+The journal's encryption key is a per-device random key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`); it never leaves the device. `STORAGE_KEY` remains a build-time secret, never committed, needed only to read and migrate records written before the Keychain key existed. Debug builds fall back to a development key; a release build refuses to start without a real one:
 
 ```sh
 flutter run --release --dart-define=STORAGE_KEY=<your-32-char-key>
@@ -72,7 +72,7 @@ The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, 
 
 **The native layer** is Swift under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for its streams: audio capture (`opentranscribe/audio`, `/audio/status`, `/audio/level`), speech (`opentranscribe/speech`, `/speech/events`, `/speech/model`), playback (`opentranscribe/player`, `/player/state`), notifications (`opentranscribe/notify`), and reflection. The in-progress recording drives a Live Activity (`RecordingLiveActivity.swift`, the widget extension in `ios/RecorderActivity/`, attributes in `ios/Shared/`). Channels are touched only from a `core/` wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`, and each wrapper takes its channels as constructor arguments so tests can inject fakes.
 
-**At rest**, recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-CBC with a fresh IV per record. The encryption key is a build-time secret, not a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
+**At rest**, recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device, never a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
 
 **UI** is drawn by the app itself. The root is a `WidgetsApp.router` with no Material or Cupertino shell. Styling comes from `AppTheme` through `context.theme`; icons come from `AppIcons`, a vendored SF Symbols subset, regenerated to add a glyph. Native iOS 26 Liquid Glass chrome comes from `packages/liquid`, gated on `PlatformCaps.nativeGlass` with a drawn fallback, because the plugin renders nothing below iOS 26.
 
