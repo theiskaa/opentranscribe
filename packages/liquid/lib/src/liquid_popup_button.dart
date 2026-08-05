@@ -12,6 +12,7 @@ class LiquidPopupButtonEntry {
     this.causesNavigation = false,
     this.isDestructive = false,
     this.isSelected = false,
+    this.keepsPresented = false,
   }) : isDivider = false;
 
   const LiquidPopupButtonEntry.submenu({required this.label, required this.children, this.icon})
@@ -20,7 +21,8 @@ class LiquidPopupButtonEntry {
       isDivider = false,
       causesNavigation = false,
       isDestructive = false,
-      isSelected = false;
+      isSelected = false,
+      keepsPresented = false;
 
   /// Creates a divider entry that visually separates menu items.
   const LiquidPopupButtonEntry.divider()
@@ -32,7 +34,8 @@ class LiquidPopupButtonEntry {
       isDivider = true,
       causesNavigation = false,
       isDestructive = false,
-      isSelected = false;
+      isSelected = false,
+      keepsPresented = false;
 
   final String value;
   final String label;
@@ -62,6 +65,12 @@ class LiquidPopupButtonEntry {
   /// Whether this entry renders with a selection checkmark (UIMenu state).
   final bool isSelected;
 
+  /// Keeps the menu presented when this entry is selected (a toggle that
+  /// will be tapped again in the same visit); the native side flips the
+  /// entry's checkmark in place so the open menu shows the new state
+  /// without waiting a channel round trip.
+  final bool keepsPresented;
+
   Map<String, dynamic> toMap() => {
     'value': value,
     'label': label,
@@ -71,6 +80,7 @@ class LiquidPopupButtonEntry {
     if (isDivider) 'isDivider': true,
     if (isDestructive) 'isDestructive': true,
     if (isSelected) 'isSelected': true,
+    if (keepsPresented) 'keepsPresented': true,
   };
 }
 

@@ -97,7 +97,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
 
     items = params["items"] as? [[String: Any]] ?? []
 
-    let wantsBare = (params["bare"] as? NSNumber)?.boolValue ?? (params["bare"] as? Bool ?? false)
+    let wantsBare = boolValue(from: params, key: "bare") ?? false
     if wantsBare != bare {
       bare = wantsBare
       applyLayoutMode()
@@ -132,7 +132,20 @@ final class LiquidPopupMenuView: LiquidNativeView {
     button.accessibilityLabel = semantics ?? buttonLabel
 
     configureButtonAppearance()
-    button.menu = buildMenu()
+    // The menu SHELL is set once and never reassigned: replacing a control's
+    // menu while it is presented dismisses it, which would defeat
+    // keepsMenuPresented toggles and blink an open menu on any Flutter
+    // update. The deferred element re-resolves from the live items each
+    // time the menu is DISPLAYED; a menu held open never re-resolves, which
+    // is why keeps-presented toggles repaint through refreshVisibleMenu
+    // instead.
+    if button.menu == nil {
+      button.menu = UIMenu(children: [
+        UIDeferredMenuElement.uncached { [weak self] completion in
+          completion(self?.buildMenuElements() ?? [])
+        }
+      ])
+    }
   }
 
   /// Bare pins the button to the host's edges; the sized circle centers it.
@@ -210,26 +223,30 @@ final class LiquidPopupMenuView: LiquidNativeView {
     button.layer.cornerCurve = .continuous
   }
 
-  private func buildMenu() -> UIMenu {
+  private func buildMenuElements() -> [UIMenuElement] {
     // Group items by dividers to create visual separation
     let groups = groupItemsByDividers(items)
 
     if groups.count == 1 {
       // No dividers, just build children directly
-      let children = groups[0].compactMap(buildMenuElement)
-      return UIMenu(children: children)
+      return groups[0].compactMap(buildMenuElement)
     }
 
     // Multiple groups - wrap each in an inline menu for visual separation
     var menuChildren: [UIMenuElement] = []
-    for group in groups {
+    for (index, group) in groups.enumerated() {
       let groupElements = group.compactMap(buildMenuElement)
       if !groupElements.isEmpty {
-        let inlineMenu = UIMenu(title: "", options: .displayInline, children: groupElements)
+        let inlineMenu = UIMenu(
+          title: "",
+          identifier: UIMenu.Identifier("liquid.group.\(index)"),
+          options: .displayInline,
+          children: groupElements
+        )
         menuChildren.append(inlineMenu)
       }
     }
-    return UIMenu(children: menuChildren)
+    return menuChildren
   }
 
   private func isDivider(_ item: [String: Any]) -> Bool {
@@ -299,37 +316,121 @@ final class LiquidPopupMenuView: LiquidNativeView {
     // A raster mark (a brand logo with no SF Symbol) arrives as bytes and wins
     // over a symbol; it is drawn as a template at the row's type size so it sits
     // like a symbol beside the label.
-    let image: UIImage?
+    var image: UIImage?
     if let iconBytes {
       image = templateImage(data: iconBytes.data, pointSize: itemIconPointSize)
     } else {
       image = iconName.flatMap { UIImage(systemName: $0, withConfiguration: itemSymbolConfig) }
     }
-    let isDestructive = (item["isDestructive"] as? NSNumber)?.boolValue
-      ?? (item["isDestructive"] as? Bool ?? false)
+    let isDestructive = boolValue(from: item, key: "isDestructive") ?? false
 
     if let nested = item["children"] as? [[String: Any]], !nested.isEmpty {
       let submenuChildren = nested.compactMap(buildMenuElement)
       return UIMenu(
-        title: title, image: image, identifier: nil, options: [], children: submenuChildren)
+        title: title,
+        image: image,
+        identifier: (item["value"] as? String).map { UIMenu.Identifier("liquid.menu.\($0)") },
+        options: [],
+        children: submenuChildren)
     }
 
     let value = item["value"] as? String
-    let isSelected = (item["isSelected"] as? NSNumber)?.boolValue
-      ?? (item["isSelected"] as? Bool ?? false)
-    let attributes: UIMenuElement.Attributes = isDestructive ? [.destructive] : []
-    return UIAction(
+    let isSelected = boolValue(from: item, key: "isSelected") ?? false
+    let keeps = boolValue(from: item, key: "keepsPresented") ?? false
+    var attributes: UIMenuElement.Attributes = isDestructive ? [.destructive] : []
+    if keeps, #available(iOS 16.0, *) {
+      attributes.insert(.keepsMenuPresented)
+      // A keeps-presented toggle wears its mark as an IMAGE, never UIMenu
+      // state: only a structural update repaints a held-open menu, and a
+      // re-laid level factors a state column into its header that the first
+      // presentation did not - the sideways header jump. Image-column
+      // layout is identical in both passes, so the checkmark (a clear
+      // spacer when off, keeping the titles aligned) can change freely.
+      // Sized and weighted like the native state tick, not like the icon
+      // column: a full-size regular symbol reads as a giant checkmark. The
+      // spacer keeps the full column width, so the smaller tick centers on
+      // the same grid.
+      let tickConfig = UIImage.SymbolConfiguration(
+        pointSize: itemIconPointSize * 0.7, weight: .semibold)
+      image = isSelected
+        ? UIImage(systemName: "checkmark", withConfiguration: tickConfig)
+        : Self.clearSpacer(pointSize: itemIconPointSize)
+    }
+    let action = UIAction(
       title: title,
       image: image,
-      identifier: nil,
+      identifier: value.map { UIAction.Identifier("liquid.action.\($0)") },
       discoverabilityTitle: nil,
       attributes: attributes,
-      state: isSelected ? .on : .off
+      state: !keeps && isSelected ? .on : .off
     ) { [weak self] _ in
       guard let self, let value else { return }
-      // Delay callback to next runloop cycle to let UIMenu dismiss animation complete
+      if keeps {
+        // The menu stays up, so the flipped state must reach the PRESENTED
+        // tree itself: deferred re-resolution does not run while a menu is
+        // held open, and updateVisibleMenu is the one channel UIKit gives
+        // for rewriting it in place. No round trip waited.
+        self.flipSelected(value: value)
+        self.refreshVisibleMenu()
+      }
+      // Deferred a runloop so the callback never lands while UIKit is mid
+      // dismissal or mid visible-menu update.
       DispatchQueue.main.async {
         self.channel.invokeMethod("onSelected", arguments: value)
+      }
+    }
+    return action
+  }
+
+  /// A transparent square at the symbol size: the unchecked toggle's image,
+  /// so checked and unchecked rows share one title column.
+  private static func clearSpacer(pointSize: CGFloat) -> UIImage {
+    let side = max(pointSize, 1)
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { _ in }
+  }
+
+  /// Repaints the held-open toggle list: only a structural update repaints
+  /// a presented menu (element mutation is ignored), so the matched level's
+  /// children are replaced - and ONLY that level's; every other level is
+  /// handed back untouched so nothing else re-lays. Keeps-presented toggles
+  /// must therefore live under an identified submenu: the presented root's
+  /// identifier is auto-generated and never matches a rebuilt one, so a
+  /// top-level toggle would flip its stored state without repainting.
+  private func refreshVisibleMenu() {
+    guard let interaction = button.contextMenuInteraction else { return }
+    let rebuiltRoot = UIMenu(children: buildMenuElements())
+    interaction.updateVisibleMenu { visible in
+      guard let match = Self.menu(with: visible.identifier, in: rebuiltRoot) else {
+        return visible
+      }
+      return visible.replacingChildren(match.children)
+    }
+  }
+
+  private static func menu(with identifier: UIMenu.Identifier, in tree: UIMenu) -> UIMenu? {
+    if tree.identifier == identifier { return tree }
+    for child in tree.children {
+      if let sub = child as? UIMenu, let found = menu(with: identifier, in: sub) {
+        return found
+      }
+    }
+    return nil
+  }
+
+  /// Flips [value]'s selection in the stored items, top level or one level
+  /// deep, mirroring the toggle the action just asked Flutter to make.
+  private func flipSelected(value: String) {
+    for i in items.indices {
+      if items[i]["value"] as? String == value {
+        items[i]["isSelected"] = !(boolValue(from: items[i], key: "isSelected") ?? false)
+        return
+      }
+      if var nested = items[i]["children"] as? [[String: Any]] {
+        for j in nested.indices where nested[j]["value"] as? String == value {
+          nested[j]["isSelected"] = !(boolValue(from: nested[j], key: "isSelected") ?? false)
+          items[i]["children"] = nested
+          return
+        }
       }
     }
   }
