@@ -78,8 +78,12 @@ class ReflectionService {
   /// surface can refresh its history.
   Stream<void> get reflectionsChanged => _changed.stream;
 
-  /// Single-flights [catchUp]: a resume racing the launch kick must not run twice.
+  /// Single-flights [catchUp]: a resume racing the launch kick must not run
+  /// twice. A call landing mid-flight is coalesced into one trailing pass, so
+  /// a backlog request that raced a running catch-up is still covered by the
+  /// caller's await instead of silently no-oping.
   bool _running = false;
+  bool _pending = false;
 
   /// Reflects every closed, unreflected period that has material, for each
   /// enabled period, newest first, never reaching below that period's
@@ -87,22 +91,29 @@ class ReflectionService {
   /// enabled or the on-device model is unavailable: no generation, no error,
   /// nothing surfaced. Never throws.
   Future<void> catchUp() async {
-    if (_running || !_settings.anyEnabled) return;
+    if (!_settings.anyEnabled) return;
+    if (_running) {
+      _pending = true;
+      return;
+    }
     // Claimed BEFORE the availability await: a resume racing the launch kick
     // must not both slip past the guard while the first is probing.
     _running = true;
     try {
-      for (final period in ReflectionPeriod.values) {
-        if (!_settings.enabledFor(period)) continue;
-        try {
-          await _catchUpPeriod(period);
-        } catch (e) {
-          // One period's setup failure (a floor write, say) must not deny the
-          // others their pass this open. catchUp is fired unawaited from launch
-          // and resume, so it must never throw either.
-          if (kDebugMode) debugPrint('reflection: ${period.wire} catch-up failed: $e');
+      do {
+        _pending = false;
+        for (final period in ReflectionPeriod.values) {
+          if (!_settings.enabledFor(period)) continue;
+          try {
+            await _catchUpPeriod(period);
+          } catch (e) {
+            // One period's setup failure (a floor write, say) must not deny the
+            // others their pass this open. catchUp is fired unawaited from launch
+            // and resume, so it must never throw either.
+            if (kDebugMode) debugPrint('reflection: ${period.wire} catch-up failed: $e');
+          }
         }
-      }
+      } while (_pending);
     } finally {
       _running = false;
     }
@@ -131,9 +142,9 @@ class ReflectionService {
       }
     }
     if (lowered) _emitChanged();
-    // If a launch/resume catch-up is still in flight this no-ops (its
-    // single-flight), but the floors are already persisted, so the next
-    // catch-up drains the backlog. The lowered floor is the durable intent.
+    // A launch/resume catch-up still in flight coalesces this call into one
+    // trailing pass, which this await covers, so the backlog drains before
+    // this method returns rather than waiting for the next open.
     await catchUp();
   }
 

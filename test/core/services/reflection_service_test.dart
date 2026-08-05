@@ -825,5 +825,32 @@ void main() {
 
       expect(store.read(mayWeek), isNull);
     });
+
+    test(
+      'a backlog request landing during a running catch-up is drained by a trailing pass',
+      () async {
+        await settings.setEnabledFor(ReflectionPeriod.daily, false);
+        entries = [
+          withText('a', DateTime(2026, 7, 22, 12), text: 'last week'),
+          withText('old', DateTime(2026, 5, 27, 12), text: 'a may week'),
+        ];
+        final gate = Completer<void>();
+        engine.gate = gate.future;
+
+        final running = service.catchUp();
+        await untilParkedInReflect();
+        expect(store.read(mayWeek), isNull);
+
+        await service.reflectBacklog();
+        expect(store.read(mayWeek), isNull, reason: 'the trailing pass has not run yet');
+
+        gate.complete();
+        await running;
+
+        expect(store.read(lastWeek), isNotNull);
+        expect(store.read(mayWeek), isNotNull, reason: 'the coalesced trailing pass drained it');
+        expect(engine.reflectCalls, 2);
+      },
+    );
   });
 }
