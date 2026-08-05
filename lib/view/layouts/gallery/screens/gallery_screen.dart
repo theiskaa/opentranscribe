@@ -13,7 +13,10 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/day_chip_row.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/disabled_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/month_week_rows.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/period_children_logic.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
@@ -332,6 +335,41 @@ class _GalleryScreenState extends State<GalleryScreen> {
               Text(
                 reflectionMetaLine(voiceLabel: 'Literary', writtenLabel: 'Written Jul 27'),
                 style: AppType.footnote.copyWith(color: theme.textSecondary),
+              ),
+              _section('Reflection day chips'),
+              DayChipRow(
+                days: daysOfWeek(DateTime(2026, 7, 20)),
+                states: const [
+                  DayChipState.reflection,
+                  DayChipState.entries,
+                  DayChipState.reflection,
+                  DayChipState.reflection,
+                  DayChipState.empty,
+                  DayChipState.entries,
+                  DayChipState.empty,
+                ],
+                onDayTap: (_) {},
+              ),
+              _section('Reflection month rows'),
+              MonthWeekRows(
+                weeks: monthWeekRows(
+                  monthStart: DateTime(2026, 7),
+                  reflectedWeeks: {DateTime(2026, 7, 13), DateTime(2026, 7, 20)},
+                  reflectedDays: {
+                    DateTime(2026, 7, 15),
+                    DateTime(2026, 7, 21),
+                    DateTime(2026, 7, 23),
+                  },
+                  journaledDays: {
+                    DateTime(2026, 7, 2),
+                    DateTime(2026, 7, 15),
+                    DateTime(2026, 7, 17),
+                    DateTime(2026, 7, 21),
+                    DateTime(2026, 7, 23),
+                    DateTime(2026, 7, 28),
+                  },
+                ),
+                onWeekTap: (_) {},
               ),
               _section('Reflection states'),
               const _ReflectionStatesDemo(),
