@@ -69,6 +69,15 @@ class LiquidPopupButtonEntry {
   /// will be tapped again in the same visit); the native side flips the
   /// entry's checkmark in place so the open menu shows the new state
   /// without waiting a channel round trip.
+  ///
+  /// Callers must guarantee: this entry sits inside a submenu (never at the
+  /// top level of [LiquidPopupButton.items]), and every [value] in the tree
+  /// is unique. The native side patches the presented menu by finding the
+  /// enclosing submenu's identifier, which is derived from that submenu's own
+  /// [value] — a top-level entry has no such identifier to patch, so its
+  /// checkmark would flip in stored state but never repaint, and a duplicate
+  /// [value] anywhere in the tree can make that patch land on the wrong
+  /// submenu. [LiquidPopupButton] asserts both in debug mode.
   final bool keepsPresented;
 
   Map<String, dynamic> toMap() => {
@@ -84,8 +93,44 @@ class LiquidPopupButtonEntry {
   };
 }
 
+/// Walks the whole [items] tree and asserts the two caller guarantees
+/// [LiquidPopupButtonEntry.keepsPresented] documents: every non-divider
+/// [LiquidPopupButtonEntry.value] is unique (native menu and action
+/// identifiers are derived from it), and every keeps-presented entry lives
+/// inside a submenu (dividers are skipped by the native builder and so never
+/// receive an identifier, and are exempt from the uniqueness check).
+bool _debugValidateMenuIdentity(List<LiquidPopupButtonEntry> items) {
+  final seenValues = <String>{};
+
+  void walk(List<LiquidPopupButtonEntry> entries, {required bool insideSubmenu}) {
+    for (final entry in entries) {
+      if (!entry.isDivider) {
+        assert(
+          seenValues.add(entry.value),
+          'Duplicate LiquidPopupButtonEntry value "${entry.value}": native menu and action '
+          'identifiers are derived from value, so every entry in the tree must have a unique '
+          'one (a repeated value from LiquidPopupButtonEntry.submenu() counts too).',
+        );
+      }
+      assert(
+        !entry.keepsPresented || insideSubmenu,
+        'LiquidPopupButtonEntry with keepsPresented must live inside a submenu, not at the top '
+        'level of LiquidPopupButton.items: the native repaint patches by the enclosing submenu\'s '
+        'identifier, and a top-level entry has none, so its checkmark would update stored state '
+        'without ever repainting the open menu.',
+      );
+      if (entry.children.isNotEmpty) walk(entry.children, insideSubmenu: true);
+    }
+  }
+
+  walk(items, insideSubmenu: false);
+  return true;
+}
+
 class LiquidPopupButton extends StatefulWidget {
-  const LiquidPopupButton({
+  // Not const: the debug-mode identity validation below calls a plain
+  // function over items, which a const constructor cannot do.
+  LiquidPopupButton({
     required this.items,
     this.onSelected,
     this.enabled = true,
@@ -99,7 +144,8 @@ class LiquidPopupButton extends StatefulWidget {
     this.isDark,
     this.placeholderBuilder,
     super.key,
-  }) : assert(items.length > 0, 'At least one item is required');
+  }) : assert(items.isNotEmpty, 'At least one item is required'),
+       assert(_debugValidateMenuIdentity(items));
 
   final List<LiquidPopupButtonEntry> items;
 
