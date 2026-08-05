@@ -12,7 +12,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
   });
 
   test('defaults to excluded from backup and applies it', () async {
@@ -45,7 +45,7 @@ void main() {
     // Reopen the same prefs under a different key: the stored value no longer
     // decrypts, and the getter must fail safe toward the one rule.
     final other = LocalService();
-    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    await other.init(legacyKey: 'a-completely-different-key-000000');
     final reopened = AudioStorageSettings(storage: other, recorder: recorder);
 
     expect(reopened.backupExcluded, isTrue);
@@ -81,7 +81,7 @@ void main() {
     // read as kept.
     await AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder()).setKeepAudio(false);
     final other = LocalService();
-    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    await other.init(legacyKey: 'a-completely-different-key-000000');
     final reopened = AudioStorageSettings(storage: other, recorder: FakeAudioRecorder());
 
     expect(reopened.keepAudio, isTrue);

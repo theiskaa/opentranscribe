@@ -21,7 +21,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     store = EntryStore(storage);
   });
 
@@ -68,7 +68,7 @@ void main() {
     // decrypt throws inside the store, which must skip it like corrupt JSON.
     SharedPreferences.setMockInitialValues({'entry:junk': 'not-fernet-ciphertext'});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     store = EntryStore(storage);
     await store.save(entry('good', DateTime.utc(2026, 3, 5)));
 

@@ -33,7 +33,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     store = EntryStore(storage);
   });
 

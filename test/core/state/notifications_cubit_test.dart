@@ -38,7 +38,7 @@ void main() {
   }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
     await reflect.setEnabledFor(weekly, reflectionsEnabled);
@@ -70,7 +70,7 @@ void main() {
   test('the initial state reads the slots synchronously, before any load', () async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
     await reflect.setEnabledFor(ReflectionPeriod.monthly, false);

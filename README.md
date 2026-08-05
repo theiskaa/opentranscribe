@@ -20,7 +20,7 @@ Transcription and reflection run on-device behind swappable contracts, `Transcri
 
 ## At rest
 
-Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-CBC with a fresh IV per record. The encryption key is a build-time secret, not a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
+Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device, never a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
 
 ## Build
 

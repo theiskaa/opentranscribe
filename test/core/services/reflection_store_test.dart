@@ -27,7 +27,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     store = ReflectionStore(storage);
   });
 
@@ -90,7 +90,7 @@ void main() {
       await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
       await store.delete(DateTime(2026, 7, 20));
       final failing = _DeleteFails();
-      await failing.init(encryptionKey: key);
+      await failing.init(legacyKey: key);
       final failingStore = ReflectionStore(failing);
 
       await expectLater(
@@ -114,7 +114,7 @@ void main() {
   test('an undecryptable raw value under the prefix is skipped, not fatal', () async {
     SharedPreferences.setMockInitialValues({'reflection:junk': 'not-ciphertext'});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     store = ReflectionStore(storage);
     await store.save(reflection(DateTime(2026, 7, 20), text: 'good'));
 

@@ -15,7 +15,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
   });
 
   ThemeCubit build({Brightness brightness = Brightness.light}) =>
@@ -53,7 +53,7 @@ void main() {
     // Reopen the same prefs under a different key: the stored mode no longer
     // decrypts and the boot read must not throw.
     final other = LocalService();
-    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    await other.init(legacyKey: 'a-completely-different-key-000000');
     expect(
       ThemeCubit(storage: other, platformBrightness: Brightness.light).state.mode,
       AppThemeMode.system,
@@ -63,7 +63,7 @@ void main() {
   test('a failing persist applies nothing', () async {
     // An empty encryption key makes every encrypting write throw.
     final broken = LocalService();
-    await broken.init(encryptionKey: '');
+    await broken.init(legacyKey: '');
     final cubit = ThemeCubit(storage: broken, platformBrightness: Brightness.light);
 
     await expectLater(cubit.setMode(AppThemeMode.dark), throwsA(anything));

@@ -18,7 +18,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     engine = FakeBatchEngine();
     service = TranscriptionService(
       recorder: FakeAudioRecorder(),
@@ -189,7 +189,7 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('otr-cubitkeep');
     final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final store = EntryStore(storage);
     final svc = TranscriptionService(
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
@@ -223,7 +223,7 @@ void main() {
 
   test('retranscribe of a transcript-only entry pins a failure, never the zone', () async {
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final store = EntryStore(storage);
     final localEngine = FakeBatchEngine();
     final svc = TranscriptionService(
@@ -257,7 +257,7 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('otr-cubitdisc');
     File('${dir.path}/take.m4a').writeAsStringSync('audio');
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final svc = TranscriptionService(
       recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
       engine: FakeBatchEngine(),

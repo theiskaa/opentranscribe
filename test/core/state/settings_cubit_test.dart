@@ -25,7 +25,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     recorder = FakeAudioRecorder();
     engine = FakeManagedEngine(supportedLocaleTags: ['en-US', 'de-DE']);
     service = TranscriptionService(recorder: recorder, engine: engine, store: EntryStore(storage));

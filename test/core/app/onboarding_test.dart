@@ -10,7 +10,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
   });
 
   test('defaults to not done', () {
@@ -22,14 +22,14 @@ void main() {
     expect(Onboarding.isDone(storage), isTrue);
 
     final reopened = LocalService();
-    await reopened.init(encryptionKey: key);
+    await reopened.init(legacyKey: key);
     expect(Onboarding.isDone(reopened), isTrue);
   });
 
   test('an undecryptable stored value fails safe to not done', () async {
     await Onboarding.markDone(storage);
     final other = LocalService();
-    await other.init(encryptionKey: 'a-completely-different-key-000000');
+    await other.init(legacyKey: 'a-completely-different-key-000000');
     expect(Onboarding.isDone(other), isFalse);
   });
 }

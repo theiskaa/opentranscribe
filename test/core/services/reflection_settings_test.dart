@@ -14,7 +14,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     settings = ReflectionSettings(storage: storage);
   });
 
@@ -67,7 +67,7 @@ void main() {
   test('an undecryptable store falls back to defaults, never throws', () async {
     SharedPreferences.setMockInitialValues({'reflect.weekly.enabled': 'not-ciphertext'});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     settings = ReflectionSettings(storage: storage);
 
     expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);

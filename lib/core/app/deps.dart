@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/app/storage_key.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
@@ -137,8 +138,14 @@ class Deps {
       debugPrint('deps: using the committed development STORAGE_KEY (debug/profile only)');
     }
 
+    // The device key must never fall back to null once obtain() has run once
+    // on this device: a device that has migrated to v3 would otherwise read
+    // as an empty journal instead of failing loudly. Let a Keychain failure
+    // throw; bootstrap surfaces it.
+    final deviceKey = await StorageKey().obtain();
+
     final localService = LocalService();
-    await localService.init(encryptionKey: _storageKey);
+    await localService.init(legacyKey: _storageKey, deviceKey: deviceKey);
 
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.

@@ -121,7 +121,7 @@ dart format .                   # 100-column formatting
 flutter gen-l10n                # regenerate localizations after editing .arb
 ```
 
-The storage encryption key is a build-time secret, never committed. Debug builds fall back to a committed development key; a release build throws at `Deps.init()` unless a real one is supplied:
+The journal's encryption key is a per-device random key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`); it never leaves the device. `STORAGE_KEY` remains a build-time secret, never committed, needed only to read and migrate records written before the Keychain key existed. Debug builds fall back to a committed development key; a release build throws at `Deps.init()` unless a real one is supplied:
 
 ```
 flutter run --dart-define=STORAGE_KEY=<your-32-char-key>

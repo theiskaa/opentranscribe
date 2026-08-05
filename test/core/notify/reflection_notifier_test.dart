@@ -27,7 +27,7 @@ void main() {
   Future<({NotificationSettings notify, ReflectionSettings reflect})> settings() async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     return (
       notify: NotificationSettings(storage: storage),
       reflect: ReflectionSettings(storage: storage),

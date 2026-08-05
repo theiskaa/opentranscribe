@@ -11,7 +11,7 @@ void main() {
   Future<({LocalService storage, NotificationSettings settings})> build() async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     return (storage: storage, settings: NotificationSettings(storage: storage));
   }
 

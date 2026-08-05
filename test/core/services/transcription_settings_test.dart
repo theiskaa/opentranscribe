@@ -16,7 +16,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: key);
+    await storage.init(legacyKey: key);
     service = TranscriptionService(
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(supportedLocaleTags: ['en-US', 'de-DE', 'tr-TR']),
@@ -137,7 +137,7 @@ void main() {
     // only sometimes fails PKCS7 padding, sometimes decrypts to garbage.
     SharedPreferences.setMockInitialValues({'transcribe.localeId': 'v2:corrupt'});
     final other = LocalService();
-    await other.init(encryptionKey: key);
+    await other.init(legacyKey: key);
     final settings = TranscriptionSettings(
       storage: other,
       service: service,
