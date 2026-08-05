@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 32-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 35-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -84,6 +84,9 @@ abstract final class AppIcons {
   /// SF Symbol `play.fill`.
   static const IconData playFill = IconData(0x100284, fontFamily: _family);
 
+  /// SF Symbol `slider.horizontal.3`.
+  static const IconData sliderHorizontal3 = IconData(0x100306, fontFamily: _family);
+
   /// SF Symbol `square.fill`.
   static const IconData squareFill = IconData(0x100093, fontFamily: _family);
 
@@ -92,6 +95,12 @@ abstract final class AppIcons {
 
   /// SF Symbol `sun.max`.
   static const IconData sunMax = IconData(0x1001AD, fontFamily: _family);
+
+  /// SF Symbol `text.alignleft`.
+  static const IconData textAlignleft = IconData(0x100300, fontFamily: _family);
+
+  /// SF Symbol `text.quote`.
+  static const IconData textQuote = IconData(0x1002FF, fontFamily: _family);
 
   /// SF Symbol `textformat`.
   static const IconData textformat = IconData(0x100152, fontFamily: _family);
@@ -134,9 +143,12 @@ abstract final class AppIcons {
         0x1001BA: 'moon.fill',
         0x100286: 'pause.fill',
         0x100284: 'play.fill',
+        0x100306: 'slider.horizontal.3',
         0x100093: 'square.fill',
         0x1006F7: 'stop.fill',
         0x1001AD: 'sun.max',
+        0x100300: 'text.alignleft',
+        0x1002FF: 'text.quote',
         0x100152: 'textformat',
         0x100211: 'trash',
         0x10066B: 'waveform',
