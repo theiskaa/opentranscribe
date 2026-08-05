@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
-import 'package:flutter/material.dart' show SelectionArea;
+import 'package:flutter/material.dart' show AdaptiveTextSelectionToolbar, SelectionArea;
 import 'package:flutter/widgets.dart';
 
 /// Marks a reading region as selectable, so its prose selects and copies with
@@ -22,8 +22,38 @@ class SelectableProse extends StatelessWidget {
   final FocusNode? focusNode;
 
   @override
-  Widget build(BuildContext context) => SelectionArea(focusNode: focusNode, child: child);
+  Widget build(BuildContext context) =>
+      SelectionArea(focusNode: focusNode, contextMenuBuilder: _contextMenu, child: child);
+
+  static Widget _contextMenu(BuildContext context, SelectableRegionState state) =>
+      AdaptiveTextSelectionToolbar.buttonItems(
+        anchors: state.contextMenuAnchors,
+        buttonItems: copyDismissesSelection(state.contextMenuButtonItems, state.clearSelection),
+      );
 }
+
+/// Rebuilds toolbar [items] so Copy also clears the selection after it runs.
+/// A [SelectableRegion] clears the selection on copy on Android and desktop
+/// but deliberately leaves it standing on iOS and macOS; native iOS dismisses
+/// it on copy, so this restores that, leaving every other action as it was.
+@visibleForTesting
+List<ContextMenuButtonItem> copyDismissesSelection(
+  List<ContextMenuButtonItem> items,
+  VoidCallback clearSelection,
+) => [
+  for (final item in items)
+    if (item.type == ContextMenuButtonType.copy && item.onPressed != null)
+      ContextMenuButtonItem(
+        type: item.type,
+        label: item.label,
+        onPressed: () {
+          item.onPressed!();
+          clearSelection();
+        },
+      )
+    else
+      item,
+];
 
 /// Tints the platform selection handles, caret, and toolbar from the theme.
 /// Must wrap the app above the router's navigator (see App.build): the selection
