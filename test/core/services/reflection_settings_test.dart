@@ -74,15 +74,17 @@ void main() {
     expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
   });
 
-  test('by default weekly is on while daily and monthly are off', () {
+  test('by default weekly and monthly are on while daily is off', () {
     expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);
     expect(settings.enabledFor(ReflectionPeriod.daily), isFalse);
-    expect(settings.enabledFor(ReflectionPeriod.monthly), isFalse);
+    expect(settings.enabledFor(ReflectionPeriod.monthly), isTrue);
     expect(settings.anyEnabled, isTrue);
   });
 
   test('anyEnabled is false only when every period is off', () async {
     await settings.setEnabledFor(ReflectionPeriod.weekly, false);
+    expect(settings.anyEnabled, isTrue);
+    await settings.setEnabledFor(ReflectionPeriod.monthly, false);
     expect(settings.anyEnabled, isFalse);
     await settings.setEnabledFor(ReflectionPeriod.daily, true);
     expect(settings.anyEnabled, isTrue);

@@ -53,7 +53,7 @@ void main() {
     await cubit.load();
 
     expect(cubit.state.available, isTrue);
-    expect(cubit.state.enabled, isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isTrue);
     expect(cubit.state.style, ReflectionStyle.defaults);
     expect(cubit.state.history.map((r) => r.text), ['kept']);
     await cubit.close();
@@ -85,18 +85,49 @@ void main() {
     await check(ReflectionAvailabilityStatus.unsupported, available: false);
   });
 
+  test('allDisabled only once every period is off', () async {
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.allDisabled, isFalse);
+
+    await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
+    expect(cubit.state.allDisabled, isFalse);
+    await cubit.setPeriodEnabled(ReflectionPeriod.monthly, false);
+    expect(cubit.state.allDisabled, isTrue);
+
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, true);
+    await settle();
+    expect(cubit.state.allDisabled, isFalse);
+    await cubit.close();
+  });
+
+  test('enableDefaults restores weekly and monthly while daily stays an opt-in', () async {
+    final cubit = build();
+    await cubit.load();
+    await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
+    await cubit.setPeriodEnabled(ReflectionPeriod.monthly, false);
+    expect(cubit.state.allDisabled, isTrue);
+
+    await cubit.enableDefaults();
+    await settle();
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.monthly], isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isFalse);
+    await cubit.close();
+  });
+
   test('setEnabled persists, reflects in state, and enabling kicks a catch-up', () async {
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     final cubit = build();
     await cubit.load();
 
-    await cubit.setEnabled(false);
-    expect(cubit.state.enabled, isFalse);
+    await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isFalse);
     expect(settings.enabledFor(ReflectionPeriod.weekly), isFalse);
 
-    await cubit.setEnabled(true);
+    await cubit.setPeriodEnabled(ReflectionPeriod.weekly, true);
     await settle();
-    expect(cubit.state.enabled, isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isTrue);
     expect(engine.reflectCalls, 1);
     expect(store.read(lastWeek), isNotNull);
     await cubit.close();
@@ -110,7 +141,7 @@ void main() {
     await cubit.setLength(ReflectionLength.oneLine);
     await cubit.setSpecificity(ReflectionSpecificity.abstractThemes);
 
-    expect(settings.styleFor(ReflectionPeriod.weekly), cubit.state.style);
+    expect(settings.styleFor(cubit.state.viewedPeriod), cubit.state.style);
     expect(cubit.state.style.voice, ReflectionVoice.sparse);
     expect(cubit.state.style.length, ReflectionLength.oneLine);
     expect(cubit.state.style.specificity, ReflectionSpecificity.abstractThemes);
@@ -239,13 +270,13 @@ void main() {
     final cubit = build();
     await cubit.load();
     expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
-    expect(cubit.state.enabled, isFalse);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isFalse);
     expect(cubit.state.history.map((r) => r.text), ['a week']);
 
     cubit.setViewedPeriod(ReflectionPeriod.daily);
 
     expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
-    expect(cubit.state.enabled, isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isTrue);
     expect(cubit.state.style.voice, ReflectionVoice.sparse);
     expect(cubit.state.history.map((r) => r.text), ['a day']);
     await cubit.close();
@@ -282,7 +313,7 @@ void main() {
     await settings.setFloorFor(ReflectionPeriod.daily, DateTime(2026, 6, 8));
     final cubit = build();
     await cubit.load();
-    expect(cubit.state.periods, [ReflectionPeriod.weekly]);
+    expect(cubit.state.periods, [ReflectionPeriod.weekly, ReflectionPeriod.monthly]);
 
     await cubit.setPeriodEnabled(ReflectionPeriod.daily, true);
     await settle();
@@ -381,6 +412,129 @@ void main() {
     await settle();
 
     expect(cubit.state.timeline.single.status, ReflectionPageStatus.erased);
+    await cubit.close();
+  });
+
+  test('one load carries every period\'s stored starts, silences included', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        periodStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.weekly], {lastWeek});
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.daily], {DateTime(2026, 7, 28)});
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.monthly], isEmpty);
+    await cubit.close();
+  });
+
+  test('a deleted reflection leaves the stored starts', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.weekly], {lastWeek});
+
+    await cubit.delete(lastWeek);
+    await settle();
+
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.weekly], isEmpty);
+    await cubit.close();
+  });
+
+  test('an open period\'s reflection never appears in the stored starts', () async {
+    await store.save(Reflection(periodStart: DateTime(2026, 7, 27), generatedAt: now, text: 'x'));
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.reflectedStartsByPeriod[ReflectionPeriod.weekly], isEmpty);
+    await cubit.close();
+  });
+
+  test('journaled days hold only days with transcribed material', () async {
+    entries = [
+      withText('a', DateTime(2026, 7, 22, 12), text: 'work'),
+      withText('b', DateTime(2026, 7, 23, 12)),
+    ];
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.journaledDays, contains(DateTime(2026, 7, 22)));
+    expect(cubit.state.journaledDays, isNot(contains(DateTime(2026, 7, 23))));
+    await cubit.close();
+  });
+
+  test('a fresh load lands on the broadest period with pages', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.monthly,
+        periodStart: DateTime(2026, 6),
+        generatedAt: now,
+        text: 'a month',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.monthly);
+    expect(cubit.state.timeline.single.periodStart, DateTime(2026, 6));
+    await cubit.close();
+  });
+
+  test('a fresh load falls past an empty broadest period', () async {
+    await settings.setEnabledFor(ReflectionPeriod.monthly, true);
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
+    await cubit.close();
+  });
+
+  test('viewing a period with no pages falls to the broadest one with pages', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    final cubit = build();
+    await cubit.load();
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
+    await cubit.close();
+  });
+
+  test('a deep-linked period with pages is kept across a reload', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        periodStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final cubit = build();
+    await cubit.load();
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.weekly);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    await cubit.load();
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
+    await cubit.close();
+  });
+
+  test('every period empty lands the broadest enabled period with an empty timeline', () async {
+    final cubit = build();
+    await cubit.load();
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.monthly);
+    expect(cubit.state.timeline, isEmpty);
     await cubit.close();
   });
 }

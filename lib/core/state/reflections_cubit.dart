@@ -27,11 +27,12 @@ final class ReflectionsState {
     this.viewedPeriod = ReflectionPeriod.weekly,
     this.periods = const [ReflectionPeriod.weekly],
     this.enabledByPeriod = const {},
-    this.enabled = true,
     this.style = ReflectionStyle.defaults,
     this.history = const [],
     this.homeReflections = const [],
     this.timeline = const [],
+    this.reflectedStartsByPeriod = const {},
+    this.journaledDays = const {},
     this.regenerating,
     this.regenerateFailed = false,
     this.loaded = false,
@@ -42,16 +43,13 @@ final class ReflectionsState {
   /// The period the surfaces show; defaults to weekly.
   final ReflectionPeriod viewedPeriod;
 
-  /// The periods the switcher offers, in Day/Week/Month order: those enabled OR
+  /// The periods the surfaces offer, in Day/Week/Month order: those enabled OR
   /// holding stored reflections, so a period turned off after use stays
-  /// browsable. A single entry means no switcher (nothing to switch between).
+  /// browsable.
   final List<ReflectionPeriod> periods;
 
   /// Each period's enabled flag, for the menu's per-period toggles.
   final Map<ReflectionPeriod, bool> enabledByPeriod;
-
-  /// Whether the [viewedPeriod] generates.
-  final bool enabled;
 
   /// The [viewedPeriod]'s style.
   final ReflectionStyle style;
@@ -70,6 +68,15 @@ final class ReflectionsState {
   /// page).
   final List<ReflectionPage> timeline;
 
+  /// Stored (reflected or silent) closed-page starts, per period: exactly the
+  /// starts [pageForStart] can exact-match after a period switch, so the drill
+  /// strips and the breadcrumb never offer a landing that does not exist.
+  final Map<ReflectionPeriod, Set<DateTime>> reflectedStartsByPeriod;
+
+  /// Local civil days holding at least one transcribed entry, for the day
+  /// chips' texture state.
+  final Set<DateTime> journaledDays;
+
   /// The period start whose regenerate is in flight, or null.
   final DateTime? regenerating;
 
@@ -86,16 +93,22 @@ final class ReflectionsState {
   /// screen explains an unavailable state); this gates only generation.
   bool get available => availability.isAvailable;
 
+  /// True when EVERY period is off: nothing new will be written anywhere,
+  /// which is the only state the standing disabled notice describes. One
+  /// period still writing keeps the notice away on every page.
+  bool get allDisabled => ReflectionPeriod.values.every((p) => !(enabledByPeriod[p] ?? false));
+
   ReflectionsState copyWith({
     ReflectionAvailability? availability,
     ReflectionPeriod? viewedPeriod,
     List<ReflectionPeriod>? periods,
     Map<ReflectionPeriod, bool>? enabledByPeriod,
-    bool? enabled,
     ReflectionStyle? style,
     List<Reflection>? history,
     List<Reflection>? homeReflections,
     List<ReflectionPage>? timeline,
+    Map<ReflectionPeriod, Set<DateTime>>? reflectedStartsByPeriod,
+    Set<DateTime>? journaledDays,
     DateTime? regenerating,
     bool clearRegenerating = false,
     bool? regenerateFailed,
@@ -105,11 +118,12 @@ final class ReflectionsState {
     viewedPeriod: viewedPeriod ?? this.viewedPeriod,
     periods: periods ?? this.periods,
     enabledByPeriod: enabledByPeriod ?? this.enabledByPeriod,
-    enabled: enabled ?? this.enabled,
     style: style ?? this.style,
     history: history ?? this.history,
     homeReflections: homeReflections ?? this.homeReflections,
     timeline: timeline ?? this.timeline,
+    reflectedStartsByPeriod: reflectedStartsByPeriod ?? this.reflectedStartsByPeriod,
+    journaledDays: journaledDays ?? this.journaledDays,
     regenerating: clearRegenerating ? null : (regenerating ?? this.regenerating),
     regenerateFailed: regenerateFailed ?? this.regenerateFailed,
     loaded: loaded ?? this.loaded,
@@ -175,10 +189,14 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
 
   /// Everything derived from the viewed period, computed in one place so every
   /// refresh path (load, a period switch, an enable, the changed stream, a
-  /// regenerate) agrees: the switcher's period set, each period's enabled flag,
+  /// regenerate) agrees: the offered period set, each period's enabled flag,
   /// and the viewed period's style, history, and timeline. If the viewed period
   /// left the set (turned off with no history), the view falls to the first one
-  /// offered so the surfaces never point at a period the switcher cannot reach.
+  /// offered. The very first derive lands on the BROADEST offered period (the
+  /// journal opens on its widest summary), and a viewed period with no pages
+  /// falls to the broadest one that has any: with the switcher gone, drilling
+  /// through pages is the only navigation, so the view must never strand on an
+  /// empty timeline while another period holds readable pages.
   ReflectionsState _deriveView(ReflectionsState s) {
     final histories = _service.historiesByPeriod();
     final enabledByPeriod = {for (final p in ReflectionPeriod.values) p: _settings.enabledFor(p)};
@@ -186,35 +204,68 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
       for (final p in ReflectionPeriod.values)
         if (enabledByPeriod[p]! || histories[p]!.isNotEmpty) p,
     ];
-    final period = periods.contains(s.viewedPeriod) || periods.isEmpty
+    var period = periods.contains(s.viewedPeriod) || periods.isEmpty
         ? s.viewedPeriod
         : periods.first;
-    final history = histories[period]!;
+    if (!s.loaded && periods.isNotEmpty) period = periods.last;
+    var timeline = _timelineFor(period, histories[period]!);
+    if (timeline.isEmpty) {
+      for (final p in periods.reversed) {
+        if (p == period) continue;
+        final fallback = _timelineFor(p, histories[p]!);
+        if (fallback.isNotEmpty) {
+          period = p;
+          timeline = fallback;
+          break;
+        }
+      }
+    }
     return s.copyWith(
       loaded: true,
       viewedPeriod: period,
       periods: periods,
       enabledByPeriod: enabledByPeriod,
-      enabled: enabledByPeriod[period]!,
       style: _settings.styleFor(period),
-      history: history,
+      history: histories[period]!,
       homeReflections: [
         for (final p in ReflectionPeriod.values)
           if (enabledByPeriod[p]!) ...histories[p]!,
       ],
-      timeline: reflectionTimeline(
+      timeline: timeline,
+      reflectedStartsByPeriod: {
+        for (final p in ReflectionPeriod.values)
+          p: {
+            for (final r in histories[p]!)
+              if (r.periodStart.isBefore(_service.currentStartFor(p))) r.periodStart,
+          },
+      },
+      journaledDays: _service.journaledStartsFor(ReflectionPeriod.daily),
+    );
+  }
+
+  List<ReflectionPage> _timelineFor(ReflectionPeriod period, List<Reflection> history) =>
+      reflectionTimeline(
         period: period,
         history: history,
         journaledStarts: _service.journaledStartsFor(period),
         deletedStarts: _service.deletedStartsFor(period),
         floor: _settings.floorFor(period),
         currentStart: _service.currentStartFor(period),
-      ),
-    );
-  }
+      );
 
-  /// Turns the viewed period's reflections on or off (the disabled-page button).
-  Future<void> setEnabled(bool value) => setPeriodEnabled(state.viewedPeriod, value);
+  /// The disabled page's TURN ON: restores [ReflectionSettings.defaultEnabled]'s
+  /// set, leaving daily the opt-in it starts as.
+  Future<void> enableDefaults() async {
+    for (final period in ReflectionPeriod.values) {
+      if (ReflectionSettings.defaultEnabled(period)) {
+        await _settings.setEnabledFor(period, true);
+      }
+    }
+    if (isClosed) return;
+    emit(_deriveView(state));
+    unawaited(_service.catchUp());
+    unawaited(_notifier?.sync());
+  }
 
   /// Turns one [period] on or off (the menu's per-period toggles). Enabling
   /// kicks a catch-up so a due period lands without waiting for the next launch.

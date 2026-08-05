@@ -42,6 +42,7 @@ void main() {
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
     await reflect.setEnabledFor(weekly, reflectionsEnabled);
+    await reflect.setEnabledFor(ReflectionPeriod.monthly, false);
     availability() async => available
         ? const ReflectionAvailability.available()
         : const ReflectionAvailability.unsupported();
@@ -71,6 +72,7 @@ void main() {
     await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
     final notify = NotificationSettings(storage: storage);
     final reflect = ReflectionSettings(storage: storage);
+    await reflect.setEnabledFor(ReflectionPeriod.monthly, false);
     await notify.setEnabled(ReflectionNotifier.keyFor(weekly), true);
     final scheduler = FakeNotificationScheduler();
     final cubit = NotificationsCubit(

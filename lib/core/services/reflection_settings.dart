@@ -14,10 +14,10 @@ import 'package:opentranscribe/core/reflect/reflection_period.dart';
 /// settings holders. Reads are defensive: a corrupt or absent value falls back
 /// to its default, never throws.
 ///
-/// Defaults track the app's history: weekly is on, daily and monthly are off, so
-/// nothing changes for an existing user until they opt a period in. Each
-/// period's style defaults to the literary voice; length starts one-line for a
-/// day and a paragraph for a month, matching how much each period has to say.
+/// Weekly and monthly write out of the box ([defaultEnabled]); daily is an
+/// opt-in. Each period's style defaults to the literary voice; length starts
+/// one-line for a day and a paragraph for a month, matching how much each
+/// period has to say.
 class ReflectionSettings {
   ReflectionSettings({required LocalService storage}) : _storage = storage;
 
@@ -25,12 +25,12 @@ class ReflectionSettings {
 
   String _key(ReflectionPeriod period, String knob) => 'reflect.${period.wire}.$knob';
 
-  /// Whether [period] generates. Weekly is on by default; daily and monthly are
-  /// off until the user turns them on.
+  /// Whether [period] generates. Weekly and monthly are on by default; daily
+  /// is off until the user turns it on.
   bool enabledFor(ReflectionPeriod period) => _read(
     _key(period, 'enabled'),
     (s) => s == null ? null : s != 'false',
-    _enabledDefault(period),
+    defaultEnabled(period),
   );
 
   /// Whether any period generates: the single gate the catch-up checks before
@@ -82,7 +82,10 @@ class ReflectionSettings {
   Future<void> setSpecificityFor(ReflectionPeriod period, ReflectionSpecificity value) =>
       _storage.write(_key(period, 'specificity'), value.wire);
 
-  static bool _enabledDefault(ReflectionPeriod period) => period == ReflectionPeriod.weekly;
+  /// The out-of-the-box set - weekly and monthly write from the start, daily
+  /// is an opt-in. The ONE statement of the default, which the disabled
+  /// page's turn-on ([ReflectionsCubit.enableDefaults]) restores.
+  static bool defaultEnabled(ReflectionPeriod period) => period != ReflectionPeriod.daily;
 
   static ReflectionLength _lengthDefault(ReflectionPeriod period) => switch (period) {
     ReflectionPeriod.daily => ReflectionLength.oneLine,
