@@ -105,8 +105,9 @@ class PlayerCubit extends Cubit<PlayerState> {
     : _player = player,
       _service = service,
       super(const PlayerState()) {
-    _sub = _player.state.listen(
-      (snapshot) => emit(
+    _sub = _player.state.listen((snapshot) {
+      if (isClosed) return;
+      emit(
         state.copyWith(
           status: snapshot.status,
           position: snapshot.position,
@@ -115,9 +116,8 @@ class PlayerCubit extends Cubit<PlayerState> {
           // native side is answering again.
           failed: false,
         ),
-      ),
-      onError: (Object _) {},
-    );
+      );
+    }, onError: (Object _) {});
   }
 
   final AudioPlayer _player;
