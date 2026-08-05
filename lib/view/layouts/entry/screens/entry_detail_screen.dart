@@ -474,7 +474,7 @@ class _TitleField extends StatefulWidget {
 
 class _TitleFieldState extends State<_TitleField> {
   late final TextEditingController _controller = TextEditingController(
-    text: entryDisplayTitle(widget.entry),
+    text: entryDisplayTitle(widget.entry, localeTag(context)),
   );
   EntriesCubit? _entries;
 
@@ -504,7 +504,7 @@ class _TitleFieldState extends State<_TitleField> {
     super.didUpdateWidget(oldWidget);
     // Reflect an external change (a commit round-trip) unless mid-edit.
     if (!widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
-      _controller.text = entryDisplayTitle(widget.entry);
+      _controller.text = entryDisplayTitle(widget.entry, localeTag(context));
     }
   }
 
@@ -514,7 +514,7 @@ class _TitleFieldState extends State<_TitleField> {
 
   void _commit() {
     final trimmed = _controller.text.trim();
-    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null));
+    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), localeTag(context));
     final cleared = trimmed.isEmpty || trimmed == untitledDefault;
     if (cleared && widget.entry.title == null) {
       // Nothing changed; just restore the default text.
