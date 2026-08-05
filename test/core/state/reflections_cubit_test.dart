@@ -101,6 +101,26 @@ void main() {
     await cubit.close();
   });
 
+  test('hasBacklog flags a pre-floor journaled period and generateBacklog drains it', () async {
+    await settings.setEnabledFor(ReflectionPeriod.monthly, false);
+    entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
+    engine.output = 'the may week reflected';
+    final cubit = build();
+    await cubit.load();
+    await settle();
+
+    expect(cubit.state.hasBacklog, isTrue);
+    expect(cubit.state.timeline, isEmpty);
+
+    await cubit.generateBacklog();
+    await settle();
+
+    expect(cubit.state.generatingAll, isFalse);
+    expect(cubit.state.hasBacklog, isFalse);
+    expect(store.read(DateTime(2026, 5, 25))!.text, 'the may week reflected');
+    await cubit.close();
+  });
+
   test('enableDefaults restores weekly and monthly while daily stays an opt-in', () async {
     final cubit = build();
     await cubit.load();

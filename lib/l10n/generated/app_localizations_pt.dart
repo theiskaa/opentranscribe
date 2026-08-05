@@ -497,6 +497,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => 'Deixar decidir';
 
   @override
+  String get reflectionGenerateAll => 'Gerar reflexões';
+
+  @override
   String get reflectionRegenerate => 'Regenerar';
 
   @override

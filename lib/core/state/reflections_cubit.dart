@@ -33,6 +33,8 @@ final class ReflectionsState {
     this.timeline = const [],
     this.reflectedStartsByPeriod = const {},
     this.journaledDays = const {},
+    this.hasBacklog = false,
+    this.generatingAll = false,
     this.regenerating,
     this.regenerateFailed = false,
     this.loaded = false,
@@ -77,6 +79,16 @@ final class ReflectionsState {
   /// chips' texture state.
   final Set<DateTime> journaledDays;
 
+  /// A past period with material but no reflection yet exists (pre-feature
+  /// history, or a period only just enabled): the surface offers the
+  /// generate-all action, which self-hides once this goes false.
+  final bool hasBacklog;
+
+  /// The generate-all backfill is in flight: withdraws the menu action so it
+  /// cannot be fired twice while running. The work itself shows through the
+  /// pages appearing (the floors drop, the backlog fills), not a spinner.
+  final bool generatingAll;
+
   /// The period start whose regenerate is in flight, or null.
   final DateTime? regenerating;
 
@@ -109,6 +121,8 @@ final class ReflectionsState {
     List<ReflectionPage>? timeline,
     Map<ReflectionPeriod, Set<DateTime>>? reflectedStartsByPeriod,
     Set<DateTime>? journaledDays,
+    bool? hasBacklog,
+    bool? generatingAll,
     DateTime? regenerating,
     bool clearRegenerating = false,
     bool? regenerateFailed,
@@ -124,6 +138,8 @@ final class ReflectionsState {
     timeline: timeline ?? this.timeline,
     reflectedStartsByPeriod: reflectedStartsByPeriod ?? this.reflectedStartsByPeriod,
     journaledDays: journaledDays ?? this.journaledDays,
+    hasBacklog: hasBacklog ?? this.hasBacklog,
+    generatingAll: generatingAll ?? this.generatingAll,
     regenerating: clearRegenerating ? null : (regenerating ?? this.regenerating),
     regenerateFailed: regenerateFailed ?? this.regenerateFailed,
     loaded: loaded ?? this.loaded,
@@ -240,6 +256,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
           },
       },
       journaledDays: _service.journaledStartsFor(ReflectionPeriod.daily),
+      hasBacklog: _service.hasBacklog(),
     );
   }
 
@@ -265,6 +282,21 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     emit(_deriveView(state));
     unawaited(_service.catchUp());
     unawaited(_notifier?.sync());
+  }
+
+  /// Reflects the whole journal's backlog - every past period with material
+  /// but no reflection yet, pre-feature history included. Sets
+  /// [ReflectionsState.generatingAll] so the action cannot re-fire while it
+  /// runs; the pages fill in through the changed stream as each lands, and
+  /// [ReflectionsState.hasBacklog] falls once it is drained.
+  Future<void> generateBacklog() async {
+    if (isClosed || state.generatingAll) return;
+    emit(state.copyWith(generatingAll: true));
+    try {
+      await _service.reflectBacklog();
+    } finally {
+      if (!isClosed) emit(_deriveView(state.copyWith(generatingAll: false)));
+    }
   }
 
   /// Turns one [period] on or off (the menu's per-period toggles). Enabling

@@ -498,6 +498,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => 'Lascia decidere';
 
   @override
+  String get reflectionGenerateAll => 'Genera riflessioni';
+
+  @override
   String get reflectionRegenerate => 'Rigenera';
 
   @override

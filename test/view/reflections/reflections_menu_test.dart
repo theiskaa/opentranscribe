@@ -10,6 +10,7 @@ const ReflectionMenuLabels _labels = (
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
+  generateAll: 'Generate reflections',
   regenerate: 'Regenerate',
   delete: 'Delete',
   voice: 'Voice',
@@ -34,6 +35,7 @@ const _weeklyOnly = {
 
 List<AppMenuItem> build({
   Map<ReflectionPeriod, bool> enabledByPeriod = _weeklyOnly,
+  bool canGenerateAll = false,
   bool canRegenerate = true,
   bool canDelete = true,
   bool showSettings = true,
@@ -41,6 +43,7 @@ List<AppMenuItem> build({
   enabledByPeriod: enabledByPeriod,
   style: ReflectionStyle.defaults,
   labels: _labels,
+  canGenerateAll: canGenerateAll,
   canRegenerate: canRegenerate,
   canDelete: canDelete,
   showSettings: showSettings,
@@ -55,6 +58,32 @@ void main() {
     expect(idsOf(build()), ['r:periods', 'r:voice', 'r:length', 'r:spec', 'r:regen', 'r:delete']);
     expect(build().singleWhere((i) => i.id == 'r:delete').destructive, isTrue);
     expect(build().singleWhere((i) => i.id == 'r:regen').destructive, isFalse);
+  });
+
+  test('generate-all leads the menu, its own divider before the rest, and no icon-less rows', () {
+    final items = build(canGenerateAll: true);
+    expect(idsOf(items).first, 'r:genall');
+    expect(items.singleWhere((i) => i.id == 'r:genall').icon, isNotNull);
+    expect(idsOf(items), [
+      'r:genall',
+      'r:periods',
+      'r:voice',
+      'r:length',
+      'r:spec',
+      'r:regen',
+      'r:delete',
+    ]);
+  });
+
+  test('generate-all as the sole item carries no trailing divider', () {
+    final items = build(
+      canGenerateAll: true,
+      showSettings: false,
+      canRegenerate: false,
+      canDelete: false,
+    );
+    expect(idsOf(items), ['r:genall']);
+    expect(items.any((i) => i.isDivider), isFalse);
   });
 
   test('without settings the menu is actions only: no toggles, no knobs, no divider', () {
@@ -113,6 +142,7 @@ void main() {
         specificity: ReflectionSpecificity.abstractThemes,
       ),
       labels: _labels,
+      canGenerateAll: false,
       canRegenerate: true,
       canDelete: true,
       showSettings: true,

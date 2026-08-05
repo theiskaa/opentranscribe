@@ -466,6 +466,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => 'お任せする';
 
   @override
+  String get reflectionGenerateAll => '振り返りを生成';
+
+  @override
   String get reflectionRegenerate => '再生成';
 
   @override

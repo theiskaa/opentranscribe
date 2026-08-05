@@ -142,6 +142,7 @@
   "reflectionSpecificsNameFreely": "点明细节",
   "reflectionSpecificsThemes": "仅主题",
   "reflectionSpecificsLetPeriod": "由它决定",
+  "reflectionGenerateAll": "生成回顾",
   "reflectionRegenerate": "重新生成",
   "reflectionDeleteDay": "删除这一天",
   "reflectionDeleteWeek": "删除这一周",

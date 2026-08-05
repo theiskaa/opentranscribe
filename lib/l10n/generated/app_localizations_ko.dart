@@ -467,6 +467,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => '알아서 정하도록';
 
   @override
+  String get reflectionGenerateAll => '돌아보기 생성';
+
+  @override
   String get reflectionRegenerate => '다시 생성';
 
   @override

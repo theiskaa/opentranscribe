@@ -142,6 +142,7 @@
   "reflectionSpecificsNameFreely": "구체적으로 쓰기",
   "reflectionSpecificsThemes": "주제만",
   "reflectionSpecificsLetPeriod": "알아서 정하도록",
+  "reflectionGenerateAll": "돌아보기 생성",
   "reflectionRegenerate": "다시 생성",
   "reflectionDeleteDay": "하루 삭제",
   "reflectionDeleteWeek": "한 주 삭제",

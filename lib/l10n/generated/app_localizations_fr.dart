@@ -498,6 +498,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => 'Laisser décider';
 
   @override
+  String get reflectionGenerateAll => 'Générer les rétrospectives';
+
+  @override
   String get reflectionRegenerate => 'Régénérer';
 
   @override

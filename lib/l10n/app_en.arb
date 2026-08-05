@@ -629,6 +629,10 @@
   "@reflectionSpecificsLetPeriod": {
     "description": "Specifics option: name a specific only when clearly central"
   },
+  "reflectionGenerateAll": "Generate reflections",
+  "@reflectionGenerateAll": {
+    "description": "Menu action: reflect on the whole journal's backlog of past periods that have recordings but no reflection yet"
+  },
   "reflectionRegenerate": "Regenerate",
   "@reflectionRegenerate": {
     "description": "Per-period action: re-run this reflection in the current style"

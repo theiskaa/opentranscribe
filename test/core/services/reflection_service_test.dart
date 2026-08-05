@@ -780,4 +780,50 @@ void main() {
     expect(store.read(sundayWeek), isNull);
     expect(store.all(), isEmpty);
   });
+
+  group('reflectBacklog', () {
+    final mayWeek = DateTime(2026, 5, 25);
+
+    setUp(() async {
+      await settings.setEnabledFor(ReflectionPeriod.monthly, false);
+    });
+
+    test('catch-up leaves a pre-floor week, and reflectBacklog reflects it', () async {
+      entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
+      engine.output = 'the may week reflected';
+
+      await service.catchUp();
+      expect(store.read(mayWeek), isNull);
+
+      await service.reflectBacklog();
+      expect(store.read(mayWeek)!.text, 'the may week reflected');
+    });
+
+    test('hasBacklog is true for a journaled pre-floor period and false once drained', () async {
+      entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
+
+      expect(service.hasBacklog(), isTrue);
+      await service.reflectBacklog();
+      expect(service.hasBacklog(), isFalse);
+    });
+
+    test('a stored reflection below the floor is left as it is', () async {
+      await store.save(Reflection(periodStart: mayWeek, generatedAt: now, text: 'kept by hand'));
+      entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
+      engine.output = 'regenerated text';
+
+      await service.reflectBacklog();
+
+      expect(store.read(mayWeek)!.text, 'kept by hand');
+    });
+
+    test('an erased pre-floor period stays erased', () async {
+      entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
+      await store.delete(mayWeek);
+
+      await service.reflectBacklog();
+
+      expect(store.read(mayWeek), isNull);
+    });
+  });
 }

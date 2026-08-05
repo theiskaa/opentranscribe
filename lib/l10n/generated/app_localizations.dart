@@ -960,6 +960,12 @@ abstract class AppLocalizations {
   /// **'Let it decide'**
   String get reflectionSpecificsLetPeriod;
 
+  /// Menu action: reflect on the whole journal's backlog of past periods that have recordings but no reflection yet
+  ///
+  /// In en, this message translates to:
+  /// **'Generate reflections'**
+  String get reflectionGenerateAll;
+
   /// Per-period action: re-run this reflection in the current style
   ///
   /// In en, this message translates to:

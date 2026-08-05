@@ -142,6 +142,7 @@
   "reflectionSpecificsNameFreely": "Nommer les détails",
   "reflectionSpecificsThemes": "Thèmes seulement",
   "reflectionSpecificsLetPeriod": "Laisser décider",
+  "reflectionGenerateAll": "Générer les rétrospectives",
   "reflectionRegenerate": "Régénérer",
   "reflectionDeleteDay": "Supprimer le jour",
   "reflectionDeleteWeek": "Supprimer la semaine",

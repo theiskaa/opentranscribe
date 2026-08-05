@@ -463,6 +463,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => '由它决定';
 
   @override
+  String get reflectionGenerateAll => '生成回顾';
+
+  @override
   String get reflectionRegenerate => '重新生成';
 
   @override

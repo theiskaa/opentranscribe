@@ -19,6 +19,7 @@ typedef ReflectionMenuLabels = ({
   String daily,
   String weekly,
   String monthly,
+  String generateAll,
   String regenerate,
   String delete,
   String voice,
@@ -91,10 +92,17 @@ List<AppMenuItem> reflectionsMenuItems({
   required Map<ReflectionPeriod, bool> enabledByPeriod,
   required ReflectionStyle style,
   required ReflectionMenuLabels labels,
+  required bool canGenerateAll,
   required bool canRegenerate,
   required bool canDelete,
   required bool showSettings,
 }) => [
+  // The whole-journal backfill leads: on an empty first-run surface it is the
+  // only action, and it self-hides once there is no backlog left.
+  if (canGenerateAll) ...[
+    AppMenuItem(id: 'r:genall', label: labels.generateAll, icon: AppIcons.sparkles),
+    if (showSettings || canRegenerate || canDelete) const AppMenuItem.divider(),
+  ],
   if (showSettings) ...[
     // The three toggles live in ONE submenu that stays presented across
     // taps, so several periods flip in a single visit and their checkmarks
@@ -152,6 +160,7 @@ ReflectionMenuLabels _labelsOf(AppLocalizations l10n, ReflectionPeriod viewedPer
   daily: l10n.reflectionDaily,
   weekly: l10n.reflectionWeekly,
   monthly: l10n.reflectionMonthly,
+  generateAll: l10n.reflectionGenerateAll,
   regenerate: l10n.reflectionRegenerate,
   // Named for what falls: the viewed period's page, not an abstract record.
   delete: switch (viewedPeriod) {
@@ -281,6 +290,10 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       if (viewed != null) unawaited(cubit.delete(viewed.periodStart));
       return;
     }
+    if (id == 'r:genall') {
+      unawaited(cubit.generateBacklog());
+      return;
+    }
     if (id == 'r:periods') {
       unawaited(_pickPeriod(labels));
       return;
@@ -333,6 +346,9 @@ class _ReflectionsMenuState extends State<ReflectionsMenu> {
       enabledByPeriod: state.enabledByPeriod,
       style: state.style,
       labels: labels,
+      // Offered only with a backlog to drain and a model to run it, and
+      // withdrawn while it runs so it cannot be double-fired.
+      canGenerateAll: state.hasBacklog && state.available && !state.generatingAll,
       canRegenerate: viewed != null && state.available,
       canDelete: viewed?.reflection != null,
       // The Periods and style knobs are preferences that persist and apply

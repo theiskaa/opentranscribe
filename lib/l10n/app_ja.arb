@@ -142,6 +142,7 @@
   "reflectionSpecificsNameFreely": "具体的に書く",
   "reflectionSpecificsThemes": "テーマのみ",
   "reflectionSpecificsLetPeriod": "お任せする",
+  "reflectionGenerateAll": "振り返りを生成",
   "reflectionRegenerate": "再生成",
   "reflectionDeleteDay": "日を削除",
   "reflectionDeleteWeek": "週を削除",

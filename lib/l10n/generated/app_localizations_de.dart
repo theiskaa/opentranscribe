@@ -500,6 +500,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reflectionSpecificsLetPeriod => 'Es entscheiden lassen';
 
   @override
+  String get reflectionGenerateAll => 'Rückblicke erstellen';
+
+  @override
   String get reflectionRegenerate => 'Neu erstellen';
 
   @override

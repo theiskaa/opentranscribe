@@ -108,6 +108,64 @@ class ReflectionService {
     }
   }
 
+  /// Reflects the WHOLE journal, not just each period's floor-forward stream:
+  /// lowers every enabled period's no-backfill floor to its earliest entry
+  /// with material, then runs the ordinary [catchUp]. The user's explicit
+  /// "reflect on my history" ask, for content that predates the feature (or a
+  /// period only just enabled). Fills every closed period that has material
+  /// and is neither already reflected nor erased; existing reflections and
+  /// tombstones stand. Idempotent, and cheap once the backlog is drained.
+  ///
+  /// Emits a change once the floors drop, before generating, so the surface
+  /// shows the whole backlog as waiting pages at once and then fills them in.
+  Future<void> reflectBacklog() async {
+    var lowered = false;
+    for (final period in ReflectionPeriod.values) {
+      if (!_settings.enabledFor(period)) continue;
+      final earliest = _earliestMaterialStart(period);
+      if (earliest == null) continue;
+      final floor = _settings.floorFor(period);
+      if (floor == null || earliest.isBefore(floor)) {
+        await _settings.setFloorFor(period, earliest);
+        lowered = true;
+      }
+    }
+    if (lowered) _emitChanged();
+    // If a launch/resume catch-up is still in flight this no-ops (its
+    // single-flight), but the floors are already persisted, so the next
+    // catch-up drains the backlog. The lowered floor is the durable intent.
+    await catchUp();
+  }
+
+  /// Whether [reflectBacklog] has anything to do: an enabled period with a
+  /// closed, journaled start that holds material and is neither reflected nor
+  /// erased. Drives the surface's offer of the action, so it appears only with
+  /// a backlog and self-hides once drained.
+  bool hasBacklog() {
+    final stored = _store.all();
+    for (final period in ReflectionPeriod.values) {
+      if (!_settings.enabledFor(period)) continue;
+      final current = _currentStart(period);
+      for (final start in journaledStartsFor(period)) {
+        if (!start.isBefore(current)) continue;
+        if (_covered(period, start, stored)) continue;
+        if (_tombstoned(period, start)) continue;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// The earliest [period] start holding an entry with material, or null when
+  /// the period has none.
+  DateTime? _earliestMaterialStart(ReflectionPeriod period) {
+    DateTime? earliest;
+    for (final start in journaledStartsFor(period)) {
+      if (earliest == null || start.isBefore(earliest)) earliest = start;
+    }
+    return earliest;
+  }
+
   Future<void> _catchUpPeriod(ReflectionPeriod period) async {
     // Recorded before the availability gate: the floor marks when this period
     // first ran, not when the model first answered.
