@@ -299,11 +299,4 @@ final class LiquidIconButtonGroupView: LiquidNativeView {
     }
   }
 
-  // MARK: - Helpers
-
-  private func boolValue(from dict: [String: Any], key: String) -> Bool? {
-    if let b = dict[key] as? Bool { return b }
-    if let n = dict[key] as? NSNumber { return n.boolValue }
-    return nil
-  }
 }

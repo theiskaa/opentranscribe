@@ -78,4 +78,12 @@ class LiquidNativeView: NSObject, FlutterPlatformView {
     }
     // If not specified, don't override (use system default)
   }
+
+  /// Decodes a Flutter bool, which the codec bridges as either a native Bool or
+  /// an NSNumber. Nil when the key is absent or holds neither.
+  func boolValue(from params: [String: Any], key: String) -> Bool? {
+    if let b = params[key] as? Bool { return b }
+    if let n = params[key] as? NSNumber { return n.boolValue }
+    return nil
+  }
 }

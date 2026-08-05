@@ -52,15 +52,9 @@ final class LiquidSegmentedControlView: LiquidNativeView {
   }
 
   private func applyStyle(from params: [String: Any]) {
-    let isDark: Bool?
-    if let flag = params["isDark"] as? Bool {
-      isDark = flag
-    } else if let flag = params["isDark"] as? NSNumber {
-      isDark = flag.boolValue
-    } else {
-      isDark = nil
+    guard let isDark = boolValue(from: params, key: "isDark"), isDark != appliedIsDark else {
+      return
     }
-    guard let isDark, isDark != appliedIsDark else { return }
     appliedIsDark = isDark
     control.overrideUserInterfaceStyle = isDark ? .dark : .light
   }
@@ -70,9 +64,15 @@ final class LiquidSegmentedControlView: LiquidNativeView {
     let current = (0..<control.numberOfSegments).map { control.titleForSegment(at: $0) ?? "" }
     guard current != segments else { return }
 
+    // removeAllSegments resets selection to -1; carry it across the rebuild so a
+    // segment relabel without a selectedIndex param can't blank the selection.
+    let previousSelection = control.selectedSegmentIndex
     control.removeAllSegments()
     for (index, title) in segments.enumerated() {
       control.insertSegment(withTitle: title, at: index, animated: false)
+    }
+    if previousSelection >= 0, previousSelection < control.numberOfSegments {
+      control.selectedSegmentIndex = previousSelection
     }
     // Fresh segments carry none of the old title attributes; drop the color
     // caches so applyColors re-stamps them onto the new segments.
@@ -105,19 +105,19 @@ final class LiquidSegmentedControlView: LiquidNativeView {
 
   private func applyColors(from params: [String: Any]) {
     if let tint = UIColor(flutterARGBValue: params["selectedTintColor"]),
-      tint.isEqual(appliedTint) == false
+      !tint.isEqual(appliedTint)
     {
       appliedTint = tint
       control.selectedSegmentTintColor = tint
     }
     if let label = UIColor(flutterARGBValue: params["labelColor"]),
-      label.isEqual(appliedLabelColor) == false
+      !label.isEqual(appliedLabelColor)
     {
       appliedLabelColor = label
       control.setTitleTextAttributes([.foregroundColor: label], for: .normal)
     }
     if let selected = UIColor(flutterARGBValue: params["selectedLabelColor"]),
-      selected.isEqual(appliedSelectedLabelColor) == false
+      !selected.isEqual(appliedSelectedLabelColor)
     {
       appliedSelectedLabelColor = selected
       control.setTitleTextAttributes([.foregroundColor: selected], for: .selected)

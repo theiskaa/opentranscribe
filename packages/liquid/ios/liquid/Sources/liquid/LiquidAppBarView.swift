@@ -101,12 +101,4 @@ final class LiquidAppBarView: LiquidNativeView {
       backgroundView?.overrideUserInterfaceStyle = isDark ? .dark : .light
     }
   }
-
-  // MARK: - Helpers
-
-  private func boolValue(from dict: [String: Any], key: String) -> Bool? {
-    if let b = dict[key] as? Bool { return b }
-    if let n = dict[key] as? NSNumber { return n.boolValue }
-    return nil
-  }
 }

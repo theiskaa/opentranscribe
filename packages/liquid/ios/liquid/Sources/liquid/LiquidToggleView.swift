@@ -7,7 +7,9 @@ final class LiquidToggleView: LiquidNativeView {
   // Last-applied styling, so a value flip (which re-sends every param) never
   // re-runs the expensive work. Setting overrideUserInterfaceStyle or the
   // accent color forces the glass material to recompute its blur; doing that a
-  // frame into the knob's own slide is what read as a stutter.
+  // frame into the knob's own slide is what read as a stutter. A theme flip
+  // does change these for real, and the cache lets that through since the
+  // values genuinely differ.
   private var appliedIsDark: Bool?
   private var appliedEnabled: Bool?
   private var appliedAccent: UIColor?
@@ -51,15 +53,9 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   private func applyStyle(from params: [String: Any]) {
-    let isDark: Bool?
-    if let flag = params["isDark"] as? Bool {
-      isDark = flag
-    } else if let flag = params["isDark"] as? NSNumber {
-      isDark = flag.boolValue
-    } else {
-      isDark = nil
+    guard let isDark = boolValue(from: params, key: "isDark"), isDark != appliedIsDark else {
+      return
     }
-    guard let isDark, isDark != appliedIsDark else { return }
     appliedIsDark = isDark
     toggle.overrideUserInterfaceStyle = isDark ? .dark : .light
   }
@@ -74,7 +70,7 @@ final class LiquidToggleView: LiquidNativeView {
 
   private func applyAccent(from params: [String: Any]) {
     guard let accentColor = UIColor(flutterARGBValue: params["accentColor"]),
-      accentColor.isEqual(appliedAccent) == false
+      !accentColor.isEqual(appliedAccent)
     else { return }
     appliedAccent = accentColor
 
@@ -98,7 +94,7 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   private func applyValue(from params: [String: Any]) {
-    guard let value = params["value"] as? Bool, currentValue() != value else { return }
+    guard let value = boolValue(from: params, key: "value"), currentValue() != value else { return }
     setOn(value, animated: toggle.window != nil)
   }
 
