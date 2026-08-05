@@ -16,11 +16,7 @@ final class LiquidToggleView: LiquidNativeView {
   private var appliedLabel: String?
 
   init(registrar: FlutterPluginRegistrar, viewId: Int64, arguments: Any?) {
-    if #available(iOS 26.0, *), let control = LiquidGlassBridge.toggle() {
-      toggle = control
-    } else {
-      toggle = UISwitch(frame: .zero)
-    }
+    toggle = UISwitch(frame: .zero)
 
     super.init(
       registrar: registrar, viewId: viewId, viewType: "liquid_toggle",

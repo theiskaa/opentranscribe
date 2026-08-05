@@ -44,7 +44,7 @@ final class LiquidPopupMenuView: LiquidNativeView {
     viewType: String,
     arguments: Any?
   ) {
-    // Без всяких LiquidGlassBridge — всегда UIButton
+    // Без моста к нативному glass-классу — всегда UIButton
     root = UIView(frame: .zero)
     root.backgroundColor = .clear
     root.clipsToBounds = false
