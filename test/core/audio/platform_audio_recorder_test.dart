@@ -212,6 +212,65 @@ void main() {
     await first.cancel();
   });
 
+  test('an explicit stop clears the cached status so a fresh listener gets no replay', () async {
+    // Native replays 'recording' only while still capturing (the real
+    // AudioRecorderPlugin.onListen gates on isCapturing): fire it once, on the
+    // first native listen, never again once stop() has ended the session.
+    var firstListen = true;
+    messenger.setMockStreamHandler(
+      statusEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          if (!firstListen) return;
+          firstListen = false;
+          sink.success('recording');
+        },
+      ),
+    );
+    mockMethods((call) async => {'name': 'otr-x.m4a', 'durationMs': 100});
+
+    final first = recorder.status.listen((_) {});
+    await Future<void>.delayed(Duration.zero);
+    await first.cancel();
+
+    await recorder.stop();
+
+    var replayed = false;
+    final second = recorder.status.listen((_) => replayed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(replayed, isFalse);
+
+    await second.cancel();
+  });
+
+  test('an explicit cancel clears the cached status so a fresh listener gets no replay', () async {
+    var firstListen = true;
+    messenger.setMockStreamHandler(
+      statusEvents,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          if (!firstListen) return;
+          firstListen = false;
+          sink.success('recording');
+        },
+      ),
+    );
+    mockMethods((call) async => null);
+
+    final first = recorder.status.listen((_) {});
+    await Future<void>.delayed(Duration.zero);
+    await first.cancel();
+
+    await recorder.cancel();
+
+    var replayed = false;
+    final second = recorder.status.listen((_) => replayed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(replayed, isFalse);
+
+    await second.cancel();
+  });
+
   test('a second concurrent listener receives the cached current state', () async {
     messenger.setMockStreamHandler(
       statusEvents,
