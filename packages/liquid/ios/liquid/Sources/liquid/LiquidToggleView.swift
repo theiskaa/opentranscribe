@@ -4,6 +4,15 @@ import UIKit
 final class LiquidToggleView: LiquidNativeView {
   private let toggle: UIControl
 
+  // Last-applied styling, so a value flip (which re-sends every param) never
+  // re-runs the expensive work. Setting overrideUserInterfaceStyle or the
+  // accent color forces the glass material to recompute its blur; doing that a
+  // frame into the knob's own slide is what read as a stutter.
+  private var appliedIsDark: Bool?
+  private var appliedEnabled: Bool?
+  private var appliedAccent: UIColor?
+  private var appliedLabel: String?
+
   init(registrar: FlutterPluginRegistrar, viewId: Int64, arguments: Any?) {
     if #available(iOS 26.0, *), let control = LiquidGlassBridge.toggle() {
       toggle = control
@@ -34,35 +43,82 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   private func apply(_ params: [String: Any]) {
-    applyUserInterfaceStyle(from: params)
+    applyStyle(from: params)
+    applyEnabled(from: params)
+    applyAccent(from: params)
+    applyLabel(from: params)
+    applyValue(from: params)
+  }
 
-    let value = params["value"] as? Bool
+  private func applyStyle(from params: [String: Any]) {
+    let isDark: Bool?
+    if let flag = params["isDark"] as? Bool {
+      isDark = flag
+    } else if let flag = params["isDark"] as? NSNumber {
+      isDark = flag.boolValue
+    } else {
+      isDark = nil
+    }
+    guard let isDark, isDark != appliedIsDark else { return }
+    appliedIsDark = isDark
+    toggle.overrideUserInterfaceStyle = isDark ? .dark : .light
+  }
+
+  private func applyEnabled(from params: [String: Any]) {
     let enabled = params["enabled"] as? Bool ?? true
-    let accentColor = UIColor(flutterARGBValue: params["accentColor"])
-
+    guard enabled != appliedEnabled else { return }
+    appliedEnabled = enabled
     toggle.isUserInteractionEnabled = enabled
-    toggle.accessibilityLabel = params["semanticLabel"] as? String
+    (toggle as? UISwitch)?.isEnabled = enabled
+  }
+
+  private func applyAccent(from params: [String: Any]) {
+    guard let accentColor = UIColor(flutterARGBValue: params["accentColor"]),
+      accentColor.isEqual(appliedAccent) == false
+    else { return }
+    appliedAccent = accentColor
 
     if let nativeToggle = toggle as? UISwitch {
-      if let value, nativeToggle.isOn != value {
-        nativeToggle.setOn(value, animated: nativeToggle.window != nil)
-      }
-      nativeToggle.isEnabled = enabled
       nativeToggle.onTintColor = accentColor
       return
     }
-
-    if let value, currentValue() != value {
-      toggle.setValue(value, forKey: "isOn")
-    }
-
-    guard let accentColor else { return }
     let setter = NSSelectorFromString("setAccentColor:")
     if toggle.responds(to: setter) {
       toggle.perform(setter, with: accentColor)
     } else {
       toggle.tintColor = accentColor
     }
+  }
+
+  private func applyLabel(from params: [String: Any]) {
+    let label = params["semanticLabel"] as? String
+    guard label != appliedLabel else { return }
+    appliedLabel = label
+    toggle.accessibilityLabel = label
+  }
+
+  private func applyValue(from params: [String: Any]) {
+    guard let value = params["value"] as? Bool, currentValue() != value else { return }
+    setOn(value, animated: toggle.window != nil)
+  }
+
+  /// A programmatic flip (a row tap round-tripping back, or a declined change
+  /// reverting) should slide like a direct tap, not snap. UISwitch and the
+  /// glass control both mirror the UIKit `setOn:animated:` API; KVC is the
+  /// last resort for a control that lacks it, and only ever lands unanimated.
+  private func setOn(_ value: Bool, animated: Bool) {
+    if let nativeToggle = toggle as? UISwitch {
+      nativeToggle.setOn(value, animated: animated)
+      return
+    }
+    let selector = NSSelectorFromString("setOn:animated:")
+    if animated, toggle.responds(to: selector), let imp = toggle.method(for: selector) {
+      typealias SetOnAnimated = @convention(c) (AnyObject, Selector, Bool, Bool) -> Void
+      let call = unsafeBitCast(imp, to: SetOnAnimated.self)
+      call(toggle, selector, value, true)
+      return
+    }
+    toggle.setValue(value, forKey: "isOn")
   }
 
   private func currentValue() -> Bool {
