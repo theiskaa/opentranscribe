@@ -312,6 +312,11 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
         _pagerActive = false;
       }
       _shownPeriod = state.viewedPeriod;
+    } else if (_pendingDrillStart != null) {
+      // A drill whose period switch did not happen (the cubit refused or
+      // fell back): its arrival must not replay a transformation on a page
+      // that never changed.
+      _arrival = null;
     }
     // Consumed by the switch above or stale (the cubit landed elsewhere);
     // either way it must not steer a later, unrelated period change.
