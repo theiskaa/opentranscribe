@@ -253,22 +253,24 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             child: FadeTransition(opacity: _reveal, child: _content(context)),
           ),
           IgnorePointer(
-            child: FadeTransition(
-              opacity: _hide,
-              child: inkImage != null
-                  ? InvisibleInk(
-                      image: inkImage,
-                      size: inkSize,
-                      pixelRatio: _inkDpr,
-                      color: theme.player.segmentColor,
-                      clock: _clock,
-                    )
-                  : InvisibleInk.points(
-                      points: inkPoints!,
-                      size: inkSize,
-                      color: theme.player.segmentColor,
-                      clock: _clock,
-                    ),
+            child: RepaintBoundary(
+              child: FadeTransition(
+                opacity: _hide,
+                child: inkImage != null
+                    ? InvisibleInk(
+                        image: inkImage,
+                        size: inkSize,
+                        pixelRatio: _inkDpr,
+                        color: theme.player.segmentColor,
+                        clock: _clock,
+                      )
+                    : InvisibleInk.points(
+                        points: inkPoints!,
+                        size: inkSize,
+                        color: theme.player.segmentColor,
+                        clock: _clock,
+                      ),
+              ),
             ),
           ),
         ],

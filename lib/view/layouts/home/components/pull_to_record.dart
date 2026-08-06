@@ -192,15 +192,17 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CustomPaint(
-                  size: Size(width, _waveHeight),
-                  painter: _PullWavePainter(
-                    repaint: _phase,
-                    progress: t,
-                    phase: () => _phase.value * 2 * math.pi,
-                    color: color,
-                    barWidth: barWidth,
-                    gap: gap,
+                RepaintBoundary(
+                  child: CustomPaint(
+                    size: Size(width, _waveHeight),
+                    painter: _PullWavePainter(
+                      repaint: _phase,
+                      progress: t,
+                      phase: () => _phase.value * 2 * math.pi,
+                      color: color,
+                      barWidth: barWidth,
+                      gap: gap,
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),

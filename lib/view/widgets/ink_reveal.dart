@@ -323,22 +323,24 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
             child: FadeTransition(opacity: _reveal, child: boundedChild),
           ),
           IgnorePointer(
-            child: FadeTransition(
-              opacity: _hide,
-              child: _inkImage != null
-                  ? InvisibleInk(
-                      image: _inkImage!,
-                      size: inkSize,
-                      pixelRatio: _inkDpr,
-                      color: widget.color,
-                      clock: _clock,
-                    )
-                  : InvisibleInk.points(
-                      points: _inkPoints!,
-                      size: inkSize,
-                      color: widget.color,
-                      clock: _clock,
-                    ),
+            child: RepaintBoundary(
+              child: FadeTransition(
+                opacity: _hide,
+                child: _inkImage != null
+                    ? InvisibleInk(
+                        image: _inkImage!,
+                        size: inkSize,
+                        pixelRatio: _inkDpr,
+                        color: widget.color,
+                        clock: _clock,
+                      )
+                    : InvisibleInk.points(
+                        points: _inkPoints!,
+                        size: inkSize,
+                        color: widget.color,
+                        clock: _clock,
+                      ),
+              ),
             ),
           ),
         ],

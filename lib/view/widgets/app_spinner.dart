@@ -57,8 +57,10 @@ class _AppSpinnerState extends State<AppSpinner> with SingleTickerProviderStateM
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: CustomPaint(
-        painter: _DotsPainter(progress: _controller, color: tint),
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: _DotsPainter(progress: _controller, color: tint),
+        ),
       ),
     );
   }
