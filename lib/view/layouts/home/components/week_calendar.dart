@@ -135,11 +135,17 @@ class _WeekCalendarState extends State<WeekCalendar> {
     final controller = _controller;
     if (controller == null || !controller.hasClients) return;
     if (target == controller.page?.round()) return;
+    // The destination as a WEEK, not a page index: the same rebuild can swap
+    // the controller and renumber the pages (a count change), so anything
+    // running post-frame must re-resolve against the numbering it finds.
+    final targetStart = _startOfPage(target);
     if (context.reduceMotion) {
       // Post-frame: a jump is synchronous, so its page-change notification
       // would mark widgets dirty inside didUpdateWidget's build.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && controller.hasClients) controller.jumpToPage(target);
+        final current = _controller;
+        if (!mounted || current == null || !current.hasClients) return;
+        current.jumpToPage(_pageOfWeek(targetStart));
       });
     } else {
       final motion = context.motionNow;
@@ -151,7 +157,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     }
     // Post-frame because this may run inside a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onVisibleWeekChanged(_startOfPage(target));
+      if (mounted) widget.onVisibleWeekChanged(targetStart);
     });
   }
 
