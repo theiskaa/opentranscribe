@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 
 /// The shared press primitive: opacity dip (and optional scale) on touch, the
@@ -49,16 +50,17 @@ class _TouchableState extends State<Touchable> {
 
   @override
   Widget build(BuildContext context) {
+    final motion = context.theme.motion;
     Widget child = AnimatedOpacity(
       opacity: _pressed ? widget.pressedOpacity : 1.0,
-      duration: const Duration(milliseconds: 100),
+      duration: motion.pressIcon,
       curve: Curves.easeOut,
       child: widget.child,
     );
     if (widget.pressedScale != null) {
       child = AnimatedScale(
         scale: _pressed ? widget.pressedScale! : 1.0,
-        duration: const Duration(milliseconds: 120),
+        duration: motion.pressIcon,
         curve: Curves.easeOut,
         child: child,
       );

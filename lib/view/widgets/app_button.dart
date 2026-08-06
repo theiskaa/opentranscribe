@@ -40,36 +40,20 @@ class AppButton extends StatefulWidget {
   State<AppButton> createState() => _AppButtonState();
 }
 
-class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 150),
-  );
-  late final Animation<double> _scale = Tween<double>(
-    begin: 1,
-    end: 0.96,
-  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+class _AppButtonState extends State<AppButton> {
   bool _pressed = false;
 
   bool get _interactive => widget.onPressed != null && !widget.isLoading;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   void _onTapDown(TapDownDetails details) {
     if (!_interactive) return;
     Haptics.light();
     setState(() => _pressed = true);
-    _controller.forward();
   }
 
   void _release() {
     if (!_pressed) return;
     setState(() => _pressed = false);
-    _controller.reverse();
   }
 
   @override
@@ -101,10 +85,12 @@ class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMix
       onTapUp: (_) => _release(),
       onTapCancel: _release,
       onTap: _interactive ? widget.onPressed : null,
-      child: ScaleTransition(
-        scale: _scale,
+      child: AnimatedScale(
+        scale: _pressed ? theme.motion.pressScale : 1.0,
+        duration: theme.motion.press,
+        curve: Curves.easeOut,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 150),
+          duration: theme.motion.press,
           opacity: disabled ? button.disabledOpacity : 1,
           child: Container(
             height: widget.height ?? button.height,
