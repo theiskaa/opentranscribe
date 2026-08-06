@@ -215,4 +215,55 @@ void main() {
       expect(crumb, isNull);
     });
   });
+
+  group('breadcrumbFallbackPeriod', () {
+    test('a day with no stored ancestor falls to the weekly level when weeks exist', () {
+      final fallback = breadcrumbFallbackPeriod(
+        period: ReflectionPeriod.daily,
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.weekly: {DateTime(2026, 7, 13)},
+        },
+      );
+      expect(fallback, ReflectionPeriod.weekly);
+    });
+
+    test('a day falls past an empty weekly level to the monthly one', () {
+      final fallback = breadcrumbFallbackPeriod(
+        period: ReflectionPeriod.daily,
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.weekly: const {},
+          ReflectionPeriod.monthly: {DateTime(2026, 7)},
+        },
+      );
+      expect(fallback, ReflectionPeriod.monthly);
+    });
+
+    test('a day with no broader pages anywhere has no fallback', () {
+      final fallback = breadcrumbFallbackPeriod(
+        period: ReflectionPeriod.daily,
+        reflectedStartsByPeriod: const {},
+      );
+      expect(fallback, isNull);
+    });
+
+    test('a week with no containing month falls to the monthly level when months exist', () {
+      final fallback = breadcrumbFallbackPeriod(
+        period: ReflectionPeriod.weekly,
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.monthly: {DateTime(2026, 7)},
+        },
+      );
+      expect(fallback, ReflectionPeriod.monthly);
+    });
+
+    test('a month never falls anywhere', () {
+      final fallback = breadcrumbFallbackPeriod(
+        period: ReflectionPeriod.monthly,
+        reflectedStartsByPeriod: {
+          ReflectionPeriod.monthly: {DateTime(2026, 6)},
+        },
+      );
+      expect(fallback, isNull);
+    });
+  });
 }

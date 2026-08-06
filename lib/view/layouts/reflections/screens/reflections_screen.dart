@@ -331,21 +331,29 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
     final shown = _visibleFor(timeline.length);
     _scrubberShown = shown;
     // ONE smart back, resolved by the VIEWED page: with a stored ancestor
-    // above it, back reshapes up a level in place; only at the top of the
-    // hierarchy does it pop the route. The route-level edge swipe always
-    // pops, so no depth ever traps the user.
+    // above it, back reshapes up to that ancestor in place. With none, it
+    // still climbs to the nearest broader level's newest page, landed plain
+    // (no roll, no seat close, since that level does not contain the
+    // departed page). Only the true top of the hierarchy pops the route.
+    // The route-level edge swipe always pops, so no depth ever traps the
+    // user.
     final crumb = breadcrumbTarget(
       period: state.viewedPeriod,
       start: viewed.periodStart,
       reflectedStartsByPeriod: state.reflectedStartsByPeriod,
       localeId: localeTag(context),
     );
+    final fallback = crumb != null
+        ? null
+        : breadcrumbFallbackPeriod(
+            period: state.viewedPeriod,
+            reflectedStartsByPeriod: state.reflectedStartsByPeriod,
+          );
 
     return AppScaffold(
       background: theme.screens.settings,
-      onBack: crumb == null
-          ? () => context.pop()
-          : () => _drill(
+      onBack: crumb != null
+          ? () => _drill(
               crumb.period,
               crumb.start,
               fromLabel: periodRangeLabel(
@@ -357,7 +365,10 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
               fromPeriod: state.viewedPeriod,
               fromStart: viewed.periodStart,
               deeper: false,
-            ),
+            )
+          : fallback != null
+          ? () => cubit.setViewedPeriod(fallback)
+          : () => context.pop(),
       actions: [ReflectionsMenu(viewed: viewed, color: theme.topBar.iconColor)],
       // Like the entry screen: the pages run full height and wash under the
       // frosted bar (their top padding clears it), so the bar reads as

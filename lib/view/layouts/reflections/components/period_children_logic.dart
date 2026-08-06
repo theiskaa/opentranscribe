@@ -108,3 +108,24 @@ BreadcrumbTarget? breadcrumbTarget({
       return null;
   }
 }
+
+/// The level the smart back falls to when [breadcrumbTarget] finds no stored
+/// ancestor: the nearest broader period holding ANY stored page, or null
+/// (the true top: back may pop the route). The landing is the level's newest
+/// page, not a containing ancestor, so the caller must land it PLAIN - no
+/// roll, no seat close - a transformation would claim a containment that is
+/// not there.
+ReflectionPeriod? breadcrumbFallbackPeriod({
+  required ReflectionPeriod period,
+  required Map<ReflectionPeriod, Set<DateTime>> reflectedStartsByPeriod,
+}) {
+  final broader = switch (period) {
+    ReflectionPeriod.daily => const [ReflectionPeriod.weekly, ReflectionPeriod.monthly],
+    ReflectionPeriod.weekly => const [ReflectionPeriod.monthly],
+    ReflectionPeriod.monthly => const <ReflectionPeriod>[],
+  };
+  for (final p in broader) {
+    if ((reflectedStartsByPeriod[p] ?? const {}).isNotEmpty) return p;
+  }
+  return null;
+}
