@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+
 /// A plain cross-fade, for a screen that should NOT slide - one carrying
 /// platform views, whose horizontal travel composites badly (the gallery).
 class FadePage<T> extends CustomTransitionPage<T> {
@@ -23,6 +25,7 @@ class ArrivalPage<T> extends CustomTransitionPage<T> {
         transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 200),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          if (context.reduceMotion) return FadeTransition(opacity: animation, child: child);
           final eased = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
           return FadeTransition(
             opacity: eased,
@@ -45,15 +48,18 @@ class SlideUpPage<T> extends CustomTransitionPage<T> {
         fullscreenDialog: true,
         transitionDuration: const Duration(milliseconds: 300),
         reverseTransitionDuration: const Duration(milliseconds: 260),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) => SlideTransition(
-          position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          if (context.reduceMotion) return FadeTransition(opacity: animation, child: child);
+          return SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              ),
             ),
-          ),
-          child: child,
-        ),
+            child: child,
+          );
+        },
       );
 }

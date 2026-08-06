@@ -80,18 +80,30 @@ class _SlidePageRoute<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    // Reduce Motion stills the travel and fades instead; the back swipe keeps
+    // its 1:1 slide (direct manipulation, latch-held through the settle). Only
+    // the animation objects swap between the modes: reshaping the tree when a
+    // drag starts would re-inflate the detector and drop the live pointer.
+    final still = context.reduceMotion && !popGestureInProgress;
     final edge = context.read<ThemeCubit>().state.resolved.navigation.edgeShadow;
-    return SlideTransition(
-      position: animation.drive(popGestureInProgress ? _offset : _easedOffset),
-      // A soft shadow cast off the leading edge onto the page below, so the two
-      // read as stacked rather than abutting. Strengthens as the page arrives.
-      child: DecoratedBoxTransition(
-        decoration: animation.drive(_EdgeShadowDecoration.tween(edge)),
-        position: DecorationPosition.foreground,
-        child: _BackGestureDetector<T>(
-          enabledCallback: () => popGestureEnabled,
-          onStartPopGesture: _startPopGesture,
-          child: child,
+    return FadeTransition(
+      opacity: still ? animation : const AlwaysStoppedAnimation(1.0),
+      child: SlideTransition(
+        position: still
+            ? const AlwaysStoppedAnimation(Offset.zero)
+            : animation.drive(popGestureInProgress ? _offset : _easedOffset),
+        // A soft shadow cast off the leading edge onto the page below, so the two
+        // read as stacked rather than abutting. Strengthens as the page arrives.
+        child: DecoratedBoxTransition(
+          decoration: still
+              ? const AlwaysStoppedAnimation<Decoration>(_EdgeShadowDecoration())
+              : animation.drive(_EdgeShadowDecoration.tween(edge)),
+          position: DecorationPosition.foreground,
+          child: _BackGestureDetector<T>(
+            enabledCallback: () => popGestureEnabled,
+            onStartPopGesture: _startPopGesture,
+            child: child,
+          ),
         ),
       ),
     );
