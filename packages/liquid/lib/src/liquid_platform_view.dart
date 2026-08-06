@@ -88,6 +88,10 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
   /// placeholder of a later cycle.
   int _coverCycle = 0;
 
+  /// What paints over the live view for the settle beat: the filter-free
+  /// stand-in when one is provided, else the cover placeholder.
+  WidgetBuilder? get _settleStandIn => widget.settleBuilder ?? widget.placeholderBuilder;
+
   /// The hosting route's [ModalRoute.secondaryAnimation], which runs whenever
   /// another route is pushed on top of this one (in the same navigator). It is
   /// the most reliable cover signal — unlike a [RouteObserver] it needs no
@@ -121,7 +125,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
       _coverCycle++;
       setState(() {
         _covered = covered;
-        _settling = !covered && (widget.settleBuilder ?? widget.placeholderBuilder) != null;
+        _settling = !covered && _settleStandIn != null;
       });
       if (_settling) unawaited(_dropPlaceholderWhenSettled());
     }
@@ -173,10 +177,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
           // touches the native view is about to own back.
           IgnorePointer(
             child:
-                (_covered
-                        ? widget.placeholderBuilder
-                        : widget.settleBuilder ?? widget.placeholderBuilder)
-                    ?.call(context) ??
+                (_covered ? widget.placeholderBuilder : _settleStandIn)?.call(context) ??
                 const SizedBox.shrink(),
           ),
       ],
