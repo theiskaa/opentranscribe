@@ -332,10 +332,6 @@ class _LanguageRow extends StatelessWidget {
       // A refused removal keeps the row: the swipe's exit reopens the slot on
       // its own, and the failure line says what happened.
       onDelete: () => cubit.remove(row.tag),
-      // Tighter than the default: releasing a language is undoable (install
-      // it again), so demanding the pill be dragged across nearly the whole
-      // row reads as more work than the action deserves.
-      commitReveal: 1.6,
       child: content,
     );
   }
@@ -346,6 +342,7 @@ class _LanguageRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final unsupported = row.status == ModelAssetStatus.unsupported;
     final active = row.isDefault && !unsupported;
+    final subLine = _subLine(l10n);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -402,8 +399,8 @@ class _LanguageRow extends StatelessWidget {
                   child: row.installing
                       ? _DownloadingLine(fraction: row.installFraction!)
                       : Text(
-                          _subLine(l10n),
-                          key: ValueKey(_subLine(l10n)),
+                          subLine,
+                          key: ValueKey(subLine),
                           style: AppType.footnote.copyWith(color: theme.textSecondary),
                         ),
                 ),

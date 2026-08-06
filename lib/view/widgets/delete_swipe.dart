@@ -13,14 +13,17 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Geometry for the swipe. The reveal runs 0..1 (closed to the disc open at the
-/// action width) and, only from the open state, on to 2 - where the disc has
-/// stretched into a pill filling the row. Swiping it (nearly) all the way, past
-/// [_kCommitReveal], deletes; releasing short of that snaps back to open.
+/// action width) and on to 2 - where the disc has stretched into a pill filling
+/// the row. One continuous swipe runs the whole range; RELEASING past
+/// [_kCommitReveal], just beyond halfway across the row, deletes. Crossing the
+/// line only arms (a haptic tick says so), so nothing ever deletes under a
+/// finger still down, and dragging back disarms. Releasing short of the line
+/// snaps back to open.
 const double _kActionWidth = 84;
 const double _kBadgeSize = 46;
 const double _kOpenThreshold = 0.5;
 const double _kMaxReveal = 2;
-const double _kCommitReveal = 1.95;
+const double _kCommitReveal = 1.5;
 const double _kFlingVelocity = 320; // px/s
 
 /// Vertical slack for the disc when it is taller than a short row; well under the
@@ -41,12 +44,14 @@ const double _kDiscLeftInset = (_kActionWidth + _kBadgeSize) / 2;
 const double _kRestOpen = _kDiscLeftInset / _kActionWidth;
 
 /// Swipe-to-reveal delete for one row. A leftward drag reveals a trailing
-/// destructive disc you tap to remove the row's subject. From the OPEN state a
-/// further drag stretches the disc into a pill; swiping it fully across (past
-/// [_kCommitReveal]) deletes. Two-stage on purpose: a swipe from closed only
-/// ever opens, so a single swipe cannot delete by accident (not a [Dismissible]).
-/// The one swipe vocabulary for destructive row actions: home entries and the
-/// models screen's languages speak it identically.
+/// destructive disc you tap to remove the row's subject; carrying the SAME
+/// drag onward stretches the disc into a pill and, released past
+/// [_kCommitReveal], deletes - one continuous motion, no second gesture. The
+/// delete only ever fires on the RELEASE: crossing the commit line arms it
+/// with a haptic tick, dragging back over the line disarms, and releasing
+/// between open and the line snaps back to the open disc, so a hesitant swipe
+/// still only reveals. The one swipe vocabulary for destructive row actions:
+/// home entries and the models screen's languages speak it identically.
 ///
 /// Scoped: [openId] is the single row allowed open; opening this one claims it
 /// (closing any other), and the host clears it on scroll. A tap on an open
@@ -68,7 +73,6 @@ class DeleteSwipe extends StatefulWidget {
     this.onExitStart,
     this.onLongPress,
     this.label,
-    this.commitReveal = _kCommitReveal,
     super.key,
   });
 
@@ -104,12 +108,6 @@ class DeleteSwipe extends StatefulWidget {
   /// red disc carries the meaning alone there.
   final String? label;
 
-  /// The reveal at which a full swipe commits the delete, in (1, 2]: 1 is the
-  /// open disc, 2 the pill stretched across the whole row. The default demands
-  /// nearly the full row; a host can lower it where its rows are short enough
-  /// that the full pull reads as more work than the action deserves.
-  final double commitReveal;
-
   final Widget child;
 
   @override
@@ -138,12 +136,13 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
 
   // The row width, cached from the layout so the drag math and the paint agree.
   double _width = 0;
-  // Set at each drag's start: only a drag that begins open may expand past 1.
-  bool _canExpand = false;
   // The reveal at the drag's start, so a release can tell a real swipe from a
   // jittery tap the drag recognizer stole.
   double _dragStartValue = 0;
-  // Latches once the pill is swiped past the commit line, so delete fires once.
+  // True while the drag sits past the commit line: the release will delete.
+  // Tracked so crossing the line ticks exactly once each way.
+  bool _armed = false;
+  // Latches once a delete fires, so it fires once.
   bool _committed = false;
 
   @override
@@ -171,6 +170,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       _disc.value = 0;
       _exit.stop();
       _exit.value = 0;
+      _armed = false;
       _committed = false;
       if (widget.openId.value == old.id) widget.openId.value = null;
     }
@@ -199,11 +199,8 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     if (_committed) return;
     _reveal.stop();
     _disc.stop();
-    // A settled-open reveal rests a hair below 1 (overdamped, approached from
-    // below), so a raw >= 1 would read open as not-yet-open and refuse to let a
-    // second drag stretch it into the delete pill. Allow the epsilon band.
-    _canExpand = _reveal.value > 1 - _kSettledEpsilon;
     _dragStartValue = _reveal.value;
+    _armed = _reveal.value >= _kCommitReveal;
     _committed = false;
   }
 
@@ -214,14 +211,17 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
     // unit is the rest of the row, so the pill tracks the finger exactly.
     final unit = v < 1 ? _kActionWidth : (_width - _kActionWidth);
     if (unit <= 0) return;
-    final maxValue = _canExpand ? _kMaxReveal : 1.0;
-    final next = (v - d.primaryDelta! / unit).clamp(0.0, maxValue);
+    final next = (v - d.primaryDelta! / unit).clamp(0.0, _kMaxReveal);
     _reveal.value = next;
     // The disc hugs the sliding edge up to its rest point, then holds - so it
     // tracks the finger without ever crossing onto the text.
     _disc.value = (next / _kRestOpen).clamp(0.0, 1.0);
-    // Full swipe: dragged past the commit line, delete without a release.
-    if (_canExpand && next >= widget.commitReveal) unawaited(_commitDelete());
+    // Crossing the commit line arms the release, never deletes on its own: the
+    // finger is still down, and the tick is what says letting go now commits.
+    final armed = next >= _kCommitReveal;
+    if (armed == _armed) return;
+    _armed = armed;
+    armed ? Haptics.medium() : Haptics.light();
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -240,8 +240,14 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       widget.onTap();
       return;
     }
+    // The armed release IS the delete; the finger let go past the line.
+    if (_armed) {
+      _armed = false;
+      unawaited(_commitDelete());
+      return;
+    }
     // Released in the expand zone but short of the commit line: back to open.
-    if (_canExpand && _reveal.value >= 1) {
+    if (_reveal.value >= 1) {
       _settle(open: true, pixelVelocity: velocity);
       return;
     }
@@ -413,8 +419,8 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   Widget _exitFrame(BuildContext context, Widget? child) {
     final t = _exit.value;
     final fade = 1 - const Interval(0, 0.45, curve: Curves.easeOut).transform(t);
-    final height = 1 - const Interval(0.25, 1, curve: Curves.easeInOutCubic).transform(t);
-    final slack = _kOverflow * (1 - const Interval(0, 0.25).transform(t));
+    final height = 1 - AppMotion.swipeExitHeightCurve.transform(t);
+    final slack = _kOverflow * (1 - const Interval(0, AppMotion.swipeExitHold).transform(t));
     return ClipRect(
       clipper: _ExitClipper(slack),
       child: Align(
