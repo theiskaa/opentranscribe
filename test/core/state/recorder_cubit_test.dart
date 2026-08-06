@@ -219,6 +219,24 @@ void main() {
     await service.dispose();
   });
 
+  test('restart passes through restarting, never saving', () async {
+    final (cubit, service) = build();
+    final statuses = <RecorderStatus>[];
+    final sub = cubit.stream.listen((s) => statuses.add(s.status));
+
+    await cubit.start();
+    await cubit.restart();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(statuses, contains(RecorderStatus.restarting));
+    expect(statuses, isNot(contains(RecorderStatus.saving)));
+
+    await sub.cancel();
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('live waits for the platform to answer, and a failed start never claims it', () async {
     final recorder = FakeAudioRecorder();
     final (cubit, service) = build(recorder: recorder);

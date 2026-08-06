@@ -12,7 +12,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/transcribe/transcript_event.dart';
 import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 
-enum RecorderStatus { idle, recording, paused, saving }
+enum RecorderStatus { idle, recording, paused, saving, restarting }
 
 /// Typed failure kinds, so the UI renders localized copy instead of raw
 /// exception text. Permission is its own kind because it has its own surface
@@ -336,9 +336,11 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// lands idle with the error surfaced, like any failed start.
   Future<void> restart() async {
     if (!state.isRecording && !state.isPaused) return;
-    // Saving synchronously first: the discard must not leave a window where
-    // complete or a second control can act on the dying session.
-    emit(state.copyWith(status: RecorderStatus.saving));
+    // Leaving recording synchronously first: the discard must not leave a
+    // window where complete or a second control can act on the dying session.
+    // Its own status, not saving: nothing is being saved, and the screen keeps
+    // the recording chrome steady instead of flashing save affordances.
+    emit(state.copyWith(status: RecorderStatus.restarting));
     // Publish the teardown like cancel() does, so a concurrent start()/cancel()
     // waits it out instead of racing _teardown(). Cleared before start() below,
     // so start()'s own _discardInFlight await sees null (no self-deadlock).

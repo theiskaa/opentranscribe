@@ -148,6 +148,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
             previous.localeId != current.localeId,
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
+          final restarting = state.status == RecorderStatus.restarting;
           final denied = state.error == RecorderError.permissionDenied;
           return Column(
             children: [
@@ -229,6 +230,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
                   child: RecorderControls(
                     paused: state.isPaused,
                     saving: saving,
+                    restarting: restarting,
                     onClose: () => _close(keepSilence: false),
                     onRestart: () => context.read<RecorderCubit>().restart(),
                     onComplete: () => _close(keepSilence: true),
@@ -350,9 +352,8 @@ class _LiveText extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: AnimatedSwitcher(
                 duration: reduce ? Duration.zero : motion.crossfade,
-                child: !unavailable
-                    ? const SizedBox(width: double.infinity)
-                    : Padding(
+                child: unavailable
+                    ? Padding(
                         key: const ValueKey('live-unavailable'),
                         padding: const EdgeInsets.only(top: AppSpacing.sm),
                         child: Text(
@@ -360,7 +361,8 @@ class _LiveText extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: AppType.caption.copyWith(color: context.theme.textSecondary),
                         ),
-                      ),
+                      )
+                    : const SizedBox(width: double.infinity),
               ),
             );
           },
