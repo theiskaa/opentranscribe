@@ -13,6 +13,7 @@ import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
@@ -314,7 +315,7 @@ class _DetailViewState extends State<_DetailView> {
                         // snapping ~80px of layout in one frame.
                         AnimatedSize(
                           duration: context.reduceMotion
-                              ? Duration.zero
+                              ? AppMotion.instant
                               : context.motionNow.indicator,
                           curve: context.motionNow.indicatorCurve,
                           alignment: Alignment.topCenter,

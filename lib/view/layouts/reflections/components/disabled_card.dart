@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -82,7 +83,7 @@ class _ReflectionsDisabledSlotState extends State<ReflectionsDisabledSlot>
     final theme = context.theme;
     return ClipRect(
       child: AnimatedSize(
-        duration: context.reduceMotion ? Duration.zero : theme.motion.indicator,
+        duration: context.reduceMotion ? AppMotion.instant : theme.motion.indicator,
         curve: theme.motion.indicatorCurve,
         alignment: Alignment.topCenter,
         child: !_present

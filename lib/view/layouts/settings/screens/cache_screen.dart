@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/state/cache_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
@@ -140,7 +141,7 @@ class _StorageCard extends StatelessWidget {
     // AnimatedSize: the bar mounting, the count line landing, and a clear
     // shrinking the card all resize smoothly instead of snapping a frame.
     return AnimatedSize(
-      duration: context.reduceMotion ? Duration.zero : context.motionNow.indicator,
+      duration: context.reduceMotion ? AppMotion.instant : context.motionNow.indicator,
       curve: context.motionNow.indicatorCurve,
       alignment: Alignment.topCenter,
       child: SettingsCard(

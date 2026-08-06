@@ -6,6 +6,14 @@ import 'package:flutter/widgets.dart';
 /// is one-shot and interruptible.
 @immutable
 final class AppMotion {
+  /// The Reduce Motion stand-in for an [AnimatedSize] duration. Never
+  /// [Duration.zero] there: AnimatedSize starts its controller inside
+  /// performLayout, and a zero duration completes it synchronously, re-dirtying
+  /// the render object mid-layout. One millisecond is instant to the eye and
+  /// moves the completion to the next tick. Static on purpose: no theme may
+  /// set it back to zero.
+  static const Duration instant = Duration(milliseconds: 1);
+
   const AppMotion({
     this.entrance = const Duration(milliseconds: 700),
     this.entranceCurve = const Cubic(0.22, 0.61, 0.36, 1),
