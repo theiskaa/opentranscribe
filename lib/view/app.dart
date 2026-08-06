@@ -68,6 +68,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeAccessibilityFeatures() {
+    // Re-runs the Reduce Motion merge in build when the switch flips mid-run.
+    setState(() {});
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Termination only. Background-audio keeps a live recording in `paused`, so
     // finalizing on pause would kill background capture; only on detach (the app
@@ -135,29 +141,45 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               supportedLocales: AppLocalizations.supportedLocales,
               routerConfig: Deps.i.router.config,
               builder: (context, child) {
-                // The splash REPLACES the app while it runs rather than
-                // overlaying it. Home's top-bar buttons are native platform
-                // views, and those composite ABOVE any Flutter overlay (the same
-                // reason AppToggle cannot be blurred under the frosted bar), so
-                // an overlay lets them punch through. Not building home until the
-                // splash is done keeps them out of the tree; the splash shares
-                // home's background colour, so the swap is a seamless cut.
+                // iOS reports Reduce Motion on dart:ui's reduceMotion flag,
+                // which MediaQuery never surfaces (disableAnimations is the
+                // Android switch), so fold it in here: every reduceMotion read
+                // below the root sees one merged answer.
+                final media = MediaQuery.of(context);
+                final reduceMotion =
+                    media.disableAnimations ||
+                    WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.reduceMotion;
+                final Widget content;
                 if (!_splashDone) {
-                  return SplashScreen(
+                  // The splash REPLACES the app while it runs rather than
+                  // overlaying it. Home's top-bar buttons are native platform
+                  // views, and those composite ABOVE any Flutter overlay (the
+                  // same reason AppToggle cannot be blurred under the frosted
+                  // bar), so an overlay lets them punch through. Not building
+                  // home until the splash is done keeps them out of the tree;
+                  // the splash shares home's background colour, so the swap is
+                  // a seamless cut.
+                  content = SplashScreen(
                     onFinished: () {
                       if (mounted) setState(() => _splashDone = true);
                     },
                   );
+                } else {
+                  // Above the router's navigator, so it also tints the text
+                  // selection handles and menu, which render in the root
+                  // overlay.
+                  content = SelectionTheme(
+                    accent: theme.accent,
+                    brightness: theme.brightness,
+                    child: DefaultTextStyle(
+                      style: AppType.body.copyWith(color: theme.text),
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  );
                 }
-                // Above the router's navigator, so it also tints the text
-                // selection handles and menu, which render in the root overlay.
-                return SelectionTheme(
-                  accent: theme.accent,
-                  brightness: theme.brightness,
-                  child: DefaultTextStyle(
-                    style: AppType.body.copyWith(color: theme.text),
-                    child: child ?? const SizedBox.shrink(),
-                  ),
+                return MediaQuery(
+                  data: media.copyWith(disableAnimations: reduceMotion),
+                  child: content,
                 );
               },
             ),
