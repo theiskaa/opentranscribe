@@ -65,6 +65,7 @@ class DeleteSwipe extends StatefulWidget {
     required this.onDelete,
     required this.child,
     this.frame,
+    this.onExitStart,
     this.onLongPress,
     this.label,
     this.commitReveal = _kCommitReveal,
@@ -83,6 +84,11 @@ class DeleteSwipe extends StatefulWidget {
   /// after the exit collapse. Resolving with the subject still in place (a
   /// refused removal) brings the row back.
   final Future<void> Function() onDelete;
+
+  /// Fires the moment a delete commits, BEFORE the exit plays, so the host
+  /// can close what surrounds the slot (a neighbor's gap, an emptying group's
+  /// header) in step with the collapse instead of after it.
+  final VoidCallback? onExitStart;
 
   /// Chrome the host draws AROUND the swipe (home's rail, gutter and day gap)
   /// that must not slide with the content yet must leave with the row: the
@@ -320,6 +326,10 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   Future<void> _commitDelete() async {
     if (_committed) return;
     _committed = true;
+    // Announced BEFORE the exit plays, not after: the surroundings (a
+    // neighbor's day gap, an emptying day's title) can only close in step
+    // with this slot if they learn about the delete when it starts.
+    widget.onExitStart?.call();
     Haptics.medium();
     _reveal.stop();
     _disc.stop();

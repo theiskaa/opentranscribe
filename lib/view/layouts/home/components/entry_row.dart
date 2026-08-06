@@ -26,6 +26,7 @@ class EntryRow extends StatelessWidget {
     required this.onTap,
     required this.openId,
     required this.onDelete,
+    this.onDeleteStart,
     super.key,
   });
 
@@ -41,6 +42,11 @@ class EntryRow extends StatelessWidget {
   final ValueNotifier<String?> openId;
   final Future<void> Function(Entry) onDelete;
 
+  /// A delete committed and its exit is about to play; the list uses this to
+  /// close the surroundings (the neighbor's gap, an emptying day's title) in
+  /// step with the slot instead of after it.
+  final VoidCallback? onDeleteStart;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -55,6 +61,7 @@ class EntryRow extends StatelessWidget {
       openId: openId,
       onTap: onTap,
       onDelete: () => onDelete(entry),
+      onExitStart: onDeleteStart,
       label: l10n.delete,
       // Behind the record: the rail and its node are the list's structure, so
       // they hold still while the record slides. The swipe wraps only the text
@@ -70,7 +77,19 @@ class EntryRow extends StatelessWidget {
             nodeSize: tokens.nodeSize,
             nodeCenter: _firstLineCenter(leadStyle),
           ),
-          child: Padding(
+          // Animated because [last] FLIPS on a neighbor's delete or arrival:
+          // the day gap (and the rail painted through it) must glide closed or
+          // open with the list's other motion, not snap while everything
+          // around it settles smoothly. Closing rides the delete exit's own
+          // clock and interval (its height only moves after the fade quarter),
+          // so gap and slot collapse as one; opening rides the arrival unfold.
+          child: AnimatedPadding(
+            duration: context.reduceMotion
+                ? Duration.zero
+                : (last ? theme.motion.swipeExit : theme.motion.expand),
+            curve: last
+                ? const Interval(0.25, 1, curve: Curves.easeInOutCubic)
+                : Curves.easeOutCubic,
             padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,6 +160,36 @@ Set<String> newEntryIds(Set<String>? previous, List<Entry> current) {
 Set<DateTime> newEntryDays(Set<DateTime>? previous, Set<DateTime> current) {
   if (previous == null) return const {};
   return current.difference(previous);
+}
+
+/// The days that LEFT between two home builds - [newEntryDays]'s mirror,
+/// feeding the splitter's fold-out: deleting a day's only record must fold
+/// the day's title away with it, not snap it off. A null [previous] marks
+/// nothing.
+Set<DateTime> departedEntryDays(Set<DateTime>? previous, Set<DateTime> current) {
+  if (previous == null) return const {};
+  return previous.difference(current);
+}
+
+/// Where each departing day's ghost splitter renders while it folds away:
+/// slot i holds the ghosts sitting ABOVE section i, newest first, and the
+/// extra last slot those older than every live day - so a ghost closes in
+/// the exact seam its section vacated. [sectionDays] is newest first, like
+/// the home list; the result has sectionDays.length + 1 slots.
+List<List<DateTime>> departingSplitterSlots({
+  required List<DateTime> sectionDays,
+  required Set<DateTime> departing,
+}) {
+  final slots = [for (var i = 0; i <= sectionDays.length; i++) <DateTime>[]];
+  final ordered = departing.toList()..sort((a, b) => b.compareTo(a));
+  for (final day in ordered) {
+    var i = 0;
+    while (i < sectionDays.length && sectionDays[i].isAfter(day)) {
+      i++;
+    }
+    slots[i].add(day);
+  }
+  return slots;
 }
 
 /// The rail: one hairline down the gutter with a filled node on it. It runs the

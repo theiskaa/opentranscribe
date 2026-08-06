@@ -53,4 +53,96 @@ void main() {
       );
     });
   });
+
+  group('departedEntryDays (the splitter departure diff)', () {
+    test('the first build marks no departures', () {
+      expect(departedEntryDays(null, {DateTime.utc(2026, 8, 3)}), isEmpty);
+    });
+
+    test('a day the current build no longer holds is marked', () {
+      expect(
+        departedEntryDays(
+          {DateTime.utc(2026, 8, 3), DateTime.utc(2026, 8, 6)},
+          {DateTime.utc(2026, 8, 3)},
+        ),
+        {DateTime.utc(2026, 8, 6)},
+      );
+    });
+
+    test('an arriving day marks nothing', () {
+      expect(
+        departedEntryDays(
+          {DateTime.utc(2026, 8, 3)},
+          {DateTime.utc(2026, 8, 3), DateTime.utc(2026, 8, 6)},
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('departingSplitterSlots (where a ghost folds)', () {
+    test('a ghost newer than every section leads the list', () {
+      final slots = departingSplitterSlots(
+        sectionDays: [DateTime.utc(2026, 8, 3), DateTime.utc(2026, 8, 2)],
+        departing: {DateTime.utc(2026, 8, 6)},
+      );
+      expect(slots, [
+        [DateTime.utc(2026, 8, 6)],
+        <DateTime>[],
+        <DateTime>[],
+      ]);
+    });
+
+    test('a ghost between two sections sits in their seam', () {
+      final slots = departingSplitterSlots(
+        sectionDays: [DateTime.utc(2026, 8, 6), DateTime.utc(2026, 8, 2)],
+        departing: {DateTime.utc(2026, 8, 3)},
+      );
+      expect(slots, [
+        <DateTime>[],
+        [DateTime.utc(2026, 8, 3)],
+        <DateTime>[],
+      ]);
+    });
+
+    test('a ghost older than every section trails the list', () {
+      final slots = departingSplitterSlots(
+        sectionDays: [DateTime.utc(2026, 8, 6)],
+        departing: {DateTime.utc(2026, 8, 2)},
+      );
+      expect(slots, [
+        <DateTime>[],
+        [DateTime.utc(2026, 8, 2)],
+      ]);
+    });
+
+    test('ghosts sharing a seam order newest first', () {
+      final slots = departingSplitterSlots(
+        sectionDays: [DateTime.utc(2026, 8, 8)],
+        departing: {DateTime.utc(2026, 8, 2), DateTime.utc(2026, 8, 3)},
+      );
+      expect(slots[1], [DateTime.utc(2026, 8, 3), DateTime.utc(2026, 8, 2)]);
+    });
+
+    test('with no sections every ghost trails', () {
+      final slots = departingSplitterSlots(
+        sectionDays: const [],
+        departing: {DateTime.utc(2026, 8, 3)},
+      );
+      expect(slots, [
+        [DateTime.utc(2026, 8, 3)],
+      ]);
+    });
+
+    test('a ghost sharing a live day folds above that section', () {
+      final slots = departingSplitterSlots(
+        sectionDays: [DateTime.utc(2026, 8, 3)],
+        departing: {DateTime.utc(2026, 8, 3)},
+      );
+      expect(slots, [
+        [DateTime.utc(2026, 8, 3)],
+        <DateTime>[],
+      ]);
+    });
+  });
 }
