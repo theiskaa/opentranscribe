@@ -17,6 +17,7 @@ class LiquidPlatformView extends StatefulWidget {
     this.onMethodCall,
     this.onChannelReady,
     this.placeholderBuilder,
+    this.settleBuilder,
     this.hitTestBehavior = PlatformViewHitTestBehavior.opaque,
     super.key,
   });
@@ -46,6 +47,15 @@ class LiquidPlatformView extends StatefulWidget {
   /// the transition. Provide a Flutter stand-in here if a blank gap looks too
   /// abrupt.
   final WidgetBuilder? placeholderBuilder;
+
+  /// Painted for the settle beat instead of [placeholderBuilder]. The settle
+  /// overlay rides ON TOP of the live native view, and a stand-in carrying a
+  /// BackdropFilter must never composite over a platform view: the engine
+  /// pushes the blur onto the view itself, which breaks glass materials for
+  /// exactly the frames the beat lasts - a flicker on every return. Pass a
+  /// filter-free stand-in here when the placeholder blurs; null falls back
+  /// to [placeholderBuilder].
+  final WidgetBuilder? settleBuilder;
 
   @override
   State<LiquidPlatformView> createState() => _LiquidPlatformViewState();
@@ -111,7 +121,7 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
       _coverCycle++;
       setState(() {
         _covered = covered;
-        _settling = !covered && widget.placeholderBuilder != null;
+        _settling = !covered && (widget.settleBuilder ?? widget.placeholderBuilder) != null;
       });
       if (_settling) unawaited(_dropPlaceholderWhenSettled());
     }
@@ -161,7 +171,14 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
         if (_covered || _settling)
           // Riding above the live view, the placeholder must not eat the
           // touches the native view is about to own back.
-          IgnorePointer(child: widget.placeholderBuilder?.call(context) ?? const SizedBox.shrink()),
+          IgnorePointer(
+            child:
+                (_covered
+                        ? widget.placeholderBuilder
+                        : widget.settleBuilder ?? widget.placeholderBuilder)
+                    ?.call(context) ??
+                const SizedBox.shrink(),
+          ),
       ],
     );
   }

@@ -49,6 +49,11 @@ class LiquidEdgeFade extends StatelessWidget {
           viewType: 'liquid_edge_fade',
           hitTestBehavior: PlatformViewHitTestBehavior.transparent,
           placeholderBuilder: placeholderBuilder,
+          // The covered placeholder is typically a BackdropFilter fade, which
+          // must never ride the settle beat over the live native view (see
+          // [LiquidPlatformView.settleBuilder]); the wash ramp alone stands in
+          // there, with the blur the native material's own.
+          settleBuilder: (_) => _SettleWash(color: color, fadeFrom: fadeFrom),
           creationParams: {
             'color': color.toARGB32(),
             'fadeFrom': fadeFrom,
@@ -57,6 +62,37 @@ class LiquidEdgeFade extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+/// The wash ramp without any blur, mirroring the native GradientWashView (and
+/// the drawn fade's mask): full [color] to [fadeFrom], eased to clear. Filter
+/// free on purpose - it is the only stand-in safe to composite over the live
+/// native view.
+class _SettleWash extends StatelessWidget {
+  const _SettleWash({required this.color, required this.fadeFrom});
+
+  final Color color;
+  final double fadeFrom;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color,
+            color,
+            color.withValues(alpha: color.a * 0xB0 / 0xFF),
+            color.withValues(alpha: 0),
+          ],
+          stops: [0, fadeFrom, fadeFrom + 0.5 * (1 - fadeFrom), 1],
+        ),
+      ),
+      child: const SizedBox.expand(),
     );
   }
 }
