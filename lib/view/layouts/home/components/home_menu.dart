@@ -105,8 +105,8 @@ class _HomeMenuState extends State<HomeMenu> {
     final items = <AppMenuItem>[
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
       AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
-      AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
       AppMenuItem(id: 'act:notifications', label: l10n.settingsNotifications, icon: AppIcons.bell),
+      AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
       const AppMenuItem.divider(),
       AppMenuItem(id: 'act:appearance', label: l10n.settingsAppearance, icon: AppIcons.moonFill),
       AppMenuItem(
