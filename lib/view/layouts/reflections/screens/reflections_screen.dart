@@ -332,30 +332,29 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
     _scrubberShown = shown;
     // ONE smart back, resolved by the VIEWED page: with a stored ancestor
     // above it, back reshapes up to that ancestor in place. With none, it
-    // still climbs to the nearest broader level's newest page, landed plain
-    // (no roll, no seat close, since that level does not contain the
-    // departed page). Only the true top of the hierarchy pops the route.
-    // The route-level edge swipe always pops, so no depth ever traps the
-    // user.
-    final crumb = breadcrumbTarget(
-      period: state.viewedPeriod,
-      start: viewed.periodStart,
-      reflectedStartsByPeriod: state.reflectedStartsByPeriod,
-      localeId: localeTag(context),
-    );
-    final fallback = crumb != null
-        ? null
-        : breadcrumbFallbackPeriod(
-            period: state.viewedPeriod,
-            reflectedStartsByPeriod: state.reflectedStartsByPeriod,
-          );
+    // still climbs to the nearest broader level's newest stored page, with
+    // the SAME reshape - the roll is the screen's vocabulary for any level
+    // change, and a daily departure leaves no seat to close. Only the true
+    // top of the hierarchy pops the route. The route-level edge swipe
+    // always pops, so no depth ever traps the user.
+    final climb =
+        breadcrumbTarget(
+          period: state.viewedPeriod,
+          start: viewed.periodStart,
+          reflectedStartsByPeriod: state.reflectedStartsByPeriod,
+          localeId: localeTag(context),
+        ) ??
+        breadcrumbFallbackTarget(
+          period: state.viewedPeriod,
+          reflectedStartsByPeriod: state.reflectedStartsByPeriod,
+        );
 
     return AppScaffold(
       background: theme.screens.settings,
-      onBack: crumb != null
+      onBack: climb != null
           ? () => _drill(
-              crumb.period,
-              crumb.start,
+              climb.period,
+              climb.start,
               fromLabel: periodRangeLabel(
                 state.viewedPeriod,
                 viewed.periodStart,
@@ -366,8 +365,6 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
               fromStart: viewed.periodStart,
               deeper: false,
             )
-          : fallback != null
-          ? () => cubit.setViewedPeriod(fallback)
           : () => context.pop(),
       actions: [ReflectionsMenu(viewed: viewed, color: theme.topBar.iconColor)],
       // Like the entry screen: the pages run full height and wash under the
