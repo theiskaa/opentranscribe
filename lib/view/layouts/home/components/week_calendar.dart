@@ -136,7 +136,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
     if (controller == null || !controller.hasClients) return;
     if (target == controller.page?.round()) return;
     if (context.reduceMotion) {
-      controller.jumpToPage(target);
+      // Post-frame: a jump is synchronous, so its page-change notification
+      // would mark widgets dirty inside didUpdateWidget's build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && controller.hasClients) controller.jumpToPage(target);
+      });
     } else {
       final motion = context.motionNow;
       controller.animateToPage(
