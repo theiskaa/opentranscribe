@@ -145,4 +145,20 @@ void main() {
       ]);
     });
   });
+
+  group('allDying (what layout treats as already gone)', () {
+    test('true only when every id is mid-exit', () {
+      expect(allDying(['a', 'b'], {'a', 'b'}), isTrue);
+      expect(allDying(['a', 'b'], {'a'}), isFalse);
+    });
+
+    test('a living survivor keeps the group alive whatever dies around it', () {
+      expect(allDying(['a', 'b', 'c'], {'a', 'c'}), isFalse);
+    });
+
+    test('no ids means gone, so an untouched leading section still leads', () {
+      expect(allDying(const [], {'a'}), isTrue);
+      expect(allDying(const [], const {}), isTrue);
+    });
+  });
 }

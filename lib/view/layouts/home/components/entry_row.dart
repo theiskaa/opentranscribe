@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
@@ -32,9 +33,10 @@ class EntryRow extends StatelessWidget {
 
   final Entry entry;
 
-  /// The day's last record. The rail runs the full height of every row, gap
-  /// included, so a day's records are strung on ONE continuous line; the last
-  /// row simply has no gap, and the rail ends with its text.
+  /// The day's last LIVING record (a dying successor is already gone for
+  /// layout). The rail runs the full height of every row, gap included, so a
+  /// day's records are strung on ONE continuous line; the last row simply has
+  /// no gap, and the rail ends with its text.
   final bool last;
   final VoidCallback onTap;
 
@@ -87,9 +89,7 @@ class EntryRow extends StatelessWidget {
             duration: context.reduceMotion
                 ? Duration.zero
                 : (last ? theme.motion.swipeExit : theme.motion.expand),
-            curve: last
-                ? const Interval(0.25, 1, curve: Curves.easeInOutCubic)
-                : Curves.easeOutCubic,
+            curve: last ? AppMotion.swipeExitHeightCurve : Curves.easeOutCubic,
             padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,6 +191,14 @@ List<List<DateTime>> departingSplitterSlots({
   }
   return slots;
 }
+
+/// Whether every id in [ids] is mid-exit, which layout treats as already
+/// gone: a day whose ids all pass folds its title, a row whose successors all
+/// pass is the day's last living record, and a section whose predecessors all
+/// pass leads the list - each closing in step with the exits, not after the
+/// emit lands. Vacuously true for no ids, which is what makes an untouched
+/// first section lead.
+bool allDying(Iterable<String> ids, Set<String> dying) => ids.every(dying.contains);
 
 /// The rail: one hairline down the gutter with a filled node on it. It runs the
 /// painter's whole height, so consecutive rows draw one unbroken line.

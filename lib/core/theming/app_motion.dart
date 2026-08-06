@@ -14,6 +14,21 @@ final class AppMotion {
   /// set it back to zero.
   static const Duration instant = Duration(milliseconds: 1);
 
+  /// Fraction of the swipe exit spent fading before the emptied slot's height
+  /// starts to move (the clip's slack tightens away over the same span).
+  static const double swipeExitHold = 0.25;
+
+  /// The swipe exit's height phase. Everything that must close IN STEP with a
+  /// deleted slot - the neighbor's gap, an emptying day's title, a departed
+  /// day's ghost - runs on this one curve over [swipeExit], so the collapses
+  /// read as one motion. Static: it is a phase contract, not a voice a theme
+  /// may retune apart from its followers.
+  static const Curve swipeExitHeightCurve = Interval(
+    swipeExitHold,
+    1,
+    curve: Curves.easeInOutCubic,
+  );
+
   const AppMotion({
     this.entrance = const Duration(milliseconds: 700),
     this.entranceCurve = const Cubic(0.22, 0.61, 0.36, 1),

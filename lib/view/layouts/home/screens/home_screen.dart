@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
@@ -80,8 +81,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// row's section day. While a row dies, the list treats it as already gone
   /// for LAYOUT decisions - the neighbor's last-gap and an emptying day's
   /// title close in step with the exit - and the emptied day skips its ghost
-  /// (the live title pre-folded). Cleared when the delete's future resolves,
-  /// so a refused delete unfolds everything back.
+  /// (the live title pre-folded). Cleared a frame AFTER the delete's future
+  /// resolves, never sooner: the departure diff runs in the emit's build and
+  /// must still see the id here, so a refused delete unfolds everything back
+  /// and a fast delete cannot ghost a title that already folded live.
   final Map<String, DateTime> _dying = {};
   late final PullToRecordGesture _pullGesture = PullToRecordGesture(
     onArm: Haptics.selection,
@@ -242,10 +245,13 @@ class _HomeScreenState extends State<HomeScreen> {
           _seenEntryIds = {for (final e in state.entries) e.id};
           _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
           // Departures before the reseed, against the same previous set; under
-          // Reduce Motion emptied days simply leave, no ghost. A day whose
-          // title pre-folded with its dying rows needs no ghost either - the
-          // seam is already closed when the emit lands.
-          if (!context.reduceMotion) {
+          // Reduce Motion emptied days simply leave, no ghost, and a flip
+          // drops any ghost still mid-fold. A day whose title pre-folded with
+          // its dying rows needs no ghost either - the seam is already closed
+          // when the emit lands.
+          if (context.reduceMotion) {
+            _departingDays.clear();
+          } else {
             _departingDays.addAll(
               departedEntryDays(_seenDays, state.entryDays).where((d) => !_dying.containsValue(d)),
             );
@@ -309,6 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     } finally {
                       // Resolved either way: a removed row's flag is spent, a
                       // refused delete's row unfolds its surroundings back.
+                      // Past the frame, never inside it: the emit's build
+                      // diffs departures against this ledger, and a delete
+                      // resolving first would clear the id before that build
+                      // ever sees it - ghosting a title that folded live.
+                      await WidgetsBinding.instance.endOfFrame;
                       if (mounted) setState(() => _dying.remove(entry.id));
                     }
                   },
@@ -527,22 +538,86 @@ class _ArrivalUnfold extends StatelessWidget {
       tween: Tween(begin: 0, end: 1),
       duration: context.reduceMotion ? Duration.zero : context.theme.motion.expand,
       curve: Curves.easeOutCubic,
-      builder: (context, t, child) {
-        if (t <= 0) return const SizedBox.shrink();
-        return ClipRect(
-          clipBehavior: t < 1 ? Clip.hardEdge : Clip.none,
-          // topLeft, not topCenter: the Align expands to the list's full
-          // width, so a centering alignment would re-seat an intrinsic-width
-          // child (the day splitter) in the middle. Only the top matters
-          // here; it is what the reveal grows from.
-          child: Align(
-            alignment: Alignment.topLeft,
-            heightFactor: t,
-            child: Opacity(opacity: t, child: child),
-          ),
-        );
-      },
+      builder: (context, t, child) => _Fold(t: t, child: child!),
       child: child,
+    );
+  }
+}
+
+/// One frame for every timeline fold - arrivals, live folds and ghosts all
+/// grow and close through this, so the fold visual lives once. topLeft, not
+/// topCenter: the Align expands to the list's full width, so a centering
+/// alignment would re-seat an intrinsic-width child (the day splitter) in the
+/// middle; only the top matters, it is what the fold moves from. At rest the
+/// clip relaxes so the delete disc keeps its sanctioned spill into the row
+/// gap, and the wrapper stays constant so the subtree's element (and any
+/// animation in flight inside it) survives a fold starting.
+class _Fold extends StatelessWidget {
+  const _Fold({required this.t, required this.child});
+
+  final double t;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (t <= 0) return const SizedBox.shrink();
+    return ClipRect(
+      clipBehavior: t < 1 ? Clip.hardEdge : Clip.none,
+      child: Align(
+        alignment: Alignment.topLeft,
+        heightFactor: t,
+        child: Opacity(opacity: t, child: child),
+      ),
+    );
+  }
+}
+
+/// The day splitter's padded label, shared by the live splitter and its
+/// departing ghost so a ghost renders exactly what it replaces. Top spacing
+/// only BETWEEN groups ([gapless] drops it); the left inset lands the label
+/// on the records' TEXT column (content margin + rail gutter), not on the
+/// rail, which belongs to the day's records. The gap is animated because
+/// [gapless] flips when the day above departs, dies, or arrives: the gap
+/// glides while the neighbor closes, so the two motions sum to one
+/// continuous move.
+class _SplitterLabel extends StatelessWidget {
+  const _SplitterLabel({
+    required this.day,
+    required this.gapless,
+    required this.duration,
+    required this.curve,
+    this.labelKey,
+  });
+
+  final DateTime day;
+  final bool gapless;
+  final Duration duration;
+  final Curve curve;
+
+  /// The tracker's key, on the LABEL rather than the padded block: the
+  /// tracker's line is about where the words are, so every day rests and
+  /// lands in the same place regardless of the gap above it. Ghosts pass
+  /// none; the tracker already pruned theirs.
+  final Key? labelKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final locale = localeTag(context);
+    return AnimatedPadding(
+      duration: duration,
+      curve: curve,
+      padding: EdgeInsets.fromLTRB(
+        theme.entryList.textColumnInset,
+        gapless ? 0 : AppSpacing.xxxl,
+        AppSpacing.xl,
+        AppSpacing.sm,
+      ),
+      child: Text(
+        '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}',
+        key: labelKey,
+        style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+      ),
     );
   }
 }
@@ -613,29 +688,30 @@ class _RecordsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final sections = state.sections;
-    final locale = localeTag(context);
 
     // Nothing floats over the list any more; the tail just clears the home
     // indicator.
     final clearance = MediaQuery.paddingOf(context).bottom;
 
+    final sectionDays = [for (final section in sections) section.day];
+    final sectionIds = [
+      for (final section in sections) [for (final entry in section.entries) entry.id],
+    ];
+    final dyingIds = dying.keys.toSet();
+
     // A card sits above the first section of each finished period; a section can
     // stack a month, a week, and a day card.
     final cards = reflectionCardsForSections(
-      sectionDays: [for (final section in sections) section.day],
+      sectionDays: sectionDays,
       reflections: reflections,
       today: DateTime.now(),
     );
-    final ghosts = departingSplitterSlots(
-      sectionDays: [for (final section in sections) section.day],
-      departing: departingDays,
-    );
-    // A section leads the list once everything above it is dying, not only
-    // once the emit confirms it: the top gap closes with the exits above.
-    bool effectiveFirst(int s) =>
-        s == 0 ||
-        cards[s] != null ||
-        sections.take(s).every((p) => p.entries.every((e) => dying.containsKey(e.id)));
+    final ghosts = departingSplitterSlots(sectionDays: sectionDays, departing: departingDays);
+    // A section drops its top gap when it leads the list - or once everything
+    // above it is dying, not only once the emit confirms it, so the gap
+    // closes with the exits above - or when a card supplies the break itself.
+    bool noTopGap(int s) =>
+        s == 0 || cards[s] != null || sectionIds.take(s).every((ids) => allDying(ids, dyingIds));
 
     return ListView(
       controller: controller,
@@ -677,39 +753,17 @@ class _RecordsList extends StatelessWidget {
             // the exit's own clock, so the emit lands on a seam already
             // closed; a refused delete retargets it back open.
             child: _FoldAway(
-              folded: section.entries.every((e) => dying.containsKey(e.id)),
-              child: AnimatedPadding(
-                // Top spacing only BETWEEN groups: the first splitter rests
-                // right under the chrome. A card above a week supplies that
-                // break itself, so the splitter drops its own top gap then.
-                // The left inset lands the label on the records' TEXT column
-                // (content margin + rail gutter), not on the rail: the rail
-                // belongs to the day's records. Animated because the position
-                // flips when the day above departs, dies, or arrives: the gap
-                // glides while the neighbor closes, so the two motions sum to
-                // one continuous move. Closing is phase-locked to the delete
-                // exit's height interval; opening rides the arrival unfold.
+              folded: allDying(sectionIds[s], dyingIds),
+              child: _SplitterLabel(
+                day: section.day,
+                gapless: noTopGap(s),
+                // Closing is phase-locked to the delete exit's height;
+                // opening rides the arrival unfold.
                 duration: context.reduceMotion
                     ? Duration.zero
-                    : (effectiveFirst(s) ? theme.motion.swipeExit : theme.motion.expand),
-                curve: effectiveFirst(s)
-                    ? const Interval(0.25, 1, curve: Curves.easeInOutCubic)
-                    : Curves.easeOutCubic,
-                padding: EdgeInsets.fromLTRB(
-                  theme.entryList.textColumnInset,
-                  effectiveFirst(s) ? 0 : AppSpacing.xxxl,
-                  AppSpacing.xl,
-                  AppSpacing.sm,
-                ),
-                child: Text(
-                  '${DateFormat.EEEE(locale).format(section.day)}, '
-                  '${DateFormat.MMMd(locale).format(section.day)}',
-                  // Keyed on the LABEL, not the padded block: the tracker's line
-                  // is about where the words are, so every day rests and lands in
-                  // the same place regardless of the gap above it.
-                  key: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
-                  style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
-                ),
+                    : (noTopGap(s) ? theme.motion.swipeExit : theme.motion.expand),
+                curve: noTopGap(s) ? AppMotion.swipeExitHeightCurve : Curves.easeOutCubic,
+                labelKey: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
               ),
             ),
           ),
@@ -724,7 +778,7 @@ class _RecordsList extends StatelessWidget {
                 // A dying successor is already gone for layout: the gap and
                 // rail close in step with its exit, and the emit changes
                 // nothing.
-                last: section.entries.skip(i + 1).every((e) => dying.containsKey(e.id)),
+                last: allDying(sectionIds[s].skip(i + 1), dyingIds),
                 openId: openRow,
                 onDelete: onDelete,
                 onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
@@ -770,24 +824,8 @@ class _FoldAway extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: folded ? 0.0 : 1.0),
       duration: context.reduceMotion ? Duration.zero : context.theme.motion.swipeExit,
-      // The exit fades through its first quarter and only then collapses the
-      // slot; the same interval here keeps this fold phase-locked to the
-      // exit's height, so the two close as one instead of this one leading.
-      curve: const Interval(0.25, 1, curve: Curves.easeInOutCubic),
-      builder: (context, t, child) {
-        if (t <= 0) return const SizedBox.shrink();
-        // No bare-child fast path at rest: a constant wrapper keeps the
-        // subtree's element (and the top-gap animation possibly in flight
-        // inside it) alive when a fold starts, instead of remounting it.
-        return ClipRect(
-          clipBehavior: t < 1 ? Clip.hardEdge : Clip.none,
-          child: Align(
-            alignment: Alignment.topLeft,
-            heightFactor: t,
-            child: Opacity(opacity: t, child: child),
-          ),
-        );
-      },
+      curve: AppMotion.swipeExitHeightCurve,
+      builder: (context, t, child) => _Fold(t: t, child: child!),
       child: child,
     );
   }
@@ -798,7 +836,8 @@ class _FoldAway extends StatelessWidget {
 /// the real one - it closes on the delete exit's clock and interval so the
 /// neighbor's top gap (which always closes on that clock) moves with it as
 /// one, and reports [onEnd] so the ghost ledger can drop it. Never built
-/// under Reduce Motion (the ledger stays empty there).
+/// under Reduce Motion: the ledger stays empty there, and a flip mid-fold
+/// clears it.
 class _DepartingSplitter extends StatelessWidget {
   const _DepartingSplitter({
     required this.day,
@@ -816,35 +855,17 @@ class _DepartingSplitter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final locale = localeTag(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: 0),
-      duration: theme.motion.swipeExit,
-      curve: const Interval(0.25, 1, curve: Curves.easeInOutCubic),
+      duration: context.theme.motion.swipeExit,
+      curve: AppMotion.swipeExitHeightCurve,
       onEnd: onEnd,
-      builder: (context, t, child) {
-        if (t <= 0) return const SizedBox.shrink();
-        return ClipRect(
-          child: Align(
-            alignment: Alignment.topLeft,
-            heightFactor: t,
-            child: Opacity(opacity: t, child: child),
-          ),
-        );
-      },
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          theme.entryList.textColumnInset,
-          first ? 0 : AppSpacing.xxxl,
-          AppSpacing.xl,
-          AppSpacing.sm,
-        ),
-        child: Text(
-          '${DateFormat.EEEE(locale).format(day)}, '
-          '${DateFormat.MMMd(locale).format(day)}',
-          style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
-        ),
+      builder: (context, t, child) => _Fold(t: t, child: child!),
+      child: _SplitterLabel(
+        day: day,
+        gapless: first,
+        duration: Duration.zero,
+        curve: Curves.linear,
       ),
     );
   }
