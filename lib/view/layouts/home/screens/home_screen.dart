@@ -57,6 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
   /// they keep their wrapper so a later rebuild cannot re-play it.
   List<Reflection>? _seenReflections;
   final Set<ReflectionCardKey> _enteredCards = {};
+
+  /// The entry ids as of the last build (null before the first), and the ids
+  /// that arrived while home was up: only those rows get the entrance, and
+  /// they keep their wrapper so a later rebuild cannot re-play it.
+  Set<String>? _seenEntryIds;
+  final Set<String> _enteredEntries = {};
+
+  /// The same ledger for calendar days: a day that arrived while home was up
+  /// unfolds its splitter along with its first row, so the section's whole
+  /// lead-in glides open instead of jumping in at full height.
+  Set<DateTime>? _seenDays;
+  final Set<DateTime> _enteredDays = {};
   late final PullToRecordGesture _pullGesture = PullToRecordGesture(
     onArm: Haptics.selection,
     onDisarm: Haptics.light,
@@ -212,6 +224,10 @@ class _HomeScreenState extends State<HomeScreen> {
             if (previous != null) _enteredCards.addAll(newlyReflected(previous, reflections));
             _seenReflections = reflections;
           }
+          _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
+          _seenEntryIds = {for (final e in state.entries) e.id};
+          _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
+          _seenDays = state.entryDays;
           // After EVERY build: splitter positions move when entries are
           // added or renamed (card heights change), not only when the set
           // of days does.
@@ -242,6 +258,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   state: state,
                   reflections: reflections,
                   enteredCards: _enteredCards,
+                  enteredEntries: _enteredEntries,
+                  enteredDays: _enteredDays,
                   controller: _scroll,
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
@@ -442,11 +460,54 @@ class _ReflectionCardSlot extends StatelessWidget {
   }
 }
 
+/// A timeline piece that arrived while home was up UNFOLDS into its seat -
+/// the list glides apart to make room while it fades in - because a
+/// full-height insert jumps everything below it, and no fade can mask a
+/// layout jump. Wraps the entry rows and, for a brand-new day, its splitter.
+/// Reduce Motion keeps the same tree at zero duration (the _Unfold trick), so
+/// an accessibility flip mid-session cannot remount settled pieces and replay
+/// their arrivals. Once settled, the clip relaxes so the delete disc keeps
+/// its sanctioned spill into the row gap.
+class _ArrivalUnfold extends StatelessWidget {
+  const _ArrivalUnfold({required this.entrance, required this.child, super.key});
+
+  final bool entrance;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!entrance) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: context.reduceMotion ? Duration.zero : context.theme.motion.expand,
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) {
+        if (t <= 0) return const SizedBox.shrink();
+        return ClipRect(
+          clipBehavior: t < 1 ? Clip.hardEdge : Clip.none,
+          // topLeft, not topCenter: the Align expands to the list's full
+          // width, so a centering alignment would re-seat an intrinsic-width
+          // child (the day splitter) in the middle. Only the top matters
+          // here; it is what the reveal grows from.
+          child: Align(
+            alignment: Alignment.topLeft,
+            heightFactor: t,
+            child: Opacity(opacity: t, child: child),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
     required this.reflections,
     required this.enteredCards,
+    required this.enteredEntries,
+    required this.enteredDays,
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
@@ -463,6 +524,14 @@ class _RecordsList extends StatelessWidget {
 
   /// Cards that arrived while home was up; only these enter with motion.
   final Set<ReflectionCardKey> enteredCards;
+
+  /// Entry ids that arrived while home was up; only these rows enter with
+  /// motion.
+  final Set<String> enteredEntries;
+
+  /// Days that arrived while home was up; their splitters unfold with their
+  /// first row.
+  final Set<DateTime> enteredDays;
   final ScrollController controller;
 
   /// Tracker-owned keys splitter label positions are read through.
@@ -518,44 +587,55 @@ class _RecordsList extends StatelessWidget {
             ],
             const SizedBox(height: AppSpacing.sm),
           ],
-          Padding(
-            // Top spacing only BETWEEN groups: the first splitter rests right
-            // under the chrome. A card above a week supplies that break itself,
-            // so the splitter drops its own top gap then. The left inset lands
-            // the label on the records' TEXT column (content margin + rail
-            // gutter), not on the rail: the rail belongs to the day's records.
-            padding: EdgeInsets.fromLTRB(
-              theme.entryList.textColumnInset,
-              s == 0 || cards[s] != null ? 0 : AppSpacing.xxxl,
-              AppSpacing.xl,
-              AppSpacing.sm,
-            ),
-            child: Text(
-              '${DateFormat.EEEE(locale).format(section.day)}, '
-              '${DateFormat.MMMd(locale).format(section.day)}',
-              // Keyed on the LABEL, not the padded block: the tracker's line
-              // is about where the words are, so every day rests and lands in
-              // the same place regardless of the gap above it.
-              key: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
-              style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+          // Keyed (like the rows) so an insert or delete above cannot
+          // re-inflate the slot at its shifted index and replay the entrance.
+          _ArrivalUnfold(
+            key: ValueKey(section.day),
+            entrance: enteredDays.contains(section.day),
+            child: Padding(
+              // Top spacing only BETWEEN groups: the first splitter rests right
+              // under the chrome. A card above a week supplies that break itself,
+              // so the splitter drops its own top gap then. The left inset lands
+              // the label on the records' TEXT column (content margin + rail
+              // gutter), not on the rail: the rail belongs to the day's records.
+              padding: EdgeInsets.fromLTRB(
+                theme.entryList.textColumnInset,
+                s == 0 || cards[s] != null ? 0 : AppSpacing.xxxl,
+                AppSpacing.xl,
+                AppSpacing.sm,
+              ),
+              child: Text(
+                '${DateFormat.EEEE(locale).format(section.day)}, '
+                '${DateFormat.MMMd(locale).format(section.day)}',
+                // Keyed on the LABEL, not the padded block: the tracker's line
+                // is about where the words are, so every day rests and lands in
+                // the same place regardless of the gap above it.
+                key: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
+                style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+              ),
             ),
           ),
           for (final (i, entry) in section.entries.indexed)
-            EntryRow(
+            // Keyed so an entry insert or delete above cannot re-inflate the
+            // slot at its shifted index and replay the entrance.
+            _ArrivalUnfold(
               key: ValueKey(entry.id),
-              entry: entry,
-              last: i == section.entries.length - 1,
-              openId: openRow,
-              onDelete: onDelete,
-              onTap: () {
-                final home = context.read<HomeCubit>();
-                // The detail screen reads EntriesCubit; refresh it before the
-                // push, and refresh home on return (delete or rename).
-                context.read<EntriesCubit>().load();
-                context
-                    .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
-                    .then((_) => home.load());
-              },
+              entrance: enteredEntries.contains(entry.id),
+              child: EntryRow(
+                entry: entry,
+                last: i == section.entries.length - 1,
+                openId: openRow,
+                onDelete: onDelete,
+                onTap: () {
+                  final home = context.read<HomeCubit>();
+                  // The detail screen reads EntriesCubit; refresh it before the
+                  // push, and refresh home on return (delete or rename).
+                  context.read<EntriesCubit>().load();
+                  context
+                      .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
+                      .then((_) => home.load());
+                },
+              ),
             ),
         ],
         const SizedBox(height: _listBottomInset),

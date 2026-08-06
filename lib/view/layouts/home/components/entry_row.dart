@@ -120,6 +120,29 @@ class EntryRow extends StatelessWidget {
   static double _firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
 }
 
+/// The ids that ARRIVED between two home builds: entries present now that the
+/// previous build had not seen. A null [previous] is the first build - the
+/// whole journal is old news, nothing arrives - so it marks nothing. An id
+/// that left and returned (a failed delete restoring its row) is an arrival
+/// again: the returning row is the failure's only signal, and its unfold
+/// masks exactly the reinsertion jump.
+Set<String> newEntryIds(Set<String>? previous, List<Entry> current) {
+  if (previous == null) return const {};
+  return {
+    for (final entry in current)
+      if (!previous.contains(entry.id)) entry.id,
+  };
+}
+
+/// The calendar days that ARRIVED between two home builds, feeding the day
+/// splitter's unfold the same way [newEntryIds] feeds the rows': the first
+/// entry of a new day brings its splitter with it, and an unanimated splitter
+/// would jump the list by its full height. A null [previous] marks nothing.
+Set<DateTime> newEntryDays(Set<DateTime>? previous, Set<DateTime> current) {
+  if (previous == null) return const {};
+  return current.difference(previous);
+}
+
 /// The rail: one hairline down the gutter with a filled node on it. It runs the
 /// painter's whole height, so consecutive rows draw one unbroken line.
 class _RailPainter extends CustomPainter {
