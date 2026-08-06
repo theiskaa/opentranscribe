@@ -59,13 +59,54 @@ void main() {
     await cubit.close();
   });
 
-  test('loaded stays false until the first real history read emits', () async {
+  test('loaded is true synchronously off construction, before the probe answers', () async {
+    engine.availabilityGate = Completer<void>().future;
     final cubit = build();
 
-    expect(cubit.state.loaded, isFalse);
-
-    await cubit.load();
     expect(cubit.state.loaded, isTrue);
+    await cubit.close();
+  });
+
+  test('the stored view lands before the availability probe answers', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.monthly,
+        periodStart: DateTime(2026, 6),
+        generatedAt: now,
+        text: 'a month',
+      ),
+    );
+    engine.availabilityGate = Completer<void>().future;
+    final cubit = build();
+
+    expect(cubit.state.loaded, isTrue);
+    expect(cubit.state.timeline, isNotEmpty);
+    await cubit.close();
+  });
+
+  test("a drill's period choice made before the first probe answers is honored", () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
+    await store.save(
+      Reflection(
+        period: ReflectionPeriod.daily,
+        periodStart: DateTime(2026, 7, 28),
+        generatedAt: now,
+        text: 'a day',
+      ),
+    );
+    final gate = Completer<void>();
+    engine.availabilityGate = gate.future;
+    final cubit = build();
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
+    expect(cubit.state.history.map((r) => r.text), ['a day']);
+
+    gate.complete();
+    await settle();
+
+    expect(cubit.state.viewedPeriod, ReflectionPeriod.daily);
     await cubit.close();
   });
 

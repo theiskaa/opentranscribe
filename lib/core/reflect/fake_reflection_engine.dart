@@ -14,6 +14,7 @@ class FakeReflectionEngine implements ReflectionEngine {
     this.output = 'a canned reflection',
     this.silent = false,
     this.failReflect = false,
+    this.availabilityGate,
   });
 
   /// Mutable so a test can flip availability or output between calls.
@@ -21,6 +22,11 @@ class FakeReflectionEngine implements ReflectionEngine {
   String? output;
   bool silent;
   bool failReflect;
+
+  /// Awaited inside [availability] before it returns, so a test can hold the
+  /// probe open (gate not yet completed) while it exercises what the caller
+  /// does before availability is known.
+  Future<void>? availabilityGate;
 
   /// Thrown as-is when set, for the unexpected-failure paths that must not be
   /// read as the transient [ReflectionUnavailable].
@@ -43,7 +49,10 @@ class FakeReflectionEngine implements ReflectionEngine {
   bool get onDeviceOnly => true;
 
   @override
-  Future<ReflectionAvailability> availability() async => availabilityResult;
+  Future<ReflectionAvailability> availability() async {
+    if (availabilityGate != null) await availabilityGate;
+    return availabilityResult;
+  }
 
   @override
   Future<String?> reflect({

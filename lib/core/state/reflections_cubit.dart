@@ -179,6 +179,11 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
   /// Call on build and on resume, so an enabled model or a fresh reflection is
   /// picked up.
   Future<void> load() async {
+    if (isClosed) return;
+    // The stored view derives synchronously; only availability needs the
+    // probe. Emitting first means no UI ever renders against an unloaded
+    // state, and the probe's latency stops gating the first landing.
+    emit(_deriveView(state));
     final availability = await _service.availability();
     if (isClosed) return;
     emit(_deriveView(state.copyWith(availability: availability)));
@@ -198,7 +203,15 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     if (isClosed || period == state.viewedPeriod) return;
     emit(
       _deriveView(
-        state.copyWith(viewedPeriod: period, clearRegenerating: true, regenerateFailed: false),
+        // An explicit choice IS a landing: `loaded: true` keeps the
+        // broadest-period rule from re-landing it, which otherwise fires on
+        // every derive until the availability probe answers.
+        state.copyWith(
+          viewedPeriod: period,
+          loaded: true,
+          clearRegenerating: true,
+          regenerateFailed: false,
+        ),
       ),
     );
   }
