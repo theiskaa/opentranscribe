@@ -393,13 +393,20 @@ class _LanguageRow extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                if (row.installing)
-                  _DownloadingLine(fraction: row.installFraction!)
-                else
-                  Text(
-                    _subLine(l10n),
-                    style: AppType.footnote.copyWith(color: theme.textSecondary),
-                  ),
+                // Crossfaded like the trailing control, so the downloading line
+                // melts into the model name in step with the checkmark.
+                AnimatedSwitcher(
+                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                  layoutBuilder: (current, previous) =>
+                      Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
+                  child: row.installing
+                      ? _DownloadingLine(fraction: row.installFraction!)
+                      : Text(
+                          _subLine(l10n),
+                          key: ValueKey(_subLine(l10n)),
+                          style: AppType.footnote.copyWith(color: theme.textSecondary),
+                        ),
+                ),
               ],
             ),
           ),

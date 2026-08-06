@@ -339,13 +339,18 @@ class _ClearRow extends StatelessWidget {
                 ),
               ),
             ),
-            if (clearing)
-              AppSpinner(size: 16, color: theme.textSecondary)
-            else if (detail != null)
-              Text(
-                detail!,
-                style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
-              ),
+            AnimatedSwitcher(
+              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+              child: clearing
+                  ? AppSpinner(size: 16, color: theme.textSecondary)
+                  : detail != null
+                  ? Text(
+                      detail!,
+                      key: ValueKey(detail),
+                      style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
