@@ -511,13 +511,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsNotifications => '通知';
 
   @override
-  String get notifyDailyReflection => '每日回顾';
+  String get notifyReflectionReminders => '回顾提醒';
 
   @override
-  String get notifyWeeklyReflection => '每周回顾';
+  String get notifyPeriodDay => '日';
 
   @override
-  String get notifyMonthlyReflection => '每月回顾';
+  String get notifyPeriodWeek => '周';
+
+  @override
+  String get notifyPeriodMonth => '月';
 
   @override
   String get notifyReflectionsInfo => '新的回顾可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。';

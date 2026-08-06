@@ -550,13 +550,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsNotifications => 'Notifications';
 
   @override
-  String get notifyDailyReflection => 'Réflexions quotidiennes';
+  String get notifyReflectionReminders => 'Rappels de réflexion';
 
   @override
-  String get notifyWeeklyReflection => 'Réflexions hebdomadaires';
+  String get notifyPeriodDay => 'Jour';
 
   @override
-  String get notifyMonthlyReflection => 'Réflexions mensuelles';
+  String get notifyPeriodWeek => 'Semaine';
+
+  @override
+  String get notifyPeriodMonth => 'Mois';
 
   @override
   String get notifyReflectionsInfo =>

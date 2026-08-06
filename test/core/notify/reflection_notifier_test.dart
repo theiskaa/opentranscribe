@@ -240,6 +240,55 @@ void main() {
       expect(scheduler.cancelled, ['reflect.daily', 'reflect.monthly']);
     });
 
+    test('a stored-off master cancels every period despite selections', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
+      await s.notify.setEnabled(ReflectionNotifier.timeKey, false);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled, isEmpty);
+      expect(scheduler.cancelled, allKeys);
+    });
+
+    test('an unset master falls back to the stored selections', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled.map((m) => m['id']), ['reflect.weekly']);
+    });
+
+    test('a lone enabled period nudges under the master alone, unpicked', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      await s.reflect.setEnabledFor(ReflectionPeriod.daily, false);
+      await s.reflect.setEnabledFor(ReflectionPeriod.monthly, false);
+      await s.notify.setEnabled(ReflectionNotifier.timeKey, true);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled.map((m) => m['id']), ['reflect.weekly']);
+    });
+
+    test('a stored-on master with nothing selected schedules nothing', () async {
+      final scheduler = FakeNotificationScheduler();
+      final s = await settings();
+      await s.notify.setEnabled(ReflectionNotifier.timeKey, true);
+      final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+      await notifier.sync();
+
+      expect(scheduler.scheduled, isEmpty);
+      expect(scheduler.cancelled, allKeys);
+    });
+
     test('a toggle-off that lands during the async probes cancels, never schedules', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();

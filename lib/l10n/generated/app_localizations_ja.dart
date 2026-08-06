@@ -514,13 +514,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsNotifications => '通知';
 
   @override
-  String get notifyDailyReflection => '毎日の振り返り';
+  String get notifyReflectionReminders => '振り返りのリマインダー';
 
   @override
-  String get notifyWeeklyReflection => '毎週の振り返り';
+  String get notifyPeriodDay => '日';
 
   @override
-  String get notifyMonthlyReflection => '毎月の振り返り';
+  String get notifyPeriodWeek => '週';
+
+  @override
+  String get notifyPeriodMonth => '月';
 
   @override
   String get notifyReflectionsInfo => '新しい振り返りを読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。';

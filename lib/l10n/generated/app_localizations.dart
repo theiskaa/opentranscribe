@@ -1056,25 +1056,31 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get settingsNotifications;
 
-  /// Toggle label: the daily reflection notification
+  /// Master toggle label: all reflection notifications on or off
   ///
   /// In en, this message translates to:
-  /// **'Daily reflections'**
-  String get notifyDailyReflection;
+  /// **'Reflection reminders'**
+  String get notifyReflectionReminders;
 
-  /// Toggle label: the weekly reflection notification
+  /// Capsule label: nudge for daily reflections
   ///
   /// In en, this message translates to:
-  /// **'Weekly reflections'**
-  String get notifyWeeklyReflection;
+  /// **'Day'**
+  String get notifyPeriodDay;
 
-  /// Toggle label: the monthly reflection notification
+  /// Capsule label: nudge for weekly reflections
   ///
   /// In en, this message translates to:
-  /// **'Monthly reflections'**
-  String get notifyMonthlyReflection;
+  /// **'Week'**
+  String get notifyPeriodWeek;
 
-  /// Footnote under the per-period reflection notification toggles
+  /// Capsule label: nudge for monthly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get notifyPeriodMonth;
+
+  /// Footnote under the reflection reminders card
   ///
   /// In en, this message translates to:
   /// **'A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.'**

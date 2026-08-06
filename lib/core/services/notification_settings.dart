@@ -22,7 +22,15 @@ class NotificationSettings {
   /// Off by default: a nudge needs notification permission, requested only when
   /// the user opts in, so a stored-on default would promise a notification that
   /// no permission backs.
-  bool enabled(String key) => _read(_enabledKey(key)) == 'true';
+  bool enabled(String key) => enabledOrNull(key) ?? false;
+
+  /// [enabled] with unset visible, for a caller whose default is derived rather
+  /// than false (the reflection reminders master falls back to whether any
+  /// period's nudge was stored on).
+  bool? enabledOrNull(String key) {
+    final raw = _read(_enabledKey(key));
+    return raw == null ? null : raw == 'true';
+  }
 
   int hour(String key) => _readInt(_hourKey(key), defaultHour, 23);
   int minute(String key) => _readInt(_minuteKey(key), defaultMinute, 59);

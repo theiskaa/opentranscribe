@@ -93,7 +93,8 @@ void main() {
     );
 
     expect(cubit.state.shownPeriods, [weekly]);
-    expect(cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(cubit.state.slotOf(weekly).selected, isTrue);
+    expect(cubit.state.master, isTrue);
   });
 
   test('load reflects the persisted toggle, time, and permission', () async {
@@ -102,7 +103,7 @@ void main() {
     await b.notify.setTime(ReflectionNotifier.timeKey, hour: 7, minute: 15);
     await b.cubit.load();
 
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
     expect(b.cubit.state.hour, 7);
     expect(b.cubit.state.minute, 15);
     expect(b.cubit.state.permission, NotificationPermission.authorized);
@@ -121,53 +122,86 @@ void main() {
     expect(b.cubit.state.shownPeriods, ReflectionPeriod.values);
   });
 
-  test('enabling with permission already granted persists and turns on', () async {
+  test('turning the master on seeds every shown period and persists', () async {
     final b = await build();
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setMaster(true);
 
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.master, isTrue);
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
     expect(b.notify.enabled(weeklyKey), isTrue);
+    expect(b.notify.enabled(ReflectionNotifier.timeKey), isTrue);
     expect(b.scheduler.permissionRequests, 0);
   });
 
-  test('enabling from undecided requests permission, then turns on when granted', () async {
-    final b = await build(permission: NotificationPermission.notDetermined);
-    await b.cubit.setEnabled(weekly, true);
+  test('the seed covers every shown period, not only one', () async {
+    final b = await build();
+    await b.reflect.setEnabledFor(ReflectionPeriod.daily, true);
+    await b.cubit.load();
 
-    expect(b.scheduler.permissionRequests, 1);
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
-    expect(b.cubit.state.permission, NotificationPermission.authorized);
-    expect(b.notify.enabled(weeklyKey), isTrue);
+    await b.cubit.setMaster(true);
+
+    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).selected, isTrue);
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
   });
 
-  test('a second period enabled after the prompt settled does not re-prompt', () async {
+  test('a lone shown period counts selected with nothing stored', () async {
+    final b = await build();
+
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
+    expect(b.notify.enabledOrNull(weeklyKey), isNull);
+  });
+
+  test('a picked mix survives the master going off and on', () async {
+    final b = await build();
+    await b.reflect.setEnabledFor(ReflectionPeriod.daily, true);
+    await b.cubit.load();
+    await b.cubit.setMaster(true);
+    await b.cubit.setSelected(weekly, false);
+
+    await b.cubit.setMaster(false);
+    await b.cubit.setMaster(true);
+
+    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).selected, isTrue);
+    expect(b.cubit.state.slotOf(weekly).selected, isFalse);
+  });
+
+  test('turning the master on from undecided requests permission once', () async {
+    final b = await build(permission: NotificationPermission.notDetermined);
+    await b.cubit.setMaster(true);
+
+    expect(b.scheduler.permissionRequests, 1);
+    expect(b.cubit.state.master, isTrue);
+    expect(b.cubit.state.permission, NotificationPermission.authorized);
+  });
+
+  test('selecting a period never prompts; the master already settled it', () async {
     final b = await build(permission: NotificationPermission.notDetermined);
     await b.reflect.setEnabledFor(ReflectionPeriod.daily, true);
     await b.cubit.load();
 
-    await b.cubit.setEnabled(weekly, true);
-    await b.cubit.setEnabled(ReflectionPeriod.daily, true);
+    await b.cubit.setMaster(true);
+    await b.cubit.setSelected(ReflectionPeriod.daily, true);
 
     expect(b.scheduler.permissionRequests, 1);
-    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).enabled, isTrue);
+    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).selected, isTrue);
   });
 
-  test('a denied prompt keeps the intent on and surfaces the block', () async {
+  test('a denied prompt keeps the master on and surfaces the block', () async {
     final b = await build(permission: NotificationPermission.notDetermined, grant: false);
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setMaster(true);
 
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.master, isTrue);
     expect(b.cubit.state.permission, NotificationPermission.denied);
     expect(b.cubit.state.permissionBlocked, isTrue);
-    expect(b.notify.enabled(weeklyKey), isTrue);
+    expect(b.notify.enabled(ReflectionNotifier.timeKey), isTrue);
   });
 
   test('an already-denied permission persists the intent without prompting again', () async {
     final b = await build(permission: NotificationPermission.denied);
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setMaster(true);
 
     expect(b.scheduler.permissionRequests, 0);
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.master, isTrue);
     expect(b.cubit.state.permissionBlocked, isTrue);
   });
 
@@ -176,31 +210,42 @@ void main() {
     await b.notify.setEnabled(weeklyKey, true);
     await b.cubit.load();
 
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
     expect(b.cubit.state.permissionBlocked, isTrue);
   });
 
-  test('disabling turns off and persists', () async {
+  test('turning the master off persists and keeps the selection stored', () async {
     final b = await build();
-    await b.cubit.setEnabled(weekly, true);
-    await b.cubit.setEnabled(weekly, false);
+    await b.cubit.setMaster(true);
+    await b.cubit.setMaster(false);
 
-    expect(b.cubit.state.slotOf(weekly).enabled, isFalse);
-    expect(b.notify.enabled(weeklyKey), isFalse);
+    expect(b.cubit.state.master, isFalse);
+    expect(b.notify.enabled(ReflectionNotifier.timeKey), isFalse);
+    expect(b.notify.enabled(weeklyKey), isTrue);
     expect(b.cubit.state.permissionBlocked, isFalse);
   });
 
-  test('disabling one period leaves the others intact', () async {
+  test('deselecting the last period turns the master off with it', () async {
+    final b = await build();
+    await b.cubit.setMaster(true);
+
+    await b.cubit.setSelected(weekly, false);
+
+    expect(b.cubit.state.master, isFalse);
+    expect(b.notify.enabled(ReflectionNotifier.timeKey), isFalse);
+    expect(b.notify.enabled(weeklyKey), isFalse);
+  });
+
+  test('deselecting one period leaves the others intact', () async {
     final b = await build();
     await b.reflect.setEnabledFor(ReflectionPeriod.daily, true);
     await b.cubit.load();
-    await b.cubit.setEnabled(weekly, true);
-    await b.cubit.setEnabled(ReflectionPeriod.daily, true);
+    await b.cubit.setMaster(true);
 
-    await b.cubit.setEnabled(ReflectionPeriod.daily, false);
+    await b.cubit.setSelected(ReflectionPeriod.daily, false);
 
-    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).enabled, isFalse);
-    expect(b.cubit.state.slotOf(weekly).enabled, isTrue);
+    expect(b.cubit.state.slotOf(ReflectionPeriod.daily).selected, isFalse);
+    expect(b.cubit.state.slotOf(weekly).selected, isTrue);
     expect(b.notify.enabled(weeklyKey), isTrue);
   });
 
@@ -235,38 +280,40 @@ void main() {
     expect(b.cubit.state.shownPeriods, [weekly]);
   });
 
-  test('enabling while that period\'s reflections are off neither prompts nor stores', () async {
+  test('the master with every period off neither prompts nor stores', () async {
     final b = await build(
       permission: NotificationPermission.notDetermined,
       reflectionsEnabled: false,
     );
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setMaster(true);
 
     expect(b.scheduler.permissionRequests, 0);
-    expect(b.cubit.state.slotOf(weekly).enabled, isFalse);
-    expect(b.notify.enabled(weeklyKey), isFalse);
+    expect(b.cubit.state.master, isFalse);
+    expect(b.notify.enabledOrNull(ReflectionNotifier.timeKey), isNull);
   });
 
-  test('enabling a period switched off elsewhere drops its row on the recheck', () async {
+  test('selecting a period switched off elsewhere drops its capsule on the recheck', () async {
     final b = await build();
+    await b.cubit.setMaster(true);
+    await b.cubit.setSelected(weekly, false);
     await b.reflect.setEnabledFor(weekly, false);
 
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setSelected(weekly, true);
 
     expect(b.cubit.state.shownPeriods, isEmpty);
     expect(b.notify.enabled(weeklyKey), isFalse);
   });
 
-  test('enabling while the model is unavailable neither prompts nor stores the intent', () async {
+  test('the master while the model is unavailable neither prompts nor stores', () async {
     final b = await build(permission: NotificationPermission.notDetermined, available: false);
-    await b.cubit.setEnabled(weekly, true);
+    await b.cubit.setMaster(true);
 
     expect(b.scheduler.permissionRequests, 0);
-    expect(b.cubit.state.slotOf(weekly).enabled, isFalse);
-    expect(b.notify.enabled(weeklyKey), isFalse);
+    expect(b.cubit.state.master, isFalse);
+    expect(b.notify.enabledOrNull(ReflectionNotifier.timeKey), isNull);
   });
 
-  test('no enabled nudge means a denied permission is not a block', () async {
+  test('nothing selected means a denied permission is not a block', () async {
     final b = await build(permission: NotificationPermission.denied);
 
     expect(b.cubit.state.permissionBlocked, isFalse);

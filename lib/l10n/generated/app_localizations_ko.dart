@@ -516,13 +516,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsNotifications => '알림';
 
   @override
-  String get notifyDailyReflection => '일간 돌아보기';
+  String get notifyReflectionReminders => '돌아보기 알림';
 
   @override
-  String get notifyWeeklyReflection => '주간 돌아보기';
+  String get notifyPeriodDay => '일';
 
   @override
-  String get notifyMonthlyReflection => '월간 돌아보기';
+  String get notifyPeriodWeek => '주';
+
+  @override
+  String get notifyPeriodMonth => '월';
 
   @override
   String get notifyReflectionsInfo => '새로운 돌아보기를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.';

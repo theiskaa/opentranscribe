@@ -21,6 +21,17 @@ void main() {
       expect(built.settings.enabled(key), isFalse);
     });
 
+    test('an unset flag reads as null, a stored one as its value', () async {
+      final built = await build();
+      expect(built.settings.enabledOrNull(key), isNull);
+
+      await built.settings.setEnabled(key, false);
+      expect(built.settings.enabledOrNull(key), isFalse);
+
+      await built.settings.setEnabled(key, true);
+      expect(built.settings.enabledOrNull(key), isTrue);
+    });
+
     test('the fire time defaults to a civil morning hour', () async {
       final built = await build();
       expect(built.settings.hour(key), 9);

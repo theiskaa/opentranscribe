@@ -693,21 +693,25 @@
   "@settingsNotifications": {
     "description": "Home menu row and heading for the notifications settings screen"
   },
-  "notifyDailyReflection": "Daily reflections",
-  "@notifyDailyReflection": {
-    "description": "Toggle label: the daily reflection notification"
+  "notifyReflectionReminders": "Reflection reminders",
+  "@notifyReflectionReminders": {
+    "description": "Master toggle label: all reflection notifications on or off"
   },
-  "notifyWeeklyReflection": "Weekly reflections",
-  "@notifyWeeklyReflection": {
-    "description": "Toggle label: the weekly reflection notification"
+  "notifyPeriodDay": "Day",
+  "@notifyPeriodDay": {
+    "description": "Capsule label: nudge for daily reflections"
   },
-  "notifyMonthlyReflection": "Monthly reflections",
-  "@notifyMonthlyReflection": {
-    "description": "Toggle label: the monthly reflection notification"
+  "notifyPeriodWeek": "Week",
+  "@notifyPeriodWeek": {
+    "description": "Capsule label: nudge for weekly reflections"
+  },
+  "notifyPeriodMonth": "Month",
+  "@notifyPeriodMonth": {
+    "description": "Capsule label: nudge for monthly reflections"
   },
   "notifyReflectionsInfo": "A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.",
   "@notifyReflectionsInfo": {
-    "description": "Footnote under the per-period reflection notification toggles"
+    "description": "Footnote under the reflection reminders card"
   },
   "notifyTime": "Time",
   "@notifyTime": {

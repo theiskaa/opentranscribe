@@ -18,11 +18,11 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 /// drives stays generic; the policy lives here.
 ///
 /// A period's nudge is scheduled only when everything lines up - the on-device
-/// model can run, that period's reflections are enabled, the user turned its
-/// notification on, and permission is granted - and cancelled the instant any
-/// of those stops holding. [sync] is the single entry point: call it after any
-/// of those inputs could have changed (a settings toggle, a catch-up, a
-/// resume).
+/// model can run, that period's reflections are enabled, the reminders master
+/// and the period's own selection are on, and permission is granted - and
+/// cancelled the instant any of those stops holding. [sync] is the single
+/// entry point: call it after any of those inputs could have changed (a
+/// settings toggle, a catch-up, a resume).
 class ReflectionNotifier {
   ReflectionNotifier({
     required NotificationScheduler scheduler,
@@ -55,6 +55,29 @@ class ReflectionNotifier {
   /// purpose: the nudges differ in WHICH day they fire, not when in the day,
   /// and one Time row is a calmer surface than three.
   static const timeKey = 'reflect';
+
+  /// The reminders master switch, persisted under [timeKey] beside the shared
+  /// time. Unset (an install predating the switch) falls back to whether any
+  /// period's nudge was stored on, so old intents keep firing untouched.
+  static bool masterEnabled(NotificationSettings settings) =>
+      settings.enabledOrNull(timeKey) ??
+      ReflectionPeriod.values.any((p) => settings.enabled(keyFor(p)));
+
+  /// Whether [period]'s nudge is selected under the master. A lone enabled
+  /// period needs no selection of its own - the settings surface hides the
+  /// picker and the master alone governs it - so it counts as selected
+  /// whatever an earlier multi-period mix stored. Derived, not migrated:
+  /// disabling the other periods elsewhere can never strand the master on
+  /// top of an invisibly deselected survivor.
+  static bool selectedFor(
+    ReflectionPeriod period,
+    NotificationSettings notifySettings,
+    ReflectionSettings reflectionSettings,
+  ) {
+    if (notifySettings.enabled(keyFor(period))) return true;
+    final shown = ReflectionPeriod.values.where(reflectionSettings.enabledFor);
+    return shown.length == 1 && shown.single == period;
+  }
 
   bool _running = false;
   bool _pending = false;
@@ -114,7 +137,9 @@ class ReflectionNotifier {
   }
 
   bool _shouldSchedule(ReflectionPeriod period) =>
-      _notifySettings.enabled(keyFor(period)) && _reflectionSettings.enabledFor(period);
+      masterEnabled(_notifySettings) &&
+      _reflectionSettings.enabledFor(period) &&
+      selectedFor(period, _notifySettings, _reflectionSettings);
 
   /// Cancelling an id with nothing pending is a native no-op, so a blanket
   /// cancel is the simplest way to hold the "cancelled the instant any gate

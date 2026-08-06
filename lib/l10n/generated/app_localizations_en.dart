@@ -545,13 +545,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsNotifications => 'Notifications';
 
   @override
-  String get notifyDailyReflection => 'Daily reflections';
+  String get notifyReflectionReminders => 'Reflection reminders';
 
   @override
-  String get notifyWeeklyReflection => 'Weekly reflections';
+  String get notifyPeriodDay => 'Day';
 
   @override
-  String get notifyMonthlyReflection => 'Monthly reflections';
+  String get notifyPeriodWeek => 'Week';
+
+  @override
+  String get notifyPeriodMonth => 'Month';
 
   @override
   String get notifyReflectionsInfo =>

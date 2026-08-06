@@ -552,13 +552,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsNotifications => 'Mitteilungen';
 
   @override
-  String get notifyDailyReflection => 'Tägliche Rückblicke';
+  String get notifyReflectionReminders => 'Rückblick-Erinnerungen';
 
   @override
-  String get notifyWeeklyReflection => 'Wöchentliche Rückblicke';
+  String get notifyPeriodDay => 'Tag';
 
   @override
-  String get notifyMonthlyReflection => 'Monatliche Rückblicke';
+  String get notifyPeriodWeek => 'Woche';
+
+  @override
+  String get notifyPeriodMonth => 'Monat';
 
   @override
   String get notifyReflectionsInfo =>
