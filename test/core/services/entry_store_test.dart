@@ -84,6 +84,36 @@ void main() {
     expect(store.all().map((e) => e.id).toList(), ['a', 'b']);
   });
 
+  test('all serves the cache until a save invalidates it', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+    await store.save(entry('two', DateTime.utc(2026, 3, 5)));
+    expect(store.all(), hasLength(2));
+
+    await storage.writeJson('entry:three', entry('three', DateTime.utc(2026, 3, 6)).toJson());
+    expect(store.all(), hasLength(2));
+
+    await store.save(entry('four', DateTime.utc(2026, 3, 7)));
+    expect(store.all(), hasLength(4));
+  });
+
+  test('a delete invalidates the cache', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+    await store.save(entry('two', DateTime.utc(2026, 3, 5)));
+    expect(store.all(), hasLength(2));
+
+    await store.delete('one');
+
+    expect(store.all(), hasLength(1));
+  });
+
+  test('callers cannot mutate the cached list', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+
+    store.all().clear();
+
+    expect(store.all(), hasLength(1));
+  });
+
   test('round-trips an entry carrying a multi-segment transcript', () async {
     final transcript = Transcript(
       fullText: 'hello world',
