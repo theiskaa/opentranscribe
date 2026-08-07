@@ -42,7 +42,8 @@ Two layers, and there is no third. There is no `features/` folder and we do not 
 
 - `app/` the composition root (`deps.dart`), encrypted storage (`local_service.dart`), locale source of truth, onboarding flags.
 - `audio/` the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations and value types.
-- `models/` plain data (`entry.dart`, `engine_descriptor.dart`).
+- `export/` the `JournalExporter` contract, the shipped format exporters, and the native archive: store-only zip codec, manifest, sealed container crypto, and the share-sheet channel wrapper.
+- `models/` plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
 - `routes/` the `GoRouter`, the path and name constants, page transitions.
 - `services/` `transcription_service.dart` (the one owner of the entry lifecycle), `entry_store.dart`, the settings holders.
 - `state/` one cubit per concern.
@@ -106,6 +107,7 @@ Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI be
 - **A route:** the path and name on `Routes`, a `GoRoute` in `app_router.dart`, reached with `context.goNamed`.
 - **A user-facing string:** the key in `app_en.arb` and every other `app_*.arb`, then `flutter gen-l10n`, read with `AppLocalizations`.
 - **A transcription or reflection engine:** implement the contract, answer `onDeviceOnly` true, wire it in only from `Deps`. Surfaces that must show an engine name read the `EngineDescriptor` list `Deps` builds, so nothing else names a concrete engine.
+- **An export format** (Notion, Apple Notes, ...): implement `JournalExporter` in `core/export/` as pure Dart, models in and files out, with no I/O, no clock reads, and no l10n (the localized scaffold strings arrive in `ExportContext`). Register it in the exporter map in `Deps.init()` and add its `ExporterDescriptor` there, the one place allowed to name an exporter; the entry sheet, the Backup screen, and both export paths pick it up from the descriptor list with no further plumbing.
 - **A shared widget:** put it in `view/widgets/` and add it to the debug-only gallery.
 
 ## Commits

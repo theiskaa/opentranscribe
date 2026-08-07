@@ -62,7 +62,8 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 - `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), onboarding flags.
 - `core/audio/`: the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations, plus the recording/playback value types.
-- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`).
+- `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
+- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
 - `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, keeping recorder, engine and store private inside it), `entry_store.dart`, and the settings holders.
 - `core/state/`: one cubit per concern.
