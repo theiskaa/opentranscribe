@@ -14,7 +14,7 @@
 
 opentranscribe is a voice journal for iOS with no network layer. Capture, transcription, reflection, and storage all happen on the device, and there is no account, no sync, no telemetry, and no code path anywhere in the app that opens a socket. Airplane mode is not a supported mode, it is the only mode there is.
 
-<img alt="Recording with live text, a finished entry, the week, and the on-device language models" src="assets/readme/showcase.png" width="760">
+<img alt="Recording with live text, a finished entry, the week, a written reflection, and the on-device language models" src="assets/readme/showcase.png" width="830">
 
 Transcription and reflection run on-device behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, each refused at construction unless it declares itself on-device. Recordings and entries stay encrypted in the app's own storage. How it fits together, and how to work on it, is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
