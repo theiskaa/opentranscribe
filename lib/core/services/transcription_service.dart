@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/audio/audio_recorder.dart';
 import 'package:opentranscribe/core/audio/recording.dart';
+import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/transcribe/transcript.dart';
@@ -689,6 +690,116 @@ class TranscriptionService {
   /// during teardown without touching the controllers they are closing.
   Future<void> retrySave(Entry entry) => _store.save(entry);
 
+  /// Adopts entries restored from an archive, keeping the entry lifecycle's
+  /// single owner: per entry, the staged audio moves into the recordings
+  /// directory BEFORE the record is saved, so a kill mid-import leaves a
+  /// probeable orphan the launch sweep recovers, never a record pointing at
+  /// nothing. Merge is by id: an identical stored entry is skipped (re-import
+  /// is a no-op), a differing one is overwritten with the archive's. An
+  /// overwritten record's old audio file is deleted only when the archive
+  /// brought REPLACEMENT audio and nothing else references the old file; a
+  /// transcript-only record never destroys a local recording (the sweep
+  /// resurrects the file as a visible orphan instead). A basename already
+  /// owned by a different entry sends the restored audio under a fresh name;
+  /// filenames are not identity, ids are. Fires [entriesChanged] once when
+  /// anything changed, even when a later entry's adoption failed midway.
+  Future<AdoptResult> adoptImportedEntries(List<StagedImportEntry> staged) async {
+    var added = 0;
+    var updated = 0;
+    var unchanged = 0;
+    var audioRestored = 0;
+    var changed = false;
+    final owners = <String, String>{
+      for (final stored in _store.all())
+        if (stored.audioPath != null) baseName(stored.audioPath!): stored.id,
+    };
+    try {
+      for (final item in staged) {
+        var entry = item.entry;
+        final existing = _store.read(entry.id);
+        if (item.stagedAudio != null && entry.audioPath != null) {
+          final (adopted, restored) = await _adoptRestoredAudio(entry, item.stagedAudio!, owners);
+          entry = adopted;
+          if (restored) audioRestored++;
+        }
+        if (existing == entry) {
+          unchanged++;
+          continue;
+        }
+        await _store.save(entry);
+        changed = true;
+        existing == null ? added++ : updated++;
+        await _reapReplacedAudio(existing, entry, owners);
+      }
+    } finally {
+      if (changed) _notifyEntriesChanged();
+    }
+    return AdoptResult(
+      added: added,
+      updated: updated,
+      unchanged: unchanged,
+      audioRestored: audioRestored,
+    );
+  }
+
+  /// Moves one staged recording into place, renaming when [owners] says the
+  /// basename belongs to a different entry. Returns the (possibly renamed)
+  /// entry and whether a file actually landed.
+  Future<(Entry, bool)> _adoptRestoredAudio(
+    Entry entry,
+    File stagedAudio,
+    Map<String, String> owners,
+  ) async {
+    var name = baseName(entry.audioPath!);
+    final owner = owners[name];
+    if (owner != null && owner != entry.id) {
+      final dot = name.lastIndexOf('.');
+      final extension = dot > 0 ? name.substring(dot) : '';
+      name = 'otr-import-${_newId()}$extension';
+      entry = entry.withAudioPath(name);
+    }
+    owners[name] = entry.id;
+    final destination = File(await _resolveAudioPath(name));
+    if (destination.existsSync()) return (entry, false);
+    await _moveIntoRecordings(stagedAudio, destination);
+    return (entry, true);
+  }
+
+  /// Deletes an overwritten record's old audio file, but only when the new
+  /// record carries audio of its own and no stored entry still references the
+  /// old file. [owners] maps a basename to its LAST claimant, so it can
+  /// detect collisions but not prove uniqueness; the reap re-checks against
+  /// the store, the source of truth.
+  Future<void> _reapReplacedAudio(Entry? existing, Entry entry, Map<String, String> owners) async {
+    final oldAudio = existing?.audioPath;
+    if (oldAudio == null || entry.audioPath == null) return;
+    final basename = baseName(oldAudio);
+    if (basename == entry.audioPath) return;
+    final referenced = _store.all().any(
+      (e) => e.audioPath != null && baseName(e.audioPath!) == basename,
+    );
+    if (referenced) return;
+    owners.remove(basename);
+    try {
+      await _deleteFile(File(await _resolveAudioPath(oldAudio)));
+    } catch (_) {
+      // Best effort: a survivor is recovered as an orphan next launch,
+      // visible rather than lost.
+    }
+  }
+
+  /// Rename first (atomic within a volume); a cross-volume staging dir falls
+  /// back to copy-then-delete, ordered so the recordings-side file is whole
+  /// before the staging copy disappears.
+  Future<void> _moveIntoRecordings(File staged, File destination) async {
+    try {
+      await staged.rename(destination.path);
+    } on FileSystemException {
+      await staged.copy(destination.path);
+      await staged.delete();
+    }
+  }
+
   /// Recovers an interruption's auto-save after it failed and surfaced on
   /// [autoFinalized] as an [EntrySaveFailed]. Persists the entry, then
   /// re-announces it on [autoFinalized] as a normal event so list surfaces
@@ -1280,4 +1391,42 @@ final class EntryDeleteFailed implements Exception {
 
   @override
   String toString() => 'EntryDeleteFailed(${entry.id}): $cause';
+}
+
+/// One archive entry ready for adoption: the record (its [Entry.audioPath]
+/// already the intended bare filename, or null for transcript-only) and the
+/// temp-staged audio file to move in, when the archive carried one.
+@immutable
+final class StagedImportEntry {
+  const StagedImportEntry({required this.entry, this.stagedAudio});
+
+  final Entry entry;
+  final File? stagedAudio;
+}
+
+/// What adopting an archive's entries actually did, for the import summary.
+@immutable
+final class AdoptResult {
+  const AdoptResult({
+    required this.added,
+    required this.updated,
+    required this.unchanged,
+    required this.audioRestored,
+  });
+
+  final int added;
+  final int updated;
+  final int unchanged;
+  final int audioRestored;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdoptResult &&
+      other.added == added &&
+      other.updated == updated &&
+      other.unchanged == unchanged &&
+      other.audioRestored == audioRestored;
+
+  @override
+  int get hashCode => Object.hash(added, updated, unchanged, audioRestored);
 }
