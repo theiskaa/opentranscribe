@@ -1,0 +1,255 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:opentranscribe/core/export/archive_crypto.dart';
+import 'package:opentranscribe/core/export/archive_manifest.dart';
+import 'package:opentranscribe/core/export/file_names.dart';
+import 'package:opentranscribe/core/export/journal_exporter.dart';
+import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/services/reflection_service.dart';
+import 'package:opentranscribe/core/services/transcription_service.dart';
+
+/// Stages export trees and hands them to the share sheet: one entry or the
+/// whole journal in a pluggable format, or the whole journal as the native
+/// archive (plain zip, or sealed under a passphrase). Read-only with respect
+/// to journal state; every output is built under a fresh temp staging
+/// directory that is deleted after the share resolves, completed or not.
+/// Returns whether the user completed an activity; cancel is false, never an
+/// exception.
+class ExportService {
+  ExportService({
+    required this._transcription,
+    required this._reflections,
+    required Map<String, JournalExporter> exporters,
+    required this._share,
+    required this._appVersion,
+    DateTime Function()? clock,
+  }) : _exporters = Map.unmodifiable(exporters),
+       _clock = clock ?? DateTime.now;
+
+  final TranscriptionService _transcription;
+  final ReflectionService _reflections;
+  final Map<String, JournalExporter> _exporters;
+  final ShareExport _share;
+  final Future<String> Function() _appVersion;
+  final DateTime Function() _clock;
+
+  /// Shares one entry in [exporterId]'s format. A single output file with no
+  /// audio shares bare (a lone .md shares better than a zip of one); anything
+  /// more zips first. [includeAudio] is honored only when the entry still has
+  /// its recording.
+  Future<bool> shareEntry(
+    String entryId, {
+    required String exporterId,
+    required bool includeAudio,
+    required ExportStrings strings,
+  }) async {
+    final entry = _transcription.entries().firstWhere(
+      (e) => e.id == entryId,
+      orElse: () => throw ArgumentError.value(entryId, 'entryId', 'unknown entry'),
+    );
+    final exporter = _exporter(exporterId);
+    final resolvedAudio = includeAudio && entry.hasAudio
+        ? await _transcription.resolveAudioPath(entry)
+        : null;
+    // A vanished file exports transcript-only, like the journal paths do.
+    final withAudio = resolvedAudio != null && File(resolvedAudio).existsSync();
+    final audioName = withAudio ? baseName(entry.audioPath!) : null;
+    final exportEntry = ExportEntry(entry: entry, audioRelativePath: audioName);
+    final files = exporter.exportEntry(exportEntry, await _context(strings));
+    return _stage((staging) async {
+      if (files.length == 1 && !withAudio) {
+        final path = '${staging.path}/${baseName(files.single.path)}';
+        await File(path).writeAsBytes(files.single.bytes);
+        return [path];
+      }
+      final zipName = '${_stripExtension(baseName(files.first.path))}.zip';
+      final zip = File('${staging.path}/$zipName');
+      final writer = await StoredZipWriter.create(zip);
+      try {
+        for (final file in files) {
+          await writer.addBytes(file.path, file.bytes);
+        }
+        if (withAudio) {
+          await writer.addFile(audioName!, File(resolvedAudio));
+        }
+        await writer.close();
+      } catch (_) {
+        await writer.abort();
+        rethrow;
+      }
+      return [zip.path];
+    });
+  }
+
+  /// Shares the whole journal in [exporterId]'s format as one zip: every
+  /// entry, kept audio included, and the stored reflections.
+  Future<bool> shareJournal({required String exporterId, required ExportStrings strings}) async {
+    final exporter = _exporter(exporterId);
+    final entries = _transcription.entries();
+    final audioNames = await _uniqueAudioNames(entries);
+    final snapshot = ExportSnapshot(
+      entries: [
+        for (final entry in entries)
+          ExportEntry(
+            entry: entry,
+            audioRelativePath: audioNames[entry.id] == null
+                ? null
+                : 'audio/${audioNames[entry.id]}',
+          ),
+      ],
+      reflections: _reflections.archiveSnapshot().rows,
+    );
+    final files = exporter.exportJournal(snapshot, await _context(strings));
+    return _stage((staging) async {
+      final zip = File('${staging.path}/journal-export-${_dateStamp()}.zip');
+      final writer = await StoredZipWriter.create(zip);
+      try {
+        for (final file in files) {
+          await writer.addBytes(file.path, file.bytes);
+        }
+        await _addAudio(writer, entries, audioNames);
+        await writer.close();
+      } catch (_) {
+        await writer.abort();
+        rethrow;
+      }
+      return [zip.path];
+    });
+  }
+
+  /// Shares the native whole-journal archive: the canonical payload zip
+  /// (manifest, entry records verbatim, kept audio, reflections), plain when
+  /// [passphrase] is null, else sealed into the opaque container.
+  Future<bool> shareArchive({String? passphrase}) async {
+    final entries = _transcription.entries();
+    final reflectionArchive = _reflections.archiveSnapshot();
+    return _stage((staging) async {
+      final payload = File('${staging.path}/payload.zip');
+      await _writeArchivePayload(payload, entries, reflectionArchive);
+      if (passphrase == null) {
+        final plain = File('${staging.path}/journal-${_dateStamp()}.zip');
+        await payload.rename(plain.path);
+        return [plain.path];
+      }
+      final sealed = File('${staging.path}/journal-${_dateStamp()}.otarchive');
+      await sealArchiveFile(payload: payload, target: sealed, passphrase: passphrase);
+      await payload.delete();
+      return [sealed.path];
+    });
+  }
+
+  Future<void> _writeArchivePayload(
+    File target,
+    List<Entry> entries,
+    ReflectionArchive reflections,
+  ) async {
+    final audioNames = await _uniqueAudioNames(entries);
+    final manifest = ArchiveManifest(
+      appVersion: await _appVersion(),
+      createdAt: _clock(),
+      counts: ArchiveCounts(
+        entries: entries.length,
+        audio: audioNames.length,
+        reflections: reflections.rows.length,
+        tombstones: reflections.tombstones.length,
+      ),
+      tombstones: reflections.tombstones,
+      floors: reflections.floors,
+    );
+    final writer = await StoredZipWriter.create(target);
+    try {
+      await writer.addBytes('manifest.json', utf8.encode(jsonEncode(manifest.toJson())));
+      for (final entry in entries) {
+        // The record travels verbatim except audioPath, rewritten to the
+        // archived basename so import resolves inside the archive, not
+        // against whatever this device's recordings directory held.
+        var record = entry;
+        final audioName = audioNames[entry.id];
+        if (audioName != null && entry.audioPath != audioName) {
+          record = entry.withAudioPath(audioName);
+        }
+        if (audioName == null && entry.audioPath != null) {
+          record = entry.withoutAudio();
+        }
+        await writer.addBytes('entries/${entry.id}.json', utf8.encode(jsonEncode(record.toJson())));
+      }
+      await _addAudio(writer, entries, audioNames);
+      for (final reflection in reflections.rows) {
+        await writer.addBytes(
+          'reflections/${reflection.period.wire}-${reflection.periodKey}.json',
+          utf8.encode(jsonEncode(reflection.toJson())),
+        );
+      }
+      await writer.close();
+    } catch (_) {
+      await writer.abort();
+      rethrow;
+    }
+  }
+
+  /// Bare audio names by entry id, uniqued: basenames are UUID-based and
+  /// unique in practice, but two legacy absolute paths could collide, and one
+  /// overwritten recording in an archive would be silent data loss. Entries
+  /// whose audio file is missing are left out (exported transcript-only, and
+  /// counted in no manifest), so record, manifest and zip always agree.
+  Future<Map<String, String>> _uniqueAudioNames(List<Entry> entries) async {
+    final names = <String, String>{};
+    final taken = <String>{};
+    for (final entry in entries) {
+      final path = entry.audioPath;
+      if (path == null) continue;
+      if (!File(await _transcription.resolveAudioPath(entry)).existsSync()) continue;
+      final name = uniqueFileName(baseName(path), taken);
+      taken.add(name);
+      names[entry.id] = name;
+    }
+    return names;
+  }
+
+  Future<void> _addAudio(
+    StoredZipWriter writer,
+    List<Entry> entries,
+    Map<String, String> audioNames,
+  ) async {
+    for (final entry in entries) {
+      final name = audioNames[entry.id];
+      if (name == null) continue;
+      final source = File(await _transcription.resolveAudioPath(entry));
+      if (!source.existsSync()) continue;
+      await writer.addFile('audio/$name', source);
+    }
+  }
+
+  Future<bool> _stage(Future<List<String>> Function(Directory staging) build) async {
+    final staging = await Directory.systemTemp.createTemp('export-');
+    try {
+      return await _share.shareFiles(await build(staging));
+    } finally {
+      if (await staging.exists()) await staging.delete(recursive: true);
+    }
+  }
+
+  Future<ExportContext> _context(ExportStrings strings) async =>
+      ExportContext(strings: strings, generatedAt: _clock(), appVersion: await _appVersion());
+
+  JournalExporter _exporter(String exporterId) {
+    final exporter = _exporters[exporterId];
+    if (exporter == null) throw ArgumentError.value(exporterId, 'exporterId', 'unknown exporter');
+    return exporter;
+  }
+
+  String _stripExtension(String name) {
+    final dot = name.lastIndexOf('.');
+    return dot > 0 ? name.substring(0, dot) : name;
+  }
+
+  String _dateStamp() {
+    final now = _clock().toLocal();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$month-$day';
+  }
+}
