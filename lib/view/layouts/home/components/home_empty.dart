@@ -17,8 +17,6 @@ class HomeEmpty extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Padding(
-      // Lands on the records' text column and leaves a comfortable reading
-      // measure on the right, so the subtitle never runs the full width.
       padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxxl, AppSpacing.xxxl, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

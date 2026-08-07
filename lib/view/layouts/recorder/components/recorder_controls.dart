@@ -18,6 +18,7 @@ class RecorderControls extends StatelessWidget {
   const RecorderControls({
     required this.paused,
     required this.saving,
+    required this.restarting,
     required this.onClose,
     required this.onRestart,
     required this.onComplete,
@@ -27,6 +28,12 @@ class RecorderControls extends StatelessWidget {
 
   final bool paused;
   final bool saving;
+
+  /// The take is being discarded for a fresh one. Taps are blocked like
+  /// [saving], but the row keeps its resting look: a restart is over in a
+  /// blink, and dimming four circles for it reads as the screen flinching.
+  final bool restarting;
+
   final VoidCallback onClose;
   final VoidCallback onRestart;
   final VoidCallback onComplete;
@@ -37,16 +44,23 @@ class RecorderControls extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.recorder;
     final size = tokens.controlSize;
+    final blocked = saving || restarting;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Flank(icon: AppIcons.xmark, onTap: saving ? null : onClose, size: size),
+        _Flank(icon: AppIcons.xmark, onTap: blocked ? null : onClose, dimmed: saving, size: size),
         const SizedBox(width: AppSpacing.md),
-        _Flank(icon: AppIcons.arrowCounterclockwise, onTap: saving ? null : onRestart, size: size),
+        _Flank(
+          icon: AppIcons.arrowCounterclockwise,
+          onTap: blocked ? null : onRestart,
+          dimmed: saving,
+          size: size,
+        ),
         const SizedBox(width: AppSpacing.md),
         _Flank(
           icon: paused ? AppIcons.playFill : AppIcons.pauseFill,
-          onTap: saving ? null : onTogglePause,
+          onTap: blocked ? null : onTogglePause,
+          dimmed: saving,
           size: size,
         ),
         // Wider than the gaps inside the group, and no wider: the rule is what
@@ -56,7 +70,7 @@ class RecorderControls extends StatelessWidget {
         const SizedBox(width: AppSpacing.xl),
         _Seam(height: size / 2),
         const SizedBox(width: AppSpacing.xl),
-        _CompleteButton(size: size, saving: saving, onTap: onComplete),
+        _CompleteButton(size: size, saving: saving, onTap: blocked ? null : onComplete),
       ],
     );
   }
@@ -81,12 +95,15 @@ class _Seam extends StatelessWidget {
 }
 
 /// A flanking control: the app's circular icon press, faded out while the take
-/// is being saved so the centre carries the moment alone.
+/// is being saved so the centre carries the moment alone. Dimming is its own
+/// switch, not inferred from a null [onTap]: a restart blocks taps too, and
+/// must not flash the whole row disabled for it.
 class _Flank extends StatelessWidget {
-  const _Flank({required this.icon, required this.onTap, required this.size});
+  const _Flank({required this.icon, required this.onTap, required this.dimmed, required this.size});
 
   final IconData icon;
   final VoidCallback? onTap;
+  final bool dimmed;
   final double size;
 
   @override
@@ -94,7 +111,7 @@ class _Flank extends StatelessWidget {
     final theme = context.theme;
     return AnimatedOpacity(
       duration: theme.motion.crossfade,
-      opacity: onTap == null ? theme.button.disabledOpacity : 1,
+      opacity: dimmed ? theme.button.disabledOpacity : 1,
       child: AppIconButton(icon: icon, onTap: onTap, size: size),
     );
   }
@@ -108,7 +125,7 @@ class _CompleteButton extends StatelessWidget {
 
   final double size;
   final bool saving;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +135,7 @@ class _CompleteButton extends StatelessWidget {
     final ink = fill.computeLuminance() < 0.35;
 
     return Touchable(
-      onTap: saving ? null : onTap,
+      onTap: onTap,
       pressedScale: theme.motion.pressScale,
       haptic: true,
       child: Container(

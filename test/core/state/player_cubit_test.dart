@@ -45,7 +45,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       final storage = LocalService();
-      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       service = TranscriptionService(
         recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),
         engine: FakeBatchEngine(),
@@ -245,7 +245,7 @@ void main() {
 
     test('a decode on an unshaped entry writes the shape back to the store', () async {
       final storage = LocalService();
-      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       final store = EntryStore(storage);
       final svc = TranscriptionService(
         recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),

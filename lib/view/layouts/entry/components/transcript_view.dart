@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,15 +12,14 @@ import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
-/// The transcript body. Where the transcript carries timings, it is a second
-/// way through the recording: the segment under the playhead is MARKED (never
-/// the rest dimmed), and TAPPING a sentence plays from it. Untranscribed entries
-/// get a quiet explanation and a transcribe action.
+/// The transcript body. Where the transcript carries timings, the segment under
+/// the playhead is MARKED (never the rest dimmed). The text selects and copies
+/// through the enclosing SelectableRegion; seeking is the wave scrubber's job.
+/// Untranscribed entries get a quiet explanation and a transcribe action.
 ///
 /// A re-transcribe crossfades the existing words into an iMessage-style
 /// invisible-ink shimmer, holds that living cloud while the run is in flight,
@@ -45,11 +43,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   /// How long the formed ink holds before it is allowed to resolve, so a
   /// near-instant re-transcribe still shows the full shimmer rather than a blink.
   static const Duration _minHold = Duration(milliseconds: 500);
-
-  /// One recognizer per segment, rebuilt when the segments change and disposed
-  /// with the widget. Gesture recognizers on spans are not owned by the span:
-  /// nothing else will ever free them.
-  List<TapGestureRecognizer> _taps = const [];
 
   /// Wraps the rendered text so a re-transcribe can grab its last painted frame.
   final GlobalKey _textKey = GlobalKey();
@@ -92,7 +85,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   @override
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
-    if (old.entry.transcript != widget.entry.transcript) _buildTaps();
 
     if (!old.busy && widget.busy) {
       // A run started. Dissolve the words if there are any; a first transcribe
@@ -231,27 +223,11 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     _inkSize = null;
   }
 
-  void _buildTaps() {
-    for (final tap in _taps) {
-      tap.dispose();
-    }
-    final segments = widget.entry.transcript?.segments ?? const <TranscriptSegment>[];
-    _taps = [
-      for (final segment in segments)
-        TapGestureRecognizer()
-          ..onTap = () =>
-              context.read<PlayerCubit>().seek(segment.start, duration: widget.entry.duration),
-    ];
-  }
-
   @override
   void dispose() {
     _reveal.dispose();
     _clock.dispose();
     _releaseInk();
-    for (final tap in _taps) {
-      tap.dispose();
-    }
     super.dispose();
   }
 
@@ -270,28 +246,31 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     if (_phase == _Phase.shimmer && inkSize != null && (inkImage != null || inkPoints != null)) {
       return Stack(
         children: [
-          // Opacity does not block hit testing: without the IgnorePointer,
-          // tapping the glitter would land on an invisible segment and seek.
+          // Opacity does not block hit testing: the IgnorePointer keeps the
+          // fading text out of the SelectableRegion while the shimmer is up, so
+          // a selection cannot start on words mid-dissolve.
           IgnorePointer(
             child: FadeTransition(opacity: _reveal, child: _content(context)),
           ),
           IgnorePointer(
-            child: FadeTransition(
-              opacity: _hide,
-              child: inkImage != null
-                  ? InvisibleInk(
-                      image: inkImage,
-                      size: inkSize,
-                      pixelRatio: _inkDpr,
-                      color: theme.player.segmentColor,
-                      clock: _clock,
-                    )
-                  : InvisibleInk.points(
-                      points: inkPoints!,
-                      size: inkSize,
-                      color: theme.player.segmentColor,
-                      clock: _clock,
-                    ),
+            child: RepaintBoundary(
+              child: FadeTransition(
+                opacity: _hide,
+                child: inkImage != null
+                    ? InvisibleInk(
+                        image: inkImage,
+                        size: inkSize,
+                        pixelRatio: _inkDpr,
+                        color: theme.player.segmentColor,
+                        clock: _clock,
+                      )
+                    : InvisibleInk.points(
+                        points: inkPoints!,
+                        size: inkSize,
+                        color: theme.player.segmentColor,
+                        clock: _clock,
+                      ),
+              ),
             ),
           ),
         ],
@@ -334,7 +313,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         child: Text(text, style: AppType.body.copyWith(color: theme.text)),
       );
     }
-    if (_taps.length != segments.length) _buildTaps();
 
     // Selected off the state, not built from it: the native side ticks five
     // times a second, and the paragraph only changes when the LIT SEGMENT does.
@@ -347,14 +325,12 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             ? null
             : activeSegmentIndex(segments, player.position),
         builder: (context, active) {
-          final highlight = Paint()..color = theme.player.activeSegmentHighlight;
           return Text.rich(
             TextSpan(
               children: [
                 for (final (i, segment) in segments.indexed)
                   TextSpan(
                     text: i == segments.length - 1 ? segment.text : '${segment.text} ',
-                    recognizer: _taps[i],
                     style: AppType.body.copyWith(
                       color: theme.player.segmentColor,
                       // The rest of the transcript is NOT dimmed. Reading is the
@@ -362,7 +338,10 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
                       // hearing makes the page worse at it; the lit segment
                       // carries a mark instead, so following the audio costs the
                       // rest of the text nothing.
-                      background: i == active ? highlight : null,
+                      // backgroundColor, not a background Paint: a Paint counts
+                      // as a layout change and would rebuild the selectables each
+                      // tick, dropping any active selection mid-playback.
+                      backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
                     ),
                   ),
               ],

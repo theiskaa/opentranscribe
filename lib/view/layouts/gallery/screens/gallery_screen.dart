@@ -3,9 +3,24 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/reflection_timeline.dart';
+import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/day_chip_row.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/disabled_card.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/month_week_rows.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/period_children_logic.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_labels.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_scrubber.dart';
+import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
+import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
@@ -15,15 +30,23 @@ import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
+import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/glass_capsule.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
+import 'package:opentranscribe/view/widgets/dither.dart';
+import 'package:opentranscribe/view/widgets/dither_card.dart';
+import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/animated_reveal.dart';
+import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// The widget gallery: every design-system widget in its states, for eyeballing
@@ -38,8 +61,12 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
   bool _toggle = true;
+  bool _reveal = true;
+  int _segment = 1;
   int _page = 0;
   String? _notice;
+  int _hour = 9;
+  int _minute = 0;
 
   static const _icons = [
     AppIcons.micFill,
@@ -65,6 +92,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
     AppIcons.sunMax,
     AppIcons.icloud,
     AppIcons.calendar,
+    AppIcons.oneCalendar,
+    AppIcons.sevenCalendar,
+    AppIcons.bell,
     AppIcons.textformat,
   ];
 
@@ -136,6 +166,60 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   const AppToggle(value: true, onChanged: null),
                 ],
               ),
+              _section('Segmented control'),
+              AppSegmentedControl<int>(
+                segments: const [(0, 'Day'), (1, 'Week'), (2, 'Month')],
+                selected: _segment,
+                onChanged: (v) => setState(() => _segment = v),
+              ),
+              _section('Time field'),
+              SettingsCard(
+                children: [
+                  TimeField(
+                    label: 'Time',
+                    hour: _hour,
+                    minute: _minute,
+                    onChanged: (h, m) => setState(() {
+                      _hour = h;
+                      _minute = m;
+                    }),
+                  ),
+                ],
+              ),
+              _section('Animated reveal'),
+              SettingsCard(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SettingsToggleRow(
+                        icon: AppIcons.bellFill,
+                        label: 'Reveal a row',
+                        value: _reveal,
+                        onChanged: (v) => setState(() => _reveal = v),
+                      ),
+                      AnimatedReveal(
+                        visible: _reveal,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SettingsDivider(),
+                            TimeField(
+                              label: 'Time',
+                              hour: _hour,
+                              minute: _minute,
+                              onChanged: (h, m) => setState(() {
+                                _hour = h;
+                                _minute = m;
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               _section('Text field'),
               AppTextField(controller: _text, placeholder: 'Entry title'),
               _section('Spinner'),
@@ -145,6 +229,31 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 onTap: () => setState(() => _page = (_page + 1) % 4),
                 child: PageIndicator(count: 4, index: _page),
               ),
+              _section('Glass capsule'),
+              const _GlassCapsuleDemo(),
+              _section('Dither reveal'),
+              const _DitherRevealDemo(),
+              _section('Dither field'),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 150,
+                  height: 96,
+                  child: DitherField(color: theme.reflectionCard.dither),
+                ),
+              ),
+              _section('Dither card'),
+              DitherCard(
+                patch: const Size(120, 72),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Text(
+                    'The reflection family\'s card surface, with the corner '
+                    'breath of dither sized by its patch.',
+                    style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+                  ),
+                ),
+              ),
               _section('Notice'),
               AppButton(
                 label: 'Show notice',
@@ -153,16 +262,15 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               AppNotice(message: _notice, onDismiss: () => setState(() => _notice = null)),
               _section('Menu'),
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: AppMenuButton(
                   icon: AppIcons.ellipsis,
-                  items: const [
+                  items: [
                     AppMenuItem(label: 'Rename', icon: AppIcons.textformat),
                     AppMenuItem(label: 'Re-transcribe', icon: AppIcons.arrowCounterclockwise),
                     AppMenuItem(label: 'Delete', icon: AppIcons.trash, destructive: true),
                   ],
-                  onSelected: (_) {},
                 ),
               ),
               _section('Wave glyph'),
@@ -199,6 +307,72 @@ class _GalleryScreenState extends State<GalleryScreen> {
               const _InkDemo(),
               const SizedBox(height: AppSpacing.xl),
               const _InkLinesDemo(),
+              _section('Ink reveal'),
+              const _InkRevealDemo(),
+              const SizedBox(height: AppSpacing.xl),
+              const _InkRevealPendingDemo(),
+              _section('Reflections'),
+              ReflectionHomeCard(
+                reflection: Reflection(
+                  periodStart: DateTime(2026, 7, 20),
+                  generatedAt: DateTime.utc(2026, 7, 27),
+                  text:
+                      'The week kept circling back to the launch, and the launch held. '
+                      'Between the late nights there was a gym visit that finally stuck '
+                      'and a dinner that turned into a walk.',
+                ),
+                onTap: () {},
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReflectionHomeCard(
+                reflection: Reflection(
+                  periodStart: DateTime(2026, 7, 13),
+                  generatedAt: DateTime.utc(2026, 7, 20),
+                ),
+                onTap: () {},
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                reflectionMetaLine(voiceLabel: 'Literary', writtenLabel: 'Written Jul 27'),
+                style: AppType.footnote.copyWith(color: theme.textSecondary),
+              ),
+              _section('Reflection day chips'),
+              DayChipRow(
+                days: daysOfWeek(DateTime(2026, 7, 20)),
+                states: const [
+                  DayChipState.reflection,
+                  DayChipState.entries,
+                  DayChipState.reflection,
+                  DayChipState.reflection,
+                  DayChipState.empty,
+                  DayChipState.entries,
+                  DayChipState.empty,
+                ],
+                onDayTap: (_) {},
+              ),
+              _section('Reflection month rows'),
+              MonthWeekRows(
+                weeks: monthWeekRows(
+                  monthStart: DateTime(2026, 7),
+                  reflectedWeeks: {DateTime(2026, 7, 13), DateTime(2026, 7, 20)},
+                  reflectedDays: {
+                    DateTime(2026, 7, 15),
+                    DateTime(2026, 7, 21),
+                    DateTime(2026, 7, 23),
+                  },
+                  journaledDays: {
+                    DateTime(2026, 7, 2),
+                    DateTime(2026, 7, 15),
+                    DateTime(2026, 7, 17),
+                    DateTime(2026, 7, 21),
+                    DateTime(2026, 7, 23),
+                    DateTime(2026, 7, 28),
+                  },
+                ),
+                onWeekTap: (_) {},
+              ),
+              _section('Reflection states'),
+              const _ReflectionStatesDemo(),
               _section('Sheets'),
               AppButton(
                 label: 'Message',
@@ -447,5 +621,269 @@ class _GalleryTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const AppTopBar(frosted: true, leading: AppBackButton());
+  }
+}
+
+/// The write-on the reflections pager runs: the text arrives as its own ink
+/// and settles. Tap to replay (a fresh element restarts the reveal).
+class _InkRevealDemo extends StatefulWidget {
+  const _InkRevealDemo();
+
+  @override
+  State<_InkRevealDemo> createState() => _InkRevealDemoState();
+}
+
+class _InkRevealDemoState extends State<_InkRevealDemo> {
+  int _generation = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: () => setState(() => _generation++),
+      child: InkReveal(
+        key: ValueKey(_generation),
+        phase: InkPhase.write,
+        color: theme.text,
+        background: theme.background,
+        child: Text(
+          'Tap to replay. This paragraph writes itself the way a weekly '
+          'reflection arrives: its own ink shimmers, holds a beat, then '
+          'resolves into the words.',
+          style: AppType.body.copyWith(color: theme.text, height: 1.45),
+        ),
+      ),
+    );
+  }
+}
+
+/// The pending state: the placeholder cloud a regenerate shimmers while the
+/// model writes. It never resolves here; the pager's does when words land.
+class _InkRevealPendingDemo extends StatelessWidget {
+  const _InkRevealPendingDemo();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return InkReveal(
+      phase: InkPhase.pending,
+      color: theme.text,
+      background: theme.background,
+      placeholderLines: 3,
+      child: const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Tap to decompose the panel into dither dots and back: the disabled
+/// notice's arrival, posed over the gallery's own background as the cover.
+class _DitherRevealDemo extends StatefulWidget {
+  const _DitherRevealDemo();
+
+  @override
+  State<_DitherRevealDemo> createState() => _DitherRevealDemoState();
+}
+
+class _DitherRevealDemoState extends State<_DitherRevealDemo> with SingleTickerProviderStateMixin {
+  late final AnimationController _reveal = AnimationController(vsync: this, value: 1);
+  late final CurvedAnimation _wave = CurvedAnimation(parent: _reveal, curve: Curves.easeInOut);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reveal.duration = context.motionNow.ditherReveal;
+  }
+
+  void _toggle() {
+    final show = _reveal.value <= 0.5;
+    if (context.reduceMotion) {
+      _reveal.value = show ? 1 : 0;
+      return;
+    }
+    if (show) {
+      _reveal.forward();
+    } else {
+      _reveal.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _wave.dispose();
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: _toggle,
+      child: AnimatedBuilder(
+        animation: _wave,
+        builder: (context, child) =>
+            DitherReveal(progress: _wave.value, cover: theme.background, child: child!),
+        child: Container(
+          width: double.infinity,
+          decoration: SuperellipseDecoration(
+            color: theme.settings.cardBackground,
+            borderRadius: AppRadius.card,
+            border: BorderSide(color: theme.settings.cardBorder),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            'Tap to dissolve this panel into dither dots and summon it back, '
+            'cell by cell up the Bayer ladder.',
+            style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Every reflection state a page or the empty screen can land in, posed for
+/// review with the real copy: the four empty-timeline editorials (tap to
+/// cycle), the three week-page placeholders, the disabled notice card (toggle
+/// to watch it dither in and out), and the transient regenerate failure.
+class _ReflectionStatesDemo extends StatefulWidget {
+  const _ReflectionStatesDemo();
+
+  @override
+  State<_ReflectionStatesDemo> createState() => _ReflectionStatesDemoState();
+}
+
+class _ReflectionStatesDemoState extends State<_ReflectionStatesDemo> {
+  static const _editorials = <(String, bool, ReflectionAvailabilityStatus)>[
+    ('First run', true, ReflectionAvailabilityStatus.available),
+    ('Apple Intelligence off', false, ReflectionAvailabilityStatus.notEnabled),
+    ('Model preparing', false, ReflectionAvailabilityStatus.modelNotReady),
+    ('Unsupported device', false, ReflectionAvailabilityStatus.unsupported),
+  ];
+
+  static const _placeholders = <(String, ReflectionPageStatus)>[
+    ('Quiet', ReflectionPageStatus.silent),
+    ('Erased', ReflectionPageStatus.erased),
+    ('Waiting', ReflectionPageStatus.unreflected),
+  ];
+
+  int _editorial = 0;
+  bool _disabled = true;
+  String? _notice;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final (editorialLabel, available, status) = _editorials[_editorial];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Caption('Editorial: $editorialLabel (tap to cycle)'),
+        Touchable(
+          onTap: () => setState(() => _editorial = (_editorial + 1) % _editorials.length),
+          child: ReflectionEditorialBody(
+            copy: reflectionEditorialCopy(l10n, available: available, status: status),
+          ),
+        ),
+        for (final (label, status) in _placeholders) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _Caption(label),
+          _ReflectionPlaceholderExample(status: status),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        const _Caption('Disabled notice (toggle to dither in and out)'),
+        AppButton(
+          label: _disabled ? 'Enable reflections' : 'Disable reflections',
+          variant: AppButtonVariant.secondary,
+          onPressed: () => setState(() => _disabled = !_disabled),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ReflectionsDisabledSlot(
+          disabled: _disabled,
+          onEnable: () => setState(() => _disabled = false),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        const _Caption('Regenerate failure'),
+        AppButton(
+          label: 'Show failure notice',
+          variant: AppButtonVariant.secondary,
+          onPressed: () => setState(() => _notice = l10n.reflectionRegenerateFailed),
+        ),
+        AppNotice(message: _notice, onDismiss: () => setState(() => _notice = null)),
+      ],
+    );
+  }
+}
+
+/// One week page's no-text placeholder, resolved from the shared state mapping
+/// so the gallery shows exactly what the pager renders.
+class _ReflectionPlaceholderExample extends StatelessWidget {
+  const _ReflectionPlaceholderExample({required this.status});
+
+  final ReflectionPageStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = reflectionPlaceholderContent(
+      AppLocalizations.of(context)!,
+      status,
+      ReflectionPeriod.weekly,
+    )!;
+    return ReflectionPlaceholder(
+      title: placeholder.title,
+      body: placeholder.body,
+      marker: placeholder.marker,
+    );
+  }
+}
+
+/// A small monochrome label above a gallery example, naming the state being
+/// posed. Debug-only, so it is deliberately not localized.
+class _Caption extends StatelessWidget {
+  const _Caption(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Text(text, style: AppType.footnote.copyWith(color: theme.textSecondary)),
+    );
+  }
+}
+
+/// The floating scrubber material over busy text, so the frost itself is what
+/// the gallery shows: the paragraph must read through the capsule as glass.
+class _GlassCapsuleDemo extends StatelessWidget {
+  const _GlassCapsuleDemo();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final scrubber = theme.scrubber;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Text(
+          'The capsule floats over reading text like this line and the next, '
+          'and what sits beneath it stays legible through the frost rather '
+          'than being cut off by a solid band.',
+          style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
+        ),
+        GlassCapsule(
+          height: scrubber.height,
+          tint: scrubber.tint,
+          border: scrubber.border,
+          sigma: scrubber.blurSigma,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            // Posed mid-flow, so the stream and both rim shrinks all show.
+            child: ScrubberDots(count: 20, position: 9.4),
+          ),
+        ),
+      ],
+    );
   }
 }

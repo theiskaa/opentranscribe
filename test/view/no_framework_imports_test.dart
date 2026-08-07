@@ -12,11 +12,17 @@ void main() {
     multiLine: true,
   );
 
+  // The one exempt file: native text selection (SelectionArea) lives in
+  // material.dart and cannot come from widgets.dart.
+  bool isExempt(String path) => path.endsWith('view/widgets/selectable_prose.dart');
+
   test('lib/ is free of material and cupertino imports', () {
     final offenders = <String>[];
-    final files = Directory(
-      'lib',
-    ).listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'));
+    final files = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .where((f) => !isExempt(f.path));
 
     for (final file in files) {
       if (banned.hasMatch(file.readAsStringSync())) offenders.add(file.path);

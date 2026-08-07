@@ -6,6 +6,29 @@ import 'package:flutter/widgets.dart';
 /// is one-shot and interruptible.
 @immutable
 final class AppMotion {
+  /// The Reduce Motion stand-in for an [AnimatedSize] duration. Never
+  /// [Duration.zero] there: AnimatedSize starts its controller inside
+  /// performLayout, and a zero duration completes it synchronously, re-dirtying
+  /// the render object mid-layout. One millisecond is instant to the eye and
+  /// moves the completion to the next tick. Static on purpose: no theme may
+  /// set it back to zero.
+  static const Duration instant = Duration(milliseconds: 1);
+
+  /// Fraction of the swipe exit spent fading before the emptied slot's height
+  /// starts to move (the clip's slack tightens away over the same span).
+  static const double swipeExitHold = 0.25;
+
+  /// The swipe exit's height phase. Everything that must close IN STEP with a
+  /// deleted slot - the neighbor's gap, an emptying day's title, a departed
+  /// day's ghost - runs on this one curve over [swipeExit], so the collapses
+  /// read as one motion. Static: it is a phase contract, not a voice a theme
+  /// may retune apart from its followers.
+  static const Curve swipeExitHeightCurve = Interval(
+    swipeExitHold,
+    1,
+    curve: Curves.easeInOutCubic,
+  );
+
   const AppMotion({
     this.entrance = const Duration(milliseconds: 700),
     this.entranceCurve = const Cubic(0.22, 0.61, 0.36, 1),
@@ -15,8 +38,10 @@ final class AppMotion {
     this.pressScale = 0.96,
     this.pressIcon = const Duration(milliseconds: 120),
     this.pressIconScale = 0.92,
+    this.grabScale = 1.06,
     this.indicator = const Duration(milliseconds: 250),
     this.indicatorCurve = Curves.easeOutCubic,
+    this.expand = const Duration(milliseconds: 260),
     this.crossfade = const Duration(milliseconds: 200),
     this.pageDash = const Duration(milliseconds: 200),
     this.digitRoll = const Duration(milliseconds: 200),
@@ -24,6 +49,11 @@ final class AppMotion {
     this.subtitleRoll = const Duration(milliseconds: 120),
     this.weekSlide = const Duration(milliseconds: 300),
     this.weekHome = const Duration(milliseconds: 180),
+    this.periodTurn = const Duration(milliseconds: 420),
+    this.periodTurnCurve = Curves.easeInOutCubic,
+    this.periodTurnResumeCurve = Curves.easeOutCubic,
+    this.periodTurnFloor = 0.35,
+    this.periodTurnSpring = const SpringDescription(mass: 1, stiffness: 170, damping: 26),
     this.pageSlide = const Duration(milliseconds: 300),
     this.dayGlide = const Duration(milliseconds: 320),
     this.dayGlideCurve = Curves.easeOutCubic,
@@ -32,8 +62,12 @@ final class AppMotion {
     this.wordRise = 4.0,
     this.lineShift = const Duration(milliseconds: 250),
     this.pullWave = const Duration(milliseconds: 1100),
+    this.ditherReveal = const Duration(milliseconds: 450),
     this.inkDissolve = const Duration(milliseconds: 600),
     this.inkResolve = const Duration(milliseconds: 850),
+    this.inkHold = const Duration(milliseconds: 500),
+    this.inkWrite = const Duration(milliseconds: 400),
+    this.inkWriteHold = const Duration(milliseconds: 120),
     this.inkLoop = const Duration(seconds: 6),
     this.errorBlink = const Duration(milliseconds: 1000),
     this.errorShake = const Duration(milliseconds: 400),
@@ -55,8 +89,17 @@ final class AppMotion {
   final double pressScale;
   final Duration pressIcon;
   final double pressIconScale;
+
+  /// A grabbable control swelling under the finger (the scrubber capsule):
+  /// growth, where a press shrinks, because the grip holds rather than pushes.
+  final double grabScale;
   final Duration indicator;
   final Curve indicatorCurve;
+
+  /// How long a piece takes to grow into or out of its seat: the settings
+  /// sub-rows in AnimatedReveal, the reflections drill unfolds, the scrubber
+  /// strip's morph (curves and Reduce-Motion behavior live in the widgets).
+  final Duration expand;
   final Duration crossfade;
 
   /// The onboarding dash indicator's color and position glide.
@@ -81,6 +124,28 @@ final class AppMotion {
   /// scroll-following travel, because it answers a touch, not a scroll.
   final Duration weekHome;
 
+  /// The reflections pager turning a week from a capsule tap or a scrub
+  /// release: deliberately slower than [weekHome], so the ink's liquid
+  /// transfer reads as flow rather than a blink; eased both ends because the
+  /// pager is already on screen moving from A to B.
+  final Duration periodTurn;
+  final Curve periodTurnCurve;
+
+  /// The curve for a week-turn RESUMED mid-flight (rapid capsule taps): eased
+  /// out only, so a chained tap moves immediately and decelerates in.
+  /// Restarting [periodTurnCurve]'s slow opening from a standstill would trap
+  /// stacked taps in its first phase.
+  final Curve periodTurnResumeCurve;
+
+  /// The shortest share of [periodTurn] a sub-week settle may take, so even a
+  /// nudge back to the nearest dot still visibly flows rather than snapping.
+  final double periodTurnFloor;
+
+  /// The pager settling after a swipe releases: critically damped and softer
+  /// than the framework's page spring, so the ink bridge pours across at the
+  /// same liquid pace instead of snapping.
+  final SpringDescription periodTurnSpring;
+
   /// A full-screen pager advancing one page on a button tap (onboarding's Next).
   final Duration pageSlide;
 
@@ -104,6 +169,11 @@ final class AppMotion {
   /// is holding the gesture past its threshold.
   final Duration pullWave;
 
+  /// A surface materializing or decomposing through the ordered-dither
+  /// ladder: long enough for the frontier wave to read as travel, short
+  /// enough to answer the toggle that asked for it.
+  final Duration ditherReveal;
+
   /// The text dissolving into its invisible-ink shimmer when a re-transcribe
   /// starts. One-shot.
   final Duration inkDissolve;
@@ -111,6 +181,19 @@ final class AppMotion {
   /// The ink resolving back into the new transcript once the run lands. Slower
   /// than [inkDissolve] on purpose: the arrival takes its time.
   final Duration inkResolve;
+
+  /// How long a formed ink cloud holds before it may resolve, so a fast
+  /// arrival still reads as ink becoming words rather than a blink.
+  final Duration inkHold;
+
+  /// A page writing itself on arrival (a drill landing, a page scrolled into
+  /// view): a fraction of [inkResolve]'s pour, because an arrival answers
+  /// navigation while a regenerate carries work.
+  final Duration inkWrite;
+
+  /// The arrival write-on's hold, next to [inkHold]: just long enough that
+  /// ink is seen becoming words rather than blinking.
+  final Duration inkWriteHold;
 
   /// One lap of the ink shimmer's seamless loop. Long, because every spark
   /// pulses a few times per lap and faster laps read as boiling.

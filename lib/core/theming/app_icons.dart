@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 28-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 36-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -18,8 +18,20 @@ abstract final class AppIcons {
   /// SF Symbol `arrow.up.right`.
   static const IconData arrowUpRight = IconData(0x10012F, fontFamily: _family);
 
-  /// SF Symbol `calendar`.
+  /// SF Symbol `bell`.
+  static const IconData bell = IconData(0x1002D9, fontFamily: _family);
+
+  /// SF Symbol `bell.fill`.
+  static const IconData bellFill = IconData(0x1002DA, fontFamily: _family);
+
+  /// SF Symbol `calendar` (the monthly reflection marker).
   static const IconData calendar = IconData(0x100249, fontFamily: _family);
+
+  /// SF Symbol `1.calendar` (the daily reflection marker).
+  static const IconData oneCalendar = IconData(0x103326, fontFamily: _family);
+
+  /// SF Symbol `7.calendar` (the weekly reflection marker).
+  static const IconData sevenCalendar = IconData(0x10332C, fontFamily: _family);
 
   /// SF Symbol `checkmark`.
   static const IconData checkmark = IconData(0x100185, fontFamily: _family);
@@ -72,6 +84,12 @@ abstract final class AppIcons {
   /// SF Symbol `play.fill`.
   static const IconData playFill = IconData(0x100284, fontFamily: _family);
 
+  /// SF Symbol `slider.horizontal.3`.
+  static const IconData sliderHorizontal3 = IconData(0x100306, fontFamily: _family);
+
+  /// SF Symbol `sparkles`.
+  static const IconData sparkles = IconData(0x1001BF, fontFamily: _family);
+
   /// SF Symbol `square.fill`.
   static const IconData squareFill = IconData(0x100093, fontFamily: _family);
 
@@ -80,6 +98,12 @@ abstract final class AppIcons {
 
   /// SF Symbol `sun.max`.
   static const IconData sunMax = IconData(0x1001AD, fontFamily: _family);
+
+  /// SF Symbol `text.alignleft`.
+  static const IconData textAlignleft = IconData(0x100300, fontFamily: _family);
+
+  /// SF Symbol `text.quote`.
+  static const IconData textQuote = IconData(0x1002FF, fontFamily: _family);
 
   /// SF Symbol `textformat`.
   static const IconData textformat = IconData(0x100152, fontFamily: _family);
@@ -100,7 +124,11 @@ abstract final class AppIcons {
         0x1008FA: 'apple.logo',
         0x100149: 'arrow.counterclockwise',
         0x10012F: 'arrow.up.right',
+        0x1002D9: 'bell',
+        0x1002DA: 'bell.fill',
         0x100249: 'calendar',
+        0x103326: '1.calendar',
+        0x10332C: '7.calendar',
         0x100185: 'checkmark',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',
@@ -118,9 +146,13 @@ abstract final class AppIcons {
         0x1001BA: 'moon.fill',
         0x100286: 'pause.fill',
         0x100284: 'play.fill',
+        0x100306: 'slider.horizontal.3',
+        0x1001BF: 'sparkles',
         0x100093: 'square.fill',
         0x1006F7: 'stop.fill',
         0x1001AD: 'sun.max',
+        0x100300: 'text.alignleft',
+        0x1002FF: 'text.quote',
         0x100152: 'textformat',
         0x100211: 'trash',
         0x10066B: 'waveform',

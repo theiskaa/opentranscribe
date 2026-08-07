@@ -332,10 +332,6 @@ class _LanguageRow extends StatelessWidget {
       // A refused removal keeps the row: the swipe's exit reopens the slot on
       // its own, and the failure line says what happened.
       onDelete: () => cubit.remove(row.tag),
-      // Tighter than the default: releasing a language is undoable (install
-      // it again), so demanding the pill be dragged across nearly the whole
-      // row reads as more work than the action deserves.
-      commitReveal: 1.6,
       child: content,
     );
   }
@@ -346,6 +342,7 @@ class _LanguageRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final unsupported = row.status == ModelAssetStatus.unsupported;
     final active = row.isDefault && !unsupported;
+    final subLine = _subLine(l10n);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -393,13 +390,20 @@ class _LanguageRow extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                if (row.installing)
-                  _DownloadingLine(fraction: row.installFraction!)
-                else
-                  Text(
-                    _subLine(l10n),
-                    style: AppType.footnote.copyWith(color: theme.textSecondary),
-                  ),
+                // Crossfaded like the trailing control, so the downloading line
+                // melts into the model name in step with the checkmark.
+                AnimatedSwitcher(
+                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                  layoutBuilder: (current, previous) =>
+                      Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
+                  child: row.installing
+                      ? _DownloadingLine(fraction: row.installFraction!)
+                      : Text(
+                          subLine,
+                          key: ValueKey(subLine),
+                          style: AppType.footnote.copyWith(color: theme.textSecondary),
+                        ),
+                ),
               ],
             ),
           ),

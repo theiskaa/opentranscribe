@@ -76,7 +76,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       final storage = LocalService();
-      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       service = TranscriptionService(
         recorder: FakeAudioRecorder(),
         engine: FakeBatchEngine(),
@@ -127,7 +127,7 @@ void main() {
       final rec = FakeAudioRecorder();
       SharedPreferences.setMockInitialValues({});
       final storage = LocalService();
-      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       final svc = TranscriptionService(
         recorder: rec,
         engine: FakeBatchEngine(),
@@ -151,7 +151,7 @@ void main() {
       // hidden row back.
       SharedPreferences.setMockInitialValues({});
       final storage = LocalService();
-      await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       final store = EntryStore(storage);
       final dir = await Directory.systemTemp.createTemp('otr-homerace');
       final doomed = File('${dir.path}/doomed.m4a')..writeAsStringSync('audio');

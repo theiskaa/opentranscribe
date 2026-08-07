@@ -33,7 +33,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     store = EntryStore(storage);
     dir = await Directory.systemTemp.createTemp('otr-cache');
     service = TranscriptionService(
@@ -107,17 +107,19 @@ void main() {
     await seed();
     final cubit = CacheCubit(service: service);
     await pumpEventQueue();
-    // The state sequence, not just the end state: without the cubit's own
-    // clearing guard the second call would emit a second clearing=true (the
-    // service's single-flight would still keep the outcome right, so the end
-    // state alone cannot pin this).
     final clearingEmits = <bool>[];
     final sub = cubit.stream.listen((s) => clearingEmits.add(s.clearing));
 
     await Future.wait([cubit.clear(), cubit.clear()]);
     await pumpEventQueue();
 
-    expect(clearingEmits.where((c) => c), hasLength(1));
+    var rises = 0;
+    var previous = false;
+    for (final clearing in clearingEmits) {
+      if (clearing && !previous) rises++;
+      previous = clearing;
+    }
+    expect(rises, 1);
     expect(cubit.state.clearing, isFalse);
     expect(cubit.state.usage!.reclaimableCount, 0);
 

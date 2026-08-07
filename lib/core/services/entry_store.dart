@@ -14,7 +14,9 @@ import 'package:opentranscribe/core/models/entry.dart';
 /// updates its in-memory cache inside the call, so a read issued after a save
 /// or delete returns sees that mutation even though the disk flush is async. A
 /// replacement backend whose reads lag its writes would silently reopen the
-/// ghost-entry hole those call sites guard against.
+/// ghost-entry hole those call sites guard against. A read issued WHILE a save
+/// or delete is in flight may still serve the pre-write snapshot; only a read
+/// issued after the write's future completes is guaranteed the mutation.
 class EntryStore {
   EntryStore(this._storage);
 
@@ -22,9 +24,15 @@ class EntryStore {
 
   static const _prefix = 'entry:';
 
+  List<Entry>? _cache;
+
   String _keyFor(String id) => '$_prefix$id';
 
-  Future<void> save(Entry entry) => _storage.writeJson(_keyFor(entry.id), entry.toJson());
+  Future<void> save(Entry entry) async {
+    _cache = null;
+    await _storage.writeJson(_keyFor(entry.id), entry.toJson());
+    _cache = null;
+  }
 
   Entry? read(String id) {
     try {
@@ -35,8 +43,12 @@ class EntryStore {
   }
 
   /// All entries, newest first. Corrupt records are skipped. Ties on [Entry.createdAt]
-  /// break by id so ordering is deterministic.
+  /// break by id so ordering is deterministic. Memoized until the next [save] or
+  /// [delete]; callers get a shallow copy so mutating the returned list cannot
+  /// corrupt the memo.
   List<Entry> all() {
+    final cached = _cache;
+    if (cached != null) return List.of(cached);
     final entries = <Entry>[];
     for (final key in _storage.findKeysWithPrefix(_prefix)) {
       try {
@@ -50,8 +62,13 @@ class EntryStore {
       final byTime = b.createdAt.compareTo(a.createdAt);
       return byTime != 0 ? byTime : a.id.compareTo(b.id);
     });
-    return entries;
+    _cache = entries;
+    return List.of(entries);
   }
 
-  Future<void> delete(String id) => _storage.delete(_keyFor(id));
+  Future<void> delete(String id) async {
+    _cache = null;
+    await _storage.delete(_keyFor(id));
+    _cache = null;
+  }
 }

@@ -6,7 +6,8 @@ import 'package:flutter/widgets.dart';
 /// backdrop blur washed with [color], fully opaque down to [fadeFrom] (a
 /// fraction of [height]) and easing to nothing below it. The material behind
 /// the app's bars. Mount it as a Positioned overlay painted over the scrolling
-/// content; it ignores pointers.
+/// content; it ignores pointers. The wash ramp is mirrored by the native
+/// LiquidEdgeFadeView; change both together.
 class EdgeFade extends StatelessWidget {
   const EdgeFade({
     required this.height,

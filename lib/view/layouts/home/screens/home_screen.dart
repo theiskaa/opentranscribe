@@ -7,11 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
@@ -22,7 +25,9 @@ import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart'
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
+import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -47,6 +52,40 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scroll = ScrollController();
 
   final SectionTracker _sections = SectionTracker();
+
+  /// The reflection history as of the last build (null before the first), and
+  /// the cards that arrived while home was up: only those get the entrance, and
+  /// they keep their wrapper so a later rebuild cannot re-play it.
+  List<Reflection>? _seenReflections;
+  final Set<ReflectionCardKey> _enteredCards = {};
+
+  /// The entry ids as of the last build (null before the first), and the ids
+  /// that arrived while home was up: only those rows get the entrance, and
+  /// they keep their wrapper so a later rebuild cannot re-play it.
+  Set<String>? _seenEntryIds;
+  final Set<String> _enteredEntries = {};
+
+  /// The same ledger for calendar days: a day that arrived while home was up
+  /// unfolds its splitter along with its first row, so the section's whole
+  /// lead-in glides open instead of jumping in at full height.
+  Set<DateTime>? _seenDays;
+  final Set<DateTime> _enteredDays = {};
+
+  /// Days whose last record just left: their splitters keep rendering as
+  /// GHOSTS folding away in the seam their section vacated, then drop from
+  /// here when the fold ends. A day recorded again mid-fold leaves this set
+  /// at once - the live splitter takes over.
+  final Set<DateTime> _departingDays = {};
+
+  /// Rows whose delete has committed and whose exit is playing, id to the
+  /// row's section day. While a row dies, the list treats it as already gone
+  /// for LAYOUT decisions - the neighbor's last-gap and an emptying day's
+  /// title close in step with the exit - and the emptied day skips its ghost
+  /// (the live title pre-folded). Cleared a frame AFTER the delete's future
+  /// resolves, never sooner: the departure diff runs in the emit's build and
+  /// must still see the id here, so a refused delete unfolds everything back
+  /// and a fast delete cannot ghost a title that already folded live.
+  final Map<String, DateTime> _dying = {};
   late final PullToRecordGesture _pullGesture = PullToRecordGesture(
     onArm: Haptics.selection,
     onDisarm: Haptics.light,
@@ -187,6 +226,42 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
+          // Cards are driven by the reflection history; watching it here rebuilds
+          // home when a period is reflected, deleted, or regenerated. Home reads
+          // every enabled period's reflections, independent of the screen's
+          // viewed period, so paging that screen never disturbs home's cards.
+          final reflectionsState = context.watch<ReflectionsCubit>().state;
+          final reflections = reflectionsState.homeReflections;
+          // Only a card that ARRIVES while home is up gets an entrance; the
+          // first LOADED build seeds the ledger settled. Diffing before the
+          // cubit's first real read would run against its empty placeholder
+          // and mark the whole history newly arrived.
+          if (reflectionsState.loaded) {
+            final previous = _seenReflections;
+            if (previous != null) _enteredCards.addAll(newlyReflected(previous, reflections));
+            _seenReflections = reflections;
+          }
+          _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
+          _seenEntryIds = {for (final e in state.entries) e.id};
+          _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
+          // Departures before the reseed, against the same previous set; under
+          // Reduce Motion emptied days simply leave, no ghost, and a flip
+          // drops any ghost still mid-fold. A day whose title pre-folded with
+          // its dying rows needs no ghost either - the seam is already closed
+          // when the emit lands.
+          if (context.reduceMotion) {
+            _departingDays.clear();
+          } else {
+            _departingDays.addAll(
+              departedEntryDays(_seenDays, state.entryDays).where((d) => !_dying.containsValue(d)),
+            );
+          }
+          _departingDays.removeAll(state.entryDays);
+          // An emptied journal renders HomeEmpty, where no ghost can mount or
+          // finish: a day stranded here would fold as a phantom label beside
+          // whatever day is recorded next.
+          if (state.entries.isEmpty) _departingDays.clear();
+          _seenDays = state.entryDays;
           // After EVERY build: splitter positions move when entries are
           // added or renamed (card heights change), not only when the set
           // of days does.
@@ -215,12 +290,39 @@ class _HomeScreenState extends State<HomeScreen> {
               : _RecordsList(
                   key: _sections.listKey,
                   state: state,
+                  reflections: reflections,
+                  enteredCards: _enteredCards,
+                  enteredEntries: _enteredEntries,
+                  enteredDays: _enteredDays,
+                  departingDays: _departingDays,
+                  onDepartureEnd: (day) {
+                    if (!mounted) return;
+                    setState(() => _departingDays.remove(day));
+                  },
+                  dying: _dying,
+                  onRowDeleteStart: (id, day) {
+                    if (!mounted) return;
+                    setState(() => _dying[id] = day);
+                  },
                   controller: _scroll,
                   splitterKeys: _sections.splitterKeys,
                   topPadding: _contentTop,
                   tail: _tail,
                   openRow: _openRow,
-                  onDelete: (entry) => context.read<HomeCubit>().delete(entry),
+                  onDelete: (entry) async {
+                    try {
+                      await context.read<HomeCubit>().delete(entry);
+                    } finally {
+                      // Resolved either way: a removed row's flag is spent, a
+                      // refused delete's row unfolds its surroundings back.
+                      // Past the frame, never inside it: the emit's build
+                      // diffs departures against this ledger, and a delete
+                      // resolving first would clear the id before that build
+                      // ever sees it - ghosting a title that folded live.
+                      await WidgetsBinding.instance.endOfFrame;
+                      if (mounted) setState(() => _dying.remove(entry.id));
+                    }
+                  },
                 );
 
           return Stack(
@@ -388,9 +490,149 @@ class _HomeChromeState extends State<_HomeChrome> {
   }
 }
 
+/// Clearance under the last card so it clears the record button, matching the
+/// recorder screen's bottom inset.
+const double _listBottomInset = 42;
+
+/// One period's reflection slot in the timeline: the editorial card, opening
+/// the reflections pager landed on its period and start, entering with the
+/// app's rise only when it arrived while home was up.
+class _ReflectionCardSlot extends StatelessWidget {
+  const _ReflectionCardSlot({required this.reflection, required this.entrance, super.key});
+
+  final Reflection reflection;
+  final bool entrance;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = ReflectionHomeCard(
+      reflection: reflection,
+      onTap: () => context.pushNamed(
+        Routes.reflectionsName,
+        queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
+      ),
+    );
+    if (!entrance) return card;
+    return EntranceRise(child: card);
+  }
+}
+
+/// A timeline piece that arrived while home was up UNFOLDS into its seat -
+/// the list glides apart to make room while it fades in - because a
+/// full-height insert jumps everything below it, and no fade can mask a
+/// layout jump. Wraps the entry rows and, for a brand-new day, its splitter.
+/// Reduce Motion keeps the same tree at zero duration (the _Unfold trick), so
+/// an accessibility flip mid-session cannot remount settled pieces and replay
+/// their arrivals. Once settled, the clip relaxes so the delete disc keeps
+/// its sanctioned spill into the row gap.
+class _ArrivalUnfold extends StatelessWidget {
+  const _ArrivalUnfold({required this.entrance, required this.child, super.key});
+
+  final bool entrance;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!entrance) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: context.reduceMotion ? Duration.zero : context.theme.motion.expand,
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => _Fold(t: t, child: child!),
+      child: child,
+    );
+  }
+}
+
+/// One frame for every timeline fold - arrivals, live folds and ghosts all
+/// grow and close through this, so the fold visual lives once. topLeft, not
+/// topCenter: the Align expands to the list's full width, so a centering
+/// alignment would re-seat an intrinsic-width child (the day splitter) in the
+/// middle; only the top matters, it is what the fold moves from. At rest the
+/// clip relaxes so the delete disc keeps its sanctioned spill into the row
+/// gap, and the wrapper stays constant so the subtree's element (and any
+/// animation in flight inside it) survives a fold starting.
+class _Fold extends StatelessWidget {
+  const _Fold({required this.t, required this.child});
+
+  final double t;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (t <= 0) return const SizedBox.shrink();
+    return ClipRect(
+      clipBehavior: t < 1 ? Clip.hardEdge : Clip.none,
+      child: Align(
+        alignment: Alignment.topLeft,
+        heightFactor: t,
+        child: Opacity(opacity: t, child: child),
+      ),
+    );
+  }
+}
+
+/// The day splitter's padded label, shared by the live splitter and its
+/// departing ghost so a ghost renders exactly what it replaces. Top spacing
+/// only BETWEEN groups ([gapless] drops it); the left inset lands the label
+/// on the records' TEXT column (content margin + rail gutter), not on the
+/// rail, which belongs to the day's records. The gap is animated because
+/// [gapless] flips when the day above departs, dies, or arrives: the gap
+/// glides while the neighbor closes, so the two motions sum to one
+/// continuous move.
+class _SplitterLabel extends StatelessWidget {
+  const _SplitterLabel({
+    required this.day,
+    required this.gapless,
+    required this.duration,
+    required this.curve,
+    this.labelKey,
+  });
+
+  final DateTime day;
+  final bool gapless;
+  final Duration duration;
+  final Curve curve;
+
+  /// The tracker's key, on the LABEL rather than the padded block: the
+  /// tracker's line is about where the words are, so every day rests and
+  /// lands in the same place regardless of the gap above it. Ghosts pass
+  /// none; the tracker already pruned theirs.
+  final Key? labelKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final locale = localeTag(context);
+    return AnimatedPadding(
+      duration: duration,
+      curve: curve,
+      padding: EdgeInsets.fromLTRB(
+        theme.entryList.textColumnInset,
+        gapless ? 0 : AppSpacing.xxxl,
+        AppSpacing.xl,
+        AppSpacing.sm,
+      ),
+      child: Text(
+        '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}',
+        key: labelKey,
+        style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+      ),
+    );
+  }
+}
+
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
+    required this.reflections,
+    required this.enteredCards,
+    required this.enteredEntries,
+    required this.enteredDays,
+    required this.departingDays,
+    required this.onDepartureEnd,
+    required this.dying,
+    required this.onRowDeleteStart,
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
@@ -401,6 +643,34 @@ class _RecordsList extends StatelessWidget {
   });
 
   final HomeState state;
+
+  /// The reflection history, placed as cards at the top of each finished period.
+  final List<Reflection> reflections;
+
+  /// Cards that arrived while home was up; only these enter with motion.
+  final Set<ReflectionCardKey> enteredCards;
+
+  /// Entry ids that arrived while home was up; only these rows enter with
+  /// motion.
+  final Set<String> enteredEntries;
+
+  /// Days that arrived while home was up; their splitters unfold with their
+  /// first row.
+  final Set<DateTime> enteredDays;
+
+  /// Days folding away after their last record left; each renders a ghost
+  /// splitter in the seam its section vacated.
+  final Set<DateTime> departingDays;
+
+  /// A ghost's fold finished; the owner drops the day from [departingDays].
+  final ValueChanged<DateTime> onDepartureEnd;
+
+  /// Rows mid-exit, id to section day: already gone for layout decisions, so
+  /// the surroundings close in step with the slot's own collapse.
+  final Map<String, DateTime> dying;
+
+  /// A row's delete committed; the owner marks it dying before the exit plays.
+  final void Function(String id, DateTime day) onRowDeleteStart;
   final ScrollController controller;
 
   /// Tracker-owned keys splitter label positions are read through.
@@ -418,11 +688,30 @@ class _RecordsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final sections = state.sections;
-    final locale = localeTag(context);
 
     // Nothing floats over the list any more; the tail just clears the home
     // indicator.
     final clearance = MediaQuery.paddingOf(context).bottom;
+
+    final sectionDays = [for (final section in sections) section.day];
+    final sectionIds = [
+      for (final section in sections) [for (final entry in section.entries) entry.id],
+    ];
+    final dyingIds = dying.keys.toSet();
+
+    // A card sits above the first section of each finished period; a section can
+    // stack a month, a week, and a day card.
+    final cards = reflectionCardsForSections(
+      sectionDays: sectionDays,
+      reflections: reflections,
+      today: DateTime.now(),
+    );
+    final ghosts = departingSplitterSlots(sectionDays: sectionDays, departing: departingDays);
+    // A section drops its top gap when it leads the list - or once everything
+    // above it is dying, not only once the emit confirms it, so the gap
+    // closes with the exits above - or when a card supplies the break itself.
+    bool noTopGap(int s) =>
+        s == 0 || cards[s] != null || sectionIds.take(s).every((ids) => allDying(ids, dyingIds));
 
     return ListView(
       controller: controller,
@@ -433,47 +722,151 @@ class _RecordsList extends StatelessWidget {
       padding: EdgeInsets.only(top: topPadding, bottom: clearance + AppSpacing.lg + tail),
       children: [
         for (final (s, section) in sections.indexed) ...[
-          Padding(
-            // Top spacing only BETWEEN groups: the first splitter rests right
-            // under the chrome. The left inset lands the label on the records'
-            // TEXT column (content margin + rail gutter), not on the rail: the
-            // rail belongs to the day's records, and the label names them.
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.xl + theme.entryList.railGutter,
-              s == 0 ? 0 : AppSpacing.xxxl,
-              AppSpacing.xl,
-              AppSpacing.sm,
+          for (final (g, day) in ghosts[s].indexed)
+            _DepartingSplitter(
+              key: ValueKey('departing-${day.toIso8601String()}'),
+              day: day,
+              first: s == 0 && g == 0,
+              onEnd: () => onDepartureEnd(day),
             ),
-            child: Text(
-              '${DateFormat.EEEE(locale).format(section.day)}, '
-              '${DateFormat.MMMd(locale).format(section.day)}',
-              // Keyed on the LABEL, not the padded block: the tracker's line
-              // is about where the words are, so every day rests and lands in
-              // the same place regardless of the gap above it.
-              key: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
-              style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+          if (cards[s] != null) ...[
+            for (final (c, reflection) in cards[s]!.indexed) ...[
+              // A group's top clears the day above (xxl); a stacked card sits
+              // tight under the one before it so the month/week/day read as one.
+              SizedBox(height: c > 0 ? AppSpacing.sm : (s == 0 ? 0 : AppSpacing.xxl)),
+              // Keyed so an entry insert or delete above cannot re-inflate the
+              // slot at its shifted index and replay the entrance.
+              _ReflectionCardSlot(
+                key: ValueKey(cardKeyOf(reflection)),
+                reflection: reflection,
+                entrance: enteredCards.contains(cardKeyOf(reflection)),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          // Keyed (like the rows) so an insert or delete above cannot
+          // re-inflate the slot at its shifted index and replay the entrance.
+          _ArrivalUnfold(
+            key: ValueKey(section.day),
+            entrance: enteredDays.contains(section.day),
+            // A day whose every row is mid-exit folds its title WITH them, on
+            // the exit's own clock, so the emit lands on a seam already
+            // closed; a refused delete retargets it back open.
+            child: _FoldAway(
+              folded: allDying(sectionIds[s], dyingIds),
+              child: _SplitterLabel(
+                day: section.day,
+                gapless: noTopGap(s),
+                // Closing is phase-locked to the delete exit's height;
+                // opening rides the arrival unfold.
+                duration: context.reduceMotion
+                    ? Duration.zero
+                    : (noTopGap(s) ? theme.motion.swipeExit : theme.motion.expand),
+                curve: noTopGap(s) ? AppMotion.swipeExitHeightCurve : Curves.easeOutCubic,
+                labelKey: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
+              ),
             ),
           ),
           for (final (i, entry) in section.entries.indexed)
-            EntryRow(
+            // Keyed so an entry insert or delete above cannot re-inflate the
+            // slot at its shifted index and replay the entrance.
+            _ArrivalUnfold(
               key: ValueKey(entry.id),
-              entry: entry,
-              last: i == section.entries.length - 1,
-              openId: openRow,
-              onDelete: onDelete,
-              onTap: () {
-                final home = context.read<HomeCubit>();
-                // The detail screen reads EntriesCubit; refresh it before the
-                // push, and refresh home on return (delete or rename).
-                context.read<EntriesCubit>().load();
-                context
-                    .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
-                    .then((_) => home.load());
-              },
+              entrance: enteredEntries.contains(entry.id),
+              child: EntryRow(
+                entry: entry,
+                // A dying successor is already gone for layout: the gap and
+                // rail close in step with its exit, and the emit changes
+                // nothing.
+                last: allDying(sectionIds[s].skip(i + 1), dyingIds),
+                openId: openRow,
+                onDelete: onDelete,
+                onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
+                onTap: () {
+                  final home = context.read<HomeCubit>();
+                  // The detail screen reads EntriesCubit; refresh it before the
+                  // push, and refresh home on return (delete or rename).
+                  context.read<EntriesCubit>().load();
+                  context
+                      .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
+                      .then((_) => home.load());
+                },
+              ),
             ),
         ],
-        const SizedBox(height: 42),
+        for (final (g, day) in ghosts[sections.length].indexed)
+          _DepartingSplitter(
+            key: ValueKey('departing-${day.toIso8601String()}'),
+            day: day,
+            first: sections.isEmpty && g == 0,
+            onEnd: () => onDepartureEnd(day),
+          ),
+        const SizedBox(height: _listBottomInset),
       ],
+    );
+  }
+}
+
+/// Folds its child away while [folded] holds and back open when it clears,
+/// retargeting mid-flight - the live counterpart of [_DepartingSplitter],
+/// for pieces that must close WITH a neighbor's delete exit (an emptying
+/// day's title) rather than after it. Runs on the exit's own clock
+/// ([AppMotion.swipeExit]) so the two collapses read as one, and the emit
+/// lands on a seam already closed.
+class _FoldAway extends StatelessWidget {
+  const _FoldAway({required this.folded, required this.child});
+
+  final bool folded;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: folded ? 0.0 : 1.0),
+      duration: context.reduceMotion ? Duration.zero : context.theme.motion.swipeExit,
+      curve: AppMotion.swipeExitHeightCurve,
+      builder: (context, t, child) => _Fold(t: t, child: child!),
+      child: child,
+    );
+  }
+}
+
+/// A departed day's splitter, folding out of the seam its section vacated.
+/// Rebuilt from the day alone, with no GlobalKey - the tracker already pruned
+/// the real one - it closes on the delete exit's clock and interval so the
+/// neighbor's top gap (which always closes on that clock) moves with it as
+/// one, and reports [onEnd] so the ghost ledger can drop it. Never built
+/// under Reduce Motion: the ledger stays empty there, and a flip mid-fold
+/// clears it.
+class _DepartingSplitter extends StatelessWidget {
+  const _DepartingSplitter({
+    required this.day,
+    required this.first,
+    required this.onEnd,
+    super.key,
+  });
+
+  final DateTime day;
+
+  /// Whether the ghost holds the list's very first position, where the live
+  /// splitter it replaces carried no top gap.
+  final bool first;
+  final VoidCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: 0),
+      duration: context.theme.motion.swipeExit,
+      curve: AppMotion.swipeExitHeightCurve,
+      onEnd: onEnd,
+      builder: (context, t, child) => _Fold(t: t, child: child!),
+      child: _SplitterLabel(
+        day: day,
+        gapless: first,
+        duration: Duration.zero,
+        curve: Curves.linear,
+      ),
     );
   }
 }

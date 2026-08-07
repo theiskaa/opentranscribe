@@ -9,12 +9,6 @@ public class LiquidPlugin: NSObject, FlutterPlugin {
     }
     registrar.register(toggleFactory, withId: "liquid_toggle")
 
-    let tabBarFactory = LiquidViewFactory(registrar: registrar, viewType: "liquid_tab_bar") {
-      _, viewId, args in
-      LiquidTabBarView(registrar: registrar, viewId: viewId, arguments: args)
-    }
-    registrar.register(tabBarFactory, withId: "liquid_tab_bar")
-
     let popupButtonFactory = LiquidViewFactory(
       registrar: registrar, viewType: "liquid_popup_button"
     ) { _, viewId, args in
@@ -38,17 +32,17 @@ public class LiquidPlugin: NSObject, FlutterPlugin {
     }
     registrar.register(iconButtonFactory, withId: "liquid_icon_button")
 
-    let iconButtonGroupFactory = LiquidViewFactory(
-      registrar: registrar, viewType: "liquid_icon_button_group"
+    let segmentedControlFactory = LiquidViewFactory(
+      registrar: registrar, viewType: "liquid_segmented_control"
     ) { _, viewId, args in
-      LiquidIconButtonGroupView(registrar: registrar, viewId: viewId, arguments: args)
+      LiquidSegmentedControlView(registrar: registrar, viewId: viewId, arguments: args)
     }
-    registrar.register(iconButtonGroupFactory, withId: "liquid_icon_button_group")
+    registrar.register(segmentedControlFactory, withId: "liquid_segmented_control")
 
-    let appBarFactory = LiquidViewFactory(registrar: registrar, viewType: "liquid_app_bar") {
+    let edgeFadeFactory = LiquidViewFactory(registrar: registrar, viewType: "liquid_edge_fade") {
       _, viewId, args in
-      LiquidAppBarView(registrar: registrar, viewId: viewId, arguments: args)
+      LiquidEdgeFadeView(registrar: registrar, viewId: viewId, arguments: args)
     }
-    registrar.register(appBarFactory, withId: "liquid_app_bar")
+    registrar.register(edgeFadeFactory, withId: "liquid_edge_fade")
   }
 }

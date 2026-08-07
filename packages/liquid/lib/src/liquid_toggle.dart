@@ -2,22 +2,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:liquid/src/liquid_platform_view.dart';
 
-/// Declarative Flutter widget that renders a native LiquidGlass toggle on iOS.
+/// A native LiquidGlass toggle on iOS.
+///
+/// [value] is the source of truth: taps report through [onChanged], and a
+/// change from outside (a row tap, a declined permission reverting the
+/// setting) pushes the new value to the native control. The native side only
+/// moves when the value actually differs, so a rebuild never disturbs a
+/// settled switch.
 class LiquidToggle extends StatefulWidget {
   const LiquidToggle({
-    required this.initialValue,
+    required this.value,
     this.onChanged,
     this.enabled = true,
     this.accentColor,
     this.semanticLabel,
     this.isDark,
+    this.placeholderBuilder,
     super.key,
   });
 
-  /// Initial toggle value applied once when the platform view is created.
-  ///
-  /// Subsequent rebuilds do not propagate value changes to the native control.
-  final bool initialValue;
+  final bool value;
   final ValueChanged<bool>? onChanged;
   final bool enabled;
   final Color? accentColor;
@@ -29,21 +33,16 @@ class LiquidToggle extends StatefulWidget {
   /// This ensures the native component matches Flutter's theme.
   final bool? isDark;
 
+  /// Built in place of the native view while this route is covered by another.
+  final WidgetBuilder? placeholderBuilder;
+
   @override
   State<LiquidToggle> createState() => _LiquidToggleState();
 }
 
 class _LiquidToggleState extends State<LiquidToggle> {
-  late final bool _initialValue;
-
-  @override
-  void initState() {
-    super.initState();
-    _initialValue = widget.initialValue;
-  }
-
   Map<String, dynamic> get _params => {
-    'initialValue': _initialValue,
+    'value': widget.value,
     'enabled': widget.enabled,
     if (widget.accentColor != null) 'accentColor': widget.accentColor!.toARGB32(),
     if (widget.semanticLabel != null) 'semanticLabel': widget.semanticLabel,
@@ -56,6 +55,7 @@ class _LiquidToggleState extends State<LiquidToggle> {
       viewType: 'liquid_toggle',
       creationParams: _params,
       onMethodCall: _handleMethodCall,
+      placeholderBuilder: widget.placeholderBuilder,
     );
   }
 

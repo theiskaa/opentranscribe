@@ -1,53 +1,52 @@
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
+import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-// LiquidToggle / PlatformCaps imports removed with the native branch above; add
-// them back if that branch is ever revived for a non-blurred context.
+import 'package:opentranscribe/core/utils/platform_caps.dart';
 
 /// The app's switch, adaptive like every other native control: the real iOS
-/// glass switch on iOS 26 (via the vendored [LiquidToggle]), and the app's own
-/// drawn switch everywhere else. Same 51x31 footprint and on-colour across the
-/// split, so a settings row reads the same wherever it runs.
+/// glass switch on iOS 26 (via the vendored [LiquidToggle]) at the system's
+/// own footprint, and the app's drawn 51x31 switch everywhere else, same
+/// on-colour across the split.
 class AppToggle extends StatelessWidget {
   const AppToggle({required this.value, required this.onChanged, super.key});
 
   final bool value;
   final ValueChanged<bool>? onChanged;
 
-  static const _width = 51.0;
-  static const _height = 31.0;
+  /// The native box: the iOS 26 UISwitch's intrinsic width (its host centers
+  /// the 61x28 switch and never lets it overflow) by the drawn switch's
+  /// height, so the drawn stand-in fits the same box unsquashed.
+  static const _nativeWidth = 61.0;
+  static const _nativeHeight = 31.0;
 
   @override
   Widget build(BuildContext context) {
-    // ALWAYS the drawn switch, even on iOS 26. The native glass toggle
-    // ([LiquidToggle]) is a platform view, and Flutter's BackdropFilter cannot
-    // blur a platform view - so under the settings screens' frosted bar it
-    // punches straight through the blur and renders on top, which reads as
-    // broken. Every toggle in the app lives under that bar, so the native path
-    // is unreachable in practice; kept here, commented, for a future context
-    // that has no blur over it.
-    //
-    // if (PlatformCaps.nativeGlass) {
-    //   return SizedBox(
-    //     width: _width,
-    //     height: _height,
-    //     child: LiquidToggle(
-    //       initialValue: value,
-    //       enabled: onChanged != null,
-    //       accentColor: context.theme.settings.toggleActive,
-    //       onChanged: onChanged,
-    //     ),
-    //   );
-    // }
-    return _DrawnToggle(value: value, onChanged: onChanged);
+    final drawn = _DrawnToggle(value: value, onChanged: onChanged);
+    if (!PlatformCaps.nativeGlass) return drawn;
+
+    final theme = context.theme;
+    return SizedBox(
+      width: _nativeWidth,
+      height: _nativeHeight,
+      child: LiquidToggle(
+        value: value,
+        enabled: onChanged != null,
+        accentColor: theme.settings.toggleActive,
+        isDark: theme.brightness == Brightness.dark,
+        onChanged: onChanged,
+        placeholderBuilder: (_) => Center(child: drawn),
+      ),
+    );
   }
 }
 
 /// A drawn iOS-style switch: 51x31 pill track, white knob, tap or drag. The knob
 /// and track colour animate together so a drag reads as one object moving. The
-/// fallback below iOS 26, where there is no native glass switch.
+/// fallback below iOS 26, and the stand-in while a route covers the native
+/// switch.
 class _DrawnToggle extends StatefulWidget {
   const _DrawnToggle({required this.value, required this.onChanged});
 
@@ -59,8 +58,8 @@ class _DrawnToggle extends StatefulWidget {
 }
 
 class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderStateMixin {
-  static const _width = AppToggle._width;
-  static const _height = AppToggle._height;
+  static const _width = 51.0;
+  static const _height = 31.0;
   static const _knob = 27.0;
 
   /// The knob's position, 0 (off) to 1 (on). Driven 1:1 by a drag, then settled

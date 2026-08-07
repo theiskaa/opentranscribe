@@ -121,7 +121,7 @@ dart format .                   # 100-column formatting
 flutter gen-l10n                # regenerate localizations after editing .arb
 ```
 
-The storage encryption key is a build-time secret, never committed. Debug builds fall back to a committed development key; a release build throws at `Deps.init()` unless a real one is supplied:
+The journal's encryption key is a per-device random key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`); it never leaves the device. `STORAGE_KEY` remains a build-time secret, never committed, needed only to read and migrate records written before the Keychain key existed. Debug builds fall back to a committed development key; a release build throws at `Deps.init()` unless a real one is supplied:
 
 ```
 flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
@@ -131,7 +131,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 
 - Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
 - Fakes live in `test/support/`. Inject them through constructors; no test may reach a real platform channel or real storage.
-- Test names read as sentences about behavior, not about method names. Comment the reasoning a test encodes when it is not obvious from the expectation.
+- Test names read as sentences about behavior, not about method names. Tests carry no comments; the name is the explanation, so put the reasoning there.
 
 ## Conventions
 
@@ -140,7 +140,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 - Navigation: add the path and name to `Routes`, wire the `GoRoute` in `app_router.dart`, and navigate with `context.goNamed(Routes.<x>Name)`. Never hardcode a path at a call site.
 - State: one cubit per concern under `core/state/`; screens consume them via `BlocProvider`/`BlocBuilder`. Business logic belongs in a cubit or a service, not in a widget.
 - Widgets: reusable ones in `view/widgets/`, screen-specific ones in that domain's `components/`. Prefer small, composable, `const` widgets over deep build methods.
-- Writing (comments, docs, commit messages): plain and terse. No em-dashes. Comment the why, not the what, and match the density and voice of the file you are editing. Doc comments on a contract state the guarantees a caller may rely on, including what an implementation must not do.
+- Writing (comments, docs, commit messages): plain and terse. No em-dashes. **Comments only when needed: the default is no comment.** One earns its place only by stating a why or a constraint the code cannot express; never narrate what code does, its history, or the change that produced it. Tests carry no comments; the test name is the explanation. Doc comments on a contract state the guarantees a caller may rely on, including what an implementation must not do.
 
 ## Commit style
 

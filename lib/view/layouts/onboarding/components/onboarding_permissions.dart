@@ -4,21 +4,26 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/audio/recording.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_reflections.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_row.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// Permissions step: request microphone and speech recognition, both on-device.
+/// Permissions step: request microphone and speech recognition, both on-device,
+/// plus an OPTIONAL notification row on eligible hardware for the weekly nudge.
 /// Never blocks the flow - each row just reflects its status, and a denied one
-/// offers a jump to Settings.
+/// offers a jump to Settings. Skipping the notification row costs nothing: the
+/// nudge toggle asks contextually later for anyone who does.
 class OnboardingPermissions extends StatelessWidget {
   const OnboardingPermissions({super.key});
 
@@ -26,6 +31,12 @@ class OnboardingPermissions extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    // Root-scoped cubit (see App): the same availability probe that gates the
+    // intro pitch gates the notification row, so it is never asked on hardware
+    // that can never fire a reflection nudge.
+    final canReflect = reflectionsEligible(
+      context.watch<ReflectionsCubit>().state.availability.status,
+    );
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) {
         final cubit = context.read<OnboardingCubit>();
@@ -73,6 +84,18 @@ class OnboardingPermissions extends StatelessWidget {
                   denied: state.speech == SpeechPermission.denied,
                   onAllow: () => unawaited(cubit.requestSpeech()),
                 ),
+                if (canReflect) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _PermissionRow(
+                    icon: AppIcons.bellFill,
+                    name: l10n.onboardingNotifyName,
+                    reason: l10n.onboardingNotifyReason,
+                    granted: state.notificationGranted,
+                    requesting: state.requestingNotification,
+                    denied: state.notification == NotificationPermission.denied,
+                    onAllow: () => unawaited(cubit.requestNotification()),
+                  ),
+                ],
               ],
             ),
           ),

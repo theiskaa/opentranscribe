@@ -58,10 +58,9 @@ final class HomeState {
 
   final List<Entry> entries;
 
-  /// Derived once, at construction. As getters these ran on every read, and
-  /// home reads them several times per rebuild while scrolling; [entryDays]
-  /// also handed out a fresh Set each time, so nothing downstream could ever
-  /// short-circuit on it.
+  /// Derived once, at construction: home reads these several times per rebuild
+  /// while scrolling, and a per-read getter would hand out a fresh [entryDays]
+  /// Set each time, so nothing downstream could short-circuit on identity.
   final List<DaySection> sections;
   final Set<DateTime> entryDays;
   final DateTime? firstEntryDay;

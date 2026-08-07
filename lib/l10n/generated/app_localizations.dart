@@ -180,12 +180,6 @@ abstract class AppLocalizations {
   /// **'Pull to record'**
   String get homePullToRecord;
 
-  /// Home menu row that opens the picker for the language recordings are transcribed in
-  ///
-  /// In en, this message translates to:
-  /// **'Transcription'**
-  String get menuTranscriptionLanguage;
-
   /// Home menu row linking to the public source repository, followed by the app version
   ///
   /// In en, this message translates to:
@@ -531,7 +525,7 @@ abstract class AppLocalizations {
   /// Settings row leading to the models screen (per-language on-device models)
   ///
   /// In en, this message translates to:
-  /// **'Models'**
+  /// **'Transcription'**
   String get settingsModels;
 
   /// Section label over the per-language model list on the models screen
@@ -600,6 +594,18 @@ abstract class AppLocalizations {
   /// **'No account, no cloud. Airplane mode changes nothing.'**
   String get onboardingPrivateLine;
 
+  /// Title of the intro row about reflections, eligible hardware only
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections'**
+  String get onboardingReflectTitle;
+
+  /// One-line explanation under the reflections intro row
+  ///
+  /// In en, this message translates to:
+  /// **'Your entries read back as a short note, all on device.'**
+  String get onboardingReflectLine;
+
   /// Title of the intro row that opens the open-source repository
   ///
   /// In en, this message translates to:
@@ -621,7 +627,7 @@ abstract class AppLocalizations {
   /// Subtitle reassuring that the requested permissions stay on-device
   ///
   /// In en, this message translates to:
-  /// **'Both work entirely on your device.'**
+  /// **'Everything here works entirely on your device.'**
   String get onboardingPermissionsBody;
 
   /// Name of the microphone permission row
@@ -648,6 +654,18 @@ abstract class AppLocalizations {
   /// **'To turn your recordings into text, on device.'**
   String get onboardingSpeechReason;
 
+  /// Name of the optional notification permission row, eligible hardware only
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get onboardingNotifyName;
+
+  /// One-line reason the app asks for notifications
+  ///
+  /// In en, this message translates to:
+  /// **'For a nudge when a reflection is ready.'**
+  String get onboardingNotifyReason;
+
   /// Button that requests a permission
   ///
   /// In en, this message translates to:
@@ -660,17 +678,35 @@ abstract class AppLocalizations {
   /// **'Enable in Settings'**
   String get onboardingOpenSettings;
 
-  /// Headline on the model-download onboarding step
+  /// Headline on the transcription-setup onboarding step
   ///
   /// In en, this message translates to:
-  /// **'Download a language'**
+  /// **'Set up transcription'**
   String get onboardingModelsTitle;
 
-  /// Body on the model-download onboarding step
+  /// Body on the transcription-setup onboarding step
   ///
   /// In en, this message translates to:
-  /// **'Transcription runs offline once a language is on your device. You can add more anytime from the menu.'**
+  /// **'It runs offline once your language is on the device. You can add more anytime from the menu.'**
   String get onboardingModelsBody;
+
+  /// Onboarding model step, Apple Intelligence available: what reflections do
+  ///
+  /// In en, this message translates to:
+  /// **'Your entries read back as a short reflection, entirely on this device.'**
+  String get onboardingReflectionsOn;
+
+  /// Onboarding model step: Apple Intelligence enabled but the model still downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Starts once Apple Intelligence finishes preparing on this device.'**
+  String get onboardingReflectionsPreparing;
+
+  /// Onboarding model step: eligible hardware with Apple Intelligence off; instructions only
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.'**
+  String get onboardingReflectionsOff;
 
   /// Button advancing to the next onboarding step
   ///
@@ -749,6 +785,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete recordings'**
   String get cacheClearConfirm;
+
+  /// Title of the reflections screen and its home-menu row
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections'**
+  String get reflectionsTitle;
+
+  /// Menu submenu holding the per-period on/off toggles
+  ///
+  /// In en, this message translates to:
+  /// **'Periods'**
+  String get reflectionPeriods;
+
+  /// Menu toggle label for daily reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get reflectionDaily;
+
+  /// Menu toggle label for weekly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get reflectionWeekly;
+
+  /// Menu toggle label for monthly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get reflectionMonthly;
+
+  /// Empty-state headline on the reflections screen before any period has been reflected
+  ///
+  /// In en, this message translates to:
+  /// **'No reflections yet'**
+  String get reflectionsEmptyTitle;
+
+  /// Empty-state supporting line under the headline on the reflections screen
+  ///
+  /// In en, this message translates to:
+  /// **'The first arrives once you have journaled, read back from what you recorded.'**
+  String get reflectionsEmptyBody;
+
+  /// Shown for a day the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet day.'**
+  String get reflectionQuietDay;
+
+  /// Shown for a week the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet week.'**
+  String get reflectionQuietWeek;
+
+  /// Shown for a month the observer had nothing to say about (a stored silence)
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet month.'**
+  String get reflectionQuietMonth;
+
+  /// Pager state title: a closed, journaled period not yet written; the next catch-up may fill it
+  ///
+  /// In en, this message translates to:
+  /// **'Not written yet'**
+  String get reflectionWaitingTitle;
+
+  /// Pager state body under the not-written-yet title
+  ///
+  /// In en, this message translates to:
+  /// **'This will be read back the next time the journal opens with Apple Intelligence ready.'**
+  String get reflectionWaitingBody;
+
+  /// Pager state title: the user deleted this reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Erased'**
+  String get reflectionErasedTitle;
+
+  /// Pager state body under the erased title; Regenerate re-writes the reflection
+  ///
+  /// In en, this message translates to:
+  /// **'You removed this reflection. Regenerate writes it again.'**
+  String get reflectionErasedBody;
+
+  /// Pager subline under the quiet marker
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing rose to a reflection.'**
+  String get reflectionQuietBody;
+
+  /// Detail meta: the day the reflection was generated; date is preformatted
+  ///
+  /// In en, this message translates to:
+  /// **'Written {date}'**
+  String reflectionWrittenOn(String date);
+
+  /// Home card header naming the period a reflection covers; range is a preformatted date span
+  ///
+  /// In en, this message translates to:
+  /// **'Reflection of {range}'**
+  String reflectionOfPeriod(String range);
+
+  /// Settings submenu: the reflection voice
+  ///
+  /// In en, this message translates to:
+  /// **'Voice'**
+  String get reflectionVoice;
+
+  /// Voice option: reads the period back as a short reflective note
+  ///
+  /// In en, this message translates to:
+  /// **'Literary'**
+  String get reflectionVoiceLiterary;
+
+  /// Voice option: reports the shape of the period plainly
+  ///
+  /// In en, this message translates to:
+  /// **'Observational'**
+  String get reflectionVoiceObservational;
+
+  /// Voice option: nearly a log, minimal interpretation
+  ///
+  /// In en, this message translates to:
+  /// **'Sparse'**
+  String get reflectionVoiceSparse;
+
+  /// Settings submenu: how long a reflection may run
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get reflectionLength;
+
+  /// Length option: a single sentence
+  ///
+  /// In en, this message translates to:
+  /// **'One line'**
+  String get reflectionLengthOneLine;
+
+  /// Length option: up to three sentences
+  ///
+  /// In en, this message translates to:
+  /// **'A few sentences'**
+  String get reflectionLengthSentences;
+
+  /// Length option: up to a short paragraph
+  ///
+  /// In en, this message translates to:
+  /// **'Short paragraph'**
+  String get reflectionLengthParagraph;
+
+  /// Settings submenu: whether reflections name people, projects, places
+  ///
+  /// In en, this message translates to:
+  /// **'Specifics'**
+  String get reflectionSpecifics;
+
+  /// Specifics option: may name the people, projects, and places heard
+  ///
+  /// In en, this message translates to:
+  /// **'Name specifics'**
+  String get reflectionSpecificsNameFreely;
+
+  /// Specifics option: themes only, no proper nouns
+  ///
+  /// In en, this message translates to:
+  /// **'Themes only'**
+  String get reflectionSpecificsThemes;
+
+  /// Specifics option: name a specific only when clearly central
+  ///
+  /// In en, this message translates to:
+  /// **'Let it decide'**
+  String get reflectionSpecificsLetPeriod;
+
+  /// Menu action: reflect on the whole journal's backlog of past periods that have recordings but no reflection yet
+  ///
+  /// In en, this message translates to:
+  /// **'Generate reflections'**
+  String get reflectionGenerateAll;
+
+  /// Per-period action: re-run this reflection in the current style
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get reflectionRegenerate;
+
+  /// Menu action on a daily page: remove this day's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete day'**
+  String get reflectionDeleteDay;
+
+  /// Menu action on a weekly page: remove this week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete week'**
+  String get reflectionDeleteWeek;
+
+  /// Menu action on a monthly page: remove this month's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'Delete month'**
+  String get reflectionDeleteMonth;
+
+  /// Notice when a regenerate could not run because the model was unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reflect. Try again.'**
+  String get reflectionRegenerateFailed;
+
+  /// Notice card on the pager when the user has disabled reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections are off'**
+  String get reflectionsDisabledTitle;
+
+  /// Body of the disabled notice; the card's button reenables
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new will be written while reflections are off.'**
+  String get reflectionsDisabledBody;
+
+  /// The disabled notice card's button: reenables reflections in place
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get reflectionsDisabledEnable;
+
+  /// Reflections screen state: Apple Intelligence is available but not enabled
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is off'**
+  String get reflectionOffTitle;
+
+  /// Guidance when Apple Intelligence is off; there is no deep-link to the exact pane
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.'**
+  String get reflectionOffBody;
+
+  /// Reflections screen state: Apple Intelligence is enabled but the model is still downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready'**
+  String get reflectionPreparingTitle;
+
+  /// Body for the preparing/model-not-ready state
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is preparing on this device. Reflections start once it finishes.'**
+  String get reflectionPreparingBody;
+
+  /// Reflections screen state: this device cannot run Apple Intelligence at all
+  ///
+  /// In en, this message translates to:
+  /// **'Not available here'**
+  String get reflectionUnsupportedTitle;
+
+  /// Body for the unsupported-device / older-iOS state
+  ///
+  /// In en, this message translates to:
+  /// **'This device does not support Apple Intelligence, which reflections need.'**
+  String get reflectionUnsupportedBody;
+
+  /// Home menu row and heading for the notifications settings screen
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsNotifications;
+
+  /// Master toggle label: all reflection notifications on or off
+  ///
+  /// In en, this message translates to:
+  /// **'Reflection reminders'**
+  String get notifyReflectionReminders;
+
+  /// Capsule label: nudge for daily reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get notifyPeriodDay;
+
+  /// Capsule label: nudge for weekly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get notifyPeriodWeek;
+
+  /// Capsule label: nudge for monthly reflections
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get notifyPeriodMonth;
+
+  /// Footnote under the reflection reminders card
+  ///
+  /// In en, this message translates to:
+  /// **'A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.'**
+  String get notifyReflectionsInfo;
+
+  /// Row label for the shared time every enabled nudge fires at
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get notifyTime;
+
+  /// Shown when notification permission was denied; the row deep-links to iOS Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are turned off in Settings.'**
+  String get notifyPermissionDenied;
+
+  /// Action to open this app's page in iOS Settings to grant notification permission
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get notifyOpenSettings;
+
+  /// Title of the daily local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your day is ready'**
+  String get notifyDailyTitle;
+
+  /// Body of the daily local notification; at fire time the reflection covers yesterday. Generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read yesterday\'s reflection.'**
+  String get notifyDailyBody;
+
+  /// Title of the weekly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your week is ready'**
+  String get notifyWeeklyTitle;
+
+  /// Body of the weekly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read last week\'s reflection.'**
+  String get notifyWeeklyBody;
+
+  /// Title of the monthly local notification; generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Your month is ready'**
+  String get notifyMonthlyTitle;
+
+  /// Body of the monthly local notification; fires on the 1st, about the closed month. Generic, never reflection text
+  ///
+  /// In en, this message translates to:
+  /// **'Open to read last month\'s reflection.'**
+  String get notifyMonthlyBody;
+
+  /// Footer on the notifications screen when reflections are switched off; precedes the turn-on link
+  ///
+  /// In en, this message translates to:
+  /// **'Nudges arrive when a new reflection is ready to read. Reflections are off right now.'**
+  String get notifyNeedsReflections;
+
+  /// Bold inline link after notifyNeedsReflections; opens the reflections screen where reflections are enabled
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on reflections'**
+  String get notifyTurnOnReflections;
+
+  /// Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t generate reflections, so there\'s no nudge to send.'**
+  String get notifyReflectionsUnavailable;
+
+  /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link
+  ///
+  /// In en, this message translates to:
+  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.'**
+  String get themeRequestInfo;
+
+  /// Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser
+  ///
+  /// In en, this message translates to:
+  /// **'Request a theme on GitHub'**
+  String get themeRequestLink;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

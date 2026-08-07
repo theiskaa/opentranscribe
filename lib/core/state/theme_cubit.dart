@@ -109,7 +109,9 @@ extension ThemeX on BuildContext {
 
   /// The OS "Reduce Motion" setting. A plain read (no select), so it is safe in
   /// callbacks and initState where [theme] would throw inside a lazy list. Each
-  /// caller decides HOW to honor it; this only names the condition.
+  /// caller decides HOW to honor it; this only names the condition. iOS reports
+  /// the setting on a dart:ui flag MediaQuery never surfaces; the root builder
+  /// folds it into disableAnimations, so this read is truthful only below it.
   bool get reduceMotion => MediaQuery.disableAnimationsOf(this);
 
   /// Motion tokens without a select, for callbacks and settle logic. In build,

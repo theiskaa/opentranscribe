@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -17,7 +19,8 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Model step: offer the default language for download so transcription works
 /// offline right away. Optional - more languages live in the Models screen, and
-/// the default installs itself on first use if skipped here.
+/// the default installs itself on first use if skipped here. On eligible
+/// hardware a reflections mention sits beneath; ineligible devices see nothing.
 class OnboardingModels extends StatelessWidget {
   const OnboardingModels({super.key});
 
@@ -61,8 +64,12 @@ class OnboardingModels extends StatelessWidget {
                   // color by the tint's luminance, and dark mode's mid-gray
                   // secondary picks black dots.
                   AppSpinner(size: 22, color: theme.text)
-                else
+                else ...[
                   _ModelRow(row: row),
+                  // Only beside a real model row: under the bare loading
+                  // spinner the mention would read as the step's content.
+                  const _ReflectionsMention(),
+                ],
               ],
             ),
           ),
@@ -84,11 +91,18 @@ class _ModelRow extends StatelessWidget {
       tile: LocaleFlag(localeFlag(row.tag), size: 20),
       title: localeDisplayName(row.tag),
       line: failure,
-      trailing: _trailing(context),
+      trailing: _ModelTrailing(row: row),
     );
   }
+}
 
-  Widget _trailing(BuildContext context) {
+class _ModelTrailing extends StatelessWidget {
+  const _ModelTrailing({required this.row});
+
+  final LanguageModelState row;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = context.theme;
     if (row.isReady) return AppIcon(AppIcons.checkmark, size: 18, color: theme.accent);
     if (row.installing) {
@@ -103,6 +117,43 @@ class _ModelRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xs),
         child: AppIcon(AppIcons.icloud, size: 22, color: theme.accent),
+      ),
+    );
+  }
+}
+
+/// The reflections line under the model row, ELIGIBLE hardware only: what the
+/// feature is when it can run, how to enable it when Apple Intelligence is
+/// off, one line while the OS prepares the model. Instructions only (iOS has
+/// no deep-link to the Apple Intelligence pane) and never a gate; ineligible
+/// or unsupported devices render nothing at all.
+class _ReflectionsMention extends StatelessWidget {
+  const _ReflectionsMention();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    final status = context.watch<ReflectionsCubit>().state.availability.status;
+
+    final line = switch (status) {
+      ReflectionAvailabilityStatus.available => l10n.onboardingReflectionsOn,
+      ReflectionAvailabilityStatus.modelNotReady => l10n.onboardingReflectionsPreparing,
+      ReflectionAvailabilityStatus.notEnabled => l10n.onboardingReflectionsOff,
+      // deviceNotEligible, unsupported: invisible here, not an apology.
+      _ => null,
+    };
+    if (line == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xl),
+      child: OnboardingRow(
+        tile: AppIcon(AppIcons.calendar, size: 20, color: theme.text),
+        title: l10n.reflectionsTitle,
+        line: line,
+        trailing: status == ReflectionAvailabilityStatus.available
+            ? AppIcon(AppIcons.checkmark, size: 18, color: theme.accent)
+            : null,
       ),
     );
   }

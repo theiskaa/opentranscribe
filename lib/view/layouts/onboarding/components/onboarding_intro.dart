@@ -1,22 +1,25 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_reflections.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_row.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/github_mark.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
-/// Intro step: the brand lockup stacked over the promise, three rows of what
-/// the app does, and the open-source row. The source row is the one
-/// outward-pointing tap in onboarding (opens the repo in the system browser);
-/// it carries no user data.
+/// Intro step: the brand lockup stacked over the promise, the rows of what the
+/// app does, and the open-source row. Weekly reflections joins the value rows
+/// on eligible hardware only. The source row is the one outward-pointing tap in
+/// onboarding (opens the repo in the system browser); it carries no user data.
 class OnboardingIntro extends StatelessWidget {
   const OnboardingIntro({super.key});
 
@@ -24,6 +27,12 @@ class OnboardingIntro extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    // Root-scoped cubit (see App): its availability probe gates the reflections
+    // pitch. Defaults to unsupported, so the row only ever appears once the
+    // probe confirms eligible hardware, never pitches then retracts.
+    final canReflect = reflectionsEligible(
+      context.watch<ReflectionsCubit>().state.availability.status,
+    );
     // Center when it fits, scroll when large type makes it tall.
     return Center(
       child: SingleChildScrollView(
@@ -58,6 +67,14 @@ class OnboardingIntro extends StatelessWidget {
               title: l10n.onboardingPrivateTitle,
               line: l10n.onboardingPrivateLine,
             ),
+            if (canReflect) ...[
+              const SizedBox(height: AppSpacing.lg),
+              OnboardingRow(
+                tile: AppIcon(AppIcons.calendar, size: 20, color: theme.text),
+                title: l10n.onboardingReflectTitle,
+                line: l10n.onboardingReflectLine,
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
             Touchable(
               onTap: () => unawaited(openLink(kRepoUrl)),

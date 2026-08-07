@@ -169,9 +169,22 @@ int estimateInkLines({
     voiced = (speaking / peaks.length).clamp(0.35, 1.0);
   }
   final chars = audio.inMilliseconds / 1000 * voiced * _kWordsPerSecond * _kCharsPerWord;
+  return _linesFor(chars, width, fontSize);
+}
+
+/// Approximates how many lines [characters] of existing prose occupy laid out
+/// at [width] in a [fontSize] body, so a regenerate's placeholder cloud is
+/// shaped like the text it replaces. Pure, like [estimateInkLines].
+int estimateTextInkLines({
+  required int characters,
+  required double width,
+  required double fontSize,
+}) => _linesFor(characters.toDouble(), width, fontSize);
+
+int _linesFor(double characters, double width, double fontSize) {
   final charsPerLine = width / (fontSize * _kCharWidthEm);
   if (charsPerLine <= 0) return 1;
-  return (chars / charsPerLine).ceil().clamp(1, _kMaxInkRows);
+  return (characters / charsPerLine).ceil().clamp(1, _kMaxInkRows);
 }
 
 /// Lays believable lines of ink for text that does not exist yet: word-length

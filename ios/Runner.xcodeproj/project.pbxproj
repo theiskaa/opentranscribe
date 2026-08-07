@@ -22,6 +22,9 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		AAAA000000000000000000F2 /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F1 /* AudioCapture.swift */; };
 		AAAA000000000000000000F4 /* SpeechEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F3 /* SpeechEngine.swift */; };
+		AAAA000000000000000000F8 /* ReflectionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F7 /* ReflectionEngine.swift */; };
+		AAAA000000000000000000FB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FA /* Notifications.swift */; };
+		AAAA000000000000000000FC /* StorageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F9 /* StorageKey.swift */; };
 		AAAA000000000000000000F6 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F5 /* AudioPlayer.swift */; };
 		DA609263ADDDE0E4EE94A547 /* RecorderActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */; };
 		DE9ED3623B6FCEAA95FBCE79 /* RecorderActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B6B6197835245A86BE4220BF /* RecorderActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -92,6 +95,9 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AAAA000000000000000000F1 /* AudioCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F3 /* SpeechEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeechEngine.swift; sourceTree = "<group>"; };
+		AAAA000000000000000000F7 /* ReflectionEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReflectionEngine.swift; sourceTree = "<group>"; };
+		AAAA000000000000000000FA /* Notifications.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		AAAA000000000000000000F9 /* StorageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StorageKey.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F5 /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingActivityAttributes.swift; sourceTree = "<group>"; };
 		B6B6197835245A86BE4220BF /* RecorderActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecorderActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -217,7 +223,10 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				AAAA000000000000000000F1 /* AudioCapture.swift */,
 				AAAA000000000000000000F3 /* SpeechEngine.swift */,
+				AAAA000000000000000000F7 /* ReflectionEngine.swift */,
+				AAAA000000000000000000FA /* Notifications.swift */,
 				AAAA000000000000000000F5 /* AudioPlayer.swift */,
+				AAAA000000000000000000F9 /* StorageKey.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				4DF07A5661CF9209749981FA /* RecordingLiveActivity.swift */,
@@ -409,7 +418,10 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				AAAA000000000000000000F2 /* AudioCapture.swift in Sources */,
 				AAAA000000000000000000F4 /* SpeechEngine.swift in Sources */,
+				AAAA000000000000000000F8 /* ReflectionEngine.swift in Sources */,
+				AAAA000000000000000000FB /* Notifications.swift in Sources */,
 				AAAA000000000000000000F6 /* AudioPlayer.swift in Sources */,
+				AAAA000000000000000000FC /* StorageKey.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				E1DD6F20D5A2357F4CA62ABA /* RecordingActivityAttributes.swift in Sources */,
@@ -537,7 +549,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -726,7 +738,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -777,7 +789,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;

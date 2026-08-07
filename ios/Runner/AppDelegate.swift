@@ -9,9 +9,7 @@ import UIKit
   ) -> Bool {
     // A killed process leaves its recording activity ticking on the island
     // over a closed microphone; sweep the leftovers before anything else.
-    if #available(iOS 16.2, *) {
-      RecordingLiveActivityController.shared.sweep()
-    }
+    RecordingLiveActivityController.shared.sweep()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -26,6 +24,15 @@ import UIKit
     }
     if let registrar = registry.registrar(forPlugin: "AudioPlayerPlugin") {
       AudioPlayerPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "ReflectionEnginePlugin") {
+      ReflectionEnginePlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "NotificationsPlugin") {
+      NotificationsPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "StorageKeyPlugin") {
+      StorageKeyPlugin.register(with: registrar)
     }
   }
 }

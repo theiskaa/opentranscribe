@@ -39,6 +39,8 @@ final class AppTheme {
     required this.navigation,
     required this.errorPill,
     required this.sheet,
+    required this.reflectionCard,
+    required this.scrubber,
     this.motion = const AppMotion(),
   });
 
@@ -74,6 +76,8 @@ final class AppTheme {
     NavigationTheme? navigation,
     ErrorPillTheme? errorPill,
     SheetTheme? sheet,
+    ReflectionCardTheme? reflectionCard,
+    ScrubberTheme? scrubber,
     AppMotion motion = const AppMotion(),
   }) {
     return AppTheme(
@@ -140,6 +144,8 @@ final class AppTheme {
             tileFill: text.withValues(alpha: brightness == Brightness.dark ? 0.06 : 0.04),
             tileFillMuted: text.withValues(alpha: brightness == Brightness.dark ? 0.03 : 0.02),
             cursorBorder: text.withValues(alpha: brightness == Brightness.dark ? 0.38 : 0.25),
+            chipInk: text,
+            onChipInk: background,
           ),
       entryList:
           entryList ??
@@ -221,6 +227,31 @@ final class AppTheme {
             chevron: textSecondary,
           ),
       sheet: sheet ?? SheetTheme(background: surface, grabberColor: hairline),
+      reflectionCard:
+          reflectionCard ??
+          ReflectionCardTheme(
+            // A ground a shade past the page rather than a chip resting on it:
+            // dark sinks toward black, light takes a faint paper gray.
+            background: Color.lerp(
+              background,
+              const Color(0xFF000000),
+              brightness == Brightness.dark ? 0.55 : 0.04,
+            )!,
+            border: surfaceBorder,
+            // Low-alpha ink on dark needs a touch more to read at all.
+            dither: text.withValues(alpha: brightness == Brightness.dark ? 0.14 : 0.10),
+          ),
+      scrubber:
+          scrubber ??
+          ScrubberTheme(
+            // The top bar's exact frost recipe: the page color over the blur
+            // reads as clean glass, where a surface-gray tint went muddy
+            // against the reading text.
+            tint: background.withValues(alpha: TopBarTheme.frostAlpha),
+            border: surfaceBorder,
+            ink: accent,
+            track: accent.withValues(alpha: 0.25),
+          ),
       motion: motion,
     );
   }
@@ -264,6 +295,8 @@ final class AppTheme {
   final NavigationTheme navigation;
   final ErrorPillTheme errorPill;
   final SheetTheme sheet;
+  final ReflectionCardTheme reflectionCard;
+  final ScrubberTheme scrubber;
   final AppMotion motion;
 
   /// Proper white, neutral grays, ink black.

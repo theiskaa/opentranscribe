@@ -49,9 +49,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homePullToRecord => 'Zum Aufnehmen ziehen';
 
   @override
-  String get menuTranscriptionLanguage => 'Transkription';
-
-  @override
   String get menuSourceCode => 'Quellcode';
 
   @override
@@ -248,7 +245,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Modelle';
+  String get settingsModels => 'Transkription';
 
   @override
   String get transcriptionLanguages => 'Sprachen';
@@ -288,6 +285,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingPrivateLine => 'Kein Konto, keine Cloud. Der Flugmodus ändert nichts.';
 
   @override
+  String get onboardingReflectTitle => 'Rückblicke';
+
+  @override
+  String get onboardingReflectLine =>
+      'Ihre Einträge werden zu einer kurzen Notiz, ganz auf dem Gerät.';
+
+  @override
   String get onboardingSource => 'Open Source';
 
   @override
@@ -297,7 +301,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Zugriff erlauben';
 
   @override
-  String get onboardingPermissionsBody => 'Beides läuft vollständig auf Ihrem Gerät.';
+  String get onboardingPermissionsBody => 'Alles hier läuft vollständig auf Ihrem Gerät.';
 
   @override
   String get onboardingMicName => 'Mikrofon';
@@ -312,17 +316,35 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingSpeechReason => 'Um Ihre Aufnahmen auf dem Gerät in Text umzuwandeln.';
 
   @override
+  String get onboardingNotifyName => 'Mitteilungen';
+
+  @override
+  String get onboardingNotifyReason => 'Für einen Hinweis, wenn ein Rückblick bereit ist.';
+
+  @override
   String get onboardingAllow => 'Erlauben';
 
   @override
   String get onboardingOpenSettings => 'In Einstellungen aktivieren';
 
   @override
-  String get onboardingModelsTitle => 'Sprache herunterladen';
+  String get onboardingModelsTitle => 'Transkription einrichten';
 
   @override
   String get onboardingModelsBody =>
-      'Die Transkription läuft offline, sobald eine Sprache auf Ihrem Gerät ist. Weitere können Sie jederzeit über das Menü hinzufügen.';
+      'Sie läuft offline, sobald Ihre Sprache auf dem Gerät ist. Weitere können Sie jederzeit über das Menü hinzufügen.';
+
+  @override
+  String get onboardingReflectionsOn =>
+      'Ihre Einträge werden zu einem kurzen Rückblick, ganz auf diesem Gerät.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Startet, sobald Apple Intelligence auf diesem Gerät bereit ist.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Schalten Sie Apple Intelligence in den Einstellungen unter Apple Intelligence und Siri ein, um sie zu erhalten.';
 
   @override
   String get onboardingNext => 'Weiter';
@@ -382,4 +404,211 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Aufnahmen löschen';
+
+  @override
+  String get reflectionsTitle => 'Rückblicke';
+
+  @override
+  String get reflectionPeriods => 'Zeiträume';
+
+  @override
+  String get reflectionDaily => 'Täglich';
+
+  @override
+  String get reflectionWeekly => 'Wöchentlich';
+
+  @override
+  String get reflectionMonthly => 'Monatlich';
+
+  @override
+  String get reflectionsEmptyTitle => 'Noch keine Rückblicke';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'Der erste kommt, sobald Sie etwas festgehalten haben, gelesen aus dem, was Sie aufgenommen haben.';
+
+  @override
+  String get reflectionQuietDay => 'Ein ruhiger Tag.';
+
+  @override
+  String get reflectionQuietWeek => 'Eine ruhige Woche.';
+
+  @override
+  String get reflectionQuietMonth => 'Ein ruhiger Monat.';
+
+  @override
+  String get reflectionWaitingTitle => 'Noch nicht geschrieben';
+
+  @override
+  String get reflectionWaitingBody =>
+      'Dies wird beim nächsten Öffnen des Journals gelesen, sobald Apple Intelligence bereit ist.';
+
+  @override
+  String get reflectionErasedTitle => 'Gelöscht';
+
+  @override
+  String get reflectionErasedBody =>
+      'Sie haben diesen Rückblick entfernt. Neu erstellen schreibt ihn erneut.';
+
+  @override
+  String get reflectionQuietBody => 'Nichts wurde zu einem Rückblick.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Geschrieben am $date';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return 'Rückblick auf $range';
+  }
+
+  @override
+  String get reflectionVoice => 'Stimme';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literarisch';
+
+  @override
+  String get reflectionVoiceObservational => 'Beobachtend';
+
+  @override
+  String get reflectionVoiceSparse => 'Knapp';
+
+  @override
+  String get reflectionLength => 'Länge';
+
+  @override
+  String get reflectionLengthOneLine => 'Eine Zeile';
+
+  @override
+  String get reflectionLengthSentences => 'Ein paar Sätze';
+
+  @override
+  String get reflectionLengthParagraph => 'Kurzer Absatz';
+
+  @override
+  String get reflectionSpecifics => 'Details';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Details benennen';
+
+  @override
+  String get reflectionSpecificsThemes => 'Nur Themen';
+
+  @override
+  String get reflectionSpecificsLetPeriod => 'Es entscheiden lassen';
+
+  @override
+  String get reflectionGenerateAll => 'Rückblicke erstellen';
+
+  @override
+  String get reflectionRegenerate => 'Neu erstellen';
+
+  @override
+  String get reflectionDeleteDay => 'Tag löschen';
+
+  @override
+  String get reflectionDeleteWeek => 'Woche löschen';
+
+  @override
+  String get reflectionDeleteMonth => 'Monat löschen';
+
+  @override
+  String get reflectionRegenerateFailed => 'Rückblick nicht möglich. Versuchen Sie es erneut.';
+
+  @override
+  String get reflectionsDisabledTitle => 'Rückblicke sind aus';
+
+  @override
+  String get reflectionsDisabledBody =>
+      'Solange Rückblicke aus sind, wird nichts Neues geschrieben.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Einschalten';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence ist aus';
+
+  @override
+  String get reflectionOffBody =>
+      'Schalten Sie es in den Einstellungen unter Apple Intelligence und Siri ein, um Rückblicke zu erhalten.';
+
+  @override
+  String get reflectionPreparingTitle => 'Wird vorbereitet';
+
+  @override
+  String get reflectionPreparingBody =>
+      'Apple Intelligence wird auf diesem Gerät vorbereitet. Rückblicke starten, sobald es fertig ist.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Hier nicht verfügbar';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'Dieses Gerät unterstützt Apple Intelligence nicht, das für Rückblicke nötig ist.';
+
+  @override
+  String get settingsNotifications => 'Mitteilungen';
+
+  @override
+  String get notifyReflectionReminders => 'Rückblick-Erinnerungen';
+
+  @override
+  String get notifyPeriodDay => 'Tag';
+
+  @override
+  String get notifyPeriodWeek => 'Woche';
+
+  @override
+  String get notifyPeriodMonth => 'Monat';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Ein Hinweis, sobald ein neuer Rückblick zum Lesen bereit ist. Er erscheint auf deinem Gerät; nichts wird irgendwohin gesendet.';
+
+  @override
+  String get notifyTime => 'Uhrzeit';
+
+  @override
+  String get notifyPermissionDenied => 'Mitteilungen sind in den Einstellungen deaktiviert.';
+
+  @override
+  String get notifyOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String get notifyDailyTitle => 'Dein Tag ist bereit';
+
+  @override
+  String get notifyDailyBody => 'Öffnen, um den Rückblick von gestern zu lesen.';
+
+  @override
+  String get notifyWeeklyTitle => 'Deine Woche ist bereit';
+
+  @override
+  String get notifyWeeklyBody => 'Öffnen, um den Rückblick der letzten Woche zu lesen.';
+
+  @override
+  String get notifyMonthlyTitle => 'Dein Monat ist bereit';
+
+  @override
+  String get notifyMonthlyBody => 'Öffnen, um den Rückblick des letzten Monats zu lesen.';
+
+  @override
+  String get notifyNeedsReflections =>
+      'Hinweise kommen, sobald ein neuer Rückblick zum Lesen bereit ist. Rückblicke sind gerade aus.';
+
+  @override
+  String get notifyTurnOnReflections => 'Rückblicke einschalten';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen Hinweis.';
+
+  @override
+  String get themeRequestInfo =>
+      'Möchtest du OpenTranscribe in einem Theme, das hier fehlt? Öffne ein Issue auf GitHub, und wir fügen es in einer kommenden Version hinzu.';
+
+  @override
+  String get themeRequestLink => 'Theme auf GitHub anfragen';
 }

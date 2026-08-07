@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
-/// A raw RGBA frame with the given physical pixels lit at [alpha], everything
-/// else fully transparent.
 ByteData frame(int width, int height, Iterable<(int, int)> lit, {int alpha = 255}) {
   final data = ByteData(width * height * 4);
   for (final (x, y) in lit) {
@@ -21,8 +19,8 @@ void main() {
       expect(points, isEmpty);
     });
 
-    test('only ink above the alpha threshold becomes a spark', () {
-      // The threshold is a strict >50: faint anti-aliasing tails stay out.
+    test('only ink strictly above alpha 50 becomes a spark, '
+        'keeping faint anti-aliasing tails out', () {
       final data = frame(3, 1, const [(0, 0)], alpha: 50);
       data.setUint8((0 * 3 + 1) * 4 + 3, 51);
       data.setUint8((0 * 3 + 2) * 4 + 3, 255);
@@ -31,7 +29,6 @@ void main() {
     });
 
     test('points come back in logical coordinates', () {
-      // dpr 2 also makes the grid step 2 physical px, so (4, 6) is on it.
       final points = sampleInkPoints(
         frame(8, 8, const [(4, 6)]),
         width: 8,
@@ -42,7 +39,6 @@ void main() {
     });
 
     test('the grid steps about one logical pixel, skipping ink between steps', () {
-      // dpr 3 rounds to a 3-physical-px step: x=1 falls between samples.
       final points = sampleInkPoints(
         frame(9, 3, const [(1, 0), (3, 0)]),
         width: 9,
@@ -65,8 +61,6 @@ void main() {
         maxPoints: 100,
       );
       expect(points.length ~/ 2, lessThanOrEqualTo(100));
-      // Even coverage: the kept points still span the whole block, top row to
-      // bottom row, rather than clustering at the start.
       expect(points[1], 0.0);
       expect(points[points.length - 1], 99.0);
     });
@@ -128,8 +122,6 @@ void main() {
 
     test('even no audio shows one line, and an hour does not scroll forever', () {
       expect(estimate(Duration.zero), 1);
-      // Past the cap the estimate stops growing: the placeholder is a gesture
-      // at length, not a transcript-sized scroll of glitter.
       expect(estimate(const Duration(hours: 1)), estimate(const Duration(hours: 2)));
       expect(estimate(const Duration(hours: 1)), lessThan(20));
     });

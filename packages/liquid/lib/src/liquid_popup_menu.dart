@@ -58,7 +58,10 @@ class LiquidPopupMenu extends StatefulWidget {
     this.buttonLabel,
     this.icon,
     this.iconPointSize,
+    this.itemIconPointSize,
+    this.bare = false,
     this.isDark,
+    this.placeholderBuilder,
     super.key,
   }) : assert(items.length > 0, 'At least one item is required');
 
@@ -73,11 +76,21 @@ class LiquidPopupMenu extends StatefulWidget {
   final String? icon;
   final double? iconPointSize;
 
+  /// Point size for the ITEM icons inside the menu, as opposed to the button's
+  /// own. See [LiquidPopupButton.itemIconPointSize].
+  final double? itemIconPointSize;
+
+  /// See [LiquidPopupButton.bare].
+  final bool bare;
+
   /// Whether to use dark mode appearance.
   ///
   /// When specified, overrides the system's user interface style on iOS.
   /// This ensures the native component matches Flutter's theme.
   final bool? isDark;
+
+  /// Built in place of the native view while this route is covered by another.
+  final WidgetBuilder? placeholderBuilder;
 
   @override
   State<LiquidPopupMenu> createState() => _LiquidPopupMenuState();
@@ -94,7 +107,10 @@ class _LiquidPopupMenuState extends State<LiquidPopupMenu> {
       buttonLabel: widget.buttonLabel,
       icon: widget.icon,
       iconPointSize: widget.iconPointSize,
+      itemIconPointSize: widget.itemIconPointSize,
+      bare: widget.bare,
       isDark: widget.isDark,
+      placeholderBuilder: widget.placeholderBuilder,
     );
   }
 }

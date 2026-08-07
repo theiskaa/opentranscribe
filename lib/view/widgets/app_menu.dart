@@ -4,10 +4,10 @@ import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
+import 'package:opentranscribe/view/widgets/anchored_popup.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -21,6 +21,7 @@ class AppMenuItem {
     this.iconBytes,
     this.destructive = false,
     this.selected = false,
+    this.keepsPresented = false,
     this.children = const [],
   }) : isDivider = false;
 
@@ -34,6 +35,7 @@ class AppMenuItem {
       iconBytes = null,
       destructive = false,
       selected = false,
+      keepsPresented = false,
       children = const [],
       isDivider = true;
 
@@ -64,6 +66,13 @@ class AppMenuItem {
   /// own dropdown instead.
   final bool selected;
 
+  /// Keeps the NATIVE menu presented when this item is selected - a toggle
+  /// row likely to be tapped again in the same visit - with its checkmark
+  /// refreshing in place. On native such a row's leading image IS its mark
+  /// (a checkmark, or a spacer when off), so any [icon] it carries is
+  /// discarded there. The fallback's surfaces are modal and still close.
+  final bool keepsPresented;
+
   /// Nested choices. NATIVE menus render a real submenu whose children answer
   /// through [AppMenuButton.onSelectedId] (each needs an [id]); the fallback
   /// menu ignores children and fires the parent's index as a plain action, so
@@ -84,38 +93,11 @@ Future<int?> showAppMenu(
   BuildContext context, {
   required Rect anchor,
   required List<AppMenuItem> items,
-}) {
-  // A one-shot read: this runs from tap handlers, where select is illegal.
-  final motion = context.motionNow;
-  final reduceMotion = context.reduceMotion;
-  return showGeneralDialog<int>(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: '',
-    barrierColor: const Color(0x00000000),
-    transitionDuration: motion.indicator,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        _MenuBody(anchor: anchor, items: items),
-    transitionBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
-      // Under Reduce Motion the growth is dropped and only the fade remains,
-      // the same degrade the sheet uses.
-      if (reduceMotion) return FadeTransition(opacity: curved, child: child);
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          // Out of the trigger's near corner, so the menu reads as belonging
-          // to what was tapped.
-          alignment: anchor.center.dx > MediaQuery.sizeOf(context).width / 2
-              ? Alignment.topRight
-              : Alignment.topLeft,
-          scale: Tween<double>(begin: 0.88, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
-  );
-}
+}) => showAnchoredPopup<int>(
+  context,
+  anchor: anchor,
+  builder: (_) => _MenuBody(anchor: anchor, items: items),
+);
 
 class _MenuBody extends StatelessWidget {
   const _MenuBody({required this.anchor, required this.items});
@@ -125,7 +107,6 @@ class _MenuBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
     // Dividers are not rendered on the fallback (order is what matters here),
@@ -148,19 +129,7 @@ class _MenuBody extends StatelessWidget {
           left: left,
           top: top.clamp(insets.top + AppSpacing.md, screen.height - height),
           width: _menuWidth,
-          child: DecoratedBox(
-            decoration: SuperellipseDecoration(
-              borderRadius: AppRadius.card,
-              color: theme.surface,
-              border: BorderSide(color: theme.surfaceBorder),
-              shadows: [
-                BoxShadow(
-                  color: theme.shadow.withValues(alpha: 0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+          child: PopupSurface(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Column(
@@ -238,7 +207,7 @@ class AppMenuButton extends StatelessWidget {
   const AppMenuButton({
     required this.icon,
     required this.items,
-    required this.onSelected,
+    this.onSelected,
     this.onSelectedId,
     this.size = 44,
     this.iconSize = 20,
@@ -248,7 +217,11 @@ class AppMenuButton extends StatelessWidget {
 
   final IconData icon;
   final List<AppMenuItem> items;
-  final ValueChanged<int> onSelected;
+
+  /// Fired with the tapped item's position, for menus that answer by index.
+  /// A menu whose every item carries an id answers through [onSelectedId]
+  /// alone and leaves this null.
+  final ValueChanged<int>? onSelected;
 
   /// Fired for items carrying an [AppMenuItem.id] (including native submenu
   /// children, which the fallback folds into the parent's plain action).
@@ -258,8 +231,15 @@ class AppMenuButton extends StatelessWidget {
   final double iconSize;
   final Color? color;
 
+  /// The SF Symbol name for an optional icon, or null when the row has none.
+  static String? _symbol(IconData? icon) => icon == null ? null : AppIcons.sfSymbolName(icon);
+
   @override
   Widget build(BuildContext context) {
+    assert(
+      items.every((item) => item.children.every((child) => child.id != null)),
+      'Submenu children answer through ids; id-less ones collide on one value.',
+    );
     if (PlatformCaps.nativeGlass) {
       // The native menu answers with an entry's VALUE, not its position, so
       // positions are carried across as values ('i', or 'i.j' inside a
@@ -284,23 +264,28 @@ class AppMenuButton extends StatelessWidget {
                     // from bare indices), else its position.
                     value: item.id == null ? '$i' : '#${item.id}',
                     label: item.label,
-                    icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
+                    icon: _symbol(item.icon),
                     iconBytes: item.iconBytes,
                     isDestructive: item.destructive,
                     isSelected: item.selected,
+                    keepsPresented: item.keepsPresented,
                   )
                 : LiquidPopupButtonEntry(
-                    value: '$i',
+                    // The parent never fires; its value's one job is the
+                    // STABLE identifier the keeps-presented refresh matches
+                    // the open submenu by, so the id beats the position.
+                    value: item.id == null ? '$i' : '#${item.id}',
                     label: item.label,
-                    icon: item.icon == null ? null : AppIcons.sfSymbolName(item.icon!),
+                    icon: _symbol(item.icon),
                     children: [
                       for (final child in item.children)
                         LiquidPopupButtonEntry(
                           value: '#${child.id ?? ''}',
                           label: child.label,
-                          icon: child.icon == null ? null : AppIcons.sfSymbolName(child.icon!),
+                          icon: _symbol(child.icon),
                           isDestructive: child.destructive,
                           isSelected: child.selected,
+                          keepsPresented: child.keepsPresented,
                         ),
                     ],
                   ),
@@ -312,7 +297,7 @@ class AppMenuButton extends StatelessWidget {
             return;
           }
           final index = int.tryParse(value);
-          if (index != null) onSelected(index);
+          if (index != null) onSelected?.call(index);
         },
       );
     }
@@ -343,7 +328,7 @@ class _MenuTrigger extends StatefulWidget {
 
   final IconData icon;
   final List<AppMenuItem> items;
-  final ValueChanged<int> onSelected;
+  final ValueChanged<int>? onSelected;
   final ValueChanged<String>? onSelectedId;
   final double size;
   final double iconSize;
@@ -370,9 +355,9 @@ class _MenuTriggerState extends State<_MenuTrigger> {
     final id = items[index].id;
     if (id != null) {
       widget.onSelectedId?.call(id);
-    } else {
-      widget.onSelected(index);
+      return;
     }
+    widget.onSelected?.call(index);
   }
 
   @override

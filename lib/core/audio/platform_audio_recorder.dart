@@ -35,7 +35,10 @@ class PlatformAudioRecorder implements AudioRecorder {
         .map((status) {
           // Cache only live states. Replaying a terminal state to the next
           // session's fresh listener would read as a brand-new interruption
-          // and auto-finalize a capture that just started.
+          // and auto-finalize a capture that just started. An explicit stop()
+          // or cancel() clears the cache directly (see below): their terminal
+          // event can fire after the last listener is gone, so this stream-side
+          // clearing alone would leave the cache stale.
           _lastStatus = switch (status) {
             CaptureStatus.interrupted || CaptureStatus.stopped => null,
             _ => status,
@@ -126,6 +129,8 @@ class PlatformAudioRecorder implements AudioRecorder {
       throw CaptureFailed(e.message, e.code);
     } on MissingPluginException catch (e) {
       throw CaptureFailed(e.message);
+    } finally {
+      _lastStatus = null;
     }
   }
 
@@ -141,6 +146,8 @@ class PlatformAudioRecorder implements AudioRecorder {
       throw CaptureFailed(e.message, e.code);
     } on MissingPluginException catch (e) {
       throw CaptureFailed(e.message);
+    } finally {
+      _lastStatus = null;
     }
   }
 

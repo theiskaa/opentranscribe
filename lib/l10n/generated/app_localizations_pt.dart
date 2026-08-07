@@ -48,9 +48,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homePullToRecord => 'Puxe para gravar';
 
   @override
-  String get menuTranscriptionLanguage => 'Transcrição';
-
-  @override
   String get menuSourceCode => 'Código-fonte';
 
   @override
@@ -246,7 +243,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Modelos';
+  String get settingsModels => 'Transcrição';
 
   @override
   String get transcriptionLanguages => 'Idiomas';
@@ -285,6 +282,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingPrivateLine => 'Sem conta, sem nuvem. O modo de voo não muda nada.';
 
   @override
+  String get onboardingReflectTitle => 'Reflexões';
+
+  @override
+  String get onboardingReflectLine =>
+      'As suas entradas voltam como uma nota breve, tudo no dispositivo.';
+
+  @override
   String get onboardingSource => 'Código aberto';
 
   @override
@@ -294,7 +298,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Conceder acesso';
 
   @override
-  String get onboardingPermissionsBody => 'Ambos funcionam inteiramente no seu dispositivo.';
+  String get onboardingPermissionsBody => 'Tudo isto funciona inteiramente no seu dispositivo.';
 
   @override
   String get onboardingMicName => 'Microfone';
@@ -310,17 +314,35 @@ class AppLocalizationsPt extends AppLocalizations {
       'Para transformar as suas gravações em texto, no dispositivo.';
 
   @override
+  String get onboardingNotifyName => 'Notificações';
+
+  @override
+  String get onboardingNotifyReason => 'Para um lembrete quando uma reflexão estiver pronta.';
+
+  @override
   String get onboardingAllow => 'Permitir';
 
   @override
   String get onboardingOpenSettings => 'Ativar nas Definições';
 
   @override
-  String get onboardingModelsTitle => 'Transferir um idioma';
+  String get onboardingModelsTitle => 'Configurar a transcrição';
 
   @override
   String get onboardingModelsBody =>
-      'A transcrição corre offline assim que um idioma estiver no seu dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
+      'Corre offline assim que o seu idioma estiver no dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
+
+  @override
+  String get onboardingReflectionsOn =>
+      'As suas entradas tornam-se uma breve reflexão, inteiramente neste dispositivo.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Começa assim que o Apple Intelligence estiver pronto neste dispositivo.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Ative o Apple Intelligence nas Definições, em Apple Intelligence e Siri, para as receber.';
 
   @override
   String get onboardingNext => 'Seguinte';
@@ -373,11 +395,217 @@ class AppLocalizationsPt extends AppLocalizations {
       other:
           'Apaga o áudio de $count entradas transcritas ($size). O texto fica. Não é possível desfazer.',
       one:
-          'Apaga o áudio de uma entrada transcrita ($size). O texto fica. Não é possível desfazer.',
+          'Apaga o áudio de $count entrada transcrita ($size). O texto fica. Não é possível desfazer.',
     );
     return '$_temp0';
   }
 
   @override
   String get cacheClearConfirm => 'Apagar gravações';
+
+  @override
+  String get reflectionsTitle => 'Reflexões';
+
+  @override
+  String get reflectionPeriods => 'Períodos';
+
+  @override
+  String get reflectionDaily => 'Diárias';
+
+  @override
+  String get reflectionWeekly => 'Semanais';
+
+  @override
+  String get reflectionMonthly => 'Mensais';
+
+  @override
+  String get reflectionsEmptyTitle => 'Ainda sem reflexões';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'A primeira chega assim que tiver escrito no diário, relida a partir do que gravou.';
+
+  @override
+  String get reflectionQuietDay => 'Um dia tranquilo.';
+
+  @override
+  String get reflectionQuietWeek => 'Uma semana tranquila.';
+
+  @override
+  String get reflectionQuietMonth => 'Um mês tranquilo.';
+
+  @override
+  String get reflectionWaitingTitle => 'Ainda não escrita';
+
+  @override
+  String get reflectionWaitingBody =>
+      'Esta será lida na próxima vez que o diário abrir com o Apple Intelligence pronto.';
+
+  @override
+  String get reflectionErasedTitle => 'Apagada';
+
+  @override
+  String get reflectionErasedBody => 'Removeu esta reflexão. Regenerar volta a escrevê-la.';
+
+  @override
+  String get reflectionQuietBody => 'Nada se tornou uma reflexão.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Escrita a $date';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return 'Reflexão de $range';
+  }
+
+  @override
+  String get reflectionVoice => 'Voz';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literária';
+
+  @override
+  String get reflectionVoiceObservational => 'Observadora';
+
+  @override
+  String get reflectionVoiceSparse => 'Contida';
+
+  @override
+  String get reflectionLength => 'Extensão';
+
+  @override
+  String get reflectionLengthOneLine => 'Uma linha';
+
+  @override
+  String get reflectionLengthSentences => 'Algumas frases';
+
+  @override
+  String get reflectionLengthParagraph => 'Parágrafo curto';
+
+  @override
+  String get reflectionSpecifics => 'Detalhes';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Nomear detalhes';
+
+  @override
+  String get reflectionSpecificsThemes => 'Apenas temas';
+
+  @override
+  String get reflectionSpecificsLetPeriod => 'Deixar decidir';
+
+  @override
+  String get reflectionGenerateAll => 'Gerar reflexões';
+
+  @override
+  String get reflectionRegenerate => 'Regenerar';
+
+  @override
+  String get reflectionDeleteDay => 'Eliminar dia';
+
+  @override
+  String get reflectionDeleteWeek => 'Eliminar semana';
+
+  @override
+  String get reflectionDeleteMonth => 'Eliminar mês';
+
+  @override
+  String get reflectionRegenerateFailed => 'Não foi possível refletir. Tente novamente.';
+
+  @override
+  String get reflectionsDisabledTitle => 'As reflexões estão desativadas';
+
+  @override
+  String get reflectionsDisabledBody =>
+      'Nada de novo será escrito enquanto as reflexões estiverem desativadas.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Ativar';
+
+  @override
+  String get reflectionOffTitle => 'O Apple Intelligence está desligado';
+
+  @override
+  String get reflectionOffBody =>
+      'Ative-o nas Definições, em Apple Intelligence e Siri, para receber reflexões.';
+
+  @override
+  String get reflectionPreparingTitle => 'A preparar';
+
+  @override
+  String get reflectionPreparingBody =>
+      'O Apple Intelligence está a preparar-se neste dispositivo. As reflexões começam quando terminar.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Não disponível aqui';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'Este dispositivo não suporta o Apple Intelligence, necessário para as reflexões.';
+
+  @override
+  String get settingsNotifications => 'Notificações';
+
+  @override
+  String get notifyReflectionReminders => 'Lembretes de reflexões';
+
+  @override
+  String get notifyPeriodDay => 'Dia';
+
+  @override
+  String get notifyPeriodWeek => 'Semana';
+
+  @override
+  String get notifyPeriodMonth => 'Mês';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.';
+
+  @override
+  String get notifyTime => 'Hora';
+
+  @override
+  String get notifyPermissionDenied => 'As notificações estão desativadas nas Definições.';
+
+  @override
+  String get notifyOpenSettings => 'Abrir Definições';
+
+  @override
+  String get notifyDailyTitle => 'O teu dia está pronto';
+
+  @override
+  String get notifyDailyBody => 'Abre para ler a reflexão de ontem.';
+
+  @override
+  String get notifyWeeklyTitle => 'A tua semana está pronta';
+
+  @override
+  String get notifyWeeklyBody => 'Abre para ler a reflexão da semana passada.';
+
+  @override
+  String get notifyMonthlyTitle => 'O teu mês está pronto';
+
+  @override
+  String get notifyMonthlyBody => 'Abre para ler a reflexão do mês passado.';
+
+  @override
+  String get notifyNeedsReflections =>
+      'Os lembretes chegam quando uma nova reflexão está pronta para ler. As reflexões estão desativadas no momento.';
+
+  @override
+  String get notifyTurnOnReflections => 'Ativar reflexões';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'Este dispositivo não consegue gerar reflexões, portanto não há lembrete para enviar.';
+
+  @override
+  String get themeRequestInfo =>
+      'Queres o OpenTranscribe num tema que não está aqui? Abre uma issue no GitHub e vamos adicioná-lo numa versão futura.';
+
+  @override
+  String get themeRequestLink => 'Pedir um tema no GitHub';
 }

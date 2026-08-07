@@ -12,7 +12,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/transcribe/transcript_event.dart';
 import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 
-enum RecorderStatus { idle, recording, paused, saving }
+enum RecorderStatus { idle, recording, paused, saving, restarting }
 
 /// Typed failure kinds, so the UI renders localized copy instead of raw
 /// exception text. Permission is its own kind because it has its own surface
@@ -286,6 +286,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       }
       if (!_service.isRecording) return;
       await _service.pauseRecording();
+      // A stop can also land DURING this await: pauseRecording then returns
+      // normally (its own entry guard already passed) but the service is no
+      // longer recording, so this pause must not paint paused chrome over a
+      // session the stop already ended.
+      if (!_service.isRecording) return;
       _timer?.cancel();
       _timer = null;
       // Bank the run so the frozen clock is exact, not whatever the last
@@ -298,7 +303,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       // check above and the pause await: the stop owns the outcome, so pausing a
       // take that is already ending is not a user-facing error.
     } catch (e) {
-      emit(state.copyWith(error: _kind(e)));
+      // A stop that landed mid-pause can also make the recorder-level call fail
+      // (the native session is already torn down): the stop owns that outcome
+      // too, so only a genuine pause failure on a session still alive is
+      // user-facing.
+      if (_service.isRecording) emit(state.copyWith(error: _kind(e)));
     } finally {
       _switching = false;
     }
@@ -313,7 +322,11 @@ class RecorderCubit extends Cubit<RecorderState> {
       _startTimer();
       emit(state.copyWith(status: RecorderStatus.recording));
     } catch (e) {
-      emit(state.copyWith(error: _kind(e)));
+      // A route change discovered mid-resume tears the session down and
+      // finalizes it as an interruption (see AudioCapture.swift's resume()):
+      // that path owns the outcome, so this must not also paint an error over
+      // its calm "we saved your recording" notice.
+      if (_service.isRecording || _service.isPaused) emit(state.copyWith(error: _kind(e)));
     } finally {
       _switching = false;
     }
@@ -323,9 +336,11 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// lands idle with the error surfaced, like any failed start.
   Future<void> restart() async {
     if (!state.isRecording && !state.isPaused) return;
-    // Saving synchronously first: the discard must not leave a window where
-    // complete or a second control can act on the dying session.
-    emit(state.copyWith(status: RecorderStatus.saving));
+    // Leaving recording synchronously first: the discard must not leave a
+    // window where complete or a second control can act on the dying session.
+    // Its own status, not saving: nothing is being saved, and the screen keeps
+    // the recording chrome steady instead of flashing save affordances.
+    emit(state.copyWith(status: RecorderStatus.restarting));
     // Publish the teardown like cancel() does, so a concurrent start()/cancel()
     // waits it out instead of racing _teardown(). Cleared before start() below,
     // so start()'s own _discardInFlight await sees null (no self-deadlock).
@@ -464,7 +479,9 @@ class RecorderCubit extends Cubit<RecorderState> {
     // matches what was actually recorded.
     _elapsedBase = _currentElapsed();
     _runStart = null;
-    emit(state.copyWith(live: false, elapsed: _elapsedBase, interrupted: true));
+    // clearError: a stale error from a losing resume/pause must not share the
+    // screen with the calm "we saved your recording" notice this emit paints.
+    emit(state.copyWith(live: false, elapsed: _elapsedBase, interrupted: true, clearError: true));
   }
 
   /// The interruption's own save failed. Recover the audio's record (so it is not

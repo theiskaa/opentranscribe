@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -60,14 +61,6 @@ class _WeekCalendarState extends State<WeekCalendar> {
   PageController? _controller;
   int _weekCount = 1;
 
-  /// The first day of the current locale's week containing [day].
-  DateTime _weekStart(DateTime day) {
-    // intl: FIRSTDAYOFWEEK is 0-based Monday; DateTime.weekday is 1-based Monday.
-    final first = DateFormat().dateSymbols.FIRSTDAYOFWEEK + 1;
-    final delta = (day.weekday - first + 7) % 7;
-    return DateTime(day.year, day.month, day.day - delta);
-  }
-
   DateTime get _today {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -80,9 +73,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
   }
 
   void _configurePages() {
-    final currentStart = _weekStart(_today);
-    final minimumStart = _weekStart(_minimumDay);
-    final count = currentStart.difference(minimumStart).inDays ~/ 7 + 1;
+    final currentStart = startOfWeek(_today);
+    final minimumStart = startOfWeek(_minimumDay);
+    // daysBetween, not difference().inDays: a DST transition leaves the local
+    // difference a fractional day short, which would truncate a week away.
+    final count = daysBetween(minimumStart, currentStart) ~/ 7 + 1;
     if (count == _weekCount && _controller != null) return;
     final old = _controller;
     // A count change remaps page indices; keep the VIEWED WEEK stable by
@@ -90,7 +85,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     var initial = count - 1;
     if (old != null && old.hasClients) {
       final viewed = _startOfPage(old.page?.round() ?? (_weekCount - 1));
-      final weeksBack = currentStart.difference(viewed).inDays ~/ 7;
+      final weeksBack = daysBetween(viewed, currentStart) ~/ 7;
       initial = (count - 1 - weeksBack).clamp(0, count - 1);
     }
     _weekCount = count;
@@ -103,7 +98,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
   }
 
   DateTime _startOfPage(int page) {
-    final currentStart = _weekStart(_today);
+    final currentStart = startOfWeek(_today);
     return DateTime(
       currentStart.year,
       currentStart.month,
@@ -112,8 +107,8 @@ class _WeekCalendarState extends State<WeekCalendar> {
   }
 
   int _pageOfWeek(DateTime weekStart) {
-    final currentStart = _weekStart(_today);
-    final weeksBack = currentStart.difference(weekStart).inDays ~/ 7;
+    final currentStart = startOfWeek(_today);
+    final weeksBack = daysBetween(weekStart, currentStart) ~/ 7;
     return (_weekCount - 1 - weeksBack).clamp(0, _weekCount - 1);
   }
 
@@ -129,7 +124,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     }
     // The strip follows the cursor across weeks, straight to the final week.
     if (old.cursorDay == widget.cursorDay) return;
-    _slideToPage(_pageOfWeek(_weekStart(widget.cursorDay)));
+    _slideToPage(_pageOfWeek(startOfWeek(widget.cursorDay)));
   }
 
   /// Slides the strip to [target], honouring Reduce Motion, and reports the
@@ -140,8 +135,18 @@ class _WeekCalendarState extends State<WeekCalendar> {
     final controller = _controller;
     if (controller == null || !controller.hasClients) return;
     if (target == controller.page?.round()) return;
+    // The destination as a WEEK, not a page index: the same rebuild can swap
+    // the controller and renumber the pages (a count change), so anything
+    // running post-frame must re-resolve against the numbering it finds.
+    final targetStart = _startOfPage(target);
     if (context.reduceMotion) {
-      controller.jumpToPage(target);
+      // Post-frame: a jump is synchronous, so its page-change notification
+      // would mark widgets dirty inside didUpdateWidget's build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final current = _controller;
+        if (!mounted || current == null || !current.hasClients) return;
+        current.jumpToPage(_pageOfWeek(targetStart));
+      });
     } else {
       final motion = context.motionNow;
       controller.animateToPage(
@@ -152,7 +157,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     }
     // Post-frame because this may run inside a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onVisibleWeekChanged(_startOfPage(target));
+      if (mounted) widget.onVisibleWeekChanged(targetStart);
     });
   }
 
@@ -259,9 +264,7 @@ class _DayTile extends StatelessWidget {
     // the empty past and the future are inert.
     final enabled = hasEntries || isToday;
     final numberColor = enabled ? tokens.dayNumberColor : tokens.disabledDayColor;
-    final letterColor = enabled
-        ? tokens.weekdayLabelColor
-        : tokens.weekdayLabelColor.withValues(alpha: 0.5);
+    final letterColor = enabled ? tokens.weekdayLabelColor : tokens.disabledWeekdayLabelColor;
     final restingFill = enabled ? tokens.tileFill : tokens.tileFillMuted;
 
     return Touchable(

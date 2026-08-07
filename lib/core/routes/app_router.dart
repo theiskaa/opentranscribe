@@ -12,9 +12,11 @@ import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart'
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
+import 'package:opentranscribe/view/layouts/reflections/screens/reflections_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
+import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
 
 /// Owns the app's [GoRouter] instance.
 ///
@@ -55,6 +57,17 @@ class AppRouter {
             NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
       ),
       GoRoute(
+        path: Routes.reflections,
+        name: Routes.reflectionsName,
+        pageBuilder: (context, state) => SlidePage<void>(
+          key: state.pageKey,
+          child: ReflectionsScreen(
+            initialPeriod: state.uri.queryParameters['period'],
+            initialStartKey: state.uri.queryParameters['week'],
+          ),
+        ),
+      ),
+      GoRoute(
         path: Routes.entry,
         name: Routes.entryName,
         pageBuilder: (context, state) => SlidePage<void>(
@@ -79,6 +92,12 @@ class AppRouter {
         name: Routes.settingsCacheName,
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const CacheScreen()),
+      ),
+      GoRoute(
+        path: Routes.settingsNotifications,
+        name: Routes.settingsNotificationsName,
+        pageBuilder: (context, state) =>
+            SlidePage<void>(key: state.pageKey, child: const NotificationsScreen()),
       ),
       GoRoute(
         path: Routes.record,

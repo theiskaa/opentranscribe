@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -147,6 +148,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
             previous.localeId != current.localeId,
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
+          final restarting = state.status == RecorderStatus.restarting;
           final denied = state.error == RecorderError.permissionDenied;
           return Column(
             children: [
@@ -228,6 +230,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
                   child: RecorderControls(
                     paused: state.isPaused,
                     saving: saving,
+                    restarting: restarting,
                     onClose: () => _close(keepSilence: false),
                     onRestart: () => context.read<RecorderCubit>().restart(),
                     onComplete: () => _close(keepSilence: true),
@@ -339,13 +342,27 @@ class _LiveText extends StatelessWidget {
         BlocSelector<RecorderCubit, RecorderState, bool>(
           selector: (state) => state.liveUnavailable,
           builder: (context, unavailable) {
-            if (!unavailable) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.sm),
-              child: Text(
-                AppLocalizations.of(context)!.recordLiveUnavailable,
-                textAlign: TextAlign.center,
-                style: AppType.caption.copyWith(color: context.theme.textSecondary),
+            final motion = context.theme.motion;
+            final reduce = context.reduceMotion;
+            // The seat grows before the words fade in, so the caption never
+            // shoves the centered transcript block in one frame.
+            return AnimatedSize(
+              duration: reduce ? AppMotion.instant : motion.expand,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: reduce ? Duration.zero : motion.crossfade,
+                child: unavailable
+                    ? Padding(
+                        key: const ValueKey('live-unavailable'),
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: Text(
+                          AppLocalizations.of(context)!.recordLiveUnavailable,
+                          textAlign: TextAlign.center,
+                          style: AppType.caption.copyWith(color: context.theme.textSecondary),
+                        ),
+                      )
+                    : const SizedBox(width: double.infinity),
               ),
             );
           },

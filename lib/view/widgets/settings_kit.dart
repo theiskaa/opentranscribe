@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -52,16 +53,25 @@ class SettingsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (final (i, child) in children.indexed) ...[
-            if (i > 0)
-              Padding(
-                padding: EdgeInsets.only(left: tokens.dividerInset),
-                child: Container(height: 1, color: tokens.dividerColor),
-              ),
-            child,
-          ],
+          for (final (i, child) in children.indexed) ...[if (i > 0) const SettingsDivider(), child],
         ],
       ),
+    );
+  }
+}
+
+/// The inset hairline [SettingsCard] draws between its rows. Exposed so a row
+/// that reveals itself can carry its own leading divider and fold it away with
+/// the row (see [AnimatedReveal]).
+class SettingsDivider extends StatelessWidget {
+  const SettingsDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.settings;
+    return Padding(
+      padding: EdgeInsets.only(left: tokens.dividerInset),
+      child: Container(height: 1, color: tokens.dividerColor),
     );
   }
 }
@@ -72,17 +82,18 @@ class SettingsCard extends StatelessWidget {
 class SelectableRow extends StatelessWidget {
   const SelectableRow({
     required this.label,
-    required this.flag,
     required this.selected,
     required this.onTap,
+    this.flag,
     this.dimmed = false,
     super.key,
   });
 
   final String label;
 
-  /// The leading chip's flag emoji (see `localeFlag`).
-  final String flag;
+  /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
+  /// choice with no chip (a reflection option).
+  final String? flag;
   final bool selected;
 
   /// A kept-but-unavailable choice (an unsupported language): shown honestly,
@@ -102,17 +113,19 @@ class SelectableRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+            if (flag != null) ...[
+              Container(
+                width: tokens.iconTileSize,
+                height: tokens.iconTileSize,
+                alignment: Alignment.center,
+                decoration: SuperellipseDecoration(
+                  borderRadius: tokens.iconTileRadius,
+                  color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+                ),
+                child: LocaleFlag(flag!, size: 18),
               ),
-              child: LocaleFlag(flag, size: 18),
-            ),
-            const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: AppSpacing.md),
+            ],
             Expanded(
               child: Text(
                 label,
@@ -123,6 +136,121 @@ class SelectableRow extends StatelessWidget {
               ),
             ),
             if (active) AppIcon(AppIcons.checkmark, size: 14, color: theme.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A settings row whose whole width toggles a switch: an icon tile, a label,
+/// and the drawn [AppToggle]. The row is the 44pt touch target the 31pt switch
+/// alone would miss; the knob's own tap wins the arena and carries the haptic,
+/// so the row does not double-fire.
+///
+/// A null [onChanged] disables the row: it stops responding, the label dims, and
+/// the knob draws at half strength - for a toggle whose precondition is not met
+/// (reflections off, so a weekly nudge could not fire anyway).
+class SettingsToggleRow extends StatelessWidget {
+  const SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final enabled = onChanged != null;
+    final content = enabled ? theme.text : theme.textSecondary;
+    return Touchable(
+      onTap: enabled ? () => onChanged!(!value) : null,
+      haptic: enabled,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: tokens.iconTileBackground,
+              ),
+              child: AppIcon(icon, size: 16, color: content),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: content)),
+            ),
+            AppToggle(value: value, onChanged: onChanged),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A tappable settings row that performs an action: a leading tile + glyph, a
+/// label, and an optional trailing accent word followed by a chevron. [tint]
+/// colours the tile and glyph for a row that must read as a warning rather than
+/// neutral (a denied-permission prompt).
+class SettingsActionRow extends StatelessWidget {
+  const SettingsActionRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing,
+    this.tint,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? trailing;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final accent = tint ?? theme.text;
+    return Touchable(
+      onTap: onTap,
+      haptic: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: tint == null ? tokens.iconTileBackground : tint!.withValues(alpha: 0.14),
+              ),
+              child: AppIcon(icon, size: 16, color: accent),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+            ),
+            if (trailing != null) ...[
+              Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            AppIcon(AppIcons.chevronForward, size: 14, color: theme.textSecondary),
           ],
         ),
       ),
@@ -312,6 +440,61 @@ class SectionInfo extends StatelessWidget {
       child: Text(
         text,
         style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.4),
+      ),
+    );
+  }
+}
+
+/// A [SectionInfo] that ends in an action: the explanatory line, then a bold
+/// accent link on its own line ("Turn on reflections"). For a precondition the
+/// reader can fix in one tap, where a full action-row card would shout louder
+/// than a footnote should.
+class SectionInfoLink extends StatelessWidget {
+  const SectionInfoLink({
+    required this.text,
+    required this.linkLabel,
+    required this.onTap,
+    this.icon = AppIcons.chevronForward,
+    super.key,
+  });
+
+  final String text;
+  final String linkLabel;
+  final VoidCallback onTap;
+
+  /// The trailing glyph after the link. Defaults to a forward chevron for an
+  /// in-app jump; pass [AppIcons.arrowUpRight] for a link that leaves the app.
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text, style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4)),
+          const SizedBox(height: AppSpacing.xs),
+          Touchable(
+            onTap: onTap,
+            haptic: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  linkLabel,
+                  style: AppType.footnote.copyWith(
+                    color: theme.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+                AppIcon(icon, size: 10, color: theme.accent),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

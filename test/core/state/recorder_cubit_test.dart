@@ -33,7 +33,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
-    await storage.init(encryptionKey: 'test-encryption-key-0123456789ab');
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     store = EntryStore(storage);
   });
 
@@ -219,6 +219,24 @@ void main() {
     await service.dispose();
   });
 
+  test('restart passes through restarting, never saving', () async {
+    final (cubit, service) = build();
+    final statuses = <RecorderStatus>[];
+    final sub = cubit.stream.listen((s) => statuses.add(s.status));
+
+    await cubit.start();
+    await cubit.restart();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(statuses, contains(RecorderStatus.restarting));
+    expect(statuses, isNot(contains(RecorderStatus.saving)));
+
+    await sub.cancel();
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('live waits for the platform to answer, and a failed start never claims it', () async {
     final recorder = FakeAudioRecorder();
     final (cubit, service) = build(recorder: recorder);
@@ -317,6 +335,24 @@ void main() {
     await service.dispose();
   });
 
+  test('a resume that dies to a route change ends interrupted with no leftover error', () async {
+    final rec = FakeAudioRecorder(resumeRouteChanged: true);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+    await cubit.pause();
+
+    await cubit.resume();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(cubit.state.interrupted, isTrue);
+    expect(cubit.state.error, isNull);
+    expect(cubit.state.live, isFalse);
+    expect(service.isRecording, isFalse);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
   test('a second resume inside the first one is a quiet no-op', () async {
     final (cubit, service) = build();
     await cubit.start();
@@ -376,6 +412,45 @@ void main() {
     expect(service.entries(), isEmpty);
 
     expect(await cubit.stop(), isNull);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a stop that wins mid-pause leaves the take idle, not paused', () async {
+    final gate = Completer<void>();
+    final rec = FakeAudioRecorder(pauseGate: gate.future);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final pausing = cubit.pause();
+    // The stop lands and fully finalizes while the pause round trip is still
+    // held open on the gate: it owns the outcome from here.
+    await cubit.stop();
+    expect(service.isRecording, isFalse);
+    gate.complete();
+    await pausing;
+
+    expect(cubit.state.status, isNot(RecorderStatus.paused));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a pause failing after a stop already won the race surfaces no error', () async {
+    final gate = Completer<void>();
+    final rec = FakeAudioRecorder(pauseGate: gate.future, throwOnPause: true);
+    final (cubit, service) = build(recorder: rec);
+    await cubit.start();
+
+    final pausing = cubit.pause();
+    await cubit.stop();
+    expect(service.isRecording, isFalse);
+    gate.complete();
+    await pausing;
+
+    expect(cubit.state.error, isNull);
 
     await cubit.close();
     await service.dispose();

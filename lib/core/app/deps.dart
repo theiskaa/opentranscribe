@@ -2,14 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/app/storage_key.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
+import 'package:opentranscribe/core/notify/reflection_notifier.dart';
+import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/notification_settings.dart';
+import 'package:opentranscribe/core/services/reflection_service.dart';
+import 'package:opentranscribe/core/services/reflection_settings.dart';
+import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
@@ -51,6 +60,11 @@ class Deps {
     required this.transcriptionSettings,
     required this.audioPlayer,
     required this.router,
+    required this.reflectionService,
+    required this.reflectionSettings,
+    required this.notificationScheduler,
+    required this.notificationSettings,
+    required this.reflectionNotifier,
     required this.engineDescriptors,
   });
 
@@ -74,6 +88,30 @@ class Deps {
   /// [TranscriptionService.resolveAudioPath] first.
   final AudioPlayer audioPlayer;
   final AppRouter router;
+
+  /// The one owner of the weekly-reflection lifecycle: when a week closes, it
+  /// reads the week back on-device. Keeps its engine and store private, like
+  /// [TranscriptionService]: history and availability are read through it, so
+  /// nothing can bypass the on-device guard or the silence-is-a-result rule.
+  final ReflectionService reflectionService;
+
+  /// The reflection preferences (on/off, voice, length, specificity), plus the
+  /// service-recorded no-backfill floor.
+  final ReflectionSettings reflectionSettings;
+
+  /// Local, on-device notification scheduling. Generic: it names no feature, so
+  /// a surface asks it for permission and drives it through the notifier below.
+  final NotificationScheduler notificationScheduler;
+
+  /// The local-notification preferences (the weekly reflection nudge and its
+  /// fire time). Generic, like [notificationScheduler].
+  final NotificationSettings notificationSettings;
+
+  /// The one reflection-aware piece: it decides when the weekly nudge should be
+  /// scheduled and reconciles the OS's pending notification with the settings.
+  /// Driven by [ReflectionNotifier.sync] at launch, on resume, and after a
+  /// settings change.
+  final ReflectionNotifier reflectionNotifier;
 
   /// The engines this build ships, as presentation facts for surfaces that list
   /// them. Built here because the composition root is the one place allowed to
@@ -100,8 +138,14 @@ class Deps {
       debugPrint('deps: using the committed development STORAGE_KEY (debug/profile only)');
     }
 
+    // The device key must never fall back to null once obtain() has run once
+    // on this device: a device that has migrated to v3 would otherwise read
+    // as an empty journal instead of failing loudly. Let a Keychain failure
+    // throw; bootstrap surfaces it.
+    final deviceKey = await StorageKey().obtain();
+
     final localService = LocalService();
-    await localService.init(encryptionKey: _storageKey);
+    await localService.init(legacyKey: _storageKey, deviceKey: deviceKey);
 
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.
@@ -123,10 +167,13 @@ class Deps {
     // Built before the service so a fresh recording's wave shape can be read
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
+    // Hoisted so both the transcription lifecycle and the reflection lifecycle
+    // read the same entries; the store is stateless, so sharing one is safe.
+    final entryStore = EntryStore(localService);
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engine,
-      store: EntryStore(localService),
+      store: entryStore,
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
     );
@@ -138,6 +185,34 @@ class Deps {
     // records.
     await transcriptionSettings.apply();
 
+    // The reflection backbone. FoundationModelsEngine is the ONE place naming
+    // Foundation Models; the service refuses it if it is not on-device. Nothing
+    // is generated here: catchUp runs off the critical path below.
+    final reflectionEngine = FoundationModelsEngine();
+    final reflectionSettings = ReflectionSettings(storage: localService);
+    final reflectionStore = ReflectionStore(localService);
+    final reflectionService = ReflectionService(
+      engine: reflectionEngine,
+      store: reflectionStore,
+      settings: reflectionSettings,
+      entries: entryStore.all,
+      language: () => AppLanguage.of(localService),
+    );
+
+    // The notification backbone. The scheduler and settings are generic; the
+    // notifier holds the reflection-only policy. It probes the engine's
+    // availability directly (not through the service) so it stays decoupled
+    // from the entry lifecycle.
+    final notificationSettings = NotificationSettings(storage: localService);
+    final notificationScheduler = PlatformNotificationScheduler();
+    final reflectionNotifier = ReflectionNotifier(
+      scheduler: notificationScheduler,
+      notifySettings: notificationSettings,
+      reflectionSettings: reflectionSettings,
+      availability: reflectionEngine.availability,
+      language: () => AppLanguage.of(localService),
+    );
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
@@ -145,6 +220,11 @@ class Deps {
       transcriptionSettings: transcriptionSettings,
       audioPlayer: audioPlayer,
       router: AppRouter(),
+      reflectionService: reflectionService,
+      reflectionSettings: reflectionSettings,
+      notificationScheduler: notificationScheduler,
+      notificationSettings: notificationSettings,
+      reflectionNotifier: reflectionNotifier,
       // The models screen renders this registry; whisper.cpp lands as one
       // more entry here, not new plumbing.
       engineDescriptors: [
@@ -156,6 +236,24 @@ class Deps {
       ],
     );
     _initialized = true;
+
+    // Reflect any closed, unreflected week now. Off the critical path: launch
+    // must not wait on the model. A no-op when disabled or when Apple
+    // Intelligence is unavailable; the foreground resume (view/app.dart) retries.
+    unawaited(
+      i.reflectionService.catchUp().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: launch reflection catch-up failed: $e');
+      }),
+    );
+
+    // Reconcile the weekly nudge with the world as it is now: availability, the
+    // model's enabled state, or the locale week boundary may have changed since
+    // it was last scheduled. Off the critical path, like the catch-up.
+    unawaited(
+      i.reflectionNotifier.sync().catchError((Object e) {
+        if (kDebugMode) debugPrint('deps: launch notification sync failed: $e');
+      }),
+    );
 
     // Recover or remove audio files no entry references (a kill mid-recording, a
     // save that never landed). Off the critical path: launch must not wait on it.

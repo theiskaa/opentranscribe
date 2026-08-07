@@ -497,6 +497,8 @@ final class SpeechAnalyzerLiveSession {
   // started an analyzer, so it winds nothing down (no cancelAndFinishNow on an
   // unstarted analyzer) and instead chains its own priorTeardown forward, so the
   // older analyzer it was still waiting on is not orphaned. Guarded by lock.
+  // A teardown landing while start() is awaiting is handled by the start path
+  // itself, which publishes the wind-down after start() returns.
   private var analyzerStarted = false
 
   fileprivate init(
@@ -618,6 +620,12 @@ final class SpeechAnalyzerLiveSession {
       if finished {
         lock.unlock()
         CaptureHub.session.removeConsumer(token)
+        // Teardown landed while start() was awaiting: finish()/abort() saw an
+        // unstarted analyzer and skipped the wind-down, so it is ours to run.
+        let task = Task { _ = try? await analyzer.cancelAndFinishNow() }
+        lock.lock()
+        if teardownTask == nil { teardownTask = task }
+        lock.unlock()
       } else {
         consumerToken = token
         lock.unlock()

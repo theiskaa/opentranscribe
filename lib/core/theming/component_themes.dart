@@ -11,6 +11,10 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 /// The blurred top bar content scrolls under.
 @immutable
 final class TopBarTheme {
+  /// The frost recipe's tint alpha, shared with every drawn glass surface
+  /// (the scrubber capsule) so "the top bar's material" stays one number.
+  static const frostAlpha = 0.55;
+
   const TopBarTheme({
     required this.background,
     required this.titleColor,
@@ -54,6 +58,7 @@ final class ButtonTheme {
     required this.secondaryBorder,
     this.disabledOpacity = 0.5,
     this.height = 52.0,
+    this.compactHeight = 36.0,
     this.radius = AppRadius.pill,
   });
 
@@ -70,6 +75,9 @@ final class ButtonTheme {
   final Color secondaryBorder;
   final double disabledOpacity;
   final double height;
+
+  /// An inline card action, sized to sit inside content rather than end it.
+  final double compactHeight;
   final double radius;
 }
 
@@ -82,6 +90,7 @@ final class PageIndicatorTheme {
     this.dashWidth = 18.0,
     this.dashHeight = 3.0,
     this.gap = 8.0,
+    this.activeBulge = 3.0,
   });
 
   final Color active;
@@ -89,6 +98,85 @@ final class PageIndicatorTheme {
   final double dashWidth;
   final double dashHeight;
   final double gap;
+
+  /// Extra width on the active dash, so position reads by shape too.
+  final double activeBulge;
+}
+
+/// The home reflection card: a quiet panel on its own ground holding the
+/// week's excerpt.
+@immutable
+final class ReflectionCardTheme {
+  const ReflectionCardTheme({required this.background, required this.border, required this.dither});
+
+  final Color background;
+  final Color border;
+
+  /// The corner dither's cell color. Dim by construction: the field sits
+  /// under the excerpt's tail and must never contest the text.
+  final Color dither;
+}
+
+/// The reflections pager's floating scrubber capsule: a small frosted pill at
+/// bottom center holding the ink dot strip.
+@immutable
+final class ScrubberTheme {
+  const ScrubberTheme({
+    required this.tint,
+    required this.border,
+    required this.ink,
+    required this.track,
+    this.blurSigma = 30.0,
+    this.height = 38.0,
+    this.topBand = 32.0,
+    this.slack = 24.0,
+    this.sinkDistance = 12.0,
+    this.dotSize = 9.0,
+    this.gap = 10.0,
+    this.activeScale = 1.4,
+    this.neckWaist = 0.6,
+    this.inkStretch = 0.25,
+  });
+
+  /// The frost tint drawn over the blur, translucent so text reads through.
+  final Color tint;
+  final Color border;
+
+  /// The moving position blob, and the empty dots it travels between.
+  final Color ink;
+  final Color track;
+  final double blurSigma;
+
+  /// Visual capsule height; the touch target is padded past 44 around it.
+  final double height;
+
+  /// Reading depth inside which the capsule always shows.
+  final double topBand;
+
+  /// Directional travel a scroll needs before the capsule hides or returns,
+  /// so pixel jitter never flickers it.
+  final double slack;
+
+  /// How far the capsule sinks toward the screen edge as its fade runs out.
+  final double sinkDistance;
+
+  /// The dot strip's geometry, the scrubber's own: the capsule is a grabbable
+  /// control, not a passive marker. One dot plus one [gap] is also the
+  /// scrub's pitch, one week of travel.
+  final double dotSize;
+  final double gap;
+
+  /// The resting ink dot's size over an empty dot, so position reads by
+  /// weight as well as color.
+  final double activeScale;
+
+  /// The connecting stream's waist, as a fraction of the smaller blob it
+  /// bridges: below 1 the neck pinches, which is what reads as liquid.
+  final double neckWaist;
+
+  /// How much each blob elongates toward the stream while it runs (height
+  /// compresses in step, so the ink keeps its volume).
+  final double inkStretch;
 }
 
 /// The week strip under the date bar on home.
@@ -102,6 +190,8 @@ final class CalendarTheme {
     required this.tileFill,
     required this.tileFillMuted,
     required this.cursorBorder,
+    required this.chipInk,
+    required this.onChipInk,
     this.tileRadius = 14.0,
     this.tileGap = 5.0,
     this.dotSize = 4.0,
@@ -110,6 +200,10 @@ final class CalendarTheme {
   });
 
   final Color weekdayLabelColor;
+
+  /// The weekday letter over an inert day, faded from [weekdayLabelColor] the
+  /// same way [disabledDayColor] mutes the number.
+  Color get disabledWeekdayLabelColor => weekdayLabelColor.withValues(alpha: 0.5);
 
   /// Days with records; every other day renders in [disabledDayColor] and does
   /// not respond.
@@ -128,6 +222,17 @@ final class CalendarTheme {
 
   /// The soft border that marks the viewed day: where you are.
   final Color cursorBorder;
+
+  /// A chip filled solid: the reflections strip's "this day holds a
+  /// reflection", the one state strong enough to read as tappable.
+  final Color chipInk;
+  final Color onChipInk;
+
+  /// Density dots on the month page's week rows, one grammar with the chips:
+  /// full [todayDot] = a reflection, these two = entries only and nothing.
+  Color get dotEntries => todayDot.withValues(alpha: 0.35);
+  Color get dotEmpty => todayDot.withValues(alpha: 0.12);
+
   final double tileRadius;
 
   /// Breathing room between neighboring tiles.
@@ -180,6 +285,11 @@ final class EntryListTheme {
   final double railGutter;
 
   final int excerptLines;
+
+  /// The left inset that lands content on the records' TEXT column (content
+  /// margin + rail gutter). One source for the day splitter, the reflection
+  /// card, and the quiet-week marker, so a rail change cannot un-align them.
+  double get textColumnInset => AppSpacing.xl + railGutter;
 }
 
 /// The recorder screen: timer, waveform, live transcript. The pause, restart,

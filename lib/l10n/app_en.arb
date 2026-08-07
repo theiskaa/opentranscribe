@@ -48,10 +48,6 @@
   "@homePullToRecord": {
     "description": "Label beside the waveform hint while pulling the home list down to open the recorder"
   },
-  "menuTranscriptionLanguage": "Transcription",
-  "@menuTranscriptionLanguage": {
-    "description": "Home menu row that opens the picker for the language recordings are transcribed in"
-  },
   "menuSourceCode": "Source code",
   "@menuSourceCode": {
     "description": "Home menu row linking to the public source repository, followed by the app version"
@@ -313,7 +309,7 @@
       }
     }
   },
-  "settingsModels": "Models",
+  "settingsModels": "Transcription",
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
@@ -366,6 +362,14 @@
   "@onboardingPrivateLine": {
     "description": "One-line explanation under the privacy intro row"
   },
+  "onboardingReflectTitle": "Reflections",
+  "@onboardingReflectTitle": {
+    "description": "Title of the intro row about reflections, eligible hardware only"
+  },
+  "onboardingReflectLine": "Your entries read back as a short note, all on device.",
+  "@onboardingReflectLine": {
+    "description": "One-line explanation under the reflections intro row"
+  },
   "onboardingSource": "Open source",
   "@onboardingSource": {
     "description": "Title of the intro row that opens the open-source repository"
@@ -378,7 +382,7 @@
   "@onboardingPermissionsTitle": {
     "description": "Headline on the permissions onboarding step"
   },
-  "onboardingPermissionsBody": "Both work entirely on your device.",
+  "onboardingPermissionsBody": "Everything here works entirely on your device.",
   "@onboardingPermissionsBody": {
     "description": "Subtitle reassuring that the requested permissions stay on-device"
   },
@@ -398,6 +402,14 @@
   "@onboardingSpeechReason": {
     "description": "One-line reason the app needs speech recognition"
   },
+  "onboardingNotifyName": "Notifications",
+  "@onboardingNotifyName": {
+    "description": "Name of the optional notification permission row, eligible hardware only"
+  },
+  "onboardingNotifyReason": "For a nudge when a reflection is ready.",
+  "@onboardingNotifyReason": {
+    "description": "One-line reason the app asks for notifications"
+  },
   "onboardingAllow": "Allow",
   "@onboardingAllow": {
     "description": "Button that requests a permission"
@@ -406,13 +418,25 @@
   "@onboardingOpenSettings": {
     "description": "Shown when a permission was denied; opens the system Settings"
   },
-  "onboardingModelsTitle": "Download a language",
+  "onboardingModelsTitle": "Set up transcription",
   "@onboardingModelsTitle": {
-    "description": "Headline on the model-download onboarding step"
+    "description": "Headline on the transcription-setup onboarding step"
   },
-  "onboardingModelsBody": "Transcription runs offline once a language is on your device. You can add more anytime from the menu.",
+  "onboardingModelsBody": "It runs offline once your language is on the device. You can add more anytime from the menu.",
   "@onboardingModelsBody": {
-    "description": "Body on the model-download onboarding step"
+    "description": "Body on the transcription-setup onboarding step"
+  },
+  "onboardingReflectionsOn": "Your entries read back as a short reflection, entirely on this device.",
+  "@onboardingReflectionsOn": {
+    "description": "Onboarding model step, Apple Intelligence available: what reflections do"
+  },
+  "onboardingReflectionsPreparing": "Starts once Apple Intelligence finishes preparing on this device.",
+  "@onboardingReflectionsPreparing": {
+    "description": "Onboarding model step: Apple Intelligence enabled but the model still downloading"
+  },
+  "onboardingReflectionsOff": "Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.",
+  "@onboardingReflectionsOff": {
+    "description": "Onboarding model step: eligible hardware with Apple Intelligence off; instructions only"
   },
   "onboardingNext": "Next",
   "@onboardingNext": {
@@ -478,5 +502,271 @@
   "cacheClearConfirm": "Delete recordings",
   "@cacheClearConfirm": {
     "description": "Destructive confirm button on the clear sheet"
+  },
+  "reflectionsTitle": "Reflections",
+  "@reflectionsTitle": {
+    "description": "Title of the reflections screen and its home-menu row"
+  },
+  "reflectionPeriods": "Periods",
+  "@reflectionPeriods": {
+    "description": "Menu submenu holding the per-period on/off toggles"
+  },
+  "reflectionDaily": "Daily",
+  "@reflectionDaily": {
+    "description": "Menu toggle label for daily reflections"
+  },
+  "reflectionWeekly": "Weekly",
+  "@reflectionWeekly": {
+    "description": "Menu toggle label for weekly reflections"
+  },
+  "reflectionMonthly": "Monthly",
+  "@reflectionMonthly": {
+    "description": "Menu toggle label for monthly reflections"
+  },
+  "reflectionsEmptyTitle": "No reflections yet",
+  "@reflectionsEmptyTitle": {
+    "description": "Empty-state headline on the reflections screen before any period has been reflected"
+  },
+  "reflectionsEmptyBody": "The first arrives once you have journaled, read back from what you recorded.",
+  "@reflectionsEmptyBody": {
+    "description": "Empty-state supporting line under the headline on the reflections screen"
+  },
+  "reflectionQuietDay": "A quiet day.",
+  "@reflectionQuietDay": {
+    "description": "Shown for a day the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionQuietWeek": "A quiet week.",
+  "@reflectionQuietWeek": {
+    "description": "Shown for a week the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionQuietMonth": "A quiet month.",
+  "@reflectionQuietMonth": {
+    "description": "Shown for a month the observer had nothing to say about (a stored silence)"
+  },
+  "reflectionWaitingTitle": "Not written yet",
+  "@reflectionWaitingTitle": {
+    "description": "Pager state title: a closed, journaled period not yet written; the next catch-up may fill it"
+  },
+  "reflectionWaitingBody": "This will be read back the next time the journal opens with Apple Intelligence ready.",
+  "@reflectionWaitingBody": {
+    "description": "Pager state body under the not-written-yet title"
+  },
+  "reflectionErasedTitle": "Erased",
+  "@reflectionErasedTitle": {
+    "description": "Pager state title: the user deleted this reflection"
+  },
+  "reflectionErasedBody": "You removed this reflection. Regenerate writes it again.",
+  "@reflectionErasedBody": {
+    "description": "Pager state body under the erased title; Regenerate re-writes the reflection"
+  },
+  "reflectionQuietBody": "Nothing rose to a reflection.",
+  "@reflectionQuietBody": {
+    "description": "Pager subline under the quiet marker"
+  },
+  "reflectionWrittenOn": "Written {date}",
+  "@reflectionWrittenOn": {
+    "description": "Detail meta: the day the reflection was generated; date is preformatted",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reflectionOfPeriod": "Reflection of {range}",
+  "@reflectionOfPeriod": {
+    "description": "Home card header naming the period a reflection covers; range is a preformatted date span",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "reflectionVoice": "Voice",
+  "@reflectionVoice": {
+    "description": "Settings submenu: the reflection voice"
+  },
+  "reflectionVoiceLiterary": "Literary",
+  "@reflectionVoiceLiterary": {
+    "description": "Voice option: reads the period back as a short reflective note"
+  },
+  "reflectionVoiceObservational": "Observational",
+  "@reflectionVoiceObservational": {
+    "description": "Voice option: reports the shape of the period plainly"
+  },
+  "reflectionVoiceSparse": "Sparse",
+  "@reflectionVoiceSparse": {
+    "description": "Voice option: nearly a log, minimal interpretation"
+  },
+  "reflectionLength": "Length",
+  "@reflectionLength": {
+    "description": "Settings submenu: how long a reflection may run"
+  },
+  "reflectionLengthOneLine": "One line",
+  "@reflectionLengthOneLine": {
+    "description": "Length option: a single sentence"
+  },
+  "reflectionLengthSentences": "A few sentences",
+  "@reflectionLengthSentences": {
+    "description": "Length option: up to three sentences"
+  },
+  "reflectionLengthParagraph": "Short paragraph",
+  "@reflectionLengthParagraph": {
+    "description": "Length option: up to a short paragraph"
+  },
+  "reflectionSpecifics": "Specifics",
+  "@reflectionSpecifics": {
+    "description": "Settings submenu: whether reflections name people, projects, places"
+  },
+  "reflectionSpecificsNameFreely": "Name specifics",
+  "@reflectionSpecificsNameFreely": {
+    "description": "Specifics option: may name the people, projects, and places heard"
+  },
+  "reflectionSpecificsThemes": "Themes only",
+  "@reflectionSpecificsThemes": {
+    "description": "Specifics option: themes only, no proper nouns"
+  },
+  "reflectionSpecificsLetPeriod": "Let it decide",
+  "@reflectionSpecificsLetPeriod": {
+    "description": "Specifics option: name a specific only when clearly central"
+  },
+  "reflectionGenerateAll": "Generate reflections",
+  "@reflectionGenerateAll": {
+    "description": "Menu action: reflect on the whole journal's backlog of past periods that have recordings but no reflection yet"
+  },
+  "reflectionRegenerate": "Regenerate",
+  "@reflectionRegenerate": {
+    "description": "Per-period action: re-run this reflection in the current style"
+  },
+  "reflectionDeleteDay": "Delete day",
+  "@reflectionDeleteDay": {
+    "description": "Menu action on a daily page: remove this day's reflection"
+  },
+  "reflectionDeleteWeek": "Delete week",
+  "@reflectionDeleteWeek": {
+    "description": "Menu action on a weekly page: remove this week's reflection"
+  },
+  "reflectionDeleteMonth": "Delete month",
+  "@reflectionDeleteMonth": {
+    "description": "Menu action on a monthly page: remove this month's reflection"
+  },
+  "reflectionRegenerateFailed": "Could not reflect. Try again.",
+  "@reflectionRegenerateFailed": {
+    "description": "Notice when a regenerate could not run because the model was unavailable"
+  },
+  "reflectionsDisabledTitle": "Reflections are off",
+  "@reflectionsDisabledTitle": {
+    "description": "Notice card on the pager when the user has disabled reflections"
+  },
+  "reflectionsDisabledBody": "Nothing new will be written while reflections are off.",
+  "@reflectionsDisabledBody": {
+    "description": "Body of the disabled notice; the card's button reenables"
+  },
+  "reflectionsDisabledEnable": "Turn on",
+  "@reflectionsDisabledEnable": {
+    "description": "The disabled notice card's button: reenables reflections in place"
+  },
+  "reflectionOffTitle": "Apple Intelligence is off",
+  "@reflectionOffTitle": {
+    "description": "Reflections screen state: Apple Intelligence is available but not enabled"
+  },
+  "reflectionOffBody": "Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.",
+  "@reflectionOffBody": {
+    "description": "Guidance when Apple Intelligence is off; there is no deep-link to the exact pane"
+  },
+  "reflectionPreparingTitle": "Getting ready",
+  "@reflectionPreparingTitle": {
+    "description": "Reflections screen state: Apple Intelligence is enabled but the model is still downloading"
+  },
+  "reflectionPreparingBody": "Apple Intelligence is preparing on this device. Reflections start once it finishes.",
+  "@reflectionPreparingBody": {
+    "description": "Body for the preparing/model-not-ready state"
+  },
+  "reflectionUnsupportedTitle": "Not available here",
+  "@reflectionUnsupportedTitle": {
+    "description": "Reflections screen state: this device cannot run Apple Intelligence at all"
+  },
+  "reflectionUnsupportedBody": "This device does not support Apple Intelligence, which reflections need.",
+  "@reflectionUnsupportedBody": {
+    "description": "Body for the unsupported-device / older-iOS state"
+  },
+  "settingsNotifications": "Notifications",
+  "@settingsNotifications": {
+    "description": "Home menu row and heading for the notifications settings screen"
+  },
+  "notifyReflectionReminders": "Reflection reminders",
+  "@notifyReflectionReminders": {
+    "description": "Master toggle label: all reflection notifications on or off"
+  },
+  "notifyPeriodDay": "Day",
+  "@notifyPeriodDay": {
+    "description": "Capsule label: nudge for daily reflections"
+  },
+  "notifyPeriodWeek": "Week",
+  "@notifyPeriodWeek": {
+    "description": "Capsule label: nudge for weekly reflections"
+  },
+  "notifyPeriodMonth": "Month",
+  "@notifyPeriodMonth": {
+    "description": "Capsule label: nudge for monthly reflections"
+  },
+  "notifyReflectionsInfo": "A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.",
+  "@notifyReflectionsInfo": {
+    "description": "Footnote under the reflection reminders card"
+  },
+  "notifyTime": "Time",
+  "@notifyTime": {
+    "description": "Row label for the shared time every enabled nudge fires at"
+  },
+  "notifyPermissionDenied": "Notifications are turned off in Settings.",
+  "@notifyPermissionDenied": {
+    "description": "Shown when notification permission was denied; the row deep-links to iOS Settings"
+  },
+  "notifyOpenSettings": "Open Settings",
+  "@notifyOpenSettings": {
+    "description": "Action to open this app's page in iOS Settings to grant notification permission"
+  },
+  "notifyDailyTitle": "Your day is ready",
+  "@notifyDailyTitle": {
+    "description": "Title of the daily local notification; generic, never reflection text"
+  },
+  "notifyDailyBody": "Open to read yesterday's reflection.",
+  "@notifyDailyBody": {
+    "description": "Body of the daily local notification; at fire time the reflection covers yesterday. Generic, never reflection text"
+  },
+  "notifyWeeklyTitle": "Your week is ready",
+  "@notifyWeeklyTitle": {
+    "description": "Title of the weekly local notification; generic, never reflection text"
+  },
+  "notifyWeeklyBody": "Open to read last week's reflection.",
+  "@notifyWeeklyBody": {
+    "description": "Body of the weekly local notification; generic, never reflection text"
+  },
+  "notifyMonthlyTitle": "Your month is ready",
+  "@notifyMonthlyTitle": {
+    "description": "Title of the monthly local notification; generic, never reflection text"
+  },
+  "notifyMonthlyBody": "Open to read last month's reflection.",
+  "@notifyMonthlyBody": {
+    "description": "Body of the monthly local notification; fires on the 1st, about the closed month. Generic, never reflection text"
+  },
+  "notifyNeedsReflections": "Nudges arrive when a new reflection is ready to read. Reflections are off right now.",
+  "@notifyNeedsReflections": {
+    "description": "Footer on the notifications screen when reflections are switched off; precedes the turn-on link"
+  },
+  "notifyTurnOnReflections": "Turn on reflections",
+  "@notifyTurnOnReflections": {
+    "description": "Bold inline link after notifyNeedsReflections; opens the reflections screen where reflections are enabled"
+  },
+  "notifyReflectionsUnavailable": "This device can't generate reflections, so there's no nudge to send.",
+  "@notifyReflectionsUnavailable": {
+    "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
+  },
+  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release.",
+  "@themeRequestInfo": {
+    "description": "Footer under the theme grid on the appearance screen; precedes the request-a-theme link"
+  },
+  "themeRequestLink": "Request a theme on GitHub",
+  "@themeRequestLink": {
+    "description": "Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser"
   }
 }

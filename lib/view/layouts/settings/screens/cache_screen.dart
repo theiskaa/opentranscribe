@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/state/cache_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
@@ -19,7 +20,6 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
-import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
@@ -92,7 +92,7 @@ class _CacheView extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           SettingsCard(
             children: [
-              _ToggleRow(
+              SettingsToggleRow(
                 icon: AppIcons.micFill,
                 label: l10n.cacheKeepAudio,
                 value: settings.keepAudio,
@@ -141,7 +141,7 @@ class _StorageCard extends StatelessWidget {
     // AnimatedSize: the bar mounting, the count line landing, and a clear
     // shrinking the card all resize smoothly instead of snapping a frame.
     return AnimatedSize(
-      duration: context.reduceMotion ? Duration.zero : context.motionNow.indicator,
+      duration: context.reduceMotion ? AppMotion.instant : context.motionNow.indicator,
       curve: context.motionNow.indicatorCurve,
       alignment: Alignment.topCenter,
       child: SettingsCard(
@@ -288,56 +288,6 @@ class _ReclaimableRow extends StatelessWidget {
   }
 }
 
-class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.settings;
-    // The whole row toggles, not just the 31pt switch: the one control in
-    // this flow that would otherwise miss the 44pt touch target. The row
-    // buzzes like the knob would (the knob's own tap wins the arena and
-    // carries its own haptic, so no double fire).
-    return Touchable(
-      onTap: () => onChanged(!value),
-      haptic: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: tokens.iconTileBackground,
-              ),
-              child: AppIcon(icon, size: 16, color: theme.text),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
-            ),
-            AppToggle(value: value, onChanged: onChanged),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// The destructive action as a row that says so: danger-tinted tile and label
 /// while enabled, the dimmed [SelectableRow] treatment while there is nothing
 /// to clear, a spinner while the purge runs.
@@ -389,13 +339,18 @@ class _ClearRow extends StatelessWidget {
                 ),
               ),
             ),
-            if (clearing)
-              AppSpinner(size: 16, color: theme.textSecondary)
-            else if (detail != null)
-              Text(
-                detail!,
-                style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
-              ),
+            AnimatedSwitcher(
+              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+              child: clearing
+                  ? AppSpinner(size: 16, color: theme.textSecondary)
+                  : detail != null
+                  ? Text(
+                      detail!,
+                      key: ValueKey(detail),
+                      style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),

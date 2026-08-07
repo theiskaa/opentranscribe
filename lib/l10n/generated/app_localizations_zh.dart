@@ -45,9 +45,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homePullToRecord => '下拉录制';
 
   @override
-  String get menuTranscriptionLanguage => '转写';
-
-  @override
   String get menuSourceCode => '源代码';
 
   @override
@@ -231,7 +228,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => '模型';
+  String get settingsModels => '转写';
 
   @override
   String get transcriptionLanguages => '语言';
@@ -269,6 +266,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
 
   @override
+  String get onboardingReflectTitle => '回顾';
+
+  @override
+  String get onboardingReflectLine => '你的记录会汇成一段简短的笔记，全部在设备上完成。';
+
+  @override
   String get onboardingSource => '开源';
 
   @override
@@ -278,7 +281,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingPermissionsTitle => '允许访问';
 
   @override
-  String get onboardingPermissionsBody => '两者都完全在你的设备上运行。';
+  String get onboardingPermissionsBody => '这一切都完全在你的设备上运行。';
 
   @override
   String get onboardingMicName => '麦克风';
@@ -293,16 +296,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
 
   @override
+  String get onboardingNotifyName => '通知';
+
+  @override
+  String get onboardingNotifyReason => '回顾准备好时提醒你。';
+
+  @override
   String get onboardingAllow => '允许';
 
   @override
   String get onboardingOpenSettings => '在“设置”中启用';
 
   @override
-  String get onboardingModelsTitle => '下载一种语言';
+  String get onboardingModelsTitle => '设置转写';
 
   @override
-  String get onboardingModelsBody => '只要设备上有了某种语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+  String get onboardingModelsBody => '只要设备上有了你的语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+
+  @override
+  String get onboardingReflectionsOn => '你的记录会汇成一段简短回顾，完全在此设备上完成。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'Apple Intelligence 在此设备上准备完成后即会开始。';
+
+  @override
+  String get onboardingReflectionsOff => '在“设置”的“Apple Intelligence 与 Siri”中开启即可使用。';
 
   @override
   String get onboardingNext => '下一步';
@@ -352,4 +370,200 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '删除录音';
+
+  @override
+  String get reflectionsTitle => '回顾';
+
+  @override
+  String get reflectionPeriods => '周期';
+
+  @override
+  String get reflectionDaily => '每日';
+
+  @override
+  String get reflectionWeekly => '每周';
+
+  @override
+  String get reflectionMonthly => '每月';
+
+  @override
+  String get reflectionsEmptyTitle => '还没有回顾';
+
+  @override
+  String get reflectionsEmptyBody => '有了日记之后，第一篇就会出现，取自你所记录的内容。';
+
+  @override
+  String get reflectionQuietDay => '平静的一天。';
+
+  @override
+  String get reflectionQuietWeek => '平静的一周。';
+
+  @override
+  String get reflectionQuietMonth => '平静的一个月。';
+
+  @override
+  String get reflectionWaitingTitle => '尚未写下';
+
+  @override
+  String get reflectionWaitingBody => '下次在 Apple Intelligence 就绪时打开日记，就会回顾这段内容。';
+
+  @override
+  String get reflectionErasedTitle => '已抹掉';
+
+  @override
+  String get reflectionErasedBody => '你删除了这篇回顾。重新生成会再次写下。';
+
+  @override
+  String get reflectionQuietBody => '这一周没有值得回顾的内容。';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '写于 $date';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return '$range的回顾';
+  }
+
+  @override
+  String get reflectionVoice => '文风';
+
+  @override
+  String get reflectionVoiceLiterary => '文学化';
+
+  @override
+  String get reflectionVoiceObservational => '观察式';
+
+  @override
+  String get reflectionVoiceSparse => '简约';
+
+  @override
+  String get reflectionLength => '长度';
+
+  @override
+  String get reflectionLengthOneLine => '一行';
+
+  @override
+  String get reflectionLengthSentences => '几句话';
+
+  @override
+  String get reflectionLengthParagraph => '短段落';
+
+  @override
+  String get reflectionSpecifics => '细节';
+
+  @override
+  String get reflectionSpecificsNameFreely => '点明细节';
+
+  @override
+  String get reflectionSpecificsThemes => '仅主题';
+
+  @override
+  String get reflectionSpecificsLetPeriod => '由它决定';
+
+  @override
+  String get reflectionGenerateAll => '生成回顾';
+
+  @override
+  String get reflectionRegenerate => '重新生成';
+
+  @override
+  String get reflectionDeleteDay => '删除这一天';
+
+  @override
+  String get reflectionDeleteWeek => '删除这一周';
+
+  @override
+  String get reflectionDeleteMonth => '删除这个月';
+
+  @override
+  String get reflectionRegenerateFailed => '无法生成回顾。请重试。';
+
+  @override
+  String get reflectionsDisabledTitle => '回顾已关闭';
+
+  @override
+  String get reflectionsDisabledBody => '回顾关闭期间，将不会写下任何新内容。';
+
+  @override
+  String get reflectionsDisabledEnable => '开启';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence 已关闭';
+
+  @override
+  String get reflectionOffBody => '在“设置”的“Apple Intelligence 与 Siri”中开启，即可获得回顾。';
+
+  @override
+  String get reflectionPreparingTitle => '正在准备';
+
+  @override
+  String get reflectionPreparingBody => 'Apple Intelligence 正在此设备上准备。准备完成后即可开始回顾。';
+
+  @override
+  String get reflectionUnsupportedTitle => '此处不可用';
+
+  @override
+  String get reflectionUnsupportedBody => '此设备不支持回顾所需的 Apple Intelligence。';
+
+  @override
+  String get settingsNotifications => '通知';
+
+  @override
+  String get notifyReflectionReminders => '回顾提醒';
+
+  @override
+  String get notifyPeriodDay => '日';
+
+  @override
+  String get notifyPeriodWeek => '周';
+
+  @override
+  String get notifyPeriodMonth => '月';
+
+  @override
+  String get notifyReflectionsInfo => '新的回顾可供阅读时提醒你。它在你的设备上触发，不会发送到任何地方。';
+
+  @override
+  String get notifyTime => '时间';
+
+  @override
+  String get notifyPermissionDenied => '通知已在“设置”中关闭。';
+
+  @override
+  String get notifyOpenSettings => '打开设置';
+
+  @override
+  String get notifyDailyTitle => '昨日回顾已就绪';
+
+  @override
+  String get notifyDailyBody => '打开以阅读昨日回顾。';
+
+  @override
+  String get notifyWeeklyTitle => '本周回顾已就绪';
+
+  @override
+  String get notifyWeeklyBody => '打开以阅读上周回顾。';
+
+  @override
+  String get notifyMonthlyTitle => '上月回顾已就绪';
+
+  @override
+  String get notifyMonthlyBody => '打开以阅读上月回顾。';
+
+  @override
+  String get notifyNeedsReflections => '新的回顾可供阅读时会收到提醒。回顾目前已关闭。';
+
+  @override
+  String get notifyTurnOnReflections => '开启回顾';
+
+  @override
+  String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有提醒可发送。';
+
+  @override
+  String get themeRequestInfo => '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。';
+
+  @override
+  String get themeRequestLink => '在 GitHub 上申请主题';
 }

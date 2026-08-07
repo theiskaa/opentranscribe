@@ -45,9 +45,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homePullToRecord => '引いて録音';
 
   @override
-  String get menuTranscriptionLanguage => '文字起こし';
-
-  @override
   String get menuSourceCode => 'ソースコード';
 
   @override
@@ -233,7 +230,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'モデル';
+  String get settingsModels => '文字起こし';
 
   @override
   String get transcriptionLanguages => '言語';
@@ -271,6 +268,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingPrivateLine => 'アカウントもクラウドもありません。機内モードでも変わりなく使えます。';
 
   @override
+  String get onboardingReflectTitle => '振り返り';
+
+  @override
+  String get onboardingReflectLine => '記録が短いノートとして返ってきます。すべてこの端末上で。';
+
+  @override
   String get onboardingSource => 'オープンソース';
 
   @override
@@ -280,7 +283,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingPermissionsTitle => 'アクセスを許可';
 
   @override
-  String get onboardingPermissionsBody => 'どちらも完全に端末内で動作します。';
+  String get onboardingPermissionsBody => 'すべて完全に端末内で動作します。';
 
   @override
   String get onboardingMicName => 'マイク';
@@ -295,16 +298,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSpeechReason => '録音をテキストに変換するため。処理は端末内で行われます。';
 
   @override
+  String get onboardingNotifyName => '通知';
+
+  @override
+  String get onboardingNotifyReason => '振り返りが用意できたらお知らせします。';
+
+  @override
   String get onboardingAllow => '許可';
 
   @override
   String get onboardingOpenSettings => '設定で有効にする';
 
   @override
-  String get onboardingModelsTitle => '言語をダウンロード';
+  String get onboardingModelsTitle => '文字起こしを設定';
 
   @override
-  String get onboardingModelsBody => '言語が端末に入れば、文字起こしはオフラインで動作します。メニューからいつでも追加できます。';
+  String get onboardingModelsBody => 'お使いの言語が端末に入れば、オフラインで動作します。メニューからいつでも追加できます。';
+
+  @override
+  String get onboardingReflectionsOn => '記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'この端末で Apple Intelligence の準備が完了すると始まります。';
+
+  @override
+  String get onboardingReflectionsOff => '「設定」の「Apple Intelligence と Siri」でオンにすると利用できます。';
 
   @override
   String get onboardingNext => '次へ';
@@ -355,4 +373,201 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '録音を削除';
+
+  @override
+  String get reflectionsTitle => '振り返り';
+
+  @override
+  String get reflectionPeriods => '期間';
+
+  @override
+  String get reflectionDaily => '毎日';
+
+  @override
+  String get reflectionWeekly => '毎週';
+
+  @override
+  String get reflectionMonthly => '毎月';
+
+  @override
+  String get reflectionsEmptyTitle => 'まだ振り返りはありません';
+
+  @override
+  String get reflectionsEmptyBody => '最初の振り返りは、ジャーナルに書き留めると届きます。記録した内容から読み解かれます。';
+
+  @override
+  String get reflectionQuietDay => '静かな一日。';
+
+  @override
+  String get reflectionQuietWeek => '静かな一週間。';
+
+  @override
+  String get reflectionQuietMonth => '静かな一ヶ月。';
+
+  @override
+  String get reflectionWaitingTitle => 'まだ書かれていません';
+
+  @override
+  String get reflectionWaitingBody => 'Apple Intelligence の準備が整った状態で次にジャーナルを開くと、読み返されます。';
+
+  @override
+  String get reflectionErasedTitle => '消去済み';
+
+  @override
+  String get reflectionErasedBody => 'この振り返りを削除しました。再生成するともう一度書かれます。';
+
+  @override
+  String get reflectionQuietBody => '振り返りになるものはありませんでした。';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '$date に作成';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return '$rangeの振り返り';
+  }
+
+  @override
+  String get reflectionVoice => '文体';
+
+  @override
+  String get reflectionVoiceLiterary => '文学的';
+
+  @override
+  String get reflectionVoiceObservational => '観察的';
+
+  @override
+  String get reflectionVoiceSparse => '簡素';
+
+  @override
+  String get reflectionLength => '長さ';
+
+  @override
+  String get reflectionLengthOneLine => '一行';
+
+  @override
+  String get reflectionLengthSentences => '数文';
+
+  @override
+  String get reflectionLengthParagraph => '短い段落';
+
+  @override
+  String get reflectionSpecifics => '具体性';
+
+  @override
+  String get reflectionSpecificsNameFreely => '具体的に書く';
+
+  @override
+  String get reflectionSpecificsThemes => 'テーマのみ';
+
+  @override
+  String get reflectionSpecificsLetPeriod => 'お任せする';
+
+  @override
+  String get reflectionGenerateAll => '振り返りを生成';
+
+  @override
+  String get reflectionRegenerate => '再生成';
+
+  @override
+  String get reflectionDeleteDay => '日を削除';
+
+  @override
+  String get reflectionDeleteWeek => '週を削除';
+
+  @override
+  String get reflectionDeleteMonth => '月を削除';
+
+  @override
+  String get reflectionRegenerateFailed => '振り返りを作成できませんでした。もう一度お試しください。';
+
+  @override
+  String get reflectionsDisabledTitle => '振り返りはオフです';
+
+  @override
+  String get reflectionsDisabledBody => '振り返りがオフの間は、新しいものは書かれません。';
+
+  @override
+  String get reflectionsDisabledEnable => 'オンにする';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence がオフです';
+
+  @override
+  String get reflectionOffBody => '振り返りを受け取るには、「設定」の「Apple Intelligence と Siri」でオンにしてください。';
+
+  @override
+  String get reflectionPreparingTitle => '準備中';
+
+  @override
+  String get reflectionPreparingBody => 'この端末で Apple Intelligence を準備しています。準備が完了すると振り返りが始まります。';
+
+  @override
+  String get reflectionUnsupportedTitle => 'ここでは利用できません';
+
+  @override
+  String get reflectionUnsupportedBody => 'この端末は、振り返りに必要な Apple Intelligence に対応していません。';
+
+  @override
+  String get settingsNotifications => '通知';
+
+  @override
+  String get notifyReflectionReminders => '振り返りのリマインダー';
+
+  @override
+  String get notifyPeriodDay => '日';
+
+  @override
+  String get notifyPeriodWeek => '週';
+
+  @override
+  String get notifyPeriodMonth => '月';
+
+  @override
+  String get notifyReflectionsInfo => '新しい振り返りを読む準備ができたら知らせます。デバイス上で動作し、どこにも送信されません。';
+
+  @override
+  String get notifyTime => '時刻';
+
+  @override
+  String get notifyPermissionDenied => '通知は「設定」でオフになっています。';
+
+  @override
+  String get notifyOpenSettings => '設定を開く';
+
+  @override
+  String get notifyDailyTitle => '昨日の振り返りができました';
+
+  @override
+  String get notifyDailyBody => '開いて昨日の振り返りを読む。';
+
+  @override
+  String get notifyWeeklyTitle => '今週の振り返りができました';
+
+  @override
+  String get notifyWeeklyBody => '開いて先週の振り返りを読む。';
+
+  @override
+  String get notifyMonthlyTitle => '先月の振り返りができました';
+
+  @override
+  String get notifyMonthlyBody => '開いて先月の振り返りを読む。';
+
+  @override
+  String get notifyNeedsReflections => '新しい振り返りを読む準備ができると、通知が届きます。今は振り返りがオフになっています。';
+
+  @override
+  String get notifyTurnOnReflections => '振り返りをオンにする';
+
+  @override
+  String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する通知はありません。';
+
+  @override
+  String get themeRequestInfo =>
+      'ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。';
+
+  @override
+  String get themeRequestLink => 'GitHub でテーマをリクエスト';
 }

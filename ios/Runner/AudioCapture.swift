@@ -528,14 +528,20 @@ final class AudioCaptureSession {
         let frames = Int(buffer.frameLength)
         var sum: Float = 0
         for i in 0..<frames { sum += data[i] * data[i] }
+        self.lock.lock()
         self.levelSumSquares += sum
         self.levelFrames += frames
+        var window: (sumSquares: Float, frames: Int)?
         if self.levelFrames >= 2048 {
-          let rms = sqrt(self.levelSumSquares / Float(self.levelFrames))
-          let db = 20 * log10(max(rms, 1e-6))
-          let level = min(max((Double(db) + 60) / 60, 0), 1)
+          window = (self.levelSumSquares, self.levelFrames)
           self.levelSumSquares = 0
           self.levelFrames = 0
+        }
+        self.lock.unlock()
+        if let window = window {
+          let rms = sqrt(window.sumSquares / Float(window.frames))
+          let db = 20 * log10(max(rms, 1e-6))
+          let level = min(max((Double(db) + 60) / 60, 0), 1)
           DispatchQueue.main.async { [weak self] in self?.onLevel?(level) }
         }
       }
@@ -578,11 +584,15 @@ final class AudioCaptureSession {
       }
 
       input.removeTap(onBus: 0)
-      // The old tap is detached, so no writer races these: reset the level
-      // window so one sample after the route change is not aggregated on top of
-      // a partial pre-change window (matches start()).
+      // The lock, not the detach, is what makes this reset safe: removeTap does
+      // not guarantee an in-flight tap callback has finished, and that callback
+      // now takes the same lock to touch these fields. Reset the level window so
+      // one sample after the route change is not aggregated on top of a partial
+      // pre-change window (matches start()).
+      self.lock.lock()
       self.levelSumSquares = 0
       self.levelFrames = 0
+      self.lock.unlock()
       self.installCaptureTap(on: input, format: format)
       if !self.engine.isRunning {
         do {
@@ -617,27 +627,14 @@ final class AudioCaptureSession {
 /// denied / undetermined.
 enum AudioPermission {
   static func ensure(_ completion: @escaping (String) -> Void) {
-    if #available(iOS 17.0, *) {
-      switch AVAudioApplication.shared.recordPermission {
-      case .granted: completion("granted")
-      case .denied: completion("denied")
-      case .undetermined:
-        AVAudioApplication.requestRecordPermission { granted in
-          DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
-        }
-      @unknown default: completion("undetermined")
+    switch AVAudioApplication.shared.recordPermission {
+    case .granted: completion("granted")
+    case .denied: completion("denied")
+    case .undetermined:
+      AVAudioApplication.requestRecordPermission { granted in
+        DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
       }
-    } else {
-      let session = AVAudioSession.sharedInstance()
-      switch session.recordPermission {
-      case .granted: completion("granted")
-      case .denied: completion("denied")
-      case .undetermined:
-        session.requestRecordPermission { granted in
-          DispatchQueue.main.async { completion(granted ? "granted" : "denied") }
-        }
-      @unknown default: completion("undetermined")
-      }
+    @unknown default: completion("undetermined")
     }
   }
 }
@@ -691,9 +688,7 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         instance?.statusSink?(status)
         // Fan out to the Live Activity AFTER Dart: the island is a mirror of
         // capture state, never a participant in it.
-        if #available(iOS 16.2, *) {
-          RecordingLiveActivityController.shared.handle(status)
-        }
+        RecordingLiveActivityController.shared.handle(status)
       }
     }
     // onLevel already fires on main.

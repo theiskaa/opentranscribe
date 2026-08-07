@@ -83,7 +83,16 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
   }
 
   void _spring({required double to, double velocity = 0}) {
-    _frac.animateWith(SpringSimulation(context.motionNow.sheetSpring, _frac.value, to, velocity));
+    // Floor the settle at 0, like the drag: a release velocity pointing up would
+    // otherwise make the spring overshoot past its target into a negative
+    // fraction, lifting the panel off the bottom edge and exposing the screen
+    // behind it.
+    _frac.animateWith(
+      ClampedSimulation(
+        SpringSimulation(context.motionNow.sheetSpring, _frac.value, to, velocity),
+        xMin: 0,
+      ),
+    );
   }
 
   double? get _height => _panel.currentContext?.size?.height;

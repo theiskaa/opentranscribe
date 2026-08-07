@@ -13,6 +13,7 @@ import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
@@ -26,6 +27,7 @@ import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
 /// a wave you can scrub, then what was said. Reads [EntriesCubit] so
@@ -57,6 +59,10 @@ class _DetailView extends StatefulWidget {
 class _DetailViewState extends State<_DetailView> {
   final FocusNode _titleFocus = FocusNode();
 
+  /// The reading region's selection focus. Unfocusing it clears a live
+  /// selection, so a re-transcribe can drop one before the ink capture.
+  final FocusNode _selectionFocus = FocusNode();
+
   /// The bar's menu button, which the Transcribe-in dropdown anchors to (the
   /// menu that offered the action grew from the same spot).
   final GlobalKey _menuAnchor = GlobalKey();
@@ -78,7 +84,18 @@ class _DetailViewState extends State<_DetailView> {
     // Leaving the screen silences playback; the cubit closes with the provider.
     _player?.stopAndDetach();
     _titleFocus.dispose();
+    _selectionFocus.dispose();
     super.dispose();
+  }
+
+  /// Starts a re-transcribe after dropping any live selection, one frame later
+  /// so the cleared paragraph paints before the shimmer grabs its last frame: a
+  /// selection left standing would bake its highlight wash into the ink.
+  void _startRetranscribe(EntriesCubit entries, Entry entry, {String? localeId}) {
+    _selectionFocus.unfocus();
+    WidgetsBinding.instance.endOfFrame.then((_) {
+      if (mounted) unawaited(entries.retranscribe(entry, localeId: localeId));
+    });
   }
 
   /// Action row ids: the list shrinks when an entry loses its audio, and a
@@ -139,7 +156,7 @@ class _DetailViewState extends State<_DetailView> {
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.
-        if (entry.hasAudio) unawaited(context.read<EntriesCubit>().retranscribe(entry));
+        if (entry.hasAudio) _startRetranscribe(context.read<EntriesCubit>(), entry);
       case _actDelete:
         // Straight through, no confirm. The menu already took a deliberate tap
         // to open and a second one to land on a row marked destructive; a sheet
@@ -149,7 +166,7 @@ class _DetailViewState extends State<_DetailView> {
       default:
         // A language leaf; its id is the tag itself.
         if (entry.hasAudio) {
-          unawaited(context.read<EntriesCubit>().retranscribe(entry, localeId: id));
+          _startRetranscribe(context.read<EntriesCubit>(), entry, localeId: id);
         }
     }
   }
@@ -182,14 +199,7 @@ class _DetailViewState extends State<_DetailView> {
     final entries = context.read<EntriesCubit>();
     final tags = _transcribeTags(entry, settings);
 
-    // Anchor to the menu button that offered the action; if it is somehow
-    // gone (a rebuilt bar), a top-right stand-in keeps the growth corner.
-    final box = _menuAnchor.currentContext?.findRenderObject();
-    final screen = MediaQuery.sizeOf(context);
-    final anchor = box is RenderBox && box.attached
-        ? box.localToGlobal(Offset.zero) & box.size
-        : Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
-
+    final anchor = dropdownAnchorRect(_menuAnchor, context);
     final preselected = entry.effectiveLocaleId ?? settings.localeId;
     final index = await showAppDropdown(
       context,
@@ -204,7 +214,7 @@ class _DetailViewState extends State<_DetailView> {
       ],
     );
     if (index == null) return;
-    unawaited(entries.retranscribe(entry, localeId: tags[index]));
+    _startRetranscribe(entries, entry, localeId: tags[index]);
   }
 
   @override
@@ -268,64 +278,67 @@ class _DetailViewState extends State<_DetailView> {
               // than pinning to the floor, so the transcript reads as a page
               // and not as text squeezed between two bars.
               Positioned.fill(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.xl,
-                    // Past the bar AND its fade tail: the material is opaque
-                    // through the row and only melts across the tail, so
-                    // content starting inside it would sit under the wash.
-                    AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                    AppSpacing.xl,
-                    // Clear the pinned dock when it shows, so the last line can
-                    // never hide behind it; otherwise just the home indicator.
-                    dockHeight > 0
-                        ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
-                        : bottomInset + AppSpacing.xxxl,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _TitleField(entry: entry, focusNode: _titleFocus),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
-                        ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
-                        ' \u00b7 ${formatClock(entry.duration)}'
-                        '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
-                        style: AppType.digits(
-                          AppType.footnote,
-                        ).copyWith(color: theme.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      // Discarded audio: the document flows from the metadata
-                      // straight into what it says. Animated, so a discard
-                      // landing mid-read collapses the player instead of
-                      // snapping ~80px of layout in one frame.
-                      AnimatedSize(
-                        duration: context.reduceMotion
-                            ? Duration.zero
-                            : context.motionNow.indicator,
-                        curve: context.motionNow.indicatorCurve,
-                        alignment: Alignment.topCenter,
-                        // The switcher fades the wave out while the size eases
-                        // the gap closed, so nothing hard-cuts mid-read.
-                        child: AnimatedSwitcher(
-                          duration: context.reduceMotion
-                              ? Duration.zero
-                              : context.motionNow.indicator,
-                          child: !entry.hasAudio
-                              ? const SizedBox(width: double.infinity)
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    WavePlayer(entry: entry),
-                                    const SizedBox(height: AppSpacing.xxl),
-                                  ],
-                                ),
+                child: SelectableProse(
+                  focusNode: _selectionFocus,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.xl,
+                      // Past the bar AND its fade tail: the material is opaque
+                      // through the row and only melts across the tail, so
+                      // content starting inside it would sit under the wash.
+                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                      AppSpacing.xl,
+                      // Clear the pinned dock when it shows, so the last line can
+                      // never hide behind it; otherwise just the home indicator.
+                      dockHeight > 0
+                          ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
+                          : bottomInset + AppSpacing.xxxl,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _TitleField(entry: entry, focusNode: _titleFocus),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
+                          ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
+                          ' \u00b7 ${formatClock(entry.duration)}'
+                          '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}',
+                          style: AppType.digits(
+                            AppType.footnote,
+                          ).copyWith(color: theme.textSecondary),
                         ),
-                      ),
-                      TranscriptView(entry: entry, busy: busy),
-                    ],
+                        const SizedBox(height: AppSpacing.xxl),
+                        // Discarded audio: the document flows from the metadata
+                        // straight into what it says. Animated, so a discard
+                        // landing mid-read collapses the player instead of
+                        // snapping ~80px of layout in one frame.
+                        AnimatedSize(
+                          duration: context.reduceMotion
+                              ? AppMotion.instant
+                              : context.motionNow.indicator,
+                          curve: context.motionNow.indicatorCurve,
+                          alignment: Alignment.topCenter,
+                          // The switcher fades the wave out while the size eases
+                          // the gap closed, so nothing hard-cuts mid-read.
+                          child: AnimatedSwitcher(
+                            duration: context.reduceMotion
+                                ? Duration.zero
+                                : context.motionNow.indicator,
+                            child: !entry.hasAudio
+                                ? const SizedBox(width: double.infinity)
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      WavePlayer(entry: entry),
+                                      const SizedBox(height: AppSpacing.xxl),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        TranscriptView(entry: entry, busy: busy),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -462,7 +475,7 @@ class _TitleField extends StatefulWidget {
 
 class _TitleFieldState extends State<_TitleField> {
   late final TextEditingController _controller = TextEditingController(
-    text: entryDisplayTitle(widget.entry),
+    text: entryDisplayTitle(widget.entry, localeTag(context)),
   );
   EntriesCubit? _entries;
 
@@ -492,7 +505,7 @@ class _TitleFieldState extends State<_TitleField> {
     super.didUpdateWidget(oldWidget);
     // Reflect an external change (a commit round-trip) unless mid-edit.
     if (!widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
-      _controller.text = entryDisplayTitle(widget.entry);
+      _controller.text = entryDisplayTitle(widget.entry, localeTag(context));
     }
   }
 
@@ -502,7 +515,7 @@ class _TitleFieldState extends State<_TitleField> {
 
   void _commit() {
     final trimmed = _controller.text.trim();
-    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null));
+    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), localeTag(context));
     final cleared = trimmed.isEmpty || trimmed == untitledDefault;
     if (cleared && widget.entry.title == null) {
       // Nothing changed; just restore the default text.

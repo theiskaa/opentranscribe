@@ -22,7 +22,7 @@ class PageIndicator extends StatelessWidget {
             duration: theme.motion.pageDash,
             curve: Curves.easeOut,
             margin: EdgeInsets.symmetric(horizontal: tokens.gap / 2),
-            width: tokens.dashWidth + (i == index ? 3 : 0),
+            width: tokens.dashWidth + (i == index ? tokens.activeBulge : 0),
             height: tokens.dashHeight,
             decoration: BoxDecoration(
               color: i == index ? tokens.active : tokens.inactive,

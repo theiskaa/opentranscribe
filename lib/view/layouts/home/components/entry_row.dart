@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
@@ -26,20 +27,27 @@ class EntryRow extends StatelessWidget {
     required this.onTap,
     required this.openId,
     required this.onDelete,
+    this.onDeleteStart,
     super.key,
   });
 
   final Entry entry;
 
-  /// The day's last record. The rail runs the full height of every row, gap
-  /// included, so a day's records are strung on ONE continuous line; the last
-  /// row simply has no gap, and the rail ends with its text.
+  /// The day's last LIVING record (a dying successor is already gone for
+  /// layout). The rail runs the full height of every row, gap included, so a
+  /// day's records are strung on ONE continuous line; the last row simply has
+  /// no gap, and the rail ends with its text.
   final bool last;
   final VoidCallback onTap;
 
   /// The one row currently swiped open, shared across the list.
   final ValueNotifier<String?> openId;
   final Future<void> Function(Entry) onDelete;
+
+  /// A delete committed and its exit is about to play; the list uses this to
+  /// close the surroundings (the neighbor's gap, an emptying day's title) in
+  /// step with the slot instead of after it.
+  final VoidCallback? onDeleteStart;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +63,7 @@ class EntryRow extends StatelessWidget {
       openId: openId,
       onTap: onTap,
       onDelete: () => onDelete(entry),
+      onExitStart: onDeleteStart,
       label: l10n.delete,
       // Behind the record: the rail and its node are the list's structure, so
       // they hold still while the record slides. The swipe wraps only the text
@@ -70,7 +79,17 @@ class EntryRow extends StatelessWidget {
             nodeSize: tokens.nodeSize,
             nodeCenter: _firstLineCenter(leadStyle),
           ),
-          child: Padding(
+          // Animated because [last] FLIPS on a neighbor's delete or arrival:
+          // the day gap (and the rail painted through it) must glide closed or
+          // open with the list's other motion, not snap while everything
+          // around it settles smoothly. Closing rides the delete exit's own
+          // clock and interval (its height only moves after the fade quarter),
+          // so gap and slot collapse as one; opening rides the arrival unfold.
+          child: AnimatedPadding(
+            duration: context.reduceMotion
+                ? Duration.zero
+                : (last ? theme.motion.swipeExit : theme.motion.expand),
+            curve: last ? AppMotion.swipeExitHeightCurve : Curves.easeOutCubic,
             padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,6 +138,67 @@ class EntryRow extends StatelessWidget {
   /// because its line box is tighter.
   static double _firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
 }
+
+/// The ids that ARRIVED between two home builds: entries present now that the
+/// previous build had not seen. A null [previous] is the first build - the
+/// whole journal is old news, nothing arrives - so it marks nothing. An id
+/// that left and returned (a failed delete restoring its row) is an arrival
+/// again: the returning row is the failure's only signal, and its unfold
+/// masks exactly the reinsertion jump.
+Set<String> newEntryIds(Set<String>? previous, List<Entry> current) {
+  if (previous == null) return const {};
+  return {
+    for (final entry in current)
+      if (!previous.contains(entry.id)) entry.id,
+  };
+}
+
+/// The calendar days that ARRIVED between two home builds, feeding the day
+/// splitter's unfold the same way [newEntryIds] feeds the rows': the first
+/// entry of a new day brings its splitter with it, and an unanimated splitter
+/// would jump the list by its full height. A null [previous] marks nothing.
+Set<DateTime> newEntryDays(Set<DateTime>? previous, Set<DateTime> current) {
+  if (previous == null) return const {};
+  return current.difference(previous);
+}
+
+/// The days that LEFT between two home builds - [newEntryDays]'s mirror,
+/// feeding the splitter's fold-out: deleting a day's only record must fold
+/// the day's title away with it, not snap it off. A null [previous] marks
+/// nothing.
+Set<DateTime> departedEntryDays(Set<DateTime>? previous, Set<DateTime> current) {
+  if (previous == null) return const {};
+  return previous.difference(current);
+}
+
+/// Where each departing day's ghost splitter renders while it folds away:
+/// slot i holds the ghosts sitting ABOVE section i, newest first, and the
+/// extra last slot those older than every live day - so a ghost closes in
+/// the exact seam its section vacated. [sectionDays] is newest first, like
+/// the home list; the result has sectionDays.length + 1 slots.
+List<List<DateTime>> departingSplitterSlots({
+  required List<DateTime> sectionDays,
+  required Set<DateTime> departing,
+}) {
+  final slots = [for (var i = 0; i <= sectionDays.length; i++) <DateTime>[]];
+  final ordered = departing.toList()..sort((a, b) => b.compareTo(a));
+  for (final day in ordered) {
+    var i = 0;
+    while (i < sectionDays.length && sectionDays[i].isAfter(day)) {
+      i++;
+    }
+    slots[i].add(day);
+  }
+  return slots;
+}
+
+/// Whether every id in [ids] is mid-exit, which layout treats as already
+/// gone: a day whose ids all pass folds its title, a row whose successors all
+/// pass is the day's last living record, and a section whose predecessors all
+/// pass leads the list - each closing in step with the exits, not after the
+/// emit lands. Vacuously true for no ids, which is what makes an untouched
+/// first section lead.
+bool allDying(Iterable<String> ids, Set<String> dying) => ids.every(dying.contains);
 
 /// The rail: one hairline down the gutter with a filled node on it. It runs the
 /// painter's whole height, so consecutive rows draw one unbroken line.

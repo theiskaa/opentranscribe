@@ -52,6 +52,13 @@ class LiquidNativeView: NSObject, FlutterPlatformView {
     }
   }
 
+  // The messenger retains the handler until it is cleared, and every recreation
+  // of a platform view mints a new channel, so a stale registration would leak
+  // per navigation.
+  deinit {
+    channel.setMethodCallHandler(nil)
+  }
+
   func view() -> UIView {
     rootView
   }
@@ -70,5 +77,13 @@ class LiquidNativeView: NSObject, FlutterPlatformView {
       rootView.overrideUserInterfaceStyle = isDarkNS.boolValue ? .dark : .light
     }
     // If not specified, don't override (use system default)
+  }
+
+  /// Decodes a Flutter bool, which the codec bridges as either a native Bool or
+  /// an NSNumber. Nil when the key is absent or holds neither.
+  func boolValue(from params: [String: Any], key: String) -> Bool? {
+    if let b = params[key] as? Bool { return b }
+    if let n = params[key] as? NSNumber { return n.boolValue }
+    return nil
   }
 }

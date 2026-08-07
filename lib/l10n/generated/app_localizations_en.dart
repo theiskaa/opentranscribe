@@ -49,9 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePullToRecord => 'Pull to record';
 
   @override
-  String get menuTranscriptionLanguage => 'Transcription';
-
-  @override
   String get menuSourceCode => 'Source code';
 
   @override
@@ -246,7 +243,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => 'Models';
+  String get settingsModels => 'Transcription';
 
   @override
   String get transcriptionLanguages => 'Languages';
@@ -284,6 +281,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingPrivateLine => 'No account, no cloud. Airplane mode changes nothing.';
 
   @override
+  String get onboardingReflectTitle => 'Reflections';
+
+  @override
+  String get onboardingReflectLine => 'Your entries read back as a short note, all on device.';
+
+  @override
   String get onboardingSource => 'Open source';
 
   @override
@@ -293,7 +296,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingPermissionsTitle => 'Allow access';
 
   @override
-  String get onboardingPermissionsBody => 'Both work entirely on your device.';
+  String get onboardingPermissionsBody => 'Everything here works entirely on your device.';
 
   @override
   String get onboardingMicName => 'Microphone';
@@ -308,17 +311,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSpeechReason => 'To turn your recordings into text, on device.';
 
   @override
+  String get onboardingNotifyName => 'Notifications';
+
+  @override
+  String get onboardingNotifyReason => 'For a nudge when a reflection is ready.';
+
+  @override
   String get onboardingAllow => 'Allow';
 
   @override
   String get onboardingOpenSettings => 'Enable in Settings';
 
   @override
-  String get onboardingModelsTitle => 'Download a language';
+  String get onboardingModelsTitle => 'Set up transcription';
 
   @override
   String get onboardingModelsBody =>
-      'Transcription runs offline once a language is on your device. You can add more anytime from the menu.';
+      'It runs offline once your language is on the device. You can add more anytime from the menu.';
+
+  @override
+  String get onboardingReflectionsOn =>
+      'Your entries read back as a short reflection, entirely on this device.';
+
+  @override
+  String get onboardingReflectionsPreparing =>
+      'Starts once Apple Intelligence finishes preparing on this device.';
+
+  @override
+  String get onboardingReflectionsOff =>
+      'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.';
 
   @override
   String get onboardingNext => 'Next';
@@ -378,4 +399,209 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => 'Delete recordings';
+
+  @override
+  String get reflectionsTitle => 'Reflections';
+
+  @override
+  String get reflectionPeriods => 'Periods';
+
+  @override
+  String get reflectionDaily => 'Daily';
+
+  @override
+  String get reflectionWeekly => 'Weekly';
+
+  @override
+  String get reflectionMonthly => 'Monthly';
+
+  @override
+  String get reflectionsEmptyTitle => 'No reflections yet';
+
+  @override
+  String get reflectionsEmptyBody =>
+      'The first arrives once you have journaled, read back from what you recorded.';
+
+  @override
+  String get reflectionQuietDay => 'A quiet day.';
+
+  @override
+  String get reflectionQuietWeek => 'A quiet week.';
+
+  @override
+  String get reflectionQuietMonth => 'A quiet month.';
+
+  @override
+  String get reflectionWaitingTitle => 'Not written yet';
+
+  @override
+  String get reflectionWaitingBody =>
+      'This will be read back the next time the journal opens with Apple Intelligence ready.';
+
+  @override
+  String get reflectionErasedTitle => 'Erased';
+
+  @override
+  String get reflectionErasedBody => 'You removed this reflection. Regenerate writes it again.';
+
+  @override
+  String get reflectionQuietBody => 'Nothing rose to a reflection.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return 'Written $date';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return 'Reflection of $range';
+  }
+
+  @override
+  String get reflectionVoice => 'Voice';
+
+  @override
+  String get reflectionVoiceLiterary => 'Literary';
+
+  @override
+  String get reflectionVoiceObservational => 'Observational';
+
+  @override
+  String get reflectionVoiceSparse => 'Sparse';
+
+  @override
+  String get reflectionLength => 'Length';
+
+  @override
+  String get reflectionLengthOneLine => 'One line';
+
+  @override
+  String get reflectionLengthSentences => 'A few sentences';
+
+  @override
+  String get reflectionLengthParagraph => 'Short paragraph';
+
+  @override
+  String get reflectionSpecifics => 'Specifics';
+
+  @override
+  String get reflectionSpecificsNameFreely => 'Name specifics';
+
+  @override
+  String get reflectionSpecificsThemes => 'Themes only';
+
+  @override
+  String get reflectionSpecificsLetPeriod => 'Let it decide';
+
+  @override
+  String get reflectionGenerateAll => 'Generate reflections';
+
+  @override
+  String get reflectionRegenerate => 'Regenerate';
+
+  @override
+  String get reflectionDeleteDay => 'Delete day';
+
+  @override
+  String get reflectionDeleteWeek => 'Delete week';
+
+  @override
+  String get reflectionDeleteMonth => 'Delete month';
+
+  @override
+  String get reflectionRegenerateFailed => 'Could not reflect. Try again.';
+
+  @override
+  String get reflectionsDisabledTitle => 'Reflections are off';
+
+  @override
+  String get reflectionsDisabledBody => 'Nothing new will be written while reflections are off.';
+
+  @override
+  String get reflectionsDisabledEnable => 'Turn on';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence is off';
+
+  @override
+  String get reflectionOffBody =>
+      'Turn it on in Settings, under Apple Intelligence and Siri, to get reflections.';
+
+  @override
+  String get reflectionPreparingTitle => 'Getting ready';
+
+  @override
+  String get reflectionPreparingBody =>
+      'Apple Intelligence is preparing on this device. Reflections start once it finishes.';
+
+  @override
+  String get reflectionUnsupportedTitle => 'Not available here';
+
+  @override
+  String get reflectionUnsupportedBody =>
+      'This device does not support Apple Intelligence, which reflections need.';
+
+  @override
+  String get settingsNotifications => 'Notifications';
+
+  @override
+  String get notifyReflectionReminders => 'Reflection reminders';
+
+  @override
+  String get notifyPeriodDay => 'Day';
+
+  @override
+  String get notifyPeriodWeek => 'Week';
+
+  @override
+  String get notifyPeriodMonth => 'Month';
+
+  @override
+  String get notifyReflectionsInfo =>
+      'A nudge when a new reflection is ready to read. It fires on your device; nothing is sent anywhere.';
+
+  @override
+  String get notifyTime => 'Time';
+
+  @override
+  String get notifyPermissionDenied => 'Notifications are turned off in Settings.';
+
+  @override
+  String get notifyOpenSettings => 'Open Settings';
+
+  @override
+  String get notifyDailyTitle => 'Your day is ready';
+
+  @override
+  String get notifyDailyBody => 'Open to read yesterday\'s reflection.';
+
+  @override
+  String get notifyWeeklyTitle => 'Your week is ready';
+
+  @override
+  String get notifyWeeklyBody => 'Open to read last week\'s reflection.';
+
+  @override
+  String get notifyMonthlyTitle => 'Your month is ready';
+
+  @override
+  String get notifyMonthlyBody => 'Open to read last month\'s reflection.';
+
+  @override
+  String get notifyNeedsReflections =>
+      'Nudges arrive when a new reflection is ready to read. Reflections are off right now.';
+
+  @override
+  String get notifyTurnOnReflections => 'Turn on reflections';
+
+  @override
+  String get notifyReflectionsUnavailable =>
+      'This device can\'t generate reflections, so there\'s no nudge to send.';
+
+  @override
+  String get themeRequestInfo =>
+      'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.';
+
+  @override
+  String get themeRequestLink => 'Request a theme on GitHub';
 }

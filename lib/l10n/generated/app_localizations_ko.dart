@@ -45,9 +45,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homePullToRecord => '당겨서 녹음';
 
   @override
-  String get menuTranscriptionLanguage => '전사';
-
-  @override
   String get menuSourceCode => '소스 코드';
 
   @override
@@ -234,7 +231,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get settingsModels => '모델';
+  String get settingsModels => '전사';
 
   @override
   String get transcriptionLanguages => '언어';
@@ -272,6 +269,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingPrivateLine => '계정도, 클라우드도 없습니다. 비행기 모드에서도 그대로 동작합니다.';
 
   @override
+  String get onboardingReflectTitle => '돌아보기';
+
+  @override
+  String get onboardingReflectLine => '기록이 짧은 노트로 정리됩니다. 모두 이 기기에서.';
+
+  @override
   String get onboardingSource => '오픈 소스';
 
   @override
@@ -281,7 +284,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingPermissionsTitle => '접근 허용';
 
   @override
-  String get onboardingPermissionsBody => '둘 다 전적으로 기기에서 처리됩니다.';
+  String get onboardingPermissionsBody => '모든 기능이 전적으로 기기에서 처리됩니다.';
 
   @override
   String get onboardingMicName => '마이크';
@@ -296,16 +299,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingSpeechReason => '녹음을 기기에서 텍스트로 바꾸기 위해서입니다.';
 
   @override
+  String get onboardingNotifyName => '알림';
+
+  @override
+  String get onboardingNotifyReason => '돌아보기가 준비되면 알림을 보내드립니다.';
+
+  @override
   String get onboardingAllow => '허용';
 
   @override
   String get onboardingOpenSettings => '설정에서 사용 설정';
 
   @override
-  String get onboardingModelsTitle => '언어 다운로드';
+  String get onboardingModelsTitle => '전사 설정';
 
   @override
-  String get onboardingModelsBody => '언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
+  String get onboardingModelsBody => '사용하는 언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
+
+  @override
+  String get onboardingReflectionsOn => '기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
+
+  @override
+  String get onboardingReflectionsPreparing => '이 기기에서 Apple Intelligence 준비가 끝나면 시작됩니다.';
+
+  @override
+  String get onboardingReflectionsOff => '\'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜면 이용할 수 있습니다.';
 
   @override
   String get onboardingNext => '다음';
@@ -356,4 +374,202 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get cacheClearConfirm => '녹음 삭제';
+
+  @override
+  String get reflectionsTitle => '돌아보기';
+
+  @override
+  String get reflectionPeriods => '기간';
+
+  @override
+  String get reflectionDaily => '매일';
+
+  @override
+  String get reflectionWeekly => '매주';
+
+  @override
+  String get reflectionMonthly => '매월';
+
+  @override
+  String get reflectionsEmptyTitle => '아직 돌아보기가 없습니다';
+
+  @override
+  String get reflectionsEmptyBody => '첫 돌아보기는 기록을 시작하면 도착하며, 기록한 내용을 되짚어 만들어집니다.';
+
+  @override
+  String get reflectionQuietDay => '조용한 하루.';
+
+  @override
+  String get reflectionQuietWeek => '조용한 한 주.';
+
+  @override
+  String get reflectionQuietMonth => '조용한 한 달.';
+
+  @override
+  String get reflectionWaitingTitle => '아직 작성되지 않음';
+
+  @override
+  String get reflectionWaitingBody => 'Apple Intelligence가 준비된 상태로 저널을 다시 열면 이 내용을 돌아봅니다.';
+
+  @override
+  String get reflectionErasedTitle => '지움';
+
+  @override
+  String get reflectionErasedBody => '이 돌아보기를 삭제했습니다. 다시 생성하면 다시 작성됩니다.';
+
+  @override
+  String get reflectionQuietBody => '돌아볼 만한 것이 없었습니다.';
+
+  @override
+  String reflectionWrittenOn(String date) {
+    return '$date에 작성됨';
+  }
+
+  @override
+  String reflectionOfPeriod(String range) {
+    return '$range 돌아보기';
+  }
+
+  @override
+  String get reflectionVoice => '문체';
+
+  @override
+  String get reflectionVoiceLiterary => '문학적';
+
+  @override
+  String get reflectionVoiceObservational => '관찰적';
+
+  @override
+  String get reflectionVoiceSparse => '간결';
+
+  @override
+  String get reflectionLength => '길이';
+
+  @override
+  String get reflectionLengthOneLine => '한 줄';
+
+  @override
+  String get reflectionLengthSentences => '몇 문장';
+
+  @override
+  String get reflectionLengthParagraph => '짧은 문단';
+
+  @override
+  String get reflectionSpecifics => '구체성';
+
+  @override
+  String get reflectionSpecificsNameFreely => '구체적으로 쓰기';
+
+  @override
+  String get reflectionSpecificsThemes => '주제만';
+
+  @override
+  String get reflectionSpecificsLetPeriod => '알아서 정하도록';
+
+  @override
+  String get reflectionGenerateAll => '돌아보기 생성';
+
+  @override
+  String get reflectionRegenerate => '다시 생성';
+
+  @override
+  String get reflectionDeleteDay => '하루 삭제';
+
+  @override
+  String get reflectionDeleteWeek => '한 주 삭제';
+
+  @override
+  String get reflectionDeleteMonth => '한 달 삭제';
+
+  @override
+  String get reflectionRegenerateFailed => '돌아보기를 만들지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get reflectionsDisabledTitle => '돌아보기가 꺼져 있습니다';
+
+  @override
+  String get reflectionsDisabledBody => '돌아보기가 꺼져 있는 동안에는 새로운 내용이 작성되지 않습니다.';
+
+  @override
+  String get reflectionsDisabledEnable => '켜기';
+
+  @override
+  String get reflectionOffTitle => 'Apple Intelligence가 꺼져 있습니다';
+
+  @override
+  String get reflectionOffBody => '돌아보기를 받으려면 \'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜세요.';
+
+  @override
+  String get reflectionPreparingTitle => '준비 중';
+
+  @override
+  String get reflectionPreparingBody =>
+      '이 기기에서 Apple Intelligence를 준비하고 있습니다. 준비가 끝나면 돌아보기가 시작됩니다.';
+
+  @override
+  String get reflectionUnsupportedTitle => '여기서는 사용할 수 없습니다';
+
+  @override
+  String get reflectionUnsupportedBody => '이 기기는 돌아보기에 필요한 Apple Intelligence를 지원하지 않습니다.';
+
+  @override
+  String get settingsNotifications => '알림';
+
+  @override
+  String get notifyReflectionReminders => '돌아보기 알림';
+
+  @override
+  String get notifyPeriodDay => '일';
+
+  @override
+  String get notifyPeriodWeek => '주';
+
+  @override
+  String get notifyPeriodMonth => '월';
+
+  @override
+  String get notifyReflectionsInfo => '새로운 돌아보기를 읽을 수 있을 때 알려줍니다. 기기에서 실행되며 어디로도 전송되지 않습니다.';
+
+  @override
+  String get notifyTime => '시간';
+
+  @override
+  String get notifyPermissionDenied => '설정에서 알림이 꺼져 있습니다.';
+
+  @override
+  String get notifyOpenSettings => '설정 열기';
+
+  @override
+  String get notifyDailyTitle => '어제 하루가 준비되었어요';
+
+  @override
+  String get notifyDailyBody => '열어서 어제의 돌아보기를 읽어보세요.';
+
+  @override
+  String get notifyWeeklyTitle => '이번 주가 준비되었어요';
+
+  @override
+  String get notifyWeeklyBody => '열어서 지난주 돌아보기를 읽어보세요.';
+
+  @override
+  String get notifyMonthlyTitle => '지난달이 준비되었어요';
+
+  @override
+  String get notifyMonthlyBody => '열어서 지난달 돌아보기를 읽어보세요.';
+
+  @override
+  String get notifyNeedsReflections => '새로운 돌아보기를 읽을 수 있을 때 알림이 도착합니다. 지금은 돌아보기가 꺼져 있습니다.';
+
+  @override
+  String get notifyTurnOnReflections => '돌아보기 켜기';
+
+  @override
+  String get notifyReflectionsUnavailable => '이 기기는 돌아보기를 생성할 수 없어 보낼 알림이 없습니다.';
+
+  @override
+  String get themeRequestInfo =>
+      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다.';
+
+  @override
+  String get themeRequestLink => 'GitHub에서 테마 요청하기';
 }

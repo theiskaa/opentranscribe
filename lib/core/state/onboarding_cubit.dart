@@ -5,6 +5,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/audio/recording.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 
@@ -18,30 +19,43 @@ class OnboardingState {
   const OnboardingState({
     this.mic = PermissionStatus.undetermined,
     this.speech = SpeechPermission.undetermined,
+    this.notification = NotificationPermission.notDetermined,
     this.requestingMic = false,
     this.requestingSpeech = false,
+    this.requestingNotification = false,
   });
 
   final PermissionStatus mic;
   final SpeechPermission speech;
 
+  /// The weekly-reflection nudge permission, offered only on eligible hardware.
+  /// Optional: unlike mic and speech, skipping it costs the flow nothing, and
+  /// the nudge toggle later asks contextually for anyone who does.
+  final NotificationPermission notification;
+
   /// A prompt is in flight, so the row shows a spinner and ignores a second tap.
   final bool requestingMic;
   final bool requestingSpeech;
+  final bool requestingNotification;
 
   bool get micGranted => mic == PermissionStatus.granted;
   bool get speechGranted => speech == SpeechPermission.granted;
+  bool get notificationGranted => notification == NotificationPermission.authorized;
 
   OnboardingState copyWith({
     PermissionStatus? mic,
     SpeechPermission? speech,
+    NotificationPermission? notification,
     bool? requestingMic,
     bool? requestingSpeech,
+    bool? requestingNotification,
   }) => OnboardingState(
     mic: mic ?? this.mic,
     speech: speech ?? this.speech,
+    notification: notification ?? this.notification,
     requestingMic: requestingMic ?? this.requestingMic,
     requestingSpeech: requestingSpeech ?? this.requestingSpeech,
+    requestingNotification: requestingNotification ?? this.requestingNotification,
   );
 }
 
@@ -49,11 +63,13 @@ class OnboardingState {
 /// prompts and reports the answers. It never blocks the flow - a denied
 /// permission is a state to show, not a wall (recording re-prompts on first use).
 class OnboardingCubit extends Cubit<OnboardingState> {
-  OnboardingCubit({required TranscriptionService service})
+  OnboardingCubit({required TranscriptionService service, required NotificationScheduler scheduler})
     : _service = service,
+      _scheduler = scheduler,
       super(const OnboardingState());
 
   final TranscriptionService _service;
+  final NotificationScheduler _scheduler;
 
   Future<void> requestMic() async {
     if (state.requestingMic) return;
@@ -85,6 +101,25 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       // Same as the mic: no answer, keep the button.
     } finally {
       if (!isClosed) emit(state.copyWith(requestingSpeech: false));
+    }
+  }
+
+  /// Fires the OS notification prompt once, then reflects the standing answer.
+  /// Optional and non-blocking: a denial only means the weekly nudge cannot fire
+  /// until it is restored in Settings, which the row surfaces.
+  Future<void> requestNotification() async {
+    if (state.requestingNotification) return;
+    emit(state.copyWith(requestingNotification: true));
+    try {
+      // requestPermission prompts only when undetermined; permissionStatus then
+      // reports the real grant (authorized covers provisional and ephemeral).
+      await _scheduler.requestPermission();
+      final status = await _scheduler.permissionStatus();
+      if (!isClosed) emit(state.copyWith(notification: status));
+    } catch (_) {
+      // No answer; leave the status so the Allow button returns for a retry.
+    } finally {
+      if (!isClosed) emit(state.copyWith(requestingNotification: false));
     }
   }
 }

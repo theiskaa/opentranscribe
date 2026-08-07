@@ -1,4 +1,7 @@
 include: package:flutter_lints/flutter.yaml
 
 # Vendored code, kept close to how it arrived: the app's own stricter rules are
-# not applied here, so an upstream diff stays readable.
+# not applied here, so an upstream diff stays readable. The width matches how
+# it arrived; without it a root `dart format .` rewraps the package to 80.
+formatter:
+  page_width: 100

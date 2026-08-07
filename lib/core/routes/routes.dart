@@ -23,6 +23,20 @@ abstract final class Routes {
   static const settingsCache = '/settings/cache';
   static const settingsCacheName = 'settingsCache';
 
+  /// The notifications screen (local, on-device nudges; a single weekly
+  /// reflection toggle today). Pushed over home from the menu.
+  static const settingsNotifications = '/settings/notifications';
+  static const settingsNotificationsName = 'settingsNotifications';
+
+  /// The ONE reflections surface: past weeks one page at a time, with the one
+  /// menu acting on the viewed week. Reached plain from the home menu (lands
+  /// on the newest closed week), or with a `week` query parameter
+  /// (yyyy-MM-dd, [Reflection.keyFor]) to land on a specific week - how a
+  /// home card opens its reflection. An unknown week falls back to the
+  /// newest.
+  static const reflections = '/reflections';
+  static const reflectionsName = 'reflections';
+
   /// Entry detail. Navigate by name with an `id` param; pushes over the shell.
   static const entry = '/entry/:id';
   static const entryName = 'entry';
