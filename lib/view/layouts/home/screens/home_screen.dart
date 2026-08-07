@@ -443,6 +443,9 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
       automaticLeading: false,
+      // Nothing native scrolls under the home bar, so the drawn fade stands in
+      // for the native material and skips its re-stage flicker on return.
+      nativeMaterial: false,
       barHeight: theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
       // One trailing menu instead of a row of buttons: the home is the app, and

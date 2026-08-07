@@ -38,6 +38,7 @@ class AppTopBar extends StatelessWidget {
     this.bottomHeight = 0,
     this.frosted = false,
     this.automaticLeading = true,
+    this.nativeMaterial = true,
     super.key,
   });
 
@@ -80,6 +81,14 @@ class AppTopBar extends StatelessWidget {
   /// route above it `canPop` is briefly true, and without this a phantom back
   /// button flickers in on the way back.
   final bool automaticLeading;
+
+  /// Whether the material may be the native iOS 26 [LiquidEdgeFade] platform
+  /// view. The native path exists only so native glass controls can scroll
+  /// under the bar; a bar with nothing native beneath it gains nothing from it
+  /// and pays for the platform view's re-stage on return, which drops the fade
+  /// for a frame. Home turns this OFF (its content is all drawn) so its fade is
+  /// the churn-free drawn [EdgeFade].
+  final bool nativeMaterial;
 
   /// Status inset + the default compact row, for content padding.
   static double heightOf(BuildContext context) =>
@@ -166,11 +175,13 @@ class AppTopBar extends StatelessWidget {
                     chromeHeight: chromeHeight,
                     color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
                     sigma: bar.blurSigma,
+                    native: nativeMaterial,
                   )
                 : _BarMaterial(
                     chromeHeight: chromeHeight,
                     color: bar.background,
                     sigma: bar.blurSigma,
+                    native: nativeMaterial,
                     // Opaque through the whole chrome (title row AND the
                     // bottom slot); only the tail fades, so nothing stays
                     // legible under the title and the bottom slot is never
@@ -217,6 +228,7 @@ class _BarMaterial extends StatelessWidget {
     required this.color,
     required this.sigma,
     this.fadeFrom = 0.5,
+    this.native = true,
   });
 
   final double chromeHeight;
@@ -224,12 +236,15 @@ class _BarMaterial extends StatelessWidget {
   final double sigma;
   final double fadeFrom;
 
+  /// See [AppTopBar.nativeMaterial]: false keeps the drawn fade even on iOS 26.
+  final bool native;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final height = chromeHeight + theme.topBar.fadeTail;
     final drawn = EdgeFade(height: height, color: color, sigma: sigma, fadeFrom: fadeFrom);
-    if (!PlatformCaps.nativeGlass) return drawn;
+    if (!native || !PlatformCaps.nativeGlass) return drawn;
 
     return LiquidEdgeFade(
       height: height,
