@@ -768,5 +768,221 @@
   "themeRequestLink": "Request a theme on GitHub",
   "@themeRequestLink": {
     "description": "Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser"
+  },
+  "exportEntry": "Export",
+  "@exportEntry": {
+    "description": "Menu row and button label for exporting one entry"
+  },
+  "exportEntryTitle": "Export entry",
+  "@exportEntryTitle": {
+    "description": "Entry export sheet title"
+  },
+  "exportIncludeAudio": "Include audio",
+  "@exportIncludeAudio": {
+    "description": "Toggle for bundling the recording with an export"
+  },
+  "exportFailedTitle": "Export failed",
+  "@exportFailedTitle": {
+    "description": "Export failure sheet title"
+  },
+  "exportFailedBody": "Could not prepare the files. Nothing was shared.",
+  "@exportFailedBody": {
+    "description": "Export failure explanation; nothing left the phone"
+  },
+  "exportUntitled": "Untitled",
+  "@exportUntitled": {
+    "description": "File and heading fallback for an entry with no title"
+  },
+  "exportTranscriptHeading": "Transcript",
+  "@exportTranscriptHeading": {
+    "description": "Markdown heading over the exported transcript"
+  },
+  "exportQuiet": "A quiet stretch.",
+  "@exportQuiet": {
+    "description": "How a silent reflection reads in an export"
+  },
+  "exportRecorded": "Recorded",
+  "@exportRecorded": {
+    "description": "Metadata label for the recording timestamp"
+  },
+  "exportDuration": "Duration",
+  "@exportDuration": {
+    "description": "Metadata label for the recording length"
+  },
+  "exportLanguage": "Language",
+  "@exportLanguage": {
+    "description": "Metadata label for the transcription language"
+  },
+  "exportAudio": "Audio",
+  "@exportAudio": {
+    "description": "Metadata label for the audio link"
+  },
+  "settingsBackup": "Backup",
+  "@settingsBackup": {
+    "description": "Home menu row opening the Backup screen"
+  },
+  "backupInfo": "Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.",
+  "@backupInfo": {
+    "description": "Backup screen intro: local-only, share only on request"
+  },
+  "backupEntriesCount": "{count, plural, =0 {0 entries} one {1 entry} other {{count} entries}}",
+  "@backupEntriesCount": {
+    "description": "Hero card headline: how many entries the journal holds",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupExportSection": "Export",
+  "@backupExportSection": {
+    "description": "Section label over the format picker and export row"
+  },
+  "backupExportJournal": "Export journal",
+  "@backupExportJournal": {
+    "description": "Action row exporting the whole journal in the chosen format"
+  },
+  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet.",
+  "@backupExportInfo": {
+    "description": "Help paragraph under the export card"
+  },
+  "backupArchiveSection": "Archive",
+  "@backupArchiveSection": {
+    "description": "Section label over the archive card"
+  },
+  "backupSeal": "Seal with passphrase",
+  "@backupSeal": {
+    "description": "Toggle for sealing archives with a passphrase"
+  },
+  "backupSaveArchive": "Save archive",
+  "@backupSaveArchive": {
+    "description": "Action row saving the native archive"
+  },
+  "backupLastArchive": "Last archive {date}",
+  "@backupLastArchive": {
+    "description": "Detail text with the last archive date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "backupArchiveInfo": "One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.",
+  "@backupArchiveInfo": {
+    "description": "Help paragraph under the archive card; no recovery warning"
+  },
+  "backupImportSection": "Import",
+  "@backupImportSection": {
+    "description": "Section label over the import card"
+  },
+  "backupImport": "Import archive",
+  "@backupImport": {
+    "description": "Action row opening the archive picker"
+  },
+  "backupImportInfo": "Adds an archive's entries to the journal. An entry carried by both keeps the archive's version, and importing twice never duplicates.",
+  "@backupImportInfo": {
+    "description": "Help paragraph under the import card; idempotency promise"
+  },
+  "passphraseCreateTitle": "Seal the archive",
+  "@passphraseCreateTitle": {
+    "description": "Sealing passphrase sheet title"
+  },
+  "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the archive is noise.",
+  "@passphraseCreateBody": {
+    "description": "Sealing passphrase sheet body: the passphrase is the only key"
+  },
+  "passphrasePlaceholder": "Passphrase",
+  "@passphrasePlaceholder": {
+    "description": "Passphrase field placeholder"
+  },
+  "passphraseRepeatPlaceholder": "Repeat passphrase",
+  "@passphraseRepeatPlaceholder": {
+    "description": "Confirmation field placeholder"
+  },
+  "passphraseTooShort": "At least 8 characters",
+  "@passphraseTooShort": {
+    "description": "Footnote while the passphrase is under the minimum length"
+  },
+  "passphraseMismatch": "Passphrases do not match",
+  "@passphraseMismatch": {
+    "description": "Footnote while the two passphrase fields differ"
+  },
+  "importUnlockTitle": "Sealed archive",
+  "@importUnlockTitle": {
+    "description": "Unlock sheet title for a sealed archive"
+  },
+  "importUnlockBody": "Enter the passphrase this archive was sealed with.",
+  "@importUnlockBody": {
+    "description": "Unlock sheet body asking for the sealing passphrase"
+  },
+  "importUnlock": "Unlock",
+  "@importUnlock": {
+    "description": "Unlock sheet action button"
+  },
+  "importWrongPassphrase": "Could not unlock. Wrong passphrase, or a damaged file.",
+  "@importWrongPassphrase": {
+    "description": "Unlock retry error; GCM cannot tell wrong passphrase from damage"
+  },
+  "importConfirmTitle": "Import archive?",
+  "@importConfirmTitle": {
+    "description": "Import confirmation sheet title"
+  },
+  "importConfirmBody": "Adds its entries to your journal. Importing the same archive twice never duplicates.",
+  "@importConfirmBody": {
+    "description": "Import confirmation body: additive, nothing touched"
+  },
+  "importConfirm": "Import",
+  "@importConfirm": {
+    "description": "Import confirmation action button"
+  },
+  "importSummaryTitle": "Import complete",
+  "@importSummaryTitle": {
+    "description": "Import summary sheet title"
+  },
+  "importSummaryImported": "{count, plural, =0 {Nothing new to import.} one {Imported 1 entry.} other {Imported {count} entries.}}",
+  "@importSummaryImported": {
+    "description": "Summary line for how many entries were imported",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSummarySkipped": "{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}",
+  "@importSummarySkipped": {
+    "description": "Summary line for entries already present, shown only when some were",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailedTitle": "Import failed",
+  "@importFailedTitle": {
+    "description": "Import failure sheet title"
+  },
+  "importFailedBody": "The archive could not be read. Nothing in the journal was changed.",
+  "@importFailedBody": {
+    "description": "Generic import failure body; journal unchanged"
+  },
+  "importNotArchive": "Not an opentranscribe archive. Nothing in the journal was changed.",
+  "@importNotArchive": {
+    "description": "Failure body for a file that is not an archive"
+  },
+  "importNewerVersion": "Made by a newer version of the app. Update to import it.",
+  "@importNewerVersion": {
+    "description": "Failure body for an archive from a newer app version"
+  },
+  "importRezipped": "This archive was re-zipped by another tool. Export a fresh one and import that.",
+  "@importRezipped": {
+    "description": "Failure body for an archive re-compressed by another tool"
+  },
+  "done": "Done",
+  "@done": {
+    "description": "Generic dismiss button"
+  },
+  "importFailedMidway": "The import stopped partway. Everything restored so far is kept; import again to finish.",
+  "@importFailedMidway": {
+    "description": "Failure body when adoption already wrote; restored entries are kept"
   }
 }

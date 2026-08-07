@@ -570,4 +570,173 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'GitHub でテーマをリクエスト';
+
+  @override
+  String get exportEntry => '書き出す';
+
+  @override
+  String get exportEntryTitle => 'エントリーを書き出す';
+
+  @override
+  String get exportIncludeAudio => '音声を含める';
+
+  @override
+  String get exportFailedTitle => '書き出しに失敗しました';
+
+  @override
+  String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
+
+  @override
+  String get exportUntitled => '無題';
+
+  @override
+  String get exportTranscriptHeading => '文字起こし';
+
+  @override
+  String get exportQuiet => '静かなひととき。';
+
+  @override
+  String get exportRecorded => '録音日時';
+
+  @override
+  String get exportDuration => '長さ';
+
+  @override
+  String get exportLanguage => '言語';
+
+  @override
+  String get exportAudio => '音声';
+
+  @override
+  String get settingsBackup => 'バックアップ';
+
+  @override
+  String get backupInfo =>
+      'すべてはこの電話の中にあります。アプリを削除するとジャーナルも消えます。書き出しやアーカイブは、あなたが求めたときだけ共有シートに渡されます。';
+
+  @override
+  String backupEntriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件のエントリー');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '書き出し';
+
+  @override
+  String get backupExportJournal => 'ジャーナルを書き出す';
+
+  @override
+  String get backupExportInfo => 'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。';
+
+  @override
+  String get backupArchiveSection => 'アーカイブ';
+
+  @override
+  String get backupSeal => 'パスフレーズで封印';
+
+  @override
+  String get backupSaveArchive => 'アーカイブを保存';
+
+  @override
+  String backupLastArchive(String date) {
+    return '前回のアーカイブ $date';
+  }
+
+  @override
+  String get backupArchiveInfo =>
+      'ジャーナル全体をひとつのファイルに。新しい端末への復元に使えます。封印すると、このアプリとパスフレーズでしか開けません。復旧手段はありません。';
+
+  @override
+  String get backupImportSection => '読み込み';
+
+  @override
+  String get backupImport => 'アーカイブを読み込む';
+
+  @override
+  String get backupImportInfo => 'アーカイブのエントリーをジャーナルに追加します。両方にあるエントリーはアーカイブ側が残り、二度読み込んでも重複しません。';
+
+  @override
+  String get passphraseCreateTitle => 'アーカイブを封印';
+
+  @override
+  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければアーカイブはただのノイズです。';
+
+  @override
+  String get passphrasePlaceholder => 'パスフレーズ';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'パスフレーズを再入力';
+
+  @override
+  String get passphraseTooShort => '8文字以上';
+
+  @override
+  String get passphraseMismatch => 'パスフレーズが一致しません';
+
+  @override
+  String get importUnlockTitle => '封印されたアーカイブ';
+
+  @override
+  String get importUnlockBody => 'このアーカイブを封印したパスフレーズを入力してください。';
+
+  @override
+  String get importUnlock => '解錠';
+
+  @override
+  String get importWrongPassphrase => '解錠できませんでした。パスフレーズが違うか、ファイルが破損しています。';
+
+  @override
+  String get importConfirmTitle => 'アーカイブを読み込みますか？';
+
+  @override
+  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じアーカイブを二度読み込んでも重複しません。';
+
+  @override
+  String get importConfirm => '読み込む';
+
+  @override
+  String get importSummaryTitle => '読み込み完了';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のエントリーを読み込みました。',
+      zero: '新しく読み込むものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は既にジャーナルにありました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '読み込みに失敗しました';
+
+  @override
+  String get importFailedBody => 'アーカイブを読めませんでした。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNotArchive => 'opentranscribeのアーカイブではありません。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNewerVersion => 'より新しいバージョンのアプリで作られています。更新してから読み込んでください。';
+
+  @override
+  String get importRezipped => 'このアーカイブは別のツールで再圧縮されています。新しく書き出したものを読み込んでください。';
+
+  @override
+  String get done => '完了';
+
+  @override
+  String get importFailedMidway => '読み込みが途中で止まりました。ここまでの復元は残っています。もう一度読み込めば完了します。';
 }

@@ -608,4 +608,189 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Pedir um tema no GitHub';
+
+  @override
+  String get exportEntry => 'Exportar';
+
+  @override
+  String get exportEntryTitle => 'Exportar a entrada';
+
+  @override
+  String get exportIncludeAudio => 'Incluir o áudio';
+
+  @override
+  String get exportFailedTitle => 'A exportação falhou';
+
+  @override
+  String get exportFailedBody => 'Não foi possível preparar os ficheiros. Nada foi partilhado.';
+
+  @override
+  String get exportUntitled => 'Sem título';
+
+  @override
+  String get exportTranscriptHeading => 'Transcrição';
+
+  @override
+  String get exportQuiet => 'Um período calmo.';
+
+  @override
+  String get exportRecorded => 'Gravado';
+
+  @override
+  String get exportDuration => 'Duração';
+
+  @override
+  String get exportLanguage => 'Idioma';
+
+  @override
+  String get exportAudio => 'Áudio';
+
+  @override
+  String get settingsBackup => 'Cópia de segurança';
+
+  @override
+  String get backupInfo =>
+      'Tudo vive neste telefone; apagar a app apaga o diário. Uma exportação ou um arquivo só passa para a folha de partilha quando pedes.';
+
+  @override
+  String backupEntriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas',
+      one: '1 entrada',
+      zero: '0 entradas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Exportação';
+
+  @override
+  String get backupExportJournal => 'Exportar o diário';
+
+  @override
+  String get backupExportInfo =>
+      'Escreve cada entrada no formato escolhido, áudio incluído, num zip para a folha de partilha.';
+
+  @override
+  String get backupArchiveSection => 'Arquivo';
+
+  @override
+  String get backupSeal => 'Selar com frase-passe';
+
+  @override
+  String get backupSaveArchive => 'Guardar arquivo';
+
+  @override
+  String backupLastArchive(String date) {
+    return 'Último arquivo $date';
+  }
+
+  @override
+  String get backupArchiveInfo =>
+      'Um único ficheiro com o diário inteiro, para restaurar numa instalação nova. Selado, só abre nesta app com a frase-passe; não há recuperação.';
+
+  @override
+  String get backupImportSection => 'Importação';
+
+  @override
+  String get backupImport => 'Importar arquivo';
+
+  @override
+  String get backupImportInfo =>
+      'Acrescenta as entradas de um arquivo ao diário. Uma entrada presente em ambos fica com a versão do arquivo, e importar duas vezes nunca duplica.';
+
+  @override
+  String get passphraseCreateTitle => 'Selar o arquivo';
+
+  @override
+  String get passphraseCreateBody =>
+      'A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, o arquivo é ruído.';
+
+  @override
+  String get passphrasePlaceholder => 'Frase-passe';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Repetir a frase-passe';
+
+  @override
+  String get passphraseTooShort => 'Pelo menos 8 caracteres';
+
+  @override
+  String get passphraseMismatch => 'As frases-passe não coincidem';
+
+  @override
+  String get importUnlockTitle => 'Arquivo selado';
+
+  @override
+  String get importUnlockBody => 'Introduz a frase-passe com que este arquivo foi selado.';
+
+  @override
+  String get importUnlock => 'Desbloquear';
+
+  @override
+  String get importWrongPassphrase =>
+      'Não foi possível desbloquear. Frase-passe errada, ou ficheiro danificado.';
+
+  @override
+  String get importConfirmTitle => 'Importar o arquivo?';
+
+  @override
+  String get importConfirmBody =>
+      'Acrescenta as suas entradas ao teu diário. Importar o mesmo arquivo duas vezes nunca duplica.';
+
+  @override
+  String get importConfirm => 'Importar';
+
+  @override
+  String get importSummaryTitle => 'Importação concluída';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas importadas.',
+      one: '1 entrada importada.',
+      zero: 'Nada de novo para importar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas já estavam no diário.',
+      one: '1 entrada já estava no diário.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'A importação falhou';
+
+  @override
+  String get importFailedBody => 'Não foi possível ler o arquivo. Nada no diário foi alterado.';
+
+  @override
+  String get importNotArchive => 'Não é um arquivo opentranscribe. Nada no diário foi alterado.';
+
+  @override
+  String get importNewerVersion =>
+      'Criado por uma versão mais recente da app. Atualiza para o importar.';
+
+  @override
+  String get importRezipped =>
+      'Este arquivo foi re-comprimido por outra ferramenta. Exporta um novo e importa esse.';
+
+  @override
+  String get done => 'Concluído';
+
+  @override
+  String get importFailedMidway =>
+      'A importação parou a meio. O que já foi restaurado mantém-se; importa de novo para terminar.';
 }

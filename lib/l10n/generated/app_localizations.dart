@@ -1169,6 +1169,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
+
+  /// Menu row and button label for exporting one entry
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportEntry;
+
+  /// Entry export sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export entry'**
+  String get exportEntryTitle;
+
+  /// Toggle for bundling the recording with an export
+  ///
+  /// In en, this message translates to:
+  /// **'Include audio'**
+  String get exportIncludeAudio;
+
+  /// Export failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get exportFailedTitle;
+
+  /// Export failure explanation; nothing left the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the files. Nothing was shared.'**
+  String get exportFailedBody;
+
+  /// File and heading fallback for an entry with no title
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get exportUntitled;
+
+  /// Markdown heading over the exported transcript
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get exportTranscriptHeading;
+
+  /// How a silent reflection reads in an export
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet stretch.'**
+  String get exportQuiet;
+
+  /// Metadata label for the recording timestamp
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded'**
+  String get exportRecorded;
+
+  /// Metadata label for the recording length
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get exportDuration;
+
+  /// Metadata label for the transcription language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get exportLanguage;
+
+  /// Metadata label for the audio link
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get exportAudio;
+
+  /// Home menu row opening the Backup screen
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get settingsBackup;
+
+  /// Backup screen intro: local-only, share only on request
+  ///
+  /// In en, this message translates to:
+  /// **'Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.'**
+  String get backupInfo;
+
+  /// Hero card headline: how many entries the journal holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {0 entries} one {1 entry} other {{count} entries}}'**
+  String backupEntriesCount(int count);
+
+  /// Section label over the format picker and export row
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get backupExportSection;
+
+  /// Action row exporting the whole journal in the chosen format
+  ///
+  /// In en, this message translates to:
+  /// **'Export journal'**
+  String get backupExportJournal;
+
+  /// Help paragraph under the export card
+  ///
+  /// In en, this message translates to:
+  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet.'**
+  String get backupExportInfo;
+
+  /// Section label over the archive card
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get backupArchiveSection;
+
+  /// Toggle for sealing archives with a passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Seal with passphrase'**
+  String get backupSeal;
+
+  /// Action row saving the native archive
+  ///
+  /// In en, this message translates to:
+  /// **'Save archive'**
+  String get backupSaveArchive;
+
+  /// Detail text with the last archive date
+  ///
+  /// In en, this message translates to:
+  /// **'Last archive {date}'**
+  String backupLastArchive(String date);
+
+  /// Help paragraph under the archive card; no recovery warning
+  ///
+  /// In en, this message translates to:
+  /// **'One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.'**
+  String get backupArchiveInfo;
+
+  /// Section label over the import card
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get backupImportSection;
+
+  /// Action row opening the archive picker
+  ///
+  /// In en, this message translates to:
+  /// **'Import archive'**
+  String get backupImport;
+
+  /// Help paragraph under the import card; idempotency promise
+  ///
+  /// In en, this message translates to:
+  /// **'Adds an archive\'s entries to the journal. An entry carried by both keeps the archive\'s version, and importing twice never duplicates.'**
+  String get backupImportInfo;
+
+  /// Sealing passphrase sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Seal the archive'**
+  String get passphraseCreateTitle;
+
+  /// Sealing passphrase sheet body: the passphrase is the only key
+  ///
+  /// In en, this message translates to:
+  /// **'The passphrase is the only key. It is not stored anywhere; without it the archive is noise.'**
+  String get passphraseCreateBody;
+
+  /// Passphrase field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase'**
+  String get passphrasePlaceholder;
+
+  /// Confirmation field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat passphrase'**
+  String get passphraseRepeatPlaceholder;
+
+  /// Footnote while the passphrase is under the minimum length
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters'**
+  String get passphraseTooShort;
+
+  /// Footnote while the two passphrase fields differ
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases do not match'**
+  String get passphraseMismatch;
+
+  /// Unlock sheet title for a sealed archive
+  ///
+  /// In en, this message translates to:
+  /// **'Sealed archive'**
+  String get importUnlockTitle;
+
+  /// Unlock sheet body asking for the sealing passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the passphrase this archive was sealed with.'**
+  String get importUnlockBody;
+
+  /// Unlock sheet action button
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get importUnlock;
+
+  /// Unlock retry error; GCM cannot tell wrong passphrase from damage
+  ///
+  /// In en, this message translates to:
+  /// **'Could not unlock. Wrong passphrase, or a damaged file.'**
+  String get importWrongPassphrase;
+
+  /// Import confirmation sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Import archive?'**
+  String get importConfirmTitle;
+
+  /// Import confirmation body: additive, nothing touched
+  ///
+  /// In en, this message translates to:
+  /// **'Adds its entries to your journal. Importing the same archive twice never duplicates.'**
+  String get importConfirmBody;
+
+  /// Import confirmation action button
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importConfirm;
+
+  /// Import summary sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Import complete'**
+  String get importSummaryTitle;
+
+  /// Summary line for how many entries were imported
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {Nothing new to import.} one {Imported 1 entry.} other {Imported {count} entries.}}'**
+  String importSummaryImported(int count);
+
+  /// Summary line for entries already present, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
+  String importSummarySkipped(int count);
+
+  /// Import failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed'**
+  String get importFailedTitle;
+
+  /// Generic import failure body; journal unchanged
+  ///
+  /// In en, this message translates to:
+  /// **'The archive could not be read. Nothing in the journal was changed.'**
+  String get importFailedBody;
+
+  /// Failure body for a file that is not an archive
+  ///
+  /// In en, this message translates to:
+  /// **'Not an opentranscribe archive. Nothing in the journal was changed.'**
+  String get importNotArchive;
+
+  /// Failure body for an archive from a newer app version
+  ///
+  /// In en, this message translates to:
+  /// **'Made by a newer version of the app. Update to import it.'**
+  String get importNewerVersion;
+
+  /// Failure body for an archive re-compressed by another tool
+  ///
+  /// In en, this message translates to:
+  /// **'This archive was re-zipped by another tool. Export a fresh one and import that.'**
+  String get importRezipped;
+
+  /// Generic dismiss button
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// Failure body when adoption already wrote; restored entries are kept
+  ///
+  /// In en, this message translates to:
+  /// **'The import stopped partway. Everything restored so far is kept; import again to finish.'**
+  String get importFailedMidway;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -611,4 +611,191 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Theme auf GitHub anfragen';
+
+  @override
+  String get exportEntry => 'Exportieren';
+
+  @override
+  String get exportEntryTitle => 'Eintrag exportieren';
+
+  @override
+  String get exportIncludeAudio => 'Audio einschließen';
+
+  @override
+  String get exportFailedTitle => 'Export fehlgeschlagen';
+
+  @override
+  String get exportFailedBody =>
+      'Die Dateien konnten nicht vorbereitet werden. Nichts wurde geteilt.';
+
+  @override
+  String get exportUntitled => 'Ohne Titel';
+
+  @override
+  String get exportTranscriptHeading => 'Transkript';
+
+  @override
+  String get exportQuiet => 'Eine stille Zeit.';
+
+  @override
+  String get exportRecorded => 'Aufgenommen';
+
+  @override
+  String get exportDuration => 'Dauer';
+
+  @override
+  String get exportLanguage => 'Sprache';
+
+  @override
+  String get exportAudio => 'Audio';
+
+  @override
+  String get settingsBackup => 'Backup';
+
+  @override
+  String get backupInfo =>
+      'Alles liegt auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Archiv geht nur auf deine Anfrage an das Teilen-Menü.';
+
+  @override
+  String backupEntriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: '0 Einträge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Journal exportieren';
+
+  @override
+  String get backupExportInfo =>
+      'Schreibt jeden Eintrag im gewählten Format, Audio inklusive, als Zip für das Teilen-Menü.';
+
+  @override
+  String get backupArchiveSection => 'Archiv';
+
+  @override
+  String get backupSeal => 'Mit Passphrase versiegeln';
+
+  @override
+  String get backupSaveArchive => 'Archiv sichern';
+
+  @override
+  String backupLastArchive(String date) {
+    return 'Letztes Archiv $date';
+  }
+
+  @override
+  String get backupArchiveInfo =>
+      'Eine Datei mit dem ganzen Journal, zum Wiederherstellen auf einer frischen Installation. Versiegelt öffnet sie nur diese App mit der Passphrase; es gibt keine Wiederherstellung.';
+
+  @override
+  String get backupImportSection => 'Import';
+
+  @override
+  String get backupImport => 'Archiv importieren';
+
+  @override
+  String get backupImportInfo =>
+      'Fügt die Einträge eines Archivs dem Journal hinzu. Ein beidseitig vorhandener Eintrag behält die Archiv-Version, und doppeltes Importieren dupliziert nie.';
+
+  @override
+  String get passphraseCreateTitle => 'Archiv versiegeln';
+
+  @override
+  String get passphraseCreateBody =>
+      'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Archiv Rauschen.';
+
+  @override
+  String get passphrasePlaceholder => 'Passphrase';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Passphrase wiederholen';
+
+  @override
+  String get passphraseTooShort => 'Mindestens 8 Zeichen';
+
+  @override
+  String get passphraseMismatch => 'Passphrasen stimmen nicht überein';
+
+  @override
+  String get importUnlockTitle => 'Versiegeltes Archiv';
+
+  @override
+  String get importUnlockBody => 'Gib die Passphrase ein, mit der dieses Archiv versiegelt wurde.';
+
+  @override
+  String get importUnlock => 'Entsiegeln';
+
+  @override
+  String get importWrongPassphrase =>
+      'Konnte nicht entsiegeln. Falsche Passphrase oder beschädigte Datei.';
+
+  @override
+  String get importConfirmTitle => 'Archiv importieren?';
+
+  @override
+  String get importConfirmBody =>
+      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Archiv zweimal zu importieren dupliziert nie.';
+
+  @override
+  String get importConfirm => 'Importieren';
+
+  @override
+  String get importSummaryTitle => 'Import abgeschlossen';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge importiert.',
+      one: '1 Eintrag importiert.',
+      zero: 'Nichts Neues zu importieren.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge waren bereits im Journal.',
+      one: '1 Eintrag war bereits im Journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Import fehlgeschlagen';
+
+  @override
+  String get importFailedBody =>
+      'Das Archiv konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
+
+  @override
+  String get importNotArchive => 'Kein opentranscribe-Archiv. Nichts im Journal wurde verändert.';
+
+  @override
+  String get importNewerVersion =>
+      'Von einer neueren Version der App erstellt. Aktualisiere, um es zu importieren.';
+
+  @override
+  String get importRezipped =>
+      'Dieses Archiv wurde von einem anderen Tool neu gezippt. Exportiere ein frisches und importiere das.';
+
+  @override
+  String get done => 'Fertig';
+
+  @override
+  String get importFailedMidway =>
+      'Der Import brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; importiere erneut, um abzuschließen.';
 }

@@ -566,4 +566,167 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themeRequestLink => '在 GitHub 上申请主题';
+
+  @override
+  String get exportEntry => '导出';
+
+  @override
+  String get exportEntryTitle => '导出条目';
+
+  @override
+  String get exportIncludeAudio => '包含音频';
+
+  @override
+  String get exportFailedTitle => '导出失败';
+
+  @override
+  String get exportFailedBody => '无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportUntitled => '无标题';
+
+  @override
+  String get exportTranscriptHeading => '转写';
+
+  @override
+  String get exportQuiet => '一段安静的时光。';
+
+  @override
+  String get exportRecorded => '录制时间';
+
+  @override
+  String get exportDuration => '时长';
+
+  @override
+  String get exportLanguage => '语言';
+
+  @override
+  String get exportAudio => '音频';
+
+  @override
+  String get settingsBackup => '备份';
+
+  @override
+  String get backupInfo => '一切都在这部手机上；删除应用就会删除日记。只有在你要求时，导出或归档才会交给共享面板。';
+
+  @override
+  String backupEntriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '导出';
+
+  @override
+  String get backupExportJournal => '导出日记';
+
+  @override
+  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。';
+
+  @override
+  String get backupArchiveSection => '归档';
+
+  @override
+  String get backupSeal => '用口令封存';
+
+  @override
+  String get backupSaveArchive => '保存归档';
+
+  @override
+  String backupLastArchive(String date) {
+    return '上次归档 $date';
+  }
+
+  @override
+  String get backupArchiveInfo => '一个文件装下整本日记，可在全新安装上恢复。封存后只能在本应用内用口令打开；没有任何找回方式。';
+
+  @override
+  String get backupImportSection => '导入';
+
+  @override
+  String get backupImport => '导入归档';
+
+  @override
+  String get backupImportInfo => '把归档里的记录加入日记。两边都有的记录以归档为准，导入两次也不会重复。';
+
+  @override
+  String get passphraseCreateTitle => '封存归档';
+
+  @override
+  String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，归档只是噪音。';
+
+  @override
+  String get passphrasePlaceholder => '口令';
+
+  @override
+  String get passphraseRepeatPlaceholder => '再次输入口令';
+
+  @override
+  String get passphraseTooShort => '至少 8 个字符';
+
+  @override
+  String get passphraseMismatch => '两次口令不一致';
+
+  @override
+  String get importUnlockTitle => '已封存的归档';
+
+  @override
+  String get importUnlockBody => '输入封存这份归档时使用的口令。';
+
+  @override
+  String get importUnlock => '解锁';
+
+  @override
+  String get importWrongPassphrase => '无法解锁。口令错误，或文件已损坏。';
+
+  @override
+  String get importConfirmTitle => '导入归档？';
+
+  @override
+  String get importConfirmBody => '把其中的记录加入你的日记。同一份归档导入两次也不会重复。';
+
+  @override
+  String get importConfirm => '导入';
+
+  @override
+  String get importSummaryTitle => '导入完成';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已导入 $count 条记录。',
+      zero: '没有新内容可导入。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '导入失败';
+
+  @override
+  String get importFailedBody => '无法读取归档。日记没有任何改动。';
+
+  @override
+  String get importNotArchive => '这不是 opentranscribe 归档。日记没有任何改动。';
+
+  @override
+  String get importNewerVersion => '由更新版本的应用创建。请更新后再导入。';
+
+  @override
+  String get importRezipped => '这份归档被其他工具重新压缩过。请重新导出一份再导入。';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get importFailedMidway => '导入中途停止了。已恢复的内容会保留；再次导入即可完成。';
 }

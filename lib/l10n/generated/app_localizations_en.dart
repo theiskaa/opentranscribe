@@ -604,4 +604,189 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Request a theme on GitHub';
+
+  @override
+  String get exportEntry => 'Export';
+
+  @override
+  String get exportEntryTitle => 'Export entry';
+
+  @override
+  String get exportIncludeAudio => 'Include audio';
+
+  @override
+  String get exportFailedTitle => 'Export failed';
+
+  @override
+  String get exportFailedBody => 'Could not prepare the files. Nothing was shared.';
+
+  @override
+  String get exportUntitled => 'Untitled';
+
+  @override
+  String get exportTranscriptHeading => 'Transcript';
+
+  @override
+  String get exportQuiet => 'A quiet stretch.';
+
+  @override
+  String get exportRecorded => 'Recorded';
+
+  @override
+  String get exportDuration => 'Duration';
+
+  @override
+  String get exportLanguage => 'Language';
+
+  @override
+  String get exportAudio => 'Audio';
+
+  @override
+  String get settingsBackup => 'Backup';
+
+  @override
+  String get backupInfo =>
+      'Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.';
+
+  @override
+  String backupEntriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+      zero: '0 entries',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Export journal';
+
+  @override
+  String get backupExportInfo =>
+      'Writes every entry in the chosen format, audio included, zipped for the share sheet.';
+
+  @override
+  String get backupArchiveSection => 'Archive';
+
+  @override
+  String get backupSeal => 'Seal with passphrase';
+
+  @override
+  String get backupSaveArchive => 'Save archive';
+
+  @override
+  String backupLastArchive(String date) {
+    return 'Last archive $date';
+  }
+
+  @override
+  String get backupArchiveInfo =>
+      'One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.';
+
+  @override
+  String get backupImportSection => 'Import';
+
+  @override
+  String get backupImport => 'Import archive';
+
+  @override
+  String get backupImportInfo =>
+      'Adds an archive\'s entries to the journal. An entry carried by both keeps the archive\'s version, and importing twice never duplicates.';
+
+  @override
+  String get passphraseCreateTitle => 'Seal the archive';
+
+  @override
+  String get passphraseCreateBody =>
+      'The passphrase is the only key. It is not stored anywhere; without it the archive is noise.';
+
+  @override
+  String get passphrasePlaceholder => 'Passphrase';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Repeat passphrase';
+
+  @override
+  String get passphraseTooShort => 'At least 8 characters';
+
+  @override
+  String get passphraseMismatch => 'Passphrases do not match';
+
+  @override
+  String get importUnlockTitle => 'Sealed archive';
+
+  @override
+  String get importUnlockBody => 'Enter the passphrase this archive was sealed with.';
+
+  @override
+  String get importUnlock => 'Unlock';
+
+  @override
+  String get importWrongPassphrase => 'Could not unlock. Wrong passphrase, or a damaged file.';
+
+  @override
+  String get importConfirmTitle => 'Import archive?';
+
+  @override
+  String get importConfirmBody =>
+      'Adds its entries to your journal. Importing the same archive twice never duplicates.';
+
+  @override
+  String get importConfirm => 'Import';
+
+  @override
+  String get importSummaryTitle => 'Import complete';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported $count entries.',
+      one: 'Imported 1 entry.',
+      zero: 'Nothing new to import.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries were already in the journal.',
+      one: '1 entry was already in the journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Import failed';
+
+  @override
+  String get importFailedBody =>
+      'The archive could not be read. Nothing in the journal was changed.';
+
+  @override
+  String get importNotArchive =>
+      'Not an opentranscribe archive. Nothing in the journal was changed.';
+
+  @override
+  String get importNewerVersion => 'Made by a newer version of the app. Update to import it.';
+
+  @override
+  String get importRezipped =>
+      'This archive was re-zipped by another tool. Export a fresh one and import that.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get importFailedMidway =>
+      'The import stopped partway. Everything restored so far is kept; import again to finish.';
 }
