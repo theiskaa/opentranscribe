@@ -8,13 +8,21 @@ import 'package:opentranscribe/core/app/storage_key.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
+import 'package:opentranscribe/core/export/default_exporter.dart';
+import 'package:opentranscribe/core/export/journal_exporter.dart';
+import 'package:opentranscribe/core/export/obsidian_exporter.dart';
+import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
+import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/export_service.dart';
+import 'package:opentranscribe/core/services/import_service.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
@@ -23,6 +31,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
 
@@ -66,6 +75,10 @@ class Deps {
     required this.notificationSettings,
     required this.reflectionNotifier,
     required this.engineDescriptors,
+    required this.exportService,
+    required this.importService,
+    required this.backupSettings,
+    required this.exporterDescriptors,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -117,6 +130,22 @@ class Deps {
   /// them. Built here because the composition root is the one place allowed to
   /// name an engine.
   final List<EngineDescriptor> engineDescriptors;
+
+  /// Stages exports (entry, journal, native archive) and hands them to the
+  /// share sheet. Read-only with respect to journal state.
+  final ExportService exportService;
+
+  /// Restores a native archive through the lifecycle owners; a failed import
+  /// changes nothing.
+  final ImportService importService;
+
+  /// The Backup surface's persisted choices (format, seal, last archive).
+  final BackupSettings backupSettings;
+
+  /// The export formats this build ships, as presentation facts for the
+  /// format pickers. Built here because the composition root is the one place
+  /// allowed to name an exporter, mirroring [engineDescriptors].
+  final List<ExporterDescriptor> exporterDescriptors;
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
@@ -213,6 +242,33 @@ class Deps {
       language: () => AppLanguage.of(localService),
     );
 
+    // The backup backbone. The one place allowed to name a concrete exporter,
+    // like the engine rule; a new format lands as one entry here plus its
+    // descriptor below, not new plumbing.
+    final shareExport = ShareExport();
+    const defaultExporter = DefaultExporter();
+    const obsidianExporter = ObsidianExporter();
+    final exporters = <String, JournalExporter>{
+      for (final e in const <JournalExporter>[defaultExporter, obsidianExporter]) e.id: e,
+    };
+    final backupSettings = BackupSettings(
+      storage: localService,
+      fallbackFormatId: defaultExporter.id,
+    );
+    String? appVersion;
+    final exportService = ExportService(
+      transcription: transcriptionService,
+      reflections: reflectionService,
+      exporters: exporters,
+      share: shareExport,
+      appVersion: () async => appVersion ??= (await PackageInfo.fromPlatform()).version,
+    );
+    final importService = ImportService(
+      transcription: transcriptionService,
+      reflections: reflectionService,
+      share: shareExport,
+    );
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
@@ -233,6 +289,13 @@ class Deps {
           displayName: 'Apple Speech',
           logo: AppIcons.appleLogo,
         ),
+      ],
+      exportService: exportService,
+      importService: importService,
+      backupSettings: backupSettings,
+      exporterDescriptors: [
+        ExporterDescriptor(exporterId: defaultExporter.id, displayName: 'Markdown'),
+        ExporterDescriptor(exporterId: obsidianExporter.id, displayName: 'Obsidian'),
       ],
     );
     _initialized = true;
