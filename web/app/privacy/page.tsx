@@ -53,17 +53,17 @@ export default function Privacy() {
       <Nav />
       <main className="mx-auto w-full max-w-prose px-6 pb-28 pt-32 sm:px-12 sm:pt-40">
         <p className="t-eyebrow">Privacy</p>
-        <h1 className="t-h1 mt-6">Privacy Policy</h1>
-        <p className="t-mono mt-5">Last updated {UPDATED}</p>
+        <h1 className="t-display mt-6">Privacy Policy</h1>
+        <p className="t-footnote mt-5">Last updated {UPDATED}</p>
 
-        <p className="t-lead mt-12">
+        <p className="t-body text-ink-2 mt-12">
           OpenTranscribe does not collect, transmit, or share any personal data.
         </p>
 
         <div className="mt-4 divide-y divide-line border-t border-line">
           {SECTIONS.map((s) => (
             <section key={s.head} className="py-9">
-              <h2 className="t-h2">{s.head}</h2>
+              <h2 className="t-title">{s.head}</h2>
               {s.body.map((p) => (
                 <p key={p} className="t-body mt-4">
                   {p}
@@ -73,7 +73,7 @@ export default function Privacy() {
           ))}
 
           <section className="py-9">
-            <h2 className="t-h2">Verify it yourself</h2>
+            <h2 className="t-title">Verify it yourself</h2>
             <p className="t-body mt-4">
               The source code is public and MIT licensed, so every statement
               above can be checked directly against the code that runs on your
@@ -83,14 +83,14 @@ export default function Privacy() {
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
-              className="link-underline t-mono mt-6 inline-block hover:text-ink"
+              className="t-footnote transition-colors duration-200 mt-6 inline-block hover:text-ink"
             >
               github.com/theiskaa/opentranscribe
             </a>
           </section>
 
           <section className="py-9">
-            <h2 className="t-h2">Contact</h2>
+            <h2 className="t-title">Contact</h2>
             <p className="t-body mt-4">
               Questions about this policy can be raised as an issue on the
               repository.
@@ -99,7 +99,7 @@ export default function Privacy() {
               href={`${GITHUB_URL}/issues`}
               target="_blank"
               rel="noreferrer"
-              className="link-underline t-mono mt-6 inline-block hover:text-ink"
+              className="t-footnote transition-colors duration-200 mt-6 inline-block hover:text-ink"
             >
               github.com/theiskaa/opentranscribe/issues
             </a>

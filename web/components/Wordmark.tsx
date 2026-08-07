@@ -9,12 +9,3 @@ export function WaveMark({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-
-export function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
-      <WaveMark className="h-[0.8em] w-auto" />
-      <span className="font-semibold tracking-tight">OpenTranscribe</span>
-    </span>
-  );
-}

@@ -9,19 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: "rgb(0 0 0 / <alpha-value>)",
-        surface: {
-          1: "var(--surface-1)",
-        },
-        line: {
-          DEFAULT: "var(--hairline)",
-          strong: "var(--hairline-strong)",
-        },
+        canvas: "#111111",
+        line: "#2A2A2C",
         ink: {
-          DEFAULT: "var(--ink)",
-          body: "var(--ink-body)",
-          muted: "var(--ink-muted)",
-          faint: "var(--ink-faint)",
+          DEFAULT: "#F5F5F5",
+          2: "#98989E",
         },
       },
       maxWidth: {
@@ -30,8 +22,7 @@ const config: Config = {
       },
       transitionTimingFunction: {
         out: "var(--ease-out)",
-        settle: "cubic-bezier(0.32, 0.72, 0, 1)",
-        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        entrance: "var(--ease-entrance)",
       },
     },
   },

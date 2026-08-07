@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import {
   SITE_URL,
@@ -9,21 +8,9 @@ import {
   GITHUB_URL,
 } from "@/lib/site";
 
-const inter = Inter({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  weight: ["400", "500"],
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
-
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#000000",
+  themeColor: "#111111",
 };
 
 export const metadata: Metadata = {
@@ -54,10 +41,6 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/",
-  },
-  icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: "/apple-icon.png",
   },
   openGraph: {
     title: SITE_TITLE,
@@ -122,7 +105,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en">
       <body>
         <script
           type="application/ld+json"

@@ -1,13 +1,29 @@
 import Link from "next/link";
-import { GITHUB_URL, SITE_URL, SITE_TAGLINE } from "@/lib/site";
+import { GITHUB_URL, SITE_TAGLINE } from "@/lib/site";
 import { WaveMark } from "./Wordmark";
-import { GithubIcon } from "./Icons";
+
+function FooterLink({ href, label }: { href: string; label: string }) {
+  const className = "t-footnote transition-colors duration-200 hover:text-ink";
+  if (href.startsWith("http")) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {label}
+    </Link>
+  );
+}
 
 const COLS = [
   {
     head: "Product",
     links: [
-      { label: "How it works", href: "/#works" },
+      { label: "How it works", href: "/#record" },
+      { label: "Reflections", href: "/#reflections" },
       { label: "Privacy", href: "/#privacy" },
     ],
   },
@@ -23,62 +39,32 @@ const COLS = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-line">
-      <div className="mx-auto w-full max-w-frame px-6 py-20 sm:px-12 sm:py-24">
-        <div className="grid gap-14 lg:grid-cols-12 lg:gap-8">
+    <footer>
+      <div className="mx-auto w-full max-w-frame px-6 sm:px-12">
+        <div className="rule-fade" />
+        <div className="grid gap-14 py-20 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-5">
             <div className="flex items-center gap-3 text-ink">
-              <WaveMark className="h-[18px] w-auto" />
-              <span className="text-[17px] font-semibold tracking-tight">OpenTranscribe</span>
+              <WaveMark className="h-[16px] w-auto" />
+              <span className="t-body font-semibold">OpenTranscribe</span>
             </div>
-            <p className="t-body-s mt-5 max-w-xs">{SITE_TAGLINE}</p>
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn mt-8">
-              <GithubIcon className="h-4 w-4" />
-              Read the source
-            </a>
+            <p className="t-footnote mt-4 max-w-xs">{SITE_TAGLINE}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:gap-12 lg:col-span-6 lg:col-start-8">
             {COLS.map((col) => (
               <div key={col.head}>
                 <p className="t-eyebrow mb-5">{col.head}</p>
-                <ul className="space-y-3.5">
-                  {col.links.map((l) =>
-                    l.href.startsWith("http") ? (
-                      <li key={l.label}>
-                        <a
-                          href={l.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="link-underline t-body-s hover:text-ink"
-                        >
-                          {l.label}
-                        </a>
-                      </li>
-                    ) : (
-                      <li key={l.label}>
-                        <Link href={l.href} className="link-underline t-body-s hover:text-ink">
-                          {l.label}
-                        </Link>
-                      </li>
-                    ),
-                  )}
+                <ul className="space-y-3">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <FooterLink href={l.href} label={l.label} />
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="mt-20 flex flex-col gap-2 border-t border-line pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <a href={SITE_URL} className="link-underline t-mono hover:text-ink">
-              opentranscribe.xyz
-            </a>
-            <Link href="/privacy" className="link-underline t-mono hover:text-ink">
-              Privacy Policy
-            </Link>
-          </div>
-          <p className="t-eyebrow">© 2026 OpenTranscribe</p>
         </div>
       </div>
     </footer>

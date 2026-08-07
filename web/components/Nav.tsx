@@ -27,7 +27,7 @@ export default function Nav() {
       <nav className="mx-auto flex h-16 w-full max-w-frame items-center justify-between px-6 sm:px-12">
         <Link
           href="/#top"
-          className="flex items-center gap-2.5 text-[15px] font-semibold text-ink"
+          className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.24px] text-ink"
         >
           <WaveMark className="h-4 w-auto" />
           OpenTranscribe
@@ -37,7 +37,7 @@ export default function Nav() {
           href={GITHUB_URL}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-md border border-line-strong px-3.5 py-2 text-[13px] font-medium text-ink transition-colors hover:border-ink"
+          className="inline-flex items-center gap-2 text-[13px] font-medium text-ink-2 transition-colors duration-200 hover:text-ink"
         >
           <GithubIcon className="h-4 w-4" />
           GitHub
