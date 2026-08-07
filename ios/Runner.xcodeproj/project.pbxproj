@@ -25,6 +25,7 @@
 		AAAA000000000000000000F8 /* ReflectionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F7 /* ReflectionEngine.swift */; };
 		AAAA000000000000000000FB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FA /* Notifications.swift */; };
 		AAAA000000000000000000FC /* StorageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F9 /* StorageKey.swift */; };
+		AAAA000000000000000000FE /* ShareExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FD /* ShareExport.swift */; };
 		AAAA000000000000000000F6 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F5 /* AudioPlayer.swift */; };
 		DA609263ADDDE0E4EE94A547 /* RecorderActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */; };
 		DE9ED3623B6FCEAA95FBCE79 /* RecorderActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B6B6197835245A86BE4220BF /* RecorderActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -98,6 +99,7 @@
 		AAAA000000000000000000F7 /* ReflectionEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReflectionEngine.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000FA /* Notifications.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F9 /* StorageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StorageKey.swift; sourceTree = "<group>"; };
+		AAAA000000000000000000FD /* ShareExport.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShareExport.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F5 /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingActivityAttributes.swift; sourceTree = "<group>"; };
 		B6B6197835245A86BE4220BF /* RecorderActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecorderActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -227,6 +229,7 @@
 				AAAA000000000000000000FA /* Notifications.swift */,
 				AAAA000000000000000000F5 /* AudioPlayer.swift */,
 				AAAA000000000000000000F9 /* StorageKey.swift */,
+				AAAA000000000000000000FD /* ShareExport.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				4DF07A5661CF9209749981FA /* RecordingLiveActivity.swift */,
@@ -422,6 +425,7 @@
 				AAAA000000000000000000FB /* Notifications.swift in Sources */,
 				AAAA000000000000000000F6 /* AudioPlayer.swift in Sources */,
 				AAAA000000000000000000FC /* StorageKey.swift in Sources */,
+				AAAA000000000000000000FE /* ShareExport.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				E1DD6F20D5A2357F4CA62ABA /* RecordingActivityAttributes.swift in Sources */,
