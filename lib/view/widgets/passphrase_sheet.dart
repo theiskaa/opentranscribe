@@ -91,6 +91,12 @@ class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
       ? passphraseIssue(_passphrase.text, _repeat.text) == null
       : _passphrase.text.isNotEmpty;
 
+  /// What the notice line reserves room for while it has nothing to say. The
+  /// line holds its height either way: one that comes and goes resizes the
+  /// sheet, and a sheet sized to the keyboard walks up and down as it does.
+  /// Null only where no notice can ever appear, so no room is owed.
+  String? get _noticeSlot => _confirm ? widget.strings.mismatch : widget.errorText;
+
   String? get _notice {
     if (!_confirm) {
       return _passphrase.text.isEmpty ? widget.errorText : null;
@@ -116,6 +122,8 @@ class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
     final theme = context.theme;
     final strings = widget.strings;
     final notice = _notice;
+    final slot = _noticeSlot;
+    final fade = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
     return SheetMessage(
       icon: AppIcons.lock,
       title: strings.title,
@@ -140,11 +148,17 @@ class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
             onSubmitted: (_) => _submit(),
           ),
         ],
-        if (notice != null) ...[
+        if (slot != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            notice,
-            style: AppType.footnote.copyWith(color: _confirm ? theme.textSecondary : theme.danger),
+          AnimatedOpacity(
+            opacity: notice == null ? 0 : 1,
+            duration: fade,
+            child: Text(
+              notice ?? slot,
+              style: AppType.footnote.copyWith(
+                color: _confirm ? theme.textSecondary : theme.danger,
+              ),
+            ),
           ),
         ],
       ],
