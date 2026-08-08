@@ -263,6 +263,20 @@ void main() {
       expect(await File('${b.recordings.path}/otr-1.m4a').readAsBytes(), [9, 9, 9]);
     });
 
+    test('a damaged archive fails as unreadable, never as a partial restore', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final bytes = await File(archive).readAsBytes();
+      // Inside an entry's data, so the central directory and EOCD still parse
+      // and the damage only surfaces on the CRC of a read.
+      bytes[bytes.length ~/ 2] ^= 0xFF;
+      await File(archive).writeAsBytes(bytes);
+      final b = await world('b');
+
+      await expectLater(b.import.importArchive(archive), throwsA(isA<ArchiveException>()));
+      expect(b.store.all(), isEmpty);
+    });
+
     test('the audio file replaced by an import is deleted once unreferenced', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);

@@ -95,9 +95,11 @@ class ImportService {
   /// only repairs transcribed entries and an untranscribed record pointing
   /// at nothing would stay broken forever.
   Future<_ParsedPayload> _parsePayload(File payload, Directory staging) async {
-    final StoredZipReader zip;
+    // Every read is inside the catch, not just the open: a CRC mismatch or a
+    // truncated entry surfaces mid-parse, and escaping as a raw
+    // StoredZipException would read as a half-written journal.
     try {
-      zip = await StoredZipReader.open(payload);
+      return await _readPayload(payload, staging);
     } on StoredZipException catch (e) {
       throw ArchiveException(
         e.error == StoredZipError.unsupported
@@ -106,6 +108,10 @@ class ImportService {
         e.message,
       );
     }
+  }
+
+  Future<_ParsedPayload> _readPayload(File payload, Directory staging) async {
+    final zip = await StoredZipReader.open(payload);
     try {
       final paths = zip.paths.toSet();
       if (!paths.contains('manifest.json')) {
