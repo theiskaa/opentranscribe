@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 // the sheet the user just asked for. Dart drives it through share_export.dart.
 
 /// Channel error codes. Cross-boundary contract with share_export.dart.
-private enum ShareExportError: String {
+private enum ShareExportErrorCode: String {
   case badArgs = "bad_args"
   case busy
   case unavailable
@@ -52,11 +52,11 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
     guard let args = call.arguments as? [String: Any],
       let paths = args["paths"] as? [String], !paths.isEmpty
     else {
-      result(ShareExportError.badArgs.error("shareFiles needs a non-empty paths list"))
+      result(ShareExportErrorCode.badArgs.error("shareFiles needs a non-empty paths list"))
       return
     }
     guard !busyNow else {
-      result(ShareExportError.busy.error("a share or pick is already presenting"))
+      result(ShareExportErrorCode.busy.error("a share or pick is already presenting"))
       return
     }
     guard let presenter = stablePresenter(result) else { return }
@@ -86,7 +86,7 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
 
   private func pickArchive(result: @escaping FlutterResult) {
     guard !busyNow else {
-      result(ShareExportError.busy.error("a share or pick is already presenting"))
+      result(ShareExportErrorCode.busy.error("a share or pick is already presenting"))
       return
     }
     guard let presenter = stablePresenter(result) else { return }
@@ -113,8 +113,10 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
     let scene = UIApplication.shared.connectedScenes
       .compactMap { $0 as? UIWindowScene }
       .first { $0.activationState == .foregroundActive }
-    guard var controller = scene?.keyWindow?.rootViewController else {
-      result(ShareExportError.unavailable.error("no view controller to present from"))
+    guard var controller = scene?.keyWindow?.rootViewController,
+      controller.viewIfLoaded?.window != nil
+    else {
+      result(ShareExportErrorCode.unavailable.error("no view controller to present from"))
       return nil
     }
     while let presented = controller.presentedViewController, !presented.isBeingDismissed {
@@ -123,7 +125,7 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
     if controller.isBeingPresented || controller.isBeingDismissed
       || controller.presentedViewController != nil
     {
-      result(ShareExportError.busy.error("a presentation is in flight"))
+      result(ShareExportErrorCode.busy.error("a presentation is in flight"))
       return nil
     }
     return controller
