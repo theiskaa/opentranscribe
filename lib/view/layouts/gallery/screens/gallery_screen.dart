@@ -45,6 +45,7 @@ import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/animated_reveal.dart';
+import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
@@ -60,6 +61,7 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
+  final TextEditingController _secret = TextEditingController();
   bool _toggle = true;
   bool _reveal = true;
   int _segment = 1;
@@ -101,6 +103,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   void dispose() {
     _text.dispose();
+    _secret.dispose();
     super.dispose();
   }
 
@@ -222,6 +225,46 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               _section('Text field'),
               AppTextField(controller: _text, placeholder: 'Entry title'),
+              const SizedBox(height: AppSpacing.sm),
+              AppTextField(controller: _secret, placeholder: 'Passphrase', obscureText: true),
+              _section('Passphrase sheet'),
+              Row(
+                children: [
+                  AppButton(
+                    label: 'Create',
+                    variant: AppButtonVariant.secondary,
+                    expand: false,
+                    onPressed: () => showPassphraseSheet(
+                      context,
+                      strings: const PassphraseSheetStrings.seal(
+                        title: 'Seal the archive',
+                        body: 'The passphrase is the only key. It is not stored anywhere.',
+                        placeholder: 'Passphrase',
+                        repeatPlaceholder: 'Repeat passphrase',
+                        actionLabel: 'Export',
+                        tooShort: 'At least 8 characters',
+                        mismatch: 'Passphrases do not match',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AppButton(
+                    label: 'Unlock',
+                    variant: AppButtonVariant.secondary,
+                    expand: false,
+                    onPressed: () => showPassphraseSheet(
+                      context,
+                      strings: const PassphraseSheetStrings.unlock(
+                        title: 'Sealed archive',
+                        body: 'Enter the passphrase this archive was sealed with.',
+                        placeholder: 'Passphrase',
+                        actionLabel: 'Unlock',
+                      ),
+                      errorText: 'Could not unlock. Wrong passphrase, or a damaged file.',
+                    ),
+                  ),
+                ],
+              ),
               _section('Spinner'),
               const Align(alignment: Alignment.centerLeft, child: AppSpinner()),
               _section('Page indicator'),
