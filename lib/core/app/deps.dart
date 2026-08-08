@@ -294,11 +294,11 @@ class Deps {
       importService: importService,
       backupSettings: backupSettings,
       exporterDescriptors: [
-        ExporterDescriptor(exporterId: defaultExporter.id, logo: 'assets/brand/plain.png'),
+        ExporterDescriptor(exporterId: defaultExporter.id, logo: 'assets/brand/markdown.svg'),
         ExporterDescriptor(
           exporterId: obsidianExporter.id,
           displayName: 'Obsidian',
-          logo: 'assets/brand/obsidian.png',
+          logo: 'assets/brand/obsidian.svg',
         ),
       ],
     );

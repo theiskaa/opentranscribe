@@ -4,8 +4,8 @@ import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 
 void main() {
   const descriptors = [
-    ExporterDescriptor(exporterId: 'default', logo: 'plain.png'),
-    ExporterDescriptor(exporterId: 'obsidian', displayName: 'Obsidian', logo: 'obsidian.png'),
+    ExporterDescriptor(exporterId: 'default', logo: 'markdown.svg'),
+    ExporterDescriptor(exporterId: 'obsidian', displayName: 'Obsidian', logo: 'obsidian.svg'),
   ];
 
   test('a stored format that still ships is kept', () {

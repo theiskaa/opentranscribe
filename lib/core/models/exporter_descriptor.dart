@@ -16,7 +16,9 @@ final class ExporterDescriptor {
   /// language.
   final String? displayName;
 
-  /// Bundle path of the format's mark, kept in its own colors.
+  /// Bundle path of the format's mark, an SVG. A branded mark carries its own
+  /// colors; a monochrome one paints in `currentColor` so the surface can
+  /// resolve it against the theme.
   final String logo;
 }
 
