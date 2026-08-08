@@ -133,67 +133,64 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
     final sheet = context.theme.sheet;
     final radius = BorderRadius.vertical(top: Radius.circular(sheet.radius));
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // The panel rides above the keyboard: no framework scaffold insets for
-    // the IME here, so a sheet holding a text field must do it itself.
+    // No framework scaffold insets for the IME here, so a sheet holding a
+    // text field must clear the keyboard itself.
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child: AnimatedPadding(
-        duration: context.reduceMotion ? Duration.zero : context.motionNow.sheetScrim,
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.only(bottom: keyboard),
-        child: AnimatedBuilder(
-          animation: _frac,
-          builder: (context, child) =>
-              FractionalTranslation(translation: Offset(0, _frac.value), child: child),
-          child: GestureDetector(
-            onVerticalDragUpdate: _onDragUpdate,
-            onVerticalDragEnd: _onDragEnd,
-            child: ConstrainedBox(
-              key: _panel,
-              constraints: BoxConstraints(
-                // max, not a bare subtraction: clamp throws when the bounds
-                // invert, and a rotation frame can report a keyboard inset
-                // taller than the screen it was measured against.
-                maxHeight: (screenHeight * sheet.maxHeightFraction).clamp(
-                  0.0,
-                  math.max(0.0, screenHeight - keyboard),
-                ),
-              ),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
-                child: ClipRRect(
-                  borderRadius: radius,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // The grabber, the one affordance that says this drags down.
-                      Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-                        child: Container(
-                          width: sheet.grabberWidth,
-                          height: sheet.grabberHeight,
-                          decoration: BoxDecoration(
-                            color: sheet.grabberColor,
-                            borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
-                          ),
+      child: AnimatedBuilder(
+        animation: _frac,
+        builder: (context, child) =>
+            FractionalTranslation(translation: Offset(0, _frac.value), child: child),
+        child: GestureDetector(
+          onVerticalDragUpdate: _onDragUpdate,
+          onVerticalDragEnd: _onDragEnd,
+          child: ConstrainedBox(
+            key: _panel,
+            constraints: BoxConstraints(
+              // The panel stays flush to the bottom edge and grows by the
+              // keyboard inset instead of being lifted clear of it: its own
+              // fill then covers the gap the IME's animation curve would
+              // otherwise open under it. The visible part above the
+              // keyboard is still capped at the fraction.
+              maxHeight: math.min(screenHeight, screenHeight * sheet.maxHeightFraction + keyboard),
+            ),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
+              child: ClipRRect(
+                borderRadius: radius,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // The grabber, the one affordance that says this drags down.
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+                      child: Container(
+                        width: sheet.grabberWidth,
+                        height: sheet.grabberHeight,
+                        decoration: BoxDecoration(
+                          color: sheet.grabberColor,
+                          borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
                         ),
                       ),
-                      Flexible(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            AppSpacing.xxl,
-                            AppSpacing.xxl,
-                            AppSpacing.xxl,
-                            MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
-                          ),
-                          child: widget.builder(context),
+                    ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          // Under a keyboard the framework already zeroes
+                          // padding.bottom, so this clears the IME; without
+                          // one it clears the home indicator.
+                          keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
                         ),
+                        child: widget.builder(context),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
