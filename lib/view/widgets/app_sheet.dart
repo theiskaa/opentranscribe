@@ -130,53 +130,65 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
   Widget build(BuildContext context) {
     final sheet = context.theme.sheet;
     final radius = BorderRadius.vertical(top: Radius.circular(sheet.radius));
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // The panel rides above the keyboard: no framework scaffold insets for
+    // the IME here, so a sheet holding a text field must do it itself.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child: AnimatedBuilder(
-        animation: _frac,
-        builder: (context, child) =>
-            FractionalTranslation(translation: Offset(0, _frac.value), child: child),
-        child: GestureDetector(
-          onVerticalDragUpdate: _onDragUpdate,
-          onVerticalDragEnd: _onDragEnd,
-          child: ConstrainedBox(
-            key: _panel,
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * sheet.maxHeightFraction,
-            ),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
-              child: ClipRRect(
-                borderRadius: radius,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // The grabber, the one affordance that says this drags down.
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-                      child: Container(
-                        width: sheet.grabberWidth,
-                        height: sheet.grabberHeight,
-                        decoration: BoxDecoration(
-                          color: sheet.grabberColor,
-                          borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
+      child: AnimatedPadding(
+        duration: context.reduceMotion ? Duration.zero : context.motionNow.sheetScrim,
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: keyboard),
+        child: AnimatedBuilder(
+          animation: _frac,
+          builder: (context, child) =>
+              FractionalTranslation(translation: Offset(0, _frac.value), child: child),
+          child: GestureDetector(
+            onVerticalDragUpdate: _onDragUpdate,
+            onVerticalDragEnd: _onDragEnd,
+            child: ConstrainedBox(
+              key: _panel,
+              constraints: BoxConstraints(
+                maxHeight: (screenHeight * sheet.maxHeightFraction).clamp(
+                  0.0,
+                  screenHeight - keyboard,
+                ),
+              ),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
+                child: ClipRRect(
+                  borderRadius: radius,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // The grabber, the one affordance that says this drags down.
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+                        child: Container(
+                          width: sheet.grabberWidth,
+                          height: sheet.grabberHeight,
+                          decoration: BoxDecoration(
+                            color: sheet.grabberColor,
+                            borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
+                          ),
                         ),
                       ),
-                    ),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSpacing.xxl,
+                            AppSpacing.xxl,
+                            AppSpacing.xxl,
+                            MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                          ),
+                          child: widget.builder(context),
                         ),
-                        child: widget.builder(context),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

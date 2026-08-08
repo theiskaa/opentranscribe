@@ -14,7 +14,7 @@ class SheetMessage extends StatelessWidget {
   const SheetMessage({
     required this.icon,
     required this.title,
-    required this.body,
+    this.body,
     this.rows = const [],
     this.action,
     super.key,
@@ -22,7 +22,10 @@ class SheetMessage extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final String body;
+
+  /// Null for a sheet whose rows say everything (a picker); the title alone
+  /// then carries the header.
+  final String? body;
 
   /// Extra rows between the body and the action (the cap sheet's evict list).
   final List<Widget> rows;
@@ -45,8 +48,10 @@ class SheetMessage extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        Text(body, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5)),
+        if (body != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text(body!, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5)),
+        ],
         if (rows.isNotEmpty) ...[const SizedBox(height: AppSpacing.xl), ...rows],
         if (action != null) ...[const SizedBox(height: AppSpacing.xxl), action!],
       ],

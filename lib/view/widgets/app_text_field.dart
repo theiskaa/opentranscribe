@@ -8,13 +8,17 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 
 /// A minimal text input built directly on [EditableText]: typing, cursor, and
 /// tap-to-focus. Deliberately no selection handles or toolbar; the single-line
-/// inputs here do not need them.
+/// inputs here do not need them. [obscureText] turns it into a secret field:
+/// dots for glyphs, and autocorrect and suggestions forced off so a
+/// passphrase never reaches the keyboard's learning.
 class AppTextField extends StatefulWidget {
   const AppTextField({
     required this.controller,
     this.placeholder,
     this.focusNode,
     this.autofocus = false,
+    this.obscureText = false,
+    this.onChanged,
     this.textInputAction = TextInputAction.done,
     this.onSubmitted,
     super.key,
@@ -24,6 +28,8 @@ class AppTextField extends StatefulWidget {
   final String? placeholder;
   final FocusNode? focusNode;
   final bool autofocus;
+  final bool obscureText;
+  final ValueChanged<String>? onChanged;
   final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
 
@@ -79,12 +85,16 @@ class _AppTextFieldState extends State<AppTextField> {
                 controller: widget.controller,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
+                obscureText: widget.obscureText,
+                autocorrect: !widget.obscureText,
+                enableSuggestions: !widget.obscureText,
                 style: textStyle,
                 cursorColor: theme.accent,
                 backgroundCursorColor: theme.textSecondary,
                 selectionColor: theme.accent.withValues(alpha: 0.25),
                 keyboardAppearance: theme.brightness,
                 textInputAction: widget.textInputAction,
+                onChanged: widget.onChanged,
                 onSubmitted: widget.onSubmitted,
               ),
             ],
