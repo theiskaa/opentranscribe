@@ -33,9 +33,10 @@ workflows:
       xcode: latest
     # No automatic triggering: this workflow is started ON DEMAND from the
     # Codemagic UI ("Start new build" -> pick this workflow + the main branch).
-    # Each run queries TestFlight and ships the next build number for the current
-    # pubspec version, so 0.1.0 iterates as (1), (2), (3)... with no version bump
-    # and no git tag. Bump `version:` in pubspec.yaml when you want a new line.
+    # Each run queries TestFlight and ships the next build number app-wide, so
+    # builds climb 1, 2, 3... across every version and a bump in pubspec.yaml
+    # never restarts the count. No version bump and no git tag are required to
+    # ship again.
     # Because nothing here fires on a PR, secrets are never exposed to fork code.
     scripts:
       - name: Get Flutter packages
@@ -70,13 +71,15 @@ workflows:
       - name: Build signed IPA
         script: |
           # Version (build-name) is the source of truth in pubspec.yaml, e.g.
-          # "version: 0.1.0+1" -> 0.1.0. Build numbers are scoped PER VERSION:
-          # query the latest build already on TestFlight for THIS version and add
-          # one, so 0.1.0 can ship as build 1, 2, 3... and a new version starts
-          # its own count at 1. The "|| echo 0" handles a version with no builds
-          # yet (the lookup returns nothing) without failing the script.
+          # "version: 0.2.0+1" -> 0.2.0; the "+1" is for local builds only and
+          # is ignored here. Build numbers are APP-WIDE, deliberately not scoped
+          # to the version: asking for the latest build of THIS version would
+          # answer nothing on the first build after a bump and restart the count
+          # at 1. The lookup is left to fail loudly rather than defaulting to 0,
+          # because a silently reset build number ships as a wrong build.
+          # ${LATEST:-0} covers only the real empty case: an app with no builds.
           BUILD_NAME=$(grep '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//; s/\+.*//')
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --pre-release-version="$BUILD_NAME" 2>/dev/null || echo 0)
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID")
           BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
           echo "Building $BUILD_NAME ($BUILD_NUMBER)"
           flutter build ipa --release \
