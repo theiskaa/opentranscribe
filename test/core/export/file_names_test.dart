@@ -74,5 +74,17 @@ void main() {
     test('treats a leading dot as part of the name, not an extension', () {
       expect(uniqueFileName('.config', {'.config'}), '.config-2');
     });
+
+    test('claims the name it answers, so a caller cannot forget to', () {
+      final taken = <String>{};
+      expect(uniqueFileName('walk.md', taken), 'walk.md');
+      expect(uniqueFileName('walk.md', taken), 'walk-2.md');
+    });
+
+    test('names differing only in case cannot collapse on extraction', () {
+      final taken = <String>{};
+      expect(uniqueFileName('Notes.md', taken), 'Notes.md');
+      expect(uniqueFileName('notes.md', taken), 'notes-2.md');
+    });
   });
 }

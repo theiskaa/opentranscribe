@@ -65,7 +65,7 @@ class ExportService {
         await File(path).writeAsBytes(files.single.bytes);
         return [path];
       }
-      final zipName = '${_stripExtension(baseName(files.first.path))}.zip';
+      final zipName = '${stripExtension(baseName(files.first.path))}.zip';
       final zip = File('${staging.path}/$zipName');
       final writer = await StoredZipWriter.create(zip);
       try {
@@ -203,7 +203,6 @@ class ExportService {
       if (path == null) continue;
       if (!File(await _transcription.resolveAudioPath(entry)).existsSync()) continue;
       final name = uniqueFileName(baseName(path), taken);
-      taken.add(name);
       names[entry.id] = name;
     }
     return names;
@@ -239,11 +238,6 @@ class ExportService {
     final exporter = _exporters[exporterId];
     if (exporter == null) throw ArgumentError.value(exporterId, 'exporterId', 'unknown exporter');
     return exporter;
-  }
-
-  String _stripExtension(String name) {
-    final dot = name.lastIndexOf('.');
-    return dot > 0 ? name.substring(0, dot) : name;
   }
 
   String _dateStamp() {

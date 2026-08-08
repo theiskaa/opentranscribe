@@ -38,7 +38,6 @@ final class DefaultExporter implements JournalExporter {
     for (final entry in snapshot.entries) {
       final base = entryFileBaseName(entry.entry, untitled: context.strings.untitledEntry);
       final name = uniqueFileName('$base.md', taken);
-      taken.add(name);
       files.add(
         ExportFile.text('entries/$name', _entryMarkdown(entry, context, audioLinkPrefix: '../')),
       );

@@ -36,16 +36,33 @@ String sanitizeFileName(String raw, {String fallback = 'untitled', int maxLength
 /// audio filename, shared so five call sites cannot drift.
 String baseName(String path) => path.split('/').last;
 
-/// Returns [name], or its first `base-N.ext` variant not present in [taken].
-/// Deterministic: the same name against the same set always answers the same,
-/// so an exporter producing colliding titles stays reproducible.
-String uniqueFileName(String name, Set<String> taken) {
-  if (!taken.contains(name)) return name;
+/// [name] without its extension. A leading dot is part of the name, not an
+/// extension marker, so a dotfile keeps all of itself.
+String stripExtension(String name) {
   final dot = name.lastIndexOf('.');
-  final base = dot > 0 ? name.substring(0, dot) : name;
-  final ext = dot > 0 ? name.substring(dot) : '';
+  return dot > 0 ? name.substring(0, dot) : name;
+}
+
+/// [name]'s extension with its dot, or empty when it has none.
+String extensionOf(String name) {
+  final dot = name.lastIndexOf('.');
+  return dot > 0 ? name.substring(dot) : '';
+}
+
+/// Returns [name], or its first free `base-N.ext` variant, and claims it in
+/// [taken] so the caller cannot forget to. Deterministic: the same names in
+/// the same order always answer the same, so an exporter producing colliding
+/// titles stays reproducible.
+///
+/// Names are claimed case-insensitively. 'Notes.md' and 'notes.md' are two
+/// zip entries but ONE file on the case-insensitive filesystems that unzip
+/// them (APFS, NTFS), where the second would silently overwrite the first.
+String uniqueFileName(String name, Set<String> taken) {
+  if (taken.add(name.toLowerCase())) return name;
+  final base = stripExtension(name);
+  final ext = extensionOf(name);
   for (var n = 2; ; n++) {
     final candidate = '$base-$n$ext';
-    if (!taken.contains(candidate)) return candidate;
+    if (taken.add(candidate.toLowerCase())) return candidate;
   }
 }

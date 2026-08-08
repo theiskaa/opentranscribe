@@ -38,7 +38,6 @@ final class ObsidianExporter implements JournalExporter {
     for (final entry in snapshot.entries) {
       final base = _noteBaseName(entry.entry, context.strings.untitledEntry);
       final name = uniqueFileName('$base.md', taken);
-      taken.add(name);
       noteNames[entry.entry.id] = name.substring(0, name.length - 3);
       files.add(ExportFile.text('entries/$name', _entryNote(entry, context)));
     }
