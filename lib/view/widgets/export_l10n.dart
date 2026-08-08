@@ -9,10 +9,6 @@ ExportStrings exportStringsOf(AppLocalizations l10n) => ExportStrings(
   untitledEntry: l10n.exportUntitled,
   transcriptHeading: l10n.exportTranscriptHeading,
   quietReflection: l10n.exportQuiet,
-  recordedLabel: l10n.exportRecorded,
-  durationLabel: l10n.exportDuration,
-  languageLabel: l10n.exportLanguage,
-  audioLabel: l10n.exportAudio,
   periodLabels: {
     ReflectionPeriod.daily: l10n.reflectionDaily,
     ReflectionPeriod.weekly: l10n.reflectionWeekly,

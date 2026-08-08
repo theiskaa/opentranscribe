@@ -596,18 +596,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportQuiet => '静かなひととき。';
 
   @override
-  String get exportRecorded => '録音日時';
-
-  @override
-  String get exportDuration => '長さ';
-
-  @override
-  String get exportLanguage => '言語';
-
-  @override
-  String get exportAudio => '音声';
-
-  @override
   String get settingsBackup => 'バックアップ';
 
   @override

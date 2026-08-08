@@ -18,10 +18,6 @@ void main() {
     untitledEntry: 'Untitled',
     transcriptHeading: 'Transcript',
     quietReflection: 'A quiet stretch.',
-    recordedLabel: 'Recorded',
-    durationLabel: 'Duration',
-    languageLabel: 'Language',
-    audioLabel: 'Audio',
     periodLabels: {
       ReflectionPeriod.daily: 'Day',
       ReflectionPeriod.weekly: 'Week',
@@ -53,12 +49,12 @@ void main() {
             fullText: text,
             segments: [
               const TranscriptSegment(
-                text: 'went for a walk.',
-                start: Duration.zero,
+                text: 'walk.',
+                start: Duration(seconds: 3),
                 end: Duration(seconds: 4),
               ),
               const TranscriptSegment(
-                text: 'it was quiet.',
+                text: 'quiet.',
                 start: Duration(seconds: 70),
                 end: Duration(seconds: 74),
               ),
@@ -87,25 +83,91 @@ void main() {
     });
   });
 
+  group('yamlScalar', () {
+    test('wraps a plain value in quotes', () {
+      expect(yamlScalar('en-US'), '"en-US"');
+      expect(yamlScalar(''), '""');
+    });
+
+    test('escapes the characters that would end the scalar', () {
+      expect(yamlScalar(r'a"b'), r'"a\"b"');
+      expect(yamlScalar(r'a\b'), r'"a\\b"');
+      expect(yamlScalar(r'a\"b'), r'"a\\\"b"');
+    });
+
+    test('a value carrying a line break cannot open a line of its own', () {
+      expect(yamlScalar('a\nb'), r'"a\nb"');
+      expect(yamlScalar('a\r\n---\nb'), r'"a\r\n---\nb"');
+      expect(yamlScalar('a\u2028b'), r'"a\u2028b"');
+      expect(yamlScalar('a\u0085b'), r'"a\u0085b"');
+    });
+
+    test('escapes control characters, which a quoted scalar may not carry raw', () {
+      expect(yamlScalar('a\u0000b'), r'"a\u0000b"');
+      expect(yamlScalar('a\tb'), r'"a\tb"');
+      expect(yamlScalar('a\u007fb'), r'"a\u007fb"');
+    });
+
+    test('leaves text outside the ascii range alone', () {
+      expect(yamlScalar('走った日 cafe'), '"走った日 cafe"');
+    });
+  });
+
   group('DefaultExporter', () {
     const exporter = DefaultExporter();
 
     test('a single entry becomes a markdown file and a json sidecar', () {
+      final source = entry();
       final files = exporter.exportEntry(
-        ExportEntry(entry: entry(), audioRelativePath: 'audio/otr-1.m4a'),
+        ExportEntry(entry: source, audioRelativePath: 'audio/otr-1.m4a'),
         context,
       );
       expect(files.map((f) => f.path), [
         '2026-08-07-Morning walk.md',
         '2026-08-07-Morning walk.json',
       ]);
+      expect(
+        textOf(files, '2026-08-07-Morning walk.md'),
+        startsWith(
+          '---\n'
+          'created: ${source.createdAt.toUtc().toIso8601String()}\n'
+          'duration: "3:24"\n'
+          'locale: "en-US"\n'
+          'audio: "audio/otr-1.m4a"\n'
+          '---\n'
+          '\n'
+          '# Morning walk\n'
+          '\n'
+          '## Transcript\n',
+        ),
+      );
+    });
+
+    test('a single entry names its audio as it sits beside the note', () {
+      final files = exporter.exportEntry(
+        ExportEntry(entry: entry(), audioRelativePath: 'otr-1.m4a'),
+        context,
+      );
+      expect(textOf(files, '2026-08-07-Morning walk.md'), contains('audio: "otr-1.m4a"'));
+    });
+
+    test('a journal note names its audio relative to itself, not to the export root', () {
+      final files = exporter.exportJournal(
+        ExportSnapshot(
+          entries: [ExportEntry(entry: entry(), audioRelativePath: 'audio/otr-1.m4a')],
+        ),
+        context,
+      );
+      final md = textOf(files, 'entries/2026-08-07-Morning walk.md');
+      expect(md, contains('audio: "../audio/otr-1.m4a"'));
+    });
+
+    test('the transcript is the text the engine wrote, never rebuilt from its segments', () {
+      final files = exporter.exportEntry(ExportEntry(entry: entry()), context);
       final md = textOf(files, '2026-08-07-Morning walk.md');
-      expect(md, contains('# Morning walk'));
-      expect(md, contains('- Duration: 3:24'));
-      expect(md, contains('- Audio: [otr-1.m4a](audio/otr-1.m4a)'));
-      expect(md, contains('## Transcript'));
-      expect(md, contains('[0:00] went for a walk.'));
-      expect(md, contains('[1:10] it was quiet.'));
+      expect(md, contains('went for a walk. it was quiet.'));
+      expect(md, isNot(contains('[0:03]')));
+      expect(md, isNot(contains('[1:10]')));
     });
 
     test('the json sidecar round-trips through Entry.fromJson with the exported audio path', () {
@@ -125,7 +187,7 @@ void main() {
 
     test('an export without audio carries no audio link and no audio path', () {
       final files = exporter.exportEntry(ExportEntry(entry: entry()), context);
-      expect(textOf(files, '2026-08-07-Morning walk.md'), isNot(contains('- Audio:')));
+      expect(textOf(files, '2026-08-07-Morning walk.md'), isNot(contains('audio:')));
       final json = jsonDecode(textOf(files, '2026-08-07-Morning walk.json')) as Map;
       expect(json.containsKey('audioPath'), isFalse);
     });
@@ -241,6 +303,22 @@ void main() {
       expect(note, contains('went for a walk. it was quiet.'));
     });
 
+    test('an entry note carries no heading, since obsidian titles it by file name', () {
+      final files = exporter.exportEntry(ExportEntry(entry: entry()), context);
+      expect(utf8.decode(files.single.bytes), isNot(contains('# Morning walk')));
+    });
+
+    test('a title the file name cannot hold survives in the frontmatter', () {
+      final files = exporter.exportEntry(ExportEntry(entry: entry(title: '###')), context);
+      expect(files.single.path, '2026-08-07.md');
+      expect(utf8.decode(files.single.bytes), contains(r'title: "###"'));
+    });
+
+    test('an untitled entry claims no title of its own', () {
+      final files = exporter.exportEntry(ExportEntry(entry: entry(title: null)), context);
+      expect(utf8.decode(files.single.bytes), isNot(contains('title:')));
+    });
+
     test('a transcript-only entry embeds nothing', () {
       final files = exporter.exportEntry(ExportEntry(entry: entry(audioPath: null)), context);
       expect(utf8.decode(files.single.bytes), isNot(contains('![[')));
@@ -253,9 +331,7 @@ void main() {
         ),
         context,
       );
-      final note = utf8.decode(files.single.bytes);
-      expect(note, contains(r'id: "q:1\"x"'));
-      expect(note, contains('# On "rest": a note'));
+      expect(utf8.decode(files.single.bytes), contains(r'id: "q:1\"x"'));
     });
 
     test('a reflection note wikilinks the entry notes of its period', () {

@@ -801,22 +801,6 @@
   "@exportQuiet": {
     "description": "How a silent reflection reads in an export"
   },
-  "exportRecorded": "Recorded",
-  "@exportRecorded": {
-    "description": "Metadata label for the recording timestamp"
-  },
-  "exportDuration": "Duration",
-  "@exportDuration": {
-    "description": "Metadata label for the recording length"
-  },
-  "exportLanguage": "Language",
-  "@exportLanguage": {
-    "description": "Metadata label for the transcription language"
-  },
-  "exportAudio": "Audio",
-  "@exportAudio": {
-    "description": "Metadata label for the audio link"
-  },
   "settingsBackup": "Backup",
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"

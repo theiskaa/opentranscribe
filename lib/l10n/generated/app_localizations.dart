@@ -1218,30 +1218,6 @@ abstract class AppLocalizations {
   /// **'A quiet stretch.'**
   String get exportQuiet;
 
-  /// Metadata label for the recording timestamp
-  ///
-  /// In en, this message translates to:
-  /// **'Recorded'**
-  String get exportRecorded;
-
-  /// Metadata label for the recording length
-  ///
-  /// In en, this message translates to:
-  /// **'Duration'**
-  String get exportDuration;
-
-  /// Metadata label for the transcription language
-  ///
-  /// In en, this message translates to:
-  /// **'Language'**
-  String get exportLanguage;
-
-  /// Metadata label for the audio link
-  ///
-  /// In en, this message translates to:
-  /// **'Audio'**
-  String get exportAudio;
-
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:

@@ -8,7 +8,9 @@ import 'package:opentranscribe/core/utils/week.dart';
 
 /// Export shaped for an Obsidian vault: markdown only, YAML frontmatter,
 /// `![[...]]` audio embeds, and reflections that `[[wikilink]]` the entry
-/// notes of their period. A single entry is one note (plus its audio); a
+/// notes of their period. Entry notes carry no heading of their own, because
+/// Obsidian titles a note by its file name. A single entry is one note (plus
+/// its audio); a
 /// journal is a vault fragment with `entries/`, `reflections/` and `audio/`
 /// folders. Wikilinks use bare basenames, Obsidian's shortest-path form, so
 /// notes keep resolving wherever a vault reorganizes them.
@@ -61,23 +63,23 @@ final class ObsidianExporter implements JournalExporter {
   String _entryNote(ExportEntry exportEntry, ExportContext context) {
     final entry = exportEntry.entry;
     final buffer = StringBuffer()..writeln('---');
+    final title = entry.title;
+    // The note's file name is a sanitized, link-safe, 80-rune truncation of
+    // the title, and can reduce to the bare date. This is the only lossless
+    // copy the note carries; without it a title made of reserved characters
+    // would not survive the export at all.
+    if (title != null) buffer.writeln('title: ${yamlScalar(flattenTitle(title))}');
     buffer
-      ..writeln('id: ${_yaml(entry.id)}')
+      ..writeln('id: ${yamlScalar(entry.id)}')
       ..writeln('created: ${entry.createdAt.toUtc().toIso8601String()}')
       ..writeln('duration_seconds: ${entry.duration.inSeconds}');
     final locale = entry.effectiveLocaleId;
-    if (locale != null) buffer.writeln('locale: ${_yaml(locale)}');
+    if (locale != null) buffer.writeln('locale: ${yamlScalar(locale)}');
     buffer
       ..writeln('tags:')
       ..writeln('  - opentranscribe')
       ..writeln('---')
       ..writeln();
-    final title = entry.title;
-    if (title != null) {
-      buffer
-        ..writeln('# ${flattenTitle(title)}')
-        ..writeln();
-    }
     final audio = exportEntry.audioRelativePath;
     if (audio != null) {
       final basename = baseName(audio);
@@ -124,8 +126,4 @@ final class ObsidianExporter implements JournalExporter {
     }
     return buffer.toString();
   }
-
-  /// YAML single-line scalar, double-quoted so ids and locales carrying
-  /// quotes, colons or hashes cannot break the frontmatter.
-  String _yaml(String value) => '"${value.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"';
 }

@@ -635,18 +635,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportQuiet => 'Une période calme.';
 
   @override
-  String get exportRecorded => 'Enregistré';
-
-  @override
-  String get exportDuration => 'Durée';
-
-  @override
-  String get exportLanguage => 'Langue';
-
-  @override
-  String get exportAudio => 'Audio';
-
-  @override
   String get settingsBackup => 'Sauvegarde';
 
   @override

@@ -38,10 +38,6 @@ final class ExportStrings {
     required this.untitledEntry,
     required this.transcriptHeading,
     required this.quietReflection,
-    required this.recordedLabel,
-    required this.durationLabel,
-    required this.languageLabel,
-    required this.audioLabel,
     required this.periodLabels,
   });
 
@@ -50,11 +46,6 @@ final class ExportStrings {
 
   /// How a silent reflection reads; silence is a stored result, not an absence.
   final String quietReflection;
-
-  final String recordedLabel;
-  final String durationLabel;
-  final String languageLabel;
-  final String audioLabel;
 
   final Map<ReflectionPeriod, String> periodLabels;
 

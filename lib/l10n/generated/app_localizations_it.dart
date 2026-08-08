@@ -635,18 +635,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportQuiet => 'Un periodo tranquillo.';
 
   @override
-  String get exportRecorded => 'Registrato';
-
-  @override
-  String get exportDuration => 'Durata';
-
-  @override
-  String get exportLanguage => 'Lingua';
-
-  @override
-  String get exportAudio => 'Audio';
-
-  @override
   String get settingsBackup => 'Backup';
 
   @override

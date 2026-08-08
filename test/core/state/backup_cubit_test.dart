@@ -32,10 +32,6 @@ void main() {
     untitledEntry: 'Untitled',
     transcriptHeading: 'Transcript',
     quietReflection: 'A quiet stretch.',
-    recordedLabel: 'Recorded',
-    durationLabel: 'Duration',
-    languageLabel: 'Language',
-    audioLabel: 'Audio',
     periodLabels: {
       ReflectionPeriod.daily: 'Day',
       ReflectionPeriod.weekly: 'Week',

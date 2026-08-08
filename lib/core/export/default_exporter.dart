@@ -10,7 +10,8 @@ import 'package:opentranscribe/core/models/reflection.dart';
 /// sibling `.json` carrying [Entry.toJson]; a journal becomes `entries/*.md`,
 /// one `journal.json` with every entry, and the reflections as
 /// `reflections/*.md` plus `reflections.json`. Markdown carries the transcript
-/// as timestamped segment lines so the text stays seekable next to its audio.
+/// as the engine wrote it; the timed segments ride in the JSON, which is where
+/// a machine looks for them anyway.
 final class DefaultExporter implements JournalExporter {
   const DefaultExporter();
 
@@ -39,7 +40,7 @@ final class DefaultExporter implements JournalExporter {
       final base = entryFileBaseName(entry.entry, untitled: context.strings.untitledEntry);
       final name = uniqueFileName('$base.md', taken);
       files.add(
-        ExportFile.text('entries/$name', _entryMarkdown(entry, context, audioLinkPrefix: '../')),
+        ExportFile.text('entries/$name', _entryMarkdown(entry, context, audioPathPrefix: '../')),
       );
     }
     files.add(
@@ -72,40 +73,40 @@ final class DefaultExporter implements JournalExporter {
     return files;
   }
 
-  /// [audioLinkPrefix] climbs out of the md file's own directory: journal
-  /// notes live under entries/ while audio lives under audio/, and a
-  /// markdown link resolves relative to the FILE, not the zip root.
+  /// Frontmatter keys stay in English: a property name is queried and sorted
+  /// on, not read as prose. [audioPathPrefix] climbs out of the note's own
+  /// directory, because `audio:` is recorded relative to the note that
+  /// carries it: journal notes live under `entries/` while audio lives under
+  /// `audio/`, and a path a reader cannot follow from the file they are
+  /// reading is worse than none.
   String _entryMarkdown(
     ExportEntry exportEntry,
     ExportContext context, {
-    String audioLinkPrefix = '',
+    String audioPathPrefix = '',
   }) {
     final entry = exportEntry.entry;
     final strings = context.strings;
     final buffer = StringBuffer()
-      ..writeln('# ${flattenTitle(entry.title ?? strings.untitledEntry)}')
-      ..writeln()
-      ..writeln('- ${strings.recordedLabel}: ${entry.createdAt.toUtc().toIso8601String()}')
-      ..writeln('- ${strings.durationLabel}: ${exportClock(entry.duration)}');
+      ..writeln('---')
+      ..writeln('created: ${entry.createdAt.toUtc().toIso8601String()}')
+      ..writeln('duration: ${yamlScalar(exportClock(entry.duration))}');
     final locale = entry.effectiveLocaleId;
-    if (locale != null) buffer.writeln('- ${strings.languageLabel}: $locale');
+    if (locale != null) buffer.writeln('locale: ${yamlScalar(locale)}');
     final audio = exportEntry.audioRelativePath;
-    if (audio != null) {
-      buffer.writeln('- ${strings.audioLabel}: [${baseName(audio)}]($audioLinkPrefix$audio)');
-    }
+    if (audio != null) buffer.writeln('audio: ${yamlScalar('$audioPathPrefix$audio')}');
+    buffer
+      ..writeln('---')
+      ..writeln()
+      ..writeln('# ${flattenTitle(entry.title ?? strings.untitledEntry)}');
     final transcript = entry.transcript;
     if (transcript == null || transcript.isEmpty) return buffer.toString();
     buffer
       ..writeln()
       ..writeln('## ${strings.transcriptHeading}')
-      ..writeln();
-    if (transcript.segments.isEmpty) {
-      buffer.writeln(transcript.fullText);
-      return buffer.toString();
-    }
-    for (final segment in transcript.segments) {
-      buffer.writeln('[${exportClock(segment.start)}] ${segment.text}');
-    }
+      ..writeln()
+      // Segments are word-level and drop whatever the engine could not time,
+      // so rebuilding from them exports something the user never said.
+      ..writeln(transcript.fullText);
     return buffer.toString();
   }
 

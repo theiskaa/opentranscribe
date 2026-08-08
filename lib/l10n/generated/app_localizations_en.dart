@@ -630,18 +630,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportQuiet => 'A quiet stretch.';
 
   @override
-  String get exportRecorded => 'Recorded';
-
-  @override
-  String get exportDuration => 'Duration';
-
-  @override
-  String get exportLanguage => 'Language';
-
-  @override
-  String get exportAudio => 'Audio';
-
-  @override
   String get settingsBackup => 'Backup';
 
   @override

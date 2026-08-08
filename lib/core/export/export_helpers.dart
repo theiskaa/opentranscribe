@@ -33,6 +33,37 @@ String entryFileBaseName(Entry entry, {required String untitled, String separato
 /// pasted newlines, and a heading must not spill its tail into the body.
 String flattenTitle(String title) => title.replaceAll(RegExp(r'\s+'), ' ').trim();
 
+/// A YAML double-quoted scalar. Escapes every character that could end the
+/// scalar or the line, so no value can break the frontmatter that holds it:
+/// a locale or file name is read back from stored JSON and a picked file's
+/// name, neither of which the app gets to promise anything about, and a bare
+/// newline would fold into a fresh line that YAML may read as the block's
+/// closing `---`.
+String yamlScalar(String value) {
+  final escaped = StringBuffer();
+  for (final rune in value.runes) {
+    switch (rune) {
+      case 0x5C:
+        escaped.write(r'\\');
+      case 0x22:
+        escaped.write(r'\"');
+      case 0x0A:
+        escaped.write(r'\n');
+      case 0x0D:
+        escaped.write(r'\r');
+      case 0x09:
+        escaped.write(r'\t');
+      // C0 controls, DEL, and the three characters YAML counts as line breaks
+      // beyond \n and \r: NEL, LINE SEPARATOR, PARAGRAPH SEPARATOR.
+      case < 0x20 || 0x7F || 0x85 || 0x2028 || 0x2029:
+        escaped.write('\\u${rune.toRadixString(16).padLeft(4, '0')}');
+      default:
+        escaped.writeCharCode(rune);
+    }
+  }
+  return '"$escaped"';
+}
+
 /// The entry's JSON with [audioRelativePath] as its audio reference: what a
 /// consumer outside the app can actually resolve, instead of an internal
 /// recordings-directory filename. Absent audio drops the field entirely.

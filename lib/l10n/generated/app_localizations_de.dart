@@ -638,18 +638,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportQuiet => 'Eine stille Zeit.';
 
   @override
-  String get exportRecorded => 'Aufgenommen';
-
-  @override
-  String get exportDuration => 'Dauer';
-
-  @override
-  String get exportLanguage => 'Sprache';
-
-  @override
-  String get exportAudio => 'Audio';
-
-  @override
   String get settingsBackup => 'Backup';
 
   @override

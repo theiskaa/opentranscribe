@@ -592,18 +592,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportQuiet => '一段安静的时光。';
 
   @override
-  String get exportRecorded => '录制时间';
-
-  @override
-  String get exportDuration => '时长';
-
-  @override
-  String get exportLanguage => '语言';
-
-  @override
-  String get exportAudio => '音频';
-
-  @override
   String get settingsBackup => '备份';
 
   @override

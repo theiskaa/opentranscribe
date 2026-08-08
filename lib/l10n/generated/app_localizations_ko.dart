@@ -598,18 +598,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportQuiet => '조용한 시간.';
 
   @override
-  String get exportRecorded => '녹음 시각';
-
-  @override
-  String get exportDuration => '길이';
-
-  @override
-  String get exportLanguage => '언어';
-
-  @override
-  String get exportAudio => '오디오';
-
-  @override
   String get settingsBackup => '백업';
 
   @override
