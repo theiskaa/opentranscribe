@@ -75,16 +75,14 @@ final class ImportProbe {
 final class BackupState {
   const BackupState({
     this.entryCount,
-    this.audioBytes = 0,
     this.formatId = '',
     this.seal = false,
     this.lastArchiveAt,
     this.busy = BackupBusy.none,
   });
 
-  /// Null until the first measure lands; the hero shows an ellipsis then.
+  /// Null until the first measure lands; the intro reads generic until then.
   final int? entryCount;
-  final int audioBytes;
   final String formatId;
   final bool seal;
   final DateTime? lastArchiveAt;
@@ -94,14 +92,12 @@ final class BackupState {
 
   BackupState copyWith({
     int? entryCount,
-    int? audioBytes,
     String? formatId,
     bool? seal,
     DateTime? lastArchiveAt,
     BackupBusy? busy,
   }) => BackupState(
     entryCount: entryCount ?? this.entryCount,
-    audioBytes: audioBytes ?? this.audioBytes,
     formatId: formatId ?? this.formatId,
     seal: seal ?? this.seal,
     lastArchiveAt: lastArchiveAt ?? this.lastArchiveAt,
@@ -112,17 +108,16 @@ final class BackupState {
   bool operator ==(Object other) =>
       other is BackupState &&
       other.entryCount == entryCount &&
-      other.audioBytes == audioBytes &&
       other.formatId == formatId &&
       other.seal == seal &&
       other.lastArchiveAt == lastArchiveAt &&
       other.busy == busy;
 
   @override
-  int get hashCode => Object.hash(entryCount, audioBytes, formatId, seal, lastArchiveAt, busy);
+  int get hashCode => Object.hash(entryCount, formatId, seal, lastArchiveAt, busy);
 }
 
-/// Drives the Backup screen: measures the hero numbers, holds the persisted
+/// Drives the Backup screen: measures the entry count, holds the persisted
 /// choices, and runs the one-at-a-time export, archive and import actions.
 /// Cubit methods return one-shot outcomes while [BackupState.busy] gates the
 /// rows; the sheet choreography lives in the screen. Never rethrows: an
@@ -149,9 +144,6 @@ class BackupCubit extends Cubit<BackupState> {
 
   late final StreamSubscription<void> _entriesSub;
 
-  /// Guards a slow sweep from landing stale numbers over a fresher one.
-  int _measureGeneration = 0;
-
   /// The stored format id is resolved against the shipped descriptors HERE,
   /// so a stale id from a build that dropped its exporter can never leak
   /// into an export call.
@@ -163,19 +155,12 @@ class BackupCubit extends Cubit<BackupState> {
         lastArchiveAt: _settings.lastArchiveAt,
       ),
     );
-    await _measure();
+    _measure();
   }
 
-  Future<void> _measure() async {
-    final generation = ++_measureGeneration;
-    try {
-      final count = _service.entries().length;
-      final usage = await _service.audioUsage();
-      if (isClosed || generation != _measureGeneration) return;
-      emit(state.copyWith(entryCount: count, audioBytes: usage.totalBytes));
-    } catch (e) {
-      if (kDebugMode) debugPrint('BackupCubit.measure failed: $e');
-    }
+  void _measure() {
+    if (isClosed) return;
+    emit(state.copyWith(entryCount: _service.entries().length));
   }
 
   Future<void> setFormat(String id) async {

@@ -97,7 +97,7 @@ void main() {
       export: export,
       import: import,
       settings: settings,
-      descriptors: const [ExporterDescriptor(exporterId: 'default', displayName: 'Markdown')],
+      descriptors: const [ExporterDescriptor(exporterId: 'default', logo: 'plain.png')],
       clock: () => fixedClock,
     );
     addTearDown(cubit.close);
