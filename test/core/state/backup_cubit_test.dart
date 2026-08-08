@@ -152,6 +152,14 @@ void main() {
     expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
   });
 
+  test('a share sheet that never presented answers cancelled, not failed', () async {
+    final world = await build();
+    await world.cubit.load();
+    world.share.throwOnShare = true;
+    expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
   test('a stale stored format resolves at load and still exports', () async {
     final world = await build();
     await world.settings.setFormatId('gone');
@@ -236,7 +244,7 @@ void main() {
     expect(await first, BackupActionResult.shared);
   });
 
-  test('an import that adds entries re-measures the hero', () async {
+  test('an import that adds entries re-measures the entry count', () async {
     final world = await build();
     await world.store.save(entry('e1'));
     await world.cubit.load();

@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/export/archive_codec.dart';
-import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
@@ -58,17 +56,6 @@ final class ImportOutcome {
 
   final ImportResolution resolution;
   final ImportSummary? summary;
-}
-
-/// What the picked file looks like before any import work: its kind for the
-/// passphrase decision, and name and size for the confirm sheet.
-@immutable
-final class ImportProbe {
-  const ImportProbe({required this.kind, required this.fileName, required this.sizeBytes});
-
-  final ArchiveKind kind;
-  final String fileName;
-  final int sizeBytes;
 }
 
 @immutable
@@ -144,6 +131,9 @@ class BackupCubit extends Cubit<BackupState> {
 
   late final StreamSubscription<void> _entriesSub;
 
+  /// The formats this build ships, in the order the picker lists them.
+  List<ExporterDescriptor> get descriptors => _descriptors;
+
   /// The stored format id is resolved against the shipped descriptors HERE,
   /// so a stale id from a build that dropped its exporter can never leak
   /// into an export call.
@@ -202,12 +192,7 @@ class BackupCubit extends Cubit<BackupState> {
 
   Future<ImportProbe?> probeArchive(String path) async {
     try {
-      final file = File(path);
-      return ImportProbe(
-        kind: await _import.probe(path),
-        fileName: baseName(path),
-        sizeBytes: await file.length(),
-      );
+      return await _import.probe(path);
     } catch (e) {
       if (kDebugMode) debugPrint('BackupCubit.probe failed: $e');
       return null;
@@ -240,6 +225,14 @@ class BackupCubit extends Cubit<BackupState> {
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
+    } on ShareExportException catch (e) {
+      // Nothing was ever presented, so nothing failed: a sheet claiming the
+      // export broke would be a lie. Quiet, like a cancel.
+      if (e.code == ShareExportException.busy || e.code == ShareExportException.unavailable) {
+        return BackupActionResult.cancelled;
+      }
+      if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
+      return BackupActionResult.failed;
     } catch (e) {
       if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
       return BackupActionResult.failed;

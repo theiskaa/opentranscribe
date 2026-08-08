@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/archive_crypto.dart';
 import 'package:opentranscribe/core/export/archive_manifest.dart';
+import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -33,9 +34,17 @@ class ImportService {
   /// Opens the document picker; null when the user cancels.
   Future<String?> pickArchive() => _share.pickArchive();
 
-  /// What the picked file's first bytes say it is, so the UI knows whether to
-  /// ask for a passphrase before running the import.
-  Future<ArchiveKind> probe(String path) => sniffArchive(File(path));
+  /// What the picked file is before any import work: the kind its first bytes
+  /// claim, so the UI knows whether to ask for a passphrase, plus the name and
+  /// size the confirm sheet shows.
+  Future<ImportProbe> probe(String path) async {
+    final file = File(path);
+    return ImportProbe(
+      kind: await sniffArchive(file),
+      fileName: baseName(path),
+      sizeBytes: await file.length(),
+    );
+  }
 
   /// Best-effort delete of a picked archive copy once its flow has resolved.
   /// The picker hands out sandbox tmp copies that iOS only purges lazily; a
@@ -196,7 +205,20 @@ final class _ParsedPayload {
   final ReflectionArchive reflections;
 }
 
-/// What an import actually did, for the summary sheet.
+/// What the picked file looks like before any import work: its kind for the
+/// passphrase decision, and name and size for the confirm sheet.
+@immutable
+final class ImportProbe {
+  const ImportProbe({required this.kind, required this.fileName, required this.sizeBytes});
+
+  final ArchiveKind kind;
+  final String fileName;
+  final int sizeBytes;
+}
+
+/// What an import actually did. The summary sheet shows the entry counts;
+/// [audioRestored] and [reflectionChanges] round out the result for callers
+/// that want the whole picture.
 @immutable
 final class ImportSummary {
   const ImportSummary({
