@@ -1188,6 +1188,42 @@ abstract class AppLocalizations {
   /// **'Include audio'**
   String get exportIncludeAudio;
 
+  /// Name of the Markdown export format. A format is named by its makers: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown'**
+  String get exportFormatMarkdown;
+
+  /// One line under the Markdown format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'One text file per entry, plus a .json.'**
+  String get exportFormatMarkdownNote;
+
+  /// Name of the Obsidian export format. A product name: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Obsidian'**
+  String get exportFormatObsidian;
+
+  /// One line under the Obsidian format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes with properties, audio embedded.'**
+  String get exportFormatObsidianNote;
+
+  /// The app's own name for the HTML export format
+  ///
+  /// In en, this message translates to:
+  /// **'Web page'**
+  String get exportFormatWeb;
+
+  /// One line under the web page format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'A page for any browser, with a player.'**
+  String get exportFormatWebNote;
+
   /// Export failure sheet title
   ///
   /// In en, this message translates to:

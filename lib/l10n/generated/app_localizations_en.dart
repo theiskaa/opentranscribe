@@ -615,6 +615,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportIncludeAudio => 'Include audio';
 
   @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'One text file per entry, plus a .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notes with properties, audio embedded.';
+
+  @override
+  String get exportFormatWeb => 'Web page';
+
+  @override
+  String get exportFormatWebNote => 'A page for any browser, with a player.';
+
+  @override
   String get exportFailedTitle => 'Export failed';
 
   @override

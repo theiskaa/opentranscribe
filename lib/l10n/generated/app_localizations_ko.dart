@@ -583,6 +583,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportIncludeAudio => '오디오 포함';
 
   @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => '항목마다 텍스트 파일 하나와 .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
+
+  @override
+  String get exportFormatWeb => '웹 페이지';
+
+  @override
+  String get exportFormatWebNote => '어떤 브라우저에서나 열리는 페이지.';
+
+  @override
   String get exportFailedTitle => '내보내기 실패';
 
   @override

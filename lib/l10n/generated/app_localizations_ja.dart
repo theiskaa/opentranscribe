@@ -581,6 +581,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportIncludeAudio => '音声を含める';
 
   @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+
+  @override
+  String get exportFormatWeb => 'Webページ';
+
+  @override
+  String get exportFormatWebNote => 'どのブラウザでも開けるページ。';
+
+  @override
   String get exportFailedTitle => '書き出しに失敗しました';
 
   @override

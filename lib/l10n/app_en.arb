@@ -781,6 +781,30 @@
   "@exportIncludeAudio": {
     "description": "Toggle for bundling the recording with an export"
   },
+  "exportFormatMarkdown": "Markdown",
+  "@exportFormatMarkdown": {
+    "description": "Name of the Markdown export format. A format is named by its makers: keep it verbatim"
+  },
+  "exportFormatMarkdownNote": "One text file per entry, plus a .json.",
+  "@exportFormatMarkdownNote": {
+    "description": "One line under the Markdown format row saying what it writes"
+  },
+  "exportFormatObsidian": "Obsidian",
+  "@exportFormatObsidian": {
+    "description": "Name of the Obsidian export format. A product name: keep it verbatim"
+  },
+  "exportFormatObsidianNote": "Notes with properties, audio embedded.",
+  "@exportFormatObsidianNote": {
+    "description": "One line under the Obsidian format row saying what it writes"
+  },
+  "exportFormatWeb": "Web page",
+  "@exportFormatWeb": {
+    "description": "The app's own name for the HTML export format"
+  },
+  "exportFormatWebNote": "A page for any browser, with a player.",
+  "@exportFormatWebNote": {
+    "description": "One line under the web page format row saying what it writes"
+  },
   "exportFailedTitle": "Export failed",
   "@exportFailedTitle": {
     "description": "Export failure sheet title"

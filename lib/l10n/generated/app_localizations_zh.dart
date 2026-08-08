@@ -577,6 +577,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportIncludeAudio => '包含音频';
 
   @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => '每条记录一个文本文件，外加 .json。';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
+
+  @override
+  String get exportFormatWeb => '网页';
+
+  @override
+  String get exportFormatWebNote => '任何浏览器都能打开的页面。';
+
+  @override
   String get exportFailedTitle => '导出失败';
 
   @override
