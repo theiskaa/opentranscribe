@@ -146,6 +146,12 @@ final class StoredZipWriter {
         ..setUint32(16, directoryOffset, Endian.little);
       await _out.writeFrom(directory);
       await _out.writeFrom(end.buffer.asUint8List());
+    } catch (_) {
+      // A directory that did not land leaves a headerless file: a retried
+      // close() must not answer as though this one had succeeded.
+      _broken = true;
+      _closed = false;
+      rethrow;
     } finally {
       await _out.close();
     }
@@ -334,7 +340,16 @@ final class StoredZipReader {
     }
     final nameLength = local.getUint16(26, Endian.little);
     final extraLength = local.getUint16(28, Endian.little);
-    final dataStart = entry.offset + _localHeaderLength + nameLength + extraLength;
+    // Our writer emits no extra field, and _checkOverlap's spans assume none:
+    // an extra field shifts data past where the overlap test looked, so an
+    // entry could hide inside another's bytes.
+    if (extraLength != 0) {
+      throw const StoredZipException(
+        StoredZipError.unsupported,
+        'local extra fields are not supported',
+      );
+    }
+    final dataStart = entry.offset + _localHeaderLength + nameLength;
     if (dataStart + entry.size > _directoryOffset) {
       throw const StoredZipException(StoredZipError.malformed, 'entry data out of bounds');
     }
