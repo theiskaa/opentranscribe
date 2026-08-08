@@ -33,6 +33,20 @@ String entryFileBaseName(Entry entry, {required String untitled, String separato
 /// pasted newlines, and a heading must not spill its tail into the body.
 String flattenTitle(String title) => title.replaceAll(RegExp(r'\s+'), ' ').trim();
 
+/// The entry's title as a surface should show it, falling back to [untitled].
+/// A title of spaces falls back too: the field is stored as typed, and an
+/// import carries whatever the archive held, so blank is reachable and would
+/// otherwise render as a heading with nothing in it.
+String entryTitle(Entry entry, String untitled) {
+  final title = flattenTitle(entry.title ?? '');
+  return title.isEmpty ? flattenTitle(untitled) : title;
+}
+
+/// A relative export path safe to put in an `href` or `src`. Encoded per
+/// segment so the separators survive, because real recording names carry
+/// spaces and `#`, either of which would truncate the reference.
+String urlPath(String relativePath) => relativePath.split('/').map(Uri.encodeComponent).join('/');
+
 /// A YAML double-quoted scalar. Escapes every character that could end the
 /// scalar or the line, so no value can break the frontmatter that holds it:
 /// a locale or file name is read back from stored JSON and a picked file's

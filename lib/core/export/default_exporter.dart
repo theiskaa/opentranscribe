@@ -97,7 +97,7 @@ final class DefaultExporter implements JournalExporter {
     buffer
       ..writeln('---')
       ..writeln()
-      ..writeln('# ${flattenTitle(entry.title ?? strings.untitledEntry)}');
+      ..writeln('# ${entryTitle(entry, strings.untitledEntry)}');
     final transcript = entry.transcript;
     if (transcript == null || transcript.isEmpty) return buffer.toString();
     buffer

@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
+import 'package:opentranscribe/core/export/html_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
@@ -248,8 +249,10 @@ class Deps {
     final shareExport = ShareExport();
     const defaultExporter = DefaultExporter();
     const obsidianExporter = ObsidianExporter();
+    const htmlExporter = HtmlExporter();
     final exporters = <String, JournalExporter>{
-      for (final e in const <JournalExporter>[defaultExporter, obsidianExporter]) e.id: e,
+      for (final e in const <JournalExporter>[defaultExporter, obsidianExporter, htmlExporter])
+        e.id: e,
     };
     final backupSettings = BackupSettings(
       storage: localService,
@@ -303,6 +306,11 @@ class Deps {
           exporterId: obsidianExporter.id,
           displayName: 'Obsidian',
           logo: 'assets/brand/obsidian.svg',
+        ),
+        ExporterDescriptor(
+          exporterId: htmlExporter.id,
+          displayName: 'HTML',
+          logo: 'assets/brand/html.svg',
         ),
       ],
     );
