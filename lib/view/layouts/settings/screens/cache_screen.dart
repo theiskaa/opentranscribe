@@ -19,11 +19,9 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Cache: what the kept recordings occupy, the keep-audio switch, and the one
 /// bulk action against the reclaimable share. Owns a [CacheCubit] so the
@@ -107,10 +105,12 @@ class _CacheView extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           SettingsCard(
             children: [
-              _ClearRow(
+              SettingsBusyRow(
+                icon: AppIcons.trash,
+                tint: theme.danger,
                 label: l10n.cacheClear,
                 detail: clearable ? formatBytes(usage.reclaimableBytes, locale) : null,
-                clearing: cache.clearing,
+                busy: cache.clearing,
                 onTap: clearable ? () => unawaited(_confirmClear(context, usage)) : null,
               ),
             ],
@@ -283,76 +283,6 @@ class _ReclaimableRow extends StatelessWidget {
           ),
           Text(size, style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary)),
         ],
-      ),
-    );
-  }
-}
-
-/// The destructive action as a row that says so: danger-tinted tile and label
-/// while enabled, the dimmed [SelectableRow] treatment while there is nothing
-/// to clear, a spinner while the purge runs.
-class _ClearRow extends StatelessWidget {
-  const _ClearRow({
-    required this.label,
-    required this.detail,
-    required this.clearing,
-    required this.onTap,
-  });
-
-  final String label;
-  final String? detail;
-  final bool clearing;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.settings;
-    final enabled = onTap != null;
-    return Touchable(
-      onTap: onTap,
-      haptic: enabled,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: enabled ? theme.danger.withValues(alpha: 0.14) : tokens.iconTileBackground,
-              ),
-              child: AppIcon(
-                AppIcons.trash,
-                size: 16,
-                color: enabled ? theme.danger : theme.textSecondary,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: AppType.subhead.copyWith(
-                  color: enabled ? theme.danger : theme.textSecondary,
-                ),
-              ),
-            ),
-            AnimatedSwitcher(
-              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-              child: clearing
-                  ? AppSpinner(size: 16, color: theme.textSecondary)
-                  : detail != null
-                  ? Text(
-                      detail!,
-                      key: ValueKey(detail),
-                      style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ),
       ),
     );
   }

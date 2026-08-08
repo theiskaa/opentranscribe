@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -85,6 +86,7 @@ class SelectableRow extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.flag,
+    this.leading,
     this.dimmed = false,
     super.key,
   });
@@ -94,6 +96,9 @@ class SelectableRow extends StatelessWidget {
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
   /// choice with no chip (a reflection option).
   final String? flag;
+
+  /// A widget for the leading chip instead of a flag (a format's brand mark).
+  final Widget? leading;
   final bool selected;
 
   /// A kept-but-unavailable choice (an unsupported language): shown honestly,
@@ -106,6 +111,9 @@ class SelectableRow extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.settings;
     final active = selected && !dimmed;
+    final duration = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
+    final curve = theme.motion.indicatorCurve;
+    final chipColor = active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground;
     return Touchable(
       onTap: onTap,
       haptic: onTap != null,
@@ -113,29 +121,52 @@ class SelectableRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            if (flag != null) ...[
-              Container(
-                width: tokens.iconTileSize,
-                height: tokens.iconTileSize,
-                alignment: Alignment.center,
-                decoration: SuperellipseDecoration(
-                  borderRadius: tokens.iconTileRadius,
-                  color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+            if (flag != null || leading != null) ...[
+              // TweenAnimationBuilder rather than AnimatedContainer: the
+              // superellipse decoration has no lerp, so AnimatedContainer
+              // would snap the color halfway instead of fading it.
+              TweenAnimationBuilder<Color?>(
+                tween: ColorTween(end: chipColor),
+                duration: duration,
+                curve: curve,
+                builder: (context, color, child) => Container(
+                  width: tokens.iconTileSize,
+                  height: tokens.iconTileSize,
+                  alignment: Alignment.center,
+                  decoration: SuperellipseDecoration(
+                    borderRadius: tokens.iconTileRadius,
+                    color: color ?? chipColor,
+                  ),
+                  child: child,
                 ),
-                child: LocaleFlag(flag!, size: 18),
+                child: leading ?? LocaleFlag(flag!, size: 18),
               ),
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: Text(
-                label,
+              child: AnimatedDefaultTextStyle(
+                duration: duration,
+                curve: curve,
                 style: AppType.subhead.copyWith(
                   color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                 ),
+                child: Text(label),
               ),
             ),
-            if (active) AppIcon(AppIcons.checkmark, size: 14, color: theme.accent),
+            // Always in the row at zero opacity, so the label never reflows
+            // when the checkmark arrives.
+            AnimatedOpacity(
+              opacity: active ? 1 : 0,
+              duration: duration,
+              curve: curve,
+              child: AnimatedScale(
+                scale: active ? 1 : 0.5,
+                duration: duration,
+                curve: curve,
+                child: AppIcon(AppIcons.checkmark, size: 14, color: theme.text),
+              ),
+            ),
           ],
         ),
       ),
@@ -251,6 +282,79 @@ class SettingsActionRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
             ],
             AppIcon(AppIcons.chevronForward, size: 14, color: theme.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A long-running action row: icon tile, label, and a trailing seat the
+/// spinner takes while the operation runs, showing [detail] otherwise.
+/// [tint] colors the tile, icon and label for a destructive flavor. A null
+/// [onTap] disables the row.
+class SettingsBusyRow extends StatelessWidget {
+  const SettingsBusyRow({
+    required this.icon,
+    required this.label,
+    required this.busy,
+    required this.onTap,
+    this.detail,
+    this.tint,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool busy;
+  final VoidCallback? onTap;
+  final String? detail;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final enabled = onTap != null;
+    final accent = tint ?? theme.accent;
+    final labelColor = switch ((enabled, tint)) {
+      (false, _) => theme.textSecondary,
+      (true, null) => theme.text,
+      (true, _) => tint!,
+    };
+    return Touchable(
+      onTap: onTap,
+      haptic: enabled,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: enabled ? accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+              ),
+              child: AppIcon(icon, size: 16, color: enabled ? accent : theme.textSecondary),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: labelColor)),
+            ),
+            AnimatedSwitcher(
+              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+              child: busy
+                  ? AppSpinner(size: 16, color: theme.textSecondary)
+                  : detail != null
+                  ? Text(
+                      detail!,
+                      key: ValueKey(detail),
+                      style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
