@@ -610,15 +610,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBackup => '备份与导出';
 
   @override
-  String get backupInfo => '一切都在这部手机上；删除应用就会删除日记。只有在你要求时，导出或备份才会交给共享面板。';
+  String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
 
   @override
   String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count 条记录只存在于这部手机上，删除应用即删除日记。只有在你要求时，导出或备份才会交给共享面板。',
-      zero: '还没有记录。日记只存在于这部手机上，删除应用即删除日记。只有在你要求时，导出或备份才会交给共享面板。',
+      other: '备份包含 $count 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。',
+      zero: '暂时没有可备份的内容。备份包含记录、音频和回顾。',
     );
     return '$_temp0';
   }

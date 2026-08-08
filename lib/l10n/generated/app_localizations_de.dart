@@ -657,7 +657,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Alles liegt auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.';
+      'Ein Backup enthält jeden Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
 
   @override
   String backupInfoCount(int count) {
@@ -665,11 +665,10 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Alle $count Einträge leben nur auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
+          'Ein Backup enthält alle $count Einträge mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
       one:
-          'Dein einziger Eintrag lebt nur auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
-      zero:
-          'Noch keine Einträge; das Journal lebt nur auf diesem Telefon, und wer die App löscht, löscht es. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
+          'Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
+      zero: 'Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.',
     );
     return '$_temp0';
   }

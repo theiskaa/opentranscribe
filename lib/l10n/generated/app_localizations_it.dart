@@ -654,7 +654,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tutto vive su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.';
+      'Un backup contiene ogni voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.';
 
   @override
   String backupInfoCount(int count) {
@@ -662,11 +662,11 @@ class AppLocalizationsIt extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Tutte le $count voci vivono solo su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
+          'Un backup contiene tutte le $count voci con il loro audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
       one:
-          'La tua unica voce vive solo su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
+          'Un backup contiene la tua unica voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
       zero:
-          'Ancora nessuna voce; il diario vive solo su questo telefono, ed eliminare l\'app lo elimina. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
+          'Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.',
     );
     return '$_temp0';
   }

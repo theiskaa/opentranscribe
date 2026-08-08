@@ -616,15 +616,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsBackup => '백업 및 내보내기';
 
   @override
-  String get backupInfo => '모든 것은 이 전화 안에 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.';
+  String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
 
   @override
   String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '항목 $count개가 이 전화 안에만 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.',
-      zero: '아직 항목이 없습니다. 저널은 이 전화 안에만 있으며, 앱을 삭제하면 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.',
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
+      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
     );
     return '$_temp0';
   }

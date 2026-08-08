@@ -1254,16 +1254,16 @@ abstract class AppLocalizations {
   /// **'Backup & Export'**
   String get settingsBackup;
 
-  /// Backup screen intro: local-only, share only on request
+  /// Backup screen intro: what a backup holds and what encryption does
   ///
   /// In en, this message translates to:
-  /// **'Everything lives on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.'**
+  /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
   String get backupInfo;
 
   /// The Backup screen intro once the entry count is measured
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {No entries yet; the journal lives only on this phone, and deleting the app deletes it. An export or backup is handed to the share sheet only when you ask.} one {Your 1 entry lives only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.} other {All {count} entries live only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.}}'**
+  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
   String backupInfoCount(int count);
 
   /// Section label over the format picker and export row

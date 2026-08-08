@@ -653,7 +653,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tudo vive neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.';
+      'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.';
 
   @override
   String backupInfoCount(int count) {
@@ -661,11 +661,11 @@ class AppLocalizationsPt extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'As tuas $count entradas vivem só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
+          'Uma cópia de segurança guarda as tuas $count entradas com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.',
       one:
-          'A tua única entrada vive só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
+          'Uma cópia de segurança guarda a tua única entrada com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.',
       zero:
-          'Ainda sem entradas; o diário vive só neste telefone, e apagar a app apaga-o. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
+          'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.',
     );
     return '$_temp0';
   }

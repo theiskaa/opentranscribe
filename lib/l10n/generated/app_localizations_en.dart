@@ -649,7 +649,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Everything lives on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.';
+      'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.';
 
   @override
   String backupInfoCount(int count) {
@@ -657,11 +657,10 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'All $count entries live only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.',
+          'A backup holds all $count entries with their audio and reflections. Encrypt it and your passphrase is the only key.',
       one:
-          'Your 1 entry lives only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.',
-      zero:
-          'No entries yet; the journal lives only on this phone, and deleting the app deletes it. An export or backup is handed to the share sheet only when you ask.',
+          'A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.',
+      zero: 'Nothing to back up yet. A backup holds every entry with its audio and reflections.',
     );
     return '$_temp0';
   }

@@ -614,16 +614,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsBackup => 'バックアップと書き出し';
 
   @override
-  String get backupInfo =>
-      'すべてはこの電話の中にあります。アプリを削除するとジャーナルも消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。';
+  String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
 
   @override
   String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のエントリーはこの電話の中だけにあります。アプリを削除するとジャーナルも消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。',
-      zero: 'まだエントリーはありません。ジャーナルはこの電話の中だけにあり、アプリを削除すると消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。',
+      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
+      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
     );
     return '$_temp0';
   }

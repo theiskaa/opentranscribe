@@ -654,7 +654,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tout vit sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.';
+      'Une sauvegarde contient chaque entrée avec son audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.';
 
   @override
   String backupInfoCount(int count) {
@@ -662,11 +662,11 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Tes $count entrées ne vivent que sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
+          'Une sauvegarde contient tes $count entrées avec leur audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.',
       one:
-          'Ton unique entrée ne vit que sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
+          'Une sauvegarde contient ton unique entrée avec son audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.',
       zero:
-          'Aucune entrée pour l\'instant ; le journal ne vit que sur ce téléphone, et supprimer l\'app le supprime. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
+          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et tes réflexions.',
     );
     return '$_temp0';
   }
