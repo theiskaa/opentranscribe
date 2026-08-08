@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
@@ -151,9 +153,12 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
             child: ConstrainedBox(
               key: _panel,
               constraints: BoxConstraints(
+                // max, not a bare subtraction: clamp throws when the bounds
+                // invert, and a rotation frame can report a keyboard inset
+                // taller than the screen it was measured against.
                 maxHeight: (screenHeight * sheet.maxHeightFraction).clamp(
                   0.0,
-                  screenHeight - keyboard,
+                  math.max(0.0, screenHeight - keyboard),
                 ),
               ),
               child: Container(

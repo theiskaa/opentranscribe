@@ -151,7 +151,9 @@ class SelectableRow extends StatelessWidget {
                   color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                 ),
-                child: Text(label),
+                // One line: a wrapped row would break showAppDropdown's
+                // fixed row estimate and misplace the popup.
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             ),
             // Always in the row at zero opacity, so the label never reflows
