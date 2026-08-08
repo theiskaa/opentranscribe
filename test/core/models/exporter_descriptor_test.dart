@@ -4,7 +4,7 @@ import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 
 void main() {
   const descriptors = [
-    ExporterDescriptor(exporterId: 'default', logo: 'markdown.svg'),
+    ExporterDescriptor(exporterId: 'markdown', logo: 'markdown.svg'),
     ExporterDescriptor(exporterId: 'obsidian', displayName: 'Obsidian', logo: 'obsidian.svg'),
   ];
 
@@ -13,6 +13,6 @@ void main() {
   });
 
   test('a stored format that no longer ships falls back to the first', () {
-    expect(resolveFormatId('notion', descriptors), 'default');
+    expect(resolveFormatId('notion', descriptors), 'markdown');
   });
 }

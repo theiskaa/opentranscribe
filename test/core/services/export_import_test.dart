@@ -534,7 +534,12 @@ void main() {
 
     test('a multi-file export without audio still zips', () async {
       final a = await seededWorld();
-      await a.export.shareEntry('e2', exporterId: 'default', includeAudio: false, strings: strings);
+      await a.export.shareEntry(
+        'e2',
+        exporterId: 'markdown',
+        includeAudio: false,
+        strings: strings,
+      );
       final shared = a.share.captured.last;
       expect(shared, endsWith('2026-08-05-Text only.zip'));
       final reader = await StoredZipReader.open(File(shared));
@@ -554,7 +559,7 @@ void main() {
 
     test('a journal export zips every entry, audio and reflections', () async {
       final a = await seededWorld();
-      await a.export.shareJournal(exporterId: 'default', strings: strings);
+      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
       final reader = await StoredZipReader.open(File(a.share.captured.last));
       expect(
         reader.paths,
@@ -572,9 +577,9 @@ void main() {
 
     test('staging is deleted after a completed and a cancelled share', () async {
       final a = await seededWorld();
-      await a.export.shareJournal(exporterId: 'default', strings: strings);
+      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
       a.share.shareCompletes = false;
-      expect(await a.export.shareJournal(exporterId: 'default', strings: strings), isFalse);
+      expect(await a.export.shareJournal(exporterId: 'markdown', strings: strings), isFalse);
       final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
         (d) => d.path.split('/').last.startsWith('export-'),
       );

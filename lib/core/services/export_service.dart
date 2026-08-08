@@ -104,7 +104,11 @@ class ExportService {
     );
     final files = exporter.exportJournal(snapshot, await _context(strings));
     return _stage((staging) async {
-      final zip = File('${staging.path}/journal-export-${_dateStamp()}.zip');
+      // The format is in the name: a folder of these is otherwise unreadable
+      // once two formats of the same day sit side by side. Sanitized because
+      // the id comes from whatever exporter the build registered.
+      final slug = sanitizeFileName(exporter.id, fallback: 'export');
+      final zip = File('${staging.path}/opentranscribe-export-$slug-${_dateStamp()}.zip');
       final writer = await StoredZipWriter.create(zip);
       try {
         for (final file in files) {
@@ -130,11 +134,11 @@ class ExportService {
       final payload = File('${staging.path}/payload.zip');
       await _writeArchivePayload(payload, entries, reflectionArchive);
       if (passphrase == null) {
-        final plain = File('${staging.path}/journal-${_dateStamp()}.zip');
+        final plain = File('${staging.path}/opentranscribe-backup-${_dateStamp()}.zip');
         await payload.rename(plain.path);
         return [plain.path];
       }
-      final sealed = File('${staging.path}/journal-${_dateStamp()}.otarchive');
+      final sealed = File('${staging.path}/opentranscribe-backup-${_dateStamp()}.otarchive');
       await sealArchiveFile(payload: payload, target: sealed, passphrase: passphrase);
       await payload.delete();
       return [sealed.path];

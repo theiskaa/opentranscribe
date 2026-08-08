@@ -78,11 +78,11 @@ void main() {
       weekOf: (d) => DateTime(d.year, d.month, d.day),
     );
     final share = FakeShareExport(captureTo: temp);
-    final settings = BackupSettings(storage: storage, fallbackFormatId: 'default');
+    final settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
     final export = ExportService(
       transcription: transcription,
       reflections: reflections,
-      exporters: {'default': const DefaultExporter()},
+      exporters: {'markdown': const DefaultExporter()},
       share: share,
       appVersion: () async => '0.1.0',
       clock: () => fixedClock,
@@ -97,7 +97,7 @@ void main() {
       export: export,
       import: import,
       settings: settings,
-      descriptors: const [ExporterDescriptor(exporterId: 'default', logo: 'markdown.svg')],
+      descriptors: const [ExporterDescriptor(exporterId: 'markdown', logo: 'markdown.svg')],
       clock: () => fixedClock,
     );
     addTearDown(cubit.close);
@@ -122,7 +122,7 @@ void main() {
     await world.store.save(entry('e1'));
     await world.settings.setSeal(true);
     await world.cubit.load();
-    expect(world.cubit.state.formatId, 'default');
+    expect(world.cubit.state.formatId, 'markdown');
     expect(world.cubit.state.seal, isTrue);
     expect(world.cubit.state.entryCount, 1);
   });
@@ -164,7 +164,7 @@ void main() {
     final world = await build();
     await world.settings.setFormatId('gone');
     await world.cubit.load();
-    expect(world.cubit.state.formatId, 'default');
+    expect(world.cubit.state.formatId, 'markdown');
     expect(await world.cubit.exportJournal(strings), BackupActionResult.shared);
   });
 

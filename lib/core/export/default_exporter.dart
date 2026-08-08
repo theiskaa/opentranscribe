@@ -17,7 +17,7 @@ final class DefaultExporter implements JournalExporter {
   static const _jsonIndent = JsonEncoder.withIndent('  ');
 
   @override
-  String get id => 'default';
+  String get id => 'markdown';
 
   @override
   List<ExportFile> exportEntry(ExportEntry entry, ExportContext context) {
