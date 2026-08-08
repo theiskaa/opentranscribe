@@ -617,6 +617,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportEntryTitle => 'Esporta la voce';
 
   @override
+  String get exportFormatPlain => 'Markdown semplice';
+
+  @override
   String get exportIncludeAudio => 'Includi l\'audio';
 
   @override
@@ -651,16 +654,19 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tutto vive su questo telefono; eliminare l\'app elimina il diario. Un export o un archivio passa al foglio di condivisione solo su tua richiesta.';
+      'Tutto vive su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.';
 
   @override
-  String backupEntriesCount(int count) {
+  String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count voci',
-      one: '1 voce',
-      zero: '0 voci',
+      other:
+          'Tutte le $count voci vivono solo su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
+      one:
+          'La tua unica voce vive solo su questo telefono; eliminare l\'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
+      zero:
+          'Ancora nessuna voce; il diario vive solo su questo telefono, ed eliminare l\'app lo elimina. Un export o un backup passa al foglio di condivisione solo su tua richiesta.',
     );
     return '$_temp0';
   }
@@ -673,42 +679,28 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Scrive ogni voce nel formato scelto, audio incluso, in uno zip per il foglio di condivisione.';
+      'Scrive ogni voce nel formato scelto, audio incluso, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
 
   @override
-  String get backupArchiveSection => 'Archivio';
+  String get backupSeal => 'Cifra con passphrase';
 
   @override
-  String get backupSeal => 'Sigilla con passphrase';
+  String get backupSave => 'Salva backup';
 
   @override
-  String get backupSaveArchive => 'Salva archivio';
-
-  @override
-  String backupLastArchive(String date) {
-    return 'Ultimo archivio $date';
+  String backupLastBackup(String date) {
+    return 'Ultimo backup $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'Un solo file con l\'intero diario, per ripristinare su un\'installazione nuova. Sigillato, si apre solo in questa app con la passphrase; non esiste recupero.';
+  String get backupRestore => 'Ripristina backup';
 
   @override
-  String get backupImportSection => 'Import';
-
-  @override
-  String get backupImport => 'Importa archivio';
-
-  @override
-  String get backupImportInfo =>
-      'Aggiunge le voci di un archivio al diario. Una voce presente in entrambi tiene la versione dell\'archivio, e importare due volte non duplica mai.';
-
-  @override
-  String get passphraseCreateTitle => 'Sigilla l\'archivio';
+  String get passphraseCreateTitle => 'Cifra il backup';
 
   @override
   String get passphraseCreateBody =>
-      'La passphrase è l\'unica chiave. Non viene salvata da nessuna parte; senza, l\'archivio è rumore.';
+      'La passphrase è l\'unica chiave. Non viene salvata da nessuna parte; senza, il backup è rumore.';
 
   @override
   String get passphrasePlaceholder => 'Passphrase';
@@ -723,11 +715,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get passphraseMismatch => 'Le passphrase non coincidono';
 
   @override
-  String get importUnlockTitle => 'Archivio sigillato';
+  String get importUnlockTitle => 'Backup cifrato';
 
   @override
-  String get importUnlockBody =>
-      'Inserisci la passphrase con cui questo archivio è stato sigillato.';
+  String get importUnlockBody => 'Inserisci la passphrase con cui questo backup è stato cifrato.';
 
   @override
   String get importUnlock => 'Sblocca';
@@ -737,26 +728,26 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile sbloccare. Passphrase errata o file danneggiato.';
 
   @override
-  String get importConfirmTitle => 'Importare l\'archivio?';
+  String get importConfirmTitle => 'Ripristinare questo backup?';
 
   @override
   String get importConfirmBody =>
-      'Aggiunge le sue voci al tuo diario. Importare due volte lo stesso archivio non duplica mai.';
+      'Aggiunge le sue voci al tuo diario. Ripristinare due volte lo stesso backup non duplica mai.';
 
   @override
-  String get importConfirm => 'Importa';
+  String get importConfirm => 'Ripristina';
 
   @override
-  String get importSummaryTitle => 'Import completato';
+  String get importSummaryTitle => 'Ripristino completato';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count voci importate.',
-      one: '1 voce importata.',
-      zero: 'Niente di nuovo da importare.',
+      other: '$count voci ripristinate.',
+      one: '1 voce ripristinata.',
+      zero: 'Niente di nuovo da ripristinare.',
     );
     return '$_temp0';
   }
@@ -773,15 +764,15 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => 'Import non riuscito';
+  String get importFailedTitle => 'Ripristino non riuscito';
 
   @override
   String get importFailedBody =>
-      'Impossibile leggere l\'archivio. Nulla nel diario è stato modificato.';
+      'Impossibile leggere il backup. Nulla nel diario è stato modificato.';
 
   @override
   String get importNotArchive =>
-      'Non è un archivio opentranscribe. Nulla nel diario è stato modificato.';
+      'Non è un backup OpenTranscribe. Nulla nel diario è stato modificato.';
 
   @override
   String get importNewerVersion =>
@@ -789,12 +780,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get importRezipped =>
-      'Questo archivio è stato ri-zippato da un altro strumento. Esportane uno nuovo e importa quello.';
+      'Questo backup è stato ri-zippato da un altro strumento. Salvane uno nuovo e ripristina quello.';
 
   @override
   String get done => 'Fine';
 
   @override
   String get importFailedMidway =>
-      'L\'importazione si è fermata a metà. Quanto già ripristinato resta; importa di nuovo per finire.';
+      'Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.';
 }

@@ -617,6 +617,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportEntryTitle => 'Exporter l\'entrée';
 
   @override
+  String get exportFormatPlain => 'Markdown brut';
+
+  @override
   String get exportIncludeAudio => 'Inclure l\'audio';
 
   @override
@@ -651,16 +654,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tout vit sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une archive ne part vers la feuille de partage que sur ta demande.';
+      'Tout vit sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.';
 
   @override
-  String backupEntriesCount(int count) {
+  String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entrées',
-      one: '1 entrée',
-      zero: '0 entrée',
+      other:
+          'Tes $count entrées ne vivent que sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
+      one:
+          'Ton unique entrée ne vit que sur ce téléphone ; supprimer l\'app supprime le journal. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
+      zero:
+          'Aucune entrée pour l\'instant ; le journal ne vit que sur ce téléphone, et supprimer l\'app le supprime. Un export ou une sauvegarde ne part vers la feuille de partage que sur ta demande.',
     );
     return '$_temp0';
   }
@@ -673,42 +679,28 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Écrit chaque entrée dans le format choisi, audio compris, en zip pour la feuille de partage.';
+      'Écrit chaque entrée dans le format choisi, audio compris, en zip pour la feuille de partage. Une copie pour d\'autres apps ; restaurer demande une sauvegarde.';
 
   @override
-  String get backupArchiveSection => 'Archive';
+  String get backupSeal => 'Chiffrer avec une phrase secrète';
 
   @override
-  String get backupSeal => 'Sceller avec une phrase secrète';
+  String get backupSave => 'Enregistrer la sauvegarde';
 
   @override
-  String get backupSaveArchive => 'Enregistrer l\'archive';
-
-  @override
-  String backupLastArchive(String date) {
-    return 'Dernière archive $date';
+  String backupLastBackup(String date) {
+    return 'Dernière sauvegarde $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'Un seul fichier contenant tout le journal, pour restaurer sur une installation neuve. Scellée, elle ne s\'ouvre que dans cette app avec la phrase secrète ; il n\'y a pas de récupération.';
+  String get backupRestore => 'Restaurer une sauvegarde';
 
   @override
-  String get backupImportSection => 'Import';
-
-  @override
-  String get backupImport => 'Importer une archive';
-
-  @override
-  String get backupImportInfo =>
-      'Ajoute les entrées d\'une archive au journal. Une entrée présente des deux côtés garde la version de l\'archive, et importer deux fois ne duplique jamais.';
-
-  @override
-  String get passphraseCreateTitle => 'Sceller l\'archive';
+  String get passphraseCreateTitle => 'Chiffrer la sauvegarde';
 
   @override
   String get passphraseCreateBody =>
-      'La phrase secrète est la seule clé. Elle n\'est stockée nulle part ; sans elle, l\'archive n\'est que du bruit.';
+      'La phrase secrète est la seule clé. Elle n\'est stockée nulle part ; sans elle, la sauvegarde n\'est que du bruit.';
 
   @override
   String get passphrasePlaceholder => 'Phrase secrète';
@@ -723,11 +715,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get passphraseMismatch => 'Les phrases secrètes ne correspondent pas';
 
   @override
-  String get importUnlockTitle => 'Archive scellée';
+  String get importUnlockTitle => 'Sauvegarde chiffrée';
 
   @override
   String get importUnlockBody =>
-      'Saisis la phrase secrète avec laquelle cette archive a été scellée.';
+      'Saisis la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
 
   @override
   String get importUnlock => 'Déverrouiller';
@@ -737,26 +729,26 @@ class AppLocalizationsFr extends AppLocalizations {
       'Déverrouillage impossible. Phrase secrète erronée, ou fichier endommagé.';
 
   @override
-  String get importConfirmTitle => 'Importer l\'archive ?';
+  String get importConfirmTitle => 'Restaurer cette sauvegarde ?';
 
   @override
   String get importConfirmBody =>
-      'Ajoute ses entrées à ton journal. Importer deux fois la même archive ne duplique jamais.';
+      'Ajoute ses entrées à ton journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
 
   @override
-  String get importConfirm => 'Importer';
+  String get importConfirm => 'Restaurer';
 
   @override
-  String get importSummaryTitle => 'Import terminé';
+  String get importSummaryTitle => 'Restauration terminée';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entrées importées.',
-      one: '1 entrée importée.',
-      zero: 'Rien de nouveau à importer.',
+      other: '$count entrées restaurées.',
+      one: '1 entrée restaurée.',
+      zero: 'Rien de nouveau à restaurer.',
     );
     return '$_temp0';
   }
@@ -773,15 +765,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => 'Échec de l\'import';
+  String get importFailedTitle => 'Échec de la restauration';
 
   @override
   String get importFailedBody =>
-      'L\'archive n\'a pas pu être lue. Rien dans le journal n\'a été modifié.';
+      'La sauvegarde n\'a pas pu être lue. Rien dans le journal n\'a été modifié.';
 
   @override
   String get importNotArchive =>
-      'Ce n\'est pas une archive opentranscribe. Rien dans le journal n\'a été modifié.';
+      'Ce n\'est pas une sauvegarde OpenTranscribe. Rien dans le journal n\'a été modifié.';
 
   @override
   String get importNewerVersion =>
@@ -789,12 +781,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importRezipped =>
-      'Cette archive a été re-zippée par un autre outil. Exporte-en une fraîche et importe celle-là.';
+      'Cette sauvegarde a été re-zippée par un autre outil. Enregistre-en une fraîche et restaure celle-là.';
 
   @override
   String get done => 'OK';
 
   @override
   String get importFailedMidway =>
-      'L\'import s\'est arrêté en cours de route. Ce qui a été restauré est conservé ; importe à nouveau pour terminer.';
+      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaure à nouveau pour terminer.';
 }

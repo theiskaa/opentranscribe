@@ -580,6 +580,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportEntryTitle => '항목 내보내기';
 
   @override
+  String get exportFormatPlain => '일반 Markdown';
+
+  @override
   String get exportIncludeAudio => '오디오 포함';
 
   @override
@@ -613,12 +616,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsBackup => '백업';
 
   @override
-  String get backupInfo =>
-      '모든 것은 이 전화 안에 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 아카이브는 요청할 때만 공유 시트로 전달됩니다.';
+  String get backupInfo => '모든 것은 이 전화 안에 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.';
 
   @override
-  String backupEntriesCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '항목 $count개');
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '항목 $count개가 이 전화 안에만 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.',
+      zero: '아직 항목이 없습니다. 저널은 이 전화 안에만 있으며, 앱을 삭제하면 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.',
+    );
     return '$_temp0';
   }
 
@@ -629,41 +636,28 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupExportJournal => '저널 내보내기';
 
   @override
-  String get backupExportInfo => '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다.';
+  String get backupExportInfo =>
+      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
 
   @override
-  String get backupArchiveSection => '아카이브';
+  String get backupSeal => '암호구로 암호화';
 
   @override
-  String get backupSeal => '암호구로 봉인';
+  String get backupSave => '백업 저장';
 
   @override
-  String get backupSaveArchive => '아카이브 저장';
-
-  @override
-  String backupLastArchive(String date) {
-    return '마지막 아카이브 $date';
+  String backupLastBackup(String date) {
+    return '마지막 백업 $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      '저널 전체를 담은 파일 하나로, 새 설치에 복원할 수 있습니다. 봉인하면 이 앱에서 암호구로만 열립니다. 복구 수단은 없습니다.';
+  String get backupRestore => '백업 복원';
 
   @override
-  String get backupImportSection => '가져오기';
+  String get passphraseCreateTitle => '백업 암호화';
 
   @override
-  String get backupImport => '아카이브 가져오기';
-
-  @override
-  String get backupImportInfo =>
-      '아카이브의 항목을 저널에 추가합니다. 양쪽에 있는 항목은 아카이브 버전이 남으며, 두 번 가져와도 중복되지 않습니다.';
-
-  @override
-  String get passphraseCreateTitle => '아카이브 봉인';
-
-  @override
-  String get passphraseCreateBody => '암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 아카이브는 잡음일 뿐입니다.';
+  String get passphraseCreateBody => '암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 백업은 잡음일 뿐입니다.';
 
   @override
   String get passphrasePlaceholder => '암호구';
@@ -678,10 +672,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passphraseMismatch => '암호구가 일치하지 않습니다';
 
   @override
-  String get importUnlockTitle => '봉인된 아카이브';
+  String get importUnlockTitle => '암호화된 백업';
 
   @override
-  String get importUnlockBody => '이 아카이브를 봉인한 암호구를 입력하세요.';
+  String get importUnlockBody => '이 백업을 암호화한 암호구를 입력하세요.';
 
   @override
   String get importUnlock => '잠금 해제';
@@ -690,24 +684,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importWrongPassphrase => '열 수 없습니다. 암호구가 틀렸거나 파일이 손상되었습니다.';
 
   @override
-  String get importConfirmTitle => '아카이브를 가져올까요?';
+  String get importConfirmTitle => '이 백업을 복원할까요?';
 
   @override
-  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 아카이브를 두 번 가져와도 중복되지 않습니다.';
+  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
 
   @override
-  String get importConfirm => '가져오기';
+  String get importConfirm => '복원';
 
   @override
-  String get importSummaryTitle => '가져오기 완료';
+  String get importSummaryTitle => '복원 완료';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '항목 $count개를 가져왔습니다.',
-      zero: '새로 가져올 것이 없습니다.',
+      other: '항목 $count개를 복원했습니다.',
+      zero: '새로 복원할 것이 없습니다.',
     );
     return '$_temp0';
   }
@@ -723,23 +717,23 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => '가져오기 실패';
+  String get importFailedTitle => '복원 실패';
 
   @override
-  String get importFailedBody => '아카이브를 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
+  String get importFailedBody => '백업을 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
 
   @override
-  String get importNotArchive => 'opentranscribe 아카이브가 아닙니다. 저널은 아무것도 바뀌지 않았습니다.';
+  String get importNotArchive => 'OpenTranscribe 백업이 아닙니다. 저널은 아무것도 바뀌지 않았습니다.';
 
   @override
   String get importNewerVersion => '더 새로운 버전의 앱으로 만들어졌습니다. 업데이트 후 가져오세요.';
 
   @override
-  String get importRezipped => '이 아카이브는 다른 도구로 다시 압축되었습니다. 새로 내보낸 것을 가져오세요.';
+  String get importRezipped => '이 백업은 다른 도구로 다시 압축되었습니다. 새로 저장한 것을 복원하세요.';
 
   @override
   String get done => '완료';
 
   @override
-  String get importFailedMidway => '가져오기가 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 가져오면 마무리됩니다.';
+  String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 }

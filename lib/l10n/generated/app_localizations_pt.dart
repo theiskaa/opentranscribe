@@ -616,6 +616,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportEntryTitle => 'Exportar a entrada';
 
   @override
+  String get exportFormatPlain => 'Markdown simples';
+
+  @override
   String get exportIncludeAudio => 'Incluir o áudio';
 
   @override
@@ -650,16 +653,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Tudo vive neste telefone; apagar a app apaga o diário. Uma exportação ou um arquivo só passa para a folha de partilha quando pedes.';
+      'Tudo vive neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.';
 
   @override
-  String backupEntriesCount(int count) {
+  String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entradas',
-      one: '1 entrada',
-      zero: '0 entradas',
+      other:
+          'As tuas $count entradas vivem só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
+      one:
+          'A tua única entrada vive só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
+      zero:
+          'Ainda sem entradas; o diário vive só neste telefone, e apagar a app apaga-o. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.',
     );
     return '$_temp0';
   }
@@ -672,42 +678,28 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Escreve cada entrada no formato escolhido, áudio incluído, num zip para a folha de partilha.';
+      'Escreve cada entrada no formato escolhido, áudio incluído, num zip para a folha de partilha. Uma cópia para outras apps; restaurar exige uma cópia de segurança.';
 
   @override
-  String get backupArchiveSection => 'Arquivo';
+  String get backupSeal => 'Encriptar com frase-passe';
 
   @override
-  String get backupSeal => 'Selar com frase-passe';
+  String get backupSave => 'Guardar cópia de segurança';
 
   @override
-  String get backupSaveArchive => 'Guardar arquivo';
-
-  @override
-  String backupLastArchive(String date) {
-    return 'Último arquivo $date';
+  String backupLastBackup(String date) {
+    return 'Última cópia $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'Um único ficheiro com o diário inteiro, para restaurar numa instalação nova. Selado, só abre nesta app com a frase-passe; não há recuperação.';
+  String get backupRestore => 'Restaurar cópia de segurança';
 
   @override
-  String get backupImportSection => 'Importação';
-
-  @override
-  String get backupImport => 'Importar arquivo';
-
-  @override
-  String get backupImportInfo =>
-      'Acrescenta as entradas de um arquivo ao diário. Uma entrada presente em ambos fica com a versão do arquivo, e importar duas vezes nunca duplica.';
-
-  @override
-  String get passphraseCreateTitle => 'Selar o arquivo';
+  String get passphraseCreateTitle => 'Encriptar a cópia de segurança';
 
   @override
   String get passphraseCreateBody =>
-      'A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, o arquivo é ruído.';
+      'A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, a cópia é ruído.';
 
   @override
   String get passphrasePlaceholder => 'Frase-passe';
@@ -722,10 +714,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get passphraseMismatch => 'As frases-passe não coincidem';
 
   @override
-  String get importUnlockTitle => 'Arquivo selado';
+  String get importUnlockTitle => 'Cópia de segurança encriptada';
 
   @override
-  String get importUnlockBody => 'Introduz a frase-passe com que este arquivo foi selado.';
+  String get importUnlockBody =>
+      'Introduz a frase-passe com que esta cópia de segurança foi encriptada.';
 
   @override
   String get importUnlock => 'Desbloquear';
@@ -735,26 +728,26 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível desbloquear. Frase-passe errada, ou ficheiro danificado.';
 
   @override
-  String get importConfirmTitle => 'Importar o arquivo?';
+  String get importConfirmTitle => 'Restaurar esta cópia de segurança?';
 
   @override
   String get importConfirmBody =>
-      'Acrescenta as suas entradas ao teu diário. Importar o mesmo arquivo duas vezes nunca duplica.';
+      'Acrescenta as suas entradas ao teu diário. Restaurar a mesma cópia duas vezes nunca duplica.';
 
   @override
-  String get importConfirm => 'Importar';
+  String get importConfirm => 'Restaurar';
 
   @override
-  String get importSummaryTitle => 'Importação concluída';
+  String get importSummaryTitle => 'Restauro concluído';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entradas importadas.',
-      one: '1 entrada importada.',
-      zero: 'Nada de novo para importar.',
+      other: '$count entradas restauradas.',
+      one: '1 entrada restaurada.',
+      zero: 'Nada de novo para restaurar.',
     );
     return '$_temp0';
   }
@@ -771,13 +764,15 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => 'A importação falhou';
+  String get importFailedTitle => 'O restauro falhou';
 
   @override
-  String get importFailedBody => 'Não foi possível ler o arquivo. Nada no diário foi alterado.';
+  String get importFailedBody =>
+      'Não foi possível ler a cópia de segurança. Nada no diário foi alterado.';
 
   @override
-  String get importNotArchive => 'Não é um arquivo opentranscribe. Nada no diário foi alterado.';
+  String get importNotArchive =>
+      'Não é uma cópia de segurança OpenTranscribe. Nada no diário foi alterado.';
 
   @override
   String get importNewerVersion =>
@@ -785,12 +780,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get importRezipped =>
-      'Este arquivo foi re-comprimido por outra ferramenta. Exporta um novo e importa esse.';
+      'Esta cópia de segurança foi re-comprimida por outra ferramenta. Guarda uma nova e restaura essa.';
 
   @override
   String get done => 'Concluído';
 
   @override
   String get importFailedMidway =>
-      'A importação parou a meio. O que já foi restaurado mantém-se; importa de novo para terminar.';
+      'O restauro parou a meio. O que já foi restaurado mantém-se; restaura de novo para terminar.';
 }

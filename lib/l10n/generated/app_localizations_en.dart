@@ -612,6 +612,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportEntryTitle => 'Export entry';
 
   @override
+  String get exportFormatPlain => 'Plain Markdown';
+
+  @override
   String get exportIncludeAudio => 'Include audio';
 
   @override
@@ -646,16 +649,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.';
+      'Everything lives on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.';
 
   @override
-  String backupEntriesCount(int count) {
+  String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entries',
-      one: '1 entry',
-      zero: '0 entries',
+      other:
+          'All $count entries live only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.',
+      one:
+          'Your 1 entry lives only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.',
+      zero:
+          'No entries yet; the journal lives only on this phone, and deleting the app deletes it. An export or backup is handed to the share sheet only when you ask.',
     );
     return '$_temp0';
   }
@@ -668,42 +674,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Writes every entry in the chosen format, audio included, zipped for the share sheet.';
+      'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
 
   @override
-  String get backupArchiveSection => 'Archive';
+  String get backupSeal => 'Encrypt with passphrase';
 
   @override
-  String get backupSeal => 'Seal with passphrase';
+  String get backupSave => 'Save backup';
 
   @override
-  String get backupSaveArchive => 'Save archive';
-
-  @override
-  String backupLastArchive(String date) {
-    return 'Last archive $date';
+  String backupLastBackup(String date) {
+    return 'Last backup $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.';
+  String get backupRestore => 'Restore backup';
 
   @override
-  String get backupImportSection => 'Import';
-
-  @override
-  String get backupImport => 'Import archive';
-
-  @override
-  String get backupImportInfo =>
-      'Adds an archive\'s entries to the journal. An entry carried by both keeps the archive\'s version, and importing twice never duplicates.';
-
-  @override
-  String get passphraseCreateTitle => 'Seal the archive';
+  String get passphraseCreateTitle => 'Encrypt the backup';
 
   @override
   String get passphraseCreateBody =>
-      'The passphrase is the only key. It is not stored anywhere; without it the archive is noise.';
+      'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.';
 
   @override
   String get passphrasePlaceholder => 'Passphrase';
@@ -718,10 +710,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passphraseMismatch => 'Passphrases do not match';
 
   @override
-  String get importUnlockTitle => 'Sealed archive';
+  String get importUnlockTitle => 'Encrypted backup';
 
   @override
-  String get importUnlockBody => 'Enter the passphrase this archive was sealed with.';
+  String get importUnlockBody => 'Enter the passphrase this backup was encrypted with.';
 
   @override
   String get importUnlock => 'Unlock';
@@ -730,26 +722,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importWrongPassphrase => 'Could not unlock. Wrong passphrase, or a damaged file.';
 
   @override
-  String get importConfirmTitle => 'Import archive?';
+  String get importConfirmTitle => 'Restore this backup?';
 
   @override
   String get importConfirmBody =>
-      'Adds its entries to your journal. Importing the same archive twice never duplicates.';
+      'Adds its entries to your journal. Restoring the same backup twice never duplicates.';
 
   @override
-  String get importConfirm => 'Import';
+  String get importConfirm => 'Restore';
 
   @override
-  String get importSummaryTitle => 'Import complete';
+  String get importSummaryTitle => 'Restore complete';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Imported $count entries.',
-      one: 'Imported 1 entry.',
-      zero: 'Nothing new to import.',
+      other: 'Restored $count entries.',
+      one: 'Restored 1 entry.',
+      zero: 'Nothing new to restore.',
     );
     return '$_temp0';
   }
@@ -766,27 +758,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => 'Import failed';
+  String get importFailedTitle => 'Restore failed';
 
   @override
   String get importFailedBody =>
-      'The archive could not be read. Nothing in the journal was changed.';
+      'The backup could not be read. Nothing in the journal was changed.';
 
   @override
   String get importNotArchive =>
-      'Not an opentranscribe archive. Nothing in the journal was changed.';
+      'Not an OpenTranscribe backup. Nothing in the journal was changed.';
 
   @override
   String get importNewerVersion => 'Made by a newer version of the app. Update to import it.';
 
   @override
   String get importRezipped =>
-      'This archive was re-zipped by another tool. Export a fresh one and import that.';
+      'This backup was re-zipped by another tool. Save a fresh one and restore that.';
 
   @override
   String get done => 'Done';
 
   @override
   String get importFailedMidway =>
-      'The import stopped partway. Everything restored so far is kept; import again to finish.';
+      'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 }

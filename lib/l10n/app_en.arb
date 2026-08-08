@@ -777,6 +777,10 @@
   "@exportEntryTitle": {
     "description": "Entry export sheet title"
   },
+  "exportFormatPlain": "Plain Markdown",
+  "@exportFormatPlain": {
+    "description": "Label of the unbranded plain-text export format on the format rows"
+  },
   "exportIncludeAudio": "Include audio",
   "@exportIncludeAudio": {
     "description": "Toggle for bundling the recording with an export"
@@ -821,13 +825,13 @@
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"
   },
-  "backupInfo": "Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.",
+  "backupInfo": "Everything lives on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.",
   "@backupInfo": {
     "description": "Backup screen intro: local-only, share only on request"
   },
-  "backupEntriesCount": "{count, plural, =0 {0 entries} one {1 entry} other {{count} entries}}",
-  "@backupEntriesCount": {
-    "description": "Hero card headline: how many entries the journal holds",
+  "backupInfoCount": "{count, plural, =0 {No entries yet; the journal lives only on this phone, and deleting the app deletes it. An export or backup is handed to the share sheet only when you ask.} one {Your 1 entry lives only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.} other {All {count} entries live only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.}}",
+  "@backupInfoCount": {
+    "description": "The Backup screen intro once the entry count is measured",
     "placeholders": {
       "count": {
         "type": "int"
@@ -842,52 +846,36 @@
   "@backupExportJournal": {
     "description": "Action row exporting the whole journal in the chosen format"
   },
-  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet.",
+  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
   "@backupExportInfo": {
     "description": "Help paragraph under the export card"
   },
-  "backupArchiveSection": "Archive",
-  "@backupArchiveSection": {
-    "description": "Section label over the archive card"
-  },
-  "backupSeal": "Seal with passphrase",
+  "backupSeal": "Encrypt with passphrase",
   "@backupSeal": {
     "description": "Toggle for sealing archives with a passphrase"
   },
-  "backupSaveArchive": "Save archive",
-  "@backupSaveArchive": {
-    "description": "Action row saving the native archive"
+  "backupSave": "Save backup",
+  "@backupSave": {
+    "description": "The Backup section row that saves a backup file"
   },
-  "backupLastArchive": "Last archive {date}",
-  "@backupLastArchive": {
-    "description": "Detail text with the last archive date",
+  "backupLastBackup": "Last backup {date}",
+  "@backupLastBackup": {
+    "description": "Detail under Save backup showing when the last backup was handed off",
     "placeholders": {
       "date": {
         "type": "String"
       }
     }
   },
-  "backupArchiveInfo": "One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.",
-  "@backupArchiveInfo": {
-    "description": "Help paragraph under the archive card; no recovery warning"
+  "backupRestore": "Restore backup",
+  "@backupRestore": {
+    "description": "The Backup section row that restores a backup file"
   },
-  "backupImportSection": "Import",
-  "@backupImportSection": {
-    "description": "Section label over the import card"
-  },
-  "backupImport": "Import archive",
-  "@backupImport": {
-    "description": "Action row opening the archive picker"
-  },
-  "backupImportInfo": "Adds an archive's entries to the journal. An entry carried by both keeps the archive's version, and importing twice never duplicates.",
-  "@backupImportInfo": {
-    "description": "Help paragraph under the import card; idempotency promise"
-  },
-  "passphraseCreateTitle": "Seal the archive",
+  "passphraseCreateTitle": "Encrypt the backup",
   "@passphraseCreateTitle": {
     "description": "Sealing passphrase sheet title"
   },
-  "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the archive is noise.",
+  "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the backup is noise.",
   "@passphraseCreateBody": {
     "description": "Sealing passphrase sheet body: the passphrase is the only key"
   },
@@ -907,11 +895,11 @@
   "@passphraseMismatch": {
     "description": "Footnote while the two passphrase fields differ"
   },
-  "importUnlockTitle": "Sealed archive",
+  "importUnlockTitle": "Encrypted backup",
   "@importUnlockTitle": {
     "description": "Unlock sheet title for a sealed archive"
   },
-  "importUnlockBody": "Enter the passphrase this archive was sealed with.",
+  "importUnlockBody": "Enter the passphrase this backup was encrypted with.",
   "@importUnlockBody": {
     "description": "Unlock sheet body asking for the sealing passphrase"
   },
@@ -923,23 +911,23 @@
   "@importWrongPassphrase": {
     "description": "Unlock retry error; GCM cannot tell wrong passphrase from damage"
   },
-  "importConfirmTitle": "Import archive?",
+  "importConfirmTitle": "Restore this backup?",
   "@importConfirmTitle": {
     "description": "Import confirmation sheet title"
   },
-  "importConfirmBody": "Adds its entries to your journal. Importing the same archive twice never duplicates.",
+  "importConfirmBody": "Adds its entries to your journal. Restoring the same backup twice never duplicates.",
   "@importConfirmBody": {
     "description": "Import confirmation body: additive, nothing touched"
   },
-  "importConfirm": "Import",
+  "importConfirm": "Restore",
   "@importConfirm": {
     "description": "Import confirmation action button"
   },
-  "importSummaryTitle": "Import complete",
+  "importSummaryTitle": "Restore complete",
   "@importSummaryTitle": {
     "description": "Import summary sheet title"
   },
-  "importSummaryImported": "{count, plural, =0 {Nothing new to import.} one {Imported 1 entry.} other {Imported {count} entries.}}",
+  "importSummaryImported": "{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}",
   "@importSummaryImported": {
     "description": "Summary line for how many entries were imported",
     "placeholders": {
@@ -957,15 +945,15 @@
       }
     }
   },
-  "importFailedTitle": "Import failed",
+  "importFailedTitle": "Restore failed",
   "@importFailedTitle": {
     "description": "Import failure sheet title"
   },
-  "importFailedBody": "The archive could not be read. Nothing in the journal was changed.",
+  "importFailedBody": "The backup could not be read. Nothing in the journal was changed.",
   "@importFailedBody": {
     "description": "Generic import failure body; journal unchanged"
   },
-  "importNotArchive": "Not an opentranscribe archive. Nothing in the journal was changed.",
+  "importNotArchive": "Not an OpenTranscribe backup. Nothing in the journal was changed.",
   "@importNotArchive": {
     "description": "Failure body for a file that is not an archive"
   },
@@ -973,7 +961,7 @@
   "@importNewerVersion": {
     "description": "Failure body for an archive from a newer app version"
   },
-  "importRezipped": "This archive was re-zipped by another tool. Export a fresh one and import that.",
+  "importRezipped": "This backup was re-zipped by another tool. Save a fresh one and restore that.",
   "@importRezipped": {
     "description": "Failure body for an archive re-compressed by another tool"
   },
@@ -981,7 +969,7 @@
   "@done": {
     "description": "Generic dismiss button"
   },
-  "importFailedMidway": "The import stopped partway. Everything restored so far is kept; import again to finish.",
+  "importFailedMidway": "The restore stopped partway. Everything restored so far is kept; restore again to finish.",
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   }

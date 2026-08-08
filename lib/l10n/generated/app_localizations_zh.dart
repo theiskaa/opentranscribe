@@ -574,6 +574,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportEntryTitle => '导出条目';
 
   @override
+  String get exportFormatPlain => '纯 Markdown';
+
+  @override
   String get exportIncludeAudio => '包含音频';
 
   @override
@@ -607,11 +610,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBackup => '备份';
 
   @override
-  String get backupInfo => '一切都在这部手机上；删除应用就会删除日记。只有在你要求时，导出或归档才会交给共享面板。';
+  String get backupInfo => '一切都在这部手机上；删除应用就会删除日记。只有在你要求时，导出或备份才会交给共享面板。';
 
   @override
-  String backupEntriesCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条记录只存在于这部手机上，删除应用即删除日记。只有在你要求时，导出或备份才会交给共享面板。',
+      zero: '还没有记录。日记只存在于这部手机上，删除应用即删除日记。只有在你要求时，导出或备份才会交给共享面板。',
+    );
     return '$_temp0';
   }
 
@@ -622,39 +630,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupExportJournal => '导出日记';
 
   @override
-  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。';
+  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
 
   @override
-  String get backupArchiveSection => '归档';
+  String get backupSeal => '用口令加密';
 
   @override
-  String get backupSeal => '用口令封存';
+  String get backupSave => '保存备份';
 
   @override
-  String get backupSaveArchive => '保存归档';
-
-  @override
-  String backupLastArchive(String date) {
-    return '上次归档 $date';
+  String backupLastBackup(String date) {
+    return '上次备份 $date';
   }
 
   @override
-  String get backupArchiveInfo => '一个文件装下整本日记，可在全新安装上恢复。封存后只能在本应用内用口令打开；没有任何找回方式。';
+  String get backupRestore => '恢复备份';
 
   @override
-  String get backupImportSection => '导入';
+  String get passphraseCreateTitle => '加密备份';
 
   @override
-  String get backupImport => '导入归档';
-
-  @override
-  String get backupImportInfo => '把归档里的记录加入日记。两边都有的记录以归档为准，导入两次也不会重复。';
-
-  @override
-  String get passphraseCreateTitle => '封存归档';
-
-  @override
-  String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，归档只是噪音。';
+  String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，备份只是噪音。';
 
   @override
   String get passphrasePlaceholder => '口令';
@@ -669,10 +665,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passphraseMismatch => '两次口令不一致';
 
   @override
-  String get importUnlockTitle => '已封存的归档';
+  String get importUnlockTitle => '已加密的备份';
 
   @override
-  String get importUnlockBody => '输入封存这份归档时使用的口令。';
+  String get importUnlockBody => '输入加密这份备份时使用的口令。';
 
   @override
   String get importUnlock => '解锁';
@@ -681,24 +677,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importWrongPassphrase => '无法解锁。口令错误，或文件已损坏。';
 
   @override
-  String get importConfirmTitle => '导入归档？';
+  String get importConfirmTitle => '恢复这份备份？';
 
   @override
-  String get importConfirmBody => '把其中的记录加入你的日记。同一份归档导入两次也不会重复。';
+  String get importConfirmBody => '把其中的记录加入你的日记。同一份备份恢复两次也不会重复。';
 
   @override
-  String get importConfirm => '导入';
+  String get importConfirm => '恢复';
 
   @override
-  String get importSummaryTitle => '导入完成';
+  String get importSummaryTitle => '恢复完成';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '已导入 $count 条记录。',
-      zero: '没有新内容可导入。',
+      other: '已恢复 $count 条记录。',
+      zero: '没有新内容可恢复。',
     );
     return '$_temp0';
   }
@@ -710,23 +706,23 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => '导入失败';
+  String get importFailedTitle => '恢复失败';
 
   @override
-  String get importFailedBody => '无法读取归档。日记没有任何改动。';
+  String get importFailedBody => '无法读取备份。日记没有任何改动。';
 
   @override
-  String get importNotArchive => '这不是 opentranscribe 归档。日记没有任何改动。';
+  String get importNotArchive => '这不是 OpenTranscribe 备份。日记没有任何改动。';
 
   @override
   String get importNewerVersion => '由更新版本的应用创建。请更新后再导入。';
 
   @override
-  String get importRezipped => '这份归档被其他工具重新压缩过。请重新导出一份再导入。';
+  String get importRezipped => '这份备份被其他工具重新压缩过。请重新保存一份再恢复。';
 
   @override
   String get done => '完成';
 
   @override
-  String get importFailedMidway => '导入中途停止了。已恢复的内容会保留；再次导入即可完成。';
+  String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 }

@@ -619,6 +619,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportEntryTitle => 'Eintrag exportieren';
 
   @override
+  String get exportFormatPlain => 'Reines Markdown';
+
+  @override
   String get exportIncludeAudio => 'Audio einschließen';
 
   @override
@@ -654,16 +657,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Alles liegt auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Archiv geht nur auf deine Anfrage an das Teilen-Menü.';
+      'Alles liegt auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.';
 
   @override
-  String backupEntriesCount(int count) {
+  String backupInfoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Einträge',
-      one: '1 Eintrag',
-      zero: '0 Einträge',
+      other:
+          'Alle $count Einträge leben nur auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
+      one:
+          'Dein einziger Eintrag lebt nur auf diesem Telefon; wer die App löscht, löscht das Journal. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
+      zero:
+          'Noch keine Einträge; das Journal lebt nur auf diesem Telefon, und wer die App löscht, löscht es. Ein Export oder Backup geht nur auf deine Anfrage an das Teilen-Menü.',
     );
     return '$_temp0';
   }
@@ -676,42 +682,28 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Schreibt jeden Eintrag im gewählten Format, Audio inklusive, als Zip für das Teilen-Menü.';
+      'Schreibt jeden Eintrag im gewählten Format, Audio inklusive, als Zip für das Teilen-Menü. Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
 
   @override
-  String get backupArchiveSection => 'Archiv';
+  String get backupSeal => 'Mit Passphrase verschlüsseln';
 
   @override
-  String get backupSeal => 'Mit Passphrase versiegeln';
+  String get backupSave => 'Backup sichern';
 
   @override
-  String get backupSaveArchive => 'Archiv sichern';
-
-  @override
-  String backupLastArchive(String date) {
-    return 'Letztes Archiv $date';
+  String backupLastBackup(String date) {
+    return 'Letztes Backup $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'Eine Datei mit dem ganzen Journal, zum Wiederherstellen auf einer frischen Installation. Versiegelt öffnet sie nur diese App mit der Passphrase; es gibt keine Wiederherstellung.';
+  String get backupRestore => 'Backup wiederherstellen';
 
   @override
-  String get backupImportSection => 'Import';
-
-  @override
-  String get backupImport => 'Archiv importieren';
-
-  @override
-  String get backupImportInfo =>
-      'Fügt die Einträge eines Archivs dem Journal hinzu. Ein beidseitig vorhandener Eintrag behält die Archiv-Version, und doppeltes Importieren dupliziert nie.';
-
-  @override
-  String get passphraseCreateTitle => 'Archiv versiegeln';
+  String get passphraseCreateTitle => 'Backup verschlüsseln';
 
   @override
   String get passphraseCreateBody =>
-      'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Archiv Rauschen.';
+      'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Backup Rauschen.';
 
   @override
   String get passphrasePlaceholder => 'Passphrase';
@@ -726,10 +718,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get passphraseMismatch => 'Passphrasen stimmen nicht überein';
 
   @override
-  String get importUnlockTitle => 'Versiegeltes Archiv';
+  String get importUnlockTitle => 'Verschlüsseltes Backup';
 
   @override
-  String get importUnlockBody => 'Gib die Passphrase ein, mit der dieses Archiv versiegelt wurde.';
+  String get importUnlockBody =>
+      'Gib die Passphrase ein, mit der dieses Backup verschlüsselt wurde.';
 
   @override
   String get importUnlock => 'Entsiegeln';
@@ -739,26 +732,26 @@ class AppLocalizationsDe extends AppLocalizations {
       'Konnte nicht entsiegeln. Falsche Passphrase oder beschädigte Datei.';
 
   @override
-  String get importConfirmTitle => 'Archiv importieren?';
+  String get importConfirmTitle => 'Dieses Backup wiederherstellen?';
 
   @override
   String get importConfirmBody =>
-      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Archiv zweimal zu importieren dupliziert nie.';
+      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
 
   @override
-  String get importConfirm => 'Importieren';
+  String get importConfirm => 'Wiederherstellen';
 
   @override
-  String get importSummaryTitle => 'Import abgeschlossen';
+  String get importSummaryTitle => 'Wiederherstellung abgeschlossen';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Einträge importiert.',
-      one: '1 Eintrag importiert.',
-      zero: 'Nichts Neues zu importieren.',
+      other: '$count Einträge wiederhergestellt.',
+      one: '1 Eintrag wiederhergestellt.',
+      zero: 'Nichts Neues wiederherzustellen.',
     );
     return '$_temp0';
   }
@@ -775,14 +768,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => 'Import fehlgeschlagen';
+  String get importFailedTitle => 'Wiederherstellung fehlgeschlagen';
 
   @override
   String get importFailedBody =>
-      'Das Archiv konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
+      'Das Backup konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
 
   @override
-  String get importNotArchive => 'Kein opentranscribe-Archiv. Nichts im Journal wurde verändert.';
+  String get importNotArchive => 'Kein OpenTranscribe-Backup. Nichts im Journal wurde verändert.';
 
   @override
   String get importNewerVersion =>
@@ -790,12 +783,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importRezipped =>
-      'Dieses Archiv wurde von einem anderen Tool neu gezippt. Exportiere ein frisches und importiere das.';
+      'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.';
 
   @override
   String get done => 'Fertig';
 
   @override
   String get importFailedMidway =>
-      'Der Import brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; importiere erneut, um abzuschließen.';
+      'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
 }

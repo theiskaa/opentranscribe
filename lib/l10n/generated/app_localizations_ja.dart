@@ -578,6 +578,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportEntryTitle => 'エントリーを書き出す';
 
   @override
+  String get exportFormatPlain => 'プレーンMarkdown';
+
+  @override
   String get exportIncludeAudio => '音声を含める';
 
   @override
@@ -612,11 +615,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'すべてはこの電話の中にあります。アプリを削除するとジャーナルも消えます。書き出しやアーカイブは、あなたが求めたときだけ共有シートに渡されます。';
+      'すべてはこの電話の中にあります。アプリを削除するとジャーナルも消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。';
 
   @override
-  String backupEntriesCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件のエントリー');
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のエントリーはこの電話の中だけにあります。アプリを削除するとジャーナルも消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。',
+      zero: 'まだエントリーはありません。ジャーナルはこの電話の中だけにあり、アプリを削除すると消えます。書き出しやバックアップは、あなたが求めたときだけ共有シートに渡されます。',
+    );
     return '$_temp0';
   }
 
@@ -627,40 +635,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupExportJournal => 'ジャーナルを書き出す';
 
   @override
-  String get backupExportInfo => 'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。';
+  String get backupExportInfo =>
+      'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
 
   @override
-  String get backupArchiveSection => 'アーカイブ';
+  String get backupSeal => 'パスフレーズで暗号化';
 
   @override
-  String get backupSeal => 'パスフレーズで封印';
+  String get backupSave => 'バックアップを保存';
 
   @override
-  String get backupSaveArchive => 'アーカイブを保存';
-
-  @override
-  String backupLastArchive(String date) {
-    return '前回のアーカイブ $date';
+  String backupLastBackup(String date) {
+    return '前回のバックアップ $date';
   }
 
   @override
-  String get backupArchiveInfo =>
-      'ジャーナル全体をひとつのファイルに。新しい端末への復元に使えます。封印すると、このアプリとパスフレーズでしか開けません。復旧手段はありません。';
+  String get backupRestore => 'バックアップを復元';
 
   @override
-  String get backupImportSection => '読み込み';
+  String get passphraseCreateTitle => 'バックアップを暗号化';
 
   @override
-  String get backupImport => 'アーカイブを読み込む';
-
-  @override
-  String get backupImportInfo => 'アーカイブのエントリーをジャーナルに追加します。両方にあるエントリーはアーカイブ側が残り、二度読み込んでも重複しません。';
-
-  @override
-  String get passphraseCreateTitle => 'アーカイブを封印';
-
-  @override
-  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければアーカイブはただのノイズです。';
+  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければバックアップはただのノイズです。';
 
   @override
   String get passphrasePlaceholder => 'パスフレーズ';
@@ -675,10 +671,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get passphraseMismatch => 'パスフレーズが一致しません';
 
   @override
-  String get importUnlockTitle => '封印されたアーカイブ';
+  String get importUnlockTitle => '暗号化されたバックアップ';
 
   @override
-  String get importUnlockBody => 'このアーカイブを封印したパスフレーズを入力してください。';
+  String get importUnlockBody => 'このバックアップを暗号化したパスフレーズを入力してください。';
 
   @override
   String get importUnlock => '解錠';
@@ -687,24 +683,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importWrongPassphrase => '解錠できませんでした。パスフレーズが違うか、ファイルが破損しています。';
 
   @override
-  String get importConfirmTitle => 'アーカイブを読み込みますか？';
+  String get importConfirmTitle => 'このバックアップを復元しますか？';
 
   @override
-  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じアーカイブを二度読み込んでも重複しません。';
+  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
 
   @override
-  String get importConfirm => '読み込む';
+  String get importConfirm => '復元';
 
   @override
-  String get importSummaryTitle => '読み込み完了';
+  String get importSummaryTitle => '復元完了';
 
   @override
   String importSummaryImported(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のエントリーを読み込みました。',
-      zero: '新しく読み込むものはありません。',
+      other: '$count件のエントリーを復元しました。',
+      zero: '新しく復元するものはありません。',
     );
     return '$_temp0';
   }
@@ -720,23 +716,23 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importFailedTitle => '読み込みに失敗しました';
+  String get importFailedTitle => '復元に失敗しました';
 
   @override
-  String get importFailedBody => 'アーカイブを読めませんでした。ジャーナルは何も変わっていません。';
+  String get importFailedBody => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
 
   @override
-  String get importNotArchive => 'opentranscribeのアーカイブではありません。ジャーナルは何も変わっていません。';
+  String get importNotArchive => 'OpenTranscribeのバックアップではありません。ジャーナルは何も変わっていません。';
 
   @override
   String get importNewerVersion => 'より新しいバージョンのアプリで作られています。更新してから読み込んでください。';
 
   @override
-  String get importRezipped => 'このアーカイブは別のツールで再圧縮されています。新しく書き出したものを読み込んでください。';
+  String get importRezipped => 'このバックアップは別のツールで再圧縮されています。新しく保存したものを復元してください。';
 
   @override
   String get done => '完了';
 
   @override
-  String get importFailedMidway => '読み込みが途中で止まりました。ここまでの復元は残っています。もう一度読み込めば完了します。';
+  String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 }

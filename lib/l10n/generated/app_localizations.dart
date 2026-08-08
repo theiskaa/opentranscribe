@@ -1182,6 +1182,12 @@ abstract class AppLocalizations {
   /// **'Export entry'**
   String get exportEntryTitle;
 
+  /// Label of the unbranded plain-text export format on the format rows
+  ///
+  /// In en, this message translates to:
+  /// **'Plain Markdown'**
+  String get exportFormatPlain;
+
   /// Toggle for bundling the recording with an export
   ///
   /// In en, this message translates to:
@@ -1251,14 +1257,14 @@ abstract class AppLocalizations {
   /// Backup screen intro: local-only, share only on request
   ///
   /// In en, this message translates to:
-  /// **'Everything lives on this phone; deleting the app deletes the journal. An export or archive is handed to the share sheet only when you ask.'**
+  /// **'Everything lives on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.'**
   String get backupInfo;
 
-  /// Hero card headline: how many entries the journal holds
+  /// The Backup screen intro once the entry count is measured
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {0 entries} one {1 entry} other {{count} entries}}'**
-  String backupEntriesCount(int count);
+  /// **'{count, plural, =0 {No entries yet; the journal lives only on this phone, and deleting the app deletes it. An export or backup is handed to the share sheet only when you ask.} one {Your 1 entry lives only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.} other {All {count} entries live only on this phone; deleting the app deletes the journal. An export or backup is handed to the share sheet only when you ask.}}'**
+  String backupInfoCount(int count);
 
   /// Section label over the format picker and export row
   ///
@@ -1275,67 +1281,43 @@ abstract class AppLocalizations {
   /// Help paragraph under the export card
   ///
   /// In en, this message translates to:
-  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet.'**
+  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
   String get backupExportInfo;
-
-  /// Section label over the archive card
-  ///
-  /// In en, this message translates to:
-  /// **'Archive'**
-  String get backupArchiveSection;
 
   /// Toggle for sealing archives with a passphrase
   ///
   /// In en, this message translates to:
-  /// **'Seal with passphrase'**
+  /// **'Encrypt with passphrase'**
   String get backupSeal;
 
-  /// Action row saving the native archive
+  /// The Backup section row that saves a backup file
   ///
   /// In en, this message translates to:
-  /// **'Save archive'**
-  String get backupSaveArchive;
+  /// **'Save backup'**
+  String get backupSave;
 
-  /// Detail text with the last archive date
+  /// Detail under Save backup showing when the last backup was handed off
   ///
   /// In en, this message translates to:
-  /// **'Last archive {date}'**
-  String backupLastArchive(String date);
+  /// **'Last backup {date}'**
+  String backupLastBackup(String date);
 
-  /// Help paragraph under the archive card; no recovery warning
+  /// The Backup section row that restores a backup file
   ///
   /// In en, this message translates to:
-  /// **'One file holding the whole journal, for restoring into a fresh install. Sealed, it opens only in this app with the passphrase; there is no recovery.'**
-  String get backupArchiveInfo;
-
-  /// Section label over the import card
-  ///
-  /// In en, this message translates to:
-  /// **'Import'**
-  String get backupImportSection;
-
-  /// Action row opening the archive picker
-  ///
-  /// In en, this message translates to:
-  /// **'Import archive'**
-  String get backupImport;
-
-  /// Help paragraph under the import card; idempotency promise
-  ///
-  /// In en, this message translates to:
-  /// **'Adds an archive\'s entries to the journal. An entry carried by both keeps the archive\'s version, and importing twice never duplicates.'**
-  String get backupImportInfo;
+  /// **'Restore backup'**
+  String get backupRestore;
 
   /// Sealing passphrase sheet title
   ///
   /// In en, this message translates to:
-  /// **'Seal the archive'**
+  /// **'Encrypt the backup'**
   String get passphraseCreateTitle;
 
   /// Sealing passphrase sheet body: the passphrase is the only key
   ///
   /// In en, this message translates to:
-  /// **'The passphrase is the only key. It is not stored anywhere; without it the archive is noise.'**
+  /// **'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.'**
   String get passphraseCreateBody;
 
   /// Passphrase field placeholder
@@ -1365,13 +1347,13 @@ abstract class AppLocalizations {
   /// Unlock sheet title for a sealed archive
   ///
   /// In en, this message translates to:
-  /// **'Sealed archive'**
+  /// **'Encrypted backup'**
   String get importUnlockTitle;
 
   /// Unlock sheet body asking for the sealing passphrase
   ///
   /// In en, this message translates to:
-  /// **'Enter the passphrase this archive was sealed with.'**
+  /// **'Enter the passphrase this backup was encrypted with.'**
   String get importUnlockBody;
 
   /// Unlock sheet action button
@@ -1389,31 +1371,31 @@ abstract class AppLocalizations {
   /// Import confirmation sheet title
   ///
   /// In en, this message translates to:
-  /// **'Import archive?'**
+  /// **'Restore this backup?'**
   String get importConfirmTitle;
 
   /// Import confirmation body: additive, nothing touched
   ///
   /// In en, this message translates to:
-  /// **'Adds its entries to your journal. Importing the same archive twice never duplicates.'**
+  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
   String get importConfirmBody;
 
   /// Import confirmation action button
   ///
   /// In en, this message translates to:
-  /// **'Import'**
+  /// **'Restore'**
   String get importConfirm;
 
   /// Import summary sheet title
   ///
   /// In en, this message translates to:
-  /// **'Import complete'**
+  /// **'Restore complete'**
   String get importSummaryTitle;
 
   /// Summary line for how many entries were imported
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing new to import.} one {Imported 1 entry.} other {Imported {count} entries.}}'**
+  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
   String importSummaryImported(int count);
 
   /// Summary line for entries already present, shown only when some were
@@ -1425,19 +1407,19 @@ abstract class AppLocalizations {
   /// Import failure sheet title
   ///
   /// In en, this message translates to:
-  /// **'Import failed'**
+  /// **'Restore failed'**
   String get importFailedTitle;
 
   /// Generic import failure body; journal unchanged
   ///
   /// In en, this message translates to:
-  /// **'The archive could not be read. Nothing in the journal was changed.'**
+  /// **'The backup could not be read. Nothing in the journal was changed.'**
   String get importFailedBody;
 
   /// Failure body for a file that is not an archive
   ///
   /// In en, this message translates to:
-  /// **'Not an opentranscribe archive. Nothing in the journal was changed.'**
+  /// **'Not an OpenTranscribe backup. Nothing in the journal was changed.'**
   String get importNotArchive;
 
   /// Failure body for an archive from a newer app version
@@ -1449,7 +1431,7 @@ abstract class AppLocalizations {
   /// Failure body for an archive re-compressed by another tool
   ///
   /// In en, this message translates to:
-  /// **'This archive was re-zipped by another tool. Export a fresh one and import that.'**
+  /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
   String get importRezipped;
 
   /// Generic dismiss button
@@ -1461,7 +1443,7 @@ abstract class AppLocalizations {
   /// Failure body when adoption already wrote; restored entries are kept
   ///
   /// In en, this message translates to:
-  /// **'The import stopped partway. Everything restored so far is kept; import again to finish.'**
+  /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
 }
 
