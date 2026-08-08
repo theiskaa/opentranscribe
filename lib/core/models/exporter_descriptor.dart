@@ -4,13 +4,20 @@ import 'package:flutter/foundation.dart';
 /// that list formats (the entry export sheet, the Backup screen). Built at
 /// the composition root, the one place allowed to name an exporter;
 /// everything downstream renders descriptors without knowing what is behind
-/// them. Display names are product names, not l10n.
+/// them.
 @immutable
 final class ExporterDescriptor {
-  const ExporterDescriptor({required this.exporterId, required this.displayName});
+  const ExporterDescriptor({required this.exporterId, required this.logo, this.displayName});
 
   final String exporterId;
-  final String displayName;
+
+  /// The format's product name (Obsidian), shown verbatim in every locale.
+  /// Null for the unbranded format; surfaces label that one in the app
+  /// language.
+  final String? displayName;
+
+  /// Bundle path of the format's mark, kept in its own colors.
+  final String logo;
 }
 
 /// A stored format id resolved against what this build actually ships: an id
