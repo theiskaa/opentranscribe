@@ -72,15 +72,28 @@ workflows:
         script: |
           # Version (build-name) is the source of truth in pubspec.yaml, e.g.
           # "version: 0.2.0+1" -> 0.2.0; the "+1" is for local builds only and
-          # is ignored here. Build numbers are APP-WIDE, deliberately not scoped
-          # to the version: asking for the latest build of THIS version would
-          # answer nothing on the first build after a bump and restart the count
-          # at 1. The lookup is left to fail loudly rather than defaulting to 0,
-          # because a silently reset build number ships as a wrong build.
-          # ${LATEST:-0} covers only the real empty case: an app with no builds.
+          # is ignored here.
+          #
+          # get-latest-build-number, NOT the testflight one: it spans App Store
+          # and TestFlight together, so a build already released (and no longer
+          # listed in TestFlight) still counts and cannot be handed out twice.
+          # --all-versions drops the default "highest version" scoping, which
+          # would restart the count at 1 the first time a version bump ships.
+          # Anything but a number here is a broken lookup (--all-versions needs
+          # cli-tools 0.67.0, the action itself 0.35.0; credentials can lapse),
+          # and a build number guessed from a broken lookup uploads as the
+          # wrong build. Refuse instead, with the CLI version already in the log
+          # to say which it was.
           BUILD_NAME=$(grep '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//; s/\+.*//')
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID")
-          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+          app-store-connect --version
+          LATEST=$(app-store-connect get-latest-build-number --all-versions --platform IOS "$APP_STORE_APPLE_ID")
+          case "$LATEST" in
+            '' | *[!0-9]*)
+              echo "Latest build number lookup answered '$LATEST'; refusing to guess"
+              exit 1
+              ;;
+          esac
+          BUILD_NUMBER=$(( LATEST + 1 ))
           echo "Building $BUILD_NAME ($BUILD_NUMBER)"
           flutter build ipa --release \
             --build-name="$BUILD_NAME" \
