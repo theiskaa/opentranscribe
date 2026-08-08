@@ -21,10 +21,10 @@ import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/exporter_logo.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Backup: the whole journal out through the share sheet (a chosen format, or
 /// the native archive, sealed on request) and a native archive back in. Owns
@@ -228,6 +228,12 @@ class _BackupView extends StatelessWidget {
       child: AppScaffold(
         background: theme.screens.settings,
         onBack: canLeave ? () => context.pop() : null,
+        actions: [
+          _RestoreAction(
+            busy: state.busy == BackupBusy.importing,
+            onTap: idle ? () => unawaited(_import(context)) : null,
+          ),
+        ],
         child: SettingsList(
           children: [
             const SizedBox(height: 10),
@@ -236,37 +242,22 @@ class _BackupView extends StatelessWidget {
             ),
             SettingsCard(
               children: [
-                // One child, so the card inserts no inset divider of its own:
-                // the split row spans the full card width, and its cut-off line
-                // must too, edge to edge.
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SettingsToggleRow(
-                      icon: AppIcons.lock,
-                      label: l10n.backupSeal,
-                      value: state.seal,
-                      onChanged: idle ? (seal) => unawaited(cubit.setSeal(seal)) : null,
-                    ),
-                    Container(height: 1, color: theme.settings.dividerColor),
-                    _SplitRow(
-                      left: _SplitAction(
-                        label: l10n.backupSave,
-                        detail: state.lastArchiveAt == null
-                            ? null
-                            : l10n.backupLastBackup(
-                                DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
-                              ),
-                        busy: state.busy == BackupBusy.archiving,
-                        onTap: idle ? () => unawaited(_saveArchive(context)) : null,
-                      ),
-                      right: _SplitAction(
-                        label: l10n.backupRestore,
-                        busy: state.busy == BackupBusy.importing,
-                        onTap: idle ? () => unawaited(_import(context)) : null,
-                      ),
-                    ),
-                  ],
+                SettingsToggleRow(
+                  icon: AppIcons.lock,
+                  label: l10n.backupSeal,
+                  value: state.seal,
+                  onChanged: idle ? (seal) => unawaited(cubit.setSeal(seal)) : null,
+                ),
+                SettingsBusyRow(
+                  icon: AppIcons.squareAndArrowUp,
+                  label: l10n.backupSave,
+                  detail: state.lastArchiveAt == null
+                      ? null
+                      : l10n.backupLastBackup(
+                          DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
+                        ),
+                  busy: state.busy == BackupBusy.archiving,
+                  onTap: idle ? () => unawaited(_saveArchive(context)) : null,
                 ),
               ],
             ),
@@ -299,6 +290,35 @@ class _BackupView extends StatelessWidget {
   }
 }
 
+/// Restore on the bar, not in a card: it is the one action here that reaches
+/// for a file from outside the app. The spinner takes the button's whole seat
+/// rather than fading over it, because the glass button is a platform view on
+/// iOS 26 and would not honour an opacity above it.
+class _RestoreAction extends StatelessWidget {
+  const _RestoreAction({required this.busy, required this.onTap});
+
+  final bool busy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.topBar;
+    return SizedBox.square(
+      dimension: tokens.actionSize,
+      child: busy
+          ? Center(
+              child: AppSpinner(size: tokens.backChevronSize, color: tokens.iconColor),
+            )
+          : AppGlassIconButton(
+              icon: AppIcons.squareAndArrowDown,
+              size: tokens.actionSize,
+              color: tokens.iconColor,
+              onTap: onTap,
+            ),
+    );
+  }
+}
+
 /// Raw strings by design: a filename is data, not copy.
 class _ArchiveFactRow extends StatelessWidget {
   const _ArchiveFactRow({required this.label, required this.detail});
@@ -321,101 +341,6 @@ class _ArchiveFactRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         Text(detail, style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary)),
       ],
-    );
-  }
-}
-
-/// Save and restore as one split row: two centered actions sharing the card
-/// width, split by a vertical line at the divider weight. The left half's
-/// width is snapped to whole device pixels: an exactly centered line lands on
-/// a fractional pixel and smears bold to one side.
-class _SplitRow extends StatelessWidget {
-  const _SplitRow({required this.left, required this.right});
-
-  final Widget left;
-  final Widget right;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.theme.settings;
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final half = ((constraints.maxWidth - 1) / 2 * dpr).round() / dpr;
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(width: half, child: left),
-              Container(width: 1, color: tokens.dividerColor),
-              Expanded(child: right),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// One half of a [_SplitRow]. The label stays in the tree at zero opacity
-/// while busy so the row keeps its height and nothing shifts.
-class _SplitAction extends StatelessWidget {
-  const _SplitAction({required this.label, required this.busy, required this.onTap, this.detail});
-
-  final String label;
-  final bool busy;
-  final VoidCallback? onTap;
-  final String? detail;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final enabled = onTap != null;
-    final fade = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
-    return Touchable(
-      onTap: onTap,
-      haptic: enabled,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedOpacity(
-                  opacity: busy ? 0 : 1,
-                  duration: fade,
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: AppType.subhead.copyWith(
-                      color: enabled ? theme.accent : theme.textSecondary,
-                    ),
-                  ),
-                ),
-                AnimatedOpacity(
-                  opacity: busy ? 1 : 0,
-                  duration: fade,
-                  // TickerMode: the spinner is mounted for the crossfade but
-                  // must not keep a repeating ticker alive while invisible.
-                  child: TickerMode(
-                    enabled: busy,
-                    child: AppSpinner(size: 14, color: theme.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-            if (detail != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                detail!,
-                style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }
