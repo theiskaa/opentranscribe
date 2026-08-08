@@ -64,6 +64,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _secret = TextEditingController();
   bool _toggle = true;
   bool _reveal = true;
+  bool _busyRow = false;
   int _segment = 1;
   int _page = 0;
   String? _notice;
@@ -227,6 +228,33 @@ class _GalleryScreenState extends State<GalleryScreen> {
               AppTextField(controller: _text, placeholder: 'Entry title'),
               const SizedBox(height: AppSpacing.sm),
               AppTextField(controller: _secret, placeholder: 'Passphrase', obscureText: true),
+              _section('Busy row'),
+              SettingsCard(
+                children: [
+                  SettingsBusyRow(
+                    icon: AppIcons.squareAndArrowUp,
+                    label: 'Save backup',
+                    detail: 'Last backup Aug 7',
+                    busy: _busyRow,
+                    onTap: () => setState(() => _busyRow = !_busyRow),
+                  ),
+                  const SettingsDivider(),
+                  SettingsBusyRow(
+                    icon: AppIcons.trash,
+                    label: 'Clear cache',
+                    busy: false,
+                    tint: context.theme.danger,
+                    onTap: () {},
+                  ),
+                  const SettingsDivider(),
+                  const SettingsBusyRow(
+                    icon: AppIcons.internaldrive,
+                    label: 'Disabled',
+                    busy: false,
+                    onTap: null,
+                  ),
+                ],
+              ),
               _section('Passphrase sheet'),
               Row(
                 children: [

@@ -274,7 +274,7 @@ class _BackupView extends StatelessWidget {
             SectionLabel(l10n.backupExportSection),
             SettingsCard(
               children: [
-                for (final descriptor in Deps.i.exporterDescriptors)
+                for (final descriptor in cubit.descriptors)
                   SelectableRow(
                     label: exporterDisplayName(descriptor, l10n),
                     leading: ExporterLogo(descriptor),

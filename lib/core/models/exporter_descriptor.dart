@@ -22,6 +22,7 @@ final class ExporterDescriptor {
 
 /// A stored format id resolved against what this build actually ships: an id
 /// whose exporter is gone falls back to the first descriptor rather than
-/// exporting nothing.
+/// exporting nothing. [descriptors] must not be empty; a build ships at least
+/// one format.
 String resolveFormatId(String stored, List<ExporterDescriptor> descriptors) =>
     descriptors.any((d) => d.exporterId == stored) ? stored : descriptors.first.exporterId;

@@ -99,9 +99,11 @@ abstract interface class JournalExporter {
   /// Deps.init(), so renaming a shipped id is a breaking change.
   String get id;
 
-  /// Paths are unique within one call only; two different entries may export
-  /// to the same path across calls, and batching multiple single-entry
-  /// exports into one tree is the service's collision to resolve.
+  /// Must return at least one file; the service packages what it gets and has
+  /// nothing to share otherwise. Paths are unique within one call only; two
+  /// different entries may export to the same path across calls, and batching
+  /// multiple single-entry exports into one tree is the service's collision
+  /// to resolve.
   List<ExportFile> exportEntry(ExportEntry entry, ExportContext context);
 
   List<ExportFile> exportJournal(ExportSnapshot snapshot, ExportContext context);
