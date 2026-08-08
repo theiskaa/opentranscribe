@@ -263,6 +263,26 @@ void main() {
       expect(await File('${b.recordings.path}/otr-1.m4a').readAsBytes(), [9, 9, 9]);
     });
 
+    test('re-importing a renamed-audio archive keeps the name it already got', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
+      await b.store.save(entry('other', audioPath: 'otr-1.m4a', title: 'Owns the name'));
+
+      await b.import.importArchive(archive);
+      final firstName = b.store.read('e1')!.audioPath;
+      final second = await b.import.importArchive(archive);
+
+      expect(second.entriesUpdated, 0);
+      expect(second.entriesUnchanged, 2);
+      expect(b.store.read('e1')!.audioPath, firstName);
+      expect(b.recordings.listSync().map((f) => f.path.split('/').last).toSet(), {
+        'otr-1.m4a',
+        firstName,
+      });
+    });
+
     test('a damaged archive fails as unreadable, never as a partial restore', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);

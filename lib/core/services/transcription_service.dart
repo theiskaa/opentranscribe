@@ -718,7 +718,12 @@ class TranscriptionService {
         var entry = item.entry;
         final existing = _store.read(entry.id);
         if (item.stagedAudio != null && entry.audioPath != null) {
-          final (adopted, restored) = await _adoptRestoredAudio(entry, item.stagedAudio!, owners);
+          final (adopted, restored) = await _adoptRestoredAudio(
+            entry,
+            item.stagedAudio!,
+            owners,
+            existing,
+          );
           entry = adopted;
           if (restored) audioRestored++;
         }
@@ -749,13 +754,18 @@ class TranscriptionService {
     Entry entry,
     File stagedAudio,
     Map<String, String> owners,
+    Entry? existing,
   ) async {
     var name = baseName(entry.audioPath!);
     final owner = owners[name];
     if (owner != null && owner != entry.id) {
-      final dot = name.lastIndexOf('.');
-      final extension = dot > 0 ? name.substring(dot) : '';
-      name = 'otr-import-${_newId()}$extension';
+      // A rename this entry already went through on an earlier import of the
+      // same archive is reused, or every re-import would mint another name
+      // and rewrite the record: re-import must stay a no-op.
+      final adopted = existing?.audioPath;
+      name = adopted != null && owners[baseName(adopted)] == entry.id
+          ? baseName(adopted)
+          : 'otr-import-${_newId()}${extensionOf(name)}';
       entry = entry.withAudioPath(name);
     }
     owners[name] = entry.id;
