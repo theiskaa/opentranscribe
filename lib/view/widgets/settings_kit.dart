@@ -87,11 +87,17 @@ class SelectableRow extends StatelessWidget {
     required this.onTap,
     this.flag,
     this.leading,
+    this.note,
     this.dimmed = false,
     super.key,
   });
 
   final String label;
+
+  /// A quiet second line saying what the choice actually is (what an export
+  /// format writes). One line, and only inside a card: it makes the row taller
+  /// than the fixed height showAppDropdown estimates its popup by.
+  final String? note;
 
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
   /// choice with no chip (a reflection option).
@@ -144,16 +150,31 @@ class SelectableRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: AnimatedDefaultTextStyle(
-                duration: duration,
-                curve: curve,
-                style: AppType.subhead.copyWith(
-                  color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                ),
-                // One line: a wrapped row would break showAppDropdown's
-                // fixed row estimate and misplace the popup.
-                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: duration,
+                    curve: curve,
+                    style: AppType.subhead.copyWith(
+                      color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                    // One line: a wrapped row would break showAppDropdown's
+                    // fixed row estimate and misplace the popup.
+                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  if (note != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      note!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
+                    ),
+                  ],
+                ],
               ),
             ),
             // Always in the row at zero opacity, so the label never reflows

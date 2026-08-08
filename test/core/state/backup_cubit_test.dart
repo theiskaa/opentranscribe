@@ -94,7 +94,7 @@ void main() {
       import: import,
       settings: settings,
       descriptors: const [
-        ExporterDescriptor(exporterId: 'markdown', displayName: 'Markdown', logo: 'markdown.svg'),
+        ExporterDescriptor(exporterId: 'markdown', format: ExportFormat.markdown, logo: 'm.svg'),
       ],
       clock: () => fixedClock,
     );

@@ -299,18 +299,18 @@ class Deps {
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
-          displayName: 'Markdown',
+          format: ExportFormat.markdown,
           logo: 'assets/brand/markdown.svg',
         ),
         ExporterDescriptor(
           exporterId: obsidianExporter.id,
-          displayName: 'Obsidian',
+          format: ExportFormat.obsidian,
           logo: 'assets/brand/obsidian.svg',
         ),
         ExporterDescriptor(
           exporterId: htmlExporter.id,
-          displayName: 'HTML',
-          logo: 'assets/brand/html.svg',
+          format: ExportFormat.web,
+          logo: 'assets/brand/web.svg',
         ),
       ],
     );

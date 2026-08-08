@@ -18,8 +18,8 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
-import 'package:opentranscribe/view/widgets/exporter_logo.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
@@ -266,9 +266,8 @@ class _BackupView extends StatelessWidget {
             SettingsCard(
               children: [
                 for (final descriptor in cubit.descriptors)
-                  SelectableRow(
-                    label: descriptor.displayName,
-                    leading: ExporterLogo(descriptor),
+                  ExportFormatRow(
+                    descriptor: descriptor,
                     selected: descriptor.exporterId == state.formatId,
                     onTap: idle ? () => unawaited(cubit.setFormat(descriptor.exporterId)) : null,
                   ),

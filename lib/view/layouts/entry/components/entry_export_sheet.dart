@@ -12,8 +12,8 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
-import 'package:opentranscribe/view/widgets/exporter_logo.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
@@ -103,9 +103,8 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
         SettingsCard(
           children: [
             for (final descriptor in widget.descriptors)
-              SelectableRow(
-                label: descriptor.displayName,
-                leading: ExporterLogo(descriptor),
+              ExportFormatRow(
+                descriptor: descriptor,
                 selected: descriptor.exporterId == _formatId,
                 onTap: _busy ? null : () => setState(() => _formatId = descriptor.exporterId),
               ),
