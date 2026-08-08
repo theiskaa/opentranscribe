@@ -107,6 +107,7 @@ class _HomeMenuState extends State<HomeMenu> {
       AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
       AppMenuItem(id: 'act:notifications', label: l10n.settingsNotifications, icon: AppIcons.bell),
       AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
+      AppMenuItem(id: 'act:backup', label: l10n.settingsBackup, icon: AppIcons.squareAndArrowUp),
       const AppMenuItem.divider(),
       AppMenuItem(id: 'act:appearance', label: l10n.settingsAppearance, icon: AppIcons.moonFill),
       AppMenuItem(
@@ -153,6 +154,8 @@ class _HomeMenuState extends State<HomeMenu> {
             context.pushNamed(Routes.reflectionsName);
           case 'act:cache':
             context.pushNamed(Routes.settingsCacheName);
+          case 'act:backup':
+            context.pushNamed(Routes.settingsBackupName);
           case 'act:notifications':
             context.pushNamed(Routes.settingsNotificationsName);
           case 'act:gallery':

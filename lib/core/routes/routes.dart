@@ -23,6 +23,10 @@ abstract final class Routes {
   static const settingsCache = '/settings/cache';
   static const settingsCacheName = 'settingsCache';
 
+  /// The backup screen (export, archive, import).
+  static const settingsBackup = '/settings/backup';
+  static const settingsBackupName = 'settingsBackup';
+
   /// The notifications screen (local, on-device nudges; a single weekly
   /// reflection toggle today). Pushed over home from the menu.
   static const settingsNotifications = '/settings/notifications';
