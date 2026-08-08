@@ -777,10 +777,6 @@
   "@exportEntryTitle": {
     "description": "Entry export sheet title"
   },
-  "exportFormatPlain": "Plain Markdown",
-  "@exportFormatPlain": {
-    "description": "Label of the unbranded plain-text export format on the format rows"
-  },
   "exportIncludeAudio": "Include audio",
   "@exportIncludeAudio": {
     "description": "Toggle for bundling the recording with an export"
@@ -821,7 +817,7 @@
   "@exportAudio": {
     "description": "Metadata label for the audio link"
   },
-  "settingsBackup": "Backup & Export",
+  "settingsBackup": "Backup",
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"
   },

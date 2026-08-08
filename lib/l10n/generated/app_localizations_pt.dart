@@ -616,9 +616,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportEntryTitle => 'Exportar a entrada';
 
   @override
-  String get exportFormatPlain => 'Markdown simples';
-
-  @override
   String get exportIncludeAudio => 'Incluir o áudio';
 
   @override
@@ -649,7 +646,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportAudio => 'Áudio';
 
   @override
-  String get settingsBackup => 'Cópia de segurança e exportação';
+  String get settingsBackup => 'Cópia de segurança';
 
   @override
   String get backupInfo =>

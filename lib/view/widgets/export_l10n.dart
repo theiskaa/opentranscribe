@@ -1,12 +1,6 @@
 import 'package:opentranscribe/core/export/journal_exporter.dart';
-import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-
-/// A format row's label: the product name when the format has one, the
-/// localized plain-text label when it does not.
-String exporterDisplayName(ExporterDescriptor descriptor, AppLocalizations l10n) =>
-    descriptor.displayName ?? l10n.exportFormatPlain;
 
 /// The one mapping from [AppLocalizations] to the exporter contract's
 /// strings, so every export surface hands the same words to core and the

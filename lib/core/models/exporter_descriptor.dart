@@ -7,14 +7,17 @@ import 'package:flutter/foundation.dart';
 /// them.
 @immutable
 final class ExporterDescriptor {
-  const ExporterDescriptor({required this.exporterId, required this.logo, this.displayName});
+  const ExporterDescriptor({
+    required this.exporterId,
+    required this.displayName,
+    required this.logo,
+  });
 
   final String exporterId;
 
-  /// The format's product name (Obsidian), shown verbatim in every locale.
-  /// Null for the unbranded format; surfaces label that one in the app
-  /// language.
-  final String? displayName;
+  /// The format's own name (Markdown, Obsidian), shown verbatim in every
+  /// locale: a format is named by its makers, not translated.
+  final String displayName;
 
   /// Bundle path of the format's mark, an SVG. A branded mark carries its own
   /// colors; a monochrome one paints in `currentColor` so the surface can

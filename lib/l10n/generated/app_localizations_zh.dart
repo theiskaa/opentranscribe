@@ -574,9 +574,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportEntryTitle => '导出条目';
 
   @override
-  String get exportFormatPlain => '纯 Markdown';
-
-  @override
   String get exportIncludeAudio => '包含音频';
 
   @override
@@ -607,7 +604,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportAudio => '音频';
 
   @override
-  String get settingsBackup => '备份与导出';
+  String get settingsBackup => '备份';
 
   @override
   String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';

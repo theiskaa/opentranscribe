@@ -267,7 +267,7 @@ class _BackupView extends StatelessWidget {
               children: [
                 for (final descriptor in cubit.descriptors)
                   SelectableRow(
-                    label: exporterDisplayName(descriptor, l10n),
+                    label: descriptor.displayName,
                     leading: ExporterLogo(descriptor),
                     selected: descriptor.exporterId == state.formatId,
                     onTap: idle ? () => unawaited(cubit.setFormat(descriptor.exporterId)) : null,

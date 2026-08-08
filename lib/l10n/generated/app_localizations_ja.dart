@@ -578,9 +578,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportEntryTitle => 'エントリーを書き出す';
 
   @override
-  String get exportFormatPlain => 'プレーンMarkdown';
-
-  @override
   String get exportIncludeAudio => '音声を含める';
 
   @override
@@ -611,7 +608,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportAudio => '音声';
 
   @override
-  String get settingsBackup => 'バックアップと書き出し';
+  String get settingsBackup => 'バックアップ';
 
   @override
   String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';

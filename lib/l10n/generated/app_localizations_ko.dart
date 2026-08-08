@@ -580,9 +580,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportEntryTitle => '항목 내보내기';
 
   @override
-  String get exportFormatPlain => '일반 Markdown';
-
-  @override
   String get exportIncludeAudio => '오디오 포함';
 
   @override
@@ -613,7 +610,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportAudio => '오디오';
 
   @override
-  String get settingsBackup => '백업 및 내보내기';
+  String get settingsBackup => '백업';
 
   @override
   String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';

@@ -1182,12 +1182,6 @@ abstract class AppLocalizations {
   /// **'Export entry'**
   String get exportEntryTitle;
 
-  /// Label of the unbranded plain-text export format on the format rows
-  ///
-  /// In en, this message translates to:
-  /// **'Plain Markdown'**
-  String get exportFormatPlain;
-
   /// Toggle for bundling the recording with an export
   ///
   /// In en, this message translates to:
@@ -1251,7 +1245,7 @@ abstract class AppLocalizations {
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:
-  /// **'Backup & Export'**
+  /// **'Backup'**
   String get settingsBackup;
 
   /// Backup screen intro: what a backup holds and what encryption does

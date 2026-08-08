@@ -104,7 +104,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
           children: [
             for (final descriptor in widget.descriptors)
               SelectableRow(
-                label: exporterDisplayName(descriptor, l10n),
+                label: descriptor.displayName,
                 leading: ExporterLogo(descriptor),
                 selected: descriptor.exporterId == _formatId,
                 onTap: _busy ? null : () => setState(() => _formatId = descriptor.exporterId),

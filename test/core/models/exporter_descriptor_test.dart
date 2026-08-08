@@ -4,7 +4,7 @@ import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 
 void main() {
   const descriptors = [
-    ExporterDescriptor(exporterId: 'markdown', logo: 'markdown.svg'),
+    ExporterDescriptor(exporterId: 'markdown', displayName: 'Markdown', logo: 'markdown.svg'),
     ExporterDescriptor(exporterId: 'obsidian', displayName: 'Obsidian', logo: 'obsidian.svg'),
   ];
 
