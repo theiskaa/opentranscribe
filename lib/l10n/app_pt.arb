@@ -190,7 +190,7 @@
   "exportDuration": "Duração",
   "exportLanguage": "Idioma",
   "exportAudio": "Áudio",
-  "settingsBackup": "Cópia de segurança",
+  "settingsBackup": "Cópia de segurança e exportação",
   "backupInfo": "Tudo vive neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.",
   "backupInfoCount": "{count, plural, =0 {Ainda sem entradas; o diário vive só neste telefone, e apagar a app apaga-o. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.} one {A tua única entrada vive só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.} other {As tuas {count} entradas vivem só neste telefone; apagar a app apaga o diário. Uma exportação ou uma cópia de segurança só passa para a folha de partilha quando pedes.}}",
   "backupExportSection": "Exportação",

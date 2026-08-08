@@ -821,7 +821,7 @@
   "@exportAudio": {
     "description": "Metadata label for the audio link"
   },
-  "settingsBackup": "Backup",
+  "settingsBackup": "Backup & Export",
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"
   },

@@ -611,7 +611,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportAudio => '音声';
 
   @override
-  String get settingsBackup => 'バックアップ';
+  String get settingsBackup => 'バックアップと書き出し';
 
   @override
   String get backupInfo =>

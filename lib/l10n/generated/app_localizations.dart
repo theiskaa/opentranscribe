@@ -1251,7 +1251,7 @@ abstract class AppLocalizations {
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:
-  /// **'Backup'**
+  /// **'Backup & Export'**
   String get settingsBackup;
 
   /// Backup screen intro: local-only, share only on request

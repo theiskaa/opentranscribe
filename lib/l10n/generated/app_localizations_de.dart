@@ -653,7 +653,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportAudio => 'Audio';
 
   @override
-  String get settingsBackup => 'Backup';
+  String get settingsBackup => 'Backup & Export';
 
   @override
   String get backupInfo =>

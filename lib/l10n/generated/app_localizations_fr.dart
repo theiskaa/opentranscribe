@@ -650,7 +650,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportAudio => 'Audio';
 
   @override
-  String get settingsBackup => 'Sauvegarde';
+  String get settingsBackup => 'Sauvegarde et export';
 
   @override
   String get backupInfo =>

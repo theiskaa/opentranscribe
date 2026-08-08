@@ -607,7 +607,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportAudio => '音频';
 
   @override
-  String get settingsBackup => '备份';
+  String get settingsBackup => '备份与导出';
 
   @override
   String get backupInfo => '一切都在这部手机上；删除应用就会删除日记。只有在你要求时，导出或备份才会交给共享面板。';

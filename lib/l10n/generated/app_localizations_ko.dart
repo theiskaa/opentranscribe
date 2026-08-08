@@ -613,7 +613,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportAudio => '오디오';
 
   @override
-  String get settingsBackup => '백업';
+  String get settingsBackup => '백업 및 내보내기';
 
   @override
   String get backupInfo => '모든 것은 이 전화 안에 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.';

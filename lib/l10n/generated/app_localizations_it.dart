@@ -650,7 +650,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportAudio => 'Audio';
 
   @override
-  String get settingsBackup => 'Backup';
+  String get settingsBackup => 'Backup ed export';
 
   @override
   String get backupInfo =>

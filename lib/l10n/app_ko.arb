@@ -190,7 +190,7 @@
   "exportDuration": "길이",
   "exportLanguage": "언어",
   "exportAudio": "오디오",
-  "settingsBackup": "백업",
+  "settingsBackup": "백업 및 내보내기",
   "backupInfo": "모든 것은 이 전화 안에 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.",
   "backupInfoCount": "{count, plural, =0 {아직 항목이 없습니다. 저널은 이 전화 안에만 있으며, 앱을 삭제하면 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.} other {항목 {count}개가 이 전화 안에만 있습니다. 앱을 삭제하면 저널도 사라집니다. 내보내기와 백업은 요청할 때만 공유 시트로 전달됩니다.}}",
   "backupExportSection": "내보내기",

@@ -649,7 +649,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportAudio => 'Áudio';
 
   @override
-  String get settingsBackup => 'Cópia de segurança';
+  String get settingsBackup => 'Cópia de segurança e exportação';
 
   @override
   String get backupInfo =>

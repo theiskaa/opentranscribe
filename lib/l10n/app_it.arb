@@ -190,7 +190,7 @@
   "exportDuration": "Durata",
   "exportLanguage": "Lingua",
   "exportAudio": "Audio",
-  "settingsBackup": "Backup",
+  "settingsBackup": "Backup ed export",
   "backupInfo": "Tutto vive su questo telefono; eliminare l'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.",
   "backupInfoCount": "{count, plural, =0 {Ancora nessuna voce; il diario vive solo su questo telefono, ed eliminare l'app lo elimina. Un export o un backup passa al foglio di condivisione solo su tua richiesta.} one {La tua unica voce vive solo su questo telefono; eliminare l'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.} other {Tutte le {count} voci vivono solo su questo telefono; eliminare l'app elimina il diario. Un export o un backup passa al foglio di condivisione solo su tua richiesta.}}",
   "backupExportSection": "Export",
