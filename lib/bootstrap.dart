@@ -6,7 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/utils/launch_trace.dart';
-import 'package:opentranscribe/view/layouts/splash/screens/launch_failure_screen.dart';
+import 'package:opentranscribe/view/launch_failure_app.dart';
 
 abstract class Bootstrap {
   /// Always calls `runApp`, even when startup fails. A throw that escapes here
