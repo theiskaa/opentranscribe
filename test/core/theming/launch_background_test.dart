@@ -47,11 +47,12 @@ void main() {
     expect(argbOf(dark), AppTheme.defaultDark.background.toARGB32());
   });
 
-  test('both launch storyboards paint their background from that colorset', () {
+  test('the launch and main storyboards both name that colorset as their background', () {
+    final reference = RegExp(r'<color key="backgroundColor"[^>]*name="LaunchBackground"');
     for (final name in ['LaunchScreen', 'Main']) {
       expect(
         storyboard(name),
-        contains('<color key="backgroundColor" name="LaunchBackground"/>'),
+        matches(reference),
         reason: '$name.storyboard must not paint a colour of its own',
       );
     }
