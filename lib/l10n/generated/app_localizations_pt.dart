@@ -566,7 +566,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get notifyReflectionsInfo =>
-      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.';
+      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no seu dispositivo; nada é enviado para lado nenhum.';
 
   @override
   String get notifyTime => 'Hora';
@@ -578,19 +578,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get notifyOpenSettings => 'Abrir Definições';
 
   @override
-  String get notifyDailyTitle => 'O teu dia está pronto';
+  String get notifyDailyTitle => 'O seu dia está pronto';
 
   @override
   String get notifyDailyBody => 'Abre para ler a reflexão de ontem.';
 
   @override
-  String get notifyWeeklyTitle => 'A tua semana está pronta';
+  String get notifyWeeklyTitle => 'A sua semana está pronta';
 
   @override
   String get notifyWeeklyBody => 'Abre para ler a reflexão da semana passada.';
 
   @override
-  String get notifyMonthlyTitle => 'O teu mês está pronto';
+  String get notifyMonthlyTitle => 'O seu mês está pronto';
 
   @override
   String get notifyMonthlyBody => 'Abre para ler a reflexão do mês passado.';
@@ -660,7 +660,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.';
+      'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.';
 
   @override
   String backupInfoCount(int count) {
@@ -668,9 +668,9 @@ class AppLocalizationsPt extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Uma cópia de segurança guarda as tuas $count entradas com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.',
+          'Uma cópia de segurança guarda as suas $count entradas com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
       one:
-          'Uma cópia de segurança guarda a tua única entrada com o áudio e as reflexões. Se a encriptares, a frase-passe é a única chave.',
+          'Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
       zero:
           'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.',
     );
@@ -736,7 +736,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Acrescenta as suas entradas ao teu diário. Restaurar a mesma cópia duas vezes nunca duplica.';
+      'Acrescenta as entradas da cópia ao seu diário. Restaurar a mesma cópia duas vezes nunca duplica.';
 
   @override
   String get importConfirm => 'Restaurar';

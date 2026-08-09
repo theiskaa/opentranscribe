@@ -660,7 +660,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupInfo =>
-      'Une sauvegarde contient chaque entrée avec son audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.';
+      'Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.';
 
   @override
   String backupInfoCount(int count) {
@@ -668,11 +668,11 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Une sauvegarde contient tes $count entrées avec leur audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.',
+          'Une sauvegarde contient vos $count entrées avec leur audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
       one:
-          'Une sauvegarde contient ton unique entrée avec son audio et tes réflexions. Si tu la chiffres, la phrase secrète est la seule clé.',
+          'Une sauvegarde contient votre unique entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
       zero:
-          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et tes réflexions.',
+          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.',
     );
     return '$_temp0';
   }
@@ -736,7 +736,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Ajoute ses entrées à ton journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
+      'Ajoute ses entrées à votre journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
 
   @override
   String get importConfirm => 'Restaurer';

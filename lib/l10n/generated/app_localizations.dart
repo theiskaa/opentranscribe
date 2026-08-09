@@ -120,7 +120,7 @@ abstract class AppLocalizations {
   /// **'Could not start'**
   String get launchFailedTitle;
 
-  /// What the user can do about a failed startup
+  /// What the user can do about a failed startup. 'App switcher' is the iOS App Switcher; use Apple's official term for it in this locale
   ///
   /// In en, this message translates to:
   /// **'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.'**
