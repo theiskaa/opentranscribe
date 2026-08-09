@@ -2074,6 +2074,48 @@ void main() {
     await svc.dispose();
   });
 
+  test('reconcileOrphans answers null rather than zero when a capture blocks the sweep', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recoblocked');
+    final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) => const Duration(seconds: 2),
+      ),
+    );
+    await svc.startRecording();
+
+    expect(await svc.reconcileOrphans(), isNull);
+    expect(orphan.existsSync(), isTrue);
+    expect(svc.entries(), isEmpty);
+
+    await svc.stopRecording();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans keeps sweeping the directory after a probe throws', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recoprobe');
+    File('${dir.path}/orphan-bad.m4a').writeAsStringSync('junk');
+    File('${dir.path}/orphan-good.m4a').writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (name) => name == 'orphan-bad.m4a'
+            ? throw const CaptureFailed('probe failed')
+            : const Duration(seconds: 3),
+      ),
+    );
+
+    expect(await svc.reconcileOrphans(), 1);
+    expect(svc.entries().map((e) => e.audioPath), ['orphan-good.m4a']);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('audioUsage counts kept audio and its reclaimable share, skipping gone files', () async {
     final dir = await Directory.systemTemp.createTemp('otr-usage');
     File('${dir.path}/done.m4a').writeAsStringSync('audio'); // 5 bytes

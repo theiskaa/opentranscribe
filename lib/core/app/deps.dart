@@ -323,47 +323,57 @@ class Deps {
     _initialized = true;
   }
 
-  static bool _maintained = false;
+  static Future<void>? _maintenance;
 
   /// Launch repair and catch-up, deliberately NOT part of [init].
   ///
   /// Every one of these reads the whole journal, and [EntryStore] decrypts each
   /// record on the way out, so each pass costs milliseconds per entry on the UI
   /// isolate. Running them while the first frames are being built is what makes
-  /// those frames slow; the app root calls this once the journal is on screen.
+  /// those frames slow, so the caller must not call this until the first frames
+  /// are committed.
   ///
-  /// Sequential, never concurrent: the store memoizes its read, so a pass after
-  /// a pass is nearly free while three at once are three full decrypts. Runs
-  /// once per launch and never throws.
-  static Future<void> launchMaintenance() async {
-    if (_maintained) return;
-    _maintained = true;
+  /// Single-flight, never throws, and safe to call on every foreground: it does
+  /// its work once and returns the same future afterwards. The exception is an
+  /// audio sweep a live recording cut short, which re-arms so the next call
+  /// retries it; an orphan it did not reach is invisible to every surface until
+  /// some pass recovers it.
+  ///
+  /// The three run concurrently, not chained: the audio sweep probes files
+  /// through the platform channel, and one wedged probe must not hold the
+  /// reflection catch-up and the notification sync for the process lifetime.
+  static Future<void> launchMaintenance() => _maintenance ??= _maintain();
 
-    // Recover or remove audio files no entry references (a kill mid-recording, a
-    // save that never landed). The heal then repairs records whose audio file is
-    // already gone (a kill mid-discard); after the sweep so the two never
-    // interleave over one directory. NEVER a bulk purge here: deleting kept
-    // history is the Cache screen's explicit, confirmed action.
-    await _quietly('audio sweep', () async {
-      await i.transcriptionService.reconcileOrphans();
-      await i.transcriptionService.healDanglingAudio();
-    });
-
-    // Reflect any period that closed while the app was away. A no-op when
-    // disabled or when Apple Intelligence is unavailable.
-    await _quietly('reflection catch-up', i.reflectionService.catchUp);
-
-    // Reconcile the nudge with the world as it is now: availability, the model's
-    // enabled state, or the locale week boundary may have changed since it was
-    // last scheduled.
-    await _quietly('notification sync', i.reflectionNotifier.sync);
+  static Future<void> _maintain() async {
+    final sweep = _quietly('audio sweep', _sweepAudio);
+    final catchUp = _quietly('reflection catch-up', () => i.reflectionService.catchUp());
+    final sync = _quietly('notification sync', () => i.reflectionNotifier.sync());
+    await catchUp;
+    await sync;
+    // Null, not false: `_quietly` answers null when the sweep threw, which is
+    // no proof the directory was walked either.
+    if ((await sweep) != true) _maintenance = null;
   }
 
-  static Future<void> _quietly(String what, Future<void> Function() run) async {
+  /// Recovers or removes audio files no entry references (a kill mid-recording,
+  /// a save that never landed), then repairs records whose audio file is already
+  /// gone (a kill mid-discard). The heal runs after the sweep so the two never
+  /// interleave over one directory. NEVER a bulk purge here: deleting kept
+  /// history is the Cache screen's explicit, confirmed action.
+  ///
+  /// False when a capture blocked the sweep from walking the whole directory.
+  static Future<bool> _sweepAudio() async {
+    final swept = (await i.transcriptionService.reconcileOrphans()) != null;
+    await i.transcriptionService.healDanglingAudio();
+    return swept;
+  }
+
+  static Future<T?> _quietly<T>(String what, Future<T> Function() run) async {
     try {
-      await run();
+      return await run();
     } catch (e) {
       if (kDebugMode) debugPrint('deps: launch $what failed: $e');
+      return null;
     }
   }
 }

@@ -85,6 +85,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       return;
     }
     if (state != AppLifecycleState.resumed) return;
+    // A no-op once the launch pass has completed. It only does anything when a
+    // recording started while the audio sweep was walking the directory, which
+    // aborts the sweep and leaves an orphan no UI can reach until it reruns.
+    unawaited(Deps.launchMaintenance());
     // Reflect any week that closed while the app was away. Single-flighted and
     // a no-op when there is nothing due; never throws.
     unawaited(Deps.i.reflectionService.catchUp());

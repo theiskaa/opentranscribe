@@ -940,10 +940,11 @@ class TranscriptionService {
       try {
         final path = entry.audioPath;
         if (path == null || entry.transcript == null) continue;
-        // exists(), not existsSync(): the only other await in this loop
-        // resolves on the microtask queue once the recordings dir is memoized,
-        // and Dart drains microtasks before the next frame, so a sync stat
-        // would run the whole sweep inside one frame.
+        // exists(), not existsSync(): on the common path where nothing needs
+        // healing this is the loop's only await that leaves the microtask queue
+        // (the recordings dir is memoized, and the discard below runs for the
+        // rare broken record), and Dart drains microtasks before the next
+        // frame, so a sync stat would run the whole sweep inside one frame.
         if (await File(await _resolveAudioPath(path)).exists()) continue;
         if (await _discardAudio(entry.id, notify: false)) healed++;
       } catch (_) {
@@ -1251,9 +1252,13 @@ class TranscriptionService {
   /// header after a mid-recording kill) are deleted. Without this sweep such files
   /// would persist invisibly forever, undeletable by any UI, holding the user's
   /// voice after they believe it is gone. Skipped while a capture is live (its
-  /// in-progress file has no entry yet by design). Returns the number recovered.
-  Future<int> reconcileOrphans() async {
-    if (_recording || _starting || _reconciling) return 0;
+  /// in-progress file has no entry yet by design).
+  ///
+  /// Returns the number recovered, or null when a capture stopped it from
+  /// walking the whole directory. Null is not zero: the caller must rerun the
+  /// sweep later, because whatever it did not reach stays invisible.
+  Future<int?> reconcileOrphans() async {
+    if (_recording || _starting || _reconciling) return null;
     // Single-flight: the `referenced` set is snapshotted once, so two concurrent
     // sweeps could double-recover or double-delete the same file.
     _reconciling = true;
@@ -1271,15 +1276,21 @@ class TranscriptionService {
           .map((p) => p.split('/').last)
           .toSet();
       var recovered = 0;
+      var complete = true;
       await for (final item in dir.list(followLinks: false)) {
         if (item is! File) continue;
         final name = item.uri.pathSegments.last;
         if (referenced.contains(name)) continue;
         // A capture may have started while this sweep awaited; its file has no
         // entry yet and must not be touched.
-        if (_recording || _starting) break;
-        final duration = await _recorder.probeRecording(name);
+        if (_recording || _starting) {
+          complete = false;
+          break;
+        }
+        // The probe is inside the per-file try: it reaches the recorder, and a
+        // CaptureFailed on one unreadable file must not abandon the rest.
         try {
+          final duration = await _recorder.probeRecording(name);
           if (duration == null) {
             await item.delete();
           } else {
@@ -1300,7 +1311,7 @@ class TranscriptionService {
       // Detached recovery: without this, a take recovered after home seeded
       // its list stays invisible until an unrelated reload.
       if (recovered > 0) _notifyEntriesChanged();
-      return recovered;
+      return complete ? recovered : null;
     } finally {
       _reconciling = false;
     }
