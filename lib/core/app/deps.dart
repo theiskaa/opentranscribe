@@ -401,13 +401,14 @@ class Deps {
   /// history is the Cache screen's explicit, confirmed action.
   ///
   /// False when a capture blocked the sweep from walking the whole directory.
-  /// The heal is skipped then, rather than repeated on every later foreground:
-  /// nothing a live capture does creates the broken record it repairs, and the
-  /// re-arm above runs both again anyway.
+  /// The heal still runs: it repairs a transcribed record whose file is ALREADY
+  /// gone, which is true or not regardless of whether the directory was walked,
+  /// and it never deletes a file, so a live capture makes it neither wrong nor
+  /// unsafe. Only the sweep's own answer drives the re-arm above.
   static Future<bool> _sweepAudio() async {
-    if ((await i.transcriptionService.reconcileOrphans()) == null) return false;
+    final swept = await i.transcriptionService.reconcileOrphans();
     await i.transcriptionService.healDanglingAudio();
-    return true;
+    return swept != null;
   }
 
   static Future<T?> _quietly<T>(String what, Future<T> Function() run) async {
