@@ -589,10 +589,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
 
   @override
-  String get exportFormatWeb => '网页';
+  String get exportFormatWeb => '网站';
 
   @override
-  String get exportFormatWebNote => '任何浏览器都能打开的页面。';
+  String get exportFormatWebNote => '任何浏览器都能打开，带播放器。';
 
   @override
   String get exportFailedTitle => '导出失败';

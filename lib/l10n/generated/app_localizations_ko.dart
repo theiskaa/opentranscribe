@@ -595,10 +595,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
 
   @override
-  String get exportFormatWeb => '웹 페이지';
+  String get exportFormatWeb => '웹사이트';
 
   @override
-  String get exportFormatWebNote => '어떤 브라우저에서나 열리는 페이지.';
+  String get exportFormatWebNote => '어떤 브라우저에서나 열립니다. 재생 지원.';
 
   @override
   String get exportFailedTitle => '내보내기 실패';

@@ -637,7 +637,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportFormatWeb => 'Webseite';
 
   @override
-  String get exportFormatWebNote => 'Eine Seite für jeden Browser, mit Player.';
+  String get exportFormatWebNote => 'Öffnet sich in jedem Browser, mit Player.';
 
   @override
   String get exportFailedTitle => 'Export fehlgeschlagen';

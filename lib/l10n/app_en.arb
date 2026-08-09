@@ -797,11 +797,11 @@
   "@exportFormatObsidianNote": {
     "description": "One line under the Obsidian format row saying what it writes"
   },
-  "exportFormatWeb": "Web page",
+  "exportFormatWeb": "Website",
   "@exportFormatWeb": {
-    "description": "The app's own name for the HTML export format"
+    "description": "The app's own name for the HTML export format; a plain noun, so it translates"
   },
-  "exportFormatWebNote": "A page for any browser, with a player.",
+  "exportFormatWebNote": "Opens in any browser, with a player.",
   "@exportFormatWebNote": {
     "description": "One line under the web page format row saying what it writes"
   },

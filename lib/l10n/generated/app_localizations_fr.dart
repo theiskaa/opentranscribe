@@ -632,10 +632,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportFormatObsidianNote => 'Notes avec propriétés et audio intégré.';
 
   @override
-  String get exportFormatWeb => 'Page web';
+  String get exportFormatWeb => 'Site web';
 
   @override
-  String get exportFormatWebNote => 'Page pour tout navigateur, avec lecteur.';
+  String get exportFormatWebNote => 'S\'ouvre dans un navigateur, avec lecteur.';
 
   @override
   String get exportFailedTitle => 'Échec de l\'export';

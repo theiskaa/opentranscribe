@@ -627,10 +627,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportFormatObsidianNote => 'Notes with properties, audio embedded.';
 
   @override
-  String get exportFormatWeb => 'Web page';
+  String get exportFormatWeb => 'Website';
 
   @override
-  String get exportFormatWebNote => 'A page for any browser, with a player.';
+  String get exportFormatWebNote => 'Opens in any browser, with a player.';
 
   @override
   String get exportFailedTitle => 'Export failed';

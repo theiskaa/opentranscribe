@@ -1212,16 +1212,16 @@ abstract class AppLocalizations {
   /// **'Notes with properties, audio embedded.'**
   String get exportFormatObsidianNote;
 
-  /// The app's own name for the HTML export format
+  /// The app's own name for the HTML export format; a plain noun, so it translates
   ///
   /// In en, this message translates to:
-  /// **'Web page'**
+  /// **'Website'**
   String get exportFormatWeb;
 
   /// One line under the web page format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'A page for any browser, with a player.'**
+  /// **'Opens in any browser, with a player.'**
   String get exportFormatWebNote;
 
   /// Export failure sheet title

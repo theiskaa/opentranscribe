@@ -593,10 +593,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
 
   @override
-  String get exportFormatWeb => 'Webページ';
+  String get exportFormatWeb => 'Webサイト';
 
   @override
-  String get exportFormatWebNote => 'どのブラウザでも開けるページ。';
+  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
 
   @override
   String get exportFailedTitle => '書き出しに失敗しました';

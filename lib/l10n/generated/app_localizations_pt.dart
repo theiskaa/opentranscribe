@@ -631,10 +631,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportFormatObsidianNote => 'Notas com propriedades e áudio.';
 
   @override
-  String get exportFormatWeb => 'Página web';
+  String get exportFormatWeb => 'Site web';
 
   @override
-  String get exportFormatWebNote => 'Página para navegador, com leitor.';
+  String get exportFormatWebNote => 'Abre em qualquer navegador, com leitor.';
 
   @override
   String get exportFailedTitle => 'A exportação falhou';
