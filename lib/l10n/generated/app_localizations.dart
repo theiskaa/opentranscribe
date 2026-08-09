@@ -114,11 +114,17 @@ abstract class AppLocalizations {
   /// **'OpenTranscribe'**
   String get appTitle;
 
-  /// Settings note describing the offline promise
+  /// Title of the screen shown when startup itself failed and the app has no dependencies
   ///
   /// In en, this message translates to:
-  /// **'Everything stays on this device. No account, no cloud, no network.'**
-  String get settingsOffline;
+  /// **'Could not start'**
+  String get launchFailedTitle;
+
+  /// What the user can do about a failed startup
+  ///
+  /// In en, this message translates to:
+  /// **'Something the app needs at launch did not load. Reopening usually clears it; if it does not, restarting the phone will.'**
+  String get launchFailedBody;
 
   /// One-word placeholder for an untranscribed entry's excerpt in the home list
   ///
@@ -1307,12 +1313,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last backup {date}'**
   String backupLastBackup(String date);
-
-  /// The Backup section row that restores a backup file
-  ///
-  /// In en, this message translates to:
-  /// **'Restore backup'**
-  String get backupRestore;
 
   /// Sealing passphrase sheet title
   ///

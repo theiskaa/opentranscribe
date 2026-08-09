@@ -1,7 +1,8 @@
 {
   "@@locale": "zh",
   "appTitle": "OpenTranscribe",
-  "settingsOffline": "一切都留在这台设备上。无账号、无云端、无网络。",
+  "launchFailedTitle": "无法启动",
+  "launchFailedBody": "启动所需的内容没有加载成功。重新打开通常就能解决；如果还不行，请重启手机。",
   "entryUntranscribed": "未转写",
   "entryUntranscribedTitle": "尚未转写",
   "entryUntranscribedMessage": "把这段录音转成可以回看的文字。转写在本机进行。",
@@ -200,7 +201,6 @@
   "backupSeal": "用口令加密",
   "backupSave": "保存备份",
   "backupLastBackup": "上次备份 {date}",
-  "backupRestore": "恢复备份",
   "passphraseCreateTitle": "加密备份",
   "passphraseCreateBody": "口令是唯一的钥匙。它不会被保存在任何地方；没有它，备份只是噪音。",
   "passphrasePlaceholder": "口令",

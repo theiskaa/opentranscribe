@@ -12,8 +12,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Tout reste sur cet appareil. Aucun compte, aucun cloud, aucun réseau.';
+  String get launchFailedTitle => 'Démarrage impossible';
+
+  @override
+  String get launchFailedBody =>
+      'Un élément nécessaire au lancement n\'a pas pu être chargé. Rouvrir l\'app suffit en général ; sinon, redémarre le téléphone.';
 
   @override
   String get entryUntranscribed => 'Non transcrit';
@@ -694,9 +697,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String backupLastBackup(String date) {
     return 'Dernière sauvegarde $date';
   }
-
-  @override
-  String get backupRestore => 'Restaurer une sauvegarde';
 
   @override
   String get passphraseCreateTitle => 'Chiffrer la sauvegarde';

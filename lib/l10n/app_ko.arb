@@ -1,7 +1,8 @@
 {
   "@@locale": "ko",
   "appTitle": "OpenTranscribe",
-  "settingsOffline": "모든 것이 이 기기에만 남습니다. 계정도, 클라우드도, 네트워크도 없습니다.",
+  "launchFailedTitle": "시작하지 못했습니다",
+  "launchFailedBody": "실행에 필요한 것을 불러오지 못했습니다. 다시 열면 대개 해결되고, 그래도 안 되면 기기를 재시작하세요.",
   "entryUntranscribed": "미전사",
   "entryUntranscribedTitle": "아직 전사되지 않음",
   "entryUntranscribedMessage": "이 녹음을 다시 읽을 수 있는 텍스트로 바꿔 보세요. 기기에서 처리됩니다.",
@@ -200,7 +201,6 @@
   "backupSeal": "암호구로 암호화",
   "backupSave": "백업 저장",
   "backupLastBackup": "마지막 백업 {date}",
-  "backupRestore": "백업 복원",
   "passphraseCreateTitle": "백업 암호화",
   "passphraseCreateBody": "암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 백업은 잡음일 뿐입니다.",
   "passphrasePlaceholder": "암호구",

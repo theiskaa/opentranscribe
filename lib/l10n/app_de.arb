@@ -1,7 +1,8 @@
 {
   "@@locale": "de",
   "appTitle": "OpenTranscribe",
-  "settingsOffline": "Alles bleibt auf diesem Gerät. Kein Konto, keine Cloud, kein Netzwerk.",
+  "launchFailedTitle": "Start fehlgeschlagen",
+  "launchFailedBody": "Etwas, das die App zum Start braucht, wurde nicht geladen. Erneutes Öffnen hilft meistens; sonst hilft ein Neustart des Telefons.",
   "entryUntranscribed": "Nicht transkribiert",
   "entryUntranscribedTitle": "Noch nicht transkribiert",
   "entryUntranscribedMessage": "Machen Sie aus dieser Aufnahme Text zum Nachlesen. Alles läuft auf Ihrem Gerät.",
@@ -200,7 +201,6 @@
   "backupSeal": "Mit Passphrase verschlüsseln",
   "backupSave": "Backup sichern",
   "backupLastBackup": "Letztes Backup {date}",
-  "backupRestore": "Backup wiederherstellen",
   "passphraseCreateTitle": "Backup verschlüsseln",
   "passphraseCreateBody": "Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Backup Rauschen.",
   "passphrasePlaceholder": "Passphrase",

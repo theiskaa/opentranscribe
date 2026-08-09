@@ -1,7 +1,8 @@
 {
   "@@locale": "pt",
   "appTitle": "OpenTranscribe",
-  "settingsOffline": "Tudo permanece neste dispositivo. Sem conta, sem nuvem, sem rede.",
+  "launchFailedTitle": "Não foi possível iniciar",
+  "launchFailedBody": "Algo de que a app precisa no arranque não carregou. Voltar a abrir costuma resolver; se não, reinicia o telemóvel.",
   "entryUntranscribed": "Sem transcrição",
   "entryUntranscribedTitle": "Ainda não transcrito",
   "entryUntranscribedMessage": "Transforme esta gravação em texto que pode reler. Corre no seu dispositivo.",
@@ -200,7 +201,6 @@
   "backupSeal": "Encriptar com frase-passe",
   "backupSave": "Guardar cópia de segurança",
   "backupLastBackup": "Última cópia {date}",
-  "backupRestore": "Restaurar cópia de segurança",
   "passphraseCreateTitle": "Encriptar a cópia de segurança",
   "passphraseCreateBody": "A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, a cópia é ruído.",
   "passphrasePlaceholder": "Frase-passe",

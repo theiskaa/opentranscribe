@@ -12,7 +12,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => '모든 것이 이 기기에만 남습니다. 계정도, 클라우드도, 네트워크도 없습니다.';
+  String get launchFailedTitle => '시작하지 못했습니다';
+
+  @override
+  String get launchFailedBody => '실행에 필요한 것을 불러오지 못했습니다. 다시 열면 대개 해결되고, 그래도 안 되면 기기를 재시작하세요.';
 
   @override
   String get entryUntranscribed => '미전사';
@@ -652,9 +655,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String backupLastBackup(String date) {
     return '마지막 백업 $date';
   }
-
-  @override
-  String get backupRestore => '백업 복원';
 
   @override
   String get passphraseCreateTitle => '백업 암호화';

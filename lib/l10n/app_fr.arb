@@ -1,7 +1,8 @@
 {
   "@@locale": "fr",
   "appTitle": "OpenTranscribe",
-  "settingsOffline": "Tout reste sur cet appareil. Aucun compte, aucun cloud, aucun réseau.",
+  "launchFailedTitle": "Démarrage impossible",
+  "launchFailedBody": "Un élément nécessaire au lancement n'a pas pu être chargé. Rouvrir l'app suffit en général ; sinon, redémarre le téléphone.",
   "entryUntranscribed": "Non transcrit",
   "entryUntranscribedTitle": "Pas encore transcrit",
   "entryUntranscribedMessage": "Transformez cet enregistrement en texte à relire. Cela se fait sur votre appareil.",
@@ -200,7 +201,6 @@
   "backupSeal": "Chiffrer avec une phrase secrète",
   "backupSave": "Enregistrer la sauvegarde",
   "backupLastBackup": "Dernière sauvegarde {date}",
-  "backupRestore": "Restaurer une sauvegarde",
   "passphraseCreateTitle": "Chiffrer la sauvegarde",
   "passphraseCreateBody": "La phrase secrète est la seule clé. Elle n'est stockée nulle part ; sans elle, la sauvegarde n'est que du bruit.",
   "passphrasePlaceholder": "Phrase secrète",

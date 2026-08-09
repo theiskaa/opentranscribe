@@ -12,7 +12,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => 'すべてこの端末内に保存されます。アカウントもクラウドも通信もありません。';
+  String get launchFailedTitle => '起動できませんでした';
+
+  @override
+  String get launchFailedBody => '起動に必要なものを読み込めませんでした。開き直せばたいてい直ります。直らないときは端末を再起動してください。';
 
   @override
   String get entryUntranscribed => '文字起こし未実行';
@@ -650,9 +653,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String backupLastBackup(String date) {
     return '前回のバックアップ $date';
   }
-
-  @override
-  String get backupRestore => 'バックアップを復元';
 
   @override
   String get passphraseCreateTitle => 'バックアップを暗号化';
