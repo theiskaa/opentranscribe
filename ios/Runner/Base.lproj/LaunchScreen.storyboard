@@ -14,13 +14,13 @@
                         <viewControllerLayoutGuide type="top" id="Ydg-fD-yQy"/>
                         <viewControllerLayoutGuide type="bottom" id="xbc-2k-c8Z"/>
                     </layoutGuides>
-                    <!-- Deliberately empty: just the system background colour, which
-                         follows light/dark, matching the Flutter splash that draws
-                         the waveform the instant the engine is up. A native launch
-                         screen cannot animate, so it only holds the colour seam. -->
+                    <!-- SpringBoard draws this before any of our code runs, and
+                         holds it until the app commits a frame, so it can only ever
+                         follow the system switch: an explicit mode or a custom
+                         family cannot be read from here. -->
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" name="LaunchBackground"/>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
