@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -15,8 +16,9 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 /// with no explanation.
 ///
 /// Colours come from the static default palette against the platform
-/// brightness: the stored theme lives behind the storage that may be the very
-/// thing that failed.
+/// brightness, and the language from the device locale, for the same reason:
+/// both stored choices live behind the storage that may be the very thing that
+/// failed.
 class LaunchFailureApp extends StatelessWidget {
   const LaunchFailureApp(this.error, {super.key});
 
@@ -31,6 +33,19 @@ class LaunchFailureApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // The device's language, never the stored one: the stored language lives
+      // behind the storage that may be what failed. Explicit because Flutter's
+      // default answers `supportedLocales.first` (German, alphabetically) for
+      // any language this build does not ship, and every entry here is
+      // language-only, so its country fallback never fires either.
+      localeListResolutionCallback: (locales, supported) {
+        for (final locale in locales ?? const <Locale>[]) {
+          for (final candidate in supported) {
+            if (candidate.languageCode == locale.languageCode) return candidate;
+          }
+        }
+        return const Locale(AppLanguage.fallback);
+      },
       builder: (context, _) {
         final l10n = AppLocalizations.of(context)!;
         return ColoredBox(
