@@ -12,9 +12,10 @@ abstract class Bootstrap {
   /// process commits no frame at all, which reads as a frozen launch screen
   /// until the watchdog kills it. See [LaunchFailureApp].
   ///
-  /// Nothing is deadlined here: the only startup work that can hang forever is
-  /// a platform channel, and each of those carries its own timeout inside
-  /// [Deps.init], whose `TimeoutException` lands in the catch below.
+  /// Nothing is deadlined here: every platform channel [Deps.init] awaits
+  /// carries its own timeout there, whose `TimeoutException` lands in the catch
+  /// below. The one step [Deps.init] leaves undeadlined is the legacy storage
+  /// migration, which is bounded work that always finishes.
   static Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     WidgetsFlutterBinding.ensureInitialized();
     LaunchTrace.mark('binding'); // TEMP

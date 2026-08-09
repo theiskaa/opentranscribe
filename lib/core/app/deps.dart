@@ -155,10 +155,11 @@ class Deps {
   /// Per channel, not around the whole of [init]: the hang this exists to catch
   /// is a native handler that never calls `result` (iOS 26's
   /// `SpeechTranscriber.supportedLocales` did exactly that), which no catch can
-  /// see. The rest of [init] is pure Dart, and the one slow piece of it is the
-  /// legacy storage migration, which rewrites every record on the single launch
-  /// after an upgrade. That work always finishes, and a large journal can take
-  /// seconds, so a whole-init deadline would fail the one launch doing exactly
+  /// see. Applied to every channel [init] awaits, including opening the
+  /// encrypted store. The one step deliberately left outside it is the legacy
+  /// storage migration, which rewrites every record on the single launch after
+  /// an upgrade: that work always finishes, and a large journal can take
+  /// seconds, so a deadline around it would fail the one launch doing exactly
   /// the right thing. Far short of the ~20 s iOS watchdog either way, so a
   /// wedged channel lands on the failure screen instead of as a launch kill
   /// with no frame at all.
@@ -192,7 +193,11 @@ class Deps {
     LaunchTrace.mark('  keychain'); // TEMP
 
     final localService = LocalService();
-    await localService.init(legacyKey: _storageKey, deviceKey: deviceKey);
+    await localService.init(
+      legacyKey: _storageKey,
+      deviceKey: deviceKey,
+      channelTimeout: _channelTimeout,
+    );
     LaunchTrace.mark('  storage read'); // TEMP
 
     // One recorder instance for capture and the backup preference. The native
@@ -210,9 +215,18 @@ class Deps {
     );
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
     // Abandoned, not thrown, on a wedged channel: apply() already swallows its
-    // own failures because the native side defaults to excluded, so a timeout
-    // must not be the one way this preference kills a launch.
-    await audioStorageSettings.apply().timeout(_channelTimeout, onTimeout: () {});
+    // own failures, and exclusion is a PERSISTED filesystem attribute, so
+    // skipping the push leaves the directory on whatever it was last given
+    // (excluded, until the user opted in). A timeout must not be the one way
+    // this preference kills a launch.
+    await audioStorageSettings.apply().timeout(
+      _channelTimeout,
+      // Logged like apply()'s own catch: a persistent failure silently drops
+      // the user's backup opt-in.
+      onTimeout: () {
+        if (kDebugMode) debugPrint('deps: the audio backup preference timed out');
+      },
+    );
     LaunchTrace.mark('  audio settings'); // TEMP
 
     final engine = AppleSpeechEngine();
