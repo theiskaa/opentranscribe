@@ -39,10 +39,6 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   /// The startup splash sits above the router until its animation finishes, then
   /// removes itself for good. One cold-start affair, never shown again.
-  ///
-  /// The cubits above it are built eagerly (`lazy: false`) so the two that read
-  /// the journal in their constructors do it while the wave is drawing, instead
-  /// of in the single frame that swaps home in.
   bool _splashDone = false;
 
   @override
@@ -106,20 +102,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
-        BlocProvider(lazy: false, create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
-        BlocProvider(
-          lazy: false,
-          create: (_) => EntriesCubit(service: Deps.i.transcriptionService),
-        ),
-        BlocProvider(
-          lazy: false,
-          create: (_) => RecorderCubit(service: Deps.i.transcriptionService),
-        ),
-        BlocProvider(lazy: false, create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
+        // All lazy on purpose. `lazy: false` reads the value inside THIS build,
+        // so a cubit whose constructor decrypts the journal (EntriesCubit) or
+        // fires channel calls (SettingsCubit) would pay for it in the frame the
+        // splash is waiting to commit, which is the frame launch is measured by.
+        BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
+        BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
+        BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
+        BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance.
         BlocProvider(
-          lazy: false,
           create: (_) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
