@@ -2147,30 +2147,178 @@ void main() {
     await svc.dispose();
   });
 
-  test('reconcileOrphans answers null and adopts nothing while a finalize is in flight', () async {
-    final dir = await Directory.systemTemp.createTemp('otr-recofinalize');
-    final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+  test(
+    'reconcileOrphans answers null while a finalize is in flight, then sweeps once it lands',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('otr-recofinalize');
+      final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+      final svc = build(
+        (_) => FakeBatchEngine(),
+        recorder: FakeAudioRecorder(
+          path: 'take.m4a',
+          recordingsDir: dir.path,
+          probe: (_) => const Duration(seconds: 3),
+          stopDelay: const Duration(milliseconds: 20),
+        ),
+      );
+      await svc.startRecording();
+      final finalizing = svc.stopRecording();
+
+      expect(svc.isRecording, isFalse);
+      expect(await svc.reconcileOrphans(), isNull);
+      expect(svc.entries(), isEmpty);
+
+      await finalizing;
+      expect(svc.entries().map((e) => e.audioPath), ['take.m4a']);
+      expect(orphan.existsSync(), isTrue);
+
+      expect(await svc.reconcileOrphans(), 1);
+      expect(svc.entries().map((e) => e.audioPath), containsAll(['take.m4a', 'orphan.m4a']));
+
+      await dir.delete(recursive: true);
+      await svc.dispose();
+    },
+  );
+
+  test('reconcileOrphans answers null while an import adopts, then sweeps once it lands', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-adoptsweep');
+    final staging = await Directory.systemTemp.createTemp('otr-adoptstage');
+    File('${dir.path}/orphan.m4a').writeAsStringSync('audio');
+    final stagedAudio = File('${staging.path}/import.m4a')..writeAsStringSync('audio');
     final svc = build(
       (_) => FakeBatchEngine(),
       recorder: FakeAudioRecorder(
-        path: 'take.m4a',
         recordingsDir: dir.path,
         probe: (_) => const Duration(seconds: 3),
-        stopDelay: const Duration(milliseconds: 20),
       ),
     );
-    await svc.startRecording();
-    final finalizing = svc.stopRecording();
 
-    expect(svc.isRecording, isFalse);
+    final adopting = svc.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'imported',
+          createdAt: fixedClock,
+          audioPath: 'import.m4a',
+          duration: const Duration(seconds: 1),
+        ),
+        stagedAudio: stagedAudio,
+      ),
+    ]);
     expect(await svc.reconcileOrphans(), isNull);
-    expect(svc.entries(), isEmpty);
+    await adopting;
 
-    await finalizing;
-    expect(svc.entries().map((e) => e.audioPath), ['take.m4a']);
-    expect(orphan.existsSync(), isTrue);
+    expect(await svc.reconcileOrphans(), 1);
+    expect(svc.entries(), hasLength(2));
+    expect(svc.entries().map((e) => e.audioPath), containsAll(['import.m4a', 'orphan.m4a']));
 
     await dir.delete(recursive: true);
+    await staging.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('deleteEntry leaves a recording another entry still references on disk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-shareddelete');
+    final file = File('${dir.path}/shared.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    const duration = Duration(seconds: 1);
+    final twin = Entry(
+      id: 'twin',
+      createdAt: fixedClock,
+      audioPath: 'shared.m4a',
+      duration: duration,
+    );
+    final original = Entry(
+      id: 'original',
+      createdAt: fixedClock,
+      audioPath: 'shared.m4a',
+      duration: duration,
+    );
+    await store.save(twin);
+    await store.save(original);
+
+    await svc.deleteEntry(original);
+
+    expect(file.existsSync(), isTrue);
+    expect(store.read('original'), isNull);
+    expect(store.read('twin'), twin);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('purgeTranscribedAudio reclaims a solo recording but never one two entries share', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-sharedpurge');
+    final shared = File('${dir.path}/shared.m4a')..writeAsStringSync('audio');
+    final solo = File('${dir.path}/solo.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    const duration = Duration(seconds: 1);
+    for (final (id, path) in [('a', 'shared.m4a'), ('b', 'shared.m4a'), ('c', 'solo.m4a')]) {
+      await store.save(
+        Entry(
+          id: id,
+          createdAt: fixedClock,
+          audioPath: path,
+          duration: duration,
+          transcript: canned(id),
+        ),
+      );
+    }
+
+    expect(await svc.purgeTranscribedAudio(), 1);
+
+    expect(shared.existsSync(), isTrue);
+    expect(solo.existsSync(), isFalse);
+    expect(store.read('a')?.audioPath, 'shared.m4a');
+    expect(store.read('b')?.audioPath, 'shared.m4a');
+    expect(store.read('c')?.audioPath, isNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('recoverInterruptedSave adds nothing once the sweep adopted the same recording', () async {
+    final svc = build((_) => FakeBatchEngine());
+    const duration = Duration(seconds: 2);
+    final swept = Entry(
+      id: 'swept',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: duration,
+    );
+    await store.save(swept);
+
+    await svc.recoverInterruptedSave(
+      Entry(id: 'lost', createdAt: fixedClock, audioPath: 'take.m4a', duration: duration),
+    );
+
+    expect(svc.entries(), [swept]);
+
+    await svc.dispose();
+  });
+
+  test('retrySave adds nothing once the sweep adopted the same recording', () async {
+    final svc = build((_) => FakeBatchEngine());
+    const duration = Duration(seconds: 2);
+    final swept = Entry(
+      id: 'swept',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: duration,
+    );
+    await store.save(swept);
+
+    await svc.retrySave(
+      Entry(id: 'lost', createdAt: fixedClock, audioPath: 'take.m4a', duration: duration),
+    );
+
+    expect(svc.entries(), [swept]);
+
     await svc.dispose();
   });
 

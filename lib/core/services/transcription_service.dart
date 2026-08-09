@@ -108,6 +108,18 @@ class TranscriptionService {
   /// start and stop while an older finalize is still in its batch pass.
   int _finalizingCaptures = 0;
 
+  /// How many [adoptImportedEntries] passes are in flight. Same window as
+  /// [_finalizingCaptures] and for the same reason: an import moves each staged
+  /// recording into the directory BEFORE saving its record, so the file probes
+  /// readable while nothing references it.
+  int _adoptingImports = 0;
+
+  /// Whether some path holds a readable file in the recordings directory that no
+  /// entry references yet, BY DESIGN. [reconcileOrphans] must not walk while
+  /// this is true, and must abandon a walk that sees it turn true: its
+  /// `referenced` snapshot is taken once and cannot know about such a file.
+  bool get _unreferencedByDesign => _finalizingCaptures > 0 || _adoptingImports > 0;
+
   /// Single-flights [purgeTranscribedAudio]. Deliberately not shared with
   /// [_reconciling]: the Cache screen's clear must not silently no-op because
   /// the launch orphan sweep happens to be running.
@@ -508,11 +520,15 @@ class TranscriptionService {
   /// only when nothing was recording. The [_finalizingCaptures] claim rides the
   /// same synchronous block, so every path here (a stop, an interruption, a
   /// termination) hides its file from [reconcileOrphans] until the entry lands.
+  /// One exception, deliberate: on the [EntrySaveFailed] path the claim is
+  /// released with the file finalized and no record pointing at it, because
+  /// holding it would disable the sweep for the rest of the process. The sweep
+  /// recovering that file is the intended outcome; see [recoverInterruptedSave]
+  /// for how a retry avoids duplicating it.
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
     if (!_recording) return _lastFinalized;
     _recording = false;
     _paused = false;
-    _finalizingCaptures++;
     // Claim ALL session state synchronously with the claim above: a new recording
     // may start while this finalize is still awaiting, and this (older) finalize
     // must neither cancel the new session's subscriptions nor read its locale.
@@ -525,6 +541,11 @@ class TranscriptionService {
     _sessionSpans = [];
     _audioClockPause();
     try {
+      // Inside the try, and still in the same synchronous block as the flips
+      // above (nothing between them awaits), so the claim can never leak: a
+      // leaked one is unrecoverable, silencing [reconcileOrphans] for the
+      // process.
+      _finalizingCaptures++;
       await statusSub?.cancel();
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
@@ -589,12 +610,14 @@ class TranscriptionService {
       );
       return entry;
     } finally {
-      _finalizingCaptures--;
       try {
         await liveSub?.cancel();
       } catch (_) {
         // The subscription is dead either way; the outcome above stands.
       }
+      // After the cancel, not before: that cancel is a native recognizer
+      // teardown, and the file would otherwise be unguarded for its duration.
+      _finalizingCaptures--;
     }
   }
 
@@ -695,11 +718,44 @@ class TranscriptionService {
     }
   }
 
+  /// Whether a stored entry OTHER than [exceptId] already references the file
+  /// [audioPath] names. Two entries on one recording is never a state the app
+  /// creates on purpose, but a retry racing [reconcileOrphans] can produce it,
+  /// and every file delete below must survive it: deleting a shared file would
+  /// leave the survivor pointing at nothing, and a swept twin is untranscribed,
+  /// so [healDanglingAudio] would never repair it.
+  bool _referencedElsewhere(String audioPath, String exceptId) {
+    final name = baseName(audioPath);
+    return _store.all().any(
+      (e) => e.id != exceptId && e.audioPath != null && baseName(e.audioPath!) == name,
+    );
+  }
+
+  /// The basenames more than one stored entry references, for the bulk sweeps:
+  /// one pass over the journal instead of [_referencedElsewhere] per entry,
+  /// which would decrypt the whole journal once per discard. Snapshotted, so a
+  /// name that stops being shared mid-sweep is simply left for the next run.
+  Set<String> _sharedAudioNames() {
+    final seen = <String>{}, shared = <String>{};
+    for (final entry in _store.all()) {
+      final path = entry.audioPath;
+      if (path != null && !seen.add(baseName(path))) shared.add(baseName(path));
+    }
+    return shared;
+  }
+
   /// Retries persisting an entry whose save failed ([EntrySaveFailed]). The entry
   /// already references its kept audio, so a successful retry fully recovers it.
-  /// Pure: no side effects, so [dispose]/[finalizeActiveCapture] can use it
-  /// during teardown without touching the controllers they are closing.
-  Future<void> retrySave(Entry entry) => _store.save(entry);
+  /// A no-op when [reconcileOrphans] already adopted that file under a record of
+  /// its own: the audio is recovered either way, and this is the only path that
+  /// could put two entries on one recording. Pure: no side effects, so
+  /// [dispose]/[finalizeActiveCapture] can use it during teardown without
+  /// touching the controllers they are closing.
+  Future<void> retrySave(Entry entry) async {
+    final path = entry.audioPath;
+    if (path != null && _referencedElsewhere(path, entry.id)) return;
+    await _store.save(entry);
+  }
 
   /// Adopts entries restored from an archive, keeping the entry lifecycle's
   /// single owner: per entry, the staged audio moves into the recordings
@@ -714,6 +770,9 @@ class TranscriptionService {
   /// owned by a different entry sends the restored audio under a fresh name;
   /// filenames are not identity, ids are. Fires [entriesChanged] once when
   /// anything changed, even when a later entry's adoption failed midway.
+  /// [reconcileOrphans] is blocked for the whole pass, not just the move-to-save
+  /// gap: it snapshots what is referenced once, so any record saved after that
+  /// snapshot is invisible to it and its file would be adopted a second time.
   Future<AdoptResult> adoptImportedEntries(List<StagedImportEntry> staged) async {
     var added = 0;
     var updated = 0;
@@ -725,6 +784,10 @@ class TranscriptionService {
         if (stored.audioPath != null) baseName(stored.audioPath!): stored.id,
     };
     try {
+      // First statement in the try so it can never leak, like the finalize
+      // claim: between the move and the save each restored file is readable
+      // with nothing referencing it, which is exactly what the sweep adopts.
+      _adoptingImports++;
       for (final item in staged) {
         var entry = item.entry;
         final existing = _store.read(entry.id);
@@ -748,6 +811,7 @@ class TranscriptionService {
         await _reapReplacedAudio(existing, entry, owners);
       }
     } finally {
+      _adoptingImports--;
       if (changed) _notifyEntriesChanged();
     }
     return AdoptResult(
@@ -827,7 +891,14 @@ class TranscriptionService {
   /// refresh. Sets [_lastFinalized] only while idle, so a take that started
   /// meanwhile keeps its own double-stop contract (a stale entry must never be
   /// handed to a new take's stop).
+  ///
+  /// Silently does nothing when [reconcileOrphans] already adopted the audio
+  /// under its own record: that record IS the recovery, and saving this one too
+  /// would double the take. Nothing is announced then either, or [_lastFinalized]
+  /// would hand out an entry the store does not hold.
   Future<void> recoverInterruptedSave(Entry entry) async {
+    final path = entry.audioPath;
+    if (path != null && _referencedElsewhere(path, entry.id)) return;
     await _store.save(entry);
     if (!_recording && !_starting) _lastFinalized = entry;
     if (!_autoFinalized.isClosed) _autoFinalized.add(entry);
@@ -866,10 +937,12 @@ class TranscriptionService {
   }
 
   /// Deletes an entry and its kept audio file. The audio is the source of truth,
-  /// so removing the record removes the recording with it.
+  /// so removing the record removes the recording with it - unless another entry
+  /// references the same file, in which case only this record goes and the
+  /// recording stays with its remaining owner (see [_referencedElsewhere]).
   Future<void> deleteEntry(Entry entry) async {
     final path = entry.audioPath;
-    if (path != null) {
+    if (path != null && !_referencedElsewhere(path, entry.id)) {
       final File file;
       try {
         file = File(await _resolveAudioPath(path));
@@ -901,13 +974,23 @@ class TranscriptionService {
   /// discarded: the entry is gone, or the audio is still on disk and referenced
   /// (a later sweep retries). Never throws, since it runs detached behind saves.
   /// Bulk sweeps pass [notify] false and announce once at the end, so an
-  /// N-entry purge costs the listeners one reload, not N.
-  Future<bool> _discardAudio(String entryId, {bool notify = true}) async {
+  /// N-entry purge costs the listeners one reload, not N, and pass [shared]
+  /// ([_sharedAudioNames]) so the shared-file check below costs one journal pass
+  /// for the whole sweep rather than one per entry.
+  Future<bool> _discardAudio(String entryId, {bool notify = true, Set<String>? shared}) async {
     try {
       final stored = _store.read(entryId);
       if (stored == null) return false;
       final path = stored.audioPath;
       if (path == null) return true;
+      // A file another entry also references outlives this discard, path and
+      // all: stripping the path here would cost this entry its playback while
+      // freeing nothing. Only checked while the file is actually there, so a
+      // heal (whose file is already gone) still repairs both records.
+      if (File(await _resolveAudioPath(path)).existsSync() &&
+          (shared?.contains(baseName(path)) ?? _referencedElsewhere(path, entryId))) {
+        return false;
+      }
       if (stored.peaks == null && _peaksReader != null) {
         try {
           await saveEntryPeaks(stored, await _peaksReader(await _resolveAudioPath(path)));
@@ -947,6 +1030,7 @@ class TranscriptionService {
   /// visibly broken entry the user can delete beats a silent empty one.
   Future<int> healDanglingAudio() async {
     var healed = 0;
+    final shared = _sharedAudioNames();
     for (final entry in _store.all()) {
       try {
         final path = entry.audioPath;
@@ -957,7 +1041,7 @@ class TranscriptionService {
         // rare broken record), and Dart drains microtasks before the next
         // frame, so a sync stat would run the whole sweep inside one frame.
         if (await File(await _resolveAudioPath(path)).exists()) continue;
-        if (await _discardAudio(entry.id, notify: false)) healed++;
+        if (await _discardAudio(entry.id, notify: false, shared: shared)) healed++;
       } catch (_) {
         // Best effort per entry, like the reconcile sweep; next launch retries.
       }
@@ -1009,9 +1093,10 @@ class TranscriptionService {
     _purging = true;
     try {
       var discarded = 0;
+      final shared = _sharedAudioNames();
       for (final entry in _store.all()) {
         if (entry.transcript == null || entry.audioPath == null) continue;
-        if (await _discardAudio(entry.id, notify: false)) discarded++;
+        if (await _discardAudio(entry.id, notify: false, shared: shared)) discarded++;
       }
       if (discarded > 0) _notifyEntriesChanged();
       return discarded;
@@ -1263,15 +1348,16 @@ class TranscriptionService {
   /// header after a mid-recording kill) are deleted. Without this sweep such files
   /// would persist invisibly forever, undeletable by any UI, holding the user's
   /// voice after they believe it is gone. Skipped while a capture is live or
-  /// finalizing (its file has no entry yet by design).
+  /// finalizing, or an import is adopting (their files have no entry yet by
+  /// design).
   ///
   /// Returns the number recovered, or null when the whole directory was not
-  /// walked: a capture was live or starting, a finalize had not yet saved its
-  /// entry, another sweep already held the snapshot, or one of those began
-  /// mid-walk. Null is not zero: the caller must rerun the sweep later, because
-  /// whatever it did not reach stays invisible.
+  /// walked: a capture was live or starting, a finalize or an import had not yet
+  /// saved its entry, another sweep already held the snapshot, or one of those
+  /// began mid-walk. Null is not zero: the caller must rerun the sweep later,
+  /// because whatever it did not reach stays invisible.
   Future<int?> reconcileOrphans() async {
-    if (_recording || _starting || _reconciling || _finalizingCaptures > 0) return null;
+    if (_recording || _starting || _reconciling || _unreferencedByDesign) return null;
     // Single-flight: the `referenced` set is snapshotted once, so two concurrent
     // sweeps could double-recover or double-delete the same file.
     _reconciling = true;
@@ -1294,10 +1380,10 @@ class TranscriptionService {
         if (item is! File) continue;
         final name = item.uri.pathSegments.last;
         if (referenced.contains(name)) continue;
-        // A capture may have started, or a finalize may have claimed one, while
-        // this sweep awaited; either file has no entry yet and must not be
-        // touched. The `referenced` snapshot above cannot know about them.
-        if (_recording || _starting || _finalizingCaptures > 0) {
+        // A capture may have started, or a finalize or an import may have
+        // claimed one, while this sweep awaited; either file has no entry yet
+        // and must not be touched. The `referenced` snapshot cannot know them.
+        if (_recording || _starting || _unreferencedByDesign) {
           complete = false;
           break;
         }
