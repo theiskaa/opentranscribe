@@ -46,7 +46,9 @@ class _ExporterLogo extends StatelessWidget {
 
   final ExporterDescriptor descriptor;
 
-  /// Chip size, matching the flag a language row puts in the same tile.
+  /// Chip size. Sits inside the row's icon tile with its own margin, and larger
+  /// than the flag a language row puts there because a mark is line art, not a
+  /// filled glyph.
   static const _size = 22.0;
 
   @override
