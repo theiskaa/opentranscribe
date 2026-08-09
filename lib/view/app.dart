@@ -108,17 +108,21 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
-        // All lazy on purpose. `lazy: false` reads the value inside THIS build,
-        // so a cubit whose constructor decrypts the journal (EntriesCubit) or
-        // fires channel calls (SettingsCubit) would pay for it in the frame the
-        // splash is waiting to commit, which is the frame launch is measured by.
+        // Lazy on purpose. `lazy: false` reads the value inside THIS build, so a
+        // cubit whose constructor decrypts the journal (EntriesCubit, HomeCubit)
+        // would pay for it in the frame the splash is waiting to commit, which
+        // is the frame launch is measured by.
         BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
-        // routes) share one instance.
+        // routes) share one instance. The exception to the rule above: its
+        // constructor only fires an UNAWAITED load, so building it here costs
+        // this frame nothing, and its language list is then ready before the
+        // first recording instead of populating under the user's eyes.
         BlocProvider(
+          lazy: false,
           create: (_) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
