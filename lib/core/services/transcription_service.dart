@@ -101,6 +101,13 @@ class TranscriptionService {
   /// Single-flights [reconcileOrphans] so two sweeps never race one snapshot.
   bool _reconciling = false;
 
+  /// How many finalizes sit between claiming the capture and saving its entry.
+  /// Across that window the file is finalized on disk (so it probes readable)
+  /// while no entry references it yet, and [reconcileOrphans] would adopt it as
+  /// a second entry sharing one recording. A count, not a flag: a new take can
+  /// start and stop while an older finalize is still in its batch pass.
+  int _finalizingCaptures = 0;
+
   /// Single-flights [purgeTranscribedAudio]. Deliberately not shared with
   /// [_reconciling]: the Cache screen's clear must not silently no-op because
   /// the launch orphan sweep happens to be running.
@@ -498,11 +505,14 @@ class TranscriptionService {
   /// interruption cannot both proceed; the loser returns early. `_statusSub` is
   /// cancelled up front, before the first await, so a second `interrupted` event
   /// during `_recorder.stop()` cannot re-enter `_handleInterruption`. Returns null
-  /// only when nothing was recording.
+  /// only when nothing was recording. The [_finalizingCaptures] claim rides the
+  /// same synchronous block, so every path here (a stop, an interruption, a
+  /// termination) hides its file from [reconcileOrphans] until the entry lands.
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
     if (!_recording) return _lastFinalized;
     _recording = false;
     _paused = false;
+    _finalizingCaptures++;
     // Claim ALL session state synchronously with the claim above: a new recording
     // may start while this finalize is still awaiting, and this (older) finalize
     // must neither cancel the new session's subscriptions nor read its locale.
@@ -514,8 +524,8 @@ class TranscriptionService {
     final spans = _sessionSpans;
     _sessionSpans = [];
     _audioClockPause();
-    await statusSub?.cancel();
     try {
+      await statusSub?.cancel();
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
       // session is not queued behind it. Re-awaited in the finally; a cancel
@@ -579,6 +589,7 @@ class TranscriptionService {
       );
       return entry;
     } finally {
+      _finalizingCaptures--;
       try {
         await liveSub?.cancel();
       } catch (_) {
@@ -1251,14 +1262,16 @@ class TranscriptionService {
   /// record landed) become untranscribed entries; unreadable ones (an unfinalized
   /// header after a mid-recording kill) are deleted. Without this sweep such files
   /// would persist invisibly forever, undeletable by any UI, holding the user's
-  /// voice after they believe it is gone. Skipped while a capture is live (its
-  /// in-progress file has no entry yet by design).
+  /// voice after they believe it is gone. Skipped while a capture is live or
+  /// finalizing (its file has no entry yet by design).
   ///
-  /// Returns the number recovered, or null when a capture stopped it from
-  /// walking the whole directory. Null is not zero: the caller must rerun the
-  /// sweep later, because whatever it did not reach stays invisible.
+  /// Returns the number recovered, or null when the whole directory was not
+  /// walked: a capture was live or starting, a finalize had not yet saved its
+  /// entry, another sweep already held the snapshot, or one of those began
+  /// mid-walk. Null is not zero: the caller must rerun the sweep later, because
+  /// whatever it did not reach stays invisible.
   Future<int?> reconcileOrphans() async {
-    if (_recording || _starting || _reconciling) return null;
+    if (_recording || _starting || _reconciling || _finalizingCaptures > 0) return null;
     // Single-flight: the `referenced` set is snapshotted once, so two concurrent
     // sweeps could double-recover or double-delete the same file.
     _reconciling = true;
@@ -1281,9 +1294,10 @@ class TranscriptionService {
         if (item is! File) continue;
         final name = item.uri.pathSegments.last;
         if (referenced.contains(name)) continue;
-        // A capture may have started while this sweep awaited; its file has no
-        // entry yet and must not be touched.
-        if (_recording || _starting) {
+        // A capture may have started, or a finalize may have claimed one, while
+        // this sweep awaited; either file has no entry yet and must not be
+        // touched. The `referenced` snapshot above cannot know about them.
+        if (_recording || _starting || _finalizingCaptures > 0) {
           complete = false;
           break;
         }

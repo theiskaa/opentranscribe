@@ -2097,20 +2097,78 @@ void main() {
 
   test('reconcileOrphans keeps sweeping the directory after a probe throws', () async {
     final dir = await Directory.systemTemp.createTemp('otr-recoprobe');
-    File('${dir.path}/orphan-bad.m4a').writeAsStringSync('junk');
-    File('${dir.path}/orphan-good.m4a').writeAsStringSync('audio');
+    File('${dir.path}/orphan-a.m4a').writeAsStringSync('audio');
+    File('${dir.path}/orphan-b.m4a').writeAsStringSync('audio');
+    var probes = 0;
     final svc = build(
       (_) => FakeBatchEngine(),
       recorder: FakeAudioRecorder(
         recordingsDir: dir.path,
-        probe: (name) => name == 'orphan-bad.m4a'
-            ? throw const CaptureFailed('probe failed')
-            : const Duration(seconds: 3),
+        probe: (_) =>
+            probes++ == 0 ? throw const CaptureFailed('probe failed') : const Duration(seconds: 3),
       ),
     );
 
     expect(await svc.reconcileOrphans(), 1);
-    expect(svc.entries().map((e) => e.audioPath), ['orphan-good.m4a']);
+    expect(probes, 2);
+    expect(svc.entries(), hasLength(1));
+    expect(File('${dir.path}/orphan-a.m4a').existsSync(), isTrue);
+    expect(File('${dir.path}/orphan-b.m4a').existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans stops and answers null when a capture starts mid-walk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recomidwalk');
+    File('${dir.path}/orphan-a.m4a').writeAsStringSync('audio');
+    File('${dir.path}/orphan-b.m4a').writeAsStringSync('audio');
+    late final TranscriptionService svc;
+    Future<void>? started;
+    svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) {
+          started ??= svc.startRecording();
+          return const Duration(seconds: 3);
+        },
+      ),
+    );
+
+    expect(await svc.reconcileOrphans(), isNull);
+    await started;
+    expect(svc.entries(), hasLength(1));
+    expect(File('${dir.path}/orphan-a.m4a').existsSync(), isTrue);
+    expect(File('${dir.path}/orphan-b.m4a').existsSync(), isTrue);
+
+    await svc.stopRecording();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans answers null and adopts nothing while a finalize is in flight', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recofinalize');
+    final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        path: 'take.m4a',
+        recordingsDir: dir.path,
+        probe: (_) => const Duration(seconds: 3),
+        stopDelay: const Duration(milliseconds: 20),
+      ),
+    );
+    await svc.startRecording();
+    final finalizing = svc.stopRecording();
+
+    expect(svc.isRecording, isFalse);
+    expect(await svc.reconcileOrphans(), isNull);
+    expect(svc.entries(), isEmpty);
+
+    await finalizing;
+    expect(svc.entries().map((e) => e.audioPath), ['take.m4a']);
+    expect(orphan.existsSync(), isTrue);
 
     await dir.delete(recursive: true);
     await svc.dispose();
