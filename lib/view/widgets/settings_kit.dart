@@ -77,9 +77,10 @@ class SettingsDivider extends StatelessWidget {
   }
 }
 
-/// A language row you pick from a list, reeed's shape: a tinted flag chip, the
-/// language in its own name, and a checkmark on the current one. The selected
-/// row inks and bolds; the rest stay quiet. Tapping the current one is a no-op.
+/// A row you pick from a list, reeed's shape: a tinted chip (a language's flag,
+/// an export format's mark), the choice's own name, and a checkmark on the
+/// current one. The selected row inks and bolds; the rest stay quiet. Tapping
+/// the current one is a no-op.
 class SelectableRow extends StatelessWidget {
   const SelectableRow({
     required this.label,

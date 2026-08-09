@@ -23,6 +23,8 @@ import 'package:opentranscribe/view/layouts/reflections/components/reflection_st
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
+import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
@@ -70,6 +72,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
   String? _notice;
   int _hour = 9;
   int _minute = 0;
+  late String _formatId = Deps.i.exporterDescriptors.first.exporterId;
+  String _language = 'en';
 
   static const _icons = [
     AppIcons.micFill,
@@ -175,6 +179,39 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 segments: const [(0, 'Day'), (1, 'Week'), (2, 'Month')],
                 selected: _segment,
                 onChanged: (v) => setState(() => _segment = v),
+              ),
+              _section('Selectable rows'),
+              SettingsCard(
+                children: [
+                  for (final (code, flag, name) in const [
+                    ('en', 'gb', 'English'),
+                    ('de', 'de', 'Deutsch'),
+                  ])
+                    SelectableRow(
+                      label: name,
+                      flag: flag,
+                      selected: _language == code,
+                      onTap: () => setState(() => _language = code),
+                    ),
+                  const SelectableRow(
+                    label: 'Unsupported here',
+                    flag: 'jp',
+                    selected: false,
+                    dimmed: true,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              _section('Export formats'),
+              SettingsCard(
+                children: [
+                  for (final descriptor in Deps.i.exporterDescriptors)
+                    ExportFormatRow(
+                      descriptor: descriptor,
+                      selected: descriptor.exporterId == _formatId,
+                      onTap: () => setState(() => _formatId = descriptor.exporterId),
+                    ),
+                ],
               ),
               _section('Time field'),
               SettingsCard(

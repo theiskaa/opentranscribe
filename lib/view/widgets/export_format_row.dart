@@ -9,7 +9,7 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
 /// One pickable export format: its mark, its name, and a line saying what the
 /// files are. Shared so the Backup screen and the entry export sheet describe
-/// a format the same way, and so adding a format is still only a descriptor.
+/// a format the same way.
 class ExportFormatRow extends StatelessWidget {
   const ExportFormatRow({
     required this.descriptor,
@@ -28,7 +28,7 @@ class ExportFormatRow extends StatelessWidget {
     return SelectableRow(
       label: copy.name,
       note: copy.note,
-      leading: ExporterLogo(descriptor),
+      leading: _ExporterLogo(descriptor),
       selected: selected,
       onTap: onTap,
     );
@@ -41,18 +41,20 @@ class ExportFormatRow extends StatelessWidget {
 /// branded mark keeps its own colors; a monochrome one paints in
 /// `currentColor`, which resolves to the label color here so it never sinks
 /// into a light or a dark card.
-class ExporterLogo extends StatelessWidget {
-  const ExporterLogo(this.descriptor, {this.size = 22, super.key});
+class _ExporterLogo extends StatelessWidget {
+  const _ExporterLogo(this.descriptor);
 
   final ExporterDescriptor descriptor;
-  final double size;
+
+  /// Chip size, matching the flag a language row puts in the same tile.
+  static const _size = 22.0;
 
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset(
       descriptor.logo,
-      width: size,
-      height: size,
+      width: _size,
+      height: _size,
       theme: SvgTheme(currentColor: context.theme.text),
     );
   }
