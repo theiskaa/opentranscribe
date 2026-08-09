@@ -315,39 +315,49 @@ class Deps {
       ],
     );
     _initialized = true;
+  }
 
-    // Reflect any closed, unreflected week now. Off the critical path: launch
-    // must not wait on the model. A no-op when disabled or when Apple
-    // Intelligence is unavailable; the foreground resume (view/app.dart) retries.
-    unawaited(
-      i.reflectionService.catchUp().catchError((Object e) {
-        if (kDebugMode) debugPrint('deps: launch reflection catch-up failed: $e');
-      }),
-    );
+  static bool _maintained = false;
 
-    // Reconcile the weekly nudge with the world as it is now: availability, the
-    // model's enabled state, or the locale week boundary may have changed since
-    // it was last scheduled. Off the critical path, like the catch-up.
-    unawaited(
-      i.reflectionNotifier.sync().catchError((Object e) {
-        if (kDebugMode) debugPrint('deps: launch notification sync failed: $e');
-      }),
-    );
+  /// Launch repair and catch-up, deliberately NOT part of [init].
+  ///
+  /// Every one of these reads the whole journal, and [EntryStore] decrypts each
+  /// record on the way out, so each pass costs milliseconds per entry on the UI
+  /// isolate. Running them while the first frames are being built is what makes
+  /// those frames slow; the app root calls this once the journal is on screen.
+  ///
+  /// Sequential, never concurrent: the store memoizes its read, so a pass after
+  /// a pass is nearly free while three at once are three full decrypts. Runs
+  /// once per launch and never throws.
+  static Future<void> launchMaintenance() async {
+    if (_maintained) return;
+    _maintained = true;
 
     // Recover or remove audio files no entry references (a kill mid-recording, a
-    // save that never landed). Off the critical path: launch must not wait on it.
-    // The heal then repairs records whose audio file is already gone (a kill
-    // mid-discard); chained after the sweep so the two never interleave over one
-    // directory. NEVER a bulk purge here: deleting kept history is the Cache
-    // screen's explicit, confirmed action, and a toggle flip must not schedule it.
-    unawaited(
-      i.transcriptionService
-          .reconcileOrphans()
-          .then((_) => i.transcriptionService.healDanglingAudio())
-          .catchError((Object e) {
-            if (kDebugMode) debugPrint('deps: launch audio sweep failed: $e');
-            return 0;
-          }),
-    );
+    // save that never landed). The heal then repairs records whose audio file is
+    // already gone (a kill mid-discard); after the sweep so the two never
+    // interleave over one directory. NEVER a bulk purge here: deleting kept
+    // history is the Cache screen's explicit, confirmed action.
+    await _quietly('audio sweep', () async {
+      await i.transcriptionService.reconcileOrphans();
+      await i.transcriptionService.healDanglingAudio();
+    });
+
+    // Reflect any period that closed while the app was away. A no-op when
+    // disabled or when Apple Intelligence is unavailable.
+    await _quietly('reflection catch-up', i.reflectionService.catchUp);
+
+    // Reconcile the nudge with the world as it is now: availability, the model's
+    // enabled state, or the locale week boundary may have changed since it was
+    // last scheduled.
+    await _quietly('notification sync', i.reflectionNotifier.sync);
+  }
+
+  static Future<void> _quietly(String what, Future<void> Function() run) async {
+    try {
+      await run();
+    } catch (e) {
+      if (kDebugMode) debugPrint('deps: launch $what failed: $e');
+    }
   }
 }

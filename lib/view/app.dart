@@ -38,6 +38,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   /// The startup splash sits above the router until its animation finishes, then
   /// removes itself for good. One cold-start affair, never shown again.
+  ///
+  /// The cubits above it are built eagerly (`lazy: false`) so the two that read
+  /// the journal in their constructors do it while the wave is drawing, instead
+  /// of in the single frame that swaps home in.
   bool _splashDone = false;
 
   @override
@@ -101,13 +105,20 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
-        BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
-        BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
-        BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
-        BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
+        BlocProvider(lazy: false, create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
+        BlocProvider(
+          lazy: false,
+          create: (_) => EntriesCubit(service: Deps.i.transcriptionService),
+        ),
+        BlocProvider(
+          lazy: false,
+          create: (_) => RecorderCubit(service: Deps.i.transcriptionService),
+        ),
+        BlocProvider(lazy: false, create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance.
         BlocProvider(
+          lazy: false,
           create: (_) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
@@ -161,7 +172,14 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                   // a seamless cut.
                   content = SplashScreen(
                     onFinished: () {
-                      if (mounted) setState(() => _splashDone = true);
+                      if (!mounted) return;
+                      setState(() => _splashDone = true);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        // Only now: each of these decrypts the whole journal,
+                        // and the frames before this one are the ones the user
+                        // is watching.
+                        unawaited(Deps.launchMaintenance());
+                      });
                     },
                   );
                 } else {

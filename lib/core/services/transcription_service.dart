@@ -940,7 +940,11 @@ class TranscriptionService {
       try {
         final path = entry.audioPath;
         if (path == null || entry.transcript == null) continue;
-        if (File(await _resolveAudioPath(path)).existsSync()) continue;
+        // exists(), not existsSync(): the only other await in this loop
+        // resolves on the microtask queue once the recordings dir is memoized,
+        // and Dart drains microtasks before the next frame, so a sync stat
+        // would run the whole sweep inside one frame.
+        if (await File(await _resolveAudioPath(path)).exists()) continue;
         if (await _discardAudio(entry.id, notify: false)) healed++;
       } catch (_) {
         // Best effort per entry, like the reconcile sweep; next launch retries.
