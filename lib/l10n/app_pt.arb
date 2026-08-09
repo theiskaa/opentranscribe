@@ -2,7 +2,7 @@
   "@@locale": "pt",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "Não foi possível iniciar",
-  "launchFailedBody": "Algo de que a app precisa no arranque não carregou. Voltar a abrir costuma resolver; se não, reinicia o telemóvel.",
+  "launchFailedBody": "Algo de que a app precisa no arranque não carregou. Feche a app no alternador de apps e volte a abri-la; se não resolver, reinicie o telemóvel.",
   "entryUntranscribed": "Sem transcrição",
   "entryUntranscribedTitle": "Ainda não transcrito",
   "entryUntranscribedMessage": "Transforme esta gravação em texto que pode reler. Corre no seu dispositivo.",

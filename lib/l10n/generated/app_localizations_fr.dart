@@ -16,7 +16,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get launchFailedBody =>
-      'Un élément nécessaire au lancement n\'a pas pu être chargé. Rouvrir l\'app suffit en général ; sinon, redémarre le téléphone.';
+      'Un élément nécessaire au lancement n\'a pas pu être chargé. Fermez l\'app depuis le sélecteur d\'apps, puis rouvrez-la ; si cela ne suffit pas, redémarrez le téléphone.';
 
   @override
   String get entryUntranscribed => 'Non transcrit';

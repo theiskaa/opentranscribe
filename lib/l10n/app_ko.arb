@@ -2,7 +2,7 @@
   "@@locale": "ko",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "시작하지 못했습니다",
-  "launchFailedBody": "실행에 필요한 것을 불러오지 못했습니다. 다시 열면 대개 해결되고, 그래도 안 되면 기기를 재시작하세요.",
+  "launchFailedBody": "실행에 필요한 것을 불러오지 못했습니다. 앱 전환기에서 앱을 종료한 뒤 다시 열어 보세요. 그래도 안 되면 기기를 재시작하세요.",
   "entryUntranscribed": "미전사",
   "entryUntranscribedTitle": "아직 전사되지 않음",
   "entryUntranscribedMessage": "이 녹음을 다시 읽을 수 있는 텍스트로 바꿔 보세요. 기기에서 처리됩니다.",

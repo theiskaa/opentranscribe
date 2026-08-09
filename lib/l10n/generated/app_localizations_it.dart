@@ -16,7 +16,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get launchFailedBody =>
-      'Qualcosa che serve all\'avvio non si è caricato. Di solito basta riaprire l\'app; altrimenti riavvia il telefono.';
+      'Qualcosa che serve all\'avvio non si è caricato. Chiudi l\'app dal selettore delle app e riaprila; se non basta, riavvia il telefono.';
 
   @override
   String get entryUntranscribed => 'Non trascritta';

@@ -15,7 +15,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get launchFailedTitle => '시작하지 못했습니다';
 
   @override
-  String get launchFailedBody => '실행에 필요한 것을 불러오지 못했습니다. 다시 열면 대개 해결되고, 그래도 안 되면 기기를 재시작하세요.';
+  String get launchFailedBody =>
+      '실행에 필요한 것을 불러오지 못했습니다. 앱 전환기에서 앱을 종료한 뒤 다시 열어 보세요. 그래도 안 되면 기기를 재시작하세요.';
 
   @override
   String get entryUntranscribed => '미전사';

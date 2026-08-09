@@ -16,7 +16,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get launchFailedBody =>
-      'Something the app needs at launch did not load. Reopening usually clears it; if it does not, restarting the phone will.';
+      'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.';
 
   @override
   String get entryUntranscribed => 'Untranscribed';

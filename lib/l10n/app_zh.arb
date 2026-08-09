@@ -2,7 +2,7 @@
   "@@locale": "zh",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "无法启动",
-  "launchFailedBody": "启动所需的内容没有加载成功。重新打开通常就能解决；如果还不行，请重启手机。",
+  "launchFailedBody": "启动所需的内容没有加载成功。请在应用切换器中关闭应用后重新打开；如果还不行，请重启手机。",
   "entryUntranscribed": "未转写",
   "entryUntranscribedTitle": "尚未转写",
   "entryUntranscribedMessage": "把这段录音转成可以回看的文字。转写在本机进行。",

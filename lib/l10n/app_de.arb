@@ -2,7 +2,7 @@
   "@@locale": "de",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "Start fehlgeschlagen",
-  "launchFailedBody": "Etwas, das die App zum Start braucht, wurde nicht geladen. Erneutes Öffnen hilft meistens; sonst hilft ein Neustart des Telefons.",
+  "launchFailedBody": "Etwas, das die App zum Start braucht, wurde nicht geladen. Schließen Sie die App im App-Umschalter und öffnen Sie sie erneut; hilft das nicht, starten Sie das Telefon neu.",
   "entryUntranscribed": "Nicht transkribiert",
   "entryUntranscribedTitle": "Noch nicht transkribiert",
   "entryUntranscribedMessage": "Machen Sie aus dieser Aufnahme Text zum Nachlesen. Alles läuft auf Ihrem Gerät.",

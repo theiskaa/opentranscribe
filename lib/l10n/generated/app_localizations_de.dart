@@ -16,7 +16,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get launchFailedBody =>
-      'Etwas, das die App zum Start braucht, wurde nicht geladen. Erneutes Öffnen hilft meistens; sonst hilft ein Neustart des Telefons.';
+      'Etwas, das die App zum Start braucht, wurde nicht geladen. Schließen Sie die App im App-Umschalter und öffnen Sie sie erneut; hilft das nicht, starten Sie das Telefon neu.';
 
   @override
   String get entryUntranscribed => 'Nicht transkribiert';

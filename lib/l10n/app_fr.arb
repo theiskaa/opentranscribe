@@ -2,7 +2,7 @@
   "@@locale": "fr",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "Démarrage impossible",
-  "launchFailedBody": "Un élément nécessaire au lancement n'a pas pu être chargé. Rouvrir l'app suffit en général ; sinon, redémarre le téléphone.",
+  "launchFailedBody": "Un élément nécessaire au lancement n'a pas pu être chargé. Fermez l'app depuis le sélecteur d'apps, puis rouvrez-la ; si cela ne suffit pas, redémarrez le téléphone.",
   "entryUntranscribed": "Non transcrit",
   "entryUntranscribedTitle": "Pas encore transcrit",
   "entryUntranscribedMessage": "Transformez cet enregistrement en texte à relire. Cela se fait sur votre appareil.",

@@ -15,7 +15,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launchFailedTitle => '无法启动';
 
   @override
-  String get launchFailedBody => '启动所需的内容没有加载成功。重新打开通常就能解决；如果还不行，请重启手机。';
+  String get launchFailedBody => '启动所需的内容没有加载成功。请在应用切换器中关闭应用后重新打开；如果还不行，请重启手机。';
 
   @override
   String get entryUntranscribed => '未转写';

@@ -16,7 +16,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get launchFailedBody =>
-      'Algo de que a app precisa no arranque não carregou. Voltar a abrir costuma resolver; se não, reinicia o telemóvel.';
+      'Algo de que a app precisa no arranque não carregou. Feche a app no alternador de apps e volte a abri-la; se não resolver, reinicie o telemóvel.';
 
   @override
   String get entryUntranscribed => 'Sem transcrição';

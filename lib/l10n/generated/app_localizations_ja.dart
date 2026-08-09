@@ -15,7 +15,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get launchFailedTitle => '起動できませんでした';
 
   @override
-  String get launchFailedBody => '起動に必要なものを読み込めませんでした。開き直せばたいてい直ります。直らないときは端末を再起動してください。';
+  String get launchFailedBody =>
+      '起動に必要なものを読み込めませんでした。App スイッチャーでアプリを終了してから開き直してください。直らないときは端末を再起動してください。';
 
   @override
   String get entryUntranscribed => '文字起こし未実行';

@@ -2,7 +2,7 @@
   "@@locale": "ja",
   "appTitle": "OpenTranscribe",
   "launchFailedTitle": "起動できませんでした",
-  "launchFailedBody": "起動に必要なものを読み込めませんでした。開き直せばたいてい直ります。直らないときは端末を再起動してください。",
+  "launchFailedBody": "起動に必要なものを読み込めませんでした。App スイッチャーでアプリを終了してから開き直してください。直らないときは端末を再起動してください。",
   "entryUntranscribed": "文字起こし未実行",
   "entryUntranscribedTitle": "まだ文字起こししていません",
   "entryUntranscribedMessage": "この録音を、後で読み返せるテキストにします。処理は端末内で実行されます。",

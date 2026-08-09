@@ -114,7 +114,7 @@ abstract class AppLocalizations {
   /// **'OpenTranscribe'**
   String get appTitle;
 
-  /// Title of the screen shown when startup itself failed and the app has no dependencies
+  /// Title of the screen shown when startup failed before the app was ready to open
   ///
   /// In en, this message translates to:
   /// **'Could not start'**
@@ -123,7 +123,7 @@ abstract class AppLocalizations {
   /// What the user can do about a failed startup
   ///
   /// In en, this message translates to:
-  /// **'Something the app needs at launch did not load. Reopening usually clears it; if it does not, restarting the phone will.'**
+  /// **'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.'**
   String get launchFailedBody;
 
   /// One-word placeholder for an untranscribed entry's excerpt in the home list

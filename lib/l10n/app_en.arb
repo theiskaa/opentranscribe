@@ -6,9 +6,9 @@
   },
   "launchFailedTitle": "Could not start",
   "@launchFailedTitle": {
-    "description": "Title of the screen shown when startup itself failed and the app has no dependencies"
+    "description": "Title of the screen shown when startup failed before the app was ready to open"
   },
-  "launchFailedBody": "Something the app needs at launch did not load. Reopening usually clears it; if it does not, restarting the phone will.",
+  "launchFailedBody": "Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.",
   "@launchFailedBody": {
     "description": "What the user can do about a failed startup"
   },
