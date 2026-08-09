@@ -310,7 +310,7 @@ class Deps {
         ExporterDescriptor(
           exporterId: htmlExporter.id,
           format: ExportFormat.web,
-          logo: 'assets/brand/web.svg',
+          logo: 'assets/brand/safari.svg',
         ),
       ],
     );
