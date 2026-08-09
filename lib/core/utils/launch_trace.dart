@@ -12,8 +12,9 @@ abstract final class LaunchTrace {
   static int _epochMs = 0;
 
   /// Called first thing in `main`, so every mark is measured from the earliest
-  /// moment Dart can observe. Whatever ran before this (dyld, the engine, the
-  /// first native frame) is the gap between the AppDelegate line and [_epochMs].
+  /// moment Dart can observe. Everything before it (dyld, the engine, the first
+  /// native frame) is outside this clock; the wall-clock stamp the dump prints
+  /// is what lines the table up against the process start in the device log.
   static void start() {
     if (kReleaseMode) return;
     _epochMs = DateTime.now().millisecondsSinceEpoch;
