@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
@@ -23,7 +24,6 @@ import 'package:opentranscribe/view/layouts/reflections/components/reflection_st
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
-import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -72,8 +72,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
   String? _notice;
   int _hour = 9;
   int _minute = 0;
-  late String _formatId = Deps.i.exporterDescriptors.first.exporterId;
-  String _language = 'en';
+  String _formatId = Deps.i.exporterDescriptors.first.exporterId;
+  String _language = 'en-GB';
 
   static const _icons = [
     AppIcons.micFill,
@@ -183,19 +183,16 @@ class _GalleryScreenState extends State<GalleryScreen> {
               _section('Selectable rows'),
               SettingsCard(
                 children: [
-                  for (final (code, flag, name) in const [
-                    ('en', 'gb', 'English'),
-                    ('de', 'de', 'Deutsch'),
-                  ])
+                  for (final tag in const ['en-GB', 'de-DE'])
                     SelectableRow(
-                      label: name,
-                      flag: flag,
-                      selected: _language == code,
-                      onTap: () => setState(() => _language = code),
+                      label: localeDisplayName(tag),
+                      flag: localeFlag(tag),
+                      selected: _language == tag,
+                      onTap: () => setState(() => _language = tag),
                     ),
-                  const SelectableRow(
+                  SelectableRow(
                     label: 'Unsupported here',
-                    flag: 'jp',
+                    flag: localeFlag('ja-JP'),
                     selected: false,
                     dimmed: true,
                     onTap: null,
