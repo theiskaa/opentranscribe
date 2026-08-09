@@ -28,10 +28,25 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  // Only `absent` may generate a fresh key. Every other read outcome must fail
+  // loudly: generating one over a key that exists but could not be read re-keys
+  // the journal, and the user's whole history then decrypts as nothing.
+  private enum KeyRead {
+    case found(Data)
+    case absent
+    case failed(OSStatus)
+  }
+
   private func obtain(result: @escaping FlutterResult) {
-    if let existing = readKey() {
+    switch readKey() {
+    case .found(let existing):
       result(existing.base64EncodedString())
       return
+    case .failed(let status):
+      result(unavailable("SecItemCopyMatching failed: \(status)"))
+      return
+    case .absent:
+      break
     }
 
     var bytes = [UInt8](repeating: 0, count: storageKeyLength)
@@ -57,7 +72,7 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     if addStatus == errSecDuplicateItem {
       // Another writer raced us (e.g. a second launch path); the item it wrote
       // is just as valid as the one we generated.
-      if let existing = readKey() {
+      if case .found(let existing) = readKey() {
         result(existing.base64EncodedString())
       } else {
         result(unavailable("duplicate item reported but re-read failed"))
@@ -67,7 +82,7 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     result(unavailable("SecItemAdd failed: \(addStatus)"))
   }
 
-  private func readKey() -> Data? {
+  private func readKey() -> KeyRead {
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: storageKeyService,
@@ -77,8 +92,10 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     ]
     var item: CFTypeRef?
     let status = SecItemCopyMatching(query as CFDictionary, &item)
-    guard status == errSecSuccess, let data = item as? Data else { return nil }
-    return data
+    if status == errSecItemNotFound { return .absent }
+    guard status == errSecSuccess else { return .failed(status) }
+    guard let data = item as? Data else { return .failed(errSecDecode) }
+    return .found(data)
   }
 
   private func unavailable(_ message: String) -> FlutterError {
