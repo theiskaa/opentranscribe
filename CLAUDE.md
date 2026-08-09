@@ -74,6 +74,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 `lib/view/`, everything UI:
 
 - `view/app.dart`: the root `App` widget (`WidgetsApp.router`, no Material or Cupertino app shell), which provides the cubits above the router.
+- `view/launch_failure_app.dart`: the other root, handed to `runApp` when `Deps.init()` throws. It stands beside `app.dart` because it must reach no cubit, router, or storage: those are what failed.
 - `view/layouts/<domain>/screens/<name>_screen.dart`: full screens, `<Name>Screen` class names.
 - `view/layouts/<domain>/components/`: widgets private to that domain.
 - `view/widgets/`: the shared, reusable widget set (the design system).

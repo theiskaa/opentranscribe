@@ -35,11 +35,11 @@ class LaunchFailureApp extends StatelessWidget {
         final l10n = AppLocalizations.of(context)!;
         return ColoredBox(
           color: theme.background,
-          // Scrollable: at the largest accessibility text sizes this copy is
-          // taller than a small screen, and a clipped explanation is the one
-          // thing this screen cannot afford to lose.
           child: SafeArea(
             child: Center(
+              // Scrollable: at the largest accessibility text sizes this copy is
+              // taller than a small screen, and a clipped explanation is the one
+              // thing this screen cannot afford to lose.
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.xxxl,
