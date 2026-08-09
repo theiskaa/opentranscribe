@@ -8,30 +8,27 @@ import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/view/launch_failure_app.dart';
 
 abstract class Bootstrap {
-  /// Far past a healthy startup (a third of a second) and far short of the
-  /// ~20 s iOS watchdog, so a wedged dependency lands on the failure screen
-  /// with time to spare instead of as a launch kill with no frame at all.
-  static const _initTimeout = Duration(seconds: 8);
-
   /// Always calls `runApp`, even when startup fails or hangs. Without that the
   /// process commits no frame at all, which reads as a frozen launch screen
   /// until the watchdog kills it. See [LaunchFailureApp].
+  ///
+  /// Nothing is deadlined here: the only startup work that can hang forever is
+  /// a platform channel, and each of those carries its own timeout inside
+  /// [Deps.init], whose `TimeoutException` lands in the catch below.
   static Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     WidgetsFlutterBinding.ensureInitialized();
     LaunchTrace.mark('binding'); // TEMP
 
-    // Load date symbols for every locale up front. App code formats dates
-    // against `Intl.defaultLocale` outside the widget tree, and the global
-    // delegates only load intl's data when the first Localizations builds, so
-    // anything formatted before that falls back to English.
-    await initializeDateFormatting();
-    LaunchTrace.mark('date symbols'); // TEMP
-
     try {
-      // Timed out, not just guarded: the engine's locale calls are platform
-      // channel round trips, and a channel that never replies would otherwise
-      // hang here forever, which no catch can see.
-      await Deps.init().timeout(_initTimeout);
+      // Load date symbols for every locale up front. App code formats dates
+      // against `Intl.defaultLocale` outside the widget tree, and the global
+      // delegates only load intl's data when the first Localizations builds, so
+      // anything formatted before that falls back to English. Inside the try:
+      // a throw here would otherwise leave `runApp` uncalled.
+      await initializeDateFormatting();
+      LaunchTrace.mark('date symbols'); // TEMP
+
+      await Deps.init();
     } catch (error, stack) {
       // Unconditional: a release build that cannot start is diagnosable only
       // from the device log, and this stays on the device.

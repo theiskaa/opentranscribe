@@ -149,6 +149,21 @@ class Deps {
   /// allowed to name an exporter, mirroring [engineDescriptors].
   final List<ExporterDescriptor> exporterDescriptors;
 
+  /// How long any ONE platform-channel round trip below may take before
+  /// startup gives up on it.
+  ///
+  /// Per channel, not around the whole of [init]: the hang this exists to catch
+  /// is a native handler that never calls `result` (iOS 26's
+  /// `SpeechTranscriber.supportedLocales` did exactly that), which no catch can
+  /// see. The rest of [init] is pure Dart, and the one slow piece of it is the
+  /// legacy storage migration, which rewrites every record on the single launch
+  /// after an upgrade. That work always finishes, and a large journal can take
+  /// seconds, so a whole-init deadline would fail the one launch doing exactly
+  /// the right thing. Far short of the ~20 s iOS watchdog either way, so a
+  /// wedged channel lands on the failure screen instead of as a launch kill
+  /// with no frame at all.
+  static const _channelTimeout = Duration(seconds: 8);
+
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
   static bool _initialized = false;
@@ -173,7 +188,7 @@ class Deps {
     // on this device: a device that has migrated to v3 would otherwise read
     // as an empty journal instead of failing loudly. Let a Keychain failure
     // throw; bootstrap surfaces it.
-    final deviceKey = await StorageKey().obtain();
+    final deviceKey = await StorageKey().obtain().timeout(_channelTimeout);
     LaunchTrace.mark('  keychain'); // TEMP
 
     final localService = LocalService();
@@ -194,7 +209,10 @@ class Deps {
       }),
     );
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
-    await audioStorageSettings.apply();
+    // Abandoned, not thrown, on a wedged channel: apply() already swallows its
+    // own failures because the native side defaults to excluded, so a timeout
+    // must not be the one way this preference kills a launch.
+    await audioStorageSettings.apply().timeout(_channelTimeout, onTimeout: () {});
     LaunchTrace.mark('  audio settings'); // TEMP
 
     final engine = AppleSpeechEngine();
@@ -216,8 +234,10 @@ class Deps {
       service: transcriptionService,
     );
     // Pushes the stored (or resolved device-default) language before anything
-    // records.
-    await transcriptionSettings.apply();
+    // records. Allowed to throw on timeout: an engine that never answers what
+    // it can transcribe is a broken speech channel, and a diagnosable failure
+    // screen beats an app whose only feature silently does nothing.
+    await transcriptionSettings.apply().timeout(_channelTimeout);
     LaunchTrace.mark('  speech settings'); // TEMP
 
     // The reflection backbone. FoundationModelsEngine is the ONE place naming
