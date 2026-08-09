@@ -88,7 +88,8 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 - Access anywhere: `Deps.i.localService`, `Deps.i.transcriptionService`, `Deps.i.router`.
 - Add a dependency: give it a typed field on `Deps`, construct it in `Deps.init()`. That is the whole ceremony.
-- `Deps.init()` runs once, before `runApp`, and is where launch-time repair belongs (cancelling a stale native capture session, reconciling orphaned audio). Anything that must not block launch goes in `unawaited`.
+- `Deps.init()` runs once, before `runApp`, and holds only what the first frame cannot be built without. Anything that must not block launch goes in `unawaited`.
+- Launch-time repair (reconciling orphaned audio, healing dangling records, the reflection catch-up) belongs in `Deps.launchMaintenance()`, not in `init`: every pass decrypts the whole journal, so it must not run on the frames the user is watching. The app root calls it once the first frames are on screen, and again on foreground when a pass was cut short.
 - Do not reintroduce `get_it`/`injectable`, and do not use context-based DI (`provider`, `RepositoryProvider`, Riverpod `ref`) for wiring. `BlocProvider` is fine for scoping cubits to the widget tree.
 
 ## UI rules
