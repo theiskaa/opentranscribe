@@ -354,25 +354,30 @@ class Deps {
   /// are committed.
   ///
   /// Single-flight, never throws, and safe to call on every foreground: it does
-  /// its work once and returns the same future afterwards. The exception is an
-  /// audio sweep a live recording cut short, which re-arms so the next call
-  /// retries it; an orphan it did not reach is invisible to every surface until
-  /// some pass recovers it.
+  /// its work once and afterwards returns the same future. It re-arms, so the
+  /// next call runs ALL THREE passes again, whenever the audio sweep did not
+  /// walk the whole directory: a capture was live or finalizing, or the sweep
+  /// threw. An orphan it did not reach is invisible to every surface until some
+  /// pass recovers it, and the reflection passes are individually single-flight,
+  /// so repeating them costs nothing.
   ///
-  /// The three run concurrently, not chained: the audio sweep probes files
-  /// through the platform channel, and one wedged probe must not hold the
-  /// reflection catch-up and the notification sync for the process lifetime.
+  /// The three run concurrently, and only the sweep is awaited. Two reasons in
+  /// one: a wedged file probe must not hold the reflection catch-up and the
+  /// notification sync for the process lifetime, and a reflection generation
+  /// (minutes, several periods deep) must not hold the sweep's retry, which is
+  /// the failure the re-arm exists to fix. A wedged probe leaves this future
+  /// pending, so nothing re-arms in a loop.
+  ///
+  /// The returned future therefore means "the audio sweep settled", not "all
+  /// three finished". Both callers fire it unawaited.
   static Future<void> launchMaintenance() => _maintenance ??= _maintain();
 
   static Future<void> _maintain() async {
-    final sweep = _quietly('audio sweep', _sweepAudio);
-    final catchUp = _quietly('reflection catch-up', () => i.reflectionService.catchUp());
-    final sync = _quietly('notification sync', () => i.reflectionNotifier.sync());
-    await catchUp;
-    await sync;
+    unawaited(_quietly('reflection catch-up', () => i.reflectionService.catchUp()));
+    unawaited(_quietly('notification sync', () => i.reflectionNotifier.sync()));
     // Null, not false: `_quietly` answers null when the sweep threw, which is
     // no proof the directory was walked either.
-    if ((await sweep) != true) _maintenance = null;
+    if ((await _quietly('audio sweep', _sweepAudio)) != true) _maintenance = null;
   }
 
   /// Recovers or removes audio files no entry references (a kill mid-recording,
@@ -382,10 +387,13 @@ class Deps {
   /// history is the Cache screen's explicit, confirmed action.
   ///
   /// False when a capture blocked the sweep from walking the whole directory.
+  /// The heal is skipped then, rather than repeated on every later foreground:
+  /// nothing a live capture does creates the broken record it repairs, and the
+  /// re-arm above runs both again anyway.
   static Future<bool> _sweepAudio() async {
-    final swept = (await i.transcriptionService.reconcileOrphans()) != null;
+    if ((await i.transcriptionService.reconcileOrphans()) == null) return false;
     await i.transcriptionService.healDanglingAudio();
-    return swept;
+    return true;
   }
 
   static Future<T?> _quietly<T>(String what, Future<T> Function() run) async {
