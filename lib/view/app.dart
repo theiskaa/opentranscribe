@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
@@ -173,8 +174,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                   content = SplashScreen(
                     onFinished: () {
                       if (!mounted) return;
+                      LaunchTrace.mark('splash'); // TEMP
                       setState(() => _splashDone = true);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
+                        LaunchTrace.mark('home'); // TEMP
+                        LaunchTrace.dump(); // TEMP
                         // Only now: each of these decrypts the whole journal,
                         // and the frames before this one are the ones the user
                         // is watching.

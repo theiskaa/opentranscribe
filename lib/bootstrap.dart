@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/view/layouts/splash/screens/launch_failure_screen.dart';
 
 abstract class Bootstrap {
@@ -15,6 +16,7 @@ abstract class Bootstrap {
   /// after a reboot is enough to get there.
   static Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     WidgetsFlutterBinding.ensureInitialized();
+    LaunchTrace.mark('binding'); // TEMP
 
     // Load date symbols for every locale up front. The global localization
     // delegates only load them per-locale and asynchronously, which leaves the
@@ -22,6 +24,7 @@ abstract class Bootstrap {
     // This does not make those delegates synchronous: the very first frame is
     // still empty while they resolve.
     await initializeDateFormatting();
+    LaunchTrace.mark('date symbols'); // TEMP
 
     try {
       await Deps.init();
@@ -30,7 +33,10 @@ abstract class Bootstrap {
       runApp(LaunchFailureApp(error));
       return;
     }
+    LaunchTrace.mark('deps'); // TEMP
 
     runApp(await builder());
+    // TEMP
+    WidgetsBinding.instance.addPostFrameCallback((_) => LaunchTrace.mark('first frame'));
   }
 }

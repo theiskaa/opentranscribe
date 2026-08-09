@@ -32,6 +32,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
+import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
@@ -173,9 +174,11 @@ class Deps {
     // as an empty journal instead of failing loudly. Let a Keychain failure
     // throw; bootstrap surfaces it.
     final deviceKey = await StorageKey().obtain();
+    LaunchTrace.mark('  keychain'); // TEMP
 
     final localService = LocalService();
     await localService.init(legacyKey: _storageKey, deviceKey: deviceKey);
+    LaunchTrace.mark('  storage read'); // TEMP
 
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.
@@ -192,6 +195,7 @@ class Deps {
     );
     final audioStorageSettings = AudioStorageSettings(storage: localService, recorder: recorder);
     await audioStorageSettings.apply();
+    LaunchTrace.mark('  audio settings'); // TEMP
 
     final engine = AppleSpeechEngine();
     // Built before the service so a fresh recording's wave shape can be read
@@ -214,6 +218,7 @@ class Deps {
     // Pushes the stored (or resolved device-default) language before anything
     // records.
     await transcriptionSettings.apply();
+    LaunchTrace.mark('  speech settings'); // TEMP
 
     // The reflection backbone. FoundationModelsEngine is the ONE place naming
     // Foundation Models; the service refuses it if it is not on-device. Nothing
@@ -314,6 +319,7 @@ class Deps {
         ),
       ],
     );
+    LaunchTrace.mark('  wiring'); // TEMP
     _initialized = true;
   }
 
