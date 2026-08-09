@@ -36,8 +36,9 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     case absent
     case failed(OSStatus)
     // The read succeeded but the item is not raw key data, which is not a
-    // failure status and must not be reported as one.
-    case malformed
+    // failure status and must not be reported as one. Carries what it was
+    // instead, so this arm is as diagnosable as the ones carrying a status.
+    case malformed(String)
   }
 
   private func obtain(result: @escaping FlutterResult) {
@@ -48,8 +49,8 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     case .failed(let status):
       result(unavailable("SecItemCopyMatching failed: \(status)"))
       return
-    case .malformed:
-      result(unavailable("keychain item is not raw key data"))
+    case .malformed(let kind):
+      result(unavailable("keychain item is not raw key data: \(kind)"))
       return
     case .absent:
       break
@@ -87,8 +88,8 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
         result(unavailable("duplicate item reported but the re-read found none"))
       case .failed(let status):
         result(unavailable("duplicate item reported but the re-read failed: \(status)"))
-      case .malformed:
-        result(unavailable("duplicate item reported but it is not raw key data"))
+      case .malformed(let kind):
+        result(unavailable("duplicate item reported but it is not raw key data: \(kind)"))
       }
       return
     }
@@ -107,7 +108,9 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     let status = SecItemCopyMatching(query as CFDictionary, &item)
     if status == errSecItemNotFound { return .absent }
     guard status == errSecSuccess else { return .failed(status) }
-    guard let data = item as? Data else { return .malformed }
+    guard let data = item as? Data else {
+      return .malformed(item.map { String(describing: type(of: $0)) } ?? "nil")
+    }
     return .found(data)
   }
 
