@@ -35,6 +35,9 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     case found(Data)
     case absent
     case failed(OSStatus)
+    // The read succeeded but the item is not raw key data, which is not a
+    // failure status and must not be reported as one.
+    case malformed
   }
 
   private func obtain(result: @escaping FlutterResult) {
@@ -44,6 +47,9 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
       return
     case .failed(let status):
       result(unavailable("SecItemCopyMatching failed: \(status)"))
+      return
+    case .malformed:
+      result(unavailable("keychain item is not raw key data"))
       return
     case .absent:
       break
@@ -71,11 +77,18 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     }
     if addStatus == errSecDuplicateItem {
       // Another writer raced us (e.g. a second launch path); the item it wrote
-      // is just as valid as the one we generated.
-      if case .found(let existing) = readKey() {
+      // is just as valid as the one we generated. The re-read outcomes are told
+      // apart because this message is the only diagnostic for a launch that is
+      // otherwise undebuggable.
+      switch readKey() {
+      case .found(let existing):
         result(existing.base64EncodedString())
-      } else {
-        result(unavailable("duplicate item reported but re-read failed"))
+      case .absent:
+        result(unavailable("duplicate item reported but the re-read found none"))
+      case .failed(let status):
+        result(unavailable("duplicate item reported but the re-read failed: \(status)"))
+      case .malformed:
+        result(unavailable("duplicate item reported but it is not raw key data"))
       }
       return
     }
@@ -94,7 +107,7 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     let status = SecItemCopyMatching(query as CFDictionary, &item)
     if status == errSecItemNotFound { return .absent }
     guard status == errSecSuccess else { return .failed(status) }
-    guard let data = item as? Data else { return .failed(errSecDecode) }
+    guard let data = item as? Data else { return .malformed }
     return .found(data)
   }
 
