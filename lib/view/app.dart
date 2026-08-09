@@ -118,9 +118,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance. The exception to the rule above: its
-        // constructor only fires an UNAWAITED load, so building it here costs
-        // this frame nothing, and its language list is then ready before the
-        // first recording instead of populating under the user's eyes.
+        // constructor seeds from three synchronous settings reads and then
+        // fires an UNAWAITED load, so building it here costs this frame
+        // microseconds rather than a journal decrypt, and its language list is
+        // ready before the first recording instead of populating under the
+        // user's eyes.
         BlocProvider(
           lazy: false,
           create: (_) => SettingsCubit(
