@@ -208,7 +208,7 @@
   "passphraseTooShort": "Au moins 8 caractères",
   "passphraseMismatch": "Les phrases secrètes ne correspondent pas",
   "importUnlockTitle": "Sauvegarde chiffrée",
-  "importUnlockBody": "Saisis la phrase secrète avec laquelle cette sauvegarde a été chiffrée.",
+  "importUnlockBody": "Saisissez la phrase secrète avec laquelle cette sauvegarde a été chiffrée.",
   "importUnlock": "Déverrouiller",
   "importWrongPassphrase": "Déverrouillage impossible. Phrase secrète erronée, ou fichier endommagé.",
   "importConfirmTitle": "Restaurer cette sauvegarde ?",
@@ -220,8 +220,8 @@
   "importFailedTitle": "Échec de la restauration",
   "importFailedBody": "La sauvegarde n'a pas pu être lue. Rien dans le journal n'a été modifié.",
   "importNotArchive": "Ce n'est pas une sauvegarde OpenTranscribe. Rien dans le journal n'a été modifié.",
-  "importNewerVersion": "Créée par une version plus récente de l'app. Mets à jour pour l'importer.",
-  "importRezipped": "Cette sauvegarde a été re-zippée par un autre outil. Enregistre-en une fraîche et restaure celle-là.",
+  "importNewerVersion": "Créée par une version plus récente de l'app. Mettez à jour pour l'importer.",
+  "importRezipped": "Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.",
   "done": "OK",
-  "importFailedMidway": "La restauration s'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaure à nouveau pour terminer."
+  "importFailedMidway": "La restauration s'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer."
 }

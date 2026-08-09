@@ -581,19 +581,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get notifyDailyTitle => 'O seu dia está pronto';
 
   @override
-  String get notifyDailyBody => 'Abre para ler a reflexão de ontem.';
+  String get notifyDailyBody => 'Abra para ler a reflexão de ontem.';
 
   @override
   String get notifyWeeklyTitle => 'A sua semana está pronta';
 
   @override
-  String get notifyWeeklyBody => 'Abre para ler a reflexão da semana passada.';
+  String get notifyWeeklyBody => 'Abra para ler a reflexão da semana passada.';
 
   @override
   String get notifyMonthlyTitle => 'O seu mês está pronto';
 
   @override
-  String get notifyMonthlyBody => 'Abre para ler a reflexão do mês passado.';
+  String get notifyMonthlyBody => 'Abra para ler a reflexão do mês passado.';
 
   @override
   String get notifyNeedsReflections =>
@@ -608,7 +608,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'Queres o OpenTranscribe num tema que não está aqui? Abre uma issue no GitHub e vamos adicioná-lo numa versão futura.';
+      'Quer o OpenTranscribe num tema que não está aqui? Abra uma issue no GitHub e vamos adicioná-lo numa versão futura.';
 
   @override
   String get themeRequestLink => 'Pedir um tema no GitHub';
@@ -722,7 +722,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get importUnlockBody =>
-      'Introduz a frase-passe com que esta cópia de segurança foi encriptada.';
+      'Introduza a frase-passe com que esta cópia de segurança foi encriptada.';
 
   @override
   String get importUnlock => 'Desbloquear';
@@ -780,16 +780,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get importNewerVersion =>
-      'Criado por uma versão mais recente da app. Atualiza para o importar.';
+      'Criado por uma versão mais recente da app. Atualize para o importar.';
 
   @override
   String get importRezipped =>
-      'Esta cópia de segurança foi re-comprimida por outra ferramenta. Guarda uma nova e restaura essa.';
+      'Esta cópia de segurança foi re-comprimida por outra ferramenta. Guarde uma nova e restaure essa.';
 
   @override
   String get done => 'Concluído';
 
   @override
   String get importFailedMidway =>
-      'O restauro parou a meio. O que já foi restaurado mantém-se; restaura de novo para terminar.';
+      'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 }

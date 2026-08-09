@@ -722,7 +722,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importUnlockBody =>
-      'Saisis la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
+      'Saisissez la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
 
   @override
   String get importUnlock => 'Déverrouiller';
@@ -780,16 +780,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importNewerVersion =>
-      'Créée par une version plus récente de l\'app. Mets à jour pour l\'importer.';
+      'Créée par une version plus récente de l\'app. Mettez à jour pour l\'importer.';
 
   @override
   String get importRezipped =>
-      'Cette sauvegarde a été re-zippée par un autre outil. Enregistre-en une fraîche et restaure celle-là.';
+      'Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.';
 
   @override
   String get done => 'OK';
 
   @override
   String get importFailedMidway =>
-      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaure à nouveau pour terminer.';
+      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
 }
