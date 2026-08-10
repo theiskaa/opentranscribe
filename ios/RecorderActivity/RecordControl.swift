@@ -14,15 +14,20 @@ struct RecordControl: ControlWidget {
   /// Center and Action button someone has already put it in.
   private static let kind = "xyz.opentranscribe.record"
 
-  /// The one string the API forces us to have, in the gallery and to VoiceOver.
-  private static let name = "OpenTranscribe"
+  /// Names the action, not the app: the gallery already groups controls under
+  /// the app's own name and icon, so repeating it there says nothing and wraps
+  /// mid-word in the slot's label.
+  private static let name = "New entry"
+
+  /// Must match the symbolset in this target's asset catalog; a rename fails
+  /// silently, as an empty circle. A control draws symbol images only and shows
+  /// a plain image asset as nothing, which is why the wave ships as a symbol.
+  private static let symbol = "wave"
 
   var body: some ControlWidgetConfiguration {
     StaticControlConfiguration(kind: Self.kind) {
       ControlWidgetButton(action: StartRecordingIntent()) {
-        // Stock symbol until the wave symbolset lands in this target's asset
-        // catalog; a control draws symbol images only, so it becomes `image:`.
-        Label(Self.name, systemImage: "waveform")
+        Label(Self.name, image: Self.symbol)
       }
     }
     .displayName(LocalizedStringResource(stringLiteral: Self.name))

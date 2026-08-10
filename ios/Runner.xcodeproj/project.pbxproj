@@ -16,6 +16,7 @@
 		AAAA00000000000000000131 /* RecordingShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000103 /* RecordingShortcuts.swift */; };
 		AAAA00000000000000000132 /* IntentActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000104 /* IntentActions.swift */; };
 		AAAA00000000000000000123 /* RecordControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000105 /* RecordControl.swift */; };
+		AAAA00000000000000000124 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000106 /* Assets.xcassets */; };
 		1B8159DC4183292552CF589C /* RecorderActivityLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF4D24C9CE7E72BA1725633 /* RecorderActivityLiveActivity.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -114,6 +115,7 @@
 		AAAA00000000000000000103 /* RecordingShortcuts.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingShortcuts.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000104 /* IntentActions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IntentActions.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000105 /* RecordControl.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordControl.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000106 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B6B6197835245A86BE4220BF /* RecorderActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecorderActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB3EA88FE2E853B520766E73 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecorderActivityBundle.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 				F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */,
 				4FF4D24C9CE7E72BA1725633 /* RecorderActivityLiveActivity.swift */,
 				AAAA00000000000000000105 /* RecordControl.swift */,
+				AAAA00000000000000000106 /* Assets.xcassets */,
 				8B9E68D3D3C4CDC2674B0483 /* Info.plist */,
 			);
 			name = RecorderActivity;
@@ -372,6 +375,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAAA00000000000000000124 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
