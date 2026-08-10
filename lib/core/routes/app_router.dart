@@ -31,6 +31,15 @@ class AppRouter {
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+  /// Whether an action from a system surface may raise the recorder right now,
+  /// resolved against the live stack. See [canOpenRecorder] for the rules.
+  bool get recorderCanOpen => canOpenRecorder(
+    stack: config.routerDelegate.currentConfiguration.matches
+        .map((match) => match.matchedLocation)
+        .toList(),
+    onboardingDone: Onboarding.isDone(Deps.i.localService),
+  );
+
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: Routes.home,
@@ -126,6 +135,25 @@ class AppRouter {
 }
 
 /// First-run users land in onboarding; finished users can never re-enter it.
+/// Whether the recorder may be pushed over [stack], the matched location of
+/// every page currently on the router, outermost first.
+///
+/// An empty stack means the router has no navigator yet (the splash still owns
+/// the tree): a push there replays against nothing when the router mounts, which
+/// strands the recorder as the only page with nothing to pop.
+///
+/// An unfinished onboarding refuses too, because an imperative push runs through
+/// [resolveRedirect] and would land a second onboarding page over the first.
+///
+/// The recorder anywhere in the stack, not merely on top, is already open: a
+/// second sheet re-prepares the take and takes the running clock and text with
+/// it.
+bool canOpenRecorder({required List<String> stack, required bool onboardingDone}) {
+  if (!onboardingDone) return false;
+  if (stack.isEmpty) return false;
+  return !stack.contains(Routes.record);
+}
+
 String? resolveRedirect({required bool onboardingDone, required String matchedLocation}) {
   final atOnboarding = matchedLocation == Routes.onboarding;
   if (!onboardingDone && !atOnboarding) return Routes.onboarding;

@@ -85,6 +85,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       return;
     }
     if (state != AppLifecycleState.resumed) return;
+    // First, ahead of the maintenance passes below: `unawaited` still runs a
+    // call's synchronous prefix inline, and a tap waiting on the lock screen
+    // must not queue behind a whole-journal decrypt.
+    unawaited(Deps.i.intentActionService.drain());
     // A no-op once the launch pass has completed. It does anything only when
     // the audio sweep did not walk the whole directory (a capture was live or
     // finalizing, or the sweep threw), leaving an orphan no UI can reach; the
@@ -184,6 +188,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         LaunchTrace.mark('home'); // TEMP
                         LaunchTrace.dump(); // TEMP
+                        // A launch the user asked to record in opens the sheet
+                        // over a built journal, not over the frames building it,
+                        // and ahead of the decrypt below.
+                        unawaited(Deps.i.intentActionService.serve());
                         // Only now: each of these decrypts the whole journal,
                         // and the frames before this one are the ones the user
                         // is watching.

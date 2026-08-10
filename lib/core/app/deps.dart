@@ -14,11 +14,14 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/intents/intent_action_service.dart';
+import 'package:opentranscribe/core/intents/intent_actions.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -81,6 +84,7 @@ class Deps {
     required this.importService,
     required this.backupSettings,
     required this.exporterDescriptors,
+    required this.intentActionService,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -103,6 +107,11 @@ class Deps {
   /// [TranscriptionService.resolveAudioPath] first.
   final AudioPlayer audioPlayer;
   final AppRouter router;
+
+  /// Serves the actions a system surface submits (the lock screen control,
+  /// Control Center, the Action button, Shortcuts, Siri). Served once the first
+  /// frames are up, and drained again on resume; see [IntentActionService.serve].
+  final IntentActionService intentActionService;
 
   /// The one owner of the weekly-reflection lifecycle: when a week closes, it
   /// reads the week back on-device. Keeps its engine and store private, like
@@ -311,13 +320,15 @@ class Deps {
       share: shareExport,
     );
 
+    final router = AppRouter();
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
       audioStorageSettings: audioStorageSettings,
       transcriptionSettings: transcriptionSettings,
       audioPlayer: audioPlayer,
-      router: AppRouter(),
+      router: router,
       reflectionService: reflectionService,
       reflectionSettings: reflectionSettings,
       notificationScheduler: notificationScheduler,
@@ -335,6 +346,14 @@ class Deps {
       exportService: exportService,
       importService: importService,
       backupSettings: backupSettings,
+      // Lazy closures on purpose: nothing here touches the router's config
+      // until an action actually arrives, so wiring this costs the launch
+      // nothing.
+      intentActionService: IntentActionService(
+        source: PlatformIntentActions(),
+        canOpenRecorder: () => router.recorderCanOpen,
+        openRecorder: () => router.config.pushNamed(Routes.recordName),
+      ),
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
