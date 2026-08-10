@@ -9,6 +9,11 @@
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		14D98D43663F85F6851F6B3A /* RecordingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */; };
+		AAAA00000000000000000111 /* RecordingIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000101 /* RecordingIntents.swift */; };
+		AAAA00000000000000000112 /* PendingRecordingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000102 /* PendingRecordingAction.swift */; };
+		AAAA00000000000000000121 /* RecordingIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000101 /* RecordingIntents.swift */; };
+		AAAA00000000000000000122 /* PendingRecordingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000102 /* PendingRecordingAction.swift */; };
+		AAAA00000000000000000131 /* RecordingShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000103 /* RecordingShortcuts.swift */; };
 		1B8159DC4183292552CF589C /* RecorderActivityLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF4D24C9CE7E72BA1725633 /* RecorderActivityLiveActivity.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -102,6 +107,9 @@
 		AAAA000000000000000000FD /* ShareExport.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShareExport.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F5 /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingActivityAttributes.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000101 /* RecordingIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingIntents.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000102 /* PendingRecordingAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRecordingAction.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000103 /* RecordingShortcuts.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingShortcuts.swift; sourceTree = "<group>"; };
 		B6B6197835245A86BE4220BF /* RecorderActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecorderActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB3EA88FE2E853B520766E73 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecorderActivityBundle.swift; sourceTree = "<group>"; };
@@ -173,6 +181,8 @@
 			isa = PBXGroup;
 			children = (
 				B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */,
+				AAAA00000000000000000102 /* PendingRecordingAction.swift */,
+				AAAA00000000000000000101 /* RecordingIntents.swift */,
 			);
 			name = Shared;
 			path = Shared;
@@ -233,6 +243,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				4DF07A5661CF9209749981FA /* RecordingLiveActivity.swift */,
+				AAAA00000000000000000103 /* RecordingShortcuts.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -430,6 +441,9 @@
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				E1DD6F20D5A2357F4CA62ABA /* RecordingActivityAttributes.swift in Sources */,
 				6554E235CE0188E36E8164ED /* RecordingLiveActivity.swift in Sources */,
+				AAAA00000000000000000112 /* PendingRecordingAction.swift in Sources */,
+				AAAA00000000000000000111 /* RecordingIntents.swift in Sources */,
+				AAAA00000000000000000131 /* RecordingShortcuts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,6 +454,8 @@
 				DA609263ADDDE0E4EE94A547 /* RecorderActivityBundle.swift in Sources */,
 				1B8159DC4183292552CF589C /* RecorderActivityLiveActivity.swift in Sources */,
 				14D98D43663F85F6851F6B3A /* RecordingActivityAttributes.swift in Sources */,
+				AAAA00000000000000000122 /* PendingRecordingAction.swift in Sources */,
+				AAAA00000000000000000121 /* RecordingIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
