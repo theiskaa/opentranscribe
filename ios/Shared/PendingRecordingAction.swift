@@ -43,9 +43,14 @@ final class PendingRecordingAction {
   /// submitted from the Live Activity, which exists only once a take is running,
   /// so they cannot overtake the start that made them possible.
   func submit(_ action: RecordingAction) {
-    assert(
-      Bundle.main.bundleURL.pathExtension != "appex",
-      "An extension's slot is a different instance, and nothing drains it")
+    // Logged, never trapped: this process also renders the Live Activity, and a
+    // debug build that crashes it on every tap can leave the banner replaced by
+    // the system's failed-widget placeholder. The intents are pinned to the app
+    // by their ForegroundContinuableIntent conformance; this says so out loud if
+    // that ever stops holding.
+    if Bundle.main.bundleURL.pathExtension == "appex" {
+      NSLog("PendingRecordingAction: submitted in an extension, whose slot nothing drains")
+    }
     lock.lock()
     self.action = action
     submittedAt = Date()

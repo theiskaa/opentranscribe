@@ -23,3 +23,24 @@ struct StartRecordingIntent: AppIntent {
     return .result()
   }
 }
+
+/// What actually pins [perform] to the app's process, which
+/// [PendingRecordingAction]'s in-process slot depends on. Left to itself, App
+/// Intents runs a type shared with a widget extension in the app only when the
+/// app is already alive, and otherwise in the extension, whose slot nothing
+/// drains. `openAppWhenRun` does not change that: it foregrounds the app, it
+/// does not move the work.
+///
+/// Compiled out of the extension, and that absence is the mechanism: the
+/// extension's copy of the type must NOT carry the conformance. It has to be
+/// `#if`, not `@available(iOSApplicationExtension, unavailable)`: availability
+/// only makes a use diagnosable, and the conformance record still lands in the
+/// extension's binary, which was verifiable in the built appex.
+/// WIDGET_EXTENSION is defined by the RecorderActivity target.
+///
+/// `supportedModes` with `.foreground(.dynamic)` supersedes this on iOS 26, and
+/// like `openAppWhenRun` it cannot be declared conditionally, so it waits for the
+/// deployment target.
+#if !WIDGET_EXTENSION
+  extension StartRecordingIntent: ForegroundContinuableIntent {}
+#endif
