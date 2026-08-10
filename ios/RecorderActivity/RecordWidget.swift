@@ -69,5 +69,10 @@ private struct RecordWidgetView: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("New entry")
+    // Required, including for accessory families: a widget that never adopts it
+    // renders as the system's "Please adopt containerBackground API" placeholder,
+    // whose own tap opens Apple's documentation instead of this app. Clear
+    // because the circular family draws its own well above.
+    .containerBackground(.clear, for: .widget)
   }
 }

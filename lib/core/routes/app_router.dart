@@ -49,6 +49,11 @@ class AppRouter {
       onboardingDone: Onboarding.isDone(Deps.i.localService),
       matchedLocation: state.matchedLocation,
     ),
+    // The app has no deep-link surface, so an unroutable location is never
+    // something the user asked for: iOS handed it to us. A misconfigured widget
+    // did exactly that, launching the app on Apple's documentation URL and
+    // parking it on a Page Not Found nobody could explain. Home instead, quietly.
+    onException: (context, state, router) => router.go(Routes.home),
     routes: [
       GoRoute(
         path: Routes.home,
