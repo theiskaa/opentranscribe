@@ -3,9 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/home/components/seam_padding.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 
@@ -79,17 +79,10 @@ class EntryRow extends StatelessWidget {
             nodeSize: tokens.nodeSize,
             nodeCenter: _firstLineCenter(leadStyle),
           ),
-          // Animated because [last] FLIPS on a neighbor's delete or arrival:
-          // the day gap (and the rail painted through it) must glide closed or
-          // open with the list's other motion, not snap while everything
-          // around it settles smoothly. Closing rides the delete exit's own
-          // clock and interval (its height only moves after the fade quarter),
-          // so gap and slot collapse as one; opening rides the arrival unfold.
-          child: AnimatedPadding(
-            duration: context.reduceMotion
-                ? Duration.zero
-                : (last ? theme.motion.swipeExit : theme.motion.expand),
-            curve: last ? AppMotion.swipeExitHeightCurve : Curves.easeOutCubic,
+          // [last] FLIPS on a neighbor's delete or arrival, and the rail is
+          // painted through this gap, so the line closes with it.
+          child: SeamPadding(
+            closing: last,
             padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
