@@ -4,6 +4,36 @@ import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 
 void main() {
+  group('canOpenRecorder', () {
+    test('a stack without the recorder may open it', () {
+      expect(canOpenRecorder(stack: [Routes.home], onboardingDone: true), isTrue);
+      expect(canOpenRecorder(stack: [Routes.home, '/entry/x'], onboardingDone: true), isTrue);
+    });
+
+    test('the recorder on top is already open', () {
+      expect(canOpenRecorder(stack: [Routes.home, Routes.record], onboardingDone: true), isFalse);
+    });
+
+    test('the recorder under another page is still open', () {
+      expect(
+        canOpenRecorder(
+          stack: [Routes.home, Routes.record, Routes.settingsCache],
+          onboardingDone: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a router with no pages yet refuses, having nothing to push over', () {
+      expect(canOpenRecorder(stack: [], onboardingDone: true), isFalse);
+    });
+
+    test('an unfinished user is refused wherever they are', () {
+      expect(canOpenRecorder(stack: [Routes.onboarding], onboardingDone: false), isFalse);
+      expect(canOpenRecorder(stack: [Routes.home], onboardingDone: false), isFalse);
+    });
+  });
+
   group('resolveRedirect', () {
     test('an unfinished user anywhere but onboarding is sent to onboarding', () {
       expect(

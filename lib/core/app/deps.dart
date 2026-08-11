@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/app_language.dart';
+import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/app/splash_handoff.dart';
 import 'package:opentranscribe/core/app/storage_key.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
@@ -13,12 +15,15 @@ import 'package:opentranscribe/core/export/html_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/intents/intent_action_service.dart';
+import 'package:opentranscribe/core/intents/intent_actions.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
 import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
 import 'package:opentranscribe/core/routes/app_router.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -32,7 +37,6 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
-import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
@@ -81,6 +85,9 @@ class Deps {
     required this.importService,
     required this.backupSettings,
     required this.exporterDescriptors,
+    required this.intentActionService,
+    required this.splashHandoff,
+    required this.launchBackdrop,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -103,6 +110,18 @@ class Deps {
   /// [TranscriptionService.resolveAudioPath] first.
   final AudioPlayer audioPlayer;
   final AppRouter router;
+
+  /// Serves the actions a system surface submits (the lock screen control and
+  /// widget row, Control Center, the Action button, Shortcuts, Siri). Served
+  /// once the first frames are up, and drained again on resume; see
+  /// [IntentActionService.serve].
+  final IntentActionService intentActionService;
+
+  /// Takes the native launch splash down once home has painted.
+  final SplashHandoff splashHandoff;
+
+  /// Mirrors the theme's launch colours where that splash can read them.
+  final LaunchBackdrop launchBackdrop;
 
   /// The one owner of the weekly-reflection lifecycle: when a week closes, it
   /// reads the week back on-device. Keeps its engine and store private, like
@@ -190,7 +209,6 @@ class Deps {
     // as an empty journal instead of failing loudly. Let a Keychain failure
     // throw; bootstrap surfaces it.
     final deviceKey = await StorageKey().obtain().timeout(_channelTimeout);
-    LaunchTrace.mark('  keychain'); // TEMP
 
     final localService = LocalService();
     await localService.init(
@@ -198,7 +216,6 @@ class Deps {
       deviceKey: deviceKey,
       channelTimeout: _channelTimeout,
     );
-    LaunchTrace.mark('  storage read'); // TEMP
 
     // One recorder instance for capture and the backup preference. The native
     // session is a singleton anyway, so there is no reason to build two.
@@ -227,7 +244,6 @@ class Deps {
         if (kDebugMode) debugPrint('deps: the audio backup preference timed out');
       },
     );
-    LaunchTrace.mark('  audio settings'); // TEMP
 
     final engine = AppleSpeechEngine();
     // Built before the service so a fresh recording's wave shape can be read
@@ -252,7 +268,6 @@ class Deps {
     // it can transcribe is a broken speech channel, and a diagnosable failure
     // screen beats an app whose only feature silently does nothing.
     await transcriptionSettings.apply().timeout(_channelTimeout);
-    LaunchTrace.mark('  speech settings'); // TEMP
 
     // The reflection backbone. FoundationModelsEngine is the ONE place naming
     // Foundation Models; the service refuses it if it is not on-device. Nothing
@@ -311,13 +326,15 @@ class Deps {
       share: shareExport,
     );
 
+    final router = AppRouter();
+
     i = Deps._(
       localService: localService,
       transcriptionService: transcriptionService,
       audioStorageSettings: audioStorageSettings,
       transcriptionSettings: transcriptionSettings,
       audioPlayer: audioPlayer,
-      router: AppRouter(),
+      router: router,
       reflectionService: reflectionService,
       reflectionSettings: reflectionSettings,
       notificationScheduler: notificationScheduler,
@@ -335,6 +352,16 @@ class Deps {
       exportService: exportService,
       importService: importService,
       backupSettings: backupSettings,
+      // Lazy closures on purpose: nothing here touches the router's config
+      // until an action actually arrives, so wiring this costs the launch
+      // nothing.
+      intentActionService: IntentActionService(
+        source: PlatformIntentActions(),
+        canOpenRecorder: () => router.recorderCanOpen,
+        openRecorder: () => router.config.pushNamed(Routes.recordName),
+      ),
+      splashHandoff: SplashHandoff(),
+      launchBackdrop: LaunchBackdrop(),
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
@@ -353,7 +380,6 @@ class Deps {
         ),
       ],
     );
-    LaunchTrace.mark('  wiring'); // TEMP
     _initialized = true;
   }
 

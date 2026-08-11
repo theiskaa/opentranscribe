@@ -4,7 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
-import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/view/launch_failure_app.dart';
 
 abstract class Bootstrap {
@@ -18,7 +17,6 @@ abstract class Bootstrap {
   /// migration, which is bounded work that always finishes.
   static Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     WidgetsFlutterBinding.ensureInitialized();
-    LaunchTrace.mark('binding'); // TEMP
 
     try {
       // Load date symbols for every locale up front. App code formats dates
@@ -27,7 +25,6 @@ abstract class Bootstrap {
       // anything formatted before that falls back to English. Inside the try:
       // a throw here would otherwise leave `runApp` uncalled.
       await initializeDateFormatting();
-      LaunchTrace.mark('date symbols'); // TEMP
 
       await Deps.init();
     } catch (error, stack) {
@@ -37,10 +34,7 @@ abstract class Bootstrap {
       runApp(LaunchFailureApp(error));
       return;
     }
-    LaunchTrace.mark('deps'); // TEMP
 
     runApp(await builder());
-    // TEMP
-    WidgetsBinding.instance.addPostFrameCallback((_) => LaunchTrace.mark('first frame'));
   }
 }
