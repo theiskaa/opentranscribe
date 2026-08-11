@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
@@ -99,5 +100,56 @@ void main() {
   test('an unknown stored family falls back to the default family', () async {
     await storage.write(ThemeCubit.familyKey, 'dracula');
     expect(build().state.familyId, AppThemeFamily.defaultId);
+  });
+
+  group('launch backdrop mirroring', () {
+    Future<String?> mirrored() async =>
+        (await SharedPreferences.getInstance()).getString(LaunchBackdrop.key);
+
+    ThemeCubit buildMirrored() => ThemeCubit(
+      storage: storage,
+      backdrop: LaunchBackdrop(),
+      platformBrightness: Brightness.light,
+    );
+
+    test('writes the packed palettes at construction', () async {
+      buildMirrored();
+      await pumpEventQueue();
+      expect(
+        await mirrored(),
+        launchBackdropOf(
+          family: AppThemeFamily.byId(AppThemeFamily.defaultId),
+          mode: AppThemeMode.system,
+        ),
+      );
+    });
+
+    test('rewrites on a mode change and on a family change', () async {
+      final cubit = buildMirrored();
+      await cubit.setMode(AppThemeMode.dark);
+      await pumpEventQueue();
+      expect(await mirrored(), startsWith('dark,'));
+
+      await cubit.setFamily(AppThemeFamily.gruvboxId);
+      await pumpEventQueue();
+      expect(
+        await mirrored(),
+        launchBackdropOf(
+          family: AppThemeFamily.byId(AppThemeFamily.gruvboxId),
+          mode: AppThemeMode.dark,
+        ),
+      );
+    });
+
+    test('a platform brightness flip writes nothing new', () async {
+      final cubit = buildMirrored();
+      await pumpEventQueue();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(LaunchBackdrop.key);
+
+      cubit.updatePlatformBrightness(Brightness.dark);
+      await pumpEventQueue();
+      expect(await mirrored(), isNull);
+    });
   });
 }
