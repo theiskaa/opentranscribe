@@ -242,4 +242,109 @@ void main() {
     expect(bare.withPeaks(const [3]).audioPath, isNull);
     expect(bare.withTranscript(transcript).audioPath, isNull);
   });
+
+  final editStamp = DateTime.utc(2026, 3, 5, 10);
+
+  test('an edit round-trips through JSON and is omitted when absent', () {
+    expect(baseEntry().toJson().containsKey('editedText'), isFalse);
+    expect(baseEntry().toJson().containsKey('editedAt'), isFalse);
+
+    final edited = baseEntry()
+        .withTranscript(transcript)
+        .withEditedText('helio world', at: editStamp);
+    expect(Entry.fromJson(edited.toJson()), edited);
+    expect(Entry.fromJson(edited.toJson()).editedText, 'helio world');
+    expect(Entry.fromJson(edited.toJson()).editedAt, editStamp);
+  });
+
+  test('a record written before editing existed loads as unedited', () {
+    final json = baseEntry().withEditedText('x', at: editStamp).toJson()
+      ..remove('editedText')
+      ..remove('editedAt');
+    expect(Entry.fromJson(json).editedText, isNull);
+    expect(Entry.fromJson(json).editedAt, isNull);
+  });
+
+  test('normalizes a local editedAt to UTC so round-trip equality holds', () {
+    final edited = baseEntry().withEditedText('x', at: DateTime(2026, 3, 5, 10));
+    expect(edited.editedAt!.isUtc, isTrue);
+    expect(Entry.fromJson(edited.toJson()), edited);
+  });
+
+  test('withEditedText sets both fields, null clears both, everything else is kept', () {
+    final full = baseEntry().withTranscript(transcript).withTitle('named').withPeaks(const [1, 2]);
+    final edited = full.withEditedText('fixed', at: editStamp);
+
+    expect(edited.editedText, 'fixed');
+    expect(edited.editedAt, editStamp);
+    expect(edited.transcript, full.transcript);
+    expect(edited.title, full.title);
+    expect(edited.peaks, full.peaks);
+    expect(edited.audioPath, full.audioPath);
+
+    final reverted = edited.withEditedText(null);
+    expect(reverted.editedText, isNull);
+    expect(reverted.editedAt, isNull);
+    expect(reverted, full);
+  });
+
+  test('the other copiers preserve the edit', () {
+    final edited = baseEntry().withEditedText('fixed', at: editStamp);
+
+    for (final copy in [
+      edited.withTranscript(transcript),
+      edited.withTitle('t'),
+      edited.withPeaks(const [1]),
+      edited.withoutAudio(),
+      edited.withAudioPath('b.m4a'),
+    ]) {
+      expect(copy.editedText, 'fixed');
+      expect(copy.editedAt, editStamp);
+    }
+  });
+
+  test('readableText prefers the edit and falls back to the transcript', () {
+    expect(baseEntry().readableText, isNull);
+    expect(baseEntry().withTranscript(transcript).readableText, 'hello world');
+    expect(
+      baseEntry().withTranscript(transcript).withEditedText('fixed', at: editStamp).readableText,
+      'fixed',
+    );
+  });
+
+  test('an edit over an empty transcript reads as the edit', () {
+    final silent = Transcript(
+      fullText: '',
+      segments: const [],
+      localeId: 'en-US',
+      engineId: 'fake',
+      createdAt: DateTime.utc(2026, 3, 4),
+    );
+    final typed = baseEntry().withTranscript(silent).withEditedText('typed in', at: editStamp);
+    expect(typed.readableText, 'typed in');
+  });
+
+  test('equality and hashCode include the edit', () {
+    final a = baseEntry().withEditedText('x', at: editStamp);
+    final b = baseEntry().withEditedText('x', at: editStamp);
+    final c = baseEntry().withEditedText('y', at: editStamp);
+
+    expect(a, b);
+    expect(a.hashCode, b.hashCode);
+    expect(a == c, isFalse);
+    expect(a == baseEntry(), isFalse);
+    expect(a == baseEntry().withEditedText('x', at: DateTime.utc(2026, 3, 6)), isFalse);
+  });
+
+  test('half an edit in a stored record reads as unedited', () {
+    final base = baseEntry().withEditedText('x', at: editStamp);
+
+    final textOnly = base.toJson()..remove('editedAt');
+    expect(Entry.fromJson(textOnly).editedText, isNull);
+    expect(Entry.fromJson(textOnly).editedAt, isNull);
+
+    final stampOnly = base.toJson()..remove('editedText');
+    expect(Entry.fromJson(stampOnly).editedText, isNull);
+    expect(Entry.fromJson(stampOnly).editedAt, isNull);
+  });
 }

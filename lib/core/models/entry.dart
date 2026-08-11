@@ -47,7 +47,14 @@ final class Entry {
     this.recordedLocaleId,
     this.peaks,
     this.languageSpans,
-  }) : createdAt = createdAt.toUtc();
+    this.editedText,
+    DateTime? editedAt,
+  }) : assert(
+         (editedText == null) == (editedAt == null),
+         'an edit and its timestamp travel together',
+       ),
+       createdAt = createdAt.toUtc(),
+       editedAt = editedAt?.toUtc();
 
   final String id;
   final DateTime createdAt;
@@ -79,6 +86,16 @@ final class Entry {
   /// switches), ascending by start. Null for the common single-language take.
   final List<LanguageSpan>? languageSpans;
 
+  /// A hand edit of the transcript text, layered OVER the transcript rather
+  /// than written into it: [transcript] keeps exactly what the engine
+  /// produced, so revert is always possible and a re-transcription stays
+  /// traceable to its engine. Null means never edited. Set and cleared only
+  /// together with [editedAt].
+  final String? editedText;
+
+  /// When the edit was made. Null exactly when [editedText] is null.
+  final DateTime? editedAt;
+
   bool get isTranscribed => transcript != null;
 
   bool get hasAudio => audioPath != null;
@@ -88,6 +105,11 @@ final class Entry {
   /// the app default. The one rule every flow resolves through, so a default
   /// change can never silently re-language an entry.
   String? get effectiveLocaleId => transcript?.localeId ?? recordedLocaleId;
+
+  /// The text this entry reads as: the hand edit when one exists, else the
+  /// engine's transcript. The one accessor every surface reads transcript
+  /// text through, so an edit can never be bypassed by accident.
+  String? get readableText => editedText ?? transcript?.fullText;
 
   /// Returns a copy carrying a new transcript. Used after (re-)transcription.
   Entry withTranscript(Transcript transcript) => Entry(
@@ -100,6 +122,8 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    editedText: editedText,
+    editedAt: editedAt,
   );
 
   /// Returns a copy with the user-set title; null clears back to untitled.
@@ -113,6 +137,8 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    editedText: editedText,
+    editedAt: editedAt,
   );
 
   /// Returns a copy referencing [audioPath] instead. Import uses it when a
@@ -128,6 +154,8 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    editedText: editedText,
+    editedAt: editedAt,
   );
 
   /// Returns a copy with the audio reference dropped: the transcript-only form
@@ -142,6 +170,8 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    editedText: editedText,
+    editedAt: editedAt,
   );
 
   /// Returns a copy carrying the computed amplitude envelope.
@@ -155,6 +185,25 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    editedText: editedText,
+    editedAt: editedAt,
+  );
+
+  /// Returns a copy carrying a hand edit of the transcript text, stamped [at];
+  /// a null [text] clears the edit back to the engine's words. [at] is
+  /// required exactly when [text] is set, so an edit can never land unstamped.
+  Entry withEditedText(String? text, {DateTime? at}) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    peaks: peaks,
+    languageSpans: languageSpans,
+    editedText: text,
+    editedAt: at,
   );
 
   Map<String, dynamic> toJson() => {
@@ -168,6 +217,8 @@ final class Entry {
     if (recordedLocaleId != null) 'recordedLocaleId': recordedLocaleId,
     if (peaks != null) 'peaks': peaks,
     if (languageSpans != null) 'languageSpans': [for (final s in languageSpans!) s.toJson()],
+    if (editedText != null) 'editedText': editedText,
+    if (editedAt != null) 'editedAt': editedAt!.toUtc().toIso8601String(),
   };
 
   factory Entry.fromJson(Map<String, dynamic> json) {
@@ -177,6 +228,11 @@ final class Entry {
         ?.map((s) => LanguageSpan.fromJson((s as Map).cast<String, dynamic>()))
         .toList();
     spans?.sort((a, b) => a.startMs.compareTo(b.startMs));
+    // Absent in records written before editing existed; null is unedited. A
+    // record carrying half an edit (a tampered or truncated archive) reads as
+    // unedited rather than tripping the pairing invariant.
+    final editedText = json['editedText'] as String?;
+    final editedAt = json['editedAt'] == null ? null : DateTime.parse(json['editedAt'] as String);
     return Entry(
       id: json['id'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -193,6 +249,8 @@ final class Entry {
       // Absent in records written before peaks were persisted; backfilled lazily.
       peaks: (json['peaks'] as List?)?.map((v) => (v as num).toInt()).toList(),
       languageSpans: spans,
+      editedText: editedAt == null ? null : editedText,
+      editedAt: editedText == null ? null : editedAt,
     );
   }
 
@@ -207,7 +265,9 @@ final class Entry {
       other.title == title &&
       other.recordedLocaleId == recordedLocaleId &&
       listEquals(other.peaks, peaks) &&
-      listEquals(other.languageSpans, languageSpans);
+      listEquals(other.languageSpans, languageSpans) &&
+      other.editedText == editedText &&
+      other.editedAt == editedAt;
 
   @override
   int get hashCode => Object.hash(
@@ -220,5 +280,7 @@ final class Entry {
     recordedLocaleId,
     peaks == null ? null : Object.hashAll(peaks!),
     languageSpans == null ? null : Object.hashAll(languageSpans!),
+    editedText,
+    editedAt,
   );
 }
