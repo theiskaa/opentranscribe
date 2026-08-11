@@ -12,15 +12,15 @@
   <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
 </p>
 
-opentranscribe is a voice journal for iOS with no network layer. Capture, transcription, reflection, and storage all happen on the device, and there is no account, no sync, no telemetry, and no code path anywhere in the app that opens a socket. Airplane mode is not a supported mode, it is the only mode there is.
+opentranscribe is a voice journal for iOS. Recording, transcription, reflection, and storage all happen on the device. There is no account, no sync, no telemetry, and no code in the app that opens a network connection, so it works the same with the phone in airplane mode.
 
 <img alt="The week of entries, recording with live text, a finished entry, a written reflection, and the on-device language models" src="assets/readme/showcase.png" width="830">
 
-Transcription and reflection run on-device behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, each refused at construction unless it declares itself on-device. Recordings and entries stay encrypted in the app's own storage. How it fits together, and how to work on it, is in [CONTRIBUTING.md](CONTRIBUTING.md).
+Transcription and reflection sit behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`. An engine that does not declare itself on-device is refused at construction. Recordings and entries stay encrypted in the app's own storage. [CONTRIBUTING.md](CONTRIBUTING.md) covers how it fits together and how to work on it.
 
 ## At rest
 
-Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device, never a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
+Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
 
 ## Build
 
@@ -39,6 +39,6 @@ flutter run --release --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Contributing
 
-Issues and pull requests are welcome; anything opening a socket does not belong here. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md), and security issues have a private channel in [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome, though anything that adds a network call will be declined. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md), and security issues have a private channel in [SECURITY.md](SECURITY.md).
 
 opentranscribe is MIT-licensed. See [LICENSE](LICENSE).

@@ -12,8 +12,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Alles bleibt auf diesem Gerät. Kein Konto, keine Cloud, kein Netzwerk.';
+  String get launchFailedTitle => 'Start fehlgeschlagen';
+
+  @override
+  String get launchFailedBody =>
+      'Etwas, das die App zum Start braucht, wurde nicht geladen. Schließen Sie die App im App-Umschalter und öffnen Sie sie erneut; hilft das nicht, starten Sie das Telefon neu.';
 
   @override
   String get entryUntranscribed => 'Nicht transkribiert';
@@ -611,4 +614,183 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Theme auf GitHub anfragen';
+
+  @override
+  String get exportEntry => 'Exportieren';
+
+  @override
+  String get exportEntryTitle => 'Eintrag exportieren';
+
+  @override
+  String get exportIncludeAudio => 'Audio einschließen';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'Eine Textdatei pro Eintrag, plus .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notizen mit Eigenschaften und Audio.';
+
+  @override
+  String get exportFormatWeb => 'Webseite';
+
+  @override
+  String get exportFormatWebNote => 'Öffnet sich in jedem Browser, mit Player.';
+
+  @override
+  String get exportFailedTitle => 'Export fehlgeschlagen';
+
+  @override
+  String get exportFailedBody =>
+      'Die Dateien konnten nicht vorbereitet werden. Nichts wurde geteilt.';
+
+  @override
+  String get exportUntitled => 'Ohne Titel';
+
+  @override
+  String get exportTranscriptHeading => 'Transkript';
+
+  @override
+  String get exportQuiet => 'Eine stille Zeit.';
+
+  @override
+  String get settingsBackup => 'Backup';
+
+  @override
+  String get backupInfo =>
+      'Ein Backup enthält jeden Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Ein Backup enthält alle $count Einträge mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
+      one:
+          'Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
+      zero: 'Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Journal exportieren';
+
+  @override
+  String get backupExportInfo =>
+      'Schreibt jeden Eintrag im gewählten Format, Audio inklusive, als Zip für das Teilen-Menü. Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
+
+  @override
+  String get backupSeal => 'Mit Passphrase verschlüsseln';
+
+  @override
+  String get backupSave => 'Backup sichern';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Letztes Backup $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Backup verschlüsseln';
+
+  @override
+  String get passphraseCreateBody =>
+      'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Backup Rauschen.';
+
+  @override
+  String get passphrasePlaceholder => 'Passphrase';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Passphrase wiederholen';
+
+  @override
+  String get passphraseTooShort => 'Mindestens 8 Zeichen';
+
+  @override
+  String get passphraseMismatch => 'Passphrasen stimmen nicht überein';
+
+  @override
+  String get importUnlockTitle => 'Verschlüsseltes Backup';
+
+  @override
+  String get importUnlockBody =>
+      'Gib die Passphrase ein, mit der dieses Backup verschlüsselt wurde.';
+
+  @override
+  String get importUnlock => 'Entsiegeln';
+
+  @override
+  String get importWrongPassphrase =>
+      'Konnte nicht entsiegeln. Falsche Passphrase oder beschädigte Datei.';
+
+  @override
+  String get importConfirmTitle => 'Dieses Backup wiederherstellen?';
+
+  @override
+  String get importConfirmBody =>
+      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
+
+  @override
+  String get importConfirm => 'Wiederherstellen';
+
+  @override
+  String get importSummaryTitle => 'Wiederherstellung abgeschlossen';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge wiederhergestellt.',
+      one: '1 Eintrag wiederhergestellt.',
+      zero: 'Nichts Neues wiederherzustellen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge waren bereits im Journal.',
+      one: '1 Eintrag war bereits im Journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Wiederherstellung fehlgeschlagen';
+
+  @override
+  String get importFailedBody =>
+      'Das Backup konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
+
+  @override
+  String get importNotArchive => 'Kein OpenTranscribe-Backup. Nichts im Journal wurde verändert.';
+
+  @override
+  String get importNewerVersion =>
+      'Von einer neueren Version der App erstellt. Aktualisiere, um es zu importieren.';
+
+  @override
+  String get importRezipped =>
+      'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.';
+
+  @override
+  String get done => 'Fertig';
+
+  @override
+  String get importFailedMidway =>
+      'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
 }

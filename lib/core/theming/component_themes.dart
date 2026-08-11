@@ -24,6 +24,7 @@ final class TopBarTheme {
     this.largeHeight = 72.0,
     this.fadeTail = 24.0,
     this.backChevronSize = 18.0,
+    this.actionSize = 44.0,
   });
 
   final Color background;
@@ -40,6 +41,10 @@ final class TopBarTheme {
   /// the bar's edge instead of clipping.
   final double fadeTail;
   final double backChevronSize;
+
+  /// Tap target for a bar action, and the seat anything standing in for one
+  /// (a spinner) must fill so the bar's layout does not shift.
+  final double actionSize;
 }
 
 /// The general button (primary fill, secondary surface, danger reuses primary

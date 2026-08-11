@@ -12,7 +12,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => '모든 것이 이 기기에만 남습니다. 계정도, 클라우드도, 네트워크도 없습니다.';
+  String get launchFailedTitle => '시작하지 못했습니다';
+
+  @override
+  String get launchFailedBody =>
+      '실행에 필요한 것을 불러오지 못했습니다. 앱 전환기에서 앱을 종료한 뒤 다시 열어 보세요. 그래도 안 되면 기기를 재시작하세요.';
 
   @override
   String get entryUntranscribed => '미전사';
@@ -572,4 +576,168 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'GitHub에서 테마 요청하기';
+
+  @override
+  String get exportEntry => '내보내기';
+
+  @override
+  String get exportEntryTitle => '항목 내보내기';
+
+  @override
+  String get exportIncludeAudio => '오디오 포함';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => '항목마다 텍스트 파일 하나와 .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
+
+  @override
+  String get exportFormatWeb => '웹사이트';
+
+  @override
+  String get exportFormatWebNote => '어떤 브라우저에서나 열립니다. 재생 지원.';
+
+  @override
+  String get exportFailedTitle => '내보내기 실패';
+
+  @override
+  String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportUntitled => '제목 없음';
+
+  @override
+  String get exportTranscriptHeading => '텍스트 변환';
+
+  @override
+  String get exportQuiet => '조용한 시간.';
+
+  @override
+  String get settingsBackup => '백업';
+
+  @override
+  String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
+      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '내보내기';
+
+  @override
+  String get backupExportJournal => '저널 내보내기';
+
+  @override
+  String get backupExportInfo =>
+      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
+
+  @override
+  String get backupSeal => '암호구로 암호화';
+
+  @override
+  String get backupSave => '백업 저장';
+
+  @override
+  String backupLastBackup(String date) {
+    return '마지막 백업 $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => '백업 암호화';
+
+  @override
+  String get passphraseCreateBody => '암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 백업은 잡음일 뿐입니다.';
+
+  @override
+  String get passphrasePlaceholder => '암호구';
+
+  @override
+  String get passphraseRepeatPlaceholder => '암호구 다시 입력';
+
+  @override
+  String get passphraseTooShort => '8자 이상';
+
+  @override
+  String get passphraseMismatch => '암호구가 일치하지 않습니다';
+
+  @override
+  String get importUnlockTitle => '암호화된 백업';
+
+  @override
+  String get importUnlockBody => '이 백업을 암호화한 암호구를 입력하세요.';
+
+  @override
+  String get importUnlock => '잠금 해제';
+
+  @override
+  String get importWrongPassphrase => '열 수 없습니다. 암호구가 틀렸거나 파일이 손상되었습니다.';
+
+  @override
+  String get importConfirmTitle => '이 백업을 복원할까요?';
+
+  @override
+  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
+
+  @override
+  String get importConfirm => '복원';
+
+  @override
+  String get importSummaryTitle => '복원 완료';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '항목 $count개를 복원했습니다.',
+      zero: '새로 복원할 것이 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 이미 저널에 있었습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '복원 실패';
+
+  @override
+  String get importFailedBody => '백업을 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
+
+  @override
+  String get importNotArchive => 'OpenTranscribe 백업이 아닙니다. 저널은 아무것도 바뀌지 않았습니다.';
+
+  @override
+  String get importNewerVersion => '더 새로운 버전의 앱으로 만들어졌습니다. 업데이트 후 가져오세요.';
+
+  @override
+  String get importRezipped => '이 백업은 다른 도구로 다시 압축되었습니다. 새로 저장한 것을 복원하세요.';
+
+  @override
+  String get done => '완료';
+
+  @override
+  String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 }

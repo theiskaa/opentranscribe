@@ -12,8 +12,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Everything stays on this device. No account, no cloud, no network.';
+  String get launchFailedTitle => 'Could not start';
+
+  @override
+  String get launchFailedBody =>
+      'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.';
 
   @override
   String get entryUntranscribed => 'Untranscribed';
@@ -604,4 +607,180 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Request a theme on GitHub';
+
+  @override
+  String get exportEntry => 'Export';
+
+  @override
+  String get exportEntryTitle => 'Export entry';
+
+  @override
+  String get exportIncludeAudio => 'Include audio';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'One text file per entry, plus a .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notes with properties, audio embedded.';
+
+  @override
+  String get exportFormatWeb => 'Website';
+
+  @override
+  String get exportFormatWebNote => 'Opens in any browser, with a player.';
+
+  @override
+  String get exportFailedTitle => 'Export failed';
+
+  @override
+  String get exportFailedBody => 'Could not prepare the files. Nothing was shared.';
+
+  @override
+  String get exportUntitled => 'Untitled';
+
+  @override
+  String get exportTranscriptHeading => 'Transcript';
+
+  @override
+  String get exportQuiet => 'A quiet stretch.';
+
+  @override
+  String get settingsBackup => 'Backup';
+
+  @override
+  String get backupInfo =>
+      'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'A backup holds all $count entries with their audio and reflections. Encrypt it and your passphrase is the only key.',
+      one:
+          'A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.',
+      zero: 'Nothing to back up yet. A backup holds every entry with its audio and reflections.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Export journal';
+
+  @override
+  String get backupExportInfo =>
+      'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
+
+  @override
+  String get backupSeal => 'Encrypt with passphrase';
+
+  @override
+  String get backupSave => 'Save backup';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Last backup $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Encrypt the backup';
+
+  @override
+  String get passphraseCreateBody =>
+      'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.';
+
+  @override
+  String get passphrasePlaceholder => 'Passphrase';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Repeat passphrase';
+
+  @override
+  String get passphraseTooShort => 'At least 8 characters';
+
+  @override
+  String get passphraseMismatch => 'Passphrases do not match';
+
+  @override
+  String get importUnlockTitle => 'Encrypted backup';
+
+  @override
+  String get importUnlockBody => 'Enter the passphrase this backup was encrypted with.';
+
+  @override
+  String get importUnlock => 'Unlock';
+
+  @override
+  String get importWrongPassphrase => 'Could not unlock. Wrong passphrase, or a damaged file.';
+
+  @override
+  String get importConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get importConfirmBody =>
+      'Adds its entries to your journal. Restoring the same backup twice never duplicates.';
+
+  @override
+  String get importConfirm => 'Restore';
+
+  @override
+  String get importSummaryTitle => 'Restore complete';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count entries.',
+      one: 'Restored 1 entry.',
+      zero: 'Nothing new to restore.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries were already in the journal.',
+      one: '1 entry was already in the journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Restore failed';
+
+  @override
+  String get importFailedBody =>
+      'The backup could not be read. Nothing in the journal was changed.';
+
+  @override
+  String get importNotArchive =>
+      'Not an OpenTranscribe backup. Nothing in the journal was changed.';
+
+  @override
+  String get importNewerVersion => 'Made by a newer version of the app. Update to import it.';
+
+  @override
+  String get importRezipped =>
+      'This backup was re-zipped by another tool. Save a fresh one and restore that.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get importFailedMidway =>
+      'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 36-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 39-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -69,6 +69,9 @@ abstract final class AppIcons {
   /// SF Symbol `internaldrive`.
   static const IconData internaldrive = IconData(0x10097E, fontFamily: _family);
 
+  /// SF Symbol `lock`.
+  static const IconData lock = IconData(0x1003A0, fontFamily: _family);
+
   /// SF Symbol `microphone`.
   static const IconData mic = IconData(0x1002B0, fontFamily: _family);
 
@@ -89,6 +92,12 @@ abstract final class AppIcons {
 
   /// SF Symbol `sparkles`.
   static const IconData sparkles = IconData(0x1001BF, fontFamily: _family);
+
+  /// SF Symbol `square.and.arrow.down`.
+  static const IconData squareAndArrowDown = IconData(0x100204, fontFamily: _family);
+
+  /// SF Symbol `square.and.arrow.up`.
+  static const IconData squareAndArrowUp = IconData(0x100202, fontFamily: _family);
 
   /// SF Symbol `square.fill`.
   static const IconData squareFill = IconData(0x100093, fontFamily: _family);
@@ -140,6 +149,7 @@ abstract final class AppIcons {
         0x10039F: 'house.fill',
         0x10030B: 'icloud',
         0x10097E: 'internaldrive',
+        0x1003A0: 'lock',
         0x1002AB: 'magnifyingglass',
         0x1002B0: 'mic',
         0x1002B1: 'mic.fill',
@@ -148,6 +158,8 @@ abstract final class AppIcons {
         0x100284: 'play.fill',
         0x100306: 'slider.horizontal.3',
         0x1001BF: 'sparkles',
+        0x100204: 'square.and.arrow.down',
+        0x100202: 'square.and.arrow.up',
         0x100093: 'square.fill',
         0x1006F7: 'stop.fill',
         0x1001AD: 'sun.max',

@@ -34,5 +34,8 @@ import UIKit
     if let registrar = registry.registrar(forPlugin: "StorageKeyPlugin") {
       StorageKeyPlugin.register(with: registrar)
     }
+    if let registrar = registry.registrar(forPlugin: "ShareExportPlugin") {
+      ShareExportPlugin.register(with: registrar)
+    }
   }
 }

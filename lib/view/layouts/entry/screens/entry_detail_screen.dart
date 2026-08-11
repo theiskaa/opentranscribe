@@ -16,6 +16,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/entry/components/entry_export_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
@@ -104,8 +105,10 @@ class _DetailViewState extends State<_DetailView> {
   /// Transcribe-in parent answers by position (a parent with children never
   /// answers by id), and the dispatcher checks it is really the parent.
   static const _actRename = 'act:rename';
+  static const _actExport = 'act:export';
   static const _actRetranscribe = 'act:retranscribe';
   static const _actDelete = 'act:delete';
+  static const _actionIds = {_actRename, _actExport, _actRetranscribe, _actDelete};
 
   List<AppMenuItem> _menuItems(
     Entry entry,
@@ -114,6 +117,7 @@ class _DetailViewState extends State<_DetailView> {
     String preselected,
   ) => [
     AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
+    AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
     if (entry.hasAudio) ...[
       AppMenuItem(
         id: _actRetranscribe,
@@ -147,12 +151,12 @@ class _DetailViewState extends State<_DetailView> {
   void _onMenuId(String id, Entry entry) {
     // Anything act:-prefixed is an action row; an unknown one must never fall
     // through to the language branch and re-transcribe with a bogus locale.
-    if (id.startsWith('act:') && id != _actRename && id != _actRetranscribe && id != _actDelete) {
-      return;
-    }
+    if (id.startsWith('act:') && !_actionIds.contains(id)) return;
     switch (id) {
       case _actRename:
         _titleFocus.requestFocus();
+      case _actExport:
+        unawaited(showEntryExportSheet(context, entry));
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.

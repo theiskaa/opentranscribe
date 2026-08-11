@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
@@ -84,6 +85,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       return;
     }
     if (state != AppLifecycleState.resumed) return;
+    // A no-op once the launch pass has completed. It does anything only when
+    // the audio sweep did not walk the whole directory (a capture was live or
+    // finalizing, or the sweep threw), leaving an orphan no UI can reach; the
+    // rerun then repeats all three passes, which the two below deliberately
+    // duplicate because each is single-flighted and a no-op when idle.
+    unawaited(Deps.launchMaintenance());
     // Reflect any week that closed while the app was away. Single-flighted and
     // a no-op when there is nothing due; never throws.
     unawaited(Deps.i.reflectionService.catchUp());
@@ -101,13 +108,23 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
+        // Lazy on purpose. `lazy: false` reads the value inside THIS build, so a
+        // cubit whose constructor decrypts the journal (EntriesCubit, HomeCubit)
+        // would pay for it in the frame the splash is waiting to commit, which
+        // is the frame launch is measured by.
         BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
-        // routes) share one instance.
+        // routes) share one instance. The exception to the rule above: its
+        // constructor seeds from three synchronous settings reads and then
+        // fires an UNAWAITED load, so building it here costs this frame
+        // microseconds rather than a journal decrypt, and its language list is
+        // ready before the first recording instead of populating under the
+        // user's eyes.
         BlocProvider(
+          lazy: false,
           create: (_) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
@@ -161,7 +178,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                   // a seamless cut.
                   content = SplashScreen(
                     onFinished: () {
-                      if (mounted) setState(() => _splashDone = true);
+                      if (!mounted) return;
+                      LaunchTrace.mark('splash'); // TEMP
+                      setState(() => _splashDone = true);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        LaunchTrace.mark('home'); // TEMP
+                        LaunchTrace.dump(); // TEMP
+                        // Only now: each of these decrypts the whole journal,
+                        // and the frames before this one are the ones the user
+                        // is watching.
+                        unawaited(Deps.launchMaintenance());
+                      });
                     },
                   );
                 } else {

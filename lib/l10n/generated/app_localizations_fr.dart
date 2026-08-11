@@ -12,8 +12,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Tout reste sur cet appareil. Aucun compte, aucun cloud, aucun réseau.';
+  String get launchFailedTitle => 'Démarrage impossible';
+
+  @override
+  String get launchFailedBody =>
+      'Un élément nécessaire au lancement n\'a pas pu être chargé. Fermez l\'app depuis le sélecteur d\'apps, puis rouvrez-la ; si cela ne suffit pas, redémarrez le téléphone.';
 
   @override
   String get entryUntranscribed => 'Non transcrit';
@@ -609,4 +612,184 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Demander un thème sur GitHub';
+
+  @override
+  String get exportEntry => 'Exporter';
+
+  @override
+  String get exportEntryTitle => 'Exporter l\'entrée';
+
+  @override
+  String get exportIncludeAudio => 'Inclure l\'audio';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'Un fichier texte par entrée, plus .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notes avec propriétés et audio intégré.';
+
+  @override
+  String get exportFormatWeb => 'Site web';
+
+  @override
+  String get exportFormatWebNote => 'S\'ouvre dans un navigateur, avec lecteur.';
+
+  @override
+  String get exportFailedTitle => 'Échec de l\'export';
+
+  @override
+  String get exportFailedBody => 'Impossible de préparer les fichiers. Rien n\'a été partagé.';
+
+  @override
+  String get exportUntitled => 'Sans titre';
+
+  @override
+  String get exportTranscriptHeading => 'Transcription';
+
+  @override
+  String get exportQuiet => 'Une période calme.';
+
+  @override
+  String get settingsBackup => 'Sauvegarde';
+
+  @override
+  String get backupInfo =>
+      'Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Une sauvegarde contient vos $count entrées avec leur audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
+      one:
+          'Une sauvegarde contient votre unique entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
+      zero:
+          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Exporter le journal';
+
+  @override
+  String get backupExportInfo =>
+      'Écrit chaque entrée dans le format choisi, audio compris, en zip pour la feuille de partage. Une copie pour d\'autres apps ; restaurer demande une sauvegarde.';
+
+  @override
+  String get backupSeal => 'Chiffrer avec une phrase secrète';
+
+  @override
+  String get backupSave => 'Enregistrer la sauvegarde';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Dernière sauvegarde $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Chiffrer la sauvegarde';
+
+  @override
+  String get passphraseCreateBody =>
+      'La phrase secrète est la seule clé. Elle n\'est stockée nulle part ; sans elle, la sauvegarde n\'est que du bruit.';
+
+  @override
+  String get passphrasePlaceholder => 'Phrase secrète';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Répéter la phrase secrète';
+
+  @override
+  String get passphraseTooShort => 'Au moins 8 caractères';
+
+  @override
+  String get passphraseMismatch => 'Les phrases secrètes ne correspondent pas';
+
+  @override
+  String get importUnlockTitle => 'Sauvegarde chiffrée';
+
+  @override
+  String get importUnlockBody =>
+      'Saisissez la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
+
+  @override
+  String get importUnlock => 'Déverrouiller';
+
+  @override
+  String get importWrongPassphrase =>
+      'Déverrouillage impossible. Phrase secrète erronée, ou fichier endommagé.';
+
+  @override
+  String get importConfirmTitle => 'Restaurer cette sauvegarde ?';
+
+  @override
+  String get importConfirmBody =>
+      'Ajoute ses entrées à votre journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
+
+  @override
+  String get importConfirm => 'Restaurer';
+
+  @override
+  String get importSummaryTitle => 'Restauration terminée';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées restaurées.',
+      one: '1 entrée restaurée.',
+      zero: 'Rien de nouveau à restaurer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées étaient déjà dans le journal.',
+      one: '1 entrée était déjà dans le journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Échec de la restauration';
+
+  @override
+  String get importFailedBody =>
+      'La sauvegarde n\'a pas pu être lue. Rien dans le journal n\'a été modifié.';
+
+  @override
+  String get importNotArchive =>
+      'Ce n\'est pas une sauvegarde OpenTranscribe. Rien dans le journal n\'a été modifié.';
+
+  @override
+  String get importNewerVersion =>
+      'Créée par une version plus récente de l\'app. Mettez à jour pour l\'importer.';
+
+  @override
+  String get importRezipped =>
+      'Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.';
+
+  @override
+  String get done => 'OK';
+
+  @override
+  String get importFailedMidway =>
+      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
 }

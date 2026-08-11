@@ -14,6 +14,7 @@ import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
 import 'package:opentranscribe/view/layouts/reflections/screens/reflections_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/appearance_screen.dart';
+import 'package:opentranscribe/view/layouts/settings/screens/backup_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
@@ -92,6 +93,12 @@ class AppRouter {
         name: Routes.settingsCacheName,
         pageBuilder: (context, state) =>
             SlidePage<void>(key: state.pageKey, child: const CacheScreen()),
+      ),
+      GoRoute(
+        path: Routes.settingsBackup,
+        name: Routes.settingsBackupName,
+        pageBuilder: (context, state) =>
+            SlidePage<void>(key: state.pageKey, child: const BackupScreen()),
       ),
       GoRoute(
         path: Routes.settingsNotifications,

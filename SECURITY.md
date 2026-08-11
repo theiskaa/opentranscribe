@@ -1,6 +1,6 @@
 # Security Policy
 
-opentranscribe is a private, offline voice journal. It records audio, transcribes and reflects on it entirely on-device, and stores everything locally. It makes no network calls and has no server, no account, and no analytics. Because the whole promise is that nothing leaves the phone, the bugs that matter most are the ones that would break that promise or expose the journal on the device. Reports are appreciated.
+opentranscribe is a private, offline voice journal. It records audio, transcribes and reflects on it on-device, and stores everything locally. It makes no network calls and has no server, no account, and no analytics. The bugs that matter most here are the ones that would send data off the device or expose the journal on it. Reports are appreciated.
 
 ## Reporting a vulnerability
 
@@ -18,19 +18,19 @@ A useful report includes:
 
 Please give a reasonable window to investigate and address the issue before any public disclosure. You will get an acknowledgement, updates as the fix progresses, and credit in the release notes if you would like it.
 
-## The trust model, so expectations are clear
+## Trust model
 
 A few design choices define what security means here:
 
-- **Nothing leaves the device.** The app has no network layer by design and is meant to work fully in airplane mode. Recording, transcription, reflection, and storage all happen on-device. Any code path, dependency, or SDK that opens a network connection or transmits data off-device contradicts the entire point of the app, so that is the single sharpest edge and the highest-value class of bug.
+- **Nothing leaves the device.** The app has no network layer and is meant to work with the phone in airplane mode. Recording, transcription, reflection, and storage all happen on-device. Any code path, dependency, or SDK that opens a network connection or transmits data off-device is a bug, and the most serious kind in this app.
 - **Your data lives on your device.** Audio and transcripts are stored in the app's own on-device storage. Entries and settings are encrypted at rest with AES-256-GCM through `LocalService`, under a random 32-byte key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`). That key never appears in the binary and never leaves the device. Records written before the device key existed migrate to the new format in place at launch. `STORAGE_KEY`, a build-time secret, remains only to read and migrate those pre-migration records.
-- **The transcription engine is on-device and swappable.** The first engine is Apple's on-device Speech framework, reached through a platform channel; a vendored whisper.cpp engine may follow. Neither uploads audio. The engine sits behind one contract, and no data ever routes through a remote service.
+- **The engines are on-device and swappable.** Transcription runs on Apple's Speech framework, reached through a platform channel, and a vendored whisper.cpp engine may follow. Reflection runs on Apple's Foundation Models, on-device, with no Private Cloud Compute fallback. Both sit behind a contract that refuses an engine which does not declare itself on-device, and neither uploads audio.
 
 ## Areas of particular interest
 
-If you are looking for where the sharp edges are, these are the surfaces where a vulnerability would matter most:
+The surfaces where a vulnerability would matter most:
 
-- **Anything that reaches the network.** A direct or transitive dependency, a platform-channel call, or any code that opens a socket, resolves a host, or sends telemetry. Given the app's promise, a confirmed off-device transmission is the most serious bug there is.
+- **Anything that reaches the network.** A direct or transitive dependency, a platform-channel call, or any code that opens a socket, resolves a host, or sends telemetry. A confirmed off-device transmission is the most serious report this project can get.
 - **Data at rest.** How audio files and transcripts are written and protected on the device, file permissions and iOS Data Protection settings, and the `LocalService` encryption and its key handling.
 - **The native bridge.** The platform-channel code between Dart and the native Speech framework (and later the vendored whisper.cpp), including audio buffer handling and any memory safety in native code.
 - **Untrusted-input parsers.** Audio and any imported or exported data decoded by the app or the transcription engine. A crash, an out-of-bounds read, or unbounded memory growth on crafted input is in scope.

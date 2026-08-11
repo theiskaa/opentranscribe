@@ -62,7 +62,8 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 - `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), onboarding flags.
 - `core/audio/`: the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations, plus the recording/playback value types.
-- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`).
+- `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
+- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
 - `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, keeping recorder, engine and store private inside it), `entry_store.dart`, and the settings holders.
 - `core/state/`: one cubit per concern.
@@ -73,6 +74,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 `lib/view/`, everything UI:
 
 - `view/app.dart`: the root `App` widget (`WidgetsApp.router`, no Material or Cupertino app shell), which provides the cubits above the router.
+- `view/launch_failure_app.dart`: the other root, handed to `runApp` when `Deps.init()` throws. It stands beside `app.dart` because it must reach no cubit, router, or storage: those are what failed.
 - `view/layouts/<domain>/screens/<name>_screen.dart`: full screens, `<Name>Screen` class names.
 - `view/layouts/<domain>/components/`: widgets private to that domain.
 - `view/widgets/`: the shared, reusable widget set (the design system).
@@ -87,7 +89,8 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 - Access anywhere: `Deps.i.localService`, `Deps.i.transcriptionService`, `Deps.i.router`.
 - Add a dependency: give it a typed field on `Deps`, construct it in `Deps.init()`. That is the whole ceremony.
-- `Deps.init()` runs once, before `runApp`, and is where launch-time repair belongs (cancelling a stale native capture session, reconciling orphaned audio). Anything that must not block launch goes in `unawaited`.
+- `Deps.init()` runs once, before `runApp`, and holds only what the first frame cannot be built without. Anything that must not block launch goes in `unawaited`.
+- Launch-time repair (reconciling orphaned audio, healing dangling records, the reflection catch-up) belongs in `Deps.launchMaintenance()`, not in `init`: every pass decrypts the whole journal, so it must not run on the frames the user is watching. The app root calls it once the first frames are on screen, and again on foreground when a pass was cut short.
 - Do not reintroduce `get_it`/`injectable`, and do not use context-based DI (`provider`, `RepositoryProvider`, Riverpod `ref`) for wiring. `BlocProvider` is fine for scoping cubits to the widget tree.
 
 ## UI rules

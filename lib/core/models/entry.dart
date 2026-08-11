@@ -115,6 +115,21 @@ final class Entry {
     languageSpans: languageSpans,
   );
 
+  /// Returns a copy referencing [audioPath] instead. Import uses it when a
+  /// restored recording must land under a fresh filename because the original
+  /// basename already belongs to a different entry.
+  Entry withAudioPath(String audioPath) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    peaks: peaks,
+    languageSpans: languageSpans,
+  );
+
   /// Returns a copy with the audio reference dropped: the transcript-only form
   /// an entry takes after its recording is discarded under keep-audio off.
   Entry withoutAudio() => Entry(

@@ -12,7 +12,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => 'すべてこの端末内に保存されます。アカウントもクラウドも通信もありません。';
+  String get launchFailedTitle => '起動できませんでした';
+
+  @override
+  String get launchFailedBody =>
+      '起動に必要なものを読み込めませんでした。App スイッチャーでアプリを終了してから開き直してください。直らないときは端末を再起動してください。';
 
   @override
   String get entryUntranscribed => '文字起こし未実行';
@@ -570,4 +574,168 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'GitHub でテーマをリクエスト';
+
+  @override
+  String get exportEntry => '書き出す';
+
+  @override
+  String get exportEntryTitle => 'エントリーを書き出す';
+
+  @override
+  String get exportIncludeAudio => '音声を含める';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+
+  @override
+  String get exportFormatWeb => 'Webサイト';
+
+  @override
+  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
+
+  @override
+  String get exportFailedTitle => '書き出しに失敗しました';
+
+  @override
+  String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
+
+  @override
+  String get exportUntitled => '無題';
+
+  @override
+  String get exportTranscriptHeading => '文字起こし';
+
+  @override
+  String get exportQuiet => '静かなひととき。';
+
+  @override
+  String get settingsBackup => 'バックアップ';
+
+  @override
+  String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
+      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '書き出し';
+
+  @override
+  String get backupExportJournal => 'ジャーナルを書き出す';
+
+  @override
+  String get backupExportInfo =>
+      'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
+
+  @override
+  String get backupSeal => 'パスフレーズで暗号化';
+
+  @override
+  String get backupSave => 'バックアップを保存';
+
+  @override
+  String backupLastBackup(String date) {
+    return '前回のバックアップ $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'バックアップを暗号化';
+
+  @override
+  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければバックアップはただのノイズです。';
+
+  @override
+  String get passphrasePlaceholder => 'パスフレーズ';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'パスフレーズを再入力';
+
+  @override
+  String get passphraseTooShort => '8文字以上';
+
+  @override
+  String get passphraseMismatch => 'パスフレーズが一致しません';
+
+  @override
+  String get importUnlockTitle => '暗号化されたバックアップ';
+
+  @override
+  String get importUnlockBody => 'このバックアップを暗号化したパスフレーズを入力してください。';
+
+  @override
+  String get importUnlock => '解錠';
+
+  @override
+  String get importWrongPassphrase => '解錠できませんでした。パスフレーズが違うか、ファイルが破損しています。';
+
+  @override
+  String get importConfirmTitle => 'このバックアップを復元しますか？';
+
+  @override
+  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
+
+  @override
+  String get importConfirm => '復元';
+
+  @override
+  String get importSummaryTitle => '復元完了';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のエントリーを復元しました。',
+      zero: '新しく復元するものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は既にジャーナルにありました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '復元に失敗しました';
+
+  @override
+  String get importFailedBody => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNotArchive => 'OpenTranscribeのバックアップではありません。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNewerVersion => 'より新しいバージョンのアプリで作られています。更新してから読み込んでください。';
+
+  @override
+  String get importRezipped => 'このバックアップは別のツールで再圧縮されています。新しく保存したものを復元してください。';
+
+  @override
+  String get done => '完了';
+
+  @override
+  String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 }

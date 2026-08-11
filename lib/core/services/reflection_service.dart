@@ -78,6 +78,60 @@ class ReflectionService {
   /// surface can refresh its history.
   Stream<void> get reflectionsChanged => _changed.stream;
 
+  /// The archive-fidelity read: rows, tombstones, and the per-period
+  /// no-backfill floors. Tombstones and floors ride along because they are
+  /// what make a restore honest: without tombstones the catch-up re-reflects
+  /// erased periods, and without floors it either backfills nothing or churns
+  /// pre-feature history.
+  ReflectionArchive archiveSnapshot() => ReflectionArchive(
+    rows: _store.all(),
+    tombstones: _store.deletedRefs(),
+    floors: {
+      for (final period in ReflectionPeriod.values)
+        if (_settings.floorRecordedFor(period) && _settings.floorFor(period) != null)
+          period: _settings.floorFor(period)!,
+    },
+  );
+
+  /// Applies an archive's reflection state, keeping this service the one
+  /// writer: rows overwrite by (period, start) and clear any local tombstone;
+  /// tombstones erase, skipped when the same archive carries a row for the
+  /// key (rows are data, and an inconsistent archive must resolve
+  /// deterministically); a floor only ever moves EARLIER, since an earlier
+  /// floor is more history legitimately reflectable and a later one would
+  /// silently orphan reflectable periods. Idempotent: re-applying the same
+  /// archive changes nothing. Fires [reflectionsChanged] once when anything
+  /// changed; returns how many rows, tombstones and floors were applied.
+  Future<int> adoptImportedReflections(ReflectionArchive archive) async {
+    var applied = 0;
+    final rowKeys = {for (final row in archive.rows) (row.period, row.periodKey)};
+    for (final row in archive.rows) {
+      if (_store.read(row.periodStart, period: row.period) == row) continue;
+      await _store.save(row);
+      applied++;
+    }
+    final erased = {
+      for (final ref in _store.deletedRefs()) (ref.period, Reflection.keyFor(ref.start)),
+    };
+    for (final tombstone in archive.tombstones) {
+      final key = (tombstone.period, Reflection.keyFor(tombstone.start));
+      if (rowKeys.contains(key)) continue;
+      final hasRow = _store.read(tombstone.start, period: tombstone.period) != null;
+      if (!hasRow && erased.contains(key)) continue;
+      await _store.delete(tombstone.start, period: tombstone.period);
+      applied++;
+    }
+    for (final floor in archive.floors.entries) {
+      final local = _settings.floorFor(floor.key);
+      final recorded = _settings.floorRecordedFor(floor.key);
+      if (recorded && local != null && !floor.value.isBefore(local)) continue;
+      await _settings.setFloorFor(floor.key, floor.value);
+      applied++;
+    }
+    if (applied > 0 && !_changed.isClosed) _changed.add(null);
+    return applied;
+  }
+
   /// Single-flights [catchUp]: a resume racing the launch kick must not run
   /// twice. A call landing mid-flight is coalesced into one trailing pass, so
   /// a backlog request that raced a running catch-up is still covered by the
@@ -516,4 +570,21 @@ class ReflectionService {
   }
 
   Future<void> dispose() => _changed.close();
+}
+
+/// Everything an archive carries about reflections: the stored rows, the
+/// user's erasures, and where each period's backfill legitimately stops.
+@immutable
+final class ReflectionArchive {
+  ReflectionArchive({
+    required List<Reflection> rows,
+    required List<({ReflectionPeriod period, DateTime start})> tombstones,
+    required Map<ReflectionPeriod, DateTime> floors,
+  }) : rows = List.unmodifiable(rows),
+       tombstones = List.unmodifiable(tombstones),
+       floors = Map.unmodifiable(floors);
+
+  final List<Reflection> rows;
+  final List<({ReflectionPeriod period, DateTime start})> tombstones;
+  final Map<ReflectionPeriod, DateTime> floors;
 }

@@ -185,7 +185,17 @@ class SettingsCubit extends Cubit<SettingsState> {
   }) : _service = service,
        _transcription = transcription,
        _audioStorage = audioStorage,
-       super(const SettingsState()) {
+       // Seeded from the synchronous holders rather than defaulted: [load] needs
+       // four channel round trips to answer, and a Cache screen that renders
+       // "keep audio on" for a second before flipping itself off is telling the
+       // user their setting is something it is not.
+       super(
+         SettingsState(
+           localeId: transcription.localeId,
+           backupExcluded: audioStorage.backupExcluded,
+           keepAudio: audioStorage.keepAudio,
+         ),
+       ) {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());

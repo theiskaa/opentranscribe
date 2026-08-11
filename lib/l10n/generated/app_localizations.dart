@@ -114,11 +114,17 @@ abstract class AppLocalizations {
   /// **'OpenTranscribe'**
   String get appTitle;
 
-  /// Settings note describing the offline promise
+  /// Title of the screen shown when startup failed before the app was ready to open
   ///
   /// In en, this message translates to:
-  /// **'Everything stays on this device. No account, no cloud, no network.'**
-  String get settingsOffline;
+  /// **'Could not start'**
+  String get launchFailedTitle;
+
+  /// What the user can do about a failed startup. 'App switcher' is the iOS App Switcher; use Apple's official term for it in this locale
+  ///
+  /// In en, this message translates to:
+  /// **'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.'**
+  String get launchFailedBody;
 
   /// One-word placeholder for an untranscribed entry's excerpt in the home list
   ///
@@ -1169,6 +1175,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
+
+  /// Menu row and button label for exporting one entry
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportEntry;
+
+  /// Entry export sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export entry'**
+  String get exportEntryTitle;
+
+  /// Toggle for bundling the recording with an export
+  ///
+  /// In en, this message translates to:
+  /// **'Include audio'**
+  String get exportIncludeAudio;
+
+  /// Name of the Markdown export format. A format is named by its makers: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown'**
+  String get exportFormatMarkdown;
+
+  /// One line under the Markdown format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'One text file per entry, plus a .json.'**
+  String get exportFormatMarkdownNote;
+
+  /// Name of the Obsidian export format. A product name: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Obsidian'**
+  String get exportFormatObsidian;
+
+  /// One line under the Obsidian format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes with properties, audio embedded.'**
+  String get exportFormatObsidianNote;
+
+  /// The app's own name for the HTML export format; a plain noun, so it translates
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get exportFormatWeb;
+
+  /// One line under the web page format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'Opens in any browser, with a player.'**
+  String get exportFormatWebNote;
+
+  /// Export failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get exportFailedTitle;
+
+  /// Export failure explanation; nothing left the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the files. Nothing was shared.'**
+  String get exportFailedBody;
+
+  /// File and heading fallback for an entry with no title
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get exportUntitled;
+
+  /// Markdown heading over the exported transcript
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get exportTranscriptHeading;
+
+  /// How a silent reflection reads in an export
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet stretch.'**
+  String get exportQuiet;
+
+  /// Home menu row opening the Backup screen
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get settingsBackup;
+
+  /// Backup screen intro: what a backup holds and what encryption does
+  ///
+  /// In en, this message translates to:
+  /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
+  String get backupInfo;
+
+  /// The Backup screen intro once the entry count is measured
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
+  String backupInfoCount(int count);
+
+  /// Section label over the format picker and export row
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get backupExportSection;
+
+  /// Action row exporting the whole journal in the chosen format
+  ///
+  /// In en, this message translates to:
+  /// **'Export journal'**
+  String get backupExportJournal;
+
+  /// Help paragraph under the export card
+  ///
+  /// In en, this message translates to:
+  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
+  String get backupExportInfo;
+
+  /// Toggle for sealing archives with a passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt with passphrase'**
+  String get backupSeal;
+
+  /// The Backup section row that saves a backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Save backup'**
+  String get backupSave;
+
+  /// Detail under Save backup showing when the last backup was handed off
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup {date}'**
+  String backupLastBackup(String date);
+
+  /// Sealing passphrase sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt the backup'**
+  String get passphraseCreateTitle;
+
+  /// Sealing passphrase sheet body: the passphrase is the only key
+  ///
+  /// In en, this message translates to:
+  /// **'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.'**
+  String get passphraseCreateBody;
+
+  /// Passphrase field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase'**
+  String get passphrasePlaceholder;
+
+  /// Confirmation field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat passphrase'**
+  String get passphraseRepeatPlaceholder;
+
+  /// Footnote while the passphrase is under the minimum length
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters'**
+  String get passphraseTooShort;
+
+  /// Footnote while the two passphrase fields differ
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases do not match'**
+  String get passphraseMismatch;
+
+  /// Unlock sheet title for a sealed archive
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup'**
+  String get importUnlockTitle;
+
+  /// Unlock sheet body asking for the sealing passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the passphrase this backup was encrypted with.'**
+  String get importUnlockBody;
+
+  /// Unlock sheet action button
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get importUnlock;
+
+  /// Unlock retry error; GCM cannot tell wrong passphrase from damage
+  ///
+  /// In en, this message translates to:
+  /// **'Could not unlock. Wrong passphrase, or a damaged file.'**
+  String get importWrongPassphrase;
+
+  /// Import confirmation sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get importConfirmTitle;
+
+  /// Import confirmation body: additive, nothing touched
+  ///
+  /// In en, this message translates to:
+  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
+  String get importConfirmBody;
+
+  /// Import confirmation action button
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get importConfirm;
+
+  /// Import summary sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore complete'**
+  String get importSummaryTitle;
+
+  /// Summary line for how many entries were imported
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
+  String importSummaryImported(int count);
+
+  /// Summary line for entries already present, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
+  String importSummarySkipped(int count);
+
+  /// Import failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed'**
+  String get importFailedTitle;
+
+  /// Generic import failure body; journal unchanged
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be read. Nothing in the journal was changed.'**
+  String get importFailedBody;
+
+  /// Failure body for a file that is not an archive
+  ///
+  /// In en, this message translates to:
+  /// **'Not an OpenTranscribe backup. Nothing in the journal was changed.'**
+  String get importNotArchive;
+
+  /// Failure body for an archive from a newer app version
+  ///
+  /// In en, this message translates to:
+  /// **'Made by a newer version of the app. Update to import it.'**
+  String get importNewerVersion;
+
+  /// Failure body for an archive re-compressed by another tool
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
+  String get importRezipped;
+
+  /// Generic dismiss button
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// Failure body when adoption already wrote; restored entries are kept
+  ///
+  /// In en, this message translates to:
+  /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
+  String get importFailedMidway;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

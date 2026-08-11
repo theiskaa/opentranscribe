@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
@@ -130,6 +132,10 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
   Widget build(BuildContext context) {
     final sheet = context.theme.sheet;
     final radius = BorderRadius.vertical(top: Radius.circular(sheet.radius));
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // No framework scaffold insets for the IME here, so a sheet holding a
+    // text field must clear the keyboard itself.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -143,7 +149,12 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
           child: ConstrainedBox(
             key: _panel,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * sheet.maxHeightFraction,
+              // The panel stays flush to the bottom edge and grows by the
+              // keyboard inset instead of being lifted clear of it: its own
+              // fill then covers the gap the IME's animation curve would
+              // otherwise open under it. The visible part above the
+              // keyboard is still capped at the fraction.
+              maxHeight: math.min(screenHeight, screenHeight * sheet.maxHeightFraction + keyboard),
             ),
             child: Container(
               width: double.infinity,
@@ -171,7 +182,10 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
                           AppSpacing.xxl,
                           AppSpacing.xxl,
                           AppSpacing.xxl,
-                          MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                          // Under a keyboard the framework already zeroes
+                          // padding.bottom, so this clears the IME; without
+                          // one it clears the home indicator.
+                          keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
                         ),
                         child: widget.builder(context),
                       ),

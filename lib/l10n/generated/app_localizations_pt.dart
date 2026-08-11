@@ -12,7 +12,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => 'Tudo permanece neste dispositivo. Sem conta, sem nuvem, sem rede.';
+  String get launchFailedTitle => 'Não foi possível iniciar';
+
+  @override
+  String get launchFailedBody =>
+      'Algo de que a app precisa no arranque não carregou. Feche a app no alternador de apps e volte a abri-la; se não resolver, reinicie o telemóvel.';
 
   @override
   String get entryUntranscribed => 'Sem transcrição';
@@ -562,7 +566,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get notifyReflectionsInfo =>
-      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no teu dispositivo; nada é enviado para lado nenhum.';
+      'Um lembrete quando uma nova reflexão está pronta para ler. Surge no seu dispositivo; nada é enviado para lado nenhum.';
 
   @override
   String get notifyTime => 'Hora';
@@ -574,22 +578,22 @@ class AppLocalizationsPt extends AppLocalizations {
   String get notifyOpenSettings => 'Abrir Definições';
 
   @override
-  String get notifyDailyTitle => 'O teu dia está pronto';
+  String get notifyDailyTitle => 'O seu dia está pronto';
 
   @override
-  String get notifyDailyBody => 'Abre para ler a reflexão de ontem.';
+  String get notifyDailyBody => 'Abra para ler a reflexão de ontem.';
 
   @override
-  String get notifyWeeklyTitle => 'A tua semana está pronta';
+  String get notifyWeeklyTitle => 'A sua semana está pronta';
 
   @override
-  String get notifyWeeklyBody => 'Abre para ler a reflexão da semana passada.';
+  String get notifyWeeklyBody => 'Abra para ler a reflexão da semana passada.';
 
   @override
-  String get notifyMonthlyTitle => 'O teu mês está pronto';
+  String get notifyMonthlyTitle => 'O seu mês está pronto';
 
   @override
-  String get notifyMonthlyBody => 'Abre para ler a reflexão do mês passado.';
+  String get notifyMonthlyBody => 'Abra para ler a reflexão do mês passado.';
 
   @override
   String get notifyNeedsReflections =>
@@ -604,8 +608,188 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'Queres o OpenTranscribe num tema que não está aqui? Abre uma issue no GitHub e vamos adicioná-lo numa versão futura.';
+      'Quer o OpenTranscribe num tema que não está aqui? Abra uma issue no GitHub e vamos adicioná-lo numa versão futura.';
 
   @override
   String get themeRequestLink => 'Pedir um tema no GitHub';
+
+  @override
+  String get exportEntry => 'Exportar';
+
+  @override
+  String get exportEntryTitle => 'Exportar a entrada';
+
+  @override
+  String get exportIncludeAudio => 'Incluir o áudio';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'Um ficheiro de texto por entrada e .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notas com propriedades e áudio.';
+
+  @override
+  String get exportFormatWeb => 'Site web';
+
+  @override
+  String get exportFormatWebNote => 'Abre em qualquer navegador, com leitor.';
+
+  @override
+  String get exportFailedTitle => 'A exportação falhou';
+
+  @override
+  String get exportFailedBody => 'Não foi possível preparar os ficheiros. Nada foi partilhado.';
+
+  @override
+  String get exportUntitled => 'Sem título';
+
+  @override
+  String get exportTranscriptHeading => 'Transcrição';
+
+  @override
+  String get exportQuiet => 'Um período calmo.';
+
+  @override
+  String get settingsBackup => 'Cópia de segurança';
+
+  @override
+  String get backupInfo =>
+      'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Uma cópia de segurança guarda as suas $count entradas com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
+      one:
+          'Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
+      zero:
+          'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Exportação';
+
+  @override
+  String get backupExportJournal => 'Exportar o diário';
+
+  @override
+  String get backupExportInfo =>
+      'Escreve cada entrada no formato escolhido, áudio incluído, num zip para a folha de partilha. Uma cópia para outras apps; restaurar exige uma cópia de segurança.';
+
+  @override
+  String get backupSeal => 'Encriptar com frase-passe';
+
+  @override
+  String get backupSave => 'Guardar cópia de segurança';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Última cópia $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Encriptar a cópia de segurança';
+
+  @override
+  String get passphraseCreateBody =>
+      'A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, a cópia é ruído.';
+
+  @override
+  String get passphrasePlaceholder => 'Frase-passe';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Repetir a frase-passe';
+
+  @override
+  String get passphraseTooShort => 'Pelo menos 8 caracteres';
+
+  @override
+  String get passphraseMismatch => 'As frases-passe não coincidem';
+
+  @override
+  String get importUnlockTitle => 'Cópia de segurança encriptada';
+
+  @override
+  String get importUnlockBody =>
+      'Introduza a frase-passe com que esta cópia de segurança foi encriptada.';
+
+  @override
+  String get importUnlock => 'Desbloquear';
+
+  @override
+  String get importWrongPassphrase =>
+      'Não foi possível desbloquear. Frase-passe errada, ou ficheiro danificado.';
+
+  @override
+  String get importConfirmTitle => 'Restaurar esta cópia de segurança?';
+
+  @override
+  String get importConfirmBody =>
+      'Acrescenta as entradas da cópia ao seu diário. Restaurar a mesma cópia duas vezes nunca duplica.';
+
+  @override
+  String get importConfirm => 'Restaurar';
+
+  @override
+  String get importSummaryTitle => 'Restauro concluído';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas restauradas.',
+      one: '1 entrada restaurada.',
+      zero: 'Nada de novo para restaurar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas já estavam no diário.',
+      one: '1 entrada já estava no diário.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'O restauro falhou';
+
+  @override
+  String get importFailedBody =>
+      'Não foi possível ler a cópia de segurança. Nada no diário foi alterado.';
+
+  @override
+  String get importNotArchive =>
+      'Não é uma cópia de segurança OpenTranscribe. Nada no diário foi alterado.';
+
+  @override
+  String get importNewerVersion =>
+      'Criado por uma versão mais recente da app. Atualize para o importar.';
+
+  @override
+  String get importRezipped =>
+      'Esta cópia de segurança foi re-comprimida por outra ferramenta. Guarde uma nova e restaure essa.';
+
+  @override
+  String get done => 'Concluído';
+
+  @override
+  String get importFailedMidway =>
+      'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 }

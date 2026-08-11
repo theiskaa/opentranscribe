@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
 import 'package:opentranscribe/core/reflect/reflection_engine.dart';
@@ -23,6 +24,7 @@ import 'package:opentranscribe/view/layouts/reflections/components/reflection_st
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
@@ -45,6 +47,7 @@ import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/animated_reveal.dart';
+import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
@@ -60,13 +63,17 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
+  final TextEditingController _secret = TextEditingController();
   bool _toggle = true;
   bool _reveal = true;
+  bool _busyRow = false;
   int _segment = 1;
   int _page = 0;
   String? _notice;
   int _hour = 9;
   int _minute = 0;
+  String _formatId = Deps.i.exporterDescriptors.first.exporterId;
+  String _language = 'en-GB';
 
   static const _icons = [
     AppIcons.micFill,
@@ -101,6 +108,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   void dispose() {
     _text.dispose();
+    _secret.dispose();
     super.dispose();
   }
 
@@ -172,6 +180,36 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 selected: _segment,
                 onChanged: (v) => setState(() => _segment = v),
               ),
+              _section('Selectable rows'),
+              SettingsCard(
+                children: [
+                  for (final tag in const ['en-GB', 'de-DE'])
+                    SelectableRow(
+                      label: localeDisplayName(tag),
+                      flag: localeFlag(tag),
+                      selected: _language == tag,
+                      onTap: () => setState(() => _language = tag),
+                    ),
+                  SelectableRow(
+                    label: 'Unsupported here',
+                    flag: localeFlag('ja-JP'),
+                    selected: false,
+                    dimmed: true,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              _section('Export formats'),
+              SettingsCard(
+                children: [
+                  for (final descriptor in Deps.i.exporterDescriptors)
+                    ExportFormatRow(
+                      descriptor: descriptor,
+                      selected: descriptor.exporterId == _formatId,
+                      onTap: () => setState(() => _formatId = descriptor.exporterId),
+                    ),
+                ],
+              ),
               _section('Time field'),
               SettingsCard(
                 children: [
@@ -222,6 +260,73 @@ class _GalleryScreenState extends State<GalleryScreen> {
               ),
               _section('Text field'),
               AppTextField(controller: _text, placeholder: 'Entry title'),
+              const SizedBox(height: AppSpacing.sm),
+              AppTextField(controller: _secret, placeholder: 'Passphrase', obscureText: true),
+              _section('Busy row'),
+              SettingsCard(
+                children: [
+                  SettingsBusyRow(
+                    icon: AppIcons.squareAndArrowUp,
+                    label: 'Save backup',
+                    detail: 'Last backup Aug 7',
+                    busy: _busyRow,
+                    onTap: () => setState(() => _busyRow = !_busyRow),
+                  ),
+                  const SettingsDivider(),
+                  SettingsBusyRow(
+                    icon: AppIcons.trash,
+                    label: 'Clear cache',
+                    busy: false,
+                    tint: context.theme.danger,
+                    onTap: () {},
+                  ),
+                  const SettingsDivider(),
+                  const SettingsBusyRow(
+                    icon: AppIcons.internaldrive,
+                    label: 'Disabled',
+                    busy: false,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              _section('Passphrase sheet'),
+              Row(
+                children: [
+                  AppButton(
+                    label: 'Create',
+                    variant: AppButtonVariant.secondary,
+                    expand: false,
+                    onPressed: () => showPassphraseSheet(
+                      context,
+                      strings: const PassphraseSheetStrings.seal(
+                        title: 'Seal the archive',
+                        body: 'The passphrase is the only key. It is not stored anywhere.',
+                        placeholder: 'Passphrase',
+                        repeatPlaceholder: 'Repeat passphrase',
+                        actionLabel: 'Export',
+                        tooShort: 'At least 8 characters',
+                        mismatch: 'Passphrases do not match',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AppButton(
+                    label: 'Unlock',
+                    variant: AppButtonVariant.secondary,
+                    expand: false,
+                    onPressed: () => showPassphraseSheet(
+                      context,
+                      strings: const PassphraseSheetStrings.unlock(
+                        title: 'Sealed archive',
+                        body: 'Enter the passphrase this archive was sealed with.',
+                        placeholder: 'Passphrase',
+                        actionLabel: 'Unlock',
+                      ),
+                      errorText: 'Could not unlock. Wrong passphrase, or a damaged file.',
+                    ),
+                  ),
+                ],
+              ),
               _section('Spinner'),
               const Align(alignment: Alignment.centerLeft, child: AppSpinner()),
               _section('Page indicator'),
