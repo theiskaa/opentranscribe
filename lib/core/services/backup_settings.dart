@@ -30,13 +30,13 @@ class BackupSettings {
 
   Future<void> setFormatId(String id) => _storage.write(_formatKey, id);
 
-  /// Whether the archive action seals with a passphrase. Off by default:
-  /// encryption is the user's explicit opt-in.
+  /// Whether the archive action seals with a passphrase. On by default: a
+  /// journal leaving the phone is sealed unless the user opts out.
   bool get seal {
     try {
-      return _storage.readString(_sealKey) == 'true';
+      return _storage.readString(_sealKey) != 'false';
     } catch (_) {
-      return false;
+      return true;
     }
   }
 

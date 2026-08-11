@@ -63,7 +63,7 @@ final class BackupState {
   const BackupState({
     this.entryCount,
     this.formatId = '',
-    this.seal = false,
+    this.seal = true,
     this.lastArchiveAt,
     this.busy = BackupBusy.none,
   });
