@@ -182,6 +182,22 @@ void main() {
       },
     );
 
+    test('an edited entry round-trips through the archive with both texts', () async {
+      final a = await world('a');
+      await a.store.save(
+        entry('e1', title: 'Edited').withEditedText('fixed words', at: fixedClock),
+      );
+      final archive = await archiveOf(a);
+
+      final b = await world('b');
+      await b.import.importArchive(archive);
+
+      final restored = b.store.read('e1')!;
+      expect(restored.editedText, 'fixed words');
+      expect(restored.editedAt, fixedClock);
+      expect(restored.transcript?.fullText, 'spoken words');
+    });
+
     test('re-importing the same archive changes nothing and stays silent', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);

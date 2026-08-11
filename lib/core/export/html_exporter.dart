@@ -212,10 +212,10 @@ final class HtmlExporter implements JournalExporter {
         ..writeln('<audio controls preload="none" src="${_attr(urlPath(audio))}"></audio>')
         ..writeln('</div>');
     }
-    // Paragraphs rather than the transcript's own isEmpty, which does not
-    // trim: a recording of pure silence can hold whitespace, and an empty
-    // block is a gap the reader cannot explain.
-    final paragraphs = _paragraphs(entry.transcript?.fullText ?? '');
+    // Paragraphs rather than a bare isEmpty, which does not trim: a recording
+    // of pure silence can hold whitespace, and an empty block is a gap the
+    // reader cannot explain.
+    final paragraphs = _paragraphs(entry.readableText ?? '');
     if (paragraphs.isNotEmpty) {
       buffer
         ..writeln('<div class="transcript">')

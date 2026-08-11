@@ -9,9 +9,10 @@ import 'package:opentranscribe/core/models/reflection.dart';
 /// JSON for machines. A single entry becomes `<date>-<title>.md` plus a
 /// sibling `.json` carrying [Entry.toJson]; a journal becomes `entries/*.md`,
 /// one `journal.json` with every entry, and the reflections as
-/// `reflections/*.md` plus `reflections.json`. Markdown carries the transcript
-/// as the engine wrote it; the timed segments ride in the JSON, which is where
-/// a machine looks for them anyway.
+/// `reflections/*.md` plus `reflections.json`. Markdown carries the entry's
+/// readable text (the hand edit when one exists, else the engine's
+/// transcript); the engine's timed transcript rides untouched in the JSON,
+/// which is where a machine looks for it anyway.
 final class DefaultExporter implements JournalExporter {
   const DefaultExporter();
 
@@ -98,15 +99,16 @@ final class DefaultExporter implements JournalExporter {
       ..writeln('---')
       ..writeln()
       ..writeln('# ${entryTitle(entry, strings.untitledEntry)}');
-    final transcript = entry.transcript;
-    if (transcript == null || transcript.isEmpty) return buffer.toString();
+    final text = entry.readableText;
+    if (text == null || text.isEmpty) return buffer.toString();
     buffer
       ..writeln()
       ..writeln('## ${strings.transcriptHeading}')
       ..writeln()
-      // Segments are word-level and drop whatever the engine could not time,
-      // so rebuilding from them exports something the user never said.
-      ..writeln(transcript.fullText);
+      // The full text, never a rebuild from segments: segments are word-level
+      // and drop whatever the engine could not time, so rebuilding from them
+      // exports something the user never said.
+      ..writeln(text);
     return buffer.toString();
   }
 
