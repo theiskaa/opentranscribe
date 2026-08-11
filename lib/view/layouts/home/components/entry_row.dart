@@ -54,7 +54,7 @@ class EntryRow extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.entryList;
     final l10n = AppLocalizations.of(context)!;
-    final excerpt = entry.transcript?.fullText.trim() ?? '';
+    final excerpt = entry.readableText?.trim() ?? '';
     final title = entry.title;
     final leadStyle = title != null ? AppType.headline : AppType.body;
 
