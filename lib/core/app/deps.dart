@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/app_language.dart';
+import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/app/splash_handoff.dart';
 import 'package:opentranscribe/core/app/storage_key.dart';
 import 'package:opentranscribe/core/audio/audio_player.dart';
 import 'package:opentranscribe/core/audio/platform_audio_player.dart';
@@ -85,6 +87,8 @@ class Deps {
     required this.backupSettings,
     required this.exporterDescriptors,
     required this.intentActionService,
+    required this.splashHandoff,
+    required this.launchBackdrop,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -113,6 +117,12 @@ class Deps {
   /// once the first frames are up, and drained again on resume; see
   /// [IntentActionService.serve].
   final IntentActionService intentActionService;
+
+  /// Takes the native launch splash down once home has painted.
+  final SplashHandoff splashHandoff;
+
+  /// Mirrors the theme's launch colours where that splash can read them.
+  final LaunchBackdrop launchBackdrop;
 
   /// The one owner of the weekly-reflection lifecycle: when a week closes, it
   /// reads the week back on-device. Keeps its engine and store private, like
@@ -355,6 +365,8 @@ class Deps {
         canOpenRecorder: () => router.recorderCanOpen,
         openRecorder: () => router.config.pushNamed(Routes.recordName),
       ),
+      splashHandoff: SplashHandoff(),
+      launchBackdrop: LaunchBackdrop(),
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
