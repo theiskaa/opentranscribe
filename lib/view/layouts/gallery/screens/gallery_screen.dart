@@ -36,6 +36,7 @@ import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
 import 'package:opentranscribe/view/widgets/glass_capsule.dart';
+import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
@@ -164,6 +165,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   AppIconButton(icon: AppIcons.pauseFill, onTap: () {}),
                   const SizedBox(width: AppSpacing.sm),
                   AppIconButton(icon: AppIcons.arrowCounterclockwise, onTap: () {}),
+                ],
+              ),
+              _section('Floating disc'),
+              Row(
+                children: [
+                  GlassFab(icon: AppIcons.waveform, onTap: () {}),
+                  const SizedBox(width: AppSpacing.lg),
+                  GlassFab(icon: AppIcons.checkmarkCircleFill, onTap: () {}),
                 ],
               ),
               _section('Toggle'),
