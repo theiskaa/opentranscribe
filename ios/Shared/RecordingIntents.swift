@@ -1,46 +1,53 @@
 import AppIntents
 
+/// Where an action lands the app. `OpenIntent` requires a target, and this app
+/// offers system surfaces exactly one place to land.
+enum RecorderScreen: String, AppEnum {
+  case recorder
+
+  static var typeDisplayRepresentation: TypeDisplayRepresentation = "Screen"
+  static var caseDisplayRepresentations: [RecorderScreen: DisplayRepresentation] = [
+    .recorder: "Recorder"
+  ]
+}
+
 /// Starts a take from anywhere the system offers this app's actions: the lock
 /// screen control, Control Center, the Action button, Shortcuts, Siri.
 ///
-/// iOS refuses to activate a record session from the background, so a take can
-/// only begin in the foreground. The intent therefore opens the app, which from
-/// the lock screen means the phone authenticates first, and which is why
-/// [perform] only ever runs in the app's process and never in the extension's.
-struct StartRecordingIntent: AppIntent {
+/// An `OpenIntent`, and every reason for that is a documented framework rule.
+///
+/// It performs in the app's process, which is what [PendingRecordingAction]'s
+/// in-process slot depends on. A plain `AppIntent` performs wherever the system
+/// ran it, and for a control or a widget that is the extension's process, whose
+/// slot nothing drains.
+///
+/// It brings the app to the foreground to perform, which a take needs: iOS
+/// refuses to activate a record session from the background, so capture can only
+/// begin in the foreground, and from the lock screen that means the phone
+/// authenticates first.
+///
+/// `openAppWhenRun` cannot do either job. The framework documents it as an error
+/// when the intent runs in an app extension, and it is deprecated in favour of
+/// `supportedModes`, which is iOS 26 and up. `OpenIntent` supplies it for us and
+/// works back to the deployment target.
+///
+/// The type has to be a member of both the app and the extension target for the
+/// system to open the app from a control; placing this file in Shared is what
+/// gives it that.
+struct StartRecordingIntent: OpenIntent {
   static var title: LocalizedStringResource = "Record"
 
   /// Optional to match the protocol requirement: a non-optional witness does
   /// not satisfy it, and the framework's nil default wins instead.
   static var description: IntentDescription? = IntentDescription("Start a new recording.")
 
-  /// `supportedModes` supersedes this on iOS 26, but it cannot be declared
-  /// conditionally on one type, so it stays until the deployment target moves.
-  static var openAppWhenRun: Bool = true
+  /// Carries its value from the start. A control and a widget hand the system a
+  /// finished intent, and nothing on a lock screen can prompt for a parameter.
+  @Parameter(title: "Screen", default: .recorder)
+  var target: RecorderScreen
 
   func perform() async throws -> some IntentResult {
     PendingRecordingAction.shared.submit(.start)
     return .result()
   }
 }
-
-/// What actually pins [perform] to the app's process, which
-/// [PendingRecordingAction]'s in-process slot depends on. Left to itself, App
-/// Intents runs a type shared with a widget extension in the app only when the
-/// app is already alive, and otherwise in the extension, whose slot nothing
-/// drains. `openAppWhenRun` does not change that: it foregrounds the app, it
-/// does not move the work.
-///
-/// Compiled out of the extension, and that absence is the mechanism: the
-/// extension's copy of the type must NOT carry the conformance. It has to be
-/// `#if`, not `@available(iOSApplicationExtension, unavailable)`: availability
-/// only makes a use diagnosable, and the conformance record still lands in the
-/// extension's binary, which was verifiable in the built appex.
-/// WIDGET_EXTENSION is defined by the RecorderActivity target.
-///
-/// `supportedModes` with `.foreground(.dynamic)` supersedes this on iOS 26, and
-/// like `openAppWhenRun` it cannot be declared conditionally, so it waits for the
-/// deployment target.
-#if !WIDGET_EXTENSION
-  extension StartRecordingIntent: ForegroundContinuableIntent {}
-#endif
