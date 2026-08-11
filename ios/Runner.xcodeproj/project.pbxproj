@@ -31,6 +31,7 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		AAAA00000000000000000141 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000140 /* AppShortcuts.strings */; };
 		AAAA000000000000000000F2 /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F1 /* AudioCapture.swift */; };
+		AAAA00000000000000000151 /* WaveSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000150 /* WaveSplash.swift */; };
 		AAAA000000000000000000F4 /* SpeechEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F3 /* SpeechEngine.swift */; };
 		AAAA000000000000000000F8 /* ReflectionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F7 /* ReflectionEngine.swift */; };
 		AAAA000000000000000000FB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FA /* Notifications.swift */; };
@@ -112,6 +113,7 @@
 		AAAA00000000000000000147 /* ja */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		AAAA00000000000000000148 /* ko */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		AAAA00000000000000000149 /* pt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = pt; path = pt.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		AAAA00000000000000000150 /* WaveSplash.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WaveSplash.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F1 /* AudioCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F3 /* SpeechEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeechEngine.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F7 /* ReflectionEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReflectionEngine.swift; sourceTree = "<group>"; };
@@ -262,6 +264,7 @@
 				AAAA000000000000000000F9 /* StorageKey.swift */,
 				AAAA000000000000000000FD /* ShareExport.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
+				AAAA00000000000000000150 /* WaveSplash.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				4DF07A5661CF9209749981FA /* RecordingLiveActivity.swift */,
 				AAAA00000000000000000103 /* RecordingShortcuts.swift */,
@@ -462,6 +465,7 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				AAAA000000000000000000F2 /* AudioCapture.swift in Sources */,
+				AAAA00000000000000000151 /* WaveSplash.swift in Sources */,
 				AAAA000000000000000000F4 /* SpeechEngine.swift in Sources */,
 				AAAA000000000000000000F8 /* ReflectionEngine.swift in Sources */,
 				AAAA000000000000000000FB /* Notifications.swift in Sources */,

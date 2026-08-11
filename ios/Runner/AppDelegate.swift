@@ -37,6 +37,9 @@ import UIKit
     if let registrar = registry.registrar(forPlugin: "ShareExportPlugin") {
       ShareExportPlugin.register(with: registrar)
     }
+    if let registrar = registry.registrar(forPlugin: "SplashHandoffPlugin") {
+      SplashHandoffPlugin.register(with: registrar)
+    }
     if let registrar = registry.registrar(forPlugin: "IntentActionsPlugin") {
       IntentActionsPlugin.register(with: registrar)
     }
