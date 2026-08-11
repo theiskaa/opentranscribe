@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 39-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 42-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -17,6 +17,9 @@ abstract final class AppIcons {
 
   /// SF Symbol `arrow.up.right`.
   static const IconData arrowUpRight = IconData(0x10012F, fontFamily: _family);
+
+  /// SF Symbol `arrow.uturn.backward`.
+  static const IconData arrowUturnBackward = IconData(0x100C4D, fontFamily: _family);
 
   /// SF Symbol `bell`.
   static const IconData bell = IconData(0x1002D9, fontFamily: _family);
@@ -36,6 +39,9 @@ abstract final class AppIcons {
   /// SF Symbol `checkmark`.
   static const IconData checkmark = IconData(0x100185, fontFamily: _family);
 
+  /// SF Symbol `checkmark.circle.fill`.
+  static const IconData checkmarkCircleFill = IconData(0x100063, fontFamily: _family);
+
   /// SF Symbol `chevron.backward`.
   static const IconData chevronBackward = IconData(0x100BF6, fontFamily: _family);
 
@@ -51,14 +57,11 @@ abstract final class AppIcons {
   /// SF Symbol `gearshape.fill`.
   static const IconData gearshapeFill = IconData(0x1008CC, fontFamily: _family);
 
-  /// SF Symbol `globe`.
-  static const IconData globe = IconData(0x1001AA, fontFamily: _family);
-
-  /// SF Symbol `magnifyingglass`.
-  static const IconData magnifyingglass = IconData(0x1002AB, fontFamily: _family);
-
   /// SF Symbol `gearshape` (the outline gear).
   static const IconData gearshape = IconData(0x1008CB, fontFamily: _family);
+
+  /// SF Symbol `globe`.
+  static const IconData globe = IconData(0x1001AA, fontFamily: _family);
 
   /// SF Symbol `house.fill`.
   static const IconData houseFill = IconData(0x10039F, fontFamily: _family);
@@ -72,6 +75,9 @@ abstract final class AppIcons {
   /// SF Symbol `lock`.
   static const IconData lock = IconData(0x1003A0, fontFamily: _family);
 
+  /// SF Symbol `magnifyingglass`.
+  static const IconData magnifyingglass = IconData(0x1002AB, fontFamily: _family);
+
   /// SF Symbol `microphone`.
   static const IconData mic = IconData(0x1002B0, fontFamily: _family);
 
@@ -83,6 +89,9 @@ abstract final class AppIcons {
 
   /// SF Symbol `pause.fill`.
   static const IconData pauseFill = IconData(0x100286, fontFamily: _family);
+
+  /// SF Symbol `pencil`.
+  static const IconData pencil = IconData(0x10020A, fontFamily: _family);
 
   /// SF Symbol `play.fill`.
   static const IconData playFill = IconData(0x100284, fontFamily: _family);
@@ -133,12 +142,14 @@ abstract final class AppIcons {
         0x1008FA: 'apple.logo',
         0x100149: 'arrow.counterclockwise',
         0x10012F: 'arrow.up.right',
+        0x100C4D: 'arrow.uturn.backward',
         0x1002D9: 'bell',
         0x1002DA: 'bell.fill',
         0x100249: 'calendar',
         0x103326: '1.calendar',
         0x10332C: '7.calendar',
         0x100185: 'checkmark',
+        0x100063: 'checkmark.circle.fill',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',
         0x100241: 'doc.on.doc',
@@ -155,6 +166,7 @@ abstract final class AppIcons {
         0x1002B1: 'mic.fill',
         0x1001BA: 'moon.fill',
         0x100286: 'pause.fill',
+        0x10020A: 'pencil',
         0x100284: 'play.fill',
         0x100306: 'slider.horizontal.3',
         0x1001BF: 'sparkles',
