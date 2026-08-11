@@ -16,7 +16,9 @@ class GlassFab extends StatelessWidget {
   const GlassFab({required this.icon, required this.onTap, this.iconSize = 26, super.key});
 
   final IconData icon;
-  final VoidCallback onTap;
+
+  /// Null disables the disc; both faces render inert rather than vanish.
+  final VoidCallback? onTap;
   final double iconSize;
 
   static const double size = 58;
@@ -35,6 +37,7 @@ class GlassFab extends StatelessWidget {
         tintColor: theme.text,
         isDark: theme.brightness == Brightness.dark,
         onPressed: onTap,
+        enabled: onTap != null,
         size: size,
       );
     }
