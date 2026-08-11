@@ -14,9 +14,7 @@ import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/utils/launch_trace.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// The root widget, wired to the router with the journal cubits provided above
@@ -37,20 +35,27 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   /// observer inside the cubit.
   late final ReflectionsCubit _reflectionsCubit;
 
-  /// The startup splash sits above the router until its animation finishes, then
-  /// removes itself for good. One cold-start affair, never shown again.
-  bool _splashDone = false;
-
   @override
   void initState() {
     super.initState();
-    _themeCubit = ThemeCubit(storage: Deps.i.localService);
+    _themeCubit = ThemeCubit(storage: Deps.i.localService, backdrop: Deps.i.launchBackdrop);
     _reflectionsCubit = ReflectionsCubit(
       service: Deps.i.reflectionService,
       settings: Deps.i.reflectionSettings,
       notifier: Deps.i.reflectionNotifier,
     );
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // The native wave collapses over a home that has painted, never over the
+      // frames building it.
+      unawaited(Deps.i.splashHandoff.finish());
+      // A launch the user asked to record in opens the sheet over a built
+      // journal, ahead of the decrypt below.
+      unawaited(Deps.i.intentActionService.serve());
+      // Only now: this decrypts the whole journal, and the frames before this
+      // one are the ones the user is watching.
+      unawaited(Deps.launchMaintenance());
+    });
   }
 
   @override
@@ -170,51 +175,19 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                 final reduceMotion =
                     media.disableAnimations ||
                     WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.reduceMotion;
-                final Widget content;
-                if (!_splashDone) {
-                  // The splash REPLACES the app while it runs rather than
-                  // overlaying it. Home's top-bar buttons are native platform
-                  // views, and those composite ABOVE any Flutter overlay (the
-                  // same reason AppToggle cannot be blurred under the frosted
-                  // bar), so an overlay lets them punch through. Not building
-                  // home until the splash is done keeps them out of the tree;
-                  // the splash shares home's background colour, so the swap is
-                  // a seamless cut.
-                  content = SplashScreen(
-                    onFinished: () {
-                      if (!mounted) return;
-                      LaunchTrace.mark('splash'); // TEMP
-                      setState(() => _splashDone = true);
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        LaunchTrace.mark('home'); // TEMP
-                        LaunchTrace.dump(); // TEMP
-                        // A launch the user asked to record in opens the sheet
-                        // over a built journal, not over the frames building it,
-                        // and ahead of the decrypt below.
-                        unawaited(Deps.i.intentActionService.serve());
-                        // Only now: each of these decrypts the whole journal,
-                        // and the frames before this one are the ones the user
-                        // is watching.
-                        unawaited(Deps.launchMaintenance());
-                      });
-                    },
-                  );
-                } else {
+                return MediaQuery(
+                  data: media.copyWith(disableAnimations: reduceMotion),
                   // Above the router's navigator, so it also tints the text
                   // selection handles and menu, which render in the root
                   // overlay.
-                  content = SelectionTheme(
+                  child: SelectionTheme(
                     accent: theme.accent,
                     brightness: theme.brightness,
                     child: DefaultTextStyle(
                       style: AppType.body.copyWith(color: theme.text),
                       child: child ?? const SizedBox.shrink(),
                     ),
-                  );
-                }
-                return MediaQuery(
-                  data: media.copyWith(disableAnimations: reduceMotion),
-                  child: content,
+                  ),
                 );
               },
             ),
