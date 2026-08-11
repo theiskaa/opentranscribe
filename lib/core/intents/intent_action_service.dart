@@ -37,9 +37,9 @@ class IntentActionService {
   /// Reads any waiting action. Safe to call repeatedly: the native slot clears
   /// on read, and it refuses anything stale.
   ///
-  /// Inert before [serve]. A resume can arrive while the splash still owns the
-  /// tree, and draining there would consume the action the launch was asked for
-  /// at the one moment nothing can act on it.
+  /// Inert before [serve]. A resume can arrive before the first frame has
+  /// mounted the router, and draining there would consume the action the
+  /// launch was asked for at the one moment nothing can act on it.
   Future<void> drain() async {
     if (_subscription == null) return;
     final action = await _source.takePending();

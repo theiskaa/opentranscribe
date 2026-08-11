@@ -43,8 +43,7 @@ class AppRouter {
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: Routes.home,
-    // A synchronous storage read, so it is cheap on every navigation. The
-    // splash (App.build) runs first; this fires as it lifts.
+    // A synchronous storage read, so it is cheap on every navigation.
     redirect: (context, state) => resolveRedirect(
       onboardingDone: Onboarding.isDone(Deps.i.localService),
       matchedLocation: state.matchedLocation,
@@ -65,7 +64,8 @@ class AppRouter {
       GoRoute(
         path: Routes.onboarding,
         name: Routes.onboardingName,
-        // No transition: the splash cuts straight to it on a cold first launch.
+        // No transition: the launch splash collapses straight onto it on a
+        // cold first launch.
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
       ),
@@ -140,9 +140,9 @@ class AppRouter {
 /// Whether the recorder may be pushed over [stack], the matched location of
 /// every page currently on the router, outermost first.
 ///
-/// An empty stack means the router has no navigator yet (the splash still owns
-/// the tree): a push there replays against nothing when the router mounts, which
-/// strands the recorder as the only page with nothing to pop.
+/// An empty stack means the router has no navigator yet (the first frame has
+/// not mounted it): a push there replays against nothing when the router
+/// mounts, which strands the recorder as the only page with nothing to pop.
 ///
 /// An unfinished onboarding refuses too, because an imperative push runs through
 /// [resolveRedirect] and would land a second onboarding page over the first.
