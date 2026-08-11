@@ -6,7 +6,23 @@ enum RecordingAction: String {
   case start
 }
 
-/// The one hop between an App Intent and Dart.
+extension RecordingAction {
+  /// The widget row's way in: the action travels as a URL and the app decodes
+  /// it back. Why a link rather than a button is stated at the widget.
+  static let scheme = "opentranscribe"
+
+  var url: URL? { URL(string: "\(Self.scheme)://\(rawValue)") }
+
+  /// Accepts exactly the URLs [url] mints: nothing after the host.
+  init?(url: URL) {
+    guard url.scheme == Self.scheme, let host = url.host, url.path.isEmpty, url.query == nil,
+      url.fragment == nil, url.port == nil
+    else { return nil }
+    self.init(rawValue: host)
+  }
+}
+
+/// The one hop between a system surface and Dart.
 ///
 /// An intent cannot reach the Flutter engine, and on a cold launch it runs
 /// before the engine exists, so it drops its action here and returns. The app
@@ -15,10 +31,10 @@ enum RecordingAction: String {
 /// a submission landing in between posts to nobody and waits for the next
 /// drain.
 ///
-/// In-process state on purpose: the intents that write here always perform in
-/// the app's process, since iOS will not start a recording from the background
-/// and they therefore open the app. Nothing needs an App Group, and a process
-/// that dies with an undrained action replays nothing at next launch.
+/// In-process state on purpose: everything that writes here already runs in the
+/// app's process, an `OpenIntent`'s `perform` or the app's own URL handler.
+/// Nothing needs an App Group, and a process that dies with an undrained action
+/// replays nothing at next launch.
 final class PendingRecordingAction {
   static let shared = PendingRecordingAction()
 
@@ -39,15 +55,12 @@ final class PendingRecordingAction {
   private init() {}
 
   /// Replaces whatever was waiting: the newest tap is what was last asked for.
-  /// Only `.start` can ever be the one replaced, because pause and stop are
-  /// submitted from the Live Activity, which exists only once a take is running,
-  /// so they cannot overtake the start that made them possible.
   func submit(_ action: RecordingAction) {
     // Logged, never trapped: this process also renders the Live Activity, and a
     // debug build that crashes it on every tap can leave the banner replaced by
-    // the system's failed-widget placeholder. The intents are pinned to the app
-    // by their ForegroundContinuableIntent conformance; this says so out loud if
-    // that ever stops holding.
+    // the system's failed-widget placeholder. `StartRecordingIntent` is an
+    // OpenIntent, so the framework performs it in the app; this says so out loud
+    // if that ever stops holding.
     if Bundle.main.bundleURL.pathExtension == "appex" {
       NSLog("PendingRecordingAction: submitted in an extension, whose slot nothing drains")
     }
