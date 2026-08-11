@@ -13,9 +13,9 @@ import 'package:opentranscribe/core/export/html_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
-import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/intents/intent_action_service.dart';
 import 'package:opentranscribe/core/intents/intent_actions.dart';
+import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
@@ -108,9 +108,10 @@ class Deps {
   final AudioPlayer audioPlayer;
   final AppRouter router;
 
-  /// Serves the actions a system surface submits (the lock screen control,
-  /// Control Center, the Action button, Shortcuts, Siri). Served once the first
-  /// frames are up, and drained again on resume; see [IntentActionService.serve].
+  /// Serves the actions a system surface submits (the lock screen control and
+  /// widget row, Control Center, the Action button, Shortcuts, Siri). Served
+  /// once the first frames are up, and drained again on resume; see
+  /// [IntentActionService.serve].
   final IntentActionService intentActionService;
 
   /// The one owner of the weekly-reflection lifecycle: when a week closes, it

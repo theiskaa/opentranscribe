@@ -5,8 +5,9 @@ const _channel = 'opentranscribe/intents';
 const _eventChannel = 'opentranscribe/intents/events';
 
 /// What a system surface asked the recorder to do. The surfaces are the lock
-/// screen control, Control Center, the Action button, Shortcuts and Siri; none
-/// of them is named here, because the action is the same whichever one sent it.
+/// screen control and widget row, Control Center, the Action button, Shortcuts
+/// and Siri; none of them is named here, because the action is the same
+/// whichever one sent it.
 enum IntentAction { startRecording }
 
 /// Maps a native action name onto its action, or null for one this build does
@@ -17,13 +18,13 @@ IntentAction? intentActionFromName(String? name) => switch (name) {
   _ => null,
 };
 
-/// Actions submitted by an App Intent.
+/// Actions submitted by a system surface.
 ///
 /// Two paths, because a launch and a running app are not the same case. A cold
-/// launch performs the intent before Dart exists, so that action waits and is
-/// read with [takePending]. An app already listening is handed the action
-/// through [actions]. Both drain the same native slot, which clears on read, so
-/// one tap can only ever arrive once.
+/// launch lands the action before Dart exists, so it waits and is read with
+/// [takePending]. An app already listening is handed the action through
+/// [actions]. Both drain the same native slot, which clears on read, so one tap
+/// can only ever arrive once.
 abstract interface class IntentActions {
   /// Actions that land while the app is running and listening.
   Stream<IntentAction> get actions;

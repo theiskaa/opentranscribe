@@ -6,20 +6,16 @@ import WidgetKit
 /// one declaration.
 ///
 /// A button and not a toggle: a toggle would have to answer "am I recording"
-/// from this process, which has no access to the app's state, and the Live
-/// Activity already shows that where the user is looking.
+/// from this process, which has no access to the app's state.
 @available(iOS 18.0, *)
 struct RecordControl: ControlWidget {
   /// Permanent. A changed kind drops the control out of every corner, Control
   /// Center and Action button someone has already put it in.
   private static let kind = "xyz.opentranscribe.record"
 
-  /// Literals at the API boundary, kept because this is the form the gallery was
-  /// seen rendering. Hoisting them into statics was suspected of blanking the
-  /// tile and was not the cause: the tile stayed empty either way, and what
-  /// actually fixed it was reinstalling the app, since the gallery caches a
-  /// control's preview hard and a rename does not invalidate it. Left as-is
-  /// rather than churned again, because a blank tile costs a reinstall to retest.
+  /// Literals at the API boundary, kept in the form the gallery was seen
+  /// rendering: the gallery caches a control's preview hard, so any change here
+  /// costs a reinstall to retest against a blank tile.
   ///
   /// The name is the action, not the app: the gallery already groups controls
   /// under the app's own name and icon, so repeating it there says nothing and

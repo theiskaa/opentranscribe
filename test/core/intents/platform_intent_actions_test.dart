@@ -2,8 +2,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/intents/intent_actions.dart';
 
-/// Pins the channel contract with IntentActions.swift: the method name, the
-/// action names, and the preflight silence a missing plugin must produce.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;

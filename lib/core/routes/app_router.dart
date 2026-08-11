@@ -50,9 +50,7 @@ class AppRouter {
       matchedLocation: state.matchedLocation,
     ),
     // The app has no deep-link surface, so an unroutable location is never
-    // something the user asked for: iOS handed it to us. A misconfigured widget
-    // did exactly that, launching the app on Apple's documentation URL and
-    // parking it on a Page Not Found nobody could explain. Home instead, quietly.
+    // something the user asked for: iOS handed it to us. Home instead, quietly.
     onException: (context, state, router) => router.go(Routes.home),
     routes: [
       GoRoute(
@@ -139,7 +137,6 @@ class AppRouter {
   );
 }
 
-/// First-run users land in onboarding; finished users can never re-enter it.
 /// Whether the recorder may be pushed over [stack], the matched location of
 /// every page currently on the router, outermost first.
 ///
@@ -159,6 +156,7 @@ bool canOpenRecorder({required List<String> stack, required bool onboardingDone}
   return !stack.contains(Routes.record);
 }
 
+/// First-run users land in onboarding; finished users can never re-enter it.
 String? resolveRedirect({required bool onboardingDone, required String matchedLocation}) {
   final atOnboarding = matchedLocation == Routes.onboarding;
   if (!onboardingDone && !atOnboarding) return Routes.onboarding;
