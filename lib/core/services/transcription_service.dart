@@ -1113,8 +1113,15 @@ class TranscriptionService {
   /// default. So a default change never silently re-languages an entry, and an
   /// untranscribed take keeps the language it was spoken in. (Note the pin: an
   /// entry first transcribed in the WRONG locale keeps that locale on re-runs
-  /// until a caller passes [localeId] explicitly.)
-  Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
+  /// until a caller passes [localeId] explicitly.) A hand edit survives the
+  /// landing unless [clearEdit] is true; only the UI's confirmed
+  /// replace-my-edits path passes it.
+  Future<Entry> retranscribe(
+    Entry entry, {
+    TranscriptionEngine? using,
+    String? localeId,
+    bool clearEdit = false,
+  }) async {
     final engine = using ?? _engine;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
@@ -1153,7 +1160,9 @@ class TranscriptionService {
     // deferral completing (a failed or interrupted first pass finally landing).
     // A repeat re-transcription never deletes; bulk reclaim is explicit only.
     final firstSuccess = stored.transcript == null;
-    final updated = stored.withTranscript(transcript);
+    final retranscribed = stored.withTranscript(transcript);
+    // Only the UI's confirmed "replace my edits" path passes clearEdit.
+    final updated = clearEdit ? retranscribed.withEditedText(null) : retranscribed;
     await _store.save(updated);
     if (firstSuccess && !_keepAudio()) {
       await _discardAudio(entry.id);
@@ -1176,6 +1185,31 @@ class TranscriptionService {
       throw StateError('entry ${entry.id} was deleted during rename');
     }
     final updated = stored.withTitle(normalized);
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// Applies a hand edit of the transcript text to the STORED entry; a null or
+  /// blank [text], or the engine's own words typed back, clears the edit (the
+  /// same clear-to-default rule renames follow). The engine's transcript is
+  /// never touched, so revert stays possible for as long as the entry lives.
+  /// A commit that changes nothing writes nothing. Throws [StateError] when
+  /// the entry was deleted meanwhile (same ghost rule as [retranscribe]);
+  /// safe against an interleaved delete because the store's visible state
+  /// mutates synchronously (see EntryStore).
+  Future<Entry> editTranscript(Entry entry, String? text) async {
+    final trimmed = text?.trim();
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during edit');
+    }
+    // Trimmed on both sides: the engine's text can carry edge whitespace the
+    // user cannot see, and it must not block the typed-back revert.
+    final reverted =
+        trimmed == null || trimmed.isEmpty || trimmed == stored.transcript?.fullText.trim();
+    final normalized = reverted ? null : trimmed;
+    if (normalized == stored.editedText) return stored;
+    final updated = stored.withEditedText(normalized, at: normalized == null ? null : _clock());
     await _store.save(updated);
     return updated;
   }

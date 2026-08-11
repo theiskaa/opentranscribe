@@ -68,6 +68,52 @@ void main() {
     await cubit.close();
   });
 
+  test('edit updates the list and never touches busy', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    final busyIds = <String?>[];
+    final sub = cubit.stream.listen((s) => busyIds.add(s.busyId));
+
+    await cubit.edit(entry, 'fixed words');
+    await sub.cancel();
+
+    expect(cubit.state.entries.single.editedText, 'fixed words');
+    expect(cubit.state.entries.single.readableText, 'fixed words');
+    expect(busyIds, everyElement(isNull));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('an edit failure surfaces on its own entry and still refreshes', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await service.deleteEntry(entry);
+
+    await cubit.edit(entry, 'ghost');
+
+    expect(cubit.state.errorFor(entry.id), isNotNull);
+    expect(cubit.state.entries, isEmpty);
+    expect(cubit.state.busyId, isNull);
+
+    await cubit.close();
+  });
+
+  test('retranscribe keeps an edit by default and clears it when asked', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await cubit.edit(entry, 'fixed words');
+
+    await cubit.retranscribe(entry);
+    expect(cubit.state.entries.single.editedText, 'fixed words');
+
+    await cubit.retranscribe(entry, clearEdit: true);
+    expect(cubit.state.entries.single.editedText, isNull);
+    expect(cubit.state.entries.single.readableText, isNot('fixed words'));
+
+    await cubit.close();
+  });
+
   test('delete removes the entry from the list', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;
