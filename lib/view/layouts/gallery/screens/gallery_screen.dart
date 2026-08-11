@@ -172,7 +172,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 children: [
                   GlassFab(icon: AppIcons.waveform, onTap: () {}),
                   const SizedBox(width: AppSpacing.lg),
-                  GlassFab(icon: AppIcons.checkmarkCircleFill, onTap: () {}),
+                  GlassFab(icon: AppIcons.checkmark, iconSize: 18, onTap: () {}),
                 ],
               ),
               _section('Toggle'),

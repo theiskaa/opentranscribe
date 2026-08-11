@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 42-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 41-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -38,9 +38,6 @@ abstract final class AppIcons {
 
   /// SF Symbol `checkmark`.
   static const IconData checkmark = IconData(0x100185, fontFamily: _family);
-
-  /// SF Symbol `checkmark.circle.fill`.
-  static const IconData checkmarkCircleFill = IconData(0x100063, fontFamily: _family);
 
   /// SF Symbol `chevron.backward`.
   static const IconData chevronBackward = IconData(0x100BF6, fontFamily: _family);
@@ -149,7 +146,6 @@ abstract final class AppIcons {
         0x103326: '1.calendar',
         0x10332C: '7.calendar',
         0x100185: 'checkmark',
-        0x100063: 'checkmark.circle.fill',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',
         0x100241: 'doc.on.doc',

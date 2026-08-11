@@ -533,14 +533,17 @@ class _DetailViewState extends State<_DetailView> {
               ),
               // The edit mode's save floats where home's record button does,
               // riding the keyboard; unfocusing commits through the blur
-              // listener. The circled check over the bare one: the circle
-              // squares the glyph's ink box, so it sits in the disc instead
-              // of sprawling across it.
+              // listener. The check runs well under the waveform's 26: its
+              // ink box is wide for its point size.
               if (_editing)
                 Positioned(
                   right: AppSpacing.xl,
                   bottom: (keyboard > 0 ? keyboard : bottomInset) + AppSpacing.xl,
-                  child: GlassFab(icon: AppIcons.checkmarkCircleFill, onTap: _bodyFocus.unfocus),
+                  child: GlassFab(
+                    icon: AppIcons.checkmark,
+                    iconSize: 18,
+                    onTap: _bodyFocus.unfocus,
+                  ),
                 ),
               // The pinned dock: the error indicator over the Transcribe CTA,
               // both clear of the document. Either may be absent; the scroll
