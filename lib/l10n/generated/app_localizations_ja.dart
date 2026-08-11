@@ -76,6 +76,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rename => '名前を変更';
 
   @override
+  String get editTranscript => '編集';
+
+  @override
+  String get editedMarker => '編集済み';
+
+  @override
+  String get revertEdits => '編集を元に戻す';
+
+  @override
+  String get retranscribeOverEditTitle => '編集内容を置き換えますか？';
+
+  @override
+  String get retranscribeOverEditBody =>
+      'このテキストは手動で編集されています。再文字起こしを行うと、録音を聞き直して編集内容を新しい文字起こしで置き換えます。';
+
+  @override
   String get transcribe => '文字起こし';
 
   @override

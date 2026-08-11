@@ -76,6 +76,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rename => '이름 변경';
 
   @override
+  String get editTranscript => '편집';
+
+  @override
+  String get editedMarker => '편집됨';
+
+  @override
+  String get revertEdits => '편집 되돌리기';
+
+  @override
+  String get retranscribeOverEditTitle => '편집 내용을 바꾸시겠습니까?';
+
+  @override
+  String get retranscribeOverEditBody => '이 텍스트는 직접 편집되었습니다. 다시 전사하면 녹음을 다시 듣고 편집 내용을 새 전사로 바꿉니다.';
+
+  @override
   String get transcribe => '전사';
 
   @override

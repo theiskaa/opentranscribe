@@ -88,6 +88,26 @@
   "@rename": {
     "description": "Action that renames an entry"
   },
+  "editTranscript": "Edit",
+  "@editTranscript": {
+    "description": "Action that opens the transcript for hand editing"
+  },
+  "editedMarker": "Edited",
+  "@editedMarker": {
+    "description": "Metadata line marker on an entry whose transcript was edited by hand"
+  },
+  "revertEdits": "Revert edits",
+  "@revertEdits": {
+    "description": "Action that restores the engine's transcript over a hand edit"
+  },
+  "retranscribeOverEditTitle": "Replace your edits?",
+  "@retranscribeOverEditTitle": {
+    "description": "Title of the sheet asking before a re-transcription overwrites a hand-edited transcript"
+  },
+  "retranscribeOverEditBody": "This text was edited by hand. Re-transcribing listens to the recording again and replaces your edits with a fresh transcript.",
+  "@retranscribeOverEditBody": {
+    "description": "Body of the sheet asking before a re-transcription overwrites a hand-edited transcript"
+  },
   "transcribe": "Transcribe",
   "@transcribe": {
     "description": "Button that transcribes an untranscribed entry"

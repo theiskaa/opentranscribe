@@ -240,6 +240,36 @@ abstract class AppLocalizations {
   /// **'Rename'**
   String get rename;
 
+  /// Action that opens the transcript for hand editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editTranscript;
+
+  /// Metadata line marker on an entry whose transcript was edited by hand
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get editedMarker;
+
+  /// Action that restores the engine's transcript over a hand edit
+  ///
+  /// In en, this message translates to:
+  /// **'Revert edits'**
+  String get revertEdits;
+
+  /// Title of the sheet asking before a re-transcription overwrites a hand-edited transcript
+  ///
+  /// In en, this message translates to:
+  /// **'Replace your edits?'**
+  String get retranscribeOverEditTitle;
+
+  /// Body of the sheet asking before a re-transcription overwrites a hand-edited transcript
+  ///
+  /// In en, this message translates to:
+  /// **'This text was edited by hand. Re-transcribing listens to the recording again and replaces your edits with a fresh transcript.'**
+  String get retranscribeOverEditBody;
+
   /// Button that transcribes an untranscribed entry
   ///
   /// In en, this message translates to:
