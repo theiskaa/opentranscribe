@@ -5,9 +5,9 @@ import 'package:transcriber/src/audio/recording.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 // Channel identifiers. Must match AudioCapture.swift.
-const _controlChannel = 'opentranscribe/audio';
-const _statusChannel = 'opentranscribe/audio/status';
-const _levelChannel = 'opentranscribe/audio/level';
+const _controlChannel = 'transcriber/audio';
+const _statusChannel = 'transcriber/audio/status';
+const _levelChannel = 'transcriber/audio/level';
 
 /// The iOS-native [AudioRecorder]: an AVAudioEngine capture session reached over
 /// platform channels. Control on a MethodChannel, capture status on an

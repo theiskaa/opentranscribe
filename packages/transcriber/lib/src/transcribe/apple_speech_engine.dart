@@ -9,9 +9,9 @@ import 'package:transcriber/src/transcribe/transcription_engine.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 // Channel identifiers. Must match SpeechEngine.swift.
-const _controlChannel = 'opentranscribe/speech';
-const _eventChannel = 'opentranscribe/speech/events';
-const _modelChannel = 'opentranscribe/speech/model';
+const _controlChannel = 'transcriber/speech';
+const _eventChannel = 'transcriber/speech/events';
+const _modelChannel = 'transcriber/speech/model';
 
 /// Apple on-device Speech, reached over platform channels, behind the
 /// [StreamingTranscriptionEngine] and [ManagedModelEngine] contracts. Live results

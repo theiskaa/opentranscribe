@@ -675,11 +675,11 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     let instance = AudioRecorderPlugin()
     // Channel names + payload shapes: must match platform_audio_recorder.dart.
     let methods = FlutterMethodChannel(
-      name: "opentranscribe/audio", binaryMessenger: registrar.messenger())
+      name: "transcriber/audio", binaryMessenger: registrar.messenger())
     let events = FlutterEventChannel(
-      name: "opentranscribe/audio/status", binaryMessenger: registrar.messenger())
+      name: "transcriber/audio/status", binaryMessenger: registrar.messenger())
     let levels = FlutterEventChannel(
-      name: "opentranscribe/audio/level", binaryMessenger: registrar.messenger())
+      name: "transcriber/audio/level", binaryMessenger: registrar.messenger())
     events.setStreamHandler(instance)
     levels.setStreamHandler(instance.levelHandler)
     registrar.addMethodCallDelegate(instance, channel: methods)

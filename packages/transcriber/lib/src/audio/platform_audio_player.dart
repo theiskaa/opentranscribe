@@ -4,8 +4,8 @@ import 'package:transcriber/src/audio/audio_player.dart';
 import 'package:transcriber/src/audio/playback.dart';
 
 // Channel identifiers. Must match AudioPlayer.swift.
-const _controlChannel = 'opentranscribe/player';
-const _stateChannel = 'opentranscribe/player/state';
+const _controlChannel = 'transcriber/player';
+const _stateChannel = 'transcriber/player/state';
 
 /// The iOS-native [AudioPlayer]: an AVAudioPlayer reached over platform channels.
 /// Control on a MethodChannel, playback state on an EventChannel. Channel failures

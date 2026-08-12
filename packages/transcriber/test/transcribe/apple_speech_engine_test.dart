@@ -13,9 +13,9 @@ import 'package:transcriber/src/transcribe/transcription_exception.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  const methods = MethodChannel('opentranscribe/speech');
-  const events = EventChannel('opentranscribe/speech/events');
-  const modelEvents = EventChannel('opentranscribe/speech/model');
+  const methods = MethodChannel('transcriber/speech');
+  const events = EventChannel('transcriber/speech/events');
+  const modelEvents = EventChannel('transcriber/speech/model');
   final fixedClock = DateTime.utc(2026, 3, 4, 12);
 
   late AppleSpeechEngine engine;

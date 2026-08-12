@@ -8,8 +8,8 @@ import 'package:transcriber/src/audio/playback.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  const methods = MethodChannel('opentranscribe/player');
-  const stateEvents = EventChannel('opentranscribe/player/state');
+  const methods = MethodChannel('transcriber/player');
+  const stateEvents = EventChannel('transcriber/player/state');
 
   late PlatformAudioPlayer player;
 

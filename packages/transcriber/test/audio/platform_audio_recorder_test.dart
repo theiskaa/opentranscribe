@@ -9,9 +9,9 @@ import 'package:transcriber/src/transcribe/transcription_exception.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  const methods = MethodChannel('opentranscribe/audio');
-  const statusEvents = EventChannel('opentranscribe/audio/status');
-  const levelEvents = EventChannel('opentranscribe/audio/level');
+  const methods = MethodChannel('transcriber/audio');
+  const statusEvents = EventChannel('transcriber/audio/status');
+  const levelEvents = EventChannel('transcriber/audio/level');
 
   late PlatformAudioRecorder recorder;
 

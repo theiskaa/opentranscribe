@@ -52,9 +52,9 @@ final class AudioPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, AV
     let instance = AudioPlayerPlugin()
     // Channel names + payload shapes: must match platform_audio_player.dart.
     let methods = FlutterMethodChannel(
-      name: "opentranscribe/player", binaryMessenger: registrar.messenger())
+      name: "transcriber/player", binaryMessenger: registrar.messenger())
     let events = FlutterEventChannel(
-      name: "opentranscribe/player/state", binaryMessenger: registrar.messenger())
+      name: "transcriber/player/state", binaryMessenger: registrar.messenger())
     events.setStreamHandler(instance)
     registrar.addMethodCallDelegate(instance, channel: methods)
     PlaybackHub.player = instance

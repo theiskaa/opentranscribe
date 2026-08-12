@@ -841,12 +841,12 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     let instance = SpeechEnginePlugin()
     // Channel names + payload shapes: must match apple_speech_engine.dart.
     let methods = FlutterMethodChannel(
-      name: "opentranscribe/speech", binaryMessenger: registrar.messenger())
+      name: "transcriber/speech", binaryMessenger: registrar.messenger())
     let events = FlutterEventChannel(
-      name: "opentranscribe/speech/events", binaryMessenger: registrar.messenger())
+      name: "transcriber/speech/events", binaryMessenger: registrar.messenger())
     events.setStreamHandler(instance)
     let modelEvents = FlutterEventChannel(
-      name: "opentranscribe/speech/model", binaryMessenger: registrar.messenger())
+      name: "transcriber/speech/model", binaryMessenger: registrar.messenger())
     modelEvents.setStreamHandler(instance.modelInstaller)
     registrar.addMethodCallDelegate(instance, channel: methods)
   }
@@ -1426,7 +1426,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 }
 
 /// Streams on-device model-install progress for the requested locale over the
-/// `opentranscribe/speech/model` EventChannel. Single-flight: a new listen supersedes
+/// `transcriber/speech/model` EventChannel. Single-flight: a new listen supersedes
 /// any in-flight install and abandons its stream (the Dart engine serializes
 /// overlapping installs onto this handler, one at a time). Payloads: {fraction, done:false} while installing, then a terminal
 /// {fraction:1, done:true}; {type:error,...} on failure.
