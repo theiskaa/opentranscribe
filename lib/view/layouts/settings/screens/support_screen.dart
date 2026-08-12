@@ -5,18 +5,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/state/support_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/support/supporter_tier.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/support_rows.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// Support: the supporter purchase, restore, and manage surface. Owns a
 /// [SupportCubit] so prices are fetched on every open; the cached tier
@@ -28,13 +33,18 @@ class SupportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => SupportCubit(service: Deps.i.supportService)..load(),
-      child: const _SupportView(),
+      child: _SupportView(descriptors: Deps.i.exporterDescriptors),
     );
   }
 }
 
 class _SupportView extends StatelessWidget {
-  const _SupportView();
+  const _SupportView({required this.descriptors});
+
+  /// What supporting unlocks today: the shipped export formats, listed with
+  /// the same marks and copy the Backup screen uses, so the promise and the
+  /// feature always read identically.
+  final List<ExporterDescriptor> descriptors;
 
   Future<void> _buy(BuildContext context, String id) async {
     final result = await context.read<SupportCubit>().purchase(id);
@@ -102,7 +112,9 @@ class _SupportView extends StatelessWidget {
       onBack: () => context.pop(),
       child: SettingsList(
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
+          _SupporterHeader(tag: l10n.supporterTag),
+          const SizedBox(height: AppSpacing.lg),
           SectionInfo(_thanksOrPitch(l10n, state.tier)),
           SettingsCard(
             children: [
@@ -151,20 +163,96 @@ class _SupportView extends StatelessWidget {
             SectionInfo(l10n.supportUpgradeInfo),
           ],
           const SizedBox(height: AppSpacing.md),
-          SectionInfoLink(
-            text: l10n.supportPrivacyInfo,
-            linkLabel: l10n.supportPrivacy,
-            icon: AppIcons.arrowUpRight,
-            onTap: () => unawaited(openLink(kPrivacyUrl)),
+          SectionLabel(l10n.supportUnlocksSection),
+          SettingsCard(
+            children: [
+              for (final descriptor in descriptors)
+                ExportFormatRow(descriptor: descriptor, selected: false, onTap: null),
+            ],
           ),
-          SectionInfoLink(
-            text: l10n.supportTermsInfo,
-            linkLabel: l10n.supportTerms,
-            icon: AppIcons.arrowUpRight,
-            onTap: () => unawaited(openLink(kTermsUrl)),
+          const SizedBox(height: AppSpacing.md),
+          const _FooterNote(),
+        ],
+      ),
+    );
+  }
+}
+
+/// The screen's identity: the app's wave over its name, tagged as the
+/// supporter surface. The wave is [WaveGlyph], the same mark the empty home
+/// draws, so the brand is drawn, never a bitmap.
+class _SupporterHeader extends StatelessWidget {
+  const _SupporterHeader({required this.tag});
+
+  final String tag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    // The small inset matches SectionInfo's own, so the lockup and the pitch
+    // below share a left edge.
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.sm),
+      child: Row(
+        children: [
+          WaveGlyph(color: theme.text),
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('OpenTranscribe', style: AppType.title.copyWith(color: theme.text)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(tag.toUpperCase(), style: AppType.eyebrow.copyWith(color: theme.accent)),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The compliance paragraph as one piece of prose: the privacy and terms
+/// links ride inline as tappable accent spans instead of standing as their
+/// own rows. The l10n template carries tokens where each label lands, so a
+/// locale may order the two links however its sentence needs.
+class _FooterNote extends StatelessWidget {
+  const _FooterNote();
+
+  static const _privacyToken = '\u0001';
+  static const _termsToken = '\u0002';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    final template = l10n.supportFooter(_privacyToken, _termsToken);
+    final base = AppType.footnote.copyWith(color: theme.textSecondary, height: 1.5);
+    final link = base.copyWith(color: theme.accent, fontWeight: FontWeight.w600);
+    final spans = <InlineSpan>[];
+    var start = 0;
+    for (final match in RegExp('[$_privacyToken$_termsToken]').allMatches(template)) {
+      if (match.start > start) {
+        spans.add(TextSpan(text: template.substring(start, match.start)));
+      }
+      final privacy = template[match.start] == _privacyToken;
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: Touchable(
+            onTap: () => unawaited(openLink(privacy ? kPrivacyUrl : kTermsUrl)),
+            haptic: true,
+            child: Text(privacy ? l10n.supportPrivacy : l10n.supportTerms, style: link),
+          ),
+        ),
+      );
+      start = match.end;
+    }
+    if (start < template.length) spans.add(TextSpan(text: template.substring(start)));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: Text.rich(TextSpan(style: base, children: spans)),
     );
   }
 }
