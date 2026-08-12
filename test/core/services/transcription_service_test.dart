@@ -1990,6 +1990,104 @@ void main() {
     await svc.dispose();
   });
 
+  test('cancelRecording after the interruption entry was delivered by a stop is a no-op', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-delivered');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    final entry = await svc.stopRecording(); // delivered to this caller
+
+    await svc.cancelRecording();
+
+    expect(store.read(entry.id), entry);
+    expect(file.existsSync(), isTrue);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('cancelRecording after a failed restart does not delete the delivered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-failed-restart');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    final entry = await svc.stopRecording(); // delivered to this caller
+
+    // The user re-taps record while the phone call still holds the mic.
+    rec.throwOnStart = true;
+    await expectLater(svc.startRecording(), throwsA(isA<CaptureFailed>()));
+
+    await svc.cancelRecording();
+
+    expect(store.read(entry.id), entry);
+    expect(file.existsSync(), isTrue);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a stop after delivery throws instead of handing the entry out twice', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    await svc.stopRecording(); // first delivery consumes the handle
+
+    await expectLater(svc.stopRecording(), throwsStateError);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test("cancel around a second take never touches the first take's stalled finalize", () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final saved = <Entry>[];
+    final sub = svc.autoFinalized.listen(saved.add);
+    final gate = Completer<void>();
+
+    await svc.startRecording(); // take 1
+    rec.nextStopGate = gate.future;
+    rec.interrupt(); // take 1's finalize claims the stop and stalls on the gate
+    await Future<void>.delayed(Duration.zero); // the handler claims the stop
+
+    await svc.startRecording(); // take 2, unaffected by take 1's stalled stop
+    final entry2 = await svc.stopRecording(); // take 2's own stop sees no gate
+
+    await svc.cancelRecording(); // an idle cancel issued around take 2
+
+    gate.complete(); // release take 1's stop
+    await svc.autoFinalized.first.timeout(const Duration(seconds: 1));
+    await pumpEventQueue();
+    await sub.cancel();
+
+    expect(saved, hasLength(1)); // only take 1 auto-finalized
+    final entry1 = saved.single;
+    expect(store.read(entry1.id), entry1);
+    expect(store.read(entry2.id), entry2);
+    expect(svc.entries(), hasLength(2));
+
+    await svc.dispose();
+  });
+
   test('cancelRecording while idle with no interruption save is a no-op', () async {
     final svc = build((_) => FakeBatchEngine());
     final entry = Entry(

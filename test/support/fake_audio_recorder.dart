@@ -59,6 +59,10 @@ class FakeAudioRecorder implements AudioRecorder {
   /// concurrent stop, then release it to see how the delayed pause resolves.
   final Future<void>? pauseGate;
 
+  /// One-shot: consumed by the NEXT [stop] call only, which awaits it before
+  /// proceeding. Later [stop] calls see it already cleared and are unaffected.
+  Future<void>? nextStopGate;
+
   /// The last value passed to [setBackupExcluded], for assertions.
   bool? backupExcluded;
 
@@ -162,6 +166,9 @@ class FakeAudioRecorder implements AudioRecorder {
 
   @override
   Future<Recording> stop() async {
+    final gate = nextStopGate;
+    nextStopGate = null;
+    if (gate != null) await gate;
     if (stopDelay != null) await Future<void>.delayed(stopDelay!);
     _capturing = false;
     paused = false;

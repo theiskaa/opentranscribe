@@ -172,7 +172,11 @@ class TranscriptionService {
 
   /// The entry saved by an interruption's auto-finalize, so a stop that races it
   /// (arriving after it completed) returns it instead of throwing. Deliberately NOT
-  /// set on a user stop: a plain double-stop must keep throwing.
+  /// set on a user stop: a plain double-stop must keep throwing. Consumed (set back
+  /// to null) by whichever hand-out delivers it, and cleared by a successful new
+  /// start, so it only ever holds an UNDELIVERED auto-save of the current or
+  /// just-ended take. That invariant is what makes [cancelRecording]'s delete safe:
+  /// a delivered entry can never be sitting here for a later cancel to destroy.
   Entry? _lastFinalized;
 
   /// The finalize in flight right now, so a stop that races it (arriving while the
@@ -369,8 +373,13 @@ class TranscriptionService {
       _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
       // call that interrupted us) must not lose the entry a prior finalize saved.
+      // All three session handles clear here so a new take starts with none of the
+      // previous take's finalize state reachable by a later stop or cancel;
+      // _handleInterruption's finally guards with identical(...), so this early
+      // clear cannot double-clear a newer finalize that started after it.
       _lastFinalized = null;
       _finalizing = null;
+      _interruptionFinalize = null;
       // Replay an interruption that landed while start() was in flight; the capture
       // it killed is real and must be finalized like any other.
       if (_pendingInterruption) {
@@ -491,7 +500,10 @@ class TranscriptionService {
     if (pending != null) {
       try {
         final entry = await pending;
-        if (entry != null) return entry;
+        if (entry != null) {
+          if (identical(_lastFinalized, entry)) _lastFinalized = null;
+          return entry;
+        }
       } on EntrySaveFailed {
         // The audio was finalized but its record was not saved; this caller needs
         // the entry (carried by the error) to retrySave. Never downgrade this to
@@ -503,7 +515,10 @@ class TranscriptionService {
       }
     }
     final last = _lastFinalized;
-    if (last != null) return last;
+    if (last != null) {
+      _lastFinalized = null;
+      return last;
+    }
     throw StateError('not recording');
   }
 
@@ -522,7 +537,11 @@ class TranscriptionService {
   /// recovering that file is the intended outcome; see [recoverInterruptedSave]
   /// for how a retry avoids duplicating it.
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
-    if (!_recording) return _lastFinalized;
+    if (!_recording) {
+      final last = _lastFinalized;
+      _lastFinalized = null;
+      return last;
+    }
     _recording = false;
     _paused = false;
     // Claim ALL session state synchronously with the claim above: a new recording
@@ -660,9 +679,13 @@ class TranscriptionService {
   /// directly). [_lastFinalized] is set only by an interruption path and cleared
   /// by the next [startRecording], so this can only ever delete the auto-saved
   /// take the user is currently looking at, never a user-stop's entry (a user
-  /// stop never sets it) and never a previous take (a new start clears it).
-  /// Throws [StateError] during an in-flight start, which cannot be safely
-  /// undone from here.
+  /// stop never sets it) and never a previous take (a new start clears it). It
+  /// also cannot delete a DELIVERED entry: every hand-out of [_lastFinalized]
+  /// (a stop returning it, in flight or already completed) consumes it first, so
+  /// a caller who already received the entry has, by construction, taken it out
+  /// of this branch's reach; this completed-save branch can only ever discard
+  /// the still-undelivered auto-save of the take on screen. Throws [StateError]
+  /// during an in-flight start, which cannot be safely undone from here.
   Future<void> cancelRecording() async {
     if (_starting) throw StateError('start in flight');
     if (!_recording) {
