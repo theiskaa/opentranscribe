@@ -18,9 +18,6 @@ abstract final class AppIcons {
   /// SF Symbol `arrow.up.right`.
   static const IconData arrowUpRight = IconData(0x10012F, fontFamily: _family);
 
-  /// SF Symbol `arrow.uturn.backward`.
-  static const IconData arrowUturnBackward = IconData(0x100C4D, fontFamily: _family);
-
   /// SF Symbol `bell`.
   static const IconData bell = IconData(0x1002D9, fontFamily: _family);
 
@@ -44,6 +41,9 @@ abstract final class AppIcons {
 
   /// SF Symbol `chevron.forward`.
   static const IconData chevronForward = IconData(0x100BFB, fontFamily: _family);
+
+  /// SF Symbol `clock.arrow.circlepath` (the history clock).
+  static const IconData clockHistory = IconData(0x1008D4, fontFamily: _family);
 
   /// SF Symbol `document.on.document`.
   static const IconData docOnDoc = IconData(0x100241, fontFamily: _family);
@@ -139,7 +139,6 @@ abstract final class AppIcons {
         0x1008FA: 'apple.logo',
         0x100149: 'arrow.counterclockwise',
         0x10012F: 'arrow.up.right',
-        0x100C4D: 'arrow.uturn.backward',
         0x1002D9: 'bell',
         0x1002DA: 'bell.fill',
         0x100249: 'calendar',
@@ -148,6 +147,7 @@ abstract final class AppIcons {
         0x100185: 'checkmark',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',
+        0x1008D4: 'clock.arrow.circlepath',
         0x100241: 'doc.on.doc',
         0x100360: 'ellipsis',
         0x1008CB: 'gearshape',
