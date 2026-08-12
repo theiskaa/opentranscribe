@@ -10,6 +10,16 @@ class _DeleteFails extends LocalService {
   Future<bool> delete(String key) async => throw StateError('delete refused');
 }
 
+class _CountingReads extends LocalService {
+  int readJsonCalls = 0;
+
+  @override
+  T? readJson<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+    readJsonCalls++;
+    return super.readJson(key, fromJson);
+  }
+}
+
 void main() {
   const key = 'test-encryption-key-0123456789ab';
 
@@ -151,5 +161,53 @@ void main() {
     expect(store.read(start)!.text, 'week');
     expect(store.deletedWeeks(), isEmpty);
     expect(store.deletedRefs().single, (period: ReflectionPeriod.daily, start: start));
+  });
+
+  test('all() decrypts once until a save lands', () async {
+    final counting = _CountingReads();
+    await counting.init(legacyKey: key);
+    final countingStore = ReflectionStore(counting);
+    await countingStore.save(reflection(DateTime(2026, 7, 20), text: 'a'));
+
+    countingStore.all();
+    final callsAfterFirstRead = counting.readJsonCalls;
+    countingStore.all();
+
+    expect(counting.readJsonCalls, callsAfterFirstRead);
+  });
+
+  test('a save invalidates both the rows and the tombstones memo', () async {
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+    await store.delete(DateTime(2026, 7, 20));
+    expect(store.all(), isEmpty);
+    expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'again'));
+
+    expect(store.all(), hasLength(1));
+    expect(store.deletedWeeks(), isEmpty);
+  });
+
+  test('a delete invalidates both memos', () async {
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+    expect(store.all(), hasLength(1));
+    expect(store.deletedWeeks(), isEmpty);
+
+    await store.delete(DateTime(2026, 7, 20));
+
+    expect(store.all(), isEmpty);
+    expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+  });
+
+  test('callers mutating the returned list cannot corrupt the memo', () async {
+    await store.save(reflection(DateTime(2026, 7, 6), text: 'kept'));
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'to delete'));
+    await store.delete(DateTime(2026, 7, 20));
+
+    store.all().clear();
+    store.deletedRefs().clear();
+
+    expect(store.all(), hasLength(1));
+    expect(store.deletedRefs(), hasLength(1));
   });
 }

@@ -23,18 +23,25 @@ class ReflectionStore {
   static const _prefix = 'reflection:';
   static const _deletedPrefix = 'reflection.deleted:';
 
+  List<Reflection>? _rowsCache;
+  List<({ReflectionPeriod period, DateTime start})>? _deletedCache;
+
   String _rowKey(ReflectionPeriod period, String dateKey) => '$_prefix${period.wire}:$dateKey';
 
   String _deletedKey(ReflectionPeriod period, String dateKey) =>
       '$_deletedPrefix${period.wire}:$dateKey';
 
   Future<void> save(Reflection reflection) async {
+    _rowsCache = null;
+    _deletedCache = null;
     final dateKey = reflection.periodKey;
     // Row before marker: a failure between the writes then leaves both behind
     // (the fresh row wins) instead of neither, which would read as an erased
     // period for the catch-up to quietly refill.
     await _storage.writeJson(_rowKey(reflection.period, dateKey), reflection.toJson());
     await _storage.delete(_deletedKey(reflection.period, dateKey));
+    _rowsCache = null;
+    _deletedCache = null;
   }
 
   Reflection? read(DateTime start, {ReflectionPeriod period = ReflectionPeriod.weekly}) {
@@ -48,8 +55,12 @@ class ReflectionStore {
 
   /// All reflections, newest start first, ties broken by period (day, week,
   /// month) so the order is deterministic when a day and its week share a start.
-  /// Corrupt records are skipped.
+  /// Corrupt records are skipped. Memoized until the next [save] or [delete];
+  /// callers get a shallow copy so mutating the returned list cannot corrupt
+  /// the memo.
   List<Reflection> all() {
+    final cached = _rowsCache;
+    if (cached != null) return List.of(cached);
     final reflections = <Reflection>[];
     for (final key in _storage.findKeysWithPrefix(_prefix)) {
       try {
@@ -63,25 +74,36 @@ class ReflectionStore {
       final byStart = b.periodStart.compareTo(a.periodStart);
       return byStart != 0 ? byStart : a.period.index.compareTo(b.period.index);
     });
-    return reflections;
+    _rowsCache = reflections;
+    return List.of(reflections);
   }
 
   /// Removes a period's reflection and records the removal as a tombstone.
   Future<bool> delete(DateTime start, {ReflectionPeriod period = ReflectionPeriod.weekly}) async {
+    _rowsCache = null;
+    _deletedCache = null;
     final dateKey = Reflection.keyFor(start);
     await _storage.write(_deletedKey(period, dateKey), dateKey);
-    return _storage.delete(_rowKey(period, dateKey));
+    final result = await _storage.delete(_rowKey(period, dateKey));
+    _rowsCache = null;
+    _deletedCache = null;
+    return result;
   }
 
   /// The period starts the user deleted, unordered. Unparseable markers are
-  /// skipped like corrupt rows.
+  /// skipped like corrupt rows. Memoized until the next [save] or [delete];
+  /// callers get a shallow copy so mutating the returned list cannot corrupt
+  /// the memo.
   List<({ReflectionPeriod period, DateTime start})> deletedRefs() {
+    final cached = _deletedCache;
+    if (cached != null) return List.of(cached);
     final refs = <({ReflectionPeriod period, DateTime start})>[];
     for (final key in _storage.findKeysWithPrefix(_deletedPrefix)) {
       final ref = _parseRef(key.substring(_deletedPrefix.length));
       if (ref != null) refs.add(ref);
     }
-    return refs;
+    _deletedCache = refs;
+    return List.of(refs);
   }
 
   /// The week starts the user deleted, unordered. The weekly slice of

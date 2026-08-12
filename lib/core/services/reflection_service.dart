@@ -207,13 +207,14 @@ class ReflectionService {
   /// a backlog and self-hides once drained.
   bool hasBacklog() {
     final stored = _store.all();
+    final deleted = _store.deletedRefs();
     for (final period in ReflectionPeriod.values) {
       if (!_settings.enabledFor(period)) continue;
       final current = _currentStart(period);
       for (final start in journaledStartsFor(period)) {
         if (!start.isBefore(current)) continue;
         if (_covered(period, start, stored)) continue;
-        if (_tombstoned(period, start)) continue;
+        if (_tombstoned(period, start, deleted)) continue;
         return true;
       }
     }
@@ -264,7 +265,7 @@ class ReflectionService {
       if (_covered(period, start, _store.all())) continue;
       // An erased period stays erased: the user's delete must not be overruled
       // by the next open re-reflecting a period whose entries still exist.
-      if (_tombstoned(period, start)) continue;
+      if (_tombstoned(period, start, _store.deletedRefs())) continue;
       try {
         await _reflectPeriod(period, start, byStart[start]!);
       } on ReflectionUnavailable {
@@ -325,9 +326,13 @@ class ReflectionService {
   bool _covered(ReflectionPeriod period, DateTime start, List<Reflection> stored) =>
       stored.any((r) => r.period == period && periodsOverlap(start, r.periodStart, period));
 
-  /// Whether a user erasure of [period] covers [start]'s range.
-  bool _tombstoned(ReflectionPeriod period, DateTime start) =>
-      _store.deletedRefs().any((d) => d.period == period && periodsOverlap(start, d.start, period));
+  /// Whether a user erasure of [period] covers [start]'s range, judged against
+  /// [deleted].
+  bool _tombstoned(
+    ReflectionPeriod period,
+    DateTime start,
+    List<({ReflectionPeriod period, DateTime start})> deleted,
+  ) => deleted.any((d) => d.period == period && periodsOverlap(start, d.start, period));
 
   /// [period]'s stored history, newest first, for the surfaces. The store stays
   /// private so every write goes through this service.
@@ -395,7 +400,7 @@ class ReflectionService {
     // Read the style ONCE, before the await, so the persisted voice is the one
     // the text was actually generated with even if a setting changes mid-run.
     final style = _settings.styleFor(period);
-    final erased = _tombstoned(period, start);
+    final erased = _tombstoned(period, start, _store.deletedRefs());
     final text = inputs.isEmpty
         ? null
         : await _engine
@@ -409,7 +414,7 @@ class ReflectionService {
     // the tombstone the user just wrote and resurrect the period. A tombstone
     // that predates the run is a regenerate of an erased period, which the user
     // asked for, so that one saves through.
-    if (!erased && _tombstoned(period, start)) return;
+    if (!erased && _tombstoned(period, start, _store.deletedRefs())) return;
 
     await _store.save(
       Reflection(
