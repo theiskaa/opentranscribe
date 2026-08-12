@@ -21,11 +21,18 @@ void main() {
 
   final bannedAsset = RegExp(r'\b(Lottie\.network|NetworkAssetBundle|Image\.network)\b');
 
-  test('lib/ and the vendored plugin never touch the network', () {
+  final packageDirs = Directory('packages').listSync().whereType<Directory>().toList();
+
+  test('lib/ and every plugin package never touch the network', () {
+    final dartRoots = [
+      Directory('lib'),
+      for (final pkg in packageDirs) Directory('${pkg.path}/lib'),
+    ];
+
     final offenders = <String>[];
     final files = <File>[
-      ...Directory('lib').listSync(recursive: true).whereType<File>(),
-      ...Directory('packages/liquid/lib').listSync(recursive: true).whereType<File>(),
+      for (final root in dartRoots)
+        if (root.existsSync()) ...root.listSync(recursive: true).whereType<File>(),
     ].where((f) => f.path.endsWith('.dart'));
 
     for (final file in files) {
@@ -38,6 +45,12 @@ void main() {
     }
 
     expect(offenders, isEmpty, reason: offenders.join('\n'));
+
+    for (final root in dartRoots) {
+      if (!root.existsSync()) continue;
+      final count = files.where((f) => f.path.startsWith(root.path)).length;
+      expect(count, greaterThan(0), reason: '${root.path} contributed no Dart files to the scan');
+    }
   });
 
   // Strip // line comments first so a prose mention of these symbols (e.g. in
@@ -48,10 +61,15 @@ void main() {
   );
 
   test('native sources never open a connection', () {
+    final swiftRoots = [
+      Directory('ios'),
+      for (final pkg in packageDirs) Directory('${pkg.path}/ios'),
+    ];
+
     final offenders = <String>[];
     final files = <File>[
-      ...Directory('ios').listSync(recursive: true).whereType<File>(),
-      ...Directory('packages/liquid/ios').listSync(recursive: true).whereType<File>(),
+      for (final root in swiftRoots)
+        if (root.existsSync()) ...root.listSync(recursive: true).whereType<File>(),
     ].where((f) => f.path.endsWith('.swift'));
 
     for (final file in files) {
@@ -60,5 +78,11 @@ void main() {
     }
 
     expect(offenders, isEmpty, reason: offenders.join('\n'));
+
+    for (final root in swiftRoots) {
+      if (!root.existsSync()) continue;
+      final count = files.where((f) => f.path.startsWith(root.path)).length;
+      expect(count, greaterThan(0), reason: '${root.path} contributed no Swift files to the scan');
+    }
   });
 }
