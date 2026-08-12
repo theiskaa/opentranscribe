@@ -298,15 +298,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSpeechReason => '録音をテキストに変換するため。処理は端末内で行われます。';
 
   @override
-  String get onboardingNotifyName => '通知';
-
-  @override
-  String get onboardingNotifyReason => '振り返りが用意できたらお知らせします。';
-
-  @override
-  String get onboardingAllow => '許可';
-
-  @override
   String get onboardingOpenSettings => '設定で有効にする';
 
   @override

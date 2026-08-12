@@ -296,15 +296,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
 
   @override
-  String get onboardingNotifyName => '通知';
-
-  @override
-  String get onboardingNotifyReason => '回顾准备好时提醒你。';
-
-  @override
-  String get onboardingAllow => '允许';
-
-  @override
   String get onboardingOpenSettings => '在“设置”中启用';
 
   @override

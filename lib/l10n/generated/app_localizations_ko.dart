@@ -299,15 +299,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingSpeechReason => '녹음을 기기에서 텍스트로 바꾸기 위해서입니다.';
 
   @override
-  String get onboardingNotifyName => '알림';
-
-  @override
-  String get onboardingNotifyReason => '돌아보기가 준비되면 알림을 보내드립니다.';
-
-  @override
-  String get onboardingAllow => '허용';
-
-  @override
   String get onboardingOpenSettings => '설정에서 사용 설정';
 
   @override

@@ -316,15 +316,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingSpeechReason => 'Um Ihre Aufnahmen auf dem Gerät in Text umzuwandeln.';
 
   @override
-  String get onboardingNotifyName => 'Mitteilungen';
-
-  @override
-  String get onboardingNotifyReason => 'Für einen Hinweis, wenn ein Rückblick bereit ist.';
-
-  @override
-  String get onboardingAllow => 'Erlauben';
-
-  @override
   String get onboardingOpenSettings => 'In Einstellungen aktivieren';
 
   @override

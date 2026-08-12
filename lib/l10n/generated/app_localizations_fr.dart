@@ -315,15 +315,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Pour transformer vos enregistrements en texte, sur l\'appareil.';
 
   @override
-  String get onboardingNotifyName => 'Notifications';
-
-  @override
-  String get onboardingNotifyReason => 'Pour un rappel quand une réflexion est prête.';
-
-  @override
-  String get onboardingAllow => 'Autoriser';
-
-  @override
   String get onboardingOpenSettings => 'Activer dans les Réglages';
 
   @override

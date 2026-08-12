@@ -18,21 +18,19 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_per
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 
-/// First-launch onboarding: three swipeable steps (intro, permissions, model
-/// download) over one bottom button, then into the app. Shown once - the
-/// router's redirect gates it on [Onboarding.isDone], and finishing marks it so.
-/// Free to proceed: no step blocks the button, since the app prompts for
-/// permissions and installs the default model on first use anyway.
+/// First-launch onboarding: three steps (intro, permissions, model download)
+/// over one bottom button, then into the app. Shown once - the router's
+/// redirect gates it on [Onboarding.isDone], and finishing marks it so.
+/// The button is the only way forward: leaving the permissions step fires its
+/// pending system prompts first, since App Store 5.1.1(iv) requires a priming
+/// page to always lead to the request. Denials never block, only mark the rows.
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OnboardingCubit(
-        service: Deps.i.transcriptionService,
-        scheduler: Deps.i.notificationScheduler,
-      ),
+      create: (_) => OnboardingCubit(service: Deps.i.transcriptionService),
       child: const _OnboardingView(),
     );
   }
@@ -47,9 +45,11 @@ class _OnboardingView extends StatefulWidget {
 
 class _OnboardingViewState extends State<_OnboardingView> {
   static const _pageCount = 3;
+  static const _permissionsIndex = 1;
 
   final PageController _controller = PageController();
   int _index = 0;
+  bool _requesting = false;
   bool _finishing = false;
 
   @override
@@ -67,7 +67,14 @@ class _OnboardingViewState extends State<_OnboardingView> {
     super.dispose();
   }
 
-  void _next(Duration slide) {
+  Future<void> _next(Duration slide) async {
+    if (_index == _permissionsIndex) {
+      if (_requesting) return;
+      setState(() => _requesting = true);
+      await context.read<OnboardingCubit>().requestPending();
+      if (!mounted) return;
+      setState(() => _requesting = false);
+    }
     if (_index >= _pageCount - 1) {
       unawaited(_finish());
       return;
@@ -75,7 +82,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
     if (slide == Duration.zero) {
       _controller.jumpToPage(_index + 1);
     } else {
-      _controller.nextPage(duration: slide, curve: Curves.easeOut);
+      unawaited(_controller.nextPage(duration: slide, curve: Curves.easeOut));
     }
   }
 
@@ -106,6 +113,9 @@ class _OnboardingViewState extends State<_OnboardingView> {
             Expanded(
               child: PageView(
                 controller: _controller,
+                // Button-only navigation: swiping past the permissions page
+                // would bypass the prompts its Next tap must fire.
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _index = i),
                 children: const [OnboardingIntro(), OnboardingPermissions(), OnboardingModels()],
               ),
@@ -116,8 +126,8 @@ class _OnboardingViewState extends State<_OnboardingView> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: AppButton(
                 label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
-                isLoading: _finishing,
-                onPressed: () => _next(slide),
+                isLoading: _requesting || _finishing,
+                onPressed: () => unawaited(_next(slide)),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
