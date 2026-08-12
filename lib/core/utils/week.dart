@@ -25,17 +25,6 @@ DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 /// off the wall-clock day and a 7-day week edge quietly gains or loses a day.
 DateTime addDays(DateTime d, int days) => DateTime(d.year, d.month, d.day + days);
 
-/// Whether the 7-day ranges starting at [a] and [b] overlap. The one overlap
-/// rule the catch-up's done-check and the pager's timeline share, so they can
-/// never disagree about which weeks are the same week.
-bool weeksOverlap(DateTime a, DateTime b) => b.isBefore(addDays(a, 7)) && a.isBefore(addDays(b, 7));
-
-/// Whether [week] closed at least partly on or after [floor]: the no-backfill
-/// rule, judged by range so a first-day shift cannot pull a pre-feature week
-/// back over the line. The one rule the catch-up and the pager's timeline
-/// share, so a waiting page can never promise a week the catch-up would skip.
-bool weekClearsFloor(DateTime week, DateTime floor) => addDays(week, 7).isAfter(floor);
-
 /// Whole civil days from [from] to [to] (both dates). Computed in UTC because a
 /// local-time difference across a DST change is a fractional day, which
 /// `inDays` truncates.
