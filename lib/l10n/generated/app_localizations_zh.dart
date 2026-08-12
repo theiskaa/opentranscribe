@@ -739,7 +739,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateTitle => '支持者功能';
+  String get supportGateTitle => '俱乐部功能';
 
   @override
   String get supportGateBody => '支持 OpenTranscribe 即可解锁格式化导出。备份始终免费。';
@@ -751,13 +751,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSupport => '支持';
 
   @override
-  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。支持者可解锁格式化导出，以及之后的新功能。';
+  String get supportPitch =>
+      'OpenTranscribe 免费且私密，你的支持让它保持这样。目前加入俱乐部即可解锁格式化导出。新功能会先提供给俱乐部，部分功能将只属于俱乐部。';
 
   @override
-  String get supportThanksMonthly => '你正在支持 OpenTranscribe。谢谢。';
+  String get supportThanksMonthly => '你已加入俱乐部。谢谢。';
 
   @override
-  String get supportThanksLifetime => '你已永久支持 OpenTranscribe。谢谢。';
+  String get supportThanksLifetime => '你已永久加入俱乐部。谢谢。';
 
   @override
   String get supportMonthly => '按月';
@@ -794,7 +795,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportRestoreNoneTitle => '没有可恢复的购买';
 
   @override
-  String get supportRestoreNoneBody => '此 Apple ID 未关联任何支持者购买。';
+  String get supportRestoreNoneBody => '此 Apple ID 未关联任何俱乐部购买。';
 
   @override
   String get supportFailedTitle => '未能完成';
@@ -803,14 +804,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportFailedBody => 'App Store 未能完成。请重试。';
 
   @override
-  String get supportPrivacyInfo => '支持不会改变任何隐私设定。日记永远不会离开手机。';
-
-  @override
   String get supportPrivacy => '隐私政策';
 
   @override
-  String get supportTermsInfo => '订阅遵循 Apple 的标准条款。';
+  String get supportTerms => '使用条款';
 
   @override
-  String get supportTerms => '使用条款';
+  String get supportUnlocksSection => '俱乐部权益';
+
+  @override
+  String get supporterTag => '俱乐部';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。订阅遵循 Apple 的标准$terms。';
+  }
 }

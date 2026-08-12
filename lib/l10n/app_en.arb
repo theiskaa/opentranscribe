@@ -989,7 +989,7 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateTitle": "A supporter feature",
+  "supportGateTitle": "A club feature",
   "@supportGateTitle": {
     "description": "Title of the gate sheet a supporter-locked action answers with"
   },
@@ -1005,15 +1005,15 @@
   "@settingsSupport": {
     "description": "Home menu row and support screen name"
   },
-  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.",
+  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.",
   "@supportPitch": {
     "description": "Support screen intro for a non-supporter"
   },
-  "supportThanksMonthly": "You support OpenTranscribe. Thank you.",
+  "supportThanksMonthly": "You're in the club. Thank you.",
   "@supportThanksMonthly": {
     "description": "Support screen intro while the monthly subscription runs"
   },
-  "supportThanksLifetime": "You support OpenTranscribe for good. Thank you.",
+  "supportThanksLifetime": "You're in the club for good. Thank you.",
   "@supportThanksLifetime": {
     "description": "Support screen intro after the lifetime unlock"
   },
@@ -1067,7 +1067,7 @@
   "@supportRestoreNoneTitle": {
     "description": "Sheet title when restore finds no purchase"
   },
-  "supportRestoreNoneBody": "No supporter purchase is attached to this Apple ID.",
+  "supportRestoreNoneBody": "No club purchase is attached to this Apple ID.",
   "@supportRestoreNoneBody": {
     "description": "Sheet body when restore finds no purchase"
   },
@@ -1079,20 +1079,32 @@
   "@supportFailedBody": {
     "description": "Sheet body when a purchase or restore failed"
   },
-  "supportPrivacyInfo": "Supporting changes nothing about privacy. The journal never leaves the phone.",
-  "@supportPrivacyInfo": {
-    "description": "Footer line above the privacy policy link"
-  },
-  "supportPrivacy": "Privacy policy",
+  "supportPrivacy": "privacy policy",
   "@supportPrivacy": {
     "description": "Privacy policy link label"
   },
-  "supportTermsInfo": "The subscription runs on Apple's standard terms.",
-  "@supportTermsInfo": {
-    "description": "Footer line above the terms link"
-  },
-  "supportTerms": "Terms of use",
+  "supportTerms": "terms of use",
   "@supportTerms": {
     "description": "Terms of use link label"
+  },
+  "supportUnlocksSection": "Club members get",
+  "@supportUnlocksSection": {
+    "description": "Section label above the list of features supporting unlocks"
+  },
+  "supporterTag": "Club",
+  "@supporterTag": {
+    "description": "Eyebrow under the app name on the support screen header"
+  },
+  "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the subscription runs on Apple's standard {terms}.",
+  "@supportFooter": {
+    "description": "Footer paragraph; privacy and terms are the inline tappable link labels",
+    "placeholders": {
+      "privacy": {
+        "type": "String"
+      },
+      "terms": {
+        "type": "String"
+      }
+    }
   }
 }

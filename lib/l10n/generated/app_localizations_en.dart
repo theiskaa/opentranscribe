@@ -795,7 +795,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 
   @override
-  String get supportGateTitle => 'A supporter feature';
+  String get supportGateTitle => 'A club feature';
 
   @override
   String get supportGateBody =>
@@ -809,13 +809,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.';
+      'OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.';
 
   @override
-  String get supportThanksMonthly => 'You support OpenTranscribe. Thank you.';
+  String get supportThanksMonthly => 'You\'re in the club. Thank you.';
 
   @override
-  String get supportThanksLifetime => 'You support OpenTranscribe for good. Thank you.';
+  String get supportThanksLifetime => 'You\'re in the club for good. Thank you.';
 
   @override
   String get supportMonthly => 'Monthly';
@@ -854,7 +854,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportRestoreNoneTitle => 'Nothing to restore';
 
   @override
-  String get supportRestoreNoneBody => 'No supporter purchase is attached to this Apple ID.';
+  String get supportRestoreNoneBody => 'No club purchase is attached to this Apple ID.';
 
   @override
   String get supportFailedTitle => 'That did not go through';
@@ -863,15 +863,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportFailedBody => 'The App Store could not finish. Try again.';
 
   @override
-  String get supportPrivacyInfo =>
-      'Supporting changes nothing about privacy. The journal never leaves the phone.';
+  String get supportPrivacy => 'privacy policy';
 
   @override
-  String get supportPrivacy => 'Privacy policy';
+  String get supportTerms => 'terms of use';
 
   @override
-  String get supportTermsInfo => 'The subscription runs on Apple\'s standard terms.';
+  String get supportUnlocksSection => 'Club members get';
 
   @override
-  String get supportTerms => 'Terms of use';
+  String get supporterTag => 'Club';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Supporting changes nothing about privacy. The journal never leaves the phone, as the $privacy says, and the subscription runs on Apple\'s standard $terms.';
+  }
 }

@@ -1473,7 +1473,7 @@ abstract class AppLocalizations {
   /// Title of the gate sheet a supporter-locked action answers with
   ///
   /// In en, this message translates to:
-  /// **'A supporter feature'**
+  /// **'A club feature'**
   String get supportGateTitle;
 
   /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
@@ -1497,19 +1497,19 @@ abstract class AppLocalizations {
   /// Support screen intro for a non-supporter
   ///
   /// In en, this message translates to:
-  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.'**
+  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.'**
   String get supportPitch;
 
   /// Support screen intro while the monthly subscription runs
   ///
   /// In en, this message translates to:
-  /// **'You support OpenTranscribe. Thank you.'**
+  /// **'You\'re in the club. Thank you.'**
   String get supportThanksMonthly;
 
   /// Support screen intro after the lifetime unlock
   ///
   /// In en, this message translates to:
-  /// **'You support OpenTranscribe for good. Thank you.'**
+  /// **'You\'re in the club for good. Thank you.'**
   String get supportThanksLifetime;
 
   /// Label of the monthly subscription row
@@ -1575,7 +1575,7 @@ abstract class AppLocalizations {
   /// Sheet body when restore finds no purchase
   ///
   /// In en, this message translates to:
-  /// **'No supporter purchase is attached to this Apple ID.'**
+  /// **'No club purchase is attached to this Apple ID.'**
   String get supportRestoreNoneBody;
 
   /// Sheet title when a purchase or restore failed
@@ -1590,29 +1590,35 @@ abstract class AppLocalizations {
   /// **'The App Store could not finish. Try again.'**
   String get supportFailedBody;
 
-  /// Footer line above the privacy policy link
-  ///
-  /// In en, this message translates to:
-  /// **'Supporting changes nothing about privacy. The journal never leaves the phone.'**
-  String get supportPrivacyInfo;
-
   /// Privacy policy link label
   ///
   /// In en, this message translates to:
-  /// **'Privacy policy'**
+  /// **'privacy policy'**
   String get supportPrivacy;
-
-  /// Footer line above the terms link
-  ///
-  /// In en, this message translates to:
-  /// **'The subscription runs on Apple\'s standard terms.'**
-  String get supportTermsInfo;
 
   /// Terms of use link label
   ///
   /// In en, this message translates to:
-  /// **'Terms of use'**
+  /// **'terms of use'**
   String get supportTerms;
+
+  /// Section label above the list of features supporting unlocks
+  ///
+  /// In en, this message translates to:
+  /// **'Club members get'**
+  String get supportUnlocksSection;
+
+  /// Eyebrow under the app name on the support screen header
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get supporterTag;
+
+  /// Footer paragraph; privacy and terms are the inline tappable link labels
+  ///
+  /// In en, this message translates to:
+  /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the subscription runs on Apple\'s standard {terms}.'**
+  String supportFooter(String privacy, String terms);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -749,7 +749,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
-  String get supportGateTitle => 'サポーター向け機能';
+  String get supportGateTitle => 'クラブ向け機能';
 
   @override
   String get supportGateBody => '形式を選べる書き出しは、OpenTranscribeをサポートすると使えるようになります。バックアップは無料のままです。';
@@ -762,13 +762,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。サポーターは形式を選べる書き出しと、この先の機能を使えるようになります。';
+      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。今はクラブに入ると形式を選べる書き出しが使えるようになります。新機能はまずクラブに届き、一部はクラブ専用になります。';
 
   @override
-  String get supportThanksMonthly => 'OpenTranscribeをサポートしています。ありがとうございます。';
+  String get supportThanksMonthly => 'クラブの一員です。ありがとうございます。';
 
   @override
-  String get supportThanksLifetime => 'OpenTranscribeをずっとサポートしています。ありがとうございます。';
+  String get supportThanksLifetime => 'ずっとクラブの一員です。ありがとうございます。';
 
   @override
   String get supportMonthly => '月額';
@@ -805,7 +805,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportRestoreNoneTitle => '復元できる購入はありません';
 
   @override
-  String get supportRestoreNoneBody => 'このApple IDにサポーター購入は関連付けられていません。';
+  String get supportRestoreNoneBody => 'このApple IDにクラブの購入は関連付けられていません。';
 
   @override
   String get supportFailedTitle => '完了できませんでした';
@@ -814,14 +814,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportFailedBody => 'App Storeが完了できませんでした。もう一度お試しください。';
 
   @override
-  String get supportPrivacyInfo => 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません。';
-
-  @override
   String get supportPrivacy => 'プライバシーポリシー';
 
   @override
-  String get supportTermsInfo => 'サブスクリプションはAppleの標準規約に従います。';
+  String get supportTerms => '利用規約';
 
   @override
-  String get supportTerms => '利用規約';
+  String get supportUnlocksSection => 'クラブ特典';
+
+  @override
+  String get supporterTag => 'クラブ';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。サブスクリプションはAppleの標準$termsに従います。';
+  }
 }

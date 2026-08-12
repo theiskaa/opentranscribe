@@ -804,7 +804,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 
   @override
-  String get supportGateTitle => 'Uma funcionalidade de apoiante';
+  String get supportGateTitle => 'Uma funcionalidade do clube';
 
   @override
   String get supportGateBody =>
@@ -818,13 +818,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'O OpenTranscribe é gratuito e privado, e apoiá-lo mantém-no assim. Os apoiantes desbloqueiam as exportações formatadas, e o que vier a seguir.';
+      'O OpenTranscribe é gratuito e privado, e apoiá-lo mantém-no assim. Hoje, entrar no clube desbloqueia as exportações formatadas. As novidades chegam primeiro ao clube, e algumas serão só dele.';
 
   @override
-  String get supportThanksMonthly => 'Está a apoiar o OpenTranscribe. Obrigado.';
+  String get supportThanksMonthly => 'Está no clube. Obrigado.';
 
   @override
-  String get supportThanksLifetime => 'Está a apoiar o OpenTranscribe para sempre. Obrigado.';
+  String get supportThanksLifetime => 'Está no clube para sempre. Obrigado.';
 
   @override
   String get supportMonthly => 'Mensal';
@@ -863,7 +863,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportRestoreNoneTitle => 'Nada a restaurar';
 
   @override
-  String get supportRestoreNoneBody => 'Nenhuma compra de apoiante está associada a este ID Apple.';
+  String get supportRestoreNoneBody => 'Nenhuma compra do clube está associada a este ID Apple.';
 
   @override
   String get supportFailedTitle => 'Não foi concluído';
@@ -872,15 +872,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportFailedBody => 'A App Store não conseguiu concluir. Tente novamente.';
 
   @override
-  String get supportPrivacyInfo =>
-      'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel.';
+  String get supportPrivacy => 'política de privacidade';
 
   @override
-  String get supportPrivacy => 'Política de privacidade';
+  String get supportTerms => 'termos de utilização';
 
   @override
-  String get supportTermsInfo => 'A subscrição segue os termos padrão da Apple.';
+  String get supportUnlocksSection => 'Para membros do clube';
 
   @override
-  String get supportTerms => 'Termos de utilização';
+  String get supporterTag => 'Club';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a $privacy, e a subscrição segue os $terms padrão da Apple.';
+  }
 }
