@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -227,21 +228,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
-          // Cards are driven by the reflection history; watching it here rebuilds
-          // home when a period is reflected, deleted, or regenerated. Home reads
-          // every enabled period's reflections, independent of the screen's
-          // viewed period, so paging that screen never disturbs home's cards.
-          final reflectionsState = context.watch<ReflectionsCubit>().state;
-          final reflections = reflectionsState.homeReflections;
-          // Only a card that ARRIVES while home is up gets an entrance; the
-          // first LOADED build seeds the ledger settled. Diffing before the
-          // cubit's first real read would run against its empty placeholder
-          // and mark the whole history newly arrived.
-          if (reflectionsState.loaded) {
-            final previous = _seenReflections;
-            if (previous != null) _enteredCards.addAll(newlyReflected(previous, reflections));
-            _seenReflections = reflections;
-          }
           _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
           _seenEntryIds = {for (final e in state.entries) e.id};
           _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
@@ -277,114 +263,143 @@ class _HomeScreenState extends State<HomeScreen> {
             _fitTail();
           });
 
-          final body = state.entries.isEmpty
-              // A scrollable, not a Center: it overscrolls so the pull-to-record
-              // gesture works with nothing recorded yet, the one way in from here.
-              ? SingleChildScrollView(
-                  controller: _scroll,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: EdgeInsets.only(top: _contentTop),
-                    child: const HomeEmpty(),
-                  ),
-                )
-              : _RecordsList(
-                  key: _sections.listKey,
-                  state: state,
-                  reflections: reflections,
-                  enteredCards: _enteredCards,
-                  enteredEntries: _enteredEntries,
-                  enteredDays: _enteredDays,
-                  departingDays: _departingDays,
-                  onDepartureEnd: (day) {
-                    if (!mounted) return;
-                    setState(() => _departingDays.remove(day));
-                  },
-                  dying: _dying,
-                  onRowDeleteStart: (id, day) {
-                    if (!mounted) return;
-                    setState(() => _dying[id] = day);
-                  },
-                  controller: _scroll,
-                  splitterKeys: _sections.splitterKeys,
-                  topPadding: _contentTop,
-                  tail: _tail,
-                  openRow: _openRow,
-                  onDelete: (entry) async {
-                    try {
-                      await context.read<HomeCubit>().delete(entry);
-                    } finally {
-                      // Resolved either way: a removed row's flag is spent, a
-                      // refused delete's row unfolds its surroundings back.
-                      // Past the frame, never inside it: the emit's build
-                      // diffs departures against this ledger, and a delete
-                      // resolving first would clear the id before that build
-                      // ever sees it - ghosting a title that folded live.
-                      await WidgetsBinding.instance.endOfFrame;
-                      if (mounted) setState(() => _dying.remove(entry.id));
-                    }
-                  },
-                );
+          // A separate, value-gated subscription: cards are driven by the
+          // reflection history, so this must still rebuild when a period is
+          // reflected, deleted, or regenerated (all three change
+          // homeReflections), but not on unrelated reflections emits (style,
+          // probe, viewed-period). ReflectionsState.homeReflections is a fresh
+          // list on every derive, so identity-based rebuild gating (the
+          // default BlocBuilder/BlocSelector behavior) would still fire on
+          // every emit; buildWhen compares the lists' contents instead. Home
+          // reads every enabled period's reflections, independent of the
+          // screen's viewed period, so paging that screen never disturbs
+          // home's cards.
+          return BlocBuilder<ReflectionsCubit, ReflectionsState>(
+            buildWhen: (previous, current) =>
+                previous.loaded != current.loaded ||
+                !listEquals(previous.homeReflections, current.homeReflections),
+            builder: (context, reflectionsState) {
+              final reflections = reflectionsState.homeReflections;
+              // Only a card that ARRIVES while home is up gets an entrance; the
+              // first LOADED build seeds the ledger settled. Diffing before the
+              // cubit's first real read would run against its empty placeholder
+              // and mark the whole history newly arrived.
+              if (reflectionsState.loaded) {
+                final previous = _seenReflections;
+                if (previous != null) _enteredCards.addAll(newlyReflected(previous, reflections));
+                _seenReflections = reflections;
+              }
 
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _onScroll,
-                  child: body,
-                ),
-              ),
-              // Lives in the gap a record pull opens under the chrome.
-              Positioned(
-                top: _contentTop,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: PullToRecordHint(
-                    pull: _pullGesture.pull,
-                    threshold: PullToRecordGesture.threshold,
+              final body = state.entries.isEmpty
+                  // A scrollable, not a Center: it overscrolls so the pull-to-record
+                  // gesture works with nothing recorded yet, the one way in from here.
+                  ? SingleChildScrollView(
+                      controller: _scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.only(top: _contentTop),
+                        child: const HomeEmpty(),
+                      ),
+                    )
+                  : _RecordsList(
+                      key: _sections.listKey,
+                      state: state,
+                      reflections: reflections,
+                      enteredCards: _enteredCards,
+                      enteredEntries: _enteredEntries,
+                      enteredDays: _enteredDays,
+                      departingDays: _departingDays,
+                      onDepartureEnd: (day) {
+                        if (!mounted) return;
+                        setState(() => _departingDays.remove(day));
+                      },
+                      dying: _dying,
+                      onRowDeleteStart: (id, day) {
+                        if (!mounted) return;
+                        setState(() => _dying[id] = day);
+                      },
+                      controller: _scroll,
+                      splitterKeys: _sections.splitterKeys,
+                      topPadding: _contentTop,
+                      tail: _tail,
+                      openRow: _openRow,
+                      onDelete: (entry) async {
+                        try {
+                          await context.read<HomeCubit>().delete(entry);
+                        } finally {
+                          // Resolved either way: a removed row's flag is spent, a
+                          // refused delete's row unfolds its surroundings back.
+                          // Past the frame, never inside it: the emit's build
+                          // diffs departures against this ledger, and a delete
+                          // resolving first would clear the id before that build
+                          // ever sees it - ghosting a title that folded live.
+                          await WidgetsBinding.instance.endOfFrame;
+                          if (mounted) setState(() => _dying.remove(entry.id));
+                        }
+                      },
+                    );
+
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _onScroll,
+                      child: body,
+                    ),
                   ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ValueListenableBuilder<DateTime?>(
-                  valueListenable: _sections.viewedDay,
-                  builder: (context, viewed, _) => ValueListenableBuilder<DateTime>(
-                    valueListenable: _visibleWeek,
-                    builder: (context, week, _) {
-                      final now = DateTime.now();
-                      final today = DateTime(now.year, now.month, now.day);
-                      return _HomeChrome(
-                        activeDay: viewed ?? today,
-                        visibleWeek: week,
-                        state: state,
-                        homeTick: _homeTick,
-                        onTitleTap: () {
-                          _sections.reset();
-                          _glideTo(0);
-                          // Force the strip home too: a manually swiped week
-                          // leaves the cursor on today, so the glide alone
-                          // would not page it back.
-                          setState(() => _homeTick++);
+                  // Lives in the gap a record pull opens under the chrome.
+                  Positioned(
+                    top: _contentTop,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: PullToRecordHint(
+                        pull: _pullGesture.pull,
+                        threshold: PullToRecordGesture.threshold,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ValueListenableBuilder<DateTime?>(
+                      valueListenable: _sections.viewedDay,
+                      builder: (context, viewed, _) => ValueListenableBuilder<DateTime>(
+                        valueListenable: _visibleWeek,
+                        builder: (context, week, _) {
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
+                          return _HomeChrome(
+                            activeDay: viewed ?? today,
+                            visibleWeek: week,
+                            state: state,
+                            homeTick: _homeTick,
+                            onTitleTap: () {
+                              _sections.reset();
+                              _glideTo(0);
+                              // Force the strip home too: a manually swiped week
+                              // leaves the cursor on today, so the glide alone
+                              // would not page it back.
+                              setState(() => _homeTick++);
+                            },
+                            onDayTap: _scrollToDay,
+                            onVisibleWeekChanged: (start) => _visibleWeek.value = start,
+                          );
                         },
-                        onDayTap: _scrollToDay,
-                        onVisibleWeekChanged: (start) => _visibleWeek.value = start,
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              // A persistent record button floating clear of the home indicator.
-              // Pull-to-record stays; this is the obvious, hard-to-miss way in.
-              Positioned(
-                right: AppSpacing.xl,
-                bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-                child: RecordFab(onTap: _openRecorder),
-              ),
-            ],
+                  // A persistent record button floating clear of the home indicator.
+                  // Pull-to-record stays; this is the obvious, hard-to-miss way in.
+                  Positioned(
+                    right: AppSpacing.xl,
+                    bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+                    child: RecordFab(onTap: _openRecorder),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
