@@ -2948,6 +2948,163 @@ void main() {
     await svc.dispose();
   });
 
+  test('a cancelled take is not resurrected by the save recovery', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-cancelled-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'take.m4a',
+      stopDelay: const Duration(milliseconds: 20),
+    );
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: _ThrowingStore(storage),
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+    Object? error;
+    final sub = svc.autoFinalized.listen((_) {}, onError: (Object e) => error = e);
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the interruption claims the stop
+
+    // cancelRecording awaits the still-failing save itself and discards it.
+    await svc.cancelRecording();
+    await pumpEventQueue();
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+    expect(error, isA<EntrySaveFailed>());
+    final failed = (error as EntrySaveFailed).entry;
+
+    // The racing cubit's unawaited recovery arrives after the discard.
+    await svc.recoverInterruptedSave(failed);
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a stop during the save recovery returns the recovered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-stop-during-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final entry = Entry(
+      id: 'id-0',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: const Duration(seconds: 2),
+    );
+    final gate = Completer<void>();
+    final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: gatedStore,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    final recovering = svc.recoverInterruptedSave(entry);
+    await pumpEventQueue(); // the recovery's save is now gated, mid-flight
+
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    gate.complete(); // release the gated save
+    await recovering;
+
+    final stopped = await stopping;
+
+    expect(stopped.id, 'id-0');
+    expect(store.read('id-0'), stopped);
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a cancel during the save recovery discards the recovered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-cancel-during-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final entry = Entry(
+      id: 'id-0',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: const Duration(seconds: 2),
+    );
+    final gate = Completer<void>();
+    final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: gatedStore,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    final recovering = svc.recoverInterruptedSave(entry);
+    await pumpEventQueue(); // the recovery's save is now gated, mid-flight
+
+    final cancelling = svc.cancelRecording();
+    await pumpEventQueue();
+    gate.complete(); // release the gated save
+    await recovering;
+    await cancelling;
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('retrySave still saves a take the user cancelled', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-retry-after-cancel');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'take.m4a',
+      stopDelay: const Duration(milliseconds: 20),
+    );
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: _ThrowingStore(storage, failures: 1),
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+    Object? error;
+    final sub = svc.autoFinalized.listen((_) {}, onError: (Object e) => error = e);
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the interruption claims the stop
+
+    await svc.cancelRecording(); // discards, marking the id
+    await pumpEventQueue();
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse); // the discard's deleteEntry already took it
+    expect(error, isA<EntrySaveFailed>());
+    final failed = (error as EntrySaveFailed).entry;
+
+    // The explicit, user-driven retry is a deliberate resurrection: it must not
+    // consult the discard marker.
+    await svc.retrySave(failed);
+
+    expect(store.read('id-0'), failed);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('audioUsage counts kept audio and its reclaimable share, skipping gone files', () async {
     final dir = await Directory.systemTemp.createTemp('otr-usage');
     File('${dir.path}/done.m4a').writeAsStringSync('audio'); // 5 bytes
@@ -3235,6 +3392,23 @@ class _ThrowingStore extends EntryStore {
       if (failures > 0) failures--;
       throw Exception('save failed');
     }
+    return super.save(entry);
+  }
+}
+
+/// A store whose save for one specific entry id awaits [gate] before writing,
+/// modeling a save recovery's write held open so a racing stop or cancel can be
+/// issued while it is still in flight. Saves for any other id pass straight
+/// through.
+class _GatedSaveStore extends EntryStore {
+  _GatedSaveStore(super.storage, {required this.gatedId, required this.gate});
+
+  final String gatedId;
+  final Future<void> gate;
+
+  @override
+  Future<void> save(Entry entry) async {
+    if (entry.id == gatedId) await gate;
     return super.save(entry);
   }
 }

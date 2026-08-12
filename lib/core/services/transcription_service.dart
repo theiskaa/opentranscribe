@@ -188,6 +188,17 @@ class TranscriptionService {
   /// (whose caller was promised the entry).
   Future<Entry?>? _interruptionFinalize;
 
+  /// Ids of takes whose failed auto-save the user discarded before
+  /// [recoverInterruptedSave] ran for them. Consumed (removed) by that check, so a
+  /// racing recovery no-ops instead of resurrecting a take the user just discarded.
+  /// Never cleared wholesale; bounded by how rarely a save fails.
+  final Set<String> _discardedSaves = {};
+
+  /// The interruption's save-recovery in flight right now ([recoverInterruptedSave]),
+  /// so a racing idle [stopRecording] or [cancelRecording] awaits it instead of
+  /// treating the session as idle mid-save.
+  Future<void>? _recovering;
+
   /// Live partial/final events while recording, for real-time UI. Errors on the
   /// underlying live stream are forwarded here; they do not affect the persisted
   /// transcript, which comes from the batch pass on stop.
@@ -514,6 +525,18 @@ class TranscriptionService {
         // CaptureFailed etc.: nothing was captured, nothing to return.
       }
     }
+    // A save-recovery may be mid-flight (recoverInterruptedSave, racing this
+    // stop from the cubit's unawaited call). Await it so a completed recovery's
+    // stamped _lastFinalized is what the hand-out below sees, instead of falling
+    // through to a bogus 'not recording' while the entry lands moments later.
+    final recovering = _recovering;
+    if (recovering != null) {
+      try {
+        await recovering;
+      } catch (_) {
+        // Errors are reported through recoverInterruptedSave's own caller.
+      }
+    }
     final last = _lastFinalized;
     if (last != null) {
       _lastFinalized = null;
@@ -704,6 +727,9 @@ class TranscriptionService {
           // must still discard it, or reconcileOrphans resurrects the take next
           // launch. deleteEntry removes the orphaned file (the record delete is a
           // no-op). Best-effort: a failed discard falls back to that sweep.
+          // Marked before the delete so a racing recoverInterruptedSave (either
+          // order) never resurrects the discarded take.
+          _discardedSaves.add(e.entry.id);
           try {
             await deleteEntry(e.entry);
           } catch (_) {}
@@ -720,6 +746,18 @@ class TranscriptionService {
           }
         }
         return;
+      }
+      // A save-recovery may be mid-flight (recoverInterruptedSave, racing this
+      // cancel from the cubit's unawaited call). Await it so a completed recovery's
+      // stamped _lastFinalized is what the check below sees and discards, instead
+      // of missing it by milliseconds and leaving the recovered take saved.
+      final recovering = _recovering;
+      if (recovering != null) {
+        try {
+          await recovering;
+        } catch (_) {
+          // Errors are reported through recoverInterruptedSave's own caller.
+        }
       }
       // The interruption's finalize already completed by the time this cancel
       // arrived; the save it left behind is the same take the user just asked
@@ -935,9 +973,26 @@ class TranscriptionService {
   /// under its own record: that record IS the recovery, and saving this one too
   /// would double the take. Nothing is announced then either, or [_lastFinalized]
   /// would hand out an entry the store does not hold.
+  ///
+  /// Also a no-op when the user's [cancelRecording] already discarded this take
+  /// (either arrival order is safe, see [_discardedSaves]). While the save is in
+  /// flight, [_recovering] holds it: both [stopRecording] and [cancelRecording]
+  /// await it before deciding idle, so a racing stop or cancel gets the recovered
+  /// entry delivered (or discarded) instead of a bogus 'not recording'.
   Future<void> recoverInterruptedSave(Entry entry) async {
+    if (_discardedSaves.remove(entry.id)) return;
     final path = entry.audioPath;
     if (path != null && _referencedElsewhere(path, entry.id)) return;
+    final future = _recoverInterruptedSave(entry);
+    _recovering = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_recovering, future)) _recovering = null;
+    }
+  }
+
+  Future<void> _recoverInterruptedSave(Entry entry) async {
     await _store.save(entry);
     if (!_recording && !_starting) _lastFinalized = entry;
     if (!_autoFinalized.isClosed) _autoFinalized.add(entry);
