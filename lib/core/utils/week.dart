@@ -1,5 +1,11 @@
 import 'package:intl/intl.dart';
 
+// Keyed by the effective locale (localeId, or Intl.defaultLocale when null),
+// not the raw parameter: a live app-language switch reassigns
+// Intl.defaultLocale, and keying on the raw null would freeze the ambient
+// entry to whichever locale first resolved it.
+final Map<String?, int> _firstDayByLocale = {};
+
 /// The first day of the week containing [day], as a civil date (its
 /// year/month/day, no time). The single source both the week strip and the
 /// weekly reflection resolve through, so the reflection card and the calendar
@@ -11,8 +17,12 @@ import 'package:intl/intl.dart';
 /// passes its language explicitly so its bucketing never depends on WHEN the
 /// global Intl locale happens to be set during launch.
 DateTime startOfWeek(DateTime day, {String? localeId}) {
+  final effective = localeId ?? Intl.defaultLocale;
   // intl: FIRSTDAYOFWEEK is 0-based Monday; DateTime.weekday is 1-based Monday.
-  final first = DateFormat(null, localeId).dateSymbols.FIRSTDAYOFWEEK + 1;
+  final first = _firstDayByLocale.putIfAbsent(
+    effective,
+    () => DateFormat(null, effective).dateSymbols.FIRSTDAYOFWEEK + 1,
+  );
   final delta = (day.weekday - first + 7) % 7;
   return DateTime(day.year, day.month, day.day - delta);
 }
