@@ -36,5 +36,8 @@ import transcriber
     if let registrar = registry.registrar(forPlugin: "IntentActionsPlugin") {
       IntentActionsPlugin.register(with: registrar)
     }
+    if let registrar = registry.registrar(forPlugin: "SupportStorePlugin") {
+      SupportStorePlugin.register(with: registrar)
+    }
   }
 }

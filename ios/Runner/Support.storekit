@@ -1,0 +1,66 @@
+{
+  "identifier" : "C6C0F5A0-0000-4000-8000-5E1F00000001",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "42.00",
+      "familyShareable" : false,
+      "internalID" : "6743000000000001",
+      "localizations" : [
+        {
+          "description" : "Support OpenTranscribe once, keep the formatted exports forever.",
+          "displayName" : "Supporter lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "xyz.opentranscribe.supporter.lifetime",
+      "referenceName" : "Supporter lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "6743000000000100",
+      "localizations" : [
+
+      ],
+      "name" : "Supporter",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6743000000000101",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Support OpenTranscribe monthly, keep the formatted exports.",
+              "displayName" : "Supporter monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "xyz.opentranscribe.supporter.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Supporter monthly",
+          "subscriptionGroupID" : "6743000000000100",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
