@@ -1014,29 +1014,40 @@ class TranscriptionService {
   /// Bulk sweeps pass [notify] false and announce once at the end, so an
   /// N-entry purge costs the listeners one reload, not N, and pass [shared]
   /// ([_sharedAudioNames]) so the shared-file check below costs one journal pass
-  /// for the whole sweep rather than one per entry.
-  Future<bool> _discardAudio(String entryId, {bool notify = true, Set<String>? shared}) async {
+  /// for the whole sweep rather than one per entry. This acts only on the exact
+  /// record-state it evaluated: [expectMissing] (set by [healDanglingAudio])
+  /// bails the instant the file it was told is gone turns out to be back, and
+  /// the final save bails if the path it resolved no longer matches the
+  /// stored entry's path (an import adoption rewrote it mid-flight); either
+  /// way this is a no-op, left for a later sweep to reconsider.
+  Future<bool> _discardAudio(
+    String entryId, {
+    bool notify = true,
+    Set<String>? shared,
+    bool expectMissing = false,
+  }) async {
     try {
       final stored = _store.read(entryId);
       if (stored == null) return false;
       final path = stored.audioPath;
       if (path == null) return true;
+      final file = File(await _resolveAudioPath(path));
+      if (expectMissing && file.existsSync()) return false;
       // A file another entry also references outlives this discard, path and
       // all: stripping the path here would cost this entry its playback while
       // freeing nothing. Only checked while the file is actually there, so a
       // heal (whose file is already gone) still repairs both records.
-      if (File(await _resolveAudioPath(path)).existsSync() &&
+      if (file.existsSync() &&
           (shared?.contains(baseName(path)) ?? _referencedElsewhere(path, entryId))) {
         return false;
       }
       if (stored.peaks == null && _peaksReader != null) {
         try {
-          await saveEntryPeaks(stored, await _peaksReader(await _resolveAudioPath(path)));
+          await saveEntryPeaks(stored, await _peaksReader(file.path));
         } catch (_) {
           // The wave is cosmetic; losing it never blocks reclaiming the space.
         }
       }
-      final file = File(await _resolveAudioPath(path));
       if (file.existsSync()) {
         try {
           await _deleteFile(file);
@@ -1048,6 +1059,7 @@ class TranscriptionService {
       }
       final fresh = _store.read(entryId);
       if (fresh == null || fresh.audioPath == null) return true;
+      if (fresh.audioPath != path) return false;
       await _store.save(fresh.withoutAudio());
       // Detached mutation: without this, an open screen keeps offering the
       // player and re-transcribe for audio that no longer exists.
@@ -1065,11 +1077,16 @@ class TranscriptionService {
   /// deletes a file, so it can never destroy kept history; bulk reclaim stays
   /// [purgeTranscribedAudio] behind the Cache screen's confirm. Untranscribed
   /// records with missing audio are left alone: their words are gone, and a
-  /// visibly broken entry the user can delete beats a silent empty one.
+  /// visibly broken entry the user can delete beats a silent empty one. Gated
+  /// on [_unreferencedByDesign], the same predicate [reconcileOrphans] obeys:
+  /// an adoption mid-restore can put a file back under a path this sweep
+  /// already decided was gone, making "the file is absent" a stale fact.
   Future<int> healDanglingAudio() async {
+    if (_unreferencedByDesign) return 0;
     var healed = 0;
     final shared = _sharedAudioNames();
     for (final entry in _store.all()) {
+      if (_unreferencedByDesign) break;
       try {
         final path = entry.audioPath;
         if (path == null || entry.transcript == null) continue;
@@ -1079,7 +1096,9 @@ class TranscriptionService {
         // rare broken record), and Dart drains microtasks before the next
         // frame, so a sync stat would run the whole sweep inside one frame.
         if (await File(await _resolveAudioPath(path)).exists()) continue;
-        if (await _discardAudio(entry.id, notify: false, shared: shared)) healed++;
+        if (await _discardAudio(entry.id, notify: false, shared: shared, expectMissing: true)) {
+          healed++;
+        }
       } catch (_) {
         // Best effort per entry, like the reconcile sweep; next launch retries.
       }

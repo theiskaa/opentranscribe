@@ -2280,6 +2280,68 @@ void main() {
     await svc.dispose();
   });
 
+  test('the heal is a no-op while a finalize holds the unreferenced guard', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-healgate');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path);
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    await store.save(
+      Entry(
+        id: 'hg1',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    final sub = svc.autoFinalized.listen((_) {});
+    final gate = Completer<void>();
+
+    await svc.startRecording();
+    rec.nextStopGate = gate.future;
+    rec.interrupt(); // the finalize claims the stop and stalls on the gate
+    await Future<void>.delayed(Duration.zero); // the handler claims the stop
+
+    expect(await svc.healDanglingAudio(), 0);
+    expect(store.read('hg1')?.audioPath, 'gone.m4a');
+
+    gate.complete();
+    await svc.autoFinalized.first.timeout(const Duration(seconds: 1));
+    await pumpEventQueue();
+
+    expect(await svc.healDanglingAudio(), 1);
+    expect(store.read('hg1')?.audioPath, isNull);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a heal never deletes a file that is back on disk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-healback');
+    final file = File('${dir.path}/back.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'hb1',
+        createdAt: fixedClock,
+        audioPath: 'back.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+
+    expect(await svc.healDanglingAudio(), 0);
+
+    expect(store.read('hb1')?.audioPath, 'back.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('a discard killed between file delete and save is healed at launch', () async {
     // The kill-window shape: the file went, the record still points at it.
     final dir = await Directory.systemTemp.createTemp('otr-healkill');
