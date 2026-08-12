@@ -311,9 +311,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // No transcript can still mean words: an edit typed over an entry that was
     // never transcribed (or restored from an archive that way) must show.
     final segments = transcript?.segments ?? const <TranscriptSegment>[];
-    // A hand-edited entry renders plain: the timings name the engine's words,
-    // so after an edit the playback mark would light text the audio never said.
-    if (segments.isEmpty || widget.entry.editedText != null) {
+    // An entry not reading as its transcript renders plain: the timings name
+    // the engine's words, and the mark would light text the audio never said.
+    if (segments.isEmpty || !widget.entry.readsAsTranscript) {
       return RepaintBoundary(
         key: _textKey,
         child: Text(text, style: AppType.body.copyWith(color: theme.text)),

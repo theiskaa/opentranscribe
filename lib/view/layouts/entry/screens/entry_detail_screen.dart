@@ -17,7 +17,7 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/entry_export_sheet.dart';
-import 'package:opentranscribe/view/layouts/entry/components/retranscribe_confirm_sheet.dart';
+import 'package:opentranscribe/view/layouts/entry/components/revision_history_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
@@ -118,13 +118,36 @@ class _DetailViewState extends State<_DetailView> {
 
   /// Enters the edit mode over the current readable text; the field takes
   /// focus once the swap has painted, so the caret never lands in a dead tree.
-  void _startEditing(Entry entry) {
+  /// [selectedText] carries the reading region's selection into the field, so
+  /// an edit begun from selected words starts with those words selected.
+  void _startEditing(Entry entry, {String? selectedText}) {
     _selectionFocus.unfocus();
-    _bodyController.text = entry.readableText ?? '';
+    final text = entry.readableText ?? '';
+    _bodyController.text = text;
+    if (selectedText != null) {
+      final start = text.indexOf(selectedText);
+      if (start >= 0) {
+        _bodyController.selection = TextSelection(
+          baseOffset: start,
+          extentOffset: start + selectedText.length,
+        );
+      }
+    }
     setState(() => _editing = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _bodyFocus.requestFocus();
     });
+  }
+
+  /// The selection toolbar's Edit: the same gate as the menu row, walked at
+  /// tap time because a toolbar can outlive the state it was built over.
+  void _editFromSelection(Entry entry, String? selectedText) {
+    final entriesState = context.read<EntriesCubit>().state;
+    final transcribing =
+        entriesState.busyId == entry.id && entriesState.busyAction == EntriesAction.transcribe;
+    if (entry.readableText != null && !transcribing && !_editing) {
+      _startEditing(entry, selectedText: selectedText);
+    }
   }
 
   void _onBodyFocusChange() {
@@ -133,8 +156,8 @@ class _DetailViewState extends State<_DetailView> {
 
   /// Commits the typed text and leaves the mode; the pop path commits with
   /// [leave] false, since a dying tree has no mode left to leave. The service
-  /// owns the verdict: trim, revert on blank or the engine's words typed back,
-  /// no write when nothing changed. The entry is looked up fresh so a commit
+  /// owns the verdict: trim, push onto the history, nothing written on a
+  /// blank or unchanged commit. The entry is looked up fresh so a commit
   /// racing a delete quietly drops instead of resurrecting a ghost.
   void _commitEdit({bool leave = true}) {
     if (!_editing) return;
@@ -156,35 +179,16 @@ class _DetailViewState extends State<_DetailView> {
 
   /// Starts a re-transcribe after dropping any live selection, one frame later
   /// so the cleared paragraph paints before the shimmer grabs its last frame: a
-  /// selection left standing would bake its highlight wash into the ink.
-  void _startRetranscribe(
-    EntriesCubit entries,
-    Entry entry, {
-    String? localeId,
-    bool clearEdit = false,
-  }) {
+  /// selection left standing would bake its highlight wash into the ink. No
+  /// confirm: the landing pushes the replaced words into history, so nothing
+  /// is destroyed. A live edit still blocks the door (its rows are hidden;
+  /// only a stale menu can ask), so a run never lands under the open field.
+  void _startRetranscribe(EntriesCubit entries, Entry entry, {String? localeId}) {
+    if (_editing) return;
     _selectionFocus.unfocus();
     WidgetsBinding.instance.endOfFrame.then((_) {
-      if (mounted) unawaited(entries.retranscribe(entry, localeId: localeId, clearEdit: clearEdit));
+      if (mounted) unawaited(entries.retranscribe(entry, localeId: localeId));
     });
-  }
-
-  /// The gate in front of every re-transcribe: an edited entry asks first,
-  /// because the landing replaces typed words, the one thing this screen
-  /// cannot re-derive. An unedited entry goes straight through, and declining
-  /// changes nothing.
-  Future<void> _confirmRetranscribe(EntriesCubit entries, Entry entry, {String? localeId}) async {
-    // The cubit would drop this run anyway (one busy slot per entry); bowing
-    // out before the sheet keeps a doomed confirm from ever being asked. A
-    // live edit blocks the door too: its rows are hidden, so only a stale
-    // menu can even ask.
-    if (_editing || entries.state.busyId == entry.id) return;
-    final edited = entry.editedText != null;
-    if (edited) {
-      if (!await showRetranscribeConfirmSheet(context)) return;
-      if (!mounted) return;
-    }
-    _startRetranscribe(entries, entry, localeId: localeId, clearEdit: edited);
   }
 
   /// Action row ids: the list shrinks when an entry loses its audio, and a
@@ -194,18 +198,28 @@ class _DetailViewState extends State<_DetailView> {
   /// answers by id), and the dispatcher checks it is really the parent.
   static const _actRename = 'act:rename';
   static const _actEdit = 'act:edit';
-  static const _actRevert = 'act:revert';
+  static const _actHistory = 'act:history';
   static const _actExport = 'act:export';
   static const _actRetranscribe = 'act:retranscribe';
   static const _actDelete = 'act:delete';
   static const _actionIds = {
     _actRename,
     _actEdit,
-    _actRevert,
+    _actHistory,
     _actExport,
     _actRetranscribe,
     _actDelete,
   };
+
+  /// The history flow: the history sheet shows every revision with its change
+  /// inline, and a tapped one comes back as the head. The service resolves
+  /// the STORED entry, and restoring what the entry already reads as writes
+  /// nothing, so a stale sheet cannot do harm.
+  Future<void> _openHistory(Entry entry) async {
+    final entries = context.read<EntriesCubit>();
+    final picked = await showRevisionHistorySheet(context, entry);
+    if (picked != null && mounted) unawaited(entries.restore(entry, picked));
+  }
 
   List<AppMenuItem> _menuItems(
     Entry entry,
@@ -220,14 +234,16 @@ class _DetailViewState extends State<_DetailView> {
     // (its action is the bottom CTA), and a run in flight would land words
     // the open field could then silently shadow. While the field is up the
     // row is gone too: re-entering would re-seed the field and eat the words.
-    if (entry.transcript != null && !busy && !editing)
+    if (entry.readableText != null && !busy && !editing)
       AppMenuItem(id: _actEdit, label: l10n.editTranscript, icon: AppIcons.pencil),
-    // No busy gate, unlike Edit: a revert mid-run just bares the stored entry,
-    // and the landing then writes fresh engine words over it, exactly what a
-    // reverting user asked for. Mid-edit it hides: the field would just write
-    // its words back over the revert on commit.
-    if (entry.editedText != null && !editing)
-      AppMenuItem(id: _actRevert, label: l10n.revertEdits, icon: AppIcons.arrowUturnBackward),
+    // History stands whenever the entry reads as any words, empty history
+    // included: the sheet then shows the original transcription alone. A
+    // silent transcript reads as none, and would only open a sheet with
+    // nothing to stand in. Mid-edit it hides (a restore under the open field
+    // would be shadowed by its commit), and mid-run too: a landing would
+    // date the open sheet.
+    if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy)
+      AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
     AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
     // run starts under the field instead of before it).
@@ -274,18 +290,22 @@ class _DetailViewState extends State<_DetailView> {
         final entriesState = context.read<EntriesCubit>().state;
         final transcribing =
             entriesState.busyId == entry.id && entriesState.busyAction == EntriesAction.transcribe;
-        if (entry.transcript != null && !transcribing && !_editing) _startEditing(entry);
-      case _actRevert:
-        // Same stale-menu rule: only a still-edited entry has words to revert.
-        if (entry.editedText != null && !_editing) {
-          unawaited(context.read<EntriesCubit>().edit(entry, null));
+        if (entry.readableText != null && !transcribing && !_editing) _startEditing(entry);
+      case _actHistory:
+        // Same stale-menu rule: only an entry with a text state has anything
+        // to show, and never under a live edit or an in-flight run.
+        final historyState = context.read<EntriesCubit>().state;
+        final historyBusy =
+            historyState.busyId == entry.id && historyState.busyAction == EntriesAction.transcribe;
+        if ((entry.readableText?.trim().isNotEmpty ?? false) && !_editing && !historyBusy) {
+          unawaited(_openHistory(entry));
         }
       case _actExport:
         unawaited(showEntryExportSheet(context, entry));
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.
-        if (entry.hasAudio) unawaited(_confirmRetranscribe(context.read<EntriesCubit>(), entry));
+        if (entry.hasAudio) _startRetranscribe(context.read<EntriesCubit>(), entry);
       case _actDelete:
         // Straight through, no confirm. The menu already took a deliberate tap
         // to open and a second one to land on a row marked destructive; a sheet
@@ -295,7 +315,7 @@ class _DetailViewState extends State<_DetailView> {
       default:
         // A language leaf; its id is the tag itself.
         if (entry.hasAudio) {
-          unawaited(_confirmRetranscribe(context.read<EntriesCubit>(), entry, localeId: id));
+          _startRetranscribe(context.read<EntriesCubit>(), entry, localeId: id);
         }
     }
   }
@@ -344,7 +364,7 @@ class _DetailViewState extends State<_DetailView> {
     );
     if (index == null) return;
     if (!mounted) return;
-    await _confirmRetranscribe(entries, entry, localeId: tags[index]);
+    _startRetranscribe(entries, entry, localeId: tags[index]);
   }
 
   @override
@@ -428,6 +448,12 @@ class _DetailViewState extends State<_DetailView> {
               Positioned.fill(
                 child: SelectableProse(
                   focusNode: _selectionFocus,
+                  // The toolbar's road into the editor: with words selected it
+                  // opens on them; bare, it just opens.
+                  editLabel: entry.readableText == null ? null : l10n.editTranscript,
+                  onEdit: entry.readableText == null
+                      ? null
+                      : (selected) => _editFromSelection(entry, selected),
                   child: SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
                       AppSpacing.xl,
@@ -449,7 +475,7 @@ class _DetailViewState extends State<_DetailView> {
                           ' \u00b7 ${formatClock(entry.duration)}'
                           '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
                           // Hand-written words are never passed off as heard.
-                          '${entry.editedText == null ? '' : ' \u00b7 ${l10n.editedMarker}'}',
+                          '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
                           style: AppType.digits(
                             AppType.footnote,
                           ).copyWith(color: theme.textSecondary),
@@ -555,10 +581,9 @@ class _DetailViewState extends State<_DetailView> {
                   errorTick: state.errorTick,
                   showCta: showCta,
                   busy: busy,
-                  // Through the confirm gate like every other door, so a retry
-                  // (or a CTA on an archive-restored edit) can never land a
-                  // fresh transcript silently under typed words.
-                  onTranscribe: () => _confirmRetranscribe(context.read<EntriesCubit>(), entry),
+                  // Through the screen's one door, so a dock action gets the
+                  // same selection drop and live-edit guard as the menu rows.
+                  onTranscribe: () => _startRetranscribe(context.read<EntriesCubit>(), entry),
                 ),
             ],
           ),
@@ -588,14 +613,14 @@ class _BottomDock extends StatelessWidget {
   final bool showCta;
   final bool busy;
 
-  /// Both the retry and the CTA run through the screen's confirm gate rather
-  /// than reaching the cubit themselves, so no dock action can start a run
-  /// this screen would have asked about.
-  final Future<void> Function() onTranscribe;
+  /// Both the retry and the CTA run through the screen's one re-transcribe
+  /// door rather than reaching the cubit themselves, so a dock action gets
+  /// the same selection drop and live-edit guard as the menu rows.
+  final VoidCallback onTranscribe;
 
   Future<void> _openDetails(BuildContext context, EntriesError kind) async {
     final retry = await showTranscribeErrorSheet(context, kind);
-    if (retry) unawaited(onTranscribe());
+    if (retry) onTranscribe();
   }
 
   @override
@@ -626,11 +651,7 @@ class _BottomDock extends StatelessWidget {
                 onTap: () => _openDetails(context, kind),
               ),
             if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
-            if (showCta)
-              AppButton(
-                label: l10n.transcribe,
-                onPressed: busy ? null : () => unawaited(onTranscribe()),
-              ),
+            if (showCta) AppButton(label: l10n.transcribe, onPressed: busy ? null : onTranscribe),
           ],
         ),
       ),
