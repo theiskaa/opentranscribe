@@ -643,41 +643,59 @@ void main() {
   });
 
   group('the staging sweep', () {
+    late Directory root;
+
+    setUp(() async {
+      root = await Directory.systemTemp.createTemp('sweep-root-');
+    });
+
+    tearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+
     test('removes an orphaned import directory', () async {
       final registry = StagingRegistry();
-      final orphan = await Directory.systemTemp.createTemp('import-orphan');
-      await registry.sweep(Directory.systemTemp);
+      final orphan = await root.createTemp('import-orphan');
+      await registry.sweep(root);
       expect(orphan.existsSync(), isFalse);
     });
 
     test('removes an orphaned export directory', () async {
       final registry = StagingRegistry();
-      final orphan = await Directory.systemTemp.createTemp('export-orphan');
-      await registry.sweep(Directory.systemTemp);
+      final orphan = await root.createTemp('export-orphan');
+      await registry.sweep(root);
       expect(orphan.existsSync(), isFalse);
     });
 
     test('leaves a registered staging directory alone, until it is released', () async {
       final registry = StagingRegistry();
-      final owned = await Directory.systemTemp.createTemp('import-');
+      final owned = await root.createTemp('import-');
       registry.register(owned.path);
-      await registry.sweep(Directory.systemTemp);
+      await registry.sweep(root);
       expect(owned.existsSync(), isTrue);
 
       registry.release(owned.path);
-      await registry.sweep(Directory.systemTemp);
+      await registry.sweep(root);
       expect(owned.existsSync(), isFalse);
     });
 
     test('leaves a directory with an unrelated name alone', () async {
       final registry = StagingRegistry();
-      final unrelated = await Directory.systemTemp.createTemp('unrelated-');
-      try {
-        await registry.sweep(Directory.systemTemp);
-        expect(unrelated.existsSync(), isTrue);
-      } finally {
-        await unrelated.delete(recursive: true);
-      }
+      final unrelated = await root.createTemp('unrelated-');
+      await registry.sweep(root);
+      expect(unrelated.existsSync(), isTrue);
+    });
+
+    test('the sweep stands down while an operation is open', () async {
+      final registry = StagingRegistry();
+      registry.begin();
+      final orphan = await root.createTemp('import-orphan');
+      await registry.sweep(root);
+      expect(orphan.existsSync(), isTrue);
+
+      registry.end();
+      await registry.sweep(root);
+      expect(orphan.existsSync(), isFalse);
     });
   });
 }
