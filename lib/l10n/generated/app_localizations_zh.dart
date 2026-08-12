@@ -737,4 +737,80 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
+
+  @override
+  String get supportGateTitle => '支持者功能';
+
+  @override
+  String get supportGateBody => '支持 OpenTranscribe 即可解锁格式化导出。备份始终免费。';
+
+  @override
+  String get supportGateAction => '支持这款应用';
+
+  @override
+  String get settingsSupport => '支持';
+
+  @override
+  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。支持者可解锁格式化导出，以及之后的新功能。';
+
+  @override
+  String get supportThanksMonthly => '你正在支持 OpenTranscribe。谢谢。';
+
+  @override
+  String get supportThanksLifetime => '你已永久支持 OpenTranscribe。谢谢。';
+
+  @override
+  String get supportMonthly => '按月';
+
+  @override
+  String get supportLifetime => '买断';
+
+  @override
+  String supportPerMonth(String price) {
+    return '每月 $price';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '一次性 $price';
+  }
+
+  @override
+  String get supportManage => '管理订阅';
+
+  @override
+  String get supportRestore => '恢复购买';
+
+  @override
+  String get supportUnreachable => '无法连接 App Store。恢复连接后会显示价格。';
+
+  @override
+  String get supportUpgradeInfo => '买断从那时起涵盖一切。按月订阅在“管理订阅”中取消。';
+
+  @override
+  String get supportPending => '等待批准。批准后购买即完成。';
+
+  @override
+  String get supportRestoreNoneTitle => '没有可恢复的购买';
+
+  @override
+  String get supportRestoreNoneBody => '此 Apple ID 未关联任何支持者购买。';
+
+  @override
+  String get supportFailedTitle => '未能完成';
+
+  @override
+  String get supportFailedBody => 'App Store 未能完成。请重试。';
+
+  @override
+  String get supportPrivacyInfo => '支持不会改变任何隐私设定。日记永远不会离开手机。';
+
+  @override
+  String get supportPrivacy => '隐私政策';
+
+  @override
+  String get supportTermsInfo => '订阅遵循 Apple 的标准条款。';
+
+  @override
+  String get supportTerms => '使用条款';
 }

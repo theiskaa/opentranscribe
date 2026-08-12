@@ -803,4 +803,86 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
+
+  @override
+  String get supportGateTitle => 'Eine Unterstützer-Funktion';
+
+  @override
+  String get supportGateBody =>
+      'Formatierte Exporte werden durch die Unterstützung von OpenTranscribe freigeschaltet. Das Backup bleibt kostenlos.';
+
+  @override
+  String get supportGateAction => 'App unterstützen';
+
+  @override
+  String get settingsSupport => 'Unterstützen';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe ist kostenlos und privat, und Unterstützung hält es dabei. Unterstützer schalten die formatierten Exporte frei, und was als Nächstes kommt.';
+
+  @override
+  String get supportThanksMonthly => 'Du unterstützt OpenTranscribe. Danke.';
+
+  @override
+  String get supportThanksLifetime => 'Du unterstützt OpenTranscribe dauerhaft. Danke.';
+
+  @override
+  String get supportMonthly => 'Monatlich';
+
+  @override
+  String get supportLifetime => 'Lebenslang';
+
+  @override
+  String supportPerMonth(String price) {
+    return '$price im Monat';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price einmalig';
+  }
+
+  @override
+  String get supportManage => 'Abo verwalten';
+
+  @override
+  String get supportRestore => 'Käufe wiederherstellen';
+
+  @override
+  String get supportUnreachable =>
+      'Der App Store ist nicht erreichbar. Preise erscheinen, sobald er es ist.';
+
+  @override
+  String get supportUpgradeInfo =>
+      'Lebenslang deckt ab dann alles ab. Das Monatsabo wird unter Abo verwalten gekündigt.';
+
+  @override
+  String get supportPending =>
+      'Warten auf Genehmigung. Der Kauf wird abgeschlossen, sobald sie vorliegt.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Nichts wiederherzustellen';
+
+  @override
+  String get supportRestoreNoneBody => 'Mit dieser Apple-ID ist kein Unterstützer-Kauf verknüpft.';
+
+  @override
+  String get supportFailedTitle => 'Das hat nicht geklappt';
+
+  @override
+  String get supportFailedBody => 'Der App Store konnte nicht abschließen. Versuch es erneut.';
+
+  @override
+  String get supportPrivacyInfo =>
+      'Unterstützen ändert nichts an der Privatsphäre. Das Journal verlässt das Telefon nie.';
+
+  @override
+  String get supportPrivacy => 'Datenschutzerklärung';
+
+  @override
+  String get supportTermsInfo => 'Das Abo läuft zu Apples Standardbedingungen.';
+
+  @override
+  String get supportTerms => 'Nutzungsbedingungen';
 }

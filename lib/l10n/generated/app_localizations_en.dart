@@ -793,4 +793,85 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
+
+  @override
+  String get supportGateTitle => 'A supporter feature';
+
+  @override
+  String get supportGateBody =>
+      'Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.';
+
+  @override
+  String get supportGateAction => 'Support the app';
+
+  @override
+  String get settingsSupport => 'Support';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.';
+
+  @override
+  String get supportThanksMonthly => 'You support OpenTranscribe. Thank you.';
+
+  @override
+  String get supportThanksLifetime => 'You support OpenTranscribe for good. Thank you.';
+
+  @override
+  String get supportMonthly => 'Monthly';
+
+  @override
+  String get supportLifetime => 'Lifetime';
+
+  @override
+  String supportPerMonth(String price) {
+    return '$price a month';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price once';
+  }
+
+  @override
+  String get supportManage => 'Manage subscription';
+
+  @override
+  String get supportRestore => 'Restore purchases';
+
+  @override
+  String get supportUnreachable =>
+      'The App Store could not be reached. Prices will appear once it can be.';
+
+  @override
+  String get supportUpgradeInfo =>
+      'Lifetime covers everything from then on. Cancel the monthly under Manage subscription.';
+
+  @override
+  String get supportPending => 'Waiting for approval. The purchase finishes once it is approved.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Nothing to restore';
+
+  @override
+  String get supportRestoreNoneBody => 'No supporter purchase is attached to this Apple ID.';
+
+  @override
+  String get supportFailedTitle => 'That did not go through';
+
+  @override
+  String get supportFailedBody => 'The App Store could not finish. Try again.';
+
+  @override
+  String get supportPrivacyInfo =>
+      'Supporting changes nothing about privacy. The journal never leaves the phone.';
+
+  @override
+  String get supportPrivacy => 'Privacy policy';
+
+  @override
+  String get supportTermsInfo => 'The subscription runs on Apple\'s standard terms.';
+
+  @override
+  String get supportTerms => 'Terms of use';
 }

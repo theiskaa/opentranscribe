@@ -802,4 +802,86 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
+
+  @override
+  String get supportGateTitle => 'Réservé aux soutiens';
+
+  @override
+  String get supportGateBody =>
+      'Les exports formatés se débloquent en soutenant OpenTranscribe. La sauvegarde reste gratuite.';
+
+  @override
+  String get supportGateAction => 'Soutenir l\'app';
+
+  @override
+  String get settingsSupport => 'Soutenir';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe est gratuit et privé, et le soutenir le maintient ainsi. Les soutiens débloquent les exports formatés, et ce qui vient ensuite.';
+
+  @override
+  String get supportThanksMonthly => 'Vous soutenez OpenTranscribe. Merci.';
+
+  @override
+  String get supportThanksLifetime => 'Vous soutenez OpenTranscribe pour de bon. Merci.';
+
+  @override
+  String get supportMonthly => 'Mensuel';
+
+  @override
+  String get supportLifetime => 'À vie';
+
+  @override
+  String supportPerMonth(String price) {
+    return '$price par mois';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price une fois';
+  }
+
+  @override
+  String get supportManage => 'Gérer l\'abonnement';
+
+  @override
+  String get supportRestore => 'Restaurer les achats';
+
+  @override
+  String get supportUnreachable =>
+      'L\'App Store est injoignable. Les prix apparaîtront dès que possible.';
+
+  @override
+  String get supportUpgradeInfo =>
+      'À vie couvre tout à partir de là. L\'abonnement mensuel s\'annule dans Gérer l\'abonnement.';
+
+  @override
+  String get supportPending => 'En attente d\'approbation. L\'achat se termine une fois approuvé.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Rien à restaurer';
+
+  @override
+  String get supportRestoreNoneBody =>
+      'Aucun achat de soutien n\'est associé à cet identifiant Apple.';
+
+  @override
+  String get supportFailedTitle => 'Ça n\'a pas abouti';
+
+  @override
+  String get supportFailedBody => 'L\'App Store n\'a pas pu terminer. Réessayez.';
+
+  @override
+  String get supportPrivacyInfo =>
+      'Soutenir ne change rien à la confidentialité. Le journal ne quitte jamais le téléphone.';
+
+  @override
+  String get supportPrivacy => 'Politique de confidentialité';
+
+  @override
+  String get supportTermsInfo => 'L\'abonnement suit les conditions standard d\'Apple.';
+
+  @override
+  String get supportTerms => 'Conditions d\'utilisation';
 }

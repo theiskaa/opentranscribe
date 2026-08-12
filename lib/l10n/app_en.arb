@@ -988,5 +988,111 @@
   "importFailedMidway": "The restore stopped partway. Everything restored so far is kept; restore again to finish.",
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
+  },
+  "supportGateTitle": "A supporter feature",
+  "@supportGateTitle": {
+    "description": "Title of the gate sheet a supporter-locked action answers with"
+  },
+  "supportGateBody": "Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.",
+  "@supportGateBody": {
+    "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
+  },
+  "supportGateAction": "Support the app",
+  "@supportGateAction": {
+    "description": "Gate sheet action that opens the support screen"
+  },
+  "settingsSupport": "Support",
+  "@settingsSupport": {
+    "description": "Home menu row and support screen name"
+  },
+  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.",
+  "@supportPitch": {
+    "description": "Support screen intro for a non-supporter"
+  },
+  "supportThanksMonthly": "You support OpenTranscribe. Thank you.",
+  "@supportThanksMonthly": {
+    "description": "Support screen intro while the monthly subscription runs"
+  },
+  "supportThanksLifetime": "You support OpenTranscribe for good. Thank you.",
+  "@supportThanksLifetime": {
+    "description": "Support screen intro after the lifetime unlock"
+  },
+  "supportMonthly": "Monthly",
+  "@supportMonthly": {
+    "description": "Label of the monthly subscription row"
+  },
+  "supportLifetime": "Lifetime",
+  "@supportLifetime": {
+    "description": "Label of the lifetime unlock row"
+  },
+  "supportPerMonth": "{price} a month",
+  "@supportPerMonth": {
+    "description": "Price detail of the monthly row; price is the store's localized price string",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "supportOnce": "{price} once",
+  "@supportOnce": {
+    "description": "Price detail of the lifetime row; price is the store's localized price string",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "supportManage": "Manage subscription",
+  "@supportManage": {
+    "description": "Row opening the system manage-subscriptions sheet"
+  },
+  "supportRestore": "Restore purchases",
+  "@supportRestore": {
+    "description": "Row that restores purchases via the store sync"
+  },
+  "supportUnreachable": "The App Store could not be reached. Prices will appear once it can be.",
+  "@supportUnreachable": {
+    "description": "Line shown when the price fetch failed"
+  },
+  "supportUpgradeInfo": "Lifetime covers everything from then on. Cancel the monthly under Manage subscription.",
+  "@supportUpgradeInfo": {
+    "description": "Line under the rows while subscribed, explaining the lifetime upgrade"
+  },
+  "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
+  "@supportPending": {
+    "description": "Line shown after an Ask to Buy purchase answered pending"
+  },
+  "supportRestoreNoneTitle": "Nothing to restore",
+  "@supportRestoreNoneTitle": {
+    "description": "Sheet title when restore finds no purchase"
+  },
+  "supportRestoreNoneBody": "No supporter purchase is attached to this Apple ID.",
+  "@supportRestoreNoneBody": {
+    "description": "Sheet body when restore finds no purchase"
+  },
+  "supportFailedTitle": "That did not go through",
+  "@supportFailedTitle": {
+    "description": "Sheet title when a purchase or restore failed"
+  },
+  "supportFailedBody": "The App Store could not finish. Try again.",
+  "@supportFailedBody": {
+    "description": "Sheet body when a purchase or restore failed"
+  },
+  "supportPrivacyInfo": "Supporting changes nothing about privacy. The journal never leaves the phone.",
+  "@supportPrivacyInfo": {
+    "description": "Footer line above the privacy policy link"
+  },
+  "supportPrivacy": "Privacy policy",
+  "@supportPrivacy": {
+    "description": "Privacy policy link label"
+  },
+  "supportTermsInfo": "The subscription runs on Apple's standard terms.",
+  "@supportTermsInfo": {
+    "description": "Footer line above the terms link"
+  },
+  "supportTerms": "Terms of use",
+  "@supportTerms": {
+    "description": "Terms of use link label"
   }
 }

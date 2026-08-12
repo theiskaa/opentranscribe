@@ -747,4 +747,81 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
+
+  @override
+  String get supportGateTitle => 'サポーター向け機能';
+
+  @override
+  String get supportGateBody => '形式を選べる書き出しは、OpenTranscribeをサポートすると使えるようになります。バックアップは無料のままです。';
+
+  @override
+  String get supportGateAction => 'アプリをサポート';
+
+  @override
+  String get settingsSupport => 'サポート';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。サポーターは形式を選べる書き出しと、この先の機能を使えるようになります。';
+
+  @override
+  String get supportThanksMonthly => 'OpenTranscribeをサポートしています。ありがとうございます。';
+
+  @override
+  String get supportThanksLifetime => 'OpenTranscribeをずっとサポートしています。ありがとうございます。';
+
+  @override
+  String get supportMonthly => '月額';
+
+  @override
+  String get supportLifetime => '買い切り';
+
+  @override
+  String supportPerMonth(String price) {
+    return '月あたり$price';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price(一度だけ)';
+  }
+
+  @override
+  String get supportManage => 'サブスクリプションを管理';
+
+  @override
+  String get supportRestore => '購入を復元';
+
+  @override
+  String get supportUnreachable => 'App Storeに接続できません。接続でき次第、価格が表示されます。';
+
+  @override
+  String get supportUpgradeInfo => '買い切りはそれ以降すべてをカバーします。月額は「サブスクリプションを管理」で解約します。';
+
+  @override
+  String get supportPending => '承認待ちです。承認されると購入が完了します。';
+
+  @override
+  String get supportRestoreNoneTitle => '復元できる購入はありません';
+
+  @override
+  String get supportRestoreNoneBody => 'このApple IDにサポーター購入は関連付けられていません。';
+
+  @override
+  String get supportFailedTitle => '完了できませんでした';
+
+  @override
+  String get supportFailedBody => 'App Storeが完了できませんでした。もう一度お試しください。';
+
+  @override
+  String get supportPrivacyInfo => 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません。';
+
+  @override
+  String get supportPrivacy => 'プライバシーポリシー';
+
+  @override
+  String get supportTermsInfo => 'サブスクリプションはAppleの標準規約に従います。';
+
+  @override
+  String get supportTerms => '利用規約';
 }

@@ -802,4 +802,85 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
+
+  @override
+  String get supportGateTitle => 'Uma funcionalidade de apoiante';
+
+  @override
+  String get supportGateBody =>
+      'As exportações formatadas são desbloqueadas ao apoiar o OpenTranscribe. A cópia de segurança continua gratuita.';
+
+  @override
+  String get supportGateAction => 'Apoiar a app';
+
+  @override
+  String get settingsSupport => 'Apoiar';
+
+  @override
+  String get supportPitch =>
+      'O OpenTranscribe é gratuito e privado, e apoiá-lo mantém-no assim. Os apoiantes desbloqueiam as exportações formatadas, e o que vier a seguir.';
+
+  @override
+  String get supportThanksMonthly => 'Está a apoiar o OpenTranscribe. Obrigado.';
+
+  @override
+  String get supportThanksLifetime => 'Está a apoiar o OpenTranscribe para sempre. Obrigado.';
+
+  @override
+  String get supportMonthly => 'Mensal';
+
+  @override
+  String get supportLifetime => 'Vitalício';
+
+  @override
+  String supportPerMonth(String price) {
+    return '$price por mês';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price uma vez';
+  }
+
+  @override
+  String get supportManage => 'Gerir subscrição';
+
+  @override
+  String get supportRestore => 'Restaurar compras';
+
+  @override
+  String get supportUnreachable =>
+      'Não foi possível contactar a App Store. Os preços aparecem assim que for possível.';
+
+  @override
+  String get supportUpgradeInfo =>
+      'O vitalício cobre tudo a partir daí. A subscrição mensal cancela-se em Gerir subscrição.';
+
+  @override
+  String get supportPending => 'A aguardar aprovação. A compra termina assim que for aprovada.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Nada a restaurar';
+
+  @override
+  String get supportRestoreNoneBody => 'Nenhuma compra de apoiante está associada a este ID Apple.';
+
+  @override
+  String get supportFailedTitle => 'Não foi concluído';
+
+  @override
+  String get supportFailedBody => 'A App Store não conseguiu concluir. Tente novamente.';
+
+  @override
+  String get supportPrivacyInfo =>
+      'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel.';
+
+  @override
+  String get supportPrivacy => 'Política de privacidade';
+
+  @override
+  String get supportTermsInfo => 'A subscrição segue os termos padrão da Apple.';
+
+  @override
+  String get supportTerms => 'Termos de utilização';
 }

@@ -749,4 +749,81 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
+
+  @override
+  String get supportGateTitle => '서포터 기능';
+
+  @override
+  String get supportGateBody => '형식 내보내기는 OpenTranscribe를 후원하면 잠금 해제됩니다. 백업은 계속 무료입니다.';
+
+  @override
+  String get supportGateAction => '앱 후원하기';
+
+  @override
+  String get settingsSupport => '후원';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 후원자는 형식 내보내기와 앞으로 나올 기능을 사용할 수 있습니다.';
+
+  @override
+  String get supportThanksMonthly => 'OpenTranscribe를 후원하고 있습니다. 감사합니다.';
+
+  @override
+  String get supportThanksLifetime => 'OpenTranscribe를 평생 후원하고 있습니다. 감사합니다.';
+
+  @override
+  String get supportMonthly => '월간';
+
+  @override
+  String get supportLifetime => '평생';
+
+  @override
+  String supportPerMonth(String price) {
+    return '월 $price';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price 한 번';
+  }
+
+  @override
+  String get supportManage => '구독 관리';
+
+  @override
+  String get supportRestore => '구입 항목 복원';
+
+  @override
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 연결되면 가격이 표시됩니다.';
+
+  @override
+  String get supportUpgradeInfo => '평생은 그 이후 모든 것을 포함합니다. 월간 구독은 구독 관리에서 취소합니다.';
+
+  @override
+  String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
+
+  @override
+  String get supportRestoreNoneTitle => '복원할 항목 없음';
+
+  @override
+  String get supportRestoreNoneBody => '이 Apple ID에 연결된 후원 구입이 없습니다.';
+
+  @override
+  String get supportFailedTitle => '완료되지 않았습니다';
+
+  @override
+  String get supportFailedBody => 'App Store에서 완료하지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get supportPrivacyInfo => '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다.';
+
+  @override
+  String get supportPrivacy => '개인정보 처리방침';
+
+  @override
+  String get supportTermsInfo => '구독은 Apple 표준 약관을 따릅니다.';
+
+  @override
+  String get supportTerms => '이용 약관';
 }

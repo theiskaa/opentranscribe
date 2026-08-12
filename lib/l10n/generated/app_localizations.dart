@@ -1469,6 +1469,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
+
+  /// Title of the gate sheet a supporter-locked action answers with
+  ///
+  /// In en, this message translates to:
+  /// **'A supporter feature'**
+  String get supportGateTitle;
+
+  /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.'**
+  String get supportGateBody;
+
+  /// Gate sheet action that opens the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Support the app'**
+  String get supportGateAction;
+
+  /// Home menu row and support screen name
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get settingsSupport;
+
+  /// Support screen intro for a non-supporter
+  ///
+  /// In en, this message translates to:
+  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Supporters unlock the formatted exports, and whatever comes next.'**
+  String get supportPitch;
+
+  /// Support screen intro while the monthly subscription runs
+  ///
+  /// In en, this message translates to:
+  /// **'You support OpenTranscribe. Thank you.'**
+  String get supportThanksMonthly;
+
+  /// Support screen intro after the lifetime unlock
+  ///
+  /// In en, this message translates to:
+  /// **'You support OpenTranscribe for good. Thank you.'**
+  String get supportThanksLifetime;
+
+  /// Label of the monthly subscription row
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get supportMonthly;
+
+  /// Label of the lifetime unlock row
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime'**
+  String get supportLifetime;
+
+  /// Price detail of the monthly row; price is the store's localized price string
+  ///
+  /// In en, this message translates to:
+  /// **'{price} a month'**
+  String supportPerMonth(String price);
+
+  /// Price detail of the lifetime row; price is the store's localized price string
+  ///
+  /// In en, this message translates to:
+  /// **'{price} once'**
+  String supportOnce(String price);
+
+  /// Row opening the system manage-subscriptions sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Manage subscription'**
+  String get supportManage;
+
+  /// Row that restores purchases via the store sync
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get supportRestore;
+
+  /// Line shown when the price fetch failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not be reached. Prices will appear once it can be.'**
+  String get supportUnreachable;
+
+  /// Line under the rows while subscribed, explaining the lifetime upgrade
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime covers everything from then on. Cancel the monthly under Manage subscription.'**
+  String get supportUpgradeInfo;
+
+  /// Line shown after an Ask to Buy purchase answered pending
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval. The purchase finishes once it is approved.'**
+  String get supportPending;
+
+  /// Sheet title when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to restore'**
+  String get supportRestoreNoneTitle;
+
+  /// Sheet body when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'No supporter purchase is attached to this Apple ID.'**
+  String get supportRestoreNoneBody;
+
+  /// Sheet title when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'That did not go through'**
+  String get supportFailedTitle;
+
+  /// Sheet body when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not finish. Try again.'**
+  String get supportFailedBody;
+
+  /// Footer line above the privacy policy link
+  ///
+  /// In en, this message translates to:
+  /// **'Supporting changes nothing about privacy. The journal never leaves the phone.'**
+  String get supportPrivacyInfo;
+
+  /// Privacy policy link label
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get supportPrivacy;
+
+  /// Footer line above the terms link
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription runs on Apple\'s standard terms.'**
+  String get supportTermsInfo;
+
+  /// Terms of use link label
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of use'**
+  String get supportTerms;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

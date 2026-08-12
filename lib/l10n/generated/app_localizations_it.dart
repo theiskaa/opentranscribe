@@ -801,4 +801,87 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.';
+
+  @override
+  String get supportGateTitle => 'Una funzione per i sostenitori';
+
+  @override
+  String get supportGateBody =>
+      'Le esportazioni formattate si sbloccano sostenendo OpenTranscribe. Il backup resta gratuito.';
+
+  @override
+  String get supportGateAction => 'Sostieni l\'app';
+
+  @override
+  String get settingsSupport => 'Sostieni';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe è gratuito e privato, e sostenerlo lo mantiene così. I sostenitori sbloccano le esportazioni formattate, e ciò che verrà.';
+
+  @override
+  String get supportThanksMonthly => 'Stai sostenendo OpenTranscribe. Grazie.';
+
+  @override
+  String get supportThanksLifetime => 'Sostieni OpenTranscribe per sempre. Grazie.';
+
+  @override
+  String get supportMonthly => 'Mensile';
+
+  @override
+  String get supportLifetime => 'A vita';
+
+  @override
+  String supportPerMonth(String price) {
+    return '$price al mese';
+  }
+
+  @override
+  String supportOnce(String price) {
+    return '$price una volta';
+  }
+
+  @override
+  String get supportManage => 'Gestisci abbonamento';
+
+  @override
+  String get supportRestore => 'Ripristina acquisti';
+
+  @override
+  String get supportUnreachable =>
+      'Impossibile raggiungere l\'App Store. I prezzi appariranno appena possibile.';
+
+  @override
+  String get supportUpgradeInfo =>
+      'A vita copre tutto da quel momento. Il mensile si annulla in Gestisci abbonamento.';
+
+  @override
+  String get supportPending =>
+      'In attesa di approvazione. L\'acquisto si completa una volta approvato.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Niente da ripristinare';
+
+  @override
+  String get supportRestoreNoneBody =>
+      'Nessun acquisto da sostenitore è associato a questo ID Apple.';
+
+  @override
+  String get supportFailedTitle => 'Non è andata a buon fine';
+
+  @override
+  String get supportFailedBody => 'L\'App Store non è riuscito a completare. Riprova.';
+
+  @override
+  String get supportPrivacyInfo =>
+      'Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono.';
+
+  @override
+  String get supportPrivacy => 'Informativa sulla privacy';
+
+  @override
+  String get supportTermsInfo => 'L\'abbonamento segue i termini standard di Apple.';
+
+  @override
+  String get supportTerms => 'Condizioni d\'uso';
 }
