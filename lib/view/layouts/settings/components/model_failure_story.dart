@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/settings_cubit.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The failure cases the model-failure sheet words, folded from a row's
 /// failure kind and the asset's pre-install status. One surface, one honest

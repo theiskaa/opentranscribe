@@ -44,11 +44,21 @@ workflows:
       - name: Analyze
         script: flutter analyze
       # Vendored packages/liquid keeps its arrival formatting (see its
-      # analysis_options.yaml), so the check covers the app's own code.
+      # analysis_options.yaml); the first-party packages take the app's rules,
+      # so only liquid is skipped here.
       - name: Check formatting
-        script: dart format --output=none --set-exit-if-changed lib test
+        script: >-
+          dart format --output=none --set-exit-if-changed
+          lib test packages/transcriber packages/reflections
       - name: Test
-        script: flutter test
+        # set -e so an early suite's failure fails the step; without it a
+        # multi-line script reports only the last line's exit code.
+        script: |
+          set -e
+          flutter test
+          (cd packages/transcriber && flutter test)
+          (cd packages/reflections && flutter test)
+          (cd packages/liquid && flutter test)
       - name: Set up keychain
         script: keychain initialize
       - name: Create or fetch the App Store signing files
@@ -133,8 +143,18 @@ workflows:
       - name: Analyze
         script: flutter analyze
       # Vendored packages/liquid keeps its arrival formatting (see its
-      # analysis_options.yaml), so the check covers the app's own code.
+      # analysis_options.yaml); the first-party packages take the app's rules,
+      # so only liquid is skipped here.
       - name: Check formatting
-        script: dart format --output=none --set-exit-if-changed lib test
+        script: >-
+          dart format --output=none --set-exit-if-changed
+          lib test packages/transcriber packages/reflections
       - name: Test
-        script: flutter test
+        # set -e so an early suite's failure fails the step; without it a
+        # multi-line script reports only the last line's exit code.
+        script: |
+          set -e
+          flutter test
+          (cd packages/transcriber && flutter test)
+          (cd packages/reflections && flutter test)
+          (cd packages/liquid && flutter test)

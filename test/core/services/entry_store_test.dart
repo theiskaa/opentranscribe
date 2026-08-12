@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/transcriber.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';

@@ -1,0 +1,55 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Accessibility
+    use_full_hex_values_for_flutter_colors: true
+
+    # Best practices
+    always_put_required_named_parameters_first: true
+    always_use_package_imports: true
+    avoid_function_literals_in_foreach_calls: true
+    avoid_init_to_null: true
+    avoid_unnecessary_containers: true
+    prefer_const_constructors_in_immutables: true
+    prefer_final_locals: true
+    prefer_initializing_formals: true
+    prefer_null_aware_operators: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    unawaited_futures: true
+    use_build_context_synchronously: true
+    use_key_in_widget_constructors: true
+    use_super_parameters: true
+
+    # Code style
+    always_specify_types: false
+    avoid_print: true
+    avoid_redundant_argument_values: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_fields: true
+    prefer_single_quotes: true
+    unnecessary_underscores: true
+
+    # Error prevention
+    avoid_empty_else: true
+    avoid_relative_lib_imports: true
+    avoid_types_as_parameter_names: true
+    cancel_subscriptions: true
+    close_sinks: true
+    valid_regexps: true
+
+    # Naming conventions
+    camel_case_extensions: false
+    camel_case_types: false
+    constant_identifier_names: true
+    file_names: true
+    library_names: true
+
+    # Performance
+    prefer_is_empty: true
+    prefer_is_not_empty: true
+
+formatter:
+  page_width: 100

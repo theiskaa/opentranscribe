@@ -1,7 +1,7 @@
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:reflections/reflections.dart';
 
 /// The one mapping from [AppLocalizations] to the exporter contract's
 /// strings, so every export surface hands the same words to core and the

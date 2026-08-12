@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/archive_manifest.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   group('ArchiveManifest', () {

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
@@ -18,6 +17,7 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Permissions step: request microphone and speech recognition, both on-device,
 /// plus an OPTIONAL notification row on eligible hardware for the weekly nudge.

@@ -1,7 +1,5 @@
 import 'dart:async';
-
-import 'package:opentranscribe/core/audio/audio_player.dart';
-import 'package:opentranscribe/core/audio/playback.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// In-memory [AudioPlayer] for tests: records calls, lets a test push states,
 /// and throws on demand.

@@ -1,12 +1,11 @@
 import 'package:flutter/widgets.dart' show Locale;
 
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:reflections/reflections.dart';
 
 // The collaborators are private and named parameters cannot be, so initializing
 // formals do not apply.

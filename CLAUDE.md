@@ -49,10 +49,10 @@ A private, offline voice journal. You speak your mind, it writes it down, and it
 
 Corollaries that shape the code:
 
-- Transcription runs on-device, behind one contract: `TranscriptionEngine` in `core/transcribe/`. The engine is swappable (Apple Speech today, whisper.cpp later). Streaming and downloadable-model behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`.
+- Transcription runs on-device, behind one contract: `TranscriptionEngine` in `packages/transcriber`. The engine is swappable (Apple Speech today, whisper.cpp later). Streaming and downloadable-model behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`.
 - `TranscriptionEngine.onDeviceOnly` is a hard gate. The app refuses an engine that answers false, so nothing can quietly route audio off the phone.
 - Nothing in `view/`, `core/services/`, or `core/state/` names a concrete engine. `Deps.init()` is the only place allowed to, plus the `EngineDescriptor` list it builds for surfaces that must show engine names.
-- Audio capture is app-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
+- Audio capture is recorder-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
 
 ## Architecture
 
@@ -61,14 +61,12 @@ Two layers only. There is no `features/` layer, and we do not want one.
 `lib/core/`, everything non-UI:
 
 - `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), onboarding flags.
-- `core/audio/`: the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations, plus the recording/playback value types.
 - `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
 - `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
 - `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, keeping recorder, engine and store private inside it), `entry_store.dart`, and the settings holders.
 - `core/state/`: one cubit per concern.
 - `core/theming/`: `AppTheme` and its tokens, `AppIcons`, motion, shapes, type scale.
-- `core/transcribe/`: the engine contract, its implementations, transcript types.
 - `core/utils/`: haptics, platform capability probes, small helpers.
 
 `lib/view/`, everything UI:
@@ -81,7 +79,13 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 `lib/main.dart` and `lib/bootstrap.dart` sit at the root; `bootstrap` calls `Deps.init()` then `runApp`. `lib/l10n/` holds the `.arb` files and generated localizations.
 
-Stack: Flutter, `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` + `encrypt` for storage, `lottie` for the splash, and the vendored `packages/liquid` plugin for native iOS chrome. No `get_it`, no `injectable`, no build_runner. The only codegen is `flutter gen-l10n`.
+`packages/` holds the plugins the app depends on by path, each standalone with its own readme:
+
+- `transcriber/`: audio capture, playback, and transcription: the `AudioRecorder`, `AudioPlayer` and `TranscriptionEngine` contracts, their platform implementations, and the Swift behind them.
+- `reflections/`: the `ReflectionEngine` contract, the `ReflectionPeriod` vocabulary, and the Foundation Models implementation.
+- `liquid/`: vendored native iOS 26 Liquid Glass chrome.
+
+Stack: Flutter, `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` + `encrypt` for storage, `lottie` for the splash, and the `packages/` plugins above. No `get_it`, no `injectable`, no build_runner. The only codegen is `flutter gen-l10n`.
 
 ## Dependency injection
 
@@ -95,7 +99,7 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 ## UI rules
 
-- **The app draws its own controls.** `package:flutter/material.dart` and `package:flutter/cupertino.dart` are banned in `lib/`, enforced by `test/view/no_framework_imports_test.dart`. Build on `package:flutter/widgets.dart` plus `view/widgets/`.
+- **The app draws its own controls.** `package:flutter/material.dart` and `package:flutter/cupertino.dart` are banned in `lib/` and the package libs under `packages/`, enforced by `test/view/no_framework_imports_test.dart`. Build on `package:flutter/widgets.dart` plus `view/widgets/`.
 - Styling comes from `AppTheme` through `context.theme`. No literal colors or magic numbers in widgets; add a token to `core/theming/` instead, and derive new component groups from the base palette (`AppTheme.fromBase`).
 - Icons come from `AppIcons`, a vendored SF Symbols subset font (`assets/icons/sficons.ttf`). Regenerate the subset to add a glyph. Do not add icons from another set, and do not turn `uses-material-design` back on.
 - Native iOS 26 Liquid Glass chrome comes from `packages/liquid` (vendored, renders locally). Every use is gated on `PlatformCaps.nativeGlass` with a drawn fallback such as `AppIconButton` or `showAppMenu`, because the plugin renders nothing below iOS 26.
@@ -103,15 +107,16 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 ## The native layer (iOS)
 
-Swift lives under `ios/Runner/` and is registered in `AppDelegate.didInitializeImplicitFlutterEngine`. Three plugins, each a `MethodChannel` for control plus `EventChannel`s for streams:
+Capture, speech, playback, and reflection Swift lives in the plugin packages and registers through `GeneratedPluginRegistrant`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for streams:
 
-- `AudioCapture.swift`: `opentranscribe/audio`, `/audio/status`, `/audio/level`
-- `SpeechEngine.swift`: `opentranscribe/speech`, `/speech/events`, `/speech/model`
-- `AudioPlayer.swift`: `opentranscribe/player`, `/player/state`
+- `AudioCapture.swift` (`packages/transcriber`): `transcriber/audio`, `/audio/status`, `/audio/level`
+- `SpeechEngine.swift` (`packages/transcriber`): `transcriber/speech`, `/speech/events`, `/speech/model`
+- `AudioPlayer.swift` (`packages/transcriber`): `transcriber/player`, `/player/state`
+- `ReflectionEngine.swift` (`packages/reflections`): `reflections/reflect`
 
-The Live Activity is `ios/Runner/RecordingLiveActivity.swift` driving the widget extension in `ios/RecorderActivity/`, over the attributes shared in `ios/Shared/`.
+App-only Swift stays under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`: notifications, the storage key, share export, the splash hand-off, intent actions. The Live Activity is `ios/Runner/RecordingLiveActivity.swift` driving the widget extension in `ios/RecorderActivity/`, over the attributes shared in `ios/Shared/`; it is fed capture status through `TranscriberPlugin.recordingStatusObserver`, set in `AppDelegate`.
 
-Channels are only ever touched from a `core/` wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes.
+Channels are only ever touched from a package wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes.
 
 ## Commands
 
@@ -132,7 +137,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Testing
 
-- Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
+- Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
 - Fakes live in `test/support/`. Inject them through constructors; no test may reach a real platform channel or real storage.
 - Test names read as sentences about behavior, not about method names. Tests carry no comments; the name is the explanation, so put the reasoning there.
 
@@ -154,7 +159,7 @@ type(scope): what changed
 ```
 
 - Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`.
-- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid` (extend as the code grows).
+- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid`, `transcriber`, `reflections` (extend as the code grows).
 - No body, no title/body split. Messages describe the change, never the process or finding counts.
 - **No `Co-Authored-By` trailer.** This overrides the harness default.
 - Do not commit unless asked.

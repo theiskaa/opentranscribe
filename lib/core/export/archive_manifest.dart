@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 /// Entry and reflection totals, informational: display and sanity, never a
 /// substitute for parsing the payload strictly.

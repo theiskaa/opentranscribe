@@ -3,16 +3,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
+import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
 

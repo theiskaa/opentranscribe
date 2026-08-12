@@ -1,4 +1,4 @@
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
+import 'package:reflections/reflections.dart';
 
 /// Whether onboarding should pitch weekly reflections and offer the nudge on
 /// this device. True for any hardware that could run reflections once Apple

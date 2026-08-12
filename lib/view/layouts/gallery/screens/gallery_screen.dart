@@ -6,8 +6,6 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
@@ -52,6 +50,7 @@ import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
+import 'package:reflections/reflections.dart';
 
 /// The widget gallery: every design-system widget in its states, for eyeballing
 /// on device. Debug builds only, so labels are deliberately not localized.

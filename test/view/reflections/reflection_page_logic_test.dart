@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_page_logic.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   final periodStart = DateTime(2026, 7, 20);

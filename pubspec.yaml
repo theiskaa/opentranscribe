@@ -24,6 +24,12 @@ dependencies:
   # someone else's releases of it.
   liquid:
     path: packages/liquid
+  # App-owned plugin: audio capture, playback, and on-device transcription.
+  transcriber:
+    path: packages/transcriber
+  # App-owned plugin: on-device reflection generation.
+  reflections:
+    path: packages/reflections
 
   shared_preferences: ^2.5.4
   encrypt: ^5.0.3

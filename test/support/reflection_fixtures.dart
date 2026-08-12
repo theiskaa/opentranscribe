@@ -2,8 +2,8 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// A Monday-first week boundary, injected so the reflection suites never
 /// depend on the ambient Intl locale (utils/week has its own coverage).

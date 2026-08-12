@@ -5,12 +5,11 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 // The collaborators are private (the service owns them) and named parameters
 // cannot be private, so initializing formals do not apply.

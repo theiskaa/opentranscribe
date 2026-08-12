@@ -3,16 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the

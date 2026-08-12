@@ -6,9 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/playback.dart';
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -16,6 +14,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The transcript body. Where the transcript carries timings, the segment under
 /// the playhead is MARKED (never the rest dimmed, and never on a hand-edited

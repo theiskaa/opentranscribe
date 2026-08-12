@@ -9,7 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// What went wrong with an entry action, as a kind the UI can word for the
 /// user. Raw platform errors (NSError dumps) are debug-logged, never shown.

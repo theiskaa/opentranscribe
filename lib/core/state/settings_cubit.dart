@@ -6,9 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Why a language row failed, as a kind the UI words. [capReached] is not a
 /// retry story: the fix is removing one of the languages holding the cap.
