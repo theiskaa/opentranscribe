@@ -27,6 +27,7 @@ import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
+import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
@@ -204,6 +205,13 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     selected: false,
                     dimmed: true,
                     onTap: null,
+                  ),
+                  SelectableRow(
+                    label: 'Supporter-locked',
+                    flag: localeFlag('en-US'),
+                    selected: true,
+                    locked: true,
+                    onTap: () {},
                   ),
                 ],
               ),
@@ -514,6 +522,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     action: AppButton(label: 'Retry', onPressed: () => Navigator.of(context).pop()),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'Support gate',
+                variant: AppButtonVariant.secondary,
+                onPressed: () => showSupportGateSheet(context),
               ),
               const SizedBox(height: AppSpacing.sm),
               AppButton(
