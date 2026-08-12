@@ -617,7 +617,8 @@ class TranscriptionService {
       // backfill, so the waveform is captured before the file disappears. The
       // returned entry deliberately still carries its path: the store is the
       // truth, and surfaces refresh from it.
-      final discard = transcript != null && !_keepAudio();
+      // An empty landing keeps the audio: it is the only path back to the words.
+      final discard = transcript != null && transcript.fullText.trim().isNotEmpty && !_keepAudio();
       unawaited(
         _backfillPeaks(entry).then((_) async {
           if (discard) await _discardAudio(entry.id);
@@ -1207,10 +1208,11 @@ class TranscriptionService {
     if (stored == null) {
       throw StateError('entry ${entry.id} was deleted during retranscribe');
     }
-    // Discard only on the FIRST successful transcription: that is the keep-off
-    // deferral completing (a failed or interrupted first pass finally landing).
-    // A repeat re-transcription never deletes; bulk reclaim is explicit only.
-    final firstSuccess = stored.transcript == null;
+    // Discard only on the FIRST landing that heard words: that is the keep-off
+    // deferral completing (a failed, interrupted, or empty first pass finally
+    // landing something). A repeat re-transcription never deletes; bulk
+    // reclaim is explicit only.
+    final hadWords = stored.transcript != null && stored.transcript!.fullText.trim().isNotEmpty;
     final retranscribed = stored.withTranscript(transcript);
     // The words this landing replaces go into history; a first transcription
     // of an untouched entry replaces nothing and pushes nothing. Two more
@@ -1233,7 +1235,7 @@ class TranscriptionService {
       updated = retranscribed;
     }
     await _store.save(updated);
-    if (firstSuccess && !_keepAudio()) {
+    if (!hadWords && !heardNothing && !_keepAudio()) {
       await _discardAudio(entry.id);
       return _store.read(entry.id) ?? updated;
     }

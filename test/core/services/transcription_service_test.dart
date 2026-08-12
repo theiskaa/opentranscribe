@@ -2497,6 +2497,114 @@ void main() {
     await svc.dispose();
   });
 
+  test('keep-off: a batch that heard nothing keeps the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptystop');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(store.read('id-0')?.transcript?.fullText, '');
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: an empty retranscribe keeps the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptyretr');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('e1')!);
+
+    expect(updated.transcript?.fullText, '');
+    expect(updated.audioPath, 'clip.m4a');
+    expect(store.read('e1')?.audioPath, 'clip.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a material landing after an empty one discards the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptythenreal');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final engine = FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '';
+    final svc = build(
+      (_) => engine,
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'e2',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    await svc.retranscribe(store.read('e2')!);
+    expect(store.read('e2')?.audioPath, 'clip.m4a');
+
+    engine.transcriptBuilder = (locale, start, end) => 'landed';
+    final updated = await svc.retranscribe(store.read('e2')!);
+
+    expect(updated.transcript?.fullText, 'landed');
+    expect(updated.audioPath, isNull);
+    expect(store.read('e2')?.audioPath, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-on: an empty landing changes nothing about the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptykeepon');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'e3',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('e3')!);
+
+    expect(updated.transcript?.fullText, '');
+    expect(updated.audioPath, 'clip.m4a');
+    expect(store.read('e3')?.audioPath, 'clip.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('retranscribe of a transcript-only entry throws before any engine work', () async {
     final engine = FakeBatchEngine();
     final svc = build((_) => engine);
