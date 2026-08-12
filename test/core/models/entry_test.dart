@@ -245,74 +245,120 @@ void main() {
 
   final editStamp = DateTime.utc(2026, 3, 5, 10);
 
-  test('an edit round-trips through JSON and is omitted when absent', () {
-    expect(baseEntry().toJson().containsKey('editedText'), isFalse);
-    expect(baseEntry().toJson().containsKey('editedAt'), isFalse);
+  Revision hand(String text, {DateTime? at}) => Revision(text: text, at: at ?? editStamp);
 
-    final edited = baseEntry()
-        .withTranscript(transcript)
-        .withEditedText('helio world', at: editStamp);
-    expect(Entry.fromJson(edited.toJson()), edited);
-    expect(Entry.fromJson(edited.toJson()).editedText, 'helio world');
-    expect(Entry.fromJson(edited.toJson()).editedAt, editStamp);
+  Revision engineRev(String text) =>
+      Revision(text: text, at: DateTime.utc(2026, 3, 4), engineId: 'fake', localeId: 'en-US');
+
+  test('revisions round-trip through JSON and are omitted when absent', () {
+    expect(baseEntry().toJson().containsKey('revisions'), isFalse);
+
+    final revised = baseEntry().withTranscript(transcript).withRevisions([
+      engineRev('hello world'),
+      hand('helio world'),
+    ]);
+    expect(Entry.fromJson(revised.toJson()), revised);
+    expect(Entry.fromJson(revised.toJson()).head?.text, 'helio world');
+    expect(Entry.fromJson(revised.toJson()).head?.isHand, isTrue);
   });
 
-  test('a record written before editing existed loads as unedited', () {
-    final json = baseEntry().withEditedText('x', at: editStamp).toJson()
-      ..remove('editedText')
-      ..remove('editedAt');
-    expect(Entry.fromJson(json).editedText, isNull);
-    expect(Entry.fromJson(json).editedAt, isNull);
+  test('a record written before revisions existed loads as pristine', () {
+    final json = baseEntry().withRevisions([hand('x')]).toJson()..remove('revisions');
+    expect(Entry.fromJson(json).revisions, isNull);
+    expect(Entry.fromJson(json).head, isNull);
   });
 
-  test('normalizes a local editedAt to UTC so round-trip equality holds', () {
-    final edited = baseEntry().withEditedText('x', at: DateTime(2026, 3, 5, 10));
-    expect(edited.editedAt!.isUtc, isTrue);
-    expect(Entry.fromJson(edited.toJson()), edited);
+  test('an empty history normalizes to pristine, one spelling everywhere', () {
+    final emptied = baseEntry().withRevisions(const []);
+    expect(emptied.revisions, isNull);
+    expect(emptied, baseEntry());
+    expect(emptied.toJson().containsKey('revisions'), isFalse);
   });
 
-  test('withEditedText sets both fields, null clears both, everything else is kept', () {
+  test('a legacy overlay record folds into an engine base and a hand head', () {
+    final json = baseEntry().withTranscript(transcript).toJson()
+      ..['editedText'] = 'helio world'
+      ..['editedAt'] = editStamp.toIso8601String();
+    final folded = Entry.fromJson(json);
+
+    expect(folded.revisions, hasLength(2));
+    expect(folded.revisions!.first.text, 'hello world');
+    expect(folded.revisions!.first.engineId, 'fake');
+    expect(folded.head?.text, 'helio world');
+    expect(folded.head?.isHand, isTrue);
+    expect(folded.head?.at, editStamp);
+  });
+
+  test('half a legacy overlay pair reads as pristine', () {
+    final textOnly = baseEntry().toJson()..['editedText'] = 'x';
+    expect(Entry.fromJson(textOnly).revisions, isNull);
+
+    final stampOnly = baseEntry().toJson()..['editedAt'] = editStamp.toIso8601String();
+    expect(Entry.fromJson(stampOnly).revisions, isNull);
+  });
+
+  test('a legacy edit over a silent transcript folds without a base', () {
+    final silent = Transcript(
+      fullText: '   ',
+      segments: const [
+        TranscriptSegment(text: '   ', start: Duration.zero, end: Duration(seconds: 1)),
+      ],
+      localeId: 'en-US',
+      engineId: 'fake',
+      createdAt: DateTime.utc(2026, 3, 4),
+    );
+    final json = baseEntry().withTranscript(silent).toJson()
+      ..['editedText'] = 'typed over silence'
+      ..['editedAt'] = editStamp.toIso8601String();
+    final folded = Entry.fromJson(json);
+
+    expect(folded.revisions, hasLength(1));
+    expect(folded.head?.text, 'typed over silence');
+    expect(folded.head?.isHand, isTrue);
+  });
+
+  test('normalizes a local revision stamp to UTC so round-trip equality holds', () {
+    final revised = baseEntry().withRevisions([hand('x', at: DateTime(2026, 3, 5, 10))]);
+    expect(revised.head!.at.isUtc, isTrue);
+    expect(Entry.fromJson(revised.toJson()), revised);
+  });
+
+  test('withRevisions swaps the history and keeps everything else', () {
     final full = baseEntry().withTranscript(transcript).withTitle('named').withPeaks(const [1, 2]);
-    final edited = full.withEditedText('fixed', at: editStamp);
+    final revised = full.withRevisions([hand('fixed')]);
 
-    expect(edited.editedText, 'fixed');
-    expect(edited.editedAt, editStamp);
-    expect(edited.transcript, full.transcript);
-    expect(edited.title, full.title);
-    expect(edited.peaks, full.peaks);
-    expect(edited.audioPath, full.audioPath);
-
-    final reverted = edited.withEditedText(null);
-    expect(reverted.editedText, isNull);
-    expect(reverted.editedAt, isNull);
-    expect(reverted, full);
+    expect(revised.head?.text, 'fixed');
+    expect(revised.transcript, full.transcript);
+    expect(revised.title, full.title);
+    expect(revised.peaks, full.peaks);
+    expect(revised.audioPath, full.audioPath);
   });
 
-  test('the other copiers preserve the edit', () {
-    final edited = baseEntry().withEditedText('fixed', at: editStamp);
+  test('the other copiers preserve the history', () {
+    final revised = baseEntry().withRevisions([hand('fixed')]);
 
     for (final copy in [
-      edited.withTranscript(transcript),
-      edited.withTitle('t'),
-      edited.withPeaks(const [1]),
-      edited.withoutAudio(),
-      edited.withAudioPath('b.m4a'),
+      revised.withTranscript(transcript),
+      revised.withTitle('t'),
+      revised.withPeaks(const [1]),
+      revised.withoutAudio(),
+      revised.withAudioPath('b.m4a'),
     ]) {
-      expect(copy.editedText, 'fixed');
-      expect(copy.editedAt, editStamp);
+      expect(copy.head?.text, 'fixed');
+      expect(copy.head?.at, editStamp);
     }
   });
 
-  test('readableText prefers the edit and falls back to the transcript', () {
+  test('readableText prefers the head and falls back to the transcript', () {
     expect(baseEntry().readableText, isNull);
     expect(baseEntry().withTranscript(transcript).readableText, 'hello world');
     expect(
-      baseEntry().withTranscript(transcript).withEditedText('fixed', at: editStamp).readableText,
+      baseEntry().withTranscript(transcript).withRevisions([hand('fixed')]).readableText,
       'fixed',
     );
   });
 
-  test('an edit over an empty transcript reads as the edit', () {
+  test('a hand head over an empty transcript reads as the head', () {
     final silent = Transcript(
       fullText: '',
       segments: const [],
@@ -320,31 +366,48 @@ void main() {
       engineId: 'fake',
       createdAt: DateTime.utc(2026, 3, 4),
     );
-    final typed = baseEntry().withTranscript(silent).withEditedText('typed in', at: editStamp);
+    final typed = baseEntry().withTranscript(silent).withRevisions([hand('typed in')]);
     expect(typed.readableText, 'typed in');
   });
 
-  test('equality and hashCode include the edit', () {
-    final a = baseEntry().withEditedText('x', at: editStamp);
-    final b = baseEntry().withEditedText('x', at: editStamp);
-    final c = baseEntry().withEditedText('y', at: editStamp);
+  test('readsAsTranscript holds for a pristine entry and a matching engine head', () {
+    expect(baseEntry().readsAsTranscript, isTrue);
+    expect(baseEntry().withTranscript(transcript).readsAsTranscript, isTrue);
+    expect(
+      baseEntry().withTranscript(transcript).withRevisions([
+        engineRev('hello world'),
+      ]).readsAsTranscript,
+      isTrue,
+    );
+  });
+
+  test('readsAsTranscript reads whitespace-blind under an engine head', () {
+    final variant = baseEntry().withTranscript(transcript).withRevisions([
+      Revision(
+        text: ' hello  world',
+        at: DateTime.utc(2026, 3, 4),
+        engineId: 'fake',
+        localeId: 'en-US',
+      ),
+    ]);
+    expect(variant.readsAsTranscript, isTrue);
+  });
+
+  test('readsAsTranscript falls for a hand head and a stale engine head', () {
+    final entry = baseEntry().withTranscript(transcript);
+    expect(entry.withRevisions([hand('fixed')]).readsAsTranscript, isFalse);
+    expect(entry.withRevisions([engineRev('older engine words')]).readsAsTranscript, isFalse);
+  });
+
+  test('equality and hashCode include the history', () {
+    final a = baseEntry().withRevisions([hand('x')]);
+    final b = baseEntry().withRevisions([hand('x')]);
+    final c = baseEntry().withRevisions([hand('y')]);
 
     expect(a, b);
     expect(a.hashCode, b.hashCode);
     expect(a == c, isFalse);
     expect(a == baseEntry(), isFalse);
-    expect(a == baseEntry().withEditedText('x', at: DateTime.utc(2026, 3, 6)), isFalse);
-  });
-
-  test('half an edit in a stored record reads as unedited', () {
-    final base = baseEntry().withEditedText('x', at: editStamp);
-
-    final textOnly = base.toJson()..remove('editedAt');
-    expect(Entry.fromJson(textOnly).editedText, isNull);
-    expect(Entry.fromJson(textOnly).editedAt, isNull);
-
-    final stampOnly = base.toJson()..remove('editedText');
-    expect(Entry.fromJson(stampOnly).editedText, isNull);
-    expect(Entry.fromJson(stampOnly).editedAt, isNull);
+    expect(a == baseEntry().withRevisions([hand('x', at: DateTime.utc(2026, 3, 6))]), isFalse);
   });
 }
