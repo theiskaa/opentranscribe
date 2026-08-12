@@ -71,6 +71,14 @@ class ReflectionService {
   /// relaunch; a timeout instead reads as the transient could-not-run.
   final Duration _reflectTimeout;
 
+  /// Starts currently generating, keyed `'${period.wire}:${Reflection.keyFor(start)}'`.
+  /// [regenerate] and [_catchUpPeriod] both call through [_reflectPeriod], so
+  /// this set is the single source of "who is generating what": a start
+  /// already generating is skipped rather than run twice, its own save covers
+  /// the request that was skipped, and catch-up's next pass reconsiders
+  /// anything it left alone.
+  final Set<String> _generating = {};
+
   final StreamController<void> _changed = StreamController<void>.broadcast();
 
   /// Fires whenever a reflection is written, regenerated, or deleted, so a
@@ -391,41 +399,52 @@ class ReflectionService {
     List<Entry> entries, {
     bool force = false,
   }) async {
-    final inputs = _inputsFor(period, entries);
-    // Nothing transcribed to read. On catch-up, leave the period unreflected so
-    // a later transcription can still produce one. On an explicit regenerate,
-    // the user asked, so record an honest silence.
-    if (inputs.isEmpty && !force) return;
+    // Checked before any side effect (a floor write, a style read): a start
+    // already generating is skipped outright, not merely deduplicated at the
+    // save.
+    final key = '${period.wire}:${Reflection.keyFor(start)}';
+    if (_generating.contains(key)) return;
+    _generating.add(key);
+    try {
+      final inputs = _inputsFor(period, entries);
+      // Nothing transcribed to read. On catch-up, leave the period unreflected
+      // so a later transcription can still produce one. On an explicit
+      // regenerate, the user asked, so record an honest silence.
+      if (inputs.isEmpty && !force) return;
 
-    // Read the style ONCE, before the await, so the persisted voice is the one
-    // the text was actually generated with even if a setting changes mid-run.
-    final style = _settings.styleFor(period);
-    final erased = _tombstoned(period, start, _store.deletedRefs());
-    final text = inputs.isEmpty
-        ? null
-        : await _engine
-              .reflect(period: period, entries: inputs, style: style, localeId: _language())
-              .timeout(
-                _reflectTimeout,
-                onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
-              );
+      // Read the style ONCE, before the await, so the persisted voice is the
+      // one the text was actually generated with even if a setting changes
+      // mid-run.
+      final style = _settings.styleFor(period);
+      final erased = _tombstoned(period, start, _store.deletedRefs());
+      final text = inputs.isEmpty
+          ? null
+          : await _engine
+                .reflect(period: period, entries: inputs, style: style, localeId: _language())
+                .timeout(
+                  _reflectTimeout,
+                  onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
+                );
 
-    // A delete that landed during the generation wins: saving now would clear
-    // the tombstone the user just wrote and resurrect the period. A tombstone
-    // that predates the run is a regenerate of an erased period, which the user
-    // asked for, so that one saves through.
-    if (!erased && _tombstoned(period, start, _store.deletedRefs())) return;
+      // A delete that landed during the generation wins: saving now would
+      // clear the tombstone the user just wrote and resurrect the period. A
+      // tombstone that predates the run is a regenerate of an erased period,
+      // which the user asked for, so that one saves through.
+      if (!erased && _tombstoned(period, start, _store.deletedRefs())) return;
 
-    await _store.save(
-      Reflection(
-        period: period,
-        periodStart: start,
-        generatedAt: _clock(),
-        text: text,
-        voice: style.voice,
-      ),
-    );
-    _emitChanged();
+      await _store.save(
+        Reflection(
+          period: period,
+          periodStart: start,
+          generatedAt: _clock(),
+          text: text,
+          voice: style.voice,
+        ),
+      );
+      _emitChanged();
+    } finally {
+      _generating.remove(key);
+    }
   }
 
   Map<DateTime, List<Entry>> _entriesByPeriod(ReflectionPeriod period) {

@@ -441,6 +441,22 @@ void main() {
       expect(store.read(twoWeeksAgo)!.text, 'the user version');
     });
 
+    test('a start already generating is not generated twice', () async {
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final gate = Completer<void>();
+      engine.gate = gate.future;
+
+      final run = service.catchUp();
+      await untilParkedInReflect();
+
+      await service.regenerate(lastWeek);
+      gate.complete();
+      await run;
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(lastWeek)!.isSilent, isFalse);
+    });
+
     test('buckets by the app language week, not the ambient Intl locale', () async {
       Intl.defaultLocale = 'en_US';
       final deService = build(language: 'de', weekOf: null);
