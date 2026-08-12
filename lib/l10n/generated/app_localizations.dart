@@ -246,29 +246,35 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get editTranscript;
 
-  /// Metadata line marker on an entry whose transcript was edited by hand
+  /// Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision
   ///
   /// In en, this message translates to:
   /// **'Edited'**
   String get editedMarker;
 
-  /// Action that restores the engine's transcript over a hand edit
+  /// Action that opens the entry's revision history
   ///
   /// In en, this message translates to:
-  /// **'Revert edits'**
-  String get revertEdits;
+  /// **'History'**
+  String get revisionHistory;
 
-  /// Title of the sheet asking before a re-transcription overwrites a hand-edited transcript
+  /// Body of the revision history sheet
   ///
   /// In en, this message translates to:
-  /// **'Replace your edits?'**
-  String get retranscribeOverEditTitle;
+  /// **'Everything this entry\'s text has been through. Tapping a version restores it as the newest.'**
+  String get revisionHistoryBody;
 
-  /// Body of the sheet asking before a re-transcription overwrites a hand-edited transcript
+  /// Tag on the revision the entry currently reads as
   ///
   /// In en, this message translates to:
-  /// **'This text was edited by hand. Re-transcribing listens to the recording again and replaces your edits with a fresh transcript.'**
-  String get retranscribeOverEditBody;
+  /// **'Current'**
+  String get revisionCurrent;
+
+  /// Origin label of a revision an engine produced
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed'**
+  String get revisionTranscribed;
 
   /// Button that transcribes an untranscribed entry
   ///

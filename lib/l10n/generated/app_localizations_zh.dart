@@ -81,13 +81,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editedMarker => '已编辑';
 
   @override
-  String get revertEdits => '撤销编辑';
+  String get revisionHistory => '历史记录';
 
   @override
-  String get retranscribeOverEditTitle => '替换编辑内容？';
+  String get revisionHistoryBody => '这条条目的文字经历过的所有版本。轻点某个版本即可将其恢复为最新版本。';
 
   @override
-  String get retranscribeOverEditBody => '这段文字经过手动编辑。重新转写将重新听取录音，并以新的转写结果替换编辑内容。';
+  String get revisionCurrent => '当前';
+
+  @override
+  String get revisionTranscribed => '已转写';
 
   @override
   String get transcribe => '转写';

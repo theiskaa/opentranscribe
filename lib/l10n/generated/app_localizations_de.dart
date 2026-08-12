@@ -88,14 +88,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get editedMarker => 'Bearbeitet';
 
   @override
-  String get revertEdits => 'Bearbeitungen verwerfen';
+  String get revisionHistory => 'Verlauf';
 
   @override
-  String get retranscribeOverEditTitle => 'Bearbeitungen ersetzen?';
+  String get revisionHistoryBody =>
+      'Alles, was der Text dieses Eintrags durchlaufen hat. Tippen stellt eine Version als neueste wieder her.';
 
   @override
-  String get retranscribeOverEditBody =>
-      'Dieser Text wurde von Hand bearbeitet. Beim erneuten Transkribieren wird die Aufnahme neu angehört und Ihre Bearbeitungen werden durch ein frisches Transkript ersetzt.';
+  String get revisionCurrent => 'Aktuell';
+
+  @override
+  String get revisionTranscribed => 'Transkribiert';
 
   @override
   String get transcribe => 'Transkribieren';

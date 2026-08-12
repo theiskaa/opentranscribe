@@ -94,19 +94,23 @@
   },
   "editedMarker": "Edited",
   "@editedMarker": {
-    "description": "Metadata line marker on an entry whose transcript was edited by hand"
+    "description": "Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision"
   },
-  "revertEdits": "Revert edits",
-  "@revertEdits": {
-    "description": "Action that restores the engine's transcript over a hand edit"
+  "revisionHistory": "History",
+  "@revisionHistory": {
+    "description": "Action that opens the entry's revision history"
   },
-  "retranscribeOverEditTitle": "Replace your edits?",
-  "@retranscribeOverEditTitle": {
-    "description": "Title of the sheet asking before a re-transcription overwrites a hand-edited transcript"
+  "revisionHistoryBody": "Everything this entry's text has been through. Tapping a version restores it as the newest.",
+  "@revisionHistoryBody": {
+    "description": "Body of the revision history sheet"
   },
-  "retranscribeOverEditBody": "This text was edited by hand. Re-transcribing listens to the recording again and replaces your edits with a fresh transcript.",
-  "@retranscribeOverEditBody": {
-    "description": "Body of the sheet asking before a re-transcription overwrites a hand-edited transcript"
+  "revisionCurrent": "Current",
+  "@revisionCurrent": {
+    "description": "Tag on the revision the entry currently reads as"
+  },
+  "revisionTranscribed": "Transcribed",
+  "@revisionTranscribed": {
+    "description": "Origin label of a revision an engine produced"
   },
   "transcribe": "Transcribe",
   "@transcribe": {

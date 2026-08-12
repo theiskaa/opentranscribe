@@ -88,14 +88,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editedMarker => 'Modifié';
 
   @override
-  String get revertEdits => 'Annuler les modifications';
+  String get revisionHistory => 'Historique';
 
   @override
-  String get retranscribeOverEditTitle => 'Remplacer vos modifications ?';
+  String get revisionHistoryBody =>
+      'Tout ce que le texte de cette entrée a traversé. Toucher une version la restaure en tête.';
 
   @override
-  String get retranscribeOverEditBody =>
-      'Ce texte a été modifié à la main. Une nouvelle transcription réécoute l\'enregistrement et remplace vos modifications par un texte neuf.';
+  String get revisionCurrent => 'Actuelle';
+
+  @override
+  String get revisionTranscribed => 'Transcrit';
 
   @override
   String get transcribe => 'Transcrire';

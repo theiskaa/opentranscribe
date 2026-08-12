@@ -82,14 +82,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editedMarker => '編集済み';
 
   @override
-  String get revertEdits => '編集を元に戻す';
+  String get revisionHistory => '履歴';
 
   @override
-  String get retranscribeOverEditTitle => '編集内容を置き換えますか？';
+  String get revisionHistoryBody => 'このエントリーのテキストがたどってきた履歴です。タップすると、その版が最新として復元されます。';
 
   @override
-  String get retranscribeOverEditBody =>
-      'このテキストは手動で編集されています。再文字起こしを行うと、録音を聞き直して編集内容を新しい文字起こしで置き換えます。';
+  String get revisionCurrent => '現在';
+
+  @override
+  String get revisionTranscribed => '文字起こし済み';
 
   @override
   String get transcribe => '文字起こし';
