@@ -372,6 +372,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.5+1"
+  reflections:
+    dependency: "direct main"
+    description:
+      path: "packages/reflections"
+      relative: true
+    source: path
+    version: "1.0.0"
   shared_preferences:
     dependency: "direct main"
     description:

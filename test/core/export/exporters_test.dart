@@ -10,7 +10,7 @@ import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 import 'package:transcriber/transcriber.dart';
 
 void main() {

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 
 /// One file a format export produces: a relative '/'-separated path plus its
 /// bytes. Exporters emit these; the service writes them.

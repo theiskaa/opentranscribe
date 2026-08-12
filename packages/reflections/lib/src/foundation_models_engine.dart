@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/src/reflection_engine.dart';
+import 'package:reflections/src/reflection_exception.dart';
+import 'package:reflections/src/reflection_options.dart';
+import 'package:reflections/src/reflection_period.dart';
 
 // Channel identifier. Must match ReflectionEngine.swift.
 const _controlChannel = 'opentranscribe/reflect';

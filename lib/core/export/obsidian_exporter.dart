@@ -3,7 +3,7 @@ import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 
 /// Export shaped for an Obsidian vault: markdown only, YAML frontmatter,

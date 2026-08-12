@@ -1,6 +1,6 @@
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 
 /// Persists reflections as encrypted JSON in [LocalService], one key per record
 /// as `reflection:<period>:<yyyy-MM-dd>`. Listed straight off the key prefix,

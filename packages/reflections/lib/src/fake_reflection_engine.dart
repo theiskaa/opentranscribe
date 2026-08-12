@@ -1,7 +1,7 @@
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/src/reflection_engine.dart';
+import 'package:reflections/src/reflection_exception.dart';
+import 'package:reflections/src/reflection_options.dart';
+import 'package:reflections/src/reflection_period.dart';
 
 /// Deterministic reflection engine for tests and dev harnesses. On-device by
 /// contract, like the real one. Configure its [availabilityResult], its

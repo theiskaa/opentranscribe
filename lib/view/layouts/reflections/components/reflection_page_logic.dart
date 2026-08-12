@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+import 'package:reflections/reflections.dart';
 
 /// The ink phase for a reflected page. Pure, so the replay policy is a tested
 /// rule, not widget state: the write-on plays once per page per screen visit

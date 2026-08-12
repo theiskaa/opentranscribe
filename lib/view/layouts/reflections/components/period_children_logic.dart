@@ -1,5 +1,6 @@
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 /// One day's standing in the week page's strip: a stored daily reflection
 /// (solid, drills), transcribed entries with no reflection (texture only), or

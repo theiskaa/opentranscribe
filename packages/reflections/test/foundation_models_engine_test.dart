@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/reflect/foundation_models_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/src/foundation_models_engine.dart';
+import 'package:reflections/src/reflection_engine.dart';
+import 'package:reflections/src/reflection_exception.dart';
+import 'package:reflections/src/reflection_options.dart';
+import 'package:reflections/src/reflection_period.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

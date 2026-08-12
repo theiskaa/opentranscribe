@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   setUpAll(() async {

@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 /// One period's reflection, stored like any other local entry data. Keyed by
 /// [period] plus [periodStart], the civil date of the period's first day (its day,

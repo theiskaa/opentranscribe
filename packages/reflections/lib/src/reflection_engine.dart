@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/src/reflection_options.dart';
+import 'package:reflections/src/reflection_period.dart';
 
 /// Why reflections can or cannot run on this device right now. Mirrors the
 /// system model's own states so the gate and any status surface name the same

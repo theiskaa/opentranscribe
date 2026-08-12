@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/notifications_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -21,6 +20,7 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/time_field.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:reflections/reflections.dart';
 
 /// Notifications: the local, on-device nudges. One master switch turns
 /// reflection reminders on in a single tap; the capsule row under it picks
