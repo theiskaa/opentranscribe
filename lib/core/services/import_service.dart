@@ -68,38 +68,47 @@ class ImportService {
   /// Runs the whole import. [passphrase] is required for a sealed archive and
   /// ignored for a plain one.
   Future<ImportSummary> importArchive(String path, {String? passphrase}) async {
-    final staging = await Directory.systemTemp.createTemp('import-');
-    _staging.register(staging.path);
+    _staging.begin();
     try {
+      final staging = await Directory.systemTemp.createTemp('import-');
+      _staging.register(staging.path);
       try {
-        await _share.protect(staging.path);
-      } catch (_) {
-        // Best-effort: a plaintext journal briefly staged here deserves the
-        // same protection class as a shared file, but a failure to apply it
-        // must not block an import the user already started.
+        try {
+          await _share.protect(staging.path);
+        } catch (_) {
+          // Best-effort: a plaintext journal briefly staged here deserves the
+          // same protection class as a shared file, but a failure to apply it
+          // must not block an import the user already started.
+        }
+        final source = File(path);
+        final payload = switch (await sniffArchive(source)) {
+          ArchiveKind.plainZip => source,
+          ArchiveKind.sealed => await _unseal(source, passphrase, staging),
+          ArchiveKind.unknown => throw const ArchiveException(
+            ArchiveError.malformed,
+            'not an opentranscribe archive',
+          ),
+        };
+        final parsed = await _parsePayload(payload, staging);
+        final adopted = await _transcription.adoptImportedEntries(parsed.entries);
+        final reflectionChanges = await _reflections.adoptImportedReflections(parsed.reflections);
+        return ImportSummary(
+          entriesAdded: adopted.added,
+          entriesUpdated: adopted.updated,
+          entriesUnchanged: adopted.unchanged,
+          audioRestored: adopted.audioRestored,
+          reflectionChanges: reflectionChanges,
+        );
+      } finally {
+        // Cleanup must never turn a finished operation into a failure: a
+        // leftover directory is exactly what the launch sweep exists for.
+        try {
+          if (await staging.exists()) await staging.delete(recursive: true);
+        } catch (_) {}
+        _staging.release(staging.path);
       }
-      final source = File(path);
-      final payload = switch (await sniffArchive(source)) {
-        ArchiveKind.plainZip => source,
-        ArchiveKind.sealed => await _unseal(source, passphrase, staging),
-        ArchiveKind.unknown => throw const ArchiveException(
-          ArchiveError.malformed,
-          'not an opentranscribe archive',
-        ),
-      };
-      final parsed = await _parsePayload(payload, staging);
-      final adopted = await _transcription.adoptImportedEntries(parsed.entries);
-      final reflectionChanges = await _reflections.adoptImportedReflections(parsed.reflections);
-      return ImportSummary(
-        entriesAdded: adopted.added,
-        entriesUpdated: adopted.updated,
-        entriesUnchanged: adopted.unchanged,
-        audioRestored: adopted.audioRestored,
-        reflectionChanges: reflectionChanges,
-      );
     } finally {
-      _staging.release(staging.path);
-      if (await staging.exists()) await staging.delete(recursive: true);
+      _staging.end();
     }
   }
 

@@ -230,20 +230,29 @@ class ExportService {
   }
 
   Future<bool> _stage(Future<List<String>> Function(Directory staging) build) async {
-    final staging = await Directory.systemTemp.createTemp('export-');
-    _staging.register(staging.path);
+    _staging.begin();
     try {
+      final staging = await Directory.systemTemp.createTemp('export-');
+      _staging.register(staging.path);
       try {
-        await _share.protect(staging.path);
-      } catch (_) {
-        // Best-effort: a plaintext journal briefly staged here deserves the
-        // same protection class as a shared file, but a failure to apply it
-        // must not block an export the user already asked for.
+        try {
+          await _share.protect(staging.path);
+        } catch (_) {
+          // Best-effort: a plaintext journal briefly staged here deserves the
+          // same protection class as a shared file, but a failure to apply it
+          // must not block an export the user already asked for.
+        }
+        return await _share.shareFiles(await build(staging));
+      } finally {
+        // Cleanup must never turn a finished operation into a failure: a
+        // leftover directory is exactly what the launch sweep exists for.
+        try {
+          if (await staging.exists()) await staging.delete(recursive: true);
+        } catch (_) {}
+        _staging.release(staging.path);
       }
-      return await _share.shareFiles(await build(staging));
     } finally {
-      _staging.release(staging.path);
-      if (await staging.exists()) await staging.delete(recursive: true);
+      _staging.end();
     }
   }
 
