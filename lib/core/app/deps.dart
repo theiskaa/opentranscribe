@@ -192,13 +192,14 @@ class Deps {
     // partway can still be retried rather than early-returning with `i` unset.
     if (_initialized) return;
 
-    // Refuse to ship a release build that would encrypt journal data with the
-    // committed development key. Provide a real key via --dart-define=STORAGE_KEY.
-    if (kReleaseMode && _storageKey == _devStorageKey) {
-      throw StateError('STORAGE_KEY must be supplied via --dart-define for a release build');
+    // Debug is the only mode that may run on the committed development key: a
+    // profile build lands on real devices against real journals, the same as
+    // release. Provide a real key via --dart-define=STORAGE_KEY.
+    if (!kDebugMode && _storageKey == _devStorageKey) {
+      throw StateError('STORAGE_KEY must be supplied via --dart-define for a non-debug build');
     }
     if (kDebugMode && _storageKey == _devStorageKey) {
-      debugPrint('deps: using the committed development STORAGE_KEY (debug/profile only)');
+      debugPrint('deps: using the committed development STORAGE_KEY (debug only)');
     }
 
     // The device key must never fall back to null once obtain() has run once
