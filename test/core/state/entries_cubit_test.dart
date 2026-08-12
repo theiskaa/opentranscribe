@@ -77,7 +77,7 @@ void main() {
     await cubit.edit(entry, 'fixed words');
     await sub.cancel();
 
-    expect(cubit.state.entries.single.editedText, 'fixed words');
+    expect(cubit.state.entries.single.head?.text, 'fixed words');
     expect(cubit.state.entries.single.readableText, 'fixed words');
     expect(busyIds, everyElement(isNull));
     expect(cubit.state.error, isNull);
@@ -99,17 +99,59 @@ void main() {
     await cubit.close();
   });
 
-  test('retranscribe keeps an edit by default and clears it when asked', () async {
+  test('retranscribe replaces the head and keeps the edit in history', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;
     await cubit.edit(entry, 'fixed words');
 
     await cubit.retranscribe(entry);
-    expect(cubit.state.entries.single.editedText, 'fixed words');
+    final landed = cubit.state.entries.single;
+    expect(landed.readableText, isNot('fixed words'));
+    expect(landed.revisions!.map((r) => r.text), contains('fixed words'));
 
-    await cubit.retranscribe(entry, clearEdit: true);
-    expect(cubit.state.entries.single.editedText, isNull);
-    expect(cubit.state.entries.single.readableText, isNot('fixed words'));
+    await cubit.close();
+  });
+
+  test('restore pushes an old revision back as the head', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+
+    await cubit.restore(edited, edited.revisions!.first);
+
+    final restored = cubit.state.entries.single;
+    expect(restored.readableText, edited.revisions!.first.text);
+    expect(restored.revisions, hasLength(3));
+    expect(cubit.state.busyId, isNull);
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('deleteRevision trims the history in the list', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+
+    await cubit.deleteRevision(edited, edited.revisions!.last);
+
+    final trimmed = cubit.state.entries.single;
+    expect(trimmed.revisions!.map((r) => r.text), isNot(contains('fixed words')));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('a restore failure surfaces on its own entry and still refreshes', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+    await service.deleteEntry(edited);
+
+    await cubit.restore(edited, edited.revisions!.first);
+
+    expect(cubit.state.errorFor(edited.id), isNotNull);
+    expect(cubit.state.entries, isEmpty);
 
     await cubit.close();
   });

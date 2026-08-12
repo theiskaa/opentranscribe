@@ -133,8 +133,12 @@ void main() {
           'a',
           DateTime(2026, 7, 22, 12),
           text: 'wrong words',
-        ).withEditedText('right words', at: now),
-        withText('b', DateTime(2026, 7, 23, 12), text: '').withEditedText('typed in', at: now),
+        ).withRevisions([Revision(text: 'right words', at: now)]),
+        withText(
+          'b',
+          DateTime(2026, 7, 23, 12),
+          text: '',
+        ).withRevisions([Revision(text: 'typed in', at: now)]),
       ];
       engine.output = 'a week';
 

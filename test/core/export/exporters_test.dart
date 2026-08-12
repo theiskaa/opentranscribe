@@ -171,7 +171,9 @@ void main() {
     });
 
     test('an edited entry exports the corrected words, its sidecar keeping both', () {
-      final source = entry().withEditedText('went for a stroll.', at: DateTime.utc(2026, 8, 7, 11));
+      final source = entry().withRevisions([
+        Revision(text: 'went for a stroll.', at: DateTime.utc(2026, 8, 7, 11)),
+      ]);
       final files = exporter.exportEntry(ExportEntry(entry: source), context);
 
       final md = textOf(files, '2026-08-07-Morning walk.md');
@@ -181,8 +183,8 @@ void main() {
       final decoded = Entry.fromJson(
         jsonDecode(textOf(files, '2026-08-07-Morning walk.json')) as Map<String, dynamic>,
       );
-      expect(decoded.editedText, 'went for a stroll.');
-      expect(decoded.editedAt, source.editedAt);
+      expect(decoded.revisions, source.revisions);
+      expect(decoded.readableText, 'went for a stroll.');
       expect(decoded.transcript, source.transcript);
     });
 
@@ -320,7 +322,9 @@ void main() {
     });
 
     test('an edited note carries the corrected words', () {
-      final source = entry().withEditedText('went for a stroll.', at: DateTime.utc(2026, 8, 7, 11));
+      final source = entry().withRevisions([
+        Revision(text: 'went for a stroll.', at: DateTime.utc(2026, 8, 7, 11)),
+      ]);
       final files = exporter.exportEntry(ExportEntry(entry: source), context);
       final note = utf8.decode(files.single.bytes);
       expect(note, contains('went for a stroll.'));

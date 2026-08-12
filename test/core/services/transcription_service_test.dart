@@ -1576,41 +1576,68 @@ void main() {
     await svc.dispose();
   });
 
-  test('editTranscript sets, trims, stamps, and reverts the edit on the stored entry', () async {
+  test('editTranscript lays the engine base then pushes the trimmed edit', () async {
     final svc = build((_) => FakeBatchEngine());
     await svc.startRecording();
     final entry = await svc.stopRecording();
 
     final edited = await svc.editTranscript(entry, '  fixed words  ');
-    expect(edited.editedText, 'fixed words');
-    expect(edited.editedAt, fixedClock);
+    expect(edited.revisions, hasLength(2));
+    expect(edited.revisions!.first.text, 'batch transcript');
+    expect(edited.revisions!.first.isHand, isFalse);
+    expect(edited.head?.text, 'fixed words');
+    expect(edited.head?.isHand, isTrue);
+    expect(edited.head?.at, fixedClock);
     expect(edited.transcript?.fullText, 'batch transcript');
-    expect(store.read(entry.id)?.editedText, 'fixed words');
-
-    final reverted = await svc.editTranscript(edited, '   ');
-    expect(reverted.editedText, isNull);
-    expect(reverted.editedAt, isNull);
-    expect(reverted.transcript?.fullText, 'batch transcript');
-    expect(store.read(entry.id)?.editedText, isNull);
+    expect(store.read(entry.id)?.readableText, 'fixed words');
 
     await svc.dispose();
   });
 
-  test('typing the engine words back clears the edit instead of storing a twin', () async {
-    final svc = build((_) => FakeBatchEngine(cannedText: ' batch transcript '));
+  test('a blank commit writes nothing, since revert is its own surface', () async {
+    final svc = build((_) => FakeBatchEngine());
     await svc.startRecording();
     final entry = await svc.stopRecording();
 
     await svc.editTranscript(entry, 'fixed');
-    final typedBack = await svc.editTranscript(entry, 'batch transcript');
+    final blanked = await svc.editTranscript(entry, '   ');
 
-    expect(typedBack.editedText, isNull);
-    expect(typedBack.editedAt, isNull);
+    expect(blanked.head?.text, 'fixed');
+    expect(blanked.revisions, hasLength(2));
 
     await svc.dispose();
   });
 
-  test('an unchanged edit writes nothing and keeps its stamp', () async {
+  test('typing the head words back writes nothing, edge whitespace and all', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: ' batch transcript '));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final same = await svc.editTranscript(entry, 'batch transcript');
+    expect(same.revisions, isNull);
+
+    await svc.editTranscript(entry, 'fixed');
+    final repeat = await svc.editTranscript(entry, ' fixed ');
+    expect(repeat.revisions, hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('a typed paragraph break is a change and pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed words');
+
+    final reflowed = await svc.editTranscript(entry, 'fixed\n\nwords');
+
+    expect(reflowed.revisions, hasLength(3));
+    expect(reflowed.head?.text, 'fixed\n\nwords');
+
+    await svc.dispose();
+  });
+
+  test('an unchanged edit keeps the head stamp', () async {
     var now = DateTime.utc(2026, 3, 4, 12);
     final svc = TranscriptionService(
       recorder: FakeAudioRecorder(),
@@ -1626,8 +1653,8 @@ void main() {
     now = now.add(const Duration(hours: 1));
     final repeat = await svc.editTranscript(entry, ' fixed ');
 
-    expect(repeat.editedAt, first.editedAt);
-    expect(store.read(entry.id)?.editedAt, first.editedAt);
+    expect(repeat.head?.at, first.head?.at);
+    expect(store.read(entry.id)?.head?.at, first.head?.at);
 
     await svc.dispose();
   });
@@ -1640,7 +1667,7 @@ void main() {
     final fresher = await svc.retranscribe(stale, using: FakeBatchEngine(cannedText: 'second'));
     final edited = await svc.editTranscript(stale, 'kept');
 
-    expect(edited.editedText, 'kept');
+    expect(edited.head?.text, 'kept');
     expect(edited.transcript?.fullText, fresher.transcript?.fullText);
 
     await svc.dispose();
@@ -1657,7 +1684,7 @@ void main() {
     await svc.dispose();
   });
 
-  test('an edit landing mid-retranscribe survives the retranscribe save', () async {
+  test('an edit landing mid-retranscribe stays in the landed history', () async {
     final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
     await svc.startRecording();
     final entry = await svc.stopRecording();
@@ -1666,36 +1693,192 @@ void main() {
       entry,
       using: FakeBatchEngine(cannedText: 'second', delay: const Duration(milliseconds: 30)),
     );
-    await svc.editTranscript(entry, 'kept edit');
+    await svc.editTranscript(entry, 'mid-flight edit');
     final updated = await slow;
 
-    expect(updated.editedText, 'kept edit');
+    expect(updated.head?.text, 'second');
+    expect(updated.head?.isHand, isFalse);
     expect(updated.transcript?.fullText, 'second');
-    expect(store.read(entry.id)?.editedText, 'kept edit');
+    expect(updated.revisions!.map((r) => r.text), ['first', 'mid-flight edit', 'second']);
 
     await svc.dispose();
   });
 
-  test('retranscribe clears the edit only when asked to', () async {
+  test('retranscribe pushes the replaced words into history', () async {
     final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
     await svc.startRecording();
     final entry = await svc.stopRecording();
     await svc.editTranscript(entry, 'fixed');
 
-    final kept = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: 'second'));
-    expect(kept.editedText, 'fixed');
-    expect(kept.transcript?.fullText, 'second');
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: 'second'));
 
-    final cleared = await svc.retranscribe(
-      entry,
-      using: FakeBatchEngine(cannedText: 'third'),
-      clearEdit: true,
-    );
-    expect(cleared.editedText, isNull);
-    expect(cleared.editedAt, isNull);
-    expect(cleared.transcript?.fullText, 'third');
-    expect(store.read(entry.id)?.editedText, isNull);
+    expect(landed.head?.text, 'second');
+    expect(landed.head?.isHand, isFalse);
+    expect(landed.revisions!.map((r) => r.text), ['first', 'fixed', 'second']);
+    expect(landed.readsAsTranscript, isTrue);
 
+    await svc.dispose();
+  });
+
+  test('a landing that moved only whitespace pushes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed');
+
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: ' fixed '));
+
+    expect(landed.revisions!.map((r) => r.text), ['first words', 'fixed']);
+    expect(landed.transcript?.fullText, ' fixed ');
+
+    await svc.dispose();
+  });
+
+  test('an empty landing on a pristine entry keeps the old words as the head', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    expect(entry.revisions, isNull);
+
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: '   '));
+
+    expect(landed.transcript?.fullText, '   ');
+    expect(landed.readableText, 'first words');
+    expect(landed.revisions!.map((r) => r.text), ['first words']);
+
+    await svc.dispose();
+  });
+
+  test('a first transcription of an untouched entry pushes no history', () async {
+    final engine = FakeBatchEngine(failBatch: true);
+    final svc = build((_) => engine);
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    expect(entry.transcript, isNull);
+
+    engine.failBatch = false;
+    final landed = await svc.retranscribe(entry);
+
+    expect(landed.transcript?.fullText, 'batch transcript');
+    expect(landed.revisions, isNull);
+
+    await svc.dispose();
+  });
+
+  test('restoreRevision pushes a stamped copy, origin kept', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final restored = await svc.restoreRevision(edited, edited.revisions!.first);
+
+    expect(restored.revisions!.map((r) => r.text), ['first', 'fixed', 'first']);
+    expect(restored.head?.isHand, isFalse);
+    expect(restored.head?.at, fixedClock);
+    expect(restored.readsAsTranscript, isTrue);
+    expect(store.read(entry.id)?.readableText, 'first');
+
+    await svc.dispose();
+  });
+
+  test('restoring what the entry already reads as writes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final same = await svc.restoreRevision(edited, edited.revisions!.last);
+    expect(same.revisions, hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('restoring the engine base under a hand reflow pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'hello world'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final reflowed = await svc.editTranscript(entry, 'hello\n\nworld');
+
+    final restored = await svc.restoreRevision(reflowed, reflowed.revisions!.first);
+
+    expect(restored.revisions, hasLength(3));
+    expect(restored.readableText, 'hello world');
+    expect(restored.readsAsTranscript, isTrue);
+
+    await svc.dispose();
+  });
+
+  test('restoring a hand revision that differs only in whitespace pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed\n\nwords');
+    final reflowed = await svc.editTranscript(entry, 'fixed words');
+
+    final restored = await svc.restoreRevision(reflowed, reflowed.revisions![1]);
+
+    expect(restored.revisions, hasLength(4));
+    expect(restored.readableText, 'fixed\n\nwords');
+
+    await svc.dispose();
+  });
+
+  test('deleteRevision removes one revision; deleting the head changes the reading', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed');
+    final edited = await svc.editTranscript(entry, 'fixed again');
+
+    final trimmed = await svc.deleteRevision(edited, edited.revisions!.last);
+
+    expect(trimmed.revisions!.map((r) => r.text), ['first', 'fixed']);
+    expect(trimmed.readableText, 'fixed');
+    expect(store.read(entry.id)?.readableText, 'fixed');
+
+    await svc.dispose();
+  });
+
+  test('the last remaining revision cannot be deleted', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final one = await svc.deleteRevision(edited, edited.revisions!.last);
+    final still = await svc.deleteRevision(one, one.revisions!.single);
+
+    expect(still.revisions!.map((r) => r.text), ['first']);
+    expect(still.readableText, 'first');
+
+    await svc.dispose();
+  });
+
+  test('deleting a revision the stack no longer holds writes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+    final gone = edited.revisions!.last;
+    await svc.deleteRevision(edited, gone);
+
+    final repeat = await svc.deleteRevision(edited, gone);
+
+    expect(repeat.revisions!.map((r) => r.text), ['first']);
+
+    await svc.dispose();
+  });
+
+  test('restoreRevision throws for a deleted entry', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    await svc.deleteEntry(entry);
+
+    await expectLater(svc.restoreRevision(edited, edited.revisions!.first), throwsStateError);
     await svc.dispose();
   });
 

@@ -12,6 +12,7 @@ import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/core/transcribe/transcript_event.dart';
 import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:opentranscribe/core/utils/word_diff.dart';
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
@@ -1113,15 +1114,9 @@ class TranscriptionService {
   /// default. So a default change never silently re-languages an entry, and an
   /// untranscribed take keeps the language it was spoken in. (Note the pin: an
   /// entry first transcribed in the WRONG locale keeps that locale on re-runs
-  /// until a caller passes [localeId] explicitly.) A hand edit survives the
-  /// landing unless [clearEdit] is true; only the UI's confirmed
-  /// replace-my-edits path passes it.
-  Future<Entry> retranscribe(
-    Entry entry, {
-    TranscriptionEngine? using,
-    String? localeId,
-    bool clearEdit = false,
-  }) async {
+  /// until a caller passes [localeId] explicitly.) The landing is a change
+  /// like any other: the words it replaces stay in the entry's history.
+  Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     final engine = using ?? _engine;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
@@ -1161,8 +1156,26 @@ class TranscriptionService {
     // A repeat re-transcription never deletes; bulk reclaim is explicit only.
     final firstSuccess = stored.transcript == null;
     final retranscribed = stored.withTranscript(transcript);
-    // Only the UI's confirmed "replace my edits" path passes clearEdit.
-    final updated = clearEdit ? retranscribed.withEditedText(null) : retranscribed;
+    // The words this landing replaces go into history; a first transcription
+    // of an untouched entry replaces nothing and pushes nothing. Two more
+    // silences: a landing that heard NOTHING pushes no empty head, and a
+    // re-run that heard the same words again (whitespace aside, like the
+    // diff reads them) has no change to record - the head already is that
+    // revision.
+    final base = _revisionsWithBase(stored);
+    final heardNothing = transcript.fullText.trim().isEmpty;
+    final skipPush = base.isEmpty || heardNothing || sameWords(base.last.text, transcript.fullText);
+    final Entry updated;
+    if (!skipPush) {
+      updated = retranscribed.withRevisions([...base, Revision.ofTranscript(transcript)]);
+    } else if (heardNothing && base.isNotEmpty) {
+      // The empty landing still replaced the transcript; on a pristine entry
+      // the base must materialize with it, or the words it buried are gone
+      // from display and history both.
+      updated = retranscribed.withRevisions(base);
+    } else {
+      updated = retranscribed;
+    }
     await _store.save(updated);
     if (firstSuccess && !_keepAudio()) {
       await _discardAudio(entry.id);
@@ -1189,29 +1202,95 @@ class TranscriptionService {
     return updated;
   }
 
-  /// Applies a hand edit of the transcript text to the STORED entry; a null or
-  /// blank [text], or the engine's own words typed back, clears the edit (the
-  /// same clear-to-default rule renames follow). The engine's transcript is
-  /// never touched, so revert stays possible for as long as the entry lives.
-  /// A commit that changes nothing writes nothing. Throws [StateError] when
-  /// the entry was deleted meanwhile (same ghost rule as [retranscribe]);
-  /// safe against an interleaved delete because the store's visible state
-  /// mutates synchronously (see EntryStore).
-  Future<Entry> editTranscript(Entry entry, String? text) async {
-    final trimmed = text?.trim();
+  /// Applies a hand edit of the transcript text to the STORED entry, pushed
+  /// as a revision onto its history. A blank [text], or what the entry reads
+  /// as typed back, writes nothing: restoring is History's job, not a side
+  /// effect of the field. Hand whitespace IS a change (a typed paragraph
+  /// break must never be silently swallowed); only ENGINE landings compare
+  /// whitespace-blind, since their spacing variance is noise. Throws
+  /// [StateError] when the entry was deleted meanwhile (same ghost rule as
+  /// [retranscribe]); safe against an interleaved delete because the store's
+  /// visible state mutates synchronously (see EntryStore).
+  Future<Entry> editTranscript(Entry entry, String text) async {
+    final trimmed = text.trim();
     final stored = _store.read(entry.id);
     if (stored == null) {
       throw StateError('entry ${entry.id} was deleted during edit');
     }
-    // Trimmed on both sides: the engine's text can carry edge whitespace the
-    // user cannot see, and it must not block the typed-back revert.
-    final reverted =
-        trimmed == null || trimmed.isEmpty || trimmed == stored.transcript?.fullText.trim();
-    final normalized = reverted ? null : trimmed;
-    if (normalized == stored.editedText) return stored;
-    final updated = stored.withEditedText(normalized, at: normalized == null ? null : _clock());
+    if (trimmed.isEmpty || trimmed == stored.readableText?.trim()) {
+      return stored;
+    }
+    final updated = stored.withRevisions([
+      ..._revisionsWithBase(stored),
+      Revision(text: trimmed, at: _clock()),
+    ]);
     await _store.save(updated);
     return updated;
+  }
+
+  /// Restores [revision] as the new head by pushing a COPY stamped now, its
+  /// origin kept: history only grows, so a restore can itself be reverted.
+  /// Restoring what the entry already reads as writes nothing; the compare
+  /// is whitespace-blind only between engine text on BOTH sides. A hand
+  /// revision's whitespace, or a hand head's, is a deliberate change, so
+  /// restoring across it must push - undoing a typed paragraph break by
+  /// tapping the engine base is exactly the restore that matters. Same
+  /// stored entry and ghost rules as [editTranscript].
+  Future<Entry> restoreRevision(Entry entry, Revision revision) async {
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during restore');
+    }
+    final reads = stored.readableText;
+    final blind = !revision.isHand && !(stored.head?.isHand ?? false);
+    final already = blind
+        ? sameWords(revision.text, reads ?? '')
+        : revision.text.trim() == reads?.trim();
+    if (already) return stored;
+    final updated = stored.withRevisions([
+      ..._revisionsWithBase(stored),
+      Revision(
+        text: revision.text,
+        at: _clock(),
+        engineId: revision.engineId,
+        localeId: revision.localeId,
+      ),
+    ]);
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// Removes [revision] from the entry's history: the one place the stack
+  /// shrinks, and only ever by the user's own hand. Deleting the head makes
+  /// the revision under it what the entry reads as. The LAST remaining
+  /// revision is untouchable: what the entry reads as must always have a
+  /// revision to stand on once it has any. A revision no longer in the
+  /// stored stack is a no-op. Same stored entry and ghost rules as
+  /// [editTranscript].
+  Future<Entry> deleteRevision(Entry entry, Revision revision) async {
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during revision delete');
+    }
+    final revisions = stored.revisions;
+    final index = revisions?.indexOf(revision) ?? -1;
+    if (revisions == null || index < 0) return stored;
+    if (revisions.length == 1) return stored;
+    final updated = stored.withRevisions([...revisions]..removeAt(index));
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// The stored stack, materialized under a FIRST change: the engine base is
+  /// laid down so history always starts at the words the engine wrote. A
+  /// silent or absent transcript lays no base, since there were no words to
+  /// remember.
+  List<Revision> _revisionsWithBase(Entry stored) {
+    final existing = stored.revisions;
+    if (existing != null && existing.isNotEmpty) return existing;
+    final transcript = stored.transcript;
+    if (transcript == null || transcript.fullText.trim().isEmpty) return const [];
+    return [Revision.ofTranscript(transcript)];
   }
 
   /// The absolute path of an entry's kept audio, for playback. The service owns

@@ -185,7 +185,7 @@ void main() {
     test('an edited entry round-trips through the archive with both texts', () async {
       final a = await world('a');
       await a.store.save(
-        entry('e1', title: 'Edited').withEditedText('fixed words', at: fixedClock),
+        entry('e1', title: 'Edited').withRevisions([Revision(text: 'fixed words', at: fixedClock)]),
       );
       final archive = await archiveOf(a);
 
@@ -193,8 +193,8 @@ void main() {
       await b.import.importArchive(archive);
 
       final restored = b.store.read('e1')!;
-      expect(restored.editedText, 'fixed words');
-      expect(restored.editedAt, fixedClock);
+      expect(restored.readableText, 'fixed words');
+      expect(restored.revisions, [Revision(text: 'fixed words', at: fixedClock)]);
       expect(restored.transcript?.fullText, 'spoken words');
     });
 

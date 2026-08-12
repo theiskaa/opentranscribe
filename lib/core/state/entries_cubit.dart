@@ -126,15 +126,39 @@ class EntriesCubit extends Cubit<EntriesState> {
     }
   }
 
-  /// Applies a hand edit of the transcript text (null or blank reverts to the
-  /// engine's words). The service applies it to the stored entry, so a racing
-  /// re-transcribe cannot be clobbered.
-  Future<void> edit(Entry entry, String? text) async {
+  /// Applies a hand edit of the transcript text, pushed onto the entry's
+  /// history (blank or unchanged writes nothing). The service applies it to
+  /// the stored entry, so a racing re-transcribe cannot be clobbered.
+  Future<void> edit(Entry entry, String text) async {
     // Deliberately no busyId, like rename: a text commit must not dissolve the
     // transcript into the shimmer, and it must not clear a running
     // retranscribe's busy.
     try {
       await _service.editTranscript(entry, text);
+    } catch (e) {
+      if (!isClosed) emit(_withFailure(entry, e));
+    } finally {
+      if (!isClosed) emit(state.copyWith(entries: _service.entries()));
+    }
+  }
+
+  /// Restores [revision] as the entry's new head (a pushed copy; history only
+  /// grows). Same shape as [edit] for the same reasons.
+  Future<void> restore(Entry entry, Revision revision) async {
+    try {
+      await _service.restoreRevision(entry, revision);
+    } catch (e) {
+      if (!isClosed) emit(_withFailure(entry, e));
+    } finally {
+      if (!isClosed) emit(state.copyWith(entries: _service.entries()));
+    }
+  }
+
+  /// Removes [revision] from the entry's history for good. Same shape as
+  /// [edit] for the same reasons.
+  Future<void> deleteRevision(Entry entry, Revision revision) async {
+    try {
+      await _service.deleteRevision(entry, revision);
     } catch (e) {
       if (!isClosed) emit(_withFailure(entry, e));
     } finally {
@@ -157,17 +181,16 @@ class EntriesCubit extends Cubit<EntriesState> {
   }
 
   /// Re-transcribes in the entry's own language by default; [localeId] is the
-  /// user's explicit override (the Transcribe-in picker). [clearEdit] drops a
-  /// hand edit with the landing; only the confirmed replace-my-edits path
-  /// passes true.
-  Future<void> retranscribe(Entry entry, {String? localeId, bool clearEdit = false}) async {
+  /// user's explicit override (the Transcribe-in picker). The landing pushes
+  /// the replaced words into the entry's history.
+  Future<void> retranscribe(Entry entry, {String? localeId}) async {
     // The pill and its sheet stay tappable through a retry; a second run on
     // the same entry would double-transcribe and confuse the one busy slot.
     if (state.busyId == entry.id) return;
     emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.transcribe));
     Object? failure;
     try {
-      await _service.retranscribe(entry, localeId: localeId, clearEdit: clearEdit);
+      await _service.retranscribe(entry, localeId: localeId);
     } catch (e) {
       failure = e;
     }
