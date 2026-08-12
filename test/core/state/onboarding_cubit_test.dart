@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
@@ -9,11 +8,12 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
-import '../../support/fake_notification_scheduler.dart';
 
 void main() {
   late LocalService storage;
   late EntryStore store;
+  late FakeAudioRecorder recorder;
+  late FakeStreamingEngine engine;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -27,17 +27,14 @@ void main() {
     Availability availability = const Availability.available(),
     bool micThrows = false,
     bool speechThrows = false,
-    FakeNotificationScheduler? scheduler,
   }) {
-    final service = TranscriptionService(
-      recorder: FakeAudioRecorder(permission: mic, throwOnEnsurePermission: micThrows),
-      engine: FakeStreamingEngine(
-        availability: availability,
-        throwOnCheckAvailability: speechThrows,
-      ),
-      store: store,
+    recorder = FakeAudioRecorder(permission: mic, throwOnEnsurePermission: micThrows);
+    engine = FakeStreamingEngine(
+      availability: availability,
+      throwOnCheckAvailability: speechThrows,
     );
-    return OnboardingCubit(service: service, scheduler: scheduler ?? FakeNotificationScheduler());
+    final service = TranscriptionService(recorder: recorder, engine: engine, store: store);
+    return OnboardingCubit(service: service);
   }
 
   test('requestMic reflects a granted microphone permission', () async {
@@ -66,9 +63,9 @@ void main() {
     await cubit.close();
   });
 
-  test('a throwing mic request resets the spinner and keeps the tap retryable', () async {
+  test('a throwing mic request resets the spinner and stays retryable', () async {
     // A channel error is not an answer: the status must stay undetermined so
-    // the Allow button comes back instead of a spinner stuck forever.
+    // the next Next tap retries instead of a spinner stuck forever.
     final cubit = build(micThrows: true);
     await cubit.requestMic();
     expect(cubit.state.mic, PermissionStatus.undetermined);
@@ -79,7 +76,7 @@ void main() {
     await cubit.close();
   });
 
-  test('a throwing speech request resets the spinner and keeps the tap retryable', () async {
+  test('a throwing speech request resets the spinner and stays retryable', () async {
     final cubit = build(speechThrows: true);
     await cubit.requestSpeech();
     expect(cubit.state.speech, SpeechPermission.undetermined);
@@ -103,33 +100,31 @@ void main() {
     }
   });
 
-  test('requestNotification reflects an authorized grant', () async {
-    final cubit = build(scheduler: FakeNotificationScheduler());
-    expect(cubit.state.notificationGranted, isFalse);
-    await cubit.requestNotification();
-    expect(cubit.state.notification, NotificationPermission.authorized);
-    expect(cubit.state.notificationGranted, isTrue);
-    expect(cubit.state.requestingNotification, isFalse);
+  test('requestPending answers both prompts in one pass', () async {
+    final cubit = build();
+    await cubit.requestPending();
+    expect(cubit.state.micGranted, isTrue);
+    expect(cubit.state.speechGranted, isTrue);
+    expect(recorder.ensurePermissionCalls, 1);
+    expect(engine.checkAvailabilityCalls, 1);
     await cubit.close();
   });
 
-  test('requestNotification reflects a denied grant', () async {
-    final cubit = build(scheduler: FakeNotificationScheduler(grant: false));
-    await cubit.requestNotification();
-    expect(cubit.state.notification, NotificationPermission.denied);
-    expect(cubit.state.notificationGranted, isFalse);
+  test('requestPending skips prompts that already have an answer', () async {
+    final cubit = build(mic: PermissionStatus.denied);
+    await cubit.requestMic();
+    await cubit.requestSpeech();
+    await cubit.requestPending();
+    expect(recorder.ensurePermissionCalls, 1);
+    expect(engine.checkAvailabilityCalls, 1);
     await cubit.close();
   });
 
-  test('a throwing notification probe resets the spinner and keeps the tap retryable', () async {
-    final scheduler = FakeNotificationScheduler()
-      ..onPermissionProbe = () async => throw StateError('no channel');
-    final cubit = build(scheduler: scheduler);
-    await cubit.requestNotification();
-    expect(cubit.state.notification, NotificationPermission.notDetermined);
-    expect(cubit.state.requestingNotification, isFalse);
-    await cubit.requestNotification();
-    expect(cubit.state.requestingNotification, isFalse);
+  test('requestPending still asks for speech after a failed mic prompt', () async {
+    final cubit = build(micThrows: true);
+    await cubit.requestPending();
+    expect(cubit.state.mic, PermissionStatus.undetermined);
+    expect(cubit.state.speechGranted, isTrue);
     await cubit.close();
   });
 }

@@ -80,8 +80,13 @@ class FakeAudioRecorder implements AudioRecorder {
   /// stopSignal so its final event lands when capture stops.
   Future<void> get stopped => _stopped.future;
 
+  /// How many times [ensurePermission] ran, so a test can prove a caller
+  /// skipped an already-answered prompt.
+  int ensurePermissionCalls = 0;
+
   @override
   Future<PermissionStatus> ensurePermission() async {
+    ensurePermissionCalls++;
     if (throwOnEnsurePermission) throw const CaptureFailed('fake permission failure');
     return permission;
   }

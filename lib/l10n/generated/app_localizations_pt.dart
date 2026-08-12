@@ -337,15 +337,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Para transformar as suas gravações em texto, no dispositivo.';
 
   @override
-  String get onboardingNotifyName => 'Notificações';
-
-  @override
-  String get onboardingNotifyReason => 'Para um lembrete quando uma reflexão estiver pronta.';
-
-  @override
-  String get onboardingAllow => 'Permitir';
-
-  @override
   String get onboardingOpenSettings => 'Ativar nas Definições';
 
   @override

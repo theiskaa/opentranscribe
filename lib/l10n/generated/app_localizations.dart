@@ -696,24 +696,6 @@ abstract class AppLocalizations {
   /// **'To turn your recordings into text, on device.'**
   String get onboardingSpeechReason;
 
-  /// Name of the optional notification permission row, eligible hardware only
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get onboardingNotifyName;
-
-  /// One-line reason the app asks for notifications
-  ///
-  /// In en, this message translates to:
-  /// **'For a nudge when a reflection is ready.'**
-  String get onboardingNotifyReason;
-
-  /// Button that requests a permission
-  ///
-  /// In en, this message translates to:
-  /// **'Allow'**
-  String get onboardingAllow;
-
   /// Shown when a permission was denied; opens the system Settings
   ///
   /// In en, this message translates to:

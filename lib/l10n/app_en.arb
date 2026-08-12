@@ -430,18 +430,6 @@
   "@onboardingSpeechReason": {
     "description": "One-line reason the app needs speech recognition"
   },
-  "onboardingNotifyName": "Notifications",
-  "@onboardingNotifyName": {
-    "description": "Name of the optional notification permission row, eligible hardware only"
-  },
-  "onboardingNotifyReason": "For a nudge when a reflection is ready.",
-  "@onboardingNotifyReason": {
-    "description": "One-line reason the app asks for notifications"
-  },
-  "onboardingAllow": "Allow",
-  "@onboardingAllow": {
-    "description": "Button that requests a permission"
-  },
   "onboardingOpenSettings": "Enable in Settings",
   "@onboardingOpenSettings": {
     "description": "Shown when a permission was denied; opens the system Settings"

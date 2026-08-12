@@ -62,6 +62,10 @@ class FakeStreamingEngine
   /// When true, [checkAvailability] throws, to exercise callers' failure paths.
   final bool throwOnCheckAvailability;
 
+  /// How many times [checkAvailability] ran, so a test can prove a caller
+  /// skipped an already-answered probe.
+  int checkAvailabilityCalls = 0;
+
   final List<String> supportedLocaleTags;
 
   /// Mutable fixture: the tags reported installed AND reserved (this fake keeps
@@ -86,6 +90,7 @@ class FakeStreamingEngine
 
   @override
   Future<Availability> checkAvailability({required String localeId}) async {
+    checkAvailabilityCalls++;
     if (throwOnCheckAvailability) throw StateError('fake availability failure');
     return availability;
   }
