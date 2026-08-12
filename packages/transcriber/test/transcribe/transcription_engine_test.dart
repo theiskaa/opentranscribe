@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
+import 'package:transcriber/src/transcribe/transcription_engine.dart';
 
 void main() {
   group('Availability', () {

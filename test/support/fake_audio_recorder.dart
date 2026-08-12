@@ -1,8 +1,5 @@
 import 'dart:async';
-
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// In-memory [AudioRecorder] for tests. Emits capture status and, on stop,
 /// completes [stopped] so a paired streaming engine can settle its final event,

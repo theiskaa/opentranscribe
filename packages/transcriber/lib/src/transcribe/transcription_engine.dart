@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript_event.dart';
 
 /// Why an engine can or cannot transcribe right now. The failing values correspond
 /// to [TranscriptionException] subtypes, so a preflight probe and a runtime failure

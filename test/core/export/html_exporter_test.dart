@@ -7,7 +7,7 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/reflect/reflection_period.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:transcriber/transcriber.dart';
 
 void main() {
   const strings = ExportStrings(

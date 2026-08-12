@@ -1,4 +1,4 @@
-import 'package:opentranscribe/core/audio/playback.dart';
+import 'package:transcriber/src/audio/playback.dart';
 
 /// Plays a kept recording. Pure playback: it is handed an absolute file path and
 /// knows nothing about entries or where audio is stored (resolution is the caller's

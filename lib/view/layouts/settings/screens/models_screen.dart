@@ -13,7 +13,6 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
@@ -30,6 +29,7 @@ import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Model management: the engine on top, then one row per language with its
 /// install state, live download progress, honest failure states, and the

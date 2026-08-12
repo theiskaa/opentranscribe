@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/transcribe/transcript.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// One language stretch of a recording spoken in several: from [startMs] of
 /// audio time until the next span begins (the last runs to the end). Kept on

@@ -7,9 +7,6 @@ import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/app/splash_handoff.dart';
 import 'package:opentranscribe/core/app/storage_key.dart';
-import 'package:opentranscribe/core/audio/audio_player.dart';
-import 'package:opentranscribe/core/audio/platform_audio_player.dart';
-import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
 import 'package:opentranscribe/core/export/html_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
@@ -36,8 +33,8 @@ import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
-import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:transcriber/transcriber.dart';
 
 const _devStorageKey = 'opentranscribe-dev-storage-key-0';
 

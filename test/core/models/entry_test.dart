@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:transcriber/transcriber.dart';
 
 void main() {
   final transcript = Transcript(

@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/transcribe/apple_speech_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/src/transcribe/apple_speech_engine.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript_event.dart';
+import 'package:transcriber/src/transcribe/transcription_engine.dart';
+import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 /// Pins the channel contract with SpeechEngine.swift: payload shapes, error codes,
 /// and stream completion semantics. This is where native/Dart drift would surface.

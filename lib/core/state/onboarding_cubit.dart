@@ -4,10 +4,9 @@
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Speech-recognition authorization as onboarding cares about it: only whether
 /// the user has been asked and answered. The model's own readiness is the model

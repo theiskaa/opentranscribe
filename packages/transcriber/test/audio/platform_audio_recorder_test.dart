@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/audio/platform_audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/src/audio/platform_audio_recorder.dart';
+import 'package:transcriber/src/audio/recording.dart';
+import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 /// Pins the channel contract with AudioCapture.swift: payload shapes, status
 /// strings, error mapping, and the Dart-side replay cache.

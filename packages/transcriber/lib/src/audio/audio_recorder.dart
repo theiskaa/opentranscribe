@@ -1,4 +1,4 @@
-import 'package:opentranscribe/core/audio/recording.dart';
+import 'package:transcriber/src/audio/recording.dart';
 
 /// App-owned audio capture and custody of the files it writes. Produces a kept
 /// file (via [Recording]) and a capture lifecycle stream, and owns where those

@@ -1,4 +1,4 @@
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
+import 'package:transcriber/src/transcribe/transcription_engine.dart';
 
 /// The closed set of transcription failures. Native error codes map onto these
 /// so the app reasons about failures by type, not by string. Empty or silent

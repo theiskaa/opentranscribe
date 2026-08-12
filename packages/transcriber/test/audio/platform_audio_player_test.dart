@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/audio/platform_audio_player.dart';
-import 'package:opentranscribe/core/audio/playback.dart';
+import 'package:transcriber/src/audio/platform_audio_player.dart';
+import 'package:transcriber/src/audio/playback.dart';
 
 /// Pins the channel contract with AudioPlayer.swift: payload shapes, status
 /// strings, error-code mapping, and the terminal-aware replay cache.

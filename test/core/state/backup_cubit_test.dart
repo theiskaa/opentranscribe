@@ -18,8 +18,8 @@ import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/backup_cubit.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
 
 import '../../support/fake_audio_recorder.dart';
 import '../../support/fake_share_export.dart';

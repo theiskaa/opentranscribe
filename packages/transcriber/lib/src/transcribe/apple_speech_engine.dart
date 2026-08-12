@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript_event.dart';
+import 'package:transcriber/src/transcribe/transcription_engine.dart';
+import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 // Channel identifiers. Must match SpeechEngine.swift.
 const _controlChannel = 'opentranscribe/speech';

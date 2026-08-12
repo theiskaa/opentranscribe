@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
 
 /// A live transcription update from a streaming engine. Text grows as you speak;
 /// [isFinal] marks the last event, whose text is the settled transcription.

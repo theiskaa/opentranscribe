@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript_event.dart';
+import 'package:transcriber/src/transcribe/transcription_engine.dart';
+import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 Transcript _cannedTranscript(String text, String localeId, String engineId, DateTime at) =>
     Transcript(

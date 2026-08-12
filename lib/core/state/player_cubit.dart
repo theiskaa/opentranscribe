@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/audio_player.dart';
-import 'package:opentranscribe/core/audio/playback.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The speeds the player cycles through. Normal first, so one tap is the way
 /// back to it from anywhere in the ring.

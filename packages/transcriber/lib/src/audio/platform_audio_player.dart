@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
-import 'package:opentranscribe/core/audio/audio_player.dart';
-import 'package:opentranscribe/core/audio/playback.dart';
+import 'package:transcriber/src/audio/audio_player.dart';
+import 'package:transcriber/src/audio/playback.dart';
 
 // Channel identifiers. Must match AudioPlayer.swift.
 const _controlChannel = 'opentranscribe/player';

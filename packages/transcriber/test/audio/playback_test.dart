@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/audio/playback.dart';
+import 'package:transcriber/src/audio/playback.dart';
 
 void main() {
   test('idle is a stopped state at zero', () {

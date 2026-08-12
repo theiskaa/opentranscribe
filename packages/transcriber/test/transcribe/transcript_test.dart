@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
+import 'package:transcriber/src/transcribe/transcript.dart';
 
 void main() {
   group('TranscriptSegment', () {

@@ -1,6 +1,6 @@
 import 'package:opentranscribe/core/state/settings_cubit.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The one wording for a language row's failure, shared by every surface that
 /// shows one (the Models screen, the onboarding model step). Null when the row

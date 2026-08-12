@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/src/audio/audio_recorder.dart';
+import 'package:transcriber/src/audio/recording.dart';
+import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
 // Channel identifiers. Must match AudioCapture.swift.
 const _controlChannel = 'opentranscribe/audio';
