@@ -54,7 +54,7 @@ void main() {
     await temp.delete(recursive: true);
   });
 
-  Future<_World> world(String name) async {
+  Future<_World> world(String name, {bool supporter = true}) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
@@ -92,6 +92,7 @@ void main() {
       share: share,
       appVersion: () async => '0.1.0',
       staging: staging,
+      isSupporter: () => supporter,
       clock: () => fixedClock,
     );
     final import = ImportService(
@@ -324,6 +325,17 @@ void main() {
       await b.import.importArchive(archive);
       expect(b.store.read('e1')!.audioPath, 'otr-1.m4a');
       expect(File('${b.recordings.path}/otr-old.m4a').existsSync(), isFalse);
+    });
+
+    test('the archive save and import ignore the supporter tier', () async {
+      final a = await world('a', supporter: false);
+      await a.store.save(entry('e1'));
+      final archive = await archiveOf(a);
+
+      final b = await world('b', supporter: false);
+      final summary = await b.import.importArchive(archive);
+      expect(summary.entriesAdded, 1);
+      expect(b.store.read('e1'), isNotNull);
     });
 
     test('a garbage file imports nothing', () async {
@@ -639,6 +651,26 @@ void main() {
       final a = await seededWorld();
       await a.export.shareJournal(exporterId: 'markdown', strings: strings);
       expect(a.share.protectedPaths, isNotEmpty);
+    });
+
+    test('a non-supporter journal export refuses and stages nothing', () async {
+      final a = await world('a', supporter: false);
+      await a.store.save(entry('e1'));
+      await expectLater(
+        a.export.shareJournal(exporterId: 'markdown', strings: strings),
+        throwsA(isA<ExportLockedException>()),
+      );
+      expect(a.share.calls, isEmpty);
+    });
+
+    test('a non-supporter entry export refuses and stages nothing', () async {
+      final a = await world('a', supporter: false);
+      await a.store.save(entry('e1'));
+      await expectLater(
+        a.export.shareEntry('e1', exporterId: 'markdown', includeAudio: false, strings: strings),
+        throwsA(isA<ExportLockedException>()),
+      );
+      expect(a.share.calls, isEmpty);
     });
   });
 

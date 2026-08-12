@@ -17,8 +17,10 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 enum BackupBusy { none, exporting, archiving, importing }
 
 /// How an export action ended. Cancel is a quiet outcome (the user closed
-/// the share sheet, nothing to explain); only [failed] earns a sheet.
-enum BackupActionResult { shared, cancelled, failed }
+/// the share sheet, nothing to explain); only [failed] earns a failure sheet.
+/// [locked] is a formatted export refused for a non-supporter: the surface
+/// answers it with the support gate, never the failure sheet.
+enum BackupActionResult { shared, cancelled, failed, locked }
 
 /// What a finished import attempt means for the flow: show the summary, ask
 /// for the passphrase again, or fail with which copy. The one mapping from
@@ -108,7 +110,7 @@ final class BackupState {
 /// choices, and runs the one-at-a-time export, archive and import actions.
 /// Cubit methods return one-shot outcomes while [BackupState.busy] gates the
 /// rows; the sheet choreography lives in the screen. Never rethrows: an
-/// export answers false, an import answers a failure outcome.
+/// export answers an outcome, an import answers a failure outcome.
 class BackupCubit extends Cubit<BackupState> {
   BackupCubit({
     required this._service,
@@ -225,6 +227,8 @@ class BackupCubit extends Cubit<BackupState> {
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
+    } on ExportLockedException {
+      return BackupActionResult.locked;
     } on ShareExportException catch (e) {
       // Nothing was ever presented, so nothing failed: a sheet claiming the
       // export broke would be a lie. Quiet, like a cancel.
