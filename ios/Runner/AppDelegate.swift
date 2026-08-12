@@ -21,9 +21,6 @@ import transcriber
     TranscriberPlugin.recordingStatusObserver = { status in
       RecordingLiveActivityController.shared.handle(status)
     }
-    if let registrar = registry.registrar(forPlugin: "ReflectionEnginePlugin") {
-      ReflectionEnginePlugin.register(with: registrar)
-    }
     if let registrar = registry.registrar(forPlugin: "NotificationsPlugin") {
       NotificationsPlugin.register(with: registrar)
     }

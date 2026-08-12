@@ -20,15 +20,15 @@ private enum ReflectErrorCode: String {
   }
 }
 
-final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
-  static func register(with registrar: FlutterPluginRegistrar) {
+public final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
+  public static func register(with registrar: FlutterPluginRegistrar) {
     // Channel name + payload shapes: must match foundation_models_engine.dart.
     let methods = FlutterMethodChannel(
       name: "opentranscribe/reflect", binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(ReflectionEnginePlugin(), channel: methods)
   }
 
-  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "availability":
       result(["status": availabilityStatus()])
