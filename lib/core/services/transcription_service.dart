@@ -654,10 +654,15 @@ class TranscriptionService {
   /// discipline mirrors [_stopAndPersist] (synchronous flips, status
   /// subscription cancelled before the first await) so a racing interruption
   /// cannot double-finalize. Quiet when nothing is recording, except one case:
-  /// an interruption that claimed the session first auto-saves it, and a
-  /// discard must win over that save, so the finalize is awaited and its entry
-  /// deleted. Throws [StateError] during an in-flight start, which cannot be
-  /// safely undone from here.
+  /// an interruption that claimed the session auto-saves it, and a discard must
+  /// win over that save whether the finalize is still in flight (awaited, then
+  /// its entry deleted) or already completed ([_lastFinalized] holds it, deleted
+  /// directly). [_lastFinalized] is set only by an interruption path and cleared
+  /// by the next [startRecording], so this can only ever delete the auto-saved
+  /// take the user is currently looking at, never a user-stop's entry (a user
+  /// stop never sets it) and never a previous take (a new start clears it).
+  /// Throws [StateError] during an in-flight start, which cannot be safely
+  /// undone from here.
   Future<void> cancelRecording() async {
     if (_starting) throw StateError('start in flight');
     if (!_recording) {
@@ -689,6 +694,20 @@ class TranscriptionService {
             // Best effort, like the save-failed branch above: a locked file
             // keeps its record and the user deletes it visibly instead.
           }
+        }
+        return;
+      }
+      // The interruption's finalize already completed by the time this cancel
+      // arrived; the save it left behind is the same take the user just asked
+      // to discard.
+      final finalized = _lastFinalized;
+      if (finalized != null) {
+        _lastFinalized = null;
+        try {
+          await deleteEntry(finalized);
+        } catch (_) {
+          // Best effort, same rule as the in-flight branch: a locked file keeps
+          // its record and the user deletes it visibly instead.
         }
       }
       return;

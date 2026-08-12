@@ -1951,6 +1951,62 @@ void main() {
     await svc.dispose();
   });
 
+  test(
+    'cancelRecording after a completed interruption finalize deletes the auto-saved entry',
+    () async {
+      final rec = FakeAudioRecorder();
+      final svc = build((_) => FakeBatchEngine(), recorder: rec);
+      final sub = svc.autoFinalized.listen((_) {});
+
+      await svc.startRecording();
+      rec.interrupt();
+      await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+      expect(svc.entries(), hasLength(1)); // the interruption's save landed
+
+      await svc.cancelRecording();
+
+      expect(svc.entries(), isEmpty);
+
+      await sub.cancel();
+      await svc.dispose();
+    },
+  );
+
+  test('stopRecording after a cancel that discarded the interruption save throws', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero);
+    await svc.cancelRecording();
+
+    // The take was discarded; there is nothing left to promise a stop.
+    await expectLater(svc.stopRecording(), throwsStateError);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('cancelRecording while idle with no interruption save is a no-op', () async {
+    final svc = build((_) => FakeBatchEngine());
+    final entry = Entry(
+      id: 'e1',
+      createdAt: fixedClock,
+      audioPath: null,
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    await svc.cancelRecording();
+
+    expect(store.read('e1'), isNotNull);
+
+    await svc.dispose();
+  });
+
   Transcript canned(String text) => Transcript(
     fullText: text,
     segments: [
