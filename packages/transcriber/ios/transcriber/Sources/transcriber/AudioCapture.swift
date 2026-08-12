@@ -686,9 +686,9 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     instance.session.onStatus = { [weak instance] status in
       DispatchQueue.main.async {
         instance?.statusSink?(status)
-        // Fan out to the Live Activity AFTER Dart: the island is a mirror of
-        // capture state, never a participant in it.
-        RecordingLiveActivityController.shared.handle(status)
+        // Fan out AFTER Dart: an observer is a mirror of capture state, never
+        // a participant in it.
+        TranscriberPlugin.recordingStatusObserver?(status)
       }
     }
     // onLevel already fires on main.
