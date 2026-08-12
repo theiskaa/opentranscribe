@@ -82,6 +82,25 @@ class AppLocalizationsIt extends AppLocalizations {
   String get rename => 'Rinomina';
 
   @override
+  String get editTranscript => 'Modifica';
+
+  @override
+  String get editedMarker => 'Modificato';
+
+  @override
+  String get revisionHistory => 'Cronologia';
+
+  @override
+  String get revisionHistoryBody =>
+      'Tutto ciò che il testo di questa voce ha attraversato. Un tocco ripristina una versione come la più recente.';
+
+  @override
+  String get revisionCurrent => 'Attuale';
+
+  @override
+  String get revisionTranscribed => 'Trascritto';
+
+  @override
   String get transcribe => 'Trascrivi';
 
   @override

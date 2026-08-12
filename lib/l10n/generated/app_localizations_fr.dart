@@ -82,6 +82,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rename => 'Renommer';
 
   @override
+  String get editTranscript => 'Modifier';
+
+  @override
+  String get editedMarker => 'Modifié';
+
+  @override
+  String get revisionHistory => 'Historique';
+
+  @override
+  String get revisionHistoryBody =>
+      'Tout ce que le texte de cette entrée a traversé. Toucher une version la restaure en tête.';
+
+  @override
+  String get revisionCurrent => 'Actuelle';
+
+  @override
+  String get revisionTranscribed => 'Transcrit';
+
+  @override
   String get transcribe => 'Transcrire';
 
   @override

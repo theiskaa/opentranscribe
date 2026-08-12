@@ -115,10 +115,9 @@ void main() {
     expect(importResolutionOf(ArchiveError.malformed), ImportResolution.failed);
   });
 
-  test('load reads the settings and measures the journal', () async {
+  test('load reads the settings and measures the journal, sealing by default', () async {
     final world = await build();
     await world.store.save(entry('e1'));
-    await world.settings.setSeal(true);
     await world.cubit.load();
     expect(world.cubit.state.formatId, 'markdown');
     expect(world.cubit.state.seal, isTrue);
@@ -129,10 +128,11 @@ void main() {
     final world = await build();
     await world.cubit.load();
     await world.cubit.setFormat('obsidian');
-    await world.cubit.setSeal(true);
+    await world.cubit.setSeal(false);
     expect(world.settings.formatId, 'obsidian');
-    expect(world.settings.seal, isTrue);
+    expect(world.settings.seal, isFalse);
     expect(world.cubit.state.formatId, 'obsidian');
+    expect(world.cubit.state.seal, isFalse);
   });
 
   test('a completed journal export answers shared', () async {

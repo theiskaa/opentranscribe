@@ -88,6 +88,30 @@
   "@rename": {
     "description": "Action that renames an entry"
   },
+  "editTranscript": "Edit",
+  "@editTranscript": {
+    "description": "Action that opens the transcript for hand editing"
+  },
+  "editedMarker": "Edited",
+  "@editedMarker": {
+    "description": "Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision"
+  },
+  "revisionHistory": "History",
+  "@revisionHistory": {
+    "description": "Action that opens the entry's revision history"
+  },
+  "revisionHistoryBody": "Everything this entry's text has been through. Tapping a version restores it as the newest.",
+  "@revisionHistoryBody": {
+    "description": "Body of the revision history sheet"
+  },
+  "revisionCurrent": "Current",
+  "@revisionCurrent": {
+    "description": "Tag on the revision the entry currently reads as"
+  },
+  "revisionTranscribed": "Transcribed",
+  "@revisionTranscribed": {
+    "description": "Origin label of a revision an engine produced"
+  },
   "transcribe": "Transcribe",
   "@transcribe": {
     "description": "Button that transcribes an untranscribed entry"

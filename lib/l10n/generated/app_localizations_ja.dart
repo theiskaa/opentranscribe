@@ -76,6 +76,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rename => '名前を変更';
 
   @override
+  String get editTranscript => '編集';
+
+  @override
+  String get editedMarker => '編集済み';
+
+  @override
+  String get revisionHistory => '履歴';
+
+  @override
+  String get revisionHistoryBody => 'このエントリーのテキストがたどってきた履歴です。タップすると、その版が最新として復元されます。';
+
+  @override
+  String get revisionCurrent => '現在';
+
+  @override
+  String get revisionTranscribed => '文字起こし済み';
+
+  @override
   String get transcribe => '文字起こし';
 
   @override

@@ -127,6 +127,26 @@ void main() {
       expect(engine.lastPeriod, ReflectionPeriod.weekly);
     });
 
+    test('inputs read the hand edit, and an edit over silence is material', () async {
+      entries = [
+        withText(
+          'a',
+          DateTime(2026, 7, 22, 12),
+          text: 'wrong words',
+        ).withRevisions([Revision(text: 'right words', at: now)]),
+        withText(
+          'b',
+          DateTime(2026, 7, 23, 12),
+          text: '',
+        ).withRevisions([Revision(text: 'typed in', at: now)]),
+      ];
+      engine.output = 'a week';
+
+      await service.catchUp();
+
+      expect(engine.lastEntries!.map((e) => e.text), ['right words', 'typed in']);
+    });
+
     test('silence is stored as a quiet week and never re-run', () async {
       entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'groceries')];
       engine.silent = true;

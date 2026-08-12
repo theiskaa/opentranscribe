@@ -162,12 +162,30 @@ void main() {
       expect(md, contains('audio: "../audio/otr-1.m4a"'));
     });
 
-    test('the transcript is the text the engine wrote, never rebuilt from its segments', () {
+    test('an unedited entry exports the engine\'s full text, never rebuilt from its segments', () {
       final files = exporter.exportEntry(ExportEntry(entry: entry()), context);
       final md = textOf(files, '2026-08-07-Morning walk.md');
       expect(md, contains('went for a walk. it was quiet.'));
       expect(md, isNot(contains('[0:03]')));
       expect(md, isNot(contains('[1:10]')));
+    });
+
+    test('an edited entry exports the corrected words, its sidecar keeping both', () {
+      final source = entry().withRevisions([
+        Revision(text: 'went for a stroll.', at: DateTime.utc(2026, 8, 7, 11)),
+      ]);
+      final files = exporter.exportEntry(ExportEntry(entry: source), context);
+
+      final md = textOf(files, '2026-08-07-Morning walk.md');
+      expect(md, contains('went for a stroll.'));
+      expect(md, isNot(contains('went for a walk. it was quiet.')));
+
+      final decoded = Entry.fromJson(
+        jsonDecode(textOf(files, '2026-08-07-Morning walk.json')) as Map<String, dynamic>,
+      );
+      expect(decoded.revisions, source.revisions);
+      expect(decoded.readableText, 'went for a stroll.');
+      expect(decoded.transcript, source.transcript);
     });
 
     test('the json sidecar round-trips through Entry.fromJson with the exported audio path', () {
@@ -301,6 +319,16 @@ void main() {
       expect(note, contains('- opentranscribe'));
       expect(note, contains('![[otr-1.m4a]]'));
       expect(note, contains('went for a walk. it was quiet.'));
+    });
+
+    test('an edited note carries the corrected words', () {
+      final source = entry().withRevisions([
+        Revision(text: 'went for a stroll.', at: DateTime.utc(2026, 8, 7, 11)),
+      ]);
+      final files = exporter.exportEntry(ExportEntry(entry: source), context);
+      final note = utf8.decode(files.single.bytes);
+      expect(note, contains('went for a stroll.'));
+      expect(note, isNot(contains('went for a walk. it was quiet.')));
     });
 
     test('an entry note carries no heading, since obsidian titles it by file name', () {

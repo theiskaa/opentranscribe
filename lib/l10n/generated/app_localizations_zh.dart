@@ -75,6 +75,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rename => '重命名';
 
   @override
+  String get editTranscript => '编辑';
+
+  @override
+  String get editedMarker => '已编辑';
+
+  @override
+  String get revisionHistory => '历史记录';
+
+  @override
+  String get revisionHistoryBody => '这条条目的文字经历过的所有版本。轻点某个版本即可将其恢复为最新版本。';
+
+  @override
+  String get revisionCurrent => '当前';
+
+  @override
+  String get revisionTranscribed => '已转写';
+
+  @override
   String get transcribe => '转写';
 
   @override

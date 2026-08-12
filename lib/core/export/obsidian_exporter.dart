@@ -87,8 +87,8 @@ final class ObsidianExporter implements JournalExporter {
         ..writeln('![[$basename]]')
         ..writeln();
     }
-    final transcript = entry.transcript;
-    if (transcript != null && !transcript.isEmpty) buffer.writeln(transcript.fullText);
+    final text = entry.readableText;
+    if (text != null && text.isNotEmpty) buffer.writeln(text);
     return buffer.toString();
   }
 

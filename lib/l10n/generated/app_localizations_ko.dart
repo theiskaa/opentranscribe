@@ -76,6 +76,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rename => '이름 변경';
 
   @override
+  String get editTranscript => '편집';
+
+  @override
+  String get editedMarker => '편집됨';
+
+  @override
+  String get revisionHistory => '기록';
+
+  @override
+  String get revisionHistoryBody => '이 항목의 텍스트가 거쳐 온 모든 버전입니다. 탭하면 해당 버전이 최신으로 복원됩니다.';
+
+  @override
+  String get revisionCurrent => '현재';
+
+  @override
+  String get revisionTranscribed => '전사됨';
+
+  @override
   String get transcribe => '전사';
 
   @override

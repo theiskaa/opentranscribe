@@ -70,6 +70,16 @@ void main() {
     expect(html, isNot(contains('<script src')));
   });
 
+  test('an edited entry renders the corrected words', () {
+    final source = entry().withRevisions([
+      Revision(text: 'went for a stroll.', at: DateTime.utc(2026, 8, 7, 11)),
+    ]);
+    final files = exporter.exportEntry(ExportEntry(entry: source), context);
+    final html = utf8.decode(files.single.bytes);
+    expect(html, contains('<p>went for a stroll.</p>'));
+    expect(html, isNot(contains('went for a walk. it was quiet.')));
+  });
+
   test('a journal shares one stylesheet and one script rather than repeating them', () {
     final files = exporter.exportJournal(
       ExportSnapshot(entries: [ExportEntry(entry: entry())]),

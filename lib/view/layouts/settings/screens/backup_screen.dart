@@ -21,7 +21,7 @@ import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
-import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
+import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
@@ -228,60 +228,73 @@ class _BackupView extends StatelessWidget {
       child: AppScaffold(
         background: theme.screens.settings,
         onBack: canLeave ? () => context.pop() : null,
-        actions: [
-          _RestoreAction(
-            busy: state.busy == BackupBusy.importing,
-            onTap: idle ? () => unawaited(_import(context)) : null,
-          ),
-        ],
-        child: SettingsList(
+        child: Stack(
           children: [
-            const SizedBox(height: 10),
-            SectionInfo(
-              state.entryCount == null ? l10n.backupInfo : l10n.backupInfoCount(state.entryCount!),
-            ),
-            SettingsCard(
+            SettingsList(
               children: [
-                SettingsToggleRow(
-                  icon: AppIcons.lock,
-                  label: l10n.backupSeal,
-                  value: state.seal,
-                  onChanged: idle ? (seal) => unawaited(cubit.setSeal(seal)) : null,
+                const SizedBox(height: 10),
+                SectionInfo(
+                  state.entryCount == null
+                      ? l10n.backupInfo
+                      : l10n.backupInfoCount(state.entryCount!),
                 ),
-                SettingsBusyRow(
-                  icon: AppIcons.squareAndArrowUp,
-                  label: l10n.backupSave,
-                  detail: state.lastArchiveAt == null
-                      ? null
-                      : l10n.backupLastBackup(
-                          DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
-                        ),
-                  busy: state.busy == BackupBusy.archiving,
-                  onTap: idle ? () => unawaited(_saveArchive(context)) : null,
+                SettingsCard(
+                  children: [
+                    SettingsToggleRow(
+                      icon: AppIcons.lock,
+                      label: l10n.backupSeal,
+                      value: state.seal,
+                      onChanged: idle ? (seal) => unawaited(cubit.setSeal(seal)) : null,
+                    ),
+                    SettingsBusyRow(
+                      icon: AppIcons.squareAndArrowUp,
+                      label: l10n.backupSave,
+                      detail: state.lastArchiveAt == null
+                          ? null
+                          : l10n.backupLastBackup(
+                              DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
+                            ),
+                      busy: state.busy == BackupBusy.archiving,
+                      onTap: idle ? () => unawaited(_saveArchive(context)) : null,
+                    ),
+                  ],
                 ),
+                const SizedBox(height: AppSpacing.md),
+                SectionLabel(l10n.backupExportSection),
+                SettingsCard(
+                  children: [
+                    for (final descriptor in cubit.descriptors)
+                      ExportFormatRow(
+                        descriptor: descriptor,
+                        selected: descriptor.exporterId == state.formatId,
+                        onTap: idle
+                            ? () => unawaited(cubit.setFormat(descriptor.exporterId))
+                            : null,
+                      ),
+                    const SettingsDivider(),
+                    SettingsBusyRow(
+                      icon: AppIcons.squareAndArrowUp,
+                      label: l10n.backupExportJournal,
+                      busy: state.busy == BackupBusy.exporting,
+                      onTap: idle ? () => unawaited(_exportJournal(context)) : null,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SectionInfo(l10n.backupExportInfo),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
-            SectionLabel(l10n.backupExportSection),
-            SettingsCard(
-              children: [
-                for (final descriptor in cubit.descriptors)
-                  ExportFormatRow(
-                    descriptor: descriptor,
-                    selected: descriptor.exporterId == state.formatId,
-                    onTap: idle ? () => unawaited(cubit.setFormat(descriptor.exporterId)) : null,
-                  ),
-                const SettingsDivider(),
-                SettingsBusyRow(
-                  icon: AppIcons.squareAndArrowUp,
-                  label: l10n.backupExportJournal,
-                  busy: state.busy == BackupBusy.exporting,
-                  onTap: idle ? () => unawaited(_exportJournal(context)) : null,
-                ),
-              ],
+            // Restore floats like every entry point that reaches outside the
+            // app now does; it is the one action here that picks a file from
+            // beyond the journal.
+            Positioned(
+              right: AppSpacing.xl,
+              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+              child: _RestoreFab(
+                busy: state.busy == BackupBusy.importing,
+                onTap: idle ? () => unawaited(_import(context)) : null,
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            SectionInfo(l10n.backupExportInfo),
           ],
         ),
       ),
@@ -289,31 +302,24 @@ class _BackupView extends StatelessWidget {
   }
 }
 
-/// Restore on the bar, not in a card: it is the one action here that reaches
-/// for a file from outside the app. The spinner takes the button's whole seat
-/// rather than fading over it, because the glass button is a platform view on
-/// iOS 26 and would not honour an opacity above it.
-class _RestoreAction extends StatelessWidget {
-  const _RestoreAction({required this.busy, required this.onTap});
+/// The restore disc: [GlassFab] wearing the import glyph, its seat taken
+/// whole by a spinner while the restore runs. The spinner replaces rather
+/// than overlays, because the glass disc is a platform view on iOS 26 and
+/// would not honour an opacity above it.
+class _RestoreFab extends StatelessWidget {
+  const _RestoreFab({required this.busy, required this.onTap});
 
   final bool busy;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.theme.topBar;
+    // 22, under the waveform's 26: the boxy glyph carries far more ink per
+    // point, and at the disc's default it crowds the circle.
+    if (!busy) return GlassFab(icon: AppIcons.squareAndArrowDown, iconSize: 22, onTap: onTap);
     return SizedBox.square(
-      dimension: tokens.actionSize,
-      child: busy
-          ? Center(
-              child: AppSpinner(size: tokens.backChevronSize, color: tokens.iconColor),
-            )
-          : AppGlassIconButton(
-              icon: AppIcons.squareAndArrowDown,
-              size: tokens.actionSize,
-              color: tokens.iconColor,
-              onTap: onTap,
-            ),
+      dimension: GlassFab.size,
+      child: Center(child: AppSpinner(size: 24, color: context.theme.textSecondary)),
     );
   }
 }

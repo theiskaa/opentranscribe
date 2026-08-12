@@ -448,8 +448,8 @@ class ReflectionService {
       period == ReflectionPeriod.weekly ? _weekOf(day) : startOfPeriod(day, period);
 
   /// The one material test, shared by generation and the surfaces: an entry
-  /// counts only once it carries transcribed text.
-  static bool _hasMaterial(Entry e) => e.transcript?.fullText.trim().isNotEmpty ?? false;
+  /// counts only once it carries readable text, transcribed or typed.
+  static bool _hasMaterial(Entry e) => e.readableText?.trim().isNotEmpty ?? false;
 
   /// The period's entries as the engine sees them: chronological, material only,
   /// each tagged with the civil date it was recorded on; the whole is capped to
@@ -461,7 +461,7 @@ class ReflectionService {
         if (_hasMaterial(e))
           ReflectionEntryInput(
             date: dateOnly(e.createdAt.toLocal()),
-            text: e.transcript!.fullText.trim(),
+            text: e.readableText!.trim(),
             title: e.title,
           ),
     ]);

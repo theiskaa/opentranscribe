@@ -82,6 +82,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get rename => 'Mudar o nome';
 
   @override
+  String get editTranscript => 'Editar';
+
+  @override
+  String get editedMarker => 'Editado';
+
+  @override
+  String get revisionHistory => 'Histórico';
+
+  @override
+  String get revisionHistoryBody =>
+      'Tudo por que o texto desta entrada já passou. Tocar numa versão restaura-a como a mais recente.';
+
+  @override
+  String get revisionCurrent => 'Atual';
+
+  @override
+  String get revisionTranscribed => 'Transcrito';
+
+  @override
   String get transcribe => 'Transcrever';
 
   @override

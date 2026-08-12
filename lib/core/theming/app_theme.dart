@@ -23,6 +23,7 @@ final class AppTheme {
     required this.onAccent,
     required this.record,
     required this.danger,
+    required this.positive,
     required this.onDanger,
     required this.shadow,
     required this.barrier,
@@ -34,6 +35,7 @@ final class AppTheme {
     required this.entryList,
     required this.recorder,
     required this.player,
+    required this.diff,
     required this.settings,
     required this.onboarding,
     required this.navigation,
@@ -60,6 +62,7 @@ final class AppTheme {
     required Color onAccent,
     required Color record,
     required Color danger,
+    required Color positive,
     required Color shadow,
     required Color barrier,
     Color onDanger = const Color(0xFFFFFFFF),
@@ -71,6 +74,7 @@ final class AppTheme {
     EntryListTheme? entryList,
     RecorderTheme? recorder,
     PlayerTheme? player,
+    DiffTheme? diff,
     SettingsTheme? settings,
     OnboardingTheme? onboarding,
     NavigationTheme? navigation,
@@ -93,6 +97,7 @@ final class AppTheme {
       onAccent: onAccent,
       record: record,
       danger: danger,
+      positive: positive,
       onDanger: onDanger,
       shadow: shadow,
       barrier: barrier,
@@ -178,6 +183,14 @@ final class AppTheme {
             waveRemaining: text.withValues(alpha: 0.16),
             segmentColor: text,
             activeSegmentHighlight: text.withValues(alpha: 0.12),
+          ),
+      diff:
+          diff ??
+          DiffTheme(
+            removed: danger,
+            removedWash: danger.withValues(alpha: 0.10),
+            added: positive,
+            addedWash: positive.withValues(alpha: 0.14),
           ),
       settings:
           settings ??
@@ -274,6 +287,9 @@ final class AppTheme {
   final Color record;
   final Color danger;
 
+  /// Danger's counterpart: the family's green, worn by what a change ADDED.
+  final Color positive;
+
   /// Foreground on a [danger] fill (a destructive button or the delete badge).
   /// White in both themes, since [danger] is a saturated red either way.
   final Color onDanger;
@@ -290,6 +306,7 @@ final class AppTheme {
   final EntryListTheme entryList;
   final RecorderTheme recorder;
   final PlayerTheme player;
+  final DiffTheme diff;
   final SettingsTheme settings;
   final OnboardingTheme onboarding;
   final NavigationTheme navigation;
@@ -317,6 +334,7 @@ final class AppTheme {
     onAccent: const Color(0xFFFFFFFF),
     record: const Color(0xFFD64B3F),
     danger: const Color(0xFFFF3B30),
+    positive: const Color(0xFF1A7F37),
     shadow: const Color(0xFF000000),
     barrier: const Color(0x73000000),
   );
@@ -335,6 +353,7 @@ final class AppTheme {
     onAccent: const Color(0xFF111111),
     record: const Color(0xFFE4685C),
     danger: const Color(0xFFFF453A),
+    positive: const Color(0xFF3FB950),
     shadow: const Color(0xFF000000),
     barrier: const Color(0x73000000),
   );

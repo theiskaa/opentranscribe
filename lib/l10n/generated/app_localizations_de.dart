@@ -82,6 +82,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String get rename => 'Umbenennen';
 
   @override
+  String get editTranscript => 'Bearbeiten';
+
+  @override
+  String get editedMarker => 'Bearbeitet';
+
+  @override
+  String get revisionHistory => 'Verlauf';
+
+  @override
+  String get revisionHistoryBody =>
+      'Alles, was der Text dieses Eintrags durchlaufen hat. Tippen stellt eine Version als neueste wieder her.';
+
+  @override
+  String get revisionCurrent => 'Aktuell';
+
+  @override
+  String get revisionTranscribed => 'Transkribiert';
+
+  @override
   String get transcribe => 'Transkribieren';
 
   @override

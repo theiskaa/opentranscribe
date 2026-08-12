@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
 import 'package:flutter/material.dart' show AdaptiveTextSelectionToolbar, SelectionArea;
+import 'package:flutter/rendering.dart' show SelectedContent;
 import 'package:flutter/widgets.dart';
 
 /// Marks a reading region as selectable, so its prose selects and copies with
@@ -15,21 +16,63 @@ import 'package:flutter/widgets.dart';
 /// [SelectableRegion] drops its selection when its focus node loses focus, so an
 /// owner can `focusNode.unfocus()` to dismiss a lingering selection before an
 /// action that would otherwise capture it.
-class SelectableProse extends StatelessWidget {
-  const SelectableProse({required this.child, this.focusNode, super.key});
+///
+/// An owner whose prose is editable passes [editLabel] and [onEdit]: the
+/// selection toolbar then carries that action after the platform's own, handing
+/// over whatever is selected (null when nothing is) so the editor can open on
+/// the same words.
+class SelectableProse extends StatefulWidget {
+  const SelectableProse({
+    required this.child,
+    this.focusNode,
+    this.editLabel,
+    this.onEdit,
+    super.key,
+  });
 
   final Widget child;
   final FocusNode? focusNode;
 
-  @override
-  Widget build(BuildContext context) =>
-      SelectionArea(focusNode: focusNode, contextMenuBuilder: _contextMenu, child: child);
+  /// The toolbar wording for [onEdit]; both present or neither.
+  final String? editLabel;
+  final ValueChanged<String?>? onEdit;
 
-  static Widget _contextMenu(BuildContext context, SelectableRegionState state) =>
-      AdaptiveTextSelectionToolbar.buttonItems(
-        anchors: state.contextMenuAnchors,
-        buttonItems: copyDismissesSelection(state.contextMenuButtonItems, state.clearSelection),
-      );
+  @override
+  State<SelectableProse> createState() => _SelectableProseState();
+}
+
+class _SelectableProseState extends State<SelectableProse> {
+  /// What the region currently has selected, kept for the edit action: the
+  /// toolbar builder has no content accessor of its own.
+  SelectedContent? _selected;
+
+  @override
+  Widget build(BuildContext context) => SelectionArea(
+    focusNode: widget.focusNode,
+    onSelectionChanged: (content) => _selected = content,
+    contextMenuBuilder: _contextMenu,
+    child: widget.child,
+  );
+
+  Widget _contextMenu(BuildContext context, SelectableRegionState state) {
+    final onEdit = widget.onEdit;
+    final editLabel = widget.editLabel;
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: state.contextMenuAnchors,
+      buttonItems: [
+        ...copyDismissesSelection(state.contextMenuButtonItems, state.clearSelection),
+        if (onEdit != null && editLabel != null)
+          ContextMenuButtonItem(
+            label: editLabel,
+            onPressed: () {
+              final selected = _selected?.plainText;
+              state.hideToolbar();
+              onEdit(selected == null || selected.isEmpty ? null : selected);
+            },
+          ),
+      ],
+    );
+  }
 }
 
 /// Rebuilds toolbar [items] so Copy also clears the selection after it runs.

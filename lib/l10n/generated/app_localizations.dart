@@ -240,6 +240,42 @@ abstract class AppLocalizations {
   /// **'Rename'**
   String get rename;
 
+  /// Action that opens the transcript for hand editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editTranscript;
+
+  /// Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get editedMarker;
+
+  /// Action that opens the entry's revision history
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get revisionHistory;
+
+  /// Body of the revision history sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Everything this entry\'s text has been through. Tapping a version restores it as the newest.'**
+  String get revisionHistoryBody;
+
+  /// Tag on the revision the entry currently reads as
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get revisionCurrent;
+
+  /// Origin label of a revision an engine produced
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed'**
+  String get revisionTranscribed;
+
   /// Button that transcribes an untranscribed entry
   ///
   /// In en, this message translates to:

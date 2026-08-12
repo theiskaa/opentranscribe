@@ -20,6 +20,7 @@ void main() {
     onAccent: const Color(0xFF000009),
     record: const Color(0xFF00000A),
     danger: const Color(0xFF00000B),
+    positive: const Color(0xFF00000E),
     shadow: const Color(0xFF00000C),
     barrier: const Color(0xFF00000D),
     screens: screens,

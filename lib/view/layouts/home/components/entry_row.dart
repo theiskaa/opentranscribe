@@ -5,7 +5,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/home/components/seam_padding.dart';
+import 'package:opentranscribe/view/widgets/seam_padding.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 
@@ -54,7 +54,7 @@ class EntryRow extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.entryList;
     final l10n = AppLocalizations.of(context)!;
-    final excerpt = entry.transcript?.fullText.trim() ?? '';
+    final excerpt = entry.readableText?.trim() ?? '';
     final title = entry.title;
     final leadStyle = title != null ? AppType.headline : AppType.body;
 

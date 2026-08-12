@@ -3,8 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 
-/// Padding on a seam of the journal timeline: the gaps that OPEN when a piece
-/// arrives and CLOSE when the piece beside them is deleted. Animated because
+/// Padding on a seam of a list of records (the journal timeline, the revision
+/// history): the gaps that OPEN when a piece arrives and CLOSE when the piece
+/// beside them is deleted. Animated because
 /// every one of them flips while something else is already moving - a day
 /// departs, its last record dies, a new one arrives - and a gap that snapped
 /// would land the whole list a frame after everything else glided.
