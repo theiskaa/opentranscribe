@@ -173,6 +173,12 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
 
   StreamSubscription<void>? _changedSub;
 
+  /// The mutual exclusion for [regenerate], deliberately NOT state:
+  /// [setViewedPeriod] clears the DISPLAY marker ([ReflectionsState.regenerating])
+  /// for the period left behind, and that clear must not lift the exclusion on
+  /// a regenerate still running for the old period.
+  DateTime? _regenerating;
+
   /// Re-probes availability and re-reads the viewed period's settings + history.
   /// Call on build and on resume, so an enabled model or a fresh reflection is
   /// picked up.
@@ -337,10 +343,11 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
 
   /// Re-runs one period start in its current style, replacing the stored result.
   /// Marks [ReflectionsState.regenerateFailed] on any failure rather than
-  /// throwing at the UI. One at a time: a second regenerate while one is in
-  /// flight would hijack the shared in-flight marker.
+  /// throwing at the UI. One at a time, guarded by [_regenerating]: a second
+  /// regenerate while one is in flight is a no-op, even across a period switch.
   Future<void> regenerate(DateTime start) async {
-    if (isClosed || state.regenerating != null) return;
+    if (isClosed || _regenerating != null) return;
+    _regenerating = start;
     emit(state.copyWith(regenerating: start, regenerateFailed: false));
     try {
       await _service.regenerate(start, period: state.viewedPeriod);
@@ -349,6 +356,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
       // the period kept its previous result, so surface the retry notice.
       if (!isClosed) emit(state.copyWith(regenerateFailed: true));
     } finally {
+      _regenerating = null;
       // Always clears, so no failure path can leave the page spinning forever.
       if (!isClosed) emit(_deriveView(state.copyWith(clearRegenerating: true)));
     }

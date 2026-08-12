@@ -272,6 +272,33 @@ void main() {
     await cubit.close();
   });
 
+  test('a period switch does not lift the regenerate guard', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    final gate = Completer<void>();
+    engine.gate = gate.future;
+    final cubit = build();
+    await cubit.load();
+
+    final run = cubit.regenerate(lastWeek);
+    expect(cubit.state.regenerating, lastWeek);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    expect(cubit.state.regenerating, isNull);
+
+    final otherStart = DateTime(2026, 7, 28);
+    await cubit.regenerate(otherStart);
+    expect(engine.reflectCalls, 1);
+
+    gate.complete();
+    await run;
+
+    expect(engine.reflectCalls, 1);
+    expect(cubit.state.regenerating, isNull);
+    await cubit.close();
+  });
+
   test('load re-probes availability, so a resume picks up a mid-life enable', () async {
     engine.availabilityResult = const ReflectionAvailability(
       ReflectionAvailabilityStatus.notEnabled,
