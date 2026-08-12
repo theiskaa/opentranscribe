@@ -155,12 +155,16 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
     required ReflectionService service,
     required ReflectionSettings settings,
     ReflectionNotifier? notifier,
+    // The app passes false and fires [load] from its post-frame callback, so
+    // the first whole-journal derive never runs inside the frames the splash
+    // is waiting on; tests and any other holder keep the eager default.
+    bool autoLoad = true,
   }) : _service = service,
        _settings = settings,
        _notifier = notifier,
        super(const ReflectionsState()) {
     _changedSub = _service.reflectionsChanged.listen((_) => _loadHistory());
-    unawaited(load());
+    if (autoLoad) unawaited(load());
   }
 
   final ReflectionService _service;

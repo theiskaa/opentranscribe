@@ -65,6 +65,21 @@ void main() {
     await cubit.close();
   });
 
+  test('autoLoad false defers every derive until load is called', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'kept'));
+    final cubit = ReflectionsCubit(service: service, settings: settings, autoLoad: false);
+
+    await pumpEventQueue();
+    expect(cubit.state, const ReflectionsState());
+    expect(cubit.state.loaded, isFalse);
+
+    await cubit.load();
+
+    expect(cubit.state.loaded, isTrue);
+    expect(cubit.state.history.map((r) => r.text), ['kept']);
+    await cubit.close();
+  });
+
   test('the stored view lands before the availability probe answers', () async {
     await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'a week'));
     await store.save(

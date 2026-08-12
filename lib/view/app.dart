@@ -43,6 +43,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       service: Deps.i.reflectionService,
       settings: Deps.i.reflectionSettings,
       notifier: Deps.i.reflectionNotifier,
+      autoLoad: false,
     );
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,6 +53,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       // A launch the user asked to record in opens the sheet over a built
       // journal, ahead of the decrypt below.
       unawaited(Deps.i.intentActionService.serve());
+      // Same decrypt-off-the-watched-frames rule as maintenance below: the
+      // cubit's first derive walks the whole reflection store and journal.
+      unawaited(_reflectionsCubit.load());
       // Only now: this decrypts the whole journal, and the frames before this
       // one are the ones the user is watching.
       unawaited(Deps.launchMaintenance());
