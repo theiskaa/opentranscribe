@@ -41,15 +41,12 @@ Two layers, `lib/core/` and `lib/view/`. There is no `features/` folder, and add
 `lib/core/` is everything non-UI:
 
 - `app/` the composition root (`deps.dart`), encrypted storage (`local_service.dart`), locale source of truth, onboarding flags.
-- `audio/` the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations and value types.
 - `export/` the `JournalExporter` contract, the shipped format exporters, and the native archive: store-only zip codec, manifest, sealed container crypto, and the share-sheet channel wrapper.
 - `models/` plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
 - `routes/` the `GoRouter`, the path and name constants, page transitions.
 - `services/` `transcription_service.dart` (the one owner of the entry lifecycle), `entry_store.dart`, the settings holders.
 - `state/` one cubit per concern.
 - `theming/` `AppTheme` and its tokens, `AppIcons`, motion, shapes, the type scale.
-- `transcribe/` the transcription engine contract and its implementations.
-- `reflect/` the reflection engine contract and its implementations.
 - `notify/` the local notification scheduler and the reflection reminders.
 - `utils/` haptics, platform capability probes, small helpers.
 
@@ -59,7 +56,13 @@ Two layers, `lib/core/` and `lib/view/`. There is no `features/` folder, and add
 - `layouts/<domain>/screens/` full screens and `layouts/<domain>/components/` the widgets private to that domain (`entry`, `home`, `recorder`, `reflections`, `settings`, `onboarding`, `splash`, `gallery`).
 - `widgets/` the shared, reusable design system.
 
-The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `lottie` for the splash, and the vendored `packages/liquid` plugin for native iOS chrome. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
+`packages/` is the plugins the app depends on by path, each standalone with its own readme:
+
+- `transcriber/` audio capture, playback, and on-device transcription: the `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine` contracts, their platform implementations, and the Swift behind them.
+- `reflections/` the `ReflectionEngine` contract, the `ReflectionPeriod` vocabulary, and the Foundation Models implementation.
+- `liquid/` vendored native iOS 26 Liquid Glass chrome.
+
+The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `lottie` for the splash, and the three `packages/` plugins above. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
 
 ## How it works
 
@@ -69,9 +72,9 @@ The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, 
 
 **Reflection** sits behind `ReflectionEngine`, held to the same on-device gate. It runs on Apple's Foundation Models, writes one note per closed period, and is absent on hardware without Apple Intelligence. An optional notification, scheduled locally, says when a new one is ready.
 
-**Audio capture** is app-owned, not engine-owned. Buffers stay native and only paths, durations, levels, and text cross the platform channel. Raw audio is kept by default so any entry can be re-transcribed later, in another language or by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history happens only through the Cache screen, as an explicit confirmed action.
+**Audio capture** is recorder-owned, not engine-owned. Buffers stay native and only paths, durations, levels, and text cross the platform channel. Raw audio is kept by default so any entry can be re-transcribed later, in another language or by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history happens only through the Cache screen, as an explicit confirmed action.
 
-**The native layer** is Swift under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for its streams: audio capture (`opentranscribe/audio`, `/audio/status`, `/audio/level`), speech (`opentranscribe/speech`, `/speech/events`, `/speech/model`), playback (`opentranscribe/player`, `/player/state`), notifications (`opentranscribe/notify`), and reflection. The in-progress recording drives a Live Activity (`RecordingLiveActivity.swift`, the widget extension in `ios/RecorderActivity/`, attributes in `ios/Shared/`). Channels are touched only from a `core/` wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`, and each wrapper takes its channels as constructor arguments so tests can inject fakes.
+**The native layer** is Swift in two places. The plugin packages own capture, speech, playback, and reflection, each a `MethodChannel` for control plus `EventChannel`s for its streams: `transcriber/audio` (`/audio/status`, `/audio/level`), `transcriber/speech` (`/speech/events`, `/speech/model`), `transcriber/player` (`/player/state`), and `reflections/reflect`, all registered through the generated registrant. App-only Swift stays under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`: notifications (`opentranscribe/notify`), the storage key, share export, the splash hand-off, and intent actions. The in-progress recording drives a Live Activity (`RecordingLiveActivity.swift`, the widget extension in `ios/RecorderActivity/`, attributes in `ios/Shared/`), fed capture status through `TranscriberPlugin.recordingStatusObserver`. Channels are touched only from a package wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`, and each wrapper takes its channels as constructor arguments so tests can inject fakes.
 
 **At rest**, recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
 
@@ -88,7 +91,7 @@ The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, 
 
 ## Testing
 
-Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI behavior needs coverage, pull the logic into a pure function next to the widget and test that; this is why `test/view/` exists and why nothing in it pumps a widget tree. Fakes live in `test/support/` and are injected through constructors, so no test reaches a real platform channel or real storage. Test names read as sentences about behavior, and tests carry no comments because the name is the explanation.
+Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. **No widget tests.** When UI behavior needs coverage, pull the logic into a pure function next to the widget and test that; this is why `test/view/` exists and why nothing in it pumps a widget tree. Fakes live in `test/support/` and are injected through constructors, so no test reaches a real platform channel or real storage. Test names read as sentences about behavior, and tests carry no comments because the name is the explanation.
 
 ## Rules that will fail review
 
@@ -119,7 +122,7 @@ type(scope): what changed
 ```
 
 - Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`.
-- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid`, extended as the code grows.
+- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid`, `transcriber`, `reflections`, extended as the code grows.
 - No body, no title and body split. Describe the change, not the process.
 
 ## Pull requests
