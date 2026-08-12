@@ -12,6 +12,7 @@ class FakeShareExport implements ShareExport {
     this.pickedPath,
     this.throwOnShare = false,
     this.throwOnPick = false,
+    this.throwOnProtect = false,
     this.captureTo,
   });
 
@@ -19,12 +20,14 @@ class FakeShareExport implements ShareExport {
   String? pickedPath;
   bool throwOnShare;
   bool throwOnPick;
+  bool throwOnProtect;
   Directory? captureTo;
   Duration? shareDelay;
 
   final List<String> calls = [];
   final List<List<String>> sharedPaths = [];
   final List<String> captured = [];
+  final List<String> protectedPaths = [];
 
   @override
   Future<bool> shareFiles(List<String> paths) async {
@@ -56,5 +59,14 @@ class FakeShareExport implements ShareExport {
       );
     }
     return pickedPath;
+  }
+
+  @override
+  Future<void> protect(String path) async {
+    calls.add('protect');
+    if (throwOnProtect) {
+      throw const ShareExportException('protect failed', 'protect_failed');
+    }
+    protectedPaths.add(path);
   }
 }

@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/export/archive_crypto.dart';
 import 'package:opentranscribe/core/export/archive_manifest.dart';
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
@@ -25,11 +26,17 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 /// the UI probes first), and a disk failure once adoption is already writing
 /// surfaces as the underlying FileSystemException.
 class ImportService {
-  ImportService({required this._transcription, required this._reflections, required this._share});
+  ImportService({
+    required this._transcription,
+    required this._reflections,
+    required this._share,
+    required this._staging,
+  });
 
   final TranscriptionService _transcription;
   final ReflectionService _reflections;
   final ShareExport _share;
+  final StagingRegistry _staging;
 
   /// Opens the document picker; null when the user cancels.
   Future<String?> pickArchive() => _share.pickArchive();
@@ -62,7 +69,15 @@ class ImportService {
   /// ignored for a plain one.
   Future<ImportSummary> importArchive(String path, {String? passphrase}) async {
     final staging = await Directory.systemTemp.createTemp('import-');
+    _staging.register(staging.path);
     try {
+      try {
+        await _share.protect(staging.path);
+      } catch (_) {
+        // Best-effort: a plaintext journal briefly staged here deserves the
+        // same protection class as a shared file, but a failure to apply it
+        // must not block an import the user already started.
+      }
       final source = File(path);
       final payload = switch (await sniffArchive(source)) {
         ArchiveKind.plainZip => source,
@@ -83,6 +98,7 @@ class ImportService {
         reflectionChanges: reflectionChanges,
       );
     } finally {
+      _staging.release(staging.path);
       if (await staging.exists()) await staging.delete(recursive: true);
     }
   }

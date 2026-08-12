@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/export/archive_manifest.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
+import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
@@ -81,6 +82,7 @@ void main() {
       },
     );
     final share = FakeShareExport(captureTo: temp);
+    final staging = StagingRegistry();
     final export = ExportService(
       transcription: transcription,
       reflections: reflections,
@@ -89,12 +91,14 @@ void main() {
       },
       share: share,
       appVersion: () async => '0.1.0',
+      staging: staging,
       clock: () => fixedClock,
     );
     final import = ImportService(
       transcription: transcription,
       reflections: reflections,
       share: share,
+      staging: staging,
     );
     return _World(
       store: store,
@@ -104,6 +108,7 @@ void main() {
       reflectionStore: ReflectionStore(storage),
       reflections: reflections,
       share: share,
+      staging: staging,
       export: export,
       import: import,
     );
@@ -419,6 +424,30 @@ void main() {
       expect(leftovers, isEmpty);
     });
 
+    test('an import protects its staging directory before parsing', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await b.import.importArchive(archive);
+      expect(b.share.protectedPaths, isNotEmpty);
+    });
+
+    test('an import releases its staging registration even on failure', () async {
+      final b = await world('b');
+      final tracking = _TrackingStagingRegistry();
+      final trackedImport = ImportService(
+        transcription: b.transcription,
+        reflections: b.reflections,
+        share: b.share,
+        staging: tracking,
+      );
+      final noise = File('${temp.path}/noise-tracked.bin');
+      await noise.writeAsBytes(List<int>.generate(64, (i) => i * 3 % 256));
+      await expectLater(trackedImport.importArchive(noise.path), throwsA(isA<ArchiveException>()));
+      expect(tracking.registered, isNotEmpty);
+      expect(tracking.owns(tracking.registered.last), isFalse);
+    });
+
     test('an archive row beats a tombstone for the same period start', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
@@ -605,6 +634,51 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('a journal export protects its staging directory before sharing', () async {
+      final a = await seededWorld();
+      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
+      expect(a.share.protectedPaths, isNotEmpty);
+    });
+  });
+
+  group('the staging sweep', () {
+    test('removes an orphaned import directory', () async {
+      final registry = StagingRegistry();
+      final orphan = await Directory.systemTemp.createTemp('import-orphan');
+      await registry.sweep(Directory.systemTemp);
+      expect(orphan.existsSync(), isFalse);
+    });
+
+    test('removes an orphaned export directory', () async {
+      final registry = StagingRegistry();
+      final orphan = await Directory.systemTemp.createTemp('export-orphan');
+      await registry.sweep(Directory.systemTemp);
+      expect(orphan.existsSync(), isFalse);
+    });
+
+    test('leaves a registered staging directory alone, until it is released', () async {
+      final registry = StagingRegistry();
+      final owned = await Directory.systemTemp.createTemp('import-');
+      registry.register(owned.path);
+      await registry.sweep(Directory.systemTemp);
+      expect(owned.existsSync(), isTrue);
+
+      registry.release(owned.path);
+      await registry.sweep(Directory.systemTemp);
+      expect(owned.existsSync(), isFalse);
+    });
+
+    test('leaves a directory with an unrelated name alone', () async {
+      final registry = StagingRegistry();
+      final unrelated = await Directory.systemTemp.createTemp('unrelated-');
+      try {
+        await registry.sweep(Directory.systemTemp);
+        expect(unrelated.existsSync(), isTrue);
+      } finally {
+        await unrelated.delete(recursive: true);
+      }
+    });
   });
 }
 
@@ -617,6 +691,7 @@ final class _World {
     required this.reflectionStore,
     required this.reflections,
     required this.share,
+    required this.staging,
     required this.export,
     required this.import,
   });
@@ -628,6 +703,17 @@ final class _World {
   final ReflectionStore reflectionStore;
   final ReflectionService reflections;
   final FakeShareExport share;
+  final StagingRegistry staging;
   final ExportService export;
   final ImportService import;
+}
+
+final class _TrackingStagingRegistry extends StagingRegistry {
+  final List<String> registered = [];
+
+  @override
+  void register(String path) {
+    registered.add(path);
+    super.register(path);
+  }
 }

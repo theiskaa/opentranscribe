@@ -32,6 +32,13 @@ class ShareExport {
     return reply?['path'] as String?;
   }
 
+  /// Applies the recordings directory's data-protection class
+  /// (`completeUnlessOpen`) to [path], a staging directory holding plaintext
+  /// journal content. Callers should treat a failure as best-effort.
+  Future<void> protect(String path) async {
+    await _invoke('protect', {'path': path});
+  }
+
   Future<Map<Object?, Object?>?> _invoke(String method, [Object? args]) async {
     try {
       return await _methods.invokeMethod<Map<Object?, Object?>>(method, args);

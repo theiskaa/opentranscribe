@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -12,6 +13,7 @@ import 'package:opentranscribe/core/export/html_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/intents/intent_action_service.dart';
 import 'package:opentranscribe/core/intents/intent_actions.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
@@ -80,6 +82,7 @@ class Deps {
     required this.engineDescriptors,
     required this.exportService,
     required this.importService,
+    required this.stagingRegistry,
     required this.backupSettings,
     required this.exporterDescriptors,
     required this.intentActionService,
@@ -156,6 +159,10 @@ class Deps {
   /// Restores a native archive through the lifecycle owners; a failed import
   /// changes nothing.
   final ImportService importService;
+
+  /// Which staging directories [exportService] and [importService] currently
+  /// own, so [launchMaintenance]'s sweep never deletes one still in flight.
+  final StagingRegistry stagingRegistry;
 
   /// The Backup surface's persisted choices (format, seal, last archive).
   final BackupSettings backupSettings;
@@ -311,17 +318,20 @@ class Deps {
       fallbackFormatId: defaultExporter.id,
     );
     String? appVersion;
+    final stagingRegistry = StagingRegistry();
     final exportService = ExportService(
       transcription: transcriptionService,
       reflections: reflectionService,
       exporters: exporters,
       share: shareExport,
       appVersion: () async => appVersion ??= (await PackageInfo.fromPlatform()).version,
+      staging: stagingRegistry,
     );
     final importService = ImportService(
       transcription: transcriptionService,
       reflections: reflectionService,
       share: shareExport,
+      staging: stagingRegistry,
     );
 
     final router = AppRouter();
@@ -349,6 +359,7 @@ class Deps {
       ],
       exportService: exportService,
       importService: importService,
+      stagingRegistry: stagingRegistry,
       backupSettings: backupSettings,
       // Lazy closures on purpose: nothing here touches the router's config
       // until an action actually arrives, so wiring this costs the launch
@@ -413,6 +424,9 @@ class Deps {
   static Future<void> _maintain() async {
     unawaited(_quietly('reflection catch-up', () => i.reflectionService.catchUp()));
     unawaited(_quietly('notification sync', () => i.reflectionNotifier.sync()));
+    // Fire-and-forget, like the two passes above: a stale staging directory
+    // costs disk, not correctness, so it must not gate the re-arm below.
+    unawaited(_quietly('staging sweep', _sweepStaging));
     // Null, not false: `_quietly` answers null when the sweep threw, which is
     // no proof the directory was walked either.
     if ((await _quietly('audio sweep', _sweepAudio)) != true) _maintenance = null;
@@ -434,6 +448,12 @@ class Deps {
     await i.transcriptionService.healDanglingAudio();
     return swept != null;
   }
+
+  /// Deletes stale `import-`/`export-` staging directories left behind by a
+  /// crash, jetsam kill, or force-quit mid-operation: the whole plaintext
+  /// journal can sit in one until this runs. [StagingRegistry.sweep] holds
+  /// the actual logic so it stays testable without constructing [Deps].
+  static Future<void> _sweepStaging() => i.stagingRegistry.sweep(Directory.systemTemp);
 
   static Future<T?> _quietly<T>(String what, Future<T> Function() run) async {
     try {

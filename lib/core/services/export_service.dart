@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/export/archive_manifest.dart';
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
@@ -25,6 +26,7 @@ class ExportService {
     required Map<String, JournalExporter> exporters,
     required this._share,
     required this._appVersion,
+    required this._staging,
     DateTime Function()? clock,
   }) : _exporters = Map.unmodifiable(exporters),
        _clock = clock ?? DateTime.now;
@@ -34,6 +36,7 @@ class ExportService {
   final Map<String, JournalExporter> _exporters;
   final ShareExport _share;
   final Future<String> Function() _appVersion;
+  final StagingRegistry _staging;
   final DateTime Function() _clock;
 
   /// Shares one entry in [exporterId]'s format. A single output file with no
@@ -228,9 +231,18 @@ class ExportService {
 
   Future<bool> _stage(Future<List<String>> Function(Directory staging) build) async {
     final staging = await Directory.systemTemp.createTemp('export-');
+    _staging.register(staging.path);
     try {
+      try {
+        await _share.protect(staging.path);
+      } catch (_) {
+        // Best-effort: a plaintext journal briefly staged here deserves the
+        // same protection class as a shared file, but a failure to apply it
+        // must not block an export the user already asked for.
+      }
       return await _share.shareFiles(await build(staging));
     } finally {
+      _staging.release(staging.path);
       if (await staging.exists()) await staging.delete(recursive: true);
     }
   }

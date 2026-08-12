@@ -5,6 +5,7 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
+import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
@@ -74,6 +75,7 @@ void main() {
       weekOf: (d) => DateTime(d.year, d.month, d.day),
     );
     final share = FakeShareExport(captureTo: temp);
+    final staging = StagingRegistry();
     final settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
     final export = ExportService(
       transcription: transcription,
@@ -81,12 +83,14 @@ void main() {
       exporters: {'markdown': const DefaultExporter()},
       share: share,
       appVersion: () async => '0.1.0',
+      staging: staging,
       clock: () => fixedClock,
     );
     final import = ImportService(
       transcription: transcription,
       reflections: reflections,
       share: share,
+      staging: staging,
     );
     final cubit = BackupCubit(
       service: transcription,

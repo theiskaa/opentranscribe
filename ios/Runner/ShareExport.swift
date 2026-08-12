@@ -43,6 +43,8 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
       shareFiles(call, result: result)
     case "pickArchive":
       pickArchive(result: result)
+    case "protect":
+      protect(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -103,6 +105,25 @@ final class ShareExportPlugin: NSObject, FlutterPlugin {
     picker.delegate = self
     pendingPick = result
     presenter.present(picker, animated: true)
+  }
+
+  /// Applies the recordings directory's protection class to a staging
+  /// directory holding plaintext journal content for an in-flight import or
+  /// export. Answers a `FlutterError` on failure, like the other methods.
+  private func protect(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any], let path = args["path"] as? String else {
+      result(ShareExportErrorCode.badArgs.error("protect needs a path"))
+      return
+    }
+    do {
+      try FileManager.default.setAttributes(
+        [.protectionKey: FileProtectionType.completeUnlessOpen], ofItemAtPath: path)
+      result(nil)
+    } catch {
+      result(
+        FlutterError(
+          code: "protect_failed", message: error.localizedDescription, details: nil))
+    }
   }
 
   /// The topmost controller when it can actually present right now, else
