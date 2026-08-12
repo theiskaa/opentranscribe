@@ -23,7 +23,7 @@ import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
-import 'package:opentranscribe/view/layouts/home/components/seam_padding.dart';
+import 'package:opentranscribe/view/widgets/seam_padding.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
