@@ -62,11 +62,13 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 - `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), onboarding flags.
 - `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
-- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
+- `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
 - `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, keeping recorder, engine and store private inside it), `entry_store.dart`, and the settings holders.
 - `core/state/`: one cubit per concern.
 - `core/theming/`: `AppTheme` and its tokens, `AppIcons`, motion, shapes, type scale.
+- `core/notify/`: the local notification scheduler and the reflection reminders.
+- `core/intents/`: actions from a system surface (the lock screen control, Siri, Shortcuts) routed to the recorder.
 - `core/utils/`: haptics, platform capability probes, small helpers.
 
 `lib/view/`, everything UI:
@@ -85,7 +87,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 - `reflections/`: the `ReflectionEngine` contract, the `ReflectionPeriod` vocabulary, and the Foundation Models implementation.
 - `liquid/`: vendored native iOS 26 Liquid Glass chrome.
 
-Stack: Flutter, `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` + `encrypt` for storage, `lottie` for the splash, and the `packages/` plugins above. No `get_it`, no `injectable`, no build_runner. The only codegen is `flutter gen-l10n`.
+Stack: Flutter, `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` + `encrypt` for storage, `flutter_svg` for the export format marks, and the `packages/` plugins above. The launch splash is native (`ios/Runner/WaveSplash.swift`, handed off from `lib/core/app/splash_handoff.dart`), not a Flutter asset. No `get_it`, no `injectable`, no build_runner. The only codegen is `flutter gen-l10n`.
 
 ## Dependency injection
 
@@ -123,11 +125,11 @@ Channels are only ever touched from a package wrapper (`PlatformAudioRecorder`, 
 ```
 flutter pub get                 # install deps
 flutter run -d ios              # run on an iOS simulator/device
-flutter analyze                 # static analysis (must be clean before commit)
-flutter test                    # run tests (must be green before commit)
-dart format .                   # 100-column formatting
+./tool/checks.sh                # analyze, format-check, and test the app and every package
 flutter gen-l10n                # regenerate localizations after editing .arb
 ```
+
+Bare `flutter test` / `flutter analyze` only cover the app; the plugins under `packages/` carry their own analysis context and test suite, so `tool/checks.sh` is the one command that matches what CI runs.
 
 The journal's encryption key is a per-device random key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`); it never leaves the device. `STORAGE_KEY` remains a build-time secret, never committed, needed only to read and migrate records written before the Keychain key existed. Debug builds fall back to a committed development key; a release build throws at `Deps.init()` unless a real one is supplied:
 

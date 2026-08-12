@@ -1,5 +1,9 @@
 /// Route paths and names, kept in one place so navigation call sites and the
 /// router agree on a single source of truth.
+///
+/// There is no single settings screen: the home menu ([HomeMenu]) is the
+/// settings surface, and each `settings*` route below is pushed straight
+/// from it.
 abstract final class Routes {
   static const home = '/';
   static const homeName = 'home';
@@ -9,9 +13,8 @@ abstract final class Routes {
   static const onboarding = '/onboarding';
   static const onboardingName = 'onboarding';
 
-  /// The models screen (per-language on-device models). There is no settings
-  /// screen: the home menu ([HomeMenu]) is the settings surface, and Models is
-  /// the one setting deep enough to earn its own screen. Pushed over home.
+  /// The models screen (per-language on-device speech models). Pushed over
+  /// home from the menu.
   static const settingsModels = '/settings/models';
   static const settingsModelsName = 'settingsModels';
 
@@ -27,8 +30,9 @@ abstract final class Routes {
   static const settingsBackup = '/settings/backup';
   static const settingsBackupName = 'settingsBackup';
 
-  /// The notifications screen (local, on-device nudges; a single weekly
-  /// reflection toggle today). Pushed over home from the menu.
+  /// The notifications screen (local, on-device nudges: a master switch, a
+  /// toggle per reflection period, and one shared time). Pushed over home
+  /// from the menu.
   static const settingsNotifications = '/settings/notifications';
   static const settingsNotificationsName = 'settingsNotifications';
 

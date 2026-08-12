@@ -25,14 +25,11 @@ flutter run --release --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Before you open a pull request
 
-All four should pass:
-
 ```sh
-flutter analyze      # must be clean
-flutter test         # must be green
-dart format .        # 100 columns
-flutter gen-l10n     # after editing lib/l10n/app_en.arb
+./tool/checks.sh
 ```
+
+Bare `flutter test` and `flutter analyze` only cover the app; the plugins under `packages/` carry their own analysis context and test suite, so `tool/checks.sh` is the one command that runs everything CI does. Run `flutter gen-l10n` too after editing `lib/l10n/app_en.arb`.
 
 ## Project layout
 
@@ -42,18 +39,19 @@ Two layers, `lib/core/` and `lib/view/`. There is no `features/` folder, and add
 
 - `app/` the composition root (`deps.dart`), encrypted storage (`local_service.dart`), locale source of truth, onboarding flags.
 - `export/` the `JournalExporter` contract, the shipped format exporters, and the native archive: store-only zip codec, manifest, sealed container crypto, and the share-sheet channel wrapper.
-- `models/` plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`).
+- `models/` plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `routes/` the `GoRouter`, the path and name constants, page transitions.
 - `services/` `transcription_service.dart` (the one owner of the entry lifecycle), `entry_store.dart`, the settings holders.
 - `state/` one cubit per concern.
 - `theming/` `AppTheme` and its tokens, `AppIcons`, motion, shapes, the type scale.
 - `notify/` the local notification scheduler and the reflection reminders.
+- `intents/` actions from a system surface (the lock screen control, Siri, Shortcuts) routed to the recorder.
 - `utils/` haptics, platform capability probes, small helpers.
 
 `lib/view/` is everything UI:
 
 - `app.dart` the root `App` widget, a `WidgetsApp.router` with no Material or Cupertino shell, providing the cubits above the router.
-- `layouts/<domain>/screens/` full screens and `layouts/<domain>/components/` the widgets private to that domain (`entry`, `home`, `recorder`, `reflections`, `settings`, `onboarding`, `splash`, `gallery`).
+- `layouts/<domain>/screens/` full screens and `layouts/<domain>/components/` the widgets private to that domain (`entry`, `home`, `recorder`, `reflections`, `settings`, `onboarding`, `gallery`).
 - `widgets/` the shared, reusable design system.
 
 `packages/` is the plugins the app depends on by path, each standalone with its own readme:
@@ -62,11 +60,11 @@ Two layers, `lib/core/` and `lib/view/`. There is no `features/` folder, and add
 - `reflections/` the `ReflectionEngine` contract, the `ReflectionPeriod` vocabulary, and the Foundation Models implementation.
 - `liquid/` vendored native iOS 26 Liquid Glass chrome.
 
-The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `lottie` for the splash, and the three `packages/` plugins above. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
+The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `flutter_svg` for the export format marks, and the three `packages/` plugins above. The launch splash is native (`ios/Runner/WaveSplash.swift`, handed off from `lib/core/app/splash_handoff.dart`), not a Flutter asset. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
 
 ## How it works
 
-**Dependency injection** is a typed composition root, `Deps` in `core/app/deps.dart`. No service locator, no code generation, no `BuildContext` needed to reach a dependency. Access anything with `Deps.i.<field>`. To add a dependency, give it a typed field on `Deps` and construct it in `Deps.init()`, which runs once before `runApp` and is where launch-time repair belongs.
+**Dependency injection** is a typed composition root, `Deps` in `core/app/deps.dart`. No service locator, no code generation, no `BuildContext` needed to reach a dependency. Access anything with `Deps.i.<field>`. To add a dependency, give it a typed field on `Deps` and construct it in `Deps.init()`, which runs once before `runApp` and holds only what the first frame cannot be built without. Launch-time repair (reconciling orphaned audio, healing dangling records, the reflection catch-up) belongs in `Deps.launchMaintenance()`, not `init()`: every pass decrypts the whole journal, so it must not run on the frames the user is watching.
 
 **Transcription** sits behind `TranscriptionEngine`. Apple's Speech framework is the first implementation (`SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` below it); whisper.cpp is meant to follow as a second one, with no change to the rest of the app. Streaming and downloadable-model behavior are separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `ManagedModelEngine`), not flags. Live text is painted while you speak and then discarded; the saved transcript is a batch pass over the finished file. Speech models are per-language and on-device, bounded by the cap iOS 26 places on how many one app may hold. `transcription_service.dart` owns the whole entry lifecycle, keeping the recorder, engine, and store private inside it.
 
