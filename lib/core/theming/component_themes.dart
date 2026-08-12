@@ -342,6 +342,24 @@ final class RecorderTheme {
   final double controlSize;
 }
 
+/// The revision diff's ink: what a change removed and what it added, each as
+/// text color plus the wash behind it. Derived from the base danger and
+/// positive colors, so every family shows ITS red and green, not a stock pair.
+@immutable
+final class DiffTheme {
+  const DiffTheme({
+    required this.removed,
+    required this.removedWash,
+    required this.added,
+    required this.addedWash,
+  });
+
+  final Color removed;
+  final Color removedWash;
+  final Color added;
+  final Color addedWash;
+}
+
 /// The audio player on entry detail.
 @immutable
 final class PlayerTheme {
