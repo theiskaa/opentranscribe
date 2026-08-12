@@ -36,6 +36,12 @@ abstract final class Routes {
   static const settingsNotifications = '/settings/notifications';
   static const settingsNotificationsName = 'settingsNotifications';
 
+  /// The support screen (the supporter purchase, restore, and manage
+  /// surface). Pushed over home from the menu, and from the gate sheet a
+  /// locked export answers with.
+  static const settingsSupport = '/settings/support';
+  static const settingsSupportName = 'settingsSupport';
+
   /// The ONE reflections surface: past weeks one page at a time, with the one
   /// menu acting on the viewed week. Reached plain from the home menu (lands
   /// on the newest closed week), or with a `week` query parameter

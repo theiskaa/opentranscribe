@@ -126,6 +126,7 @@ class _HomeMenuState extends State<HomeMenu> {
         ],
       ),
       const AppMenuItem.divider(),
+      AppMenuItem(id: 'act:support', label: l10n.settingsSupport, icon: AppIcons.heart),
       AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes),
       if (kDebugMode) ...[
         const AppMenuItem.divider(),
@@ -158,6 +159,8 @@ class _HomeMenuState extends State<HomeMenu> {
             context.pushNamed(Routes.settingsBackupName);
           case 'act:notifications':
             context.pushNamed(Routes.settingsNotificationsName);
+          case 'act:support':
+            context.pushNamed(Routes.settingsSupportName);
           case 'act:gallery':
             context.pushNamed(Routes.galleryName);
           case 'act:source':
