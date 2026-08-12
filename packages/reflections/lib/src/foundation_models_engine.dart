@@ -8,7 +8,7 @@ import 'package:reflections/src/reflection_options.dart';
 import 'package:reflections/src/reflection_period.dart';
 
 // Channel identifier. Must match ReflectionEngine.swift.
-const _controlChannel = 'opentranscribe/reflect';
+const _controlChannel = 'reflections/reflect';
 
 // The native error code that means "could not run" (transient). Must match the
 // ReflectErrorCode in ReflectionEngine.swift.

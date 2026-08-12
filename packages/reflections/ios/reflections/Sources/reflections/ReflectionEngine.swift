@@ -24,7 +24,7 @@ public final class ReflectionEnginePlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
     // Channel name + payload shapes: must match foundation_models_engine.dart.
     let methods = FlutterMethodChannel(
-      name: "opentranscribe/reflect", binaryMessenger: registrar.messenger())
+      name: "reflections/reflect", binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(ReflectionEnginePlugin(), channel: methods)
   }
 

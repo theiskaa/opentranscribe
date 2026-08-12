@@ -9,7 +9,7 @@ import 'package:reflections/src/reflection_period.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  const channel = MethodChannel('opentranscribe/reflect');
+  const channel = MethodChannel('reflections/reflect');
 
   late FoundationModelsEngine engine;
 
