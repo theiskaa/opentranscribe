@@ -227,7 +227,7 @@
   "importRezipped": "Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.",
   "done": "OK",
   "importFailedMidway": "La restauration s'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.",
-  "supportGateBody": "Les exports formatés se débloquent en soutenant OpenTranscribe. La sauvegarde reste gratuite.",
+  "supportGateBody": "Les exports formatés sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.",
   "settingsSupport": "Soutenir",
   "supportGateAction": "Devenir membre du club",
   "supportPitch": "OpenTranscribe est gratuit et privé, et le soutenir le maintient ainsi. Rejoindre le club, c'est un seul paiement, pour de bon.",

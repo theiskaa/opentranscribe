@@ -749,7 +749,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
-  String get supportGateBody => '形式を選べる書き出しは、OpenTranscribeをサポートすると使えるようになります。バックアップは無料のままです。';
+  String get supportGateBody => '形式を選べる書き出しはクラブメンバー向けです。バックアップは誰でも無料のままです。';
 
   @override
   String get settingsSupport => 'サポート';

@@ -989,7 +989,7 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateBody": "Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.",
+  "supportGateBody": "Formatted exports are for club members. The backup stays free for everyone.",
   "@supportGateBody": {
     "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
   },

@@ -227,7 +227,7 @@
   "importRezipped": "Questo backup è stato ri-zippato da un altro strumento. Salvane uno nuovo e ripristina quello.",
   "done": "Fine",
   "importFailedMidway": "Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.",
-  "supportGateBody": "Le esportazioni formattate si sbloccano sostenendo OpenTranscribe. Il backup resta gratuito.",
+  "supportGateBody": "Le esportazioni formattate sono per i membri del club. Il backup resta gratuito per tutti.",
   "settingsSupport": "Sostieni",
   "supportGateAction": "Diventa membro del club",
   "supportPitch": "OpenTranscribe è gratuito e privato, e sostenerlo lo mantiene così. Entrare nel club è un solo pagamento, per sempre.",

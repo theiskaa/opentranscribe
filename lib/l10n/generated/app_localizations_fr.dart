@@ -805,7 +805,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Les exports formatés se débloquent en soutenant OpenTranscribe. La sauvegarde reste gratuite.';
+      'Les exports formatés sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.';
 
   @override
   String get settingsSupport => 'Soutenir';

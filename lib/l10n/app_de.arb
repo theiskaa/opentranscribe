@@ -227,7 +227,7 @@
   "importRezipped": "Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.",
   "done": "Fertig",
   "importFailedMidway": "Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.",
-  "supportGateBody": "Formatierte Exporte werden durch die Unterstützung von OpenTranscribe freigeschaltet. Das Backup bleibt kostenlos.",
+  "supportGateBody": "Formatierte Exporte sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.",
   "settingsSupport": "Unterstützen",
   "supportGateAction": "Clubmitglied werden",
   "supportPitch": "OpenTranscribe ist kostenlos und privat, und Unterstützung hält es dabei. Der Clubbeitritt ist eine Zahlung, für immer.",

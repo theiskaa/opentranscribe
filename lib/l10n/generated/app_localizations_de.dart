@@ -806,7 +806,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Formatierte Exporte werden durch die Unterstützung von OpenTranscribe freigeschaltet. Das Backup bleibt kostenlos.';
+      'Formatierte Exporte sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
 
   @override
   String get settingsSupport => 'Unterstützen';

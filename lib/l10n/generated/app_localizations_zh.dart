@@ -739,7 +739,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateBody => '支持 OpenTranscribe 即可解锁格式化导出。备份始终免费。';
+  String get supportGateBody => '格式化导出是俱乐部会员功能。备份对所有人保持免费。';
 
   @override
   String get settingsSupport => '支持';

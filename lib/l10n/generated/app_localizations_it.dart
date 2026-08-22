@@ -804,7 +804,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Le esportazioni formattate si sbloccano sostenendo OpenTranscribe. Il backup resta gratuito.';
+      'Le esportazioni formattate sono per i membri del club. Il backup resta gratuito per tutti.';
 
   @override
   String get settingsSupport => 'Sostieni';

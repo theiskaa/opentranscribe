@@ -1473,7 +1473,7 @@ abstract class AppLocalizations {
   /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
   ///
   /// In en, this message translates to:
-  /// **'Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.'**
+  /// **'Formatted exports are for club members. The backup stays free for everyone.'**
   String get supportGateBody;
 
   /// Home menu row opening the support screen
