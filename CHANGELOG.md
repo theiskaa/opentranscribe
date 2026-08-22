@@ -2,11 +2,13 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
-## 0.2.0 - 2026-08-12
+## 0.2.0 - 2026-08-22
 
-Backups, editing, and faster ways to start a recording.
+Backups, editing, the club, and faster ways to start a recording.
 
-- Export and backup: a full journal export to the share sheet in three formats (Markdown, Obsidian, or a Website that opens with a player in any browser), or a native archive that restores the whole journal, audio and reflections included. Archives are sealed with a passphrase by default; without it the file is unreadable. (#5)
+- Formatted exports, the first OpenTranscribe Club feature: the whole journal handed to the share sheet as Markdown, as Obsidian notes, or as a Website that opens with a player in any browser. (#5)
+- Native archive backup: one file that restores the whole journal, audio and reflections included, sealed with a passphrase by default; without it the file is unreadable. Free for everyone, never behind the paywall, so anyone can always back up and recover. (#5)
+- The OpenTranscribe Club, an optional one-time purchase that supports the app: club features start with the formatted exports, and whatever joins the club later is included. Direct StoreKit 2 with no purchase SDK, no account, and no server: the entitlement is verified on-device from Apple's own record, membership works in airplane mode, and no journal content is in the purchase conversation.
 - Manual transcript editing, in place on the entry screen, with a revision history that keeps every prior version and lets one be restored. (#14)
 - A lock screen control and a widget row that start a recording without opening the app, plus Siri and Shortcuts support through App Intents. (#9)
 - The launch splash is now drawn natively and plays over the boot, replacing the earlier Flutter splash screen.
