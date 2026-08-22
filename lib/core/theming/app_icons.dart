@@ -69,7 +69,7 @@ abstract final class AppIcons {
   /// SF Symbol `heart` (the support surfaces).
   static const IconData heart = IconData(0x1002B4, fontFamily: _family);
 
-  /// SF Symbol `heart.fill` (the lifetime supporter row).
+  /// SF Symbol `heart.fill` (the join button).
   static const IconData heartFill = IconData(0x1002B5, fontFamily: _family);
 
   /// SF Symbol `internaldrive`.
@@ -159,6 +159,8 @@ abstract final class AppIcons {
         0x1008CB: 'gearshape',
         0x1008CC: 'gearshape.fill',
         0x1001AA: 'globe',
+        0x1002B4: 'heart',
+        0x1002B5: 'heart.fill',
         0x10039F: 'house.fill',
         0x10030B: 'icloud',
         0x10097E: 'internaldrive',
