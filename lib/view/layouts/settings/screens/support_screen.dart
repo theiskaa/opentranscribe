@@ -8,46 +8,53 @@ import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/state/support_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
-import 'package:opentranscribe/core/support/supporter_tier.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/support_rows.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/club_lockup.dart';
 import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
-import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
-/// Support: the supporter purchase, restore, and manage surface. Owns a
-/// [SupportCubit] so prices are fetched on every open; the cached tier
-/// renders truthfully with or without the store.
+/// Support: the club purchase and restore surface. Owns a [SupportCubit] so
+/// the price is fetched on every open; the cached tier renders truthfully
+/// with or without the store. The one purchase action is pinned to the
+/// bottom, the way a single-offer paywall should read; everything above it
+/// scrolls.
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final descriptors = Deps.i.exporterDescriptors;
     return BlocProvider(
       create: (_) => SupportCubit(service: Deps.i.supportService)..load(),
-      child: _SupportView(descriptors: Deps.i.exporterDescriptors),
+      child: _SupportView(
+        exportMark:
+            descriptors.where((d) => d.format == ExportFormat.markdown).firstOrNull ??
+            descriptors.first,
+      ),
     );
   }
 }
 
 class _SupportView extends StatelessWidget {
-  const _SupportView({required this.descriptors});
+  const _SupportView({required this.exportMark});
 
-  /// What supporting unlocks today: the shipped export formats, listed with
-  /// the same marks and copy the Backup screen uses, so the promise and the
-  /// feature always read identically.
-  final List<ExporterDescriptor> descriptors;
+  /// The format whose mark fronts the exports perk (markdown, with the first
+  /// shipped format standing in if a build ever drops it): the same asset the
+  /// Backup screen picks from, so the promise and the feature wear one face.
+  final ExporterDescriptor exportMark;
 
-  Future<void> _buy(BuildContext context, String id) async {
-    final result = await context.read<SupportCubit>().purchase(id);
+  Future<void> _buy(BuildContext context) async {
+    final result = await context.read<SupportCubit>().purchase();
     if (!context.mounted || result == null) return;
     if (result == SupportPurchaseResult.failed) unawaited(_failSheet(context));
   }
@@ -89,126 +96,163 @@ class _SupportView extends StatelessWidget {
     );
   }
 
-  String _thanksOrPitch(AppLocalizations l10n, SupporterTier tier) => switch (tier) {
-    SupporterTier.none => l10n.supportPitch,
-    SupporterTier.monthly => l10n.supportThanksMonthly,
-    SupporterTier.lifetime => l10n.supportThanksLifetime,
-  };
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<SupportCubit>();
     final state = context.watch<SupportCubit>().state;
-    final rows = supportRowsFor(
-      tier: state.tier,
-      products: state.products,
-      storeUnreachable: state.storeUnreachable,
-    );
     final idle = !state.isBusy;
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
-      child: SettingsList(
+      child: Column(
         children: [
-          const SizedBox(height: AppSpacing.lg),
-          _SupporterHeader(tag: l10n.supporterTag),
-          const SizedBox(height: AppSpacing.lg),
-          SectionInfo(_thanksOrPitch(l10n, state.tier)),
-          SettingsCard(
-            children: [
-              for (final row in rows)
-                switch (row.kind) {
-                  SupportRowKind.buyMonthly => SettingsBusyRow(
-                    icon: AppIcons.heart,
-                    label: l10n.supportMonthly,
-                    detail: l10n.supportPerMonth(row.product!.displayPrice),
-                    busy: state.purchasingId == row.product!.id,
-                    onTap: idle ? () => unawaited(_buy(context, row.product!.id)) : null,
-                  ),
-                  SupportRowKind.buyLifetime => SettingsBusyRow(
-                    icon: AppIcons.heartFill,
-                    label: l10n.supportLifetime,
-                    detail: l10n.supportOnce(row.product!.displayPrice),
-                    busy: state.purchasingId == row.product!.id,
-                    onTap: idle ? () => unawaited(_buy(context, row.product!.id)) : null,
-                  ),
-                  SupportRowKind.manage => SettingsBusyRow(
-                    icon: AppIcons.gearshape,
-                    label: l10n.supportManage,
-                    busy: false,
-                    onTap: idle ? () => unawaited(cubit.manageSubscriptions()) : null,
-                  ),
-                  SupportRowKind.restore => SettingsBusyRow(
-                    icon: AppIcons.arrowCounterclockwise,
-                    label: l10n.supportRestore,
-                    busy: state.restoring,
-                    onTap: idle ? () => unawaited(_restore(context)) : null,
-                  ),
-                },
-            ],
+          Expanded(
+            child: ListView(
+              // SettingsList's insets minus the bottom safe area, which the
+              // pinned bar below owns.
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppScaffold.topPaddingOf(context) - AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.lg,
+              ),
+              children: [
+                const SizedBox(height: AppSpacing.lg),
+                // The small inset matches SectionInfo's own, so the lockup
+                // and the pitch below share a left edge.
+                const Padding(
+                  padding: EdgeInsets.only(left: AppSpacing.sm),
+                  child: ClubLockup(),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SectionInfo(state.tier.isSupporter ? l10n.supportThanks : l10n.supportPitch),
+                if (state.storeUnreachable && !state.tier.isSupporter) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  SectionInfo(l10n.supportUnreachable),
+                ],
+                if (state.pendingApproval) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  SectionInfo(l10n.supportPending),
+                ],
+                SectionLabel(l10n.supportUnlocksSection),
+                SettingsCard(
+                  children: [
+                    _PerkRow(
+                      leading: ExporterLogo(exportMark),
+                      label: l10n.supportPerkExports,
+                      note: l10n.supportPerkExportsNote,
+                    ),
+                    _PerkRow(
+                      leading: AppIcon(AppIcons.sparkles, size: 16, color: theme.text),
+                      label: l10n.supportPerkFuture,
+                      note: l10n.supportPerkFutureNote,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const _FooterNote(),
+              ],
+            ),
           ),
-          if (state.storeUnreachable) ...[
-            const SizedBox(height: AppSpacing.md),
-            SectionInfo(l10n.supportUnreachable),
-          ],
-          if (state.pendingApproval) ...[
-            const SizedBox(height: AppSpacing.md),
-            SectionInfo(l10n.supportPending),
-          ],
-          if (state.tier == SupporterTier.monthly &&
-              rows.any((r) => r.kind == SupportRowKind.buyLifetime)) ...[
-            const SizedBox(height: AppSpacing.md),
-            SectionInfo(l10n.supportUpgradeInfo),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          SectionLabel(l10n.supportUnlocksSection),
-          SettingsCard(
-            children: [
-              for (final descriptor in descriptors)
-                ExportFormatRow(descriptor: descriptor, selected: false, onTap: null),
-            ],
+          _PurchaseBar(
+            state: state,
+            onBuy: idle ? () => unawaited(_buy(context)) : null,
+            onRestore: idle ? () => unawaited(_restore(context)) : null,
           ),
-          const SizedBox(height: AppSpacing.md),
-          const _FooterNote(),
         ],
       ),
     );
   }
 }
 
-/// The screen's identity: the app's wave over its name, tagged as the
-/// supporter surface. The wave is [WaveGlyph], the same mark the empty home
-/// draws, so the brand is drawn, never a bitmap.
-class _SupporterHeader extends StatelessWidget {
-  const _SupporterHeader({required this.tag});
+/// The pinned commerce strip: the one join button, price in its label, and
+/// the quiet restore link every state keeps (review requires it, and it is
+/// every user's recovery path). A member or an unreachable store has nothing
+/// to sell, so only the link remains.
+class _PurchaseBar extends StatelessWidget {
+  const _PurchaseBar({required this.state, required this.onBuy, required this.onRestore});
 
-  final String tag;
+  final SupportState state;
+  final VoidCallback? onBuy;
+  final VoidCallback? onRestore;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    // The small inset matches SectionInfo's own, so the lockup and the pitch
-    // below share a left edge.
+    final l10n = AppLocalizations.of(context)!;
+    final product = state.product;
+    // An Ask to Buy wait hides the button too: a second purchase against the
+    // pending transaction could only fail, and the waiting line explains.
+    final selling =
+        !state.tier.isSupporter &&
+        !state.storeUnreachable &&
+        !state.pendingApproval &&
+        product != null;
     return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.sm),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        MediaQuery.paddingOf(context).bottom + AppSpacing.sm,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          WaveGlyph(color: theme.text),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('OpenTranscribe', style: AppType.title.copyWith(color: theme.text)),
-              const SizedBox(height: AppSpacing.xs),
-              Text(tag.toUpperCase(), style: AppType.eyebrow.copyWith(color: theme.accent)),
-            ],
+          if (selling) ...[
+            AppButton(
+              label: l10n.supportJoin(product.displayPrice),
+              icon: AppIcons.heartFill,
+              isLoading: state.purchasing,
+              onPressed: onBuy,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          SizedBox(
+            // A stable seat, so the spinner swap never shifts the button. The
+            // Touchable hugs the label inside it: restore walks the tier to
+            // whatever the store answers, so a full-width strip must not fire
+            // it on a stray tap.
+            height: 20,
+            child: Center(
+              child: Touchable(
+                onTap: onRestore,
+                haptic: onRestore != null,
+                child: AnimatedSwitcher(
+                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                  child: state.restoring
+                      ? AppSpinner(size: 14, color: theme.textSecondary)
+                      : Text(
+                          l10n.supportRestore,
+                          key: const ValueKey('restore'),
+                          style: AppType.footnote.copyWith(
+                            color: theme.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// One thing the club gets, said as a benefit: a mark in the settings tile,
+/// a plain name, and a one-line note. Inert on purpose; the join button is
+/// the only action this screen sells.
+class _PerkRow extends StatelessWidget {
+  const _PerkRow({required this.leading, required this.label, required this.note});
+
+  final Widget leading;
+  final String label;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectableRow(label: label, note: note, leading: leading, selected: false, onTap: null);
   }
 }
 

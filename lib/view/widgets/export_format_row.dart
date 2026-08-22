@@ -32,7 +32,7 @@ class ExportFormatRow extends StatelessWidget {
     return SelectableRow(
       label: copy.name,
       note: copy.note,
-      leading: _ExporterLogo(descriptor),
+      leading: ExporterLogo(descriptor),
       selected: selected,
       locked: locked,
       onTap: onTap,
@@ -40,14 +40,15 @@ class ExportFormatRow extends StatelessWidget {
   }
 }
 
-/// A format's mark at chip size. Each mark is normalized in its own asset, on
-/// a square canvas that pads it to equal ink against the others, so this stays
-/// one square box for every format instead of a table of per-mark sizes. A
-/// branded mark keeps its own colors; a monochrome one paints in
-/// `currentColor`, which resolves to the label color here so it never sinks
-/// into a light or a dark card.
-class _ExporterLogo extends StatelessWidget {
-  const _ExporterLogo(this.descriptor);
+/// A format's mark at chip size, shared by every row that puts one in the
+/// settings tile (the format pickers, the support screen's exports perk).
+/// Each mark is normalized in its own asset, on a square canvas that pads it
+/// to equal ink against the others, so this stays one square box for every
+/// format instead of a table of per-mark sizes. A branded mark keeps its own
+/// colors; a monochrome one paints in `currentColor`, which resolves to the
+/// label color here so it never sinks into a light or a dark card.
+class ExporterLogo extends StatelessWidget {
+  const ExporterLogo(this.descriptor, {super.key});
 
   final ExporterDescriptor descriptor;
 
