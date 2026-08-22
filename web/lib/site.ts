@@ -66,6 +66,26 @@ export const FEATURES = [
   },
 ] as const;
 
+export const CLUB = {
+  price: "$25",
+  priceNote: "Once. No subscription.",
+  pitch: [
+    "OpenTranscribe is free and private, and supporting it keeps it that way. The club is an optional one-time purchase, made directly through the App Store with no purchase SDK, no account, and no server behind it.",
+    "Membership is verified on the device from Apple's own record, so it works in airplane mode, like everything else.",
+  ],
+  perksHead: "Club members get",
+  perks: [
+    {
+      title: "Formatted exports",
+      note: "The whole journal as Markdown, as Obsidian notes, or as a website that opens with a player in any browser.",
+    },
+    {
+      title: "Future club features",
+      note: "Whatever joins the club later, included.",
+    },
+  ],
+} as const;
+
 export const SHOTS = [
   { src: "/shots/home@2x.png", cap: "The week of entries" },
   { src: "/shots/recording@2x.png", cap: "Recording with live text" },

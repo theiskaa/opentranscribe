@@ -1,11 +1,11 @@
-import { HERO_LEAD, GITHUB_URL, APP_STORE_URL } from "@/lib/site";
+import { HERO_LEAD, GITHUB_URL, APP_STORE_URL, CLUB } from "@/lib/site";
 import Nav from "@/components/Nav";
 import Background from "@/components/Background";
 import ShotShelf from "@/components/ShotShelf";
 import FeatureFrame from "@/components/FeatureFrame";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
-import { AppleIcon, GithubIcon } from "@/components/Icons";
+import { AppleIcon, GithubIcon, HeartIcon } from "@/components/Icons";
 
 const container = "mx-auto w-full max-w-frame px-6 sm:px-12";
 
@@ -40,6 +40,46 @@ export default function Home() {
 
         <section className="mt-28 border-t border-line sm:mt-36">
           <FeatureFrame />
+        </section>
+
+        <section id="club" className="scroll-mt-24 border-t border-line">
+          <div className={`${container} py-24 sm:py-32`}>
+            <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
+              <Reveal className="lg:col-span-5">
+                <p className="t-eyebrow">Club</p>
+                <h2 className="t-display mt-6">One payment, in for good.</h2>
+                <div className="mt-8 space-y-5">
+                  {CLUB.pitch.map((p) => (
+                    <p key={p} className="t-body text-ink-2">
+                      {p}
+                    </p>
+                  ))}
+                </div>
+              </Reveal>
+              <Reveal className="lg:col-span-6 lg:col-start-7">
+                <div className="rounded-[28px] border border-line bg-ink/[0.03] p-8 sm:p-10">
+                  <div className="flex items-center gap-2.5">
+                    <HeartIcon className="h-4 w-4 text-ink" />
+                    <span className="t-subhead font-semibold text-ink">OpenTranscribe Club</span>
+                  </div>
+                  <p className="t-display mt-8 leading-none">{CLUB.price}</p>
+                  <p className="t-subhead mt-3">{CLUB.priceNote}</p>
+
+                  <div className="my-8 h-px bg-line" />
+
+                  <p className="t-eyebrow">{CLUB.perksHead}</p>
+                  <div className="mt-5 grid gap-7 sm:grid-cols-2 sm:gap-8">
+                    {CLUB.perks.map((p) => (
+                      <div key={p.title}>
+                        <h3 className="t-body font-semibold">{p.title}</h3>
+                        <p className="t-footnote mt-2">{p.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+          </div>
         </section>
 
         <section id="privacy" className="scroll-mt-24 border-t border-line">

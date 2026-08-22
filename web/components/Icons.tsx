@@ -1,3 +1,11 @@
+export function HeartIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="255 341 1986 1836" className={className} fill="currentColor" aria-hidden>
+      <path d="M1248 2177Q1220 2177 1176 2150Q739 1871 497.0 1563.5Q255 1256 255 945Q255 771 328.5 632.5Q402 494 529.0 417.5Q656 341 812 341Q954 341 1066.5 414.0Q1179 487 1248 614Q1319 486 1430.5 413.5Q1542 341 1684 341Q1840 341 1967.0 417.5Q2094 494 2167.5 632.5Q2241 771 2241 945Q2241 1256 1999.0 1563.5Q1757 1871 1321 2150Q1275 2177 1248 2177Z" />
+    </svg>
+  );
+}
+
 export function AppleIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 814 1000" className={className} fill="currentColor" aria-hidden>
