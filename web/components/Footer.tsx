@@ -1,42 +1,55 @@
 import Link from "next/link";
 import { APP_STORE_URL, GITHUB_URL, SITE_TAGLINE } from "@/lib/site";
+import { CHANGELOG, LICENSE, type Doc } from "@/lib/docs";
 import { WaveMark } from "./Wordmark";
+import DocLink from "./DocLink";
 
-function FooterLink({ href, label }: { href: string; label: string }) {
-  const className = "t-footnote transition-colors duration-200 hover:text-ink";
-  if (href.startsWith("http")) {
+const linkClass = "t-footnote block text-left transition-colors duration-200 hover:text-ink";
+
+type FooterItem = { label: string; href: string } | { doc: Doc };
+
+function FooterEntry({ entry }: { entry: FooterItem }) {
+  if ("doc" in entry) {
+    return <DocLink doc={entry.doc} className={linkClass} />;
+  }
+  if (entry.href.startsWith("http")) {
     return (
-      <a href={href} target="_blank" rel="noreferrer" className={className}>
-        {label}
+      <a href={entry.href} target="_blank" rel="noreferrer" className={linkClass}>
+        {entry.label}
       </a>
     );
   }
   return (
-    <Link href={href} className={className}>
-      {label}
+    <Link href={entry.href} className={linkClass}>
+      {entry.label}
     </Link>
   );
 }
 
-const COLS = [
+const COLS: { head: string; links: FooterItem[] }[] = [
   {
     head: "Product",
     links: [
       { label: "Download", href: APP_STORE_URL },
       { label: "How it works", href: "/#record" },
-      { label: "Reflections", href: "/#reflections" },
-      { label: "Privacy", href: "/#privacy" },
+      { label: "Supporter Club", href: "/#club" },
+      { label: "Privacy", href: "/privacy" },
     ],
   },
   {
     head: "Source",
     links: [
       { label: "GitHub", href: GITHUB_URL },
-      { label: "MIT License", href: `${GITHUB_URL}/blob/main/LICENSE` },
+      { doc: CHANGELOG },
+      { doc: LICENSE },
       { label: "Issues", href: `${GITHUB_URL}/issues` },
     ],
   },
 ];
+
+function keyOf(entry: FooterItem): string {
+  return "doc" in entry ? entry.doc.file : entry.label;
+}
 
 export default function Footer() {
   return (
@@ -57,9 +70,9 @@ export default function Footer() {
               <div key={col.head}>
                 <p className="t-eyebrow mb-5">{col.head}</p>
                 <ul className="space-y-3">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <FooterLink href={l.href} label={l.label} />
+                  {col.links.map((entry) => (
+                    <li key={keyOf(entry)}>
+                      <FooterEntry entry={entry} />
                     </li>
                   ))}
                 </ul>

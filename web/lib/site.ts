@@ -11,6 +11,7 @@ export const SITE_DESCRIPTION =
   "A voice journal for iOS with no network layer. Recording, transcription, and reflections all happen on the device. No account, no sync, no telemetry.";
 
 export const GITHUB_URL = "https://github.com/theiskaa/opentranscribe";
+export const GITHUB_RAW = "https://raw.githubusercontent.com/theiskaa/opentranscribe/main";
 export const APP_STORE_URL = "https://apps.apple.com/app/opentranscribe/id6794718941";
 
 export const FEATURES = [
