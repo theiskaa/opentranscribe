@@ -89,13 +89,41 @@ export default function Background() {
       }
     };
 
+    const fade = () => {
+      const o = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.8));
+      canvas.style.opacity = o.toFixed(3);
+      canvas.style.visibility = o === 0 ? "hidden" : "visible";
+    };
+
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        fade();
+      });
+    };
+
     draw();
-    const ro = new ResizeObserver(draw);
+    fade();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(() => {
+      draw();
+      fade();
+    });
     ro.observe(canvas);
-    return () => ro.disconnect();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, []);
 
   return (
-    <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 z-0 h-full w-full" />
+    <canvas
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[100svh] w-full"
+    />
   );
 }

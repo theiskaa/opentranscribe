@@ -1,11 +1,11 @@
-import { HERO_LEAD, GITHUB_URL } from "@/lib/site";
+import { HERO_LEAD, GITHUB_URL, APP_STORE_URL } from "@/lib/site";
 import Nav from "@/components/Nav";
 import Background from "@/components/Background";
 import ShotShelf from "@/components/ShotShelf";
 import FeatureFrame from "@/components/FeatureFrame";
 import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
-import { GithubIcon } from "@/components/Icons";
+import { AppleIcon, GithubIcon } from "@/components/Icons";
 
 const container = "mx-auto w-full max-w-frame px-6 sm:px-12";
 
@@ -21,16 +21,14 @@ export default function Home() {
             <p className="boot boot-2 t-body mt-6 max-w-[560px] text-ink-2">
               Nothing ever leaves the phone. It works the same in airplane mode.
             </p>
-            <div className="boot boot-3 mt-9 flex flex-wrap items-center gap-6">
-              <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn">
+            <div className="boot boot-3 mt-9 flex flex-wrap items-center gap-4">
+              <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="btn">
+                <AppleIcon className="h-4 w-4" />
+                Download on the App Store
+              </a>
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-ghost">
                 <GithubIcon className="h-4 w-4" />
                 Read the source
-              </a>
-              <a
-                href="#record"
-                className="t-subhead transition-colors duration-200 hover:text-ink"
-              >
-                How it works ↓
               </a>
             </div>
           </div>

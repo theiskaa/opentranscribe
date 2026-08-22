@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GITHUB_URL, SITE_TAGLINE } from "@/lib/site";
+import { APP_STORE_URL, GITHUB_URL, SITE_TAGLINE } from "@/lib/site";
 import { WaveMark } from "./Wordmark";
 
 function FooterLink({ href, label }: { href: string; label: string }) {
@@ -22,6 +22,7 @@ const COLS = [
   {
     head: "Product",
     links: [
+      { label: "Download", href: APP_STORE_URL },
       { label: "How it works", href: "/#record" },
       { label: "Reflections", href: "/#reflections" },
       { label: "Privacy", href: "/#privacy" },
