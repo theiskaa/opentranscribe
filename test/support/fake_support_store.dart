@@ -24,7 +24,6 @@ class FakeSupportStore implements SupportStore {
   SupportStoreException? purchaseError;
   SupportStoreException? entitlementError;
   SupportStoreException? restoreError;
-  SupportStoreException? manageError;
 
   /// When set, [entitlement] waits on it before answering, so a test can hold
   /// a refresh in flight.
@@ -81,12 +80,5 @@ class FakeSupportStore implements SupportStore {
     final error = restoreError;
     if (error != null) throw error;
     return restoreAnswer;
-  }
-
-  @override
-  Future<void> manageSubscriptions() async {
-    calls.add('manageSubscriptions');
-    final error = manageError;
-    if (error != null) throw error;
   }
 }

@@ -310,13 +310,12 @@ class Deps {
       language: () => AppLanguage.of(localService),
     );
 
-    // The support backbone. The one place naming the products, like engines
+    // The support backbone. The one place naming the product, like engines
     // and exporters. Constructed from the cached tier alone; the first store
     // round trip is launchMaintenance's refresh, never the launch path.
     final supportService = SupportService(
       storage: localService,
       store: SupportStore(),
-      monthlyId: 'xyz.opentranscribe.supporter.monthly',
       lifetimeId: 'xyz.opentranscribe.supporter.lifetime',
     );
 

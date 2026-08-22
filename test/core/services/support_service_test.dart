@@ -12,15 +12,13 @@ import '../../support/fake_support_store.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
-  const monthly = 'xyz.opentranscribe.supporter.monthly';
   const lifetime = 'xyz.opentranscribe.supporter.lifetime';
 
   late LocalService storage;
   late FakeSupportStore store;
   late SupportService service;
 
-  SupportService rebuild() =>
-      SupportService(storage: storage, store: store, monthlyId: monthly, lifetimeId: lifetime);
+  SupportService rebuild() => SupportService(storage: storage, store: store, lifetimeId: lifetime);
 
   Future<void> build() async {
     SharedPreferences.setMockInitialValues(const {});
@@ -43,9 +41,9 @@ void main() {
 
   test('refresh overwrites the answer when the store answers', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
-    expect(await service.refresh(), SupporterTier.monthly);
-    expect(service.tier, SupporterTier.monthly);
+    store.entitlementAnswer = SupporterTier.lifetime;
+    expect(await service.refresh(), SupporterTier.lifetime);
+    expect(service.tier, SupporterTier.lifetime);
   });
 
   test('refresh keeps the answer when the store throws', () async {
@@ -62,14 +60,14 @@ void main() {
 
   test('a kept answer survives a rebuild from storage', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     await service.refresh();
     service.dispose();
     await store.dispose();
 
     store = FakeSupportStore();
     service = rebuild();
-    expect(service.tier, SupporterTier.monthly);
+    expect(service.tier, SupporterTier.lifetime);
   });
 
   test('a junk stored value reads as none', () async {
@@ -80,12 +78,20 @@ void main() {
     expect(service.tier, SupporterTier.none);
   });
 
+  test('a stored retired tier reads as none', () async {
+    await build();
+    await storage.write('support.tier', 'monthly');
+    service.dispose();
+    service = rebuild();
+    expect(service.tier, SupporterTier.none);
+  });
+
   test('sequential refreshes each ask the store again', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
-    await service.refresh();
     store.entitlementAnswer = SupporterTier.lifetime;
-    expect(await service.refresh(), SupporterTier.lifetime);
+    await service.refresh();
+    store.entitlementAnswer = SupporterTier.none;
+    expect(await service.refresh(), SupporterTier.none);
     expect(store.calls.where((c) => c == 'entitlement'), hasLength(2));
   });
 
@@ -93,10 +99,10 @@ void main() {
     await build();
     final emitted = <SupporterTier>[];
     final sub = service.changes.listen(emitted.add);
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     await service.refresh();
     await pumpEventQueue();
-    expect(emitted, [SupporterTier.monthly]);
+    expect(emitted, [SupporterTier.lifetime]);
     await sub.cancel();
   });
 
@@ -121,18 +127,18 @@ void main() {
     store.entitlementAnswer = SupporterTier.none;
     final stale = service.refresh();
     store.purchaseAnswer = PurchaseOutcome.purchased;
-    final buying = service.purchase(monthly);
-    store.entitlementAnswer = SupporterTier.monthly;
+    final buying = service.purchase();
+    store.entitlementAnswer = SupporterTier.lifetime;
     gate.complete();
     expect(await buying, PurchaseOutcome.purchased);
-    expect(service.tier, SupporterTier.monthly);
+    expect(service.tier, SupporterTier.lifetime);
     expect(await stale, SupporterTier.none);
   });
 
   test('a thrown purchase or restore leaves the tier untouched', () async {
     await build();
     store.purchaseError = const SupportStoreException('busy', SupportStoreException.busy);
-    await expectLater(service.purchase(monthly), throwsA(isA<SupportStoreException>()));
+    await expectLater(service.purchase(), throwsA(isA<SupportStoreException>()));
     store.restoreError = const SupportStoreException('offline', SupportStoreException.unavailable);
     await expectLater(service.restore(), throwsA(isA<SupportStoreException>()));
     expect(service.tier, SupporterTier.none);
@@ -143,7 +149,7 @@ void main() {
     await build();
     final gate = Completer<void>();
     store.entitlementGate = gate.future;
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     final refreshing = service.refresh();
     service.dispose();
     gate.complete();
@@ -155,18 +161,18 @@ void main() {
     await build();
     final gate = Completer<void>();
     store.entitlementGate = gate.future;
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     final first = service.refresh();
     final second = service.refresh();
     gate.complete();
-    expect(await first, SupporterTier.monthly);
-    expect(await second, SupporterTier.monthly);
+    expect(await first, SupporterTier.lifetime);
+    expect(await second, SupporterTier.lifetime);
     expect(store.calls.where((c) => c == 'entitlement'), hasLength(1));
   });
 
   test('a pushed refund flips the tier and emits', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     await service.refresh();
 
     final emitted = <SupporterTier>[];
@@ -201,26 +207,26 @@ void main() {
   test('a purchased answer refreshes before resolving', () async {
     await build();
     store.purchaseAnswer = PurchaseOutcome.purchased;
-    store.entitlementAnswer = SupporterTier.monthly;
-    expect(await service.purchase(monthly), PurchaseOutcome.purchased);
-    expect(service.tier, SupporterTier.monthly);
-    expect(store.purchasedIds, [monthly]);
+    store.entitlementAnswer = SupporterTier.lifetime;
+    expect(await service.purchase(), PurchaseOutcome.purchased);
+    expect(service.tier, SupporterTier.lifetime);
+    expect(store.purchasedIds, [lifetime]);
   });
 
   test('cancel and pending resolve without a tier change', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     store.purchaseAnswer = PurchaseOutcome.cancelled;
-    expect(await service.purchase(monthly), PurchaseOutcome.cancelled);
+    expect(await service.purchase(), PurchaseOutcome.cancelled);
     store.purchaseAnswer = PurchaseOutcome.pending;
-    expect(await service.purchase(lifetime), PurchaseOutcome.pending);
+    expect(await service.purchase(), PurchaseOutcome.pending);
     expect(service.tier, SupporterTier.none);
     expect(store.calls.where((c) => c == 'entitlement'), isEmpty);
   });
 
   test('restore applies the walked answer, including none', () async {
     await build();
-    store.entitlementAnswer = SupporterTier.monthly;
+    store.entitlementAnswer = SupporterTier.lifetime;
     await service.refresh();
     store.restoreAnswer = SupporterTier.none;
     expect(await service.restore(), SupporterTier.none);
@@ -234,13 +240,22 @@ void main() {
     expect(storage.readString('support.tier'), isNull);
   });
 
-  test('products asks for the two ids in order', () async {
+  test('product asks for the lifetime id and answers it', () async {
     await build();
-    store.productsAnswer = const [
-      StoreProduct(id: monthly, displayPrice: r'$2.99', period: 'month'),
-      StoreProduct(id: lifetime, displayPrice: r'$42.00'),
-    ];
-    final products = await service.products();
-    expect(products.map((p) => p.id), [monthly, lifetime]);
+    store.productsAnswer = const [StoreProduct(id: lifetime, displayPrice: r'$24.99')];
+    final product = await service.product();
+    expect(product.id, lifetime);
+    expect(product.displayPrice, r'$24.99');
+  });
+
+  test('a store that does not know the product throws instead of answering', () async {
+    await build();
+    store.productsAnswer = const [];
+    await expectLater(
+      service.product(),
+      throwsA(
+        isA<SupportStoreException>().having((e) => e.code, 'code', SupportStoreException.failed),
+      ),
+    );
   });
 }

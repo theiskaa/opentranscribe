@@ -24,28 +24,26 @@ void main() {
     messenger.setMockMethodCallHandler(methods, (call) async {
       seen = call;
       return [
-        {'id': 'a.monthly', 'displayPrice': r'$2.99', 'period': 'month'},
-        {'id': 'a.lifetime', 'displayPrice': r'$42.00'},
+        {'id': 'a.lifetime', 'displayPrice': r'$24.99'},
       ];
     });
-    expect(await SupportStore().products(['a.monthly', 'a.lifetime']), const [
-      StoreProduct(id: 'a.monthly', displayPrice: r'$2.99', period: 'month'),
-      StoreProduct(id: 'a.lifetime', displayPrice: r'$42.00'),
+    expect(await SupportStore().products(['a.lifetime']), const [
+      StoreProduct(id: 'a.lifetime', displayPrice: r'$24.99'),
     ]);
     expect(seen.method, 'products');
     expect(seen.arguments, {
-      'ids': ['a.monthly', 'a.lifetime'],
+      'ids': ['a.lifetime'],
     });
   });
 
   test('a product reply missing its price is refused, not guessed', () async {
     messenger.setMockMethodCallHandler(methods, (call) async {
       return [
-        {'id': 'a.monthly'},
+        {'id': 'a.lifetime'},
       ];
     });
     await expectLater(
-      SupportStore().products(['a.monthly']),
+      SupportStore().products(['a.lifetime']),
       throwsA(isA<SupportStoreException>()),
     );
   });
@@ -63,7 +61,7 @@ void main() {
   test('a null products reply is refused, not an empty catalogue', () async {
     messenger.setMockMethodCallHandler(methods, (call) async => null);
     await expectLater(
-      SupportStore().products(['a.monthly']),
+      SupportStore().products(['a.lifetime']),
       throwsA(
         isA<SupportStoreException>().having((e) => e.code, 'code', SupportStoreException.failed),
       ),
@@ -79,36 +77,36 @@ void main() {
       ),
     );
 
-    messenger.setMockMethodCallHandler(methods, (call) async => {'id': 'a.monthly'});
+    messenger.setMockMethodCallHandler(methods, (call) async => {'id': 'a.lifetime'});
     await expectLater(
-      SupportStore().products(['a.monthly']),
+      SupportStore().products(['a.lifetime']),
       throwsA(isA<SupportStoreException>()),
     );
 
     messenger.setMockMethodCallHandler(methods, (call) async => const <Object?>[]);
-    await expectLater(SupportStore().purchase('a.monthly'), throwsA(isA<SupportStoreException>()));
+    await expectLater(SupportStore().purchase('a.lifetime'), throwsA(isA<SupportStoreException>()));
   });
 
   test('a cancelled purchase is an outcome, not an error', () async {
     messenger.setMockMethodCallHandler(methods, (call) async {
       expect(call.method, 'purchase');
-      expect((call.arguments as Map)['id'], 'a.monthly');
+      expect((call.arguments as Map)['id'], 'a.lifetime');
       return {'outcome': 'cancelled'};
     });
-    expect(await SupportStore().purchase('a.monthly'), PurchaseOutcome.cancelled);
+    expect(await SupportStore().purchase('a.lifetime'), PurchaseOutcome.cancelled);
   });
 
   test('purchased and pending map to their outcomes', () async {
     messenger.setMockMethodCallHandler(methods, (call) async => {'outcome': 'purchased'});
-    expect(await SupportStore().purchase('a.monthly'), PurchaseOutcome.purchased);
+    expect(await SupportStore().purchase('a.lifetime'), PurchaseOutcome.purchased);
     messenger.setMockMethodCallHandler(methods, (call) async => {'outcome': 'pending'});
-    expect(await SupportStore().purchase('a.monthly'), PurchaseOutcome.pending);
+    expect(await SupportStore().purchase('a.lifetime'), PurchaseOutcome.pending);
   });
 
   test('an unknown purchase outcome is refused, not guessed', () async {
     messenger.setMockMethodCallHandler(methods, (call) async => {'outcome': 'refunded'});
     await expectLater(
-      SupportStore().purchase('a.monthly'),
+      SupportStore().purchase('a.lifetime'),
       throwsA(
         isA<SupportStoreException>().having((e) => e.code, 'code', SupportStoreException.failed),
       ),
@@ -148,17 +146,9 @@ void main() {
   test('restore answers the walked tier after the sync', () async {
     messenger.setMockMethodCallHandler(methods, (call) async {
       expect(call.method, 'restore');
-      return {'tier': 'monthly'};
+      return {'tier': 'lifetime'};
     });
-    expect(await SupportStore().restore(), SupporterTier.monthly);
-  });
-
-  test('manageSubscriptions resolves on a quiet close', () async {
-    messenger.setMockMethodCallHandler(methods, (call) async {
-      expect(call.method, 'manageSubscriptions');
-      return null;
-    });
-    await SupportStore().manageSubscriptions();
+    expect(await SupportStore().restore(), SupporterTier.lifetime);
   });
 
   test('tier pushes parse and junk falls closed to none', () async {
@@ -166,7 +156,7 @@ void main() {
       events,
       MockStreamHandler.inline(
         onListen: (arguments, sink) {
-          sink.success({'tier': 'monthly'});
+          sink.success({'tier': 'none'});
           sink.success({'tier': 'gold'});
           sink.success('junk');
           sink.success({'tier': 'lifetime'});
@@ -174,7 +164,7 @@ void main() {
       ),
     );
     expect(await SupportStore().tierChanges.take(4).toList(), const [
-      SupporterTier.monthly,
+      SupporterTier.none,
       SupporterTier.none,
       SupporterTier.none,
       SupporterTier.lifetime,

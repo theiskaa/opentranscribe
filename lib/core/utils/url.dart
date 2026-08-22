@@ -7,12 +7,12 @@ const kRepoUrl = 'https://github.com/theiskaa/opentranscribe';
 /// The new-issue page, where a user can request a theme (or anything else).
 const kNewIssueUrl = '$kRepoUrl/issues/new';
 
-/// The published privacy policy, linked where a subscription is sold
-/// (guideline 3.1.2) and saying nothing the app does not do.
+/// The published privacy policy, linked where the supporter purchase is
+/// sold and saying nothing the app does not do.
 const kPrivacyUrl = 'https://opentranscribe.xyz/privacy';
 
-/// Apple's standard EULA, the terms the subscription runs on. The stable
-/// Apple-published address review expects; no custom terms exist.
+/// Apple's standard EULA, the terms the supporter purchase runs on. The
+/// stable Apple-published address review expects; no custom terms exist.
 const kTermsUrl = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 /// Hands a link to the system browser. The APP opens no socket - the OS does,

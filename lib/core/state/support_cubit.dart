@@ -21,9 +21,9 @@ enum SupportRestoreResult { restored, none, failed }
 final class SupportState {
   const SupportState({
     required this.tier,
-    this.products,
+    this.product,
     this.storeUnreachable = false,
-    this.purchasingId,
+    this.purchasing = false,
     this.restoring = false,
     this.pendingApproval = false,
   });
@@ -32,43 +32,42 @@ final class SupportState {
   /// land here without any surface asking.
   final SupporterTier tier;
 
-  /// Null until [SupportCubit.load]'s fetch answers or fails.
-  final List<StoreProduct>? products;
+  /// The lifetime unlock; null until [SupportCubit.load]'s fetch answers or
+  /// fails.
+  final StoreProduct? product;
 
-  /// The price fetch threw: prices give way to the honest unreachable line,
-  /// while the cached [tier] keeps rendering truthfully.
+  /// The price fetch threw: the price gives way to the honest unreachable
+  /// line, while the cached [tier] keeps rendering truthfully.
   final bool storeUnreachable;
 
-  /// The product a purchase is presenting for; null when none is.
-  final String? purchasingId;
-
+  final bool purchasing;
   final bool restoring;
 
   /// An Ask to Buy purchase answered pending; the quiet line stays until any
   /// tier push lands (whatever it landed as, the wait is over).
   final bool pendingApproval;
 
-  bool get isBusy => purchasingId != null || restoring;
+  bool get isBusy => purchasing || restoring;
 
   SupportState copyWith({
     SupporterTier? tier,
-    List<StoreProduct>? products,
+    StoreProduct? product,
     bool? storeUnreachable,
-    String? purchasingId,
+    bool? purchasing,
     bool? restoring,
     bool? pendingApproval,
   }) => SupportState(
     tier: tier ?? this.tier,
-    products: products ?? this.products,
+    product: product ?? this.product,
     storeUnreachable: storeUnreachable ?? this.storeUnreachable,
-    purchasingId: purchasingId ?? this.purchasingId,
+    purchasing: purchasing ?? this.purchasing,
     restoring: restoring ?? this.restoring,
     pendingApproval: pendingApproval ?? this.pendingApproval,
   );
 
   SupportState settled() => SupportState(
     tier: tier,
-    products: products,
+    product: product,
     storeUnreachable: storeUnreachable,
     pendingApproval: pendingApproval,
   );
@@ -77,25 +76,19 @@ final class SupportState {
   bool operator ==(Object other) =>
       other is SupportState &&
       other.tier == tier &&
-      listEquals(other.products, products) &&
+      other.product == product &&
       other.storeUnreachable == storeUnreachable &&
-      other.purchasingId == purchasingId &&
+      other.purchasing == purchasing &&
       other.restoring == restoring &&
       other.pendingApproval == pendingApproval;
 
   @override
-  int get hashCode => Object.hash(
-    tier,
-    Object.hashAll(products ?? const []),
-    storeUnreachable,
-    purchasingId,
-    restoring,
-    pendingApproval,
-  );
+  int get hashCode =>
+      Object.hash(tier, product, storeUnreachable, purchasing, restoring, pendingApproval);
 }
 
 /// Presentation over [SupportService] for the gate surfaces and the support
-/// screen: the live tier, the fetched prices, and the one-at-a-time
+/// screen: the live tier, the fetched price, and the one-at-a-time
 /// purchase/restore choreography. Business policy stays in the service; this
 /// only shapes answers for rendering.
 class SupportCubit extends Cubit<SupportState> {
@@ -112,21 +105,22 @@ class SupportCubit extends Cubit<SupportState> {
   final SupportService _service;
   late final StreamSubscription<SupporterTier> _changes;
 
-  /// Fetches prices off the build path; the tier is already seeded. A failed
-  /// fetch clears any previously fetched prices: the unreachable line and a
-  /// price list must never render together.
+  /// Fetches the price off the build path; the tier is already seeded. A
+  /// failed fetch clears any previously fetched price: the unreachable line
+  /// and a price must never render together.
   Future<void> load() async {
     try {
-      final products = await _service.products();
-      if (!isClosed) emit(state.copyWith(products: products, storeUnreachable: false));
+      final product = await _service.product();
+      if (!isClosed) emit(state.copyWith(product: product, storeUnreachable: false));
     } on SupportStoreException {
       if (isClosed) return;
       emit(
         SupportState(
           tier: state.tier,
           storeUnreachable: true,
-          purchasingId: state.purchasingId,
+          purchasing: state.purchasing,
           restoring: state.restoring,
+          pendingApproval: state.pendingApproval,
         ),
       );
     }
@@ -135,11 +129,11 @@ class SupportCubit extends Cubit<SupportState> {
   /// Null when another operation is already running: a double-tap earns
   /// silence, never a wrong sheet. A store already presenting answers
   /// cancelled for the same reason.
-  Future<SupportPurchaseResult?> purchase(String id) async {
+  Future<SupportPurchaseResult?> purchase() async {
     if (state.isBusy) return null;
-    emit(state.copyWith(purchasingId: id));
+    emit(state.copyWith(purchasing: true));
     try {
-      final outcome = await _service.purchase(id);
+      final outcome = await _service.purchase();
       if (outcome == PurchaseOutcome.pending) emit(state.copyWith(pendingApproval: true));
       return switch (outcome) {
         PurchaseOutcome.purchased => SupportPurchaseResult.purchased,
@@ -168,14 +162,6 @@ class SupportCubit extends Cubit<SupportState> {
       return SupportRestoreResult.failed;
     } finally {
       if (!isClosed) emit(state.settled());
-    }
-  }
-
-  Future<void> manageSubscriptions() async {
-    try {
-      await _service.manageSubscriptions();
-    } on SupportStoreException {
-      // The system sheet could not present; nothing to explain.
     }
   }
 

@@ -14,12 +14,7 @@ import 'package:opentranscribe/core/support/supporter_tier.dart';
 /// listener land the same way, so a refund, a renewal, or an Ask to Buy
 /// approval needs no surface to ask.
 class SupportService {
-  SupportService({
-    required this._storage,
-    required this._store,
-    required this._monthlyId,
-    required this._lifetimeId,
-  }) {
+  SupportService({required this._storage, required this._store, required this._lifetimeId}) {
     // Errors are dropped, not just ignored: the stream stays alive after one,
     // and the tier simply stands until a readable push or refresh arrives.
     _pushes = _store.tierChanges.listen(_apply, onError: (Object _) {});
@@ -29,7 +24,6 @@ class SupportService {
 
   final LocalService _storage;
   final SupportStore _store;
-  final String _monthlyId;
   final String _lifetimeId;
 
   final StreamController<SupporterTier> _changes = StreamController.broadcast();
@@ -57,16 +51,23 @@ class SupportService {
   Future<SupporterTier> refresh() =>
       _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
 
-  /// The two products as localized presentation facts, store order kept.
-  /// Needs the store reachable; throws rather than answers stale prices.
-  Future<List<StoreProduct>> products() => _store.products([_monthlyId, _lifetimeId]);
+  /// The lifetime unlock as a localized presentation fact. Needs the store
+  /// reachable; throws rather than answers a stale price, including when the
+  /// store answers but does not know the product.
+  Future<StoreProduct> product() async {
+    final products = await _store.products([_lifetimeId]);
+    if (products.isEmpty) {
+      throw const SupportStoreException('product not in the store', SupportStoreException.failed);
+    }
+    return products.first;
+  }
 
-  /// Presents the purchase sheet for [id]. A purchased answer applies the
-  /// store's recomputed tier before resolving, so the caller's next [tier]
-  /// read is already true; pending resolves unchanged and lands later as a
-  /// push, cancel is silence.
-  Future<PurchaseOutcome> purchase(String id) async {
-    final outcome = await _store.purchase(id);
+  /// Presents the purchase sheet for the lifetime unlock. A purchased answer
+  /// applies the store's recomputed tier before resolving, so the caller's
+  /// next [tier] read is already true; pending resolves unchanged and lands
+  /// later as a push, cancel is silence.
+  Future<PurchaseOutcome> purchase() async {
+    final outcome = await _store.purchase(_lifetimeId);
     if (outcome == PurchaseOutcome.purchased) {
       // Drain a round trip already in flight first: it was issued before the
       // purchase, so joining it would resolve against the pre-purchase truth.
@@ -92,9 +93,6 @@ class SupportService {
     await _apply(answer);
     return answer;
   }
-
-  /// Presents the system manage-subscriptions sheet; resolves once it closes.
-  Future<void> manageSubscriptions() => _store.manageSubscriptions();
 
   Future<SupporterTier> _refresh() async {
     final epoch = _epoch;

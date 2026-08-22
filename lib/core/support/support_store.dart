@@ -73,9 +73,6 @@ class SupportStore {
   /// walked tier. Needs network; a failure here changes nothing.
   Future<SupporterTier> restore() async => _tierOf(await _invoke<Map<Object?, Object?>>('restore'));
 
-  /// Presents the system manage-subscriptions sheet; resolves once it closes.
-  Future<void> manageSubscriptions() => _invoke<void>('manageSubscriptions');
-
   Future<T?> _invoke<T>(String method, [Object? args]) async {
     try {
       return await _methods.invokeMethod<T>(method, args);
@@ -94,11 +91,10 @@ class SupportStore {
     final map = raw is Map ? raw : null;
     final id = map?['id'];
     final price = map?['displayPrice'];
-    final period = map?['period'];
-    if (id is! String || price is! String || period is! String?) {
+    if (id is! String || price is! String) {
       throw const SupportStoreException('malformed product reply', SupportStoreException.failed);
     }
-    return StoreProduct(id: id, displayPrice: price, period: period);
+    return StoreProduct(id: id, displayPrice: price);
   }
 
   static SupporterTier _tierOf(Object? raw) {
