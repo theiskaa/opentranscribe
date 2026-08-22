@@ -737,4 +737,74 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
+
+  @override
+  String get supportGateBody => '格式化导出是俱乐部会员功能。备份对所有人保持免费。';
+
+  @override
+  String get settingsSupport => '支持';
+
+  @override
+  String get supportGateAction => '成为俱乐部会员';
+
+  @override
+  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';
+
+  @override
+  String get supportPerkExports => '格式化导出';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
+
+  @override
+  String get supportPerkFuture => '未来的俱乐部功能';
+
+  @override
+  String get supportPerkFutureNote => '之后加入俱乐部的功能也包含在内。';
+
+  @override
+  String get supportThanks => '你已永久加入俱乐部。谢谢。';
+
+  @override
+  String supportJoin(String price) {
+    return '以 $price 加入俱乐部';
+  }
+
+  @override
+  String get supportRestore => '恢复购买';
+
+  @override
+  String get supportUnreachable => '无法连接 App Store。重新打开此页面即可重试。';
+
+  @override
+  String get supportPending => '等待批准。批准后购买即完成。';
+
+  @override
+  String get supportRestoreNoneTitle => '没有可恢复的购买';
+
+  @override
+  String get supportRestoreNoneBody => '此 Apple ID 未关联任何俱乐部购买。';
+
+  @override
+  String get supportFailedTitle => '未能完成';
+
+  @override
+  String get supportFailedBody => 'App Store 未能完成。请重试。';
+
+  @override
+  String get supportPrivacy => '隐私政策';
+
+  @override
+  String get supportTerms => '使用条款';
+
+  @override
+  String get supportUnlocksSection => '俱乐部权益';
+
+  @override
+  String get supporterTag => '俱乐部';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。购买遵循 Apple 的标准$terms。';
+  }
 }

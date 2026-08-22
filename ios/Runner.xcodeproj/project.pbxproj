@@ -34,6 +34,7 @@
 		AAAA000000000000000000FB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FA /* Notifications.swift */; };
 		AAAA000000000000000000FC /* StorageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000F9 /* StorageKey.swift */; };
 		AAAA000000000000000000FE /* ShareExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000FD /* ShareExport.swift */; };
+		AAAA00000000000000000161 /* SupportStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000160 /* SupportStore.swift */; };
 		DA609263ADDDE0E4EE94A547 /* RecorderActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7396A45847800ECE09B53A3 /* RecorderActivityBundle.swift */; };
 		DE9ED3623B6FCEAA95FBCE79 /* RecorderActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B6B6197835245A86BE4220BF /* RecorderActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E1DD6F20D5A2357F4CA62ABA /* RecordingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */; };
@@ -113,6 +114,8 @@
 		AAAA000000000000000000FA /* Notifications.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000F9 /* StorageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StorageKey.swift; sourceTree = "<group>"; };
 		AAAA000000000000000000FD /* ShareExport.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShareExport.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000160 /* SupportStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SupportStore.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000162 /* Support.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Support.storekit; sourceTree = "<group>"; };
 		B0534CEEC9DAB9B6C3271CD8 /* RecordingActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingActivityAttributes.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000101 /* RecordingIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingIntents.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000102 /* PendingRecordingAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRecordingAction.swift; sourceTree = "<group>"; };
@@ -251,6 +254,8 @@
 				AAAA000000000000000000FA /* Notifications.swift */,
 				AAAA000000000000000000F9 /* StorageKey.swift */,
 				AAAA000000000000000000FD /* ShareExport.swift */,
+				AAAA00000000000000000160 /* SupportStore.swift */,
+				AAAA00000000000000000162 /* Support.storekit */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				AAAA00000000000000000150 /* WaveSplash.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
@@ -456,6 +461,7 @@
 				AAAA000000000000000000FB /* Notifications.swift in Sources */,
 				AAAA000000000000000000FC /* StorageKey.swift in Sources */,
 				AAAA000000000000000000FE /* ShareExport.swift in Sources */,
+				AAAA00000000000000000161 /* SupportStore.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				E1DD6F20D5A2357F4CA62ABA /* RecordingActivityAttributes.swift in Sources */,

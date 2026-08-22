@@ -1469,6 +1469,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
+
+  /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted exports are for club members. The backup stays free for everyone.'**
+  String get supportGateBody;
+
+  /// Home menu row opening the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get settingsSupport;
+
+  /// Gate sheet action that opens the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Become a club member'**
+  String get supportGateAction;
+
+  /// Support screen intro for a non-supporter
+  ///
+  /// In en, this message translates to:
+  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.'**
+  String get supportPitch;
+
+  /// Perk row label: the formatted exports
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted exports'**
+  String get supportPerkExports;
+
+  /// Perk row note naming the formats; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown, Obsidian, or a website.'**
+  String get supportPerkExportsNote;
+
+  /// Perk row label: later club-only features are included
+  ///
+  /// In en, this message translates to:
+  /// **'Future club features'**
+  String get supportPerkFuture;
+
+  /// Perk row note for future club features; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever joins the club later, included.'**
+  String get supportPerkFutureNote;
+
+  /// Support screen intro for a club member
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re in the club for good. Thank you.'**
+  String get supportThanks;
+
+  /// Label of the pinned join button; price is the store's localized price string
+  ///
+  /// In en, this message translates to:
+  /// **'Join the club for {price}'**
+  String supportJoin(String price);
+
+  /// Link that restores purchases via the store sync
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get supportRestore;
+
+  /// Line shown when the price fetch failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not be reached. Reopen this screen to try again.'**
+  String get supportUnreachable;
+
+  /// Line shown after an Ask to Buy purchase answered pending
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval. The purchase finishes once it is approved.'**
+  String get supportPending;
+
+  /// Sheet title when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to restore'**
+  String get supportRestoreNoneTitle;
+
+  /// Sheet body when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'No club purchase is attached to this Apple ID.'**
+  String get supportRestoreNoneBody;
+
+  /// Sheet title when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'That did not go through'**
+  String get supportFailedTitle;
+
+  /// Sheet body when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not finish. Try again.'**
+  String get supportFailedBody;
+
+  /// Privacy policy link label
+  ///
+  /// In en, this message translates to:
+  /// **'privacy policy'**
+  String get supportPrivacy;
+
+  /// Terms of use link label
+  ///
+  /// In en, this message translates to:
+  /// **'terms of use'**
+  String get supportTerms;
+
+  /// Section label above the list of features supporting unlocks
+  ///
+  /// In en, this message translates to:
+  /// **'Club members get'**
+  String get supportUnlocksSection;
+
+  /// Eyebrow under the app name on the support screen header
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get supporterTag;
+
+  /// Footer paragraph; privacy and terms are the inline tappable link labels
+  ///
+  /// In en, this message translates to:
+  /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
+  String supportFooter(String privacy, String terms);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

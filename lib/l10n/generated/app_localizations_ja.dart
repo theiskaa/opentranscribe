@@ -747,4 +747,75 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
+
+  @override
+  String get supportGateBody => '形式を選べる書き出しはクラブメンバー向けです。バックアップは誰でも無料のままです。';
+
+  @override
+  String get settingsSupport => 'サポート';
+
+  @override
+  String get supportGateAction => 'クラブメンバーになる';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。クラブへの参加は一度の支払いだけ、ずっと有効です。';
+
+  @override
+  String get supportPerkExports => '形式を選べる書き出し';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
+
+  @override
+  String get supportPerkFuture => '今後のクラブ機能';
+
+  @override
+  String get supportPerkFutureNote => '後から加わるクラブ機能も含まれます。';
+
+  @override
+  String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';
+
+  @override
+  String supportJoin(String price) {
+    return '$priceでクラブに参加';
+  }
+
+  @override
+  String get supportRestore => '購入を復元';
+
+  @override
+  String get supportUnreachable => 'App Storeに接続できません。この画面を開き直すと再試行します。';
+
+  @override
+  String get supportPending => '承認待ちです。承認されると購入が完了します。';
+
+  @override
+  String get supportRestoreNoneTitle => '復元できる購入はありません';
+
+  @override
+  String get supportRestoreNoneBody => 'このApple IDにクラブの購入は関連付けられていません。';
+
+  @override
+  String get supportFailedTitle => '完了できませんでした';
+
+  @override
+  String get supportFailedBody => 'App Storeが完了できませんでした。もう一度お試しください。';
+
+  @override
+  String get supportPrivacy => 'プライバシーポリシー';
+
+  @override
+  String get supportTerms => '利用規約';
+
+  @override
+  String get supportUnlocksSection => 'クラブ特典';
+
+  @override
+  String get supporterTag => 'クラブ';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。購入はAppleの標準$termsに従います。';
+  }
 }

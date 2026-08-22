@@ -793,4 +793,77 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
+
+  @override
+  String get supportGateBody =>
+      'Formatted exports are for club members. The backup stays free for everyone.';
+
+  @override
+  String get settingsSupport => 'Support';
+
+  @override
+  String get supportGateAction => 'Become a club member';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.';
+
+  @override
+  String get supportPerkExports => 'Formatted exports';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
+
+  @override
+  String get supportPerkFuture => 'Future club features';
+
+  @override
+  String get supportPerkFutureNote => 'Whatever joins the club later, included.';
+
+  @override
+  String get supportThanks => 'You\'re in the club for good. Thank you.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Join the club for $price';
+  }
+
+  @override
+  String get supportRestore => 'Restore purchases';
+
+  @override
+  String get supportUnreachable =>
+      'The App Store could not be reached. Reopen this screen to try again.';
+
+  @override
+  String get supportPending => 'Waiting for approval. The purchase finishes once it is approved.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Nothing to restore';
+
+  @override
+  String get supportRestoreNoneBody => 'No club purchase is attached to this Apple ID.';
+
+  @override
+  String get supportFailedTitle => 'That did not go through';
+
+  @override
+  String get supportFailedBody => 'The App Store could not finish. Try again.';
+
+  @override
+  String get supportPrivacy => 'privacy policy';
+
+  @override
+  String get supportTerms => 'terms of use';
+
+  @override
+  String get supportUnlocksSection => 'Club members get';
+
+  @override
+  String get supporterTag => 'Club';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Supporting changes nothing about privacy. The journal never leaves the phone, as the $privacy says, and the purchase runs on Apple\'s standard $terms.';
+  }
 }

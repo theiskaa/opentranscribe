@@ -31,8 +31,10 @@ import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:opentranscribe/core/services/support_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/support/support_store.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reflections/reflections.dart';
@@ -88,6 +90,7 @@ class Deps {
     required this.intentActionService,
     required this.splashHandoff,
     required this.launchBackdrop,
+    required this.supportService,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -171,6 +174,11 @@ class Deps {
   /// format pickers. Built here because the composition root is the one place
   /// allowed to name an exporter, mirroring [engineDescriptors].
   final List<ExporterDescriptor> exporterDescriptors;
+
+  /// The one owner of the supporter answer (the paid entitlement). Reads its
+  /// cached tier synchronously at construction; no store channel is awaited
+  /// on the launch path, and [launchMaintenance] refreshes it off-frame.
+  final SupportService supportService;
 
   /// How long any ONE platform-channel round trip below may take before
   /// startup gives up on it.
@@ -302,6 +310,15 @@ class Deps {
       language: () => AppLanguage.of(localService),
     );
 
+    // The support backbone. The one place naming the product, like engines
+    // and exporters. Constructed from the cached tier alone; the first store
+    // round trip is launchMaintenance's refresh, never the launch path.
+    final supportService = SupportService(
+      storage: localService,
+      store: SupportStore(),
+      lifetimeId: 'xyz.opentranscribe.supporter.lifetime',
+    );
+
     // The backup backbone. The one place allowed to name a concrete exporter,
     // like the engine rule; a new format lands as one entry here plus its
     // descriptor below, not new plumbing.
@@ -326,6 +343,7 @@ class Deps {
       share: shareExport,
       appVersion: () async => appVersion ??= (await PackageInfo.fromPlatform()).version,
       staging: stagingRegistry,
+      isSupporter: () => supportService.tier.isSupporter,
     );
     final importService = ImportService(
       transcription: transcriptionService,
@@ -371,6 +389,7 @@ class Deps {
       ),
       splashHandoff: SplashHandoff(),
       launchBackdrop: LaunchBackdrop(),
+      supportService: supportService,
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
@@ -404,27 +423,30 @@ class Deps {
   ///
   /// Single-flight, never throws, and safe to call on every foreground: it does
   /// its work once and afterwards returns the same future. It re-arms, so the
-  /// next call runs ALL THREE passes again, whenever the audio sweep did not
+  /// next call runs every pass again, whenever the audio sweep did not
   /// walk the whole directory: a capture was live or finalizing, or the sweep
   /// threw. An orphan it did not reach is invisible to every surface until some
   /// pass recovers it, and the reflection passes are individually single-flight,
   /// so repeating them costs nothing.
   ///
-  /// The three run concurrently, and only the sweep is awaited. Two reasons in
+  /// The passes run concurrently, and only the sweep is awaited. Two reasons in
   /// one: a wedged file probe must not hold the reflection catch-up and the
   /// notification sync for the process lifetime, and a reflection generation
   /// (minutes, several periods deep) must not hold the sweep's retry, which is
   /// the failure the re-arm exists to fix. A wedged probe leaves this future
   /// pending, so nothing re-arms in a loop.
   ///
-  /// The returned future therefore means "the audio sweep settled", not "all
-  /// three finished". Both callers fire it unawaited.
+  /// The returned future therefore means "the audio sweep settled", not
+  /// "every pass finished". Both callers fire it unawaited.
   static Future<void> launchMaintenance() => _maintenance ??= _maintain();
 
   static Future<void> _maintain() async {
     unawaited(_quietly('reflection catch-up', () => i.reflectionService.catchUp()));
     unawaited(_quietly('notification sync', () => i.reflectionNotifier.sync()));
-    // Fire-and-forget, like the two passes above: a stale staging directory
+    // Fire-and-forget: entitlement staleness costs a locked format at worst,
+    // and the cached tier already answered the launch.
+    unawaited(_quietly('supporter refresh', () => i.supportService.refresh()));
+    // Fire-and-forget, like the passes above: a stale staging directory
     // costs disk, not correctness, so it must not gate the re-arm below.
     unawaited(_quietly('staging sweep', _sweepStaging));
     // Null, not false: `_quietly` answers null when the sweep threw, which is

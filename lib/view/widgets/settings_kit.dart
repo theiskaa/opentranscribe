@@ -90,6 +90,7 @@ class SelectableRow extends StatelessWidget {
     this.leading,
     this.note,
     this.dimmed = false,
+    this.locked = false,
     super.key,
   });
 
@@ -111,13 +112,17 @@ class SelectableRow extends StatelessWidget {
   /// A kept-but-unavailable choice (an unsupported language): shown honestly,
   /// quieter than the rest.
   final bool dimmed;
+
+  /// A supporter-gated choice: a quiet lock takes the checkmark's seat, and
+  /// the row never reads as selected while it is on.
+  final bool locked;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.settings;
-    final active = selected && !dimmed;
+    final active = selected && !dimmed && !locked;
     final duration = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
     final curve = theme.motion.indicatorCurve;
     final chipColor = active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground;
@@ -178,18 +183,31 @@ class SelectableRow extends StatelessWidget {
                 ],
               ),
             ),
-            // Always in the row at zero opacity, so the label never reflows
-            // when the checkmark arrives.
-            AnimatedOpacity(
-              opacity: active ? 1 : 0,
+            // One trailing seat, crossfaded between its occupants so an
+            // unlock animates like every other state change here. The
+            // checkmark keeps its zero-opacity residency either way, so the
+            // label never reflows.
+            AnimatedSwitcher(
               duration: duration,
-              curve: curve,
-              child: AnimatedScale(
-                scale: active ? 1 : 0.5,
-                duration: duration,
-                curve: curve,
-                child: AppIcon(AppIcons.checkmark, size: 14, color: theme.text),
-              ),
+              child: locked
+                  ? AppIcon(
+                      AppIcons.lock,
+                      key: const ValueKey('locked'),
+                      size: 14,
+                      color: theme.textSecondary,
+                    )
+                  : AnimatedOpacity(
+                      key: const ValueKey('check'),
+                      opacity: active ? 1 : 0,
+                      duration: duration,
+                      curve: curve,
+                      child: AnimatedScale(
+                        scale: active ? 1 : 0.5,
+                        duration: duration,
+                        curve: curve,
+                        child: AppIcon(AppIcons.checkmark, size: 14, color: theme.text),
+                      ),
+                    ),
             ),
           ],
         ),

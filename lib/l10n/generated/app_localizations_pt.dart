@@ -802,4 +802,77 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get importFailedMidway =>
       'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
+
+  @override
+  String get supportGateBody =>
+      'As exportações formatadas são para membros do clube. A cópia de segurança continua gratuita para todos.';
+
+  @override
+  String get settingsSupport => 'Apoiar';
+
+  @override
+  String get supportGateAction => 'Tornar-se membro do clube';
+
+  @override
+  String get supportPitch =>
+      'O OpenTranscribe é gratuito e privado, e apoiá-lo mantém-no assim. Entrar no clube é um único pagamento, para sempre.';
+
+  @override
+  String get supportPerkExports => 'Exportações formatadas';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian ou um site.';
+
+  @override
+  String get supportPerkFuture => 'Futuras funções do clube';
+
+  @override
+  String get supportPerkFutureNote => 'O que chegar ao clube depois, incluído.';
+
+  @override
+  String get supportThanks => 'Está no clube para sempre. Obrigado.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Entrar no clube por $price';
+  }
+
+  @override
+  String get supportRestore => 'Restaurar compras';
+
+  @override
+  String get supportUnreachable =>
+      'Não foi possível contactar a App Store. Volte a abrir este ecrã para tentar de novo.';
+
+  @override
+  String get supportPending => 'A aguardar aprovação. A compra termina assim que for aprovada.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Nada a restaurar';
+
+  @override
+  String get supportRestoreNoneBody => 'Nenhuma compra do clube está associada a este ID Apple.';
+
+  @override
+  String get supportFailedTitle => 'Não foi concluído';
+
+  @override
+  String get supportFailedBody => 'A App Store não conseguiu concluir. Tente novamente.';
+
+  @override
+  String get supportPrivacy => 'política de privacidade';
+
+  @override
+  String get supportTerms => 'termos de utilização';
+
+  @override
+  String get supportUnlocksSection => 'Para membros do clube';
+
+  @override
+  String get supporterTag => 'Clube';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a $privacy, e a compra segue os $terms padrão da Apple.';
+  }
 }

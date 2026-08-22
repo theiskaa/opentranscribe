@@ -749,4 +749,75 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
+
+  @override
+  String get supportGateBody => '서식 있는 내보내기는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
+
+  @override
+  String get settingsSupport => '후원';
+
+  @override
+  String get supportGateAction => '클럽 멤버 되기';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 클럽 가입은 한 번의 결제로 평생 유지됩니다.';
+
+  @override
+  String get supportPerkExports => '서식 있는 내보내기';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+
+  @override
+  String get supportPerkFuture => '앞으로의 클럽 기능';
+
+  @override
+  String get supportPerkFutureNote => '나중에 추가되는 클럽 기능도 포함됩니다.';
+
+  @override
+  String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';
+
+  @override
+  String supportJoin(String price) {
+    return '$price에 클럽 가입';
+  }
+
+  @override
+  String get supportRestore => '구입 항목 복원';
+
+  @override
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 이 화면을 다시 열면 다시 시도합니다.';
+
+  @override
+  String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
+
+  @override
+  String get supportRestoreNoneTitle => '복원할 항목 없음';
+
+  @override
+  String get supportRestoreNoneBody => '이 Apple ID에 연결된 클럽 구입이 없습니다.';
+
+  @override
+  String get supportFailedTitle => '완료되지 않았습니다';
+
+  @override
+  String get supportFailedBody => 'App Store에서 완료하지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get supportPrivacy => '개인정보 처리방침';
+
+  @override
+  String get supportTerms => '이용 약관';
+
+  @override
+  String get supportUnlocksSection => '클럽 혜택';
+
+  @override
+  String get supporterTag => '클럽';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구매는 Apple 표준 $terms을 따릅니다.';
+  }
 }

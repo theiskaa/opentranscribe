@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 41-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 43-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -65,6 +65,12 @@ abstract final class AppIcons {
 
   /// SF Symbol `icloud`.
   static const IconData icloud = IconData(0x10030B, fontFamily: _family);
+
+  /// SF Symbol `heart` (the support surfaces).
+  static const IconData heart = IconData(0x1002B4, fontFamily: _family);
+
+  /// SF Symbol `heart.fill` (the join button).
+  static const IconData heartFill = IconData(0x1002B5, fontFamily: _family);
 
   /// SF Symbol `internaldrive`.
   static const IconData internaldrive = IconData(0x10097E, fontFamily: _family);
@@ -153,6 +159,8 @@ abstract final class AppIcons {
         0x1008CB: 'gearshape',
         0x1008CC: 'gearshape.fill',
         0x1001AA: 'globe',
+        0x1002B4: 'heart',
+        0x1002B5: 'heart.fill',
         0x10039F: 'house.fill',
         0x10030B: 'icloud',
         0x10097E: 'internaldrive',

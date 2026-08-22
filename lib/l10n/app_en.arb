@@ -988,5 +988,106 @@
   "importFailedMidway": "The restore stopped partway. Everything restored so far is kept; restore again to finish.",
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
+  },
+  "supportGateBody": "Formatted exports are for club members. The backup stays free for everyone.",
+  "@supportGateBody": {
+    "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
+  },
+  "settingsSupport": "Support",
+  "@settingsSupport": {
+    "description": "Home menu row opening the support screen"
+  },
+  "supportGateAction": "Become a club member",
+  "@supportGateAction": {
+    "description": "Gate sheet action that opens the support screen"
+  },
+  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
+  "@supportPitch": {
+    "description": "Support screen intro for a non-supporter"
+  },
+  "supportPerkExports": "Formatted exports",
+  "@supportPerkExports": {
+    "description": "Perk row label: the formatted exports"
+  },
+  "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
+  "@supportPerkExportsNote": {
+    "description": "Perk row note naming the formats; one line"
+  },
+  "supportPerkFuture": "Future club features",
+  "@supportPerkFuture": {
+    "description": "Perk row label: later club-only features are included"
+  },
+  "supportPerkFutureNote": "Whatever joins the club later, included.",
+  "@supportPerkFutureNote": {
+    "description": "Perk row note for future club features; one line"
+  },
+  "supportThanks": "You're in the club for good. Thank you.",
+  "@supportThanks": {
+    "description": "Support screen intro for a club member"
+  },
+  "supportJoin": "Join the club for {price}",
+  "@supportJoin": {
+    "description": "Label of the pinned join button; price is the store's localized price string",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "supportRestore": "Restore purchases",
+  "@supportRestore": {
+    "description": "Link that restores purchases via the store sync"
+  },
+  "supportUnreachable": "The App Store could not be reached. Reopen this screen to try again.",
+  "@supportUnreachable": {
+    "description": "Line shown when the price fetch failed"
+  },
+  "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
+  "@supportPending": {
+    "description": "Line shown after an Ask to Buy purchase answered pending"
+  },
+  "supportRestoreNoneTitle": "Nothing to restore",
+  "@supportRestoreNoneTitle": {
+    "description": "Sheet title when restore finds no purchase"
+  },
+  "supportRestoreNoneBody": "No club purchase is attached to this Apple ID.",
+  "@supportRestoreNoneBody": {
+    "description": "Sheet body when restore finds no purchase"
+  },
+  "supportFailedTitle": "That did not go through",
+  "@supportFailedTitle": {
+    "description": "Sheet title when a purchase or restore failed"
+  },
+  "supportFailedBody": "The App Store could not finish. Try again.",
+  "@supportFailedBody": {
+    "description": "Sheet body when a purchase or restore failed"
+  },
+  "supportPrivacy": "privacy policy",
+  "@supportPrivacy": {
+    "description": "Privacy policy link label"
+  },
+  "supportTerms": "terms of use",
+  "@supportTerms": {
+    "description": "Terms of use link label"
+  },
+  "supportUnlocksSection": "Club members get",
+  "@supportUnlocksSection": {
+    "description": "Section label above the list of features supporting unlocks"
+  },
+  "supporterTag": "Club",
+  "@supporterTag": {
+    "description": "Eyebrow under the app name on the support screen header"
+  },
+  "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple's standard {terms}.",
+  "@supportFooter": {
+    "description": "Footer paragraph; privacy and terms are the inline tappable link labels",
+    "placeholders": {
+      "privacy": {
+        "type": "String"
+      },
+      "terms": {
+        "type": "String"
+      }
+    }
   }
 }

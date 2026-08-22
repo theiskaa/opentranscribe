@@ -12,7 +12,7 @@
   <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
 </p>
 
-opentranscribe is a voice journal for iOS. Recording, transcription, reflection, and storage all happen on the device. There is no account, no sync, no telemetry, and no code in the app that opens a network connection, so it works the same with the phone in airplane mode.
+opentranscribe is a voice journal for iOS. Recording, transcription, reflection, and storage all happen on the device. There is no account, no sync, no telemetry, and no code in the app that opens a network connection, so it works the same with the phone in airplane mode. The optional supporter purchase goes through StoreKit: the OS talks to the App Store, no journal content is in that conversation, and only the act of buying needs a connection.
 
 <img alt="The week of entries, recording with live text, a finished entry, a written reflection, and the on-device language models" src="assets/readme/showcase.png" width="830">
 

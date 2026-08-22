@@ -51,7 +51,7 @@ void main() {
   });
 
   Future<({BackupCubit cubit, FakeShareExport share, BackupSettings settings, EntryStore store})>
-  build() async {
+  build({bool supporter = true}) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
@@ -84,6 +84,7 @@ void main() {
       share: share,
       appVersion: () async => '0.1.0',
       staging: staging,
+      isSupporter: () => supporter,
       clock: () => fixedClock,
     );
     final import = ImportService(
@@ -279,5 +280,20 @@ void main() {
     final outcome = await world.cubit.importArchive(noise.path);
     expect(outcome!.resolution, ImportResolution.failed);
     expect(world.store.all(), isEmpty);
+  });
+
+  test('a locked journal export answers locked, not failed, and shares nothing', () async {
+    final world = await build(supporter: false);
+    await world.cubit.load();
+    expect(await world.cubit.exportJournal(strings), BackupActionResult.locked);
+    expect(world.share.calls, isEmpty);
+    expect(world.cubit.state.busy, BackupBusy.none);
+    expect(world.settings.lastArchiveAt, isNull);
+  });
+
+  test('the archive save stays free for a non-supporter', () async {
+    final world = await build(supporter: false);
+    await world.cubit.load();
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
   });
 }
