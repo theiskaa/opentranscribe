@@ -39,6 +39,7 @@ import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/circle_tile.dart';
+import 'package:opentranscribe/view/widgets/club_lockup.dart';
 import 'package:opentranscribe/view/widgets/dither.dart';
 import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/dither_field.dart';
@@ -142,6 +143,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 runSpacing: AppSpacing.lg,
                 children: [for (final icon in _icons) AppIcon(icon, color: theme.text)],
               ),
+              _section('Club lockup'),
+              const ClubLockup(),
               _section('Buttons'),
               AppButton(label: 'Primary', onPressed: () {}),
               const SizedBox(height: AppSpacing.sm),
