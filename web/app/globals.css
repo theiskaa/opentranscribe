@@ -102,6 +102,29 @@ button:focus-visible {
   .btn:active {
     transform: scale(0.96);
   }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.24px;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background-color 0.15s ease,
+      transform 0.15s var(--ease-out);
+  }
+  .btn-ghost:hover {
+    border-color: var(--ink-2);
+    background: rgb(245 245 245 / 0.04);
+  }
+  .btn-ghost:active {
+    transform: scale(0.96);
+  }
 }
 
 .rule-fade {
@@ -150,7 +173,8 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .boot { animation: none; opacity: 1; }
-  .btn:active { transform: none; }
+  .btn:active,
+  .btn-ghost:active { transform: none; }
   .reveal,
   .reveal-stagger > * {
     opacity: 1 !important;
