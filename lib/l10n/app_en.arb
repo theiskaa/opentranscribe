@@ -989,75 +989,58 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateTitle": "A club feature",
-  "@supportGateTitle": {
-    "description": "Title of the gate sheet a supporter-locked action answers with"
-  },
   "supportGateBody": "Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.",
   "@supportGateBody": {
     "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
   },
-  "supportGateAction": "Support the app",
+  "settingsSupport": "Support",
+  "@settingsSupport": {
+    "description": "Home menu row opening the support screen"
+  },
+  "supportGateAction": "Become a club member",
   "@supportGateAction": {
     "description": "Gate sheet action that opens the support screen"
   },
-  "settingsSupport": "Support",
-  "@settingsSupport": {
-    "description": "Home menu row and support screen name"
-  },
-  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.",
+  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
   "@supportPitch": {
     "description": "Support screen intro for a non-supporter"
   },
-  "supportThanksMonthly": "You're in the club. Thank you.",
-  "@supportThanksMonthly": {
-    "description": "Support screen intro while the monthly subscription runs"
+  "supportPerkExports": "Formatted exports",
+  "@supportPerkExports": {
+    "description": "Perk row label: the formatted exports"
   },
-  "supportThanksLifetime": "You're in the club for good. Thank you.",
-  "@supportThanksLifetime": {
-    "description": "Support screen intro after the lifetime unlock"
+  "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
+  "@supportPerkExportsNote": {
+    "description": "Perk row note naming the formats; one line"
   },
-  "supportMonthly": "Monthly",
-  "@supportMonthly": {
-    "description": "Label of the monthly subscription row"
+  "supportPerkFuture": "Future club features",
+  "@supportPerkFuture": {
+    "description": "Perk row label: later club-only features are included"
   },
-  "supportLifetime": "Lifetime",
-  "@supportLifetime": {
-    "description": "Label of the lifetime unlock row"
+  "supportPerkFutureNote": "Whatever joins the club later, included.",
+  "@supportPerkFutureNote": {
+    "description": "Perk row note for future club features; one line"
   },
-  "supportPerMonth": "{price} a month",
-  "@supportPerMonth": {
-    "description": "Price detail of the monthly row; price is the store's localized price string",
+  "supportThanks": "You're in the club for good. Thank you.",
+  "@supportThanks": {
+    "description": "Support screen intro for a club member"
+  },
+  "supportJoin": "Join the club for {price}",
+  "@supportJoin": {
+    "description": "Label of the pinned join button; price is the store's localized price string",
     "placeholders": {
       "price": {
         "type": "String"
       }
     }
-  },
-  "supportOnce": "{price} once",
-  "@supportOnce": {
-    "description": "Price detail of the lifetime row; price is the store's localized price string",
-    "placeholders": {
-      "price": {
-        "type": "String"
-      }
-    }
-  },
-  "supportManage": "Manage subscription",
-  "@supportManage": {
-    "description": "Row opening the system manage-subscriptions sheet"
   },
   "supportRestore": "Restore purchases",
   "@supportRestore": {
-    "description": "Row that restores purchases via the store sync"
+    "description": "Link that restores purchases via the store sync"
   },
-  "supportUnreachable": "The App Store could not be reached. Prices will appear once it can be.",
+  "supportUnreachable": "The App Store could not be reached. Reopen this screen to try again.",
   "@supportUnreachable": {
     "description": "Line shown when the price fetch failed"
-  },
-  "supportUpgradeInfo": "Lifetime covers everything from then on. Cancel the monthly under Manage subscription.",
-  "@supportUpgradeInfo": {
-    "description": "Line under the rows while subscribed, explaining the lifetime upgrade"
   },
   "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
   "@supportPending": {
@@ -1095,7 +1078,7 @@
   "@supporterTag": {
     "description": "Eyebrow under the app name on the support screen header"
   },
-  "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the subscription runs on Apple's standard {terms}.",
+  "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple's standard {terms}.",
   "@supportFooter": {
     "description": "Footer paragraph; privacy and terms are the inline tappable link labels",
     "placeholders": {

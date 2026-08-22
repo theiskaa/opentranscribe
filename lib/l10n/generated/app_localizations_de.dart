@@ -805,57 +805,45 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
 
   @override
-  String get supportGateTitle => 'Eine Club-Funktion';
-
-  @override
   String get supportGateBody =>
       'Formatierte Exporte werden durch die Unterstützung von OpenTranscribe freigeschaltet. Das Backup bleibt kostenlos.';
-
-  @override
-  String get supportGateAction => 'App unterstützen';
 
   @override
   String get settingsSupport => 'Unterstützen';
 
   @override
+  String get supportGateAction => 'Clubmitglied werden';
+
+  @override
   String get supportPitch =>
-      'OpenTranscribe ist kostenlos und privat, und Unterstützung hält es dabei. Heute schaltet der Clubbeitritt die formatierten Exporte frei. Neue Funktionen erscheinen zuerst für den Club, und manche bleiben ihm vorbehalten.';
+      'OpenTranscribe ist kostenlos und privat, und Unterstützung hält es dabei. Der Clubbeitritt ist eine Zahlung, für immer.';
 
   @override
-  String get supportThanksMonthly => 'Du bist im Club. Danke.';
+  String get supportPerkExports => 'Formatierte Exporte';
 
   @override
-  String get supportThanksLifetime => 'Du bist für immer im Club. Danke.';
+  String get supportPerkExportsNote => 'Markdown, Obsidian oder eine Website.';
 
   @override
-  String get supportMonthly => 'Monatlich';
+  String get supportPerkFuture => 'Künftige Club-Funktionen';
 
   @override
-  String get supportLifetime => 'Lebenslang';
+  String get supportPerkFutureNote => 'Was später zum Club kommt, inklusive.';
 
   @override
-  String supportPerMonth(String price) {
-    return '$price im Monat';
+  String get supportThanks => 'Du bist für immer im Club. Danke.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Für $price dem Club beitreten';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '$price einmalig';
-  }
-
-  @override
-  String get supportManage => 'Abo verwalten';
 
   @override
   String get supportRestore => 'Käufe wiederherstellen';
 
   @override
   String get supportUnreachable =>
-      'Der App Store ist nicht erreichbar. Preise erscheinen, sobald er es ist.';
-
-  @override
-  String get supportUpgradeInfo =>
-      'Lebenslang deckt ab dann alles ab. Das Monatsabo wird unter Abo verwalten gekündigt.';
+      'Der App Store ist nicht erreichbar. Öffne diesen Bildschirm später erneut.';
 
   @override
   String get supportPending =>
@@ -887,6 +875,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return 'Unterstützen ändert nichts an der Privatsphäre. Das Journal verlässt das Telefon nie, siehe $privacy. Das Abo läuft zu Apples üblichen $terms.';
+    return 'Unterstützen ändert nichts an der Privatsphäre. Das Journal verlässt das Telefon nie, siehe $privacy. Der Kauf läuft zu Apples üblichen $terms.';
   }
 }

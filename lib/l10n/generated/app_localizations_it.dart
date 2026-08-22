@@ -803,57 +803,45 @@ class AppLocalizationsIt extends AppLocalizations {
       'Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.';
 
   @override
-  String get supportGateTitle => 'Una funzione del club';
-
-  @override
   String get supportGateBody =>
       'Le esportazioni formattate si sbloccano sostenendo OpenTranscribe. Il backup resta gratuito.';
-
-  @override
-  String get supportGateAction => 'Sostieni l\'app';
 
   @override
   String get settingsSupport => 'Sostieni';
 
   @override
+  String get supportGateAction => 'Diventa membro del club';
+
+  @override
   String get supportPitch =>
-      'OpenTranscribe è gratuito e privato, e sostenerlo lo mantiene così. Oggi, entrare nel club sblocca le esportazioni formattate. Le novità arrivano prima al club, e alcune saranno solo sue.';
+      'OpenTranscribe è gratuito e privato, e sostenerlo lo mantiene così. Entrare nel club è un solo pagamento, per sempre.';
 
   @override
-  String get supportThanksMonthly => 'Sei nel club. Grazie.';
+  String get supportPerkExports => 'Esportazioni formattate';
 
   @override
-  String get supportThanksLifetime => 'Sei nel club per sempre. Grazie.';
+  String get supportPerkExportsNote => 'Markdown, Obsidian o un sito web.';
 
   @override
-  String get supportMonthly => 'Mensile';
+  String get supportPerkFuture => 'Future funzioni del club';
 
   @override
-  String get supportLifetime => 'A vita';
+  String get supportPerkFutureNote => 'Ciò che arriverà al club, incluso.';
 
   @override
-  String supportPerMonth(String price) {
-    return '$price al mese';
+  String get supportThanks => 'Sei nel club per sempre. Grazie.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Entra nel club per $price';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '$price una volta';
-  }
-
-  @override
-  String get supportManage => 'Gestisci abbonamento';
 
   @override
   String get supportRestore => 'Ripristina acquisti';
 
   @override
   String get supportUnreachable =>
-      'Impossibile raggiungere l\'App Store. I prezzi appariranno appena possibile.';
-
-  @override
-  String get supportUpgradeInfo =>
-      'A vita copre tutto da quel momento. Il mensile si annulla in Gestisci abbonamento.';
+      'Impossibile raggiungere l\'App Store. Riapri questa schermata per riprovare.';
 
   @override
   String get supportPending =>
@@ -885,6 +873,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return 'Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono, come indicato nella $privacy, e l\'abbonamento segue le $terms standard di Apple.';
+    return 'Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono, come indicato nella $privacy, e l\'acquisto segue le $terms standard di Apple.';
   }
 }

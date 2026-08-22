@@ -795,57 +795,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 
   @override
-  String get supportGateTitle => 'A club feature';
-
-  @override
   String get supportGateBody =>
       'Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.';
-
-  @override
-  String get supportGateAction => 'Support the app';
 
   @override
   String get settingsSupport => 'Support';
 
   @override
+  String get supportGateAction => 'Become a club member';
+
+  @override
   String get supportPitch =>
-      'OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.';
+      'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.';
 
   @override
-  String get supportThanksMonthly => 'You\'re in the club. Thank you.';
+  String get supportPerkExports => 'Formatted exports';
 
   @override
-  String get supportThanksLifetime => 'You\'re in the club for good. Thank you.';
+  String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
 
   @override
-  String get supportMonthly => 'Monthly';
+  String get supportPerkFuture => 'Future club features';
 
   @override
-  String get supportLifetime => 'Lifetime';
+  String get supportPerkFutureNote => 'Whatever joins the club later, included.';
 
   @override
-  String supportPerMonth(String price) {
-    return '$price a month';
+  String get supportThanks => 'You\'re in the club for good. Thank you.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Join the club for $price';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '$price once';
-  }
-
-  @override
-  String get supportManage => 'Manage subscription';
 
   @override
   String get supportRestore => 'Restore purchases';
 
   @override
   String get supportUnreachable =>
-      'The App Store could not be reached. Prices will appear once it can be.';
-
-  @override
-  String get supportUpgradeInfo =>
-      'Lifetime covers everything from then on. Cancel the monthly under Manage subscription.';
+      'The App Store could not be reached. Reopen this screen to try again.';
 
   @override
   String get supportPending => 'Waiting for approval. The purchase finishes once it is approved.';
@@ -876,6 +864,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return 'Supporting changes nothing about privacy. The journal never leaves the phone, as the $privacy says, and the subscription runs on Apple\'s standard $terms.';
+    return 'Supporting changes nothing about privacy. The journal never leaves the phone, as the $privacy says, and the purchase runs on Apple\'s standard $terms.';
   }
 }

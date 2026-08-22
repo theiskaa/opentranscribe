@@ -749,54 +749,43 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
-  String get supportGateTitle => 'クラブ向け機能';
-
-  @override
   String get supportGateBody => '形式を選べる書き出しは、OpenTranscribeをサポートすると使えるようになります。バックアップは無料のままです。';
-
-  @override
-  String get supportGateAction => 'アプリをサポート';
 
   @override
   String get settingsSupport => 'サポート';
 
   @override
+  String get supportGateAction => 'クラブメンバーになる';
+
+  @override
   String get supportPitch =>
-      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。今はクラブに入ると形式を選べる書き出しが使えるようになります。新機能はまずクラブに届き、一部はクラブ専用になります。';
+      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。クラブへの参加は一度の支払いだけ、ずっと有効です。';
 
   @override
-  String get supportThanksMonthly => 'クラブの一員です。ありがとうございます。';
+  String get supportPerkExports => '形式を選べる書き出し';
 
   @override
-  String get supportThanksLifetime => 'ずっとクラブの一員です。ありがとうございます。';
+  String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
 
   @override
-  String get supportMonthly => '月額';
+  String get supportPerkFuture => '今後のクラブ機能';
 
   @override
-  String get supportLifetime => '買い切り';
+  String get supportPerkFutureNote => '後から加わるクラブ機能も含まれます。';
 
   @override
-  String supportPerMonth(String price) {
-    return '月あたり$price';
+  String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';
+
+  @override
+  String supportJoin(String price) {
+    return '$priceでクラブに参加';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '$price(一度だけ)';
-  }
-
-  @override
-  String get supportManage => 'サブスクリプションを管理';
 
   @override
   String get supportRestore => '購入を復元';
 
   @override
-  String get supportUnreachable => 'App Storeに接続できません。接続でき次第、価格が表示されます。';
-
-  @override
-  String get supportUpgradeInfo => '買い切りはそれ以降すべてをカバーします。月額は「サブスクリプションを管理」で解約します。';
+  String get supportUnreachable => 'App Storeに接続できません。この画面を開き直すと再試行します。';
 
   @override
   String get supportPending => '承認待ちです。承認されると購入が完了します。';
@@ -827,6 +816,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。サブスクリプションはAppleの標準$termsに従います。';
+    return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。購入はAppleの標準$termsに従います。';
   }
 }

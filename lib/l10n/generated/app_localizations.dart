@@ -1470,79 +1470,67 @@ abstract class AppLocalizations {
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
 
-  /// Title of the gate sheet a supporter-locked action answers with
-  ///
-  /// In en, this message translates to:
-  /// **'A club feature'**
-  String get supportGateTitle;
-
   /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
   ///
   /// In en, this message translates to:
   /// **'Formatted exports are unlocked by supporting OpenTranscribe. The backup stays free.'**
   String get supportGateBody;
 
-  /// Gate sheet action that opens the support screen
-  ///
-  /// In en, this message translates to:
-  /// **'Support the app'**
-  String get supportGateAction;
-
-  /// Home menu row and support screen name
+  /// Home menu row opening the support screen
   ///
   /// In en, this message translates to:
   /// **'Support'**
   String get settingsSupport;
 
+  /// Gate sheet action that opens the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Become a club member'**
+  String get supportGateAction;
+
   /// Support screen intro for a non-supporter
   ///
   /// In en, this message translates to:
-  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Today, joining the club unlocks the formatted exports. New features arrive for the club first, and some will be club-only.'**
+  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.'**
   String get supportPitch;
 
-  /// Support screen intro while the monthly subscription runs
+  /// Perk row label: the formatted exports
   ///
   /// In en, this message translates to:
-  /// **'You\'re in the club. Thank you.'**
-  String get supportThanksMonthly;
+  /// **'Formatted exports'**
+  String get supportPerkExports;
 
-  /// Support screen intro after the lifetime unlock
+  /// Perk row note naming the formats; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown, Obsidian, or a website.'**
+  String get supportPerkExportsNote;
+
+  /// Perk row label: later club-only features are included
+  ///
+  /// In en, this message translates to:
+  /// **'Future club features'**
+  String get supportPerkFuture;
+
+  /// Perk row note for future club features; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever joins the club later, included.'**
+  String get supportPerkFutureNote;
+
+  /// Support screen intro for a club member
   ///
   /// In en, this message translates to:
   /// **'You\'re in the club for good. Thank you.'**
-  String get supportThanksLifetime;
+  String get supportThanks;
 
-  /// Label of the monthly subscription row
+  /// Label of the pinned join button; price is the store's localized price string
   ///
   /// In en, this message translates to:
-  /// **'Monthly'**
-  String get supportMonthly;
+  /// **'Join the club for {price}'**
+  String supportJoin(String price);
 
-  /// Label of the lifetime unlock row
-  ///
-  /// In en, this message translates to:
-  /// **'Lifetime'**
-  String get supportLifetime;
-
-  /// Price detail of the monthly row; price is the store's localized price string
-  ///
-  /// In en, this message translates to:
-  /// **'{price} a month'**
-  String supportPerMonth(String price);
-
-  /// Price detail of the lifetime row; price is the store's localized price string
-  ///
-  /// In en, this message translates to:
-  /// **'{price} once'**
-  String supportOnce(String price);
-
-  /// Row opening the system manage-subscriptions sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Manage subscription'**
-  String get supportManage;
-
-  /// Row that restores purchases via the store sync
+  /// Link that restores purchases via the store sync
   ///
   /// In en, this message translates to:
   /// **'Restore purchases'**
@@ -1551,14 +1539,8 @@ abstract class AppLocalizations {
   /// Line shown when the price fetch failed
   ///
   /// In en, this message translates to:
-  /// **'The App Store could not be reached. Prices will appear once it can be.'**
+  /// **'The App Store could not be reached. Reopen this screen to try again.'**
   String get supportUnreachable;
-
-  /// Line under the rows while subscribed, explaining the lifetime upgrade
-  ///
-  /// In en, this message translates to:
-  /// **'Lifetime covers everything from then on. Cancel the monthly under Manage subscription.'**
-  String get supportUpgradeInfo;
 
   /// Line shown after an Ask to Buy purchase answered pending
   ///
@@ -1617,7 +1599,7 @@ abstract class AppLocalizations {
   /// Footer paragraph; privacy and terms are the inline tappable link labels
   ///
   /// In en, this message translates to:
-  /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the subscription runs on Apple\'s standard {terms}.'**
+  /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
   String supportFooter(String privacy, String terms);
 }
 

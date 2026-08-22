@@ -739,54 +739,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateTitle => '俱乐部功能';
-
-  @override
   String get supportGateBody => '支持 OpenTranscribe 即可解锁格式化导出。备份始终免费。';
-
-  @override
-  String get supportGateAction => '支持这款应用';
 
   @override
   String get settingsSupport => '支持';
 
   @override
-  String get supportPitch =>
-      'OpenTranscribe 免费且私密，你的支持让它保持这样。目前加入俱乐部即可解锁格式化导出。新功能会先提供给俱乐部，部分功能将只属于俱乐部。';
+  String get supportGateAction => '成为俱乐部会员';
 
   @override
-  String get supportThanksMonthly => '你已加入俱乐部。谢谢。';
+  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';
 
   @override
-  String get supportThanksLifetime => '你已永久加入俱乐部。谢谢。';
+  String get supportPerkExports => '格式化导出';
 
   @override
-  String get supportMonthly => '按月';
+  String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
 
   @override
-  String get supportLifetime => '买断';
+  String get supportPerkFuture => '未来的俱乐部功能';
 
   @override
-  String supportPerMonth(String price) {
-    return '每月 $price';
+  String get supportPerkFutureNote => '之后加入俱乐部的功能也包含在内。';
+
+  @override
+  String get supportThanks => '你已永久加入俱乐部。谢谢。';
+
+  @override
+  String supportJoin(String price) {
+    return '以 $price 加入俱乐部';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '一次性 $price';
-  }
-
-  @override
-  String get supportManage => '管理订阅';
 
   @override
   String get supportRestore => '恢复购买';
 
   @override
-  String get supportUnreachable => '无法连接 App Store。恢复连接后会显示价格。';
-
-  @override
-  String get supportUpgradeInfo => '买断从那时起涵盖一切。按月订阅在“管理订阅”中取消。';
+  String get supportUnreachable => '无法连接 App Store。重新打开此页面即可重试。';
 
   @override
   String get supportPending => '等待批准。批准后购买即完成。';
@@ -817,6 +805,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。订阅遵循 Apple 的标准$terms。';
+    return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。购买遵循 Apple 的标准$terms。';
   }
 }

@@ -751,54 +751,43 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
-  String get supportGateTitle => '클럽 기능';
-
-  @override
-  String get supportGateBody => '형식 내보내기는 OpenTranscribe를 후원하면 잠금 해제됩니다. 백업은 계속 무료입니다.';
-
-  @override
-  String get supportGateAction => '앱 후원하기';
+  String get supportGateBody => '서식 있는 내보내기는 OpenTranscribe를 후원하면 잠금 해제됩니다. 백업은 계속 무료입니다.';
 
   @override
   String get settingsSupport => '후원';
 
   @override
+  String get supportGateAction => '클럽 멤버 되기';
+
+  @override
   String get supportPitch =>
-      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 지금은 클럽에 가입하면 형식 내보내기가 열립니다. 새 기능은 클럽에 먼저 제공되며, 일부는 클럽 전용이 됩니다.';
+      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 클럽 가입은 한 번의 결제로 평생 유지됩니다.';
 
   @override
-  String get supportThanksMonthly => '클럽의 일원입니다. 감사합니다.';
+  String get supportPerkExports => '서식 있는 내보내기';
 
   @override
-  String get supportThanksLifetime => '평생 클럽의 일원입니다. 감사합니다.';
+  String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
 
   @override
-  String get supportMonthly => '월간';
+  String get supportPerkFuture => '앞으로의 클럽 기능';
 
   @override
-  String get supportLifetime => '평생';
+  String get supportPerkFutureNote => '나중에 추가되는 클럽 기능도 포함됩니다.';
 
   @override
-  String supportPerMonth(String price) {
-    return '월 $price';
+  String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';
+
+  @override
+  String supportJoin(String price) {
+    return '$price에 클럽 가입';
   }
-
-  @override
-  String supportOnce(String price) {
-    return '$price 한 번';
-  }
-
-  @override
-  String get supportManage => '구독 관리';
 
   @override
   String get supportRestore => '구입 항목 복원';
 
   @override
-  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 연결되면 가격이 표시됩니다.';
-
-  @override
-  String get supportUpgradeInfo => '평생은 그 이후 모든 것을 포함합니다. 월간 구독은 구독 관리에서 취소합니다.';
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 이 화면을 다시 열면 다시 시도합니다.';
 
   @override
   String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
@@ -829,6 +818,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String supportFooter(String privacy, String terms) {
-    return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구독은 Apple 표준 $terms을 따릅니다.';
+    return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구매는 Apple 표준 $terms을 따릅니다.';
   }
 }
