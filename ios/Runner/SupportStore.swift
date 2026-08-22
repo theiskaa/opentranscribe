@@ -38,8 +38,8 @@ final class SupportStorePlugin: NSObject, FlutterPlugin {
 
   private var sink: FlutterEventSink?
 
-  // One presented flow at a time, purchase or manage: a second sheet over
-  // the first would strand its pending FlutterResult, the ShareExport rule.
+  // One presented purchase at a time: a second sheet over the first would
+  // strand its pending FlutterResult, the ShareExport rule.
   private var presenting = false
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -52,8 +52,6 @@ final class SupportStorePlugin: NSObject, FlutterPlugin {
       entitlement(result: result)
     case "restore":
       restore(result: result)
-    case "manageSubscriptions":
-      manageSubscriptions(result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -73,9 +71,7 @@ final class SupportStorePlugin: NSObject, FlutterPlugin {
         // Answered in the asked order, so Dart's rows never reshuffle.
         let payload: [[String: Any]] = ids.compactMap { id in
           guard let product = byID[id] else { return nil }
-          var item: [String: Any] = ["id": product.id, "displayPrice": product.displayPrice]
-          if let period = Self.periodName(of: product) { item["period"] = period }
-          return item
+          return ["id": product.id, "displayPrice": product.displayPrice]
         }
         result(payload)
       } catch {
@@ -162,27 +158,6 @@ final class SupportStorePlugin: NSObject, FlutterPlugin {
     }
   }
 
-  private func manageSubscriptions(result: @escaping FlutterResult) {
-    guard !presenting else {
-      result(SupportErrorCode.busy.error("a flow is already presenting"))
-      return
-    }
-    presenting = true
-    Task { @MainActor in
-      defer { presenting = false }
-      guard let scene = Self.activeScene() else {
-        result(SupportErrorCode.unavailable.error("no foreground scene"))
-        return
-      }
-      do {
-        try await AppStore.showManageSubscriptions(in: scene)
-        result(nil)
-      } catch {
-        result(SupportErrorCode.failed.error(error.localizedDescription))
-      }
-    }
-  }
-
   private func startUpdatesListener() {
     // App-lifetime, like every Runner plugin: the registrar keeps the plugin
     // alive and the loop never ends, so there is no cancel story to carry.
@@ -201,33 +176,13 @@ final class SupportStorePlugin: NSObject, FlutterPlugin {
   /// The tier StoreKit's own on-device record answers for right now, from
   /// verified transactions only. Classified by product type, not id, so the
   /// Swift side never names a product: any non-consumable is the lifetime
-  /// unlock, any active auto-renewable is the subscription. Revoked and
-  /// expired transactions never appear in the sequence.
+  /// unlock. Revoked transactions never appear in the sequence.
   private static func currentTier() async -> String {
-    var tier = "none"
     for await entitlement in Transaction.currentEntitlements {
       guard case .verified(let transaction) = entitlement else { continue }
-      switch transaction.productType {
-      case .nonConsumable:
-        return "lifetime"
-      case .autoRenewable:
-        tier = "monthly"
-      default:
-        break
-      }
+      if transaction.productType == .nonConsumable { return "lifetime" }
     }
-    return tier
-  }
-
-  private static func periodName(of product: Product) -> String? {
-    guard let subscription = product.subscription else { return nil }
-    switch subscription.subscriptionPeriod.unit {
-    case .day: return "day"
-    case .week: return "week"
-    case .month: return "month"
-    case .year: return "year"
-    @unknown default: return nil
-    }
+    return "none"
   }
 
   @MainActor
