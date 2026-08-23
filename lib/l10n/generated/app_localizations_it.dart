@@ -39,6 +39,86 @@ class AppLocalizationsIt extends AppLocalizations {
   String get retranscribe => 'Ritrascrivi';
 
   @override
+  String get retranscribeAllTitle => 'Ritrascrivi tutto';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(
+      runnable,
+      locale: localeName,
+      other: '# voci',
+      one: '# voce',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      current,
+      locale: localeName,
+      other: '# già aggiornate',
+      one: '# già aggiornata',
+    );
+    return '$_temp0 da ritrascrivere, $_temp1. Le parole sostituite restano nella cronologia di ogni voce.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody =>
+      'Ogni registrazione conservata è già trascritta dal motore attuale.';
+
+  @override
+  String get retranscribeStart => 'Avvia';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done di $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'In pausa finché una registrazione non termina';
+
+  @override
+  String get retranscribeWaitingThermal => 'In pausa mentre il dispositivo si raffredda';
+
+  @override
+  String get retranscribeCancel => 'Annulla';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# voci ritrascritte',
+      one: '# voce ritrascritta',
+    );
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# ritrascritte',
+      one: '# ritrascritta',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '# non riuscite',
+      one: '# non riuscita',
+    );
+    return '$_temp0, $_temp1. Le voci non riuscite restano in coda per la prossima esecuzione.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# voci',
+      one: '# voce',
+    );
+    return 'Interrotto dopo $_temp0. Riavviando riprende da dove si era fermato.';
+  }
+
+  @override
   String get delete => 'Elimina';
 
   @override

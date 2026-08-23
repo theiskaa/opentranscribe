@@ -39,6 +39,86 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retranscribe => 'Re-transcribe';
 
   @override
+  String get retranscribeAllTitle => 'Re-transcribe all';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(
+      runnable,
+      locale: localeName,
+      other: '# entries',
+      one: '# entry',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      current,
+      locale: localeName,
+      other: '# already current',
+      one: '# already current',
+    );
+    return '$_temp0 to re-transcribe, $_temp1. Replaced words stay in each entry\'s history.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody =>
+      'Every kept recording is already transcribed by the current engine.';
+
+  @override
+  String get retranscribeStart => 'Start';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Paused while a recording finishes';
+
+  @override
+  String get retranscribeWaitingThermal => 'Paused while the device cools down';
+
+  @override
+  String get retranscribeCancel => 'Cancel';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entries re-transcribed',
+      one: '# entry re-transcribed',
+    );
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# re-transcribed',
+      one: '# re-transcribed',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '# failed',
+      one: '# failed',
+    );
+    return '$_temp0, $_temp1. Failed entries stay in the queue for the next run.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entries',
+      one: '# entry',
+    );
+    return 'Stopped after $_temp0. Running again picks up where it left off.';
+  }
+
+  @override
   String get delete => 'Delete';
 
   @override

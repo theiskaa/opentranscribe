@@ -37,6 +37,55 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranscribe => '다시 전사';
 
   @override
+  String get retranscribeAllTitle => '모두 다시 전사';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(runnable, locale: localeName, other: '다시 전사할 항목 #개');
+    String _temp1 = intl.Intl.pluralLogic(current, locale: localeName, other: '#개는 이미 최신입니다');
+    return '$_temp0, $_temp1. 대체된 문구는 각 항목의 기록에 남습니다.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody => '보관된 모든 녹음이 이미 현재 엔진으로 전사되어 있습니다.';
+
+  @override
+  String get retranscribeStart => '시작';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total개 중 $done개';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '녹음이 끝날 때까지 일시 정지';
+
+  @override
+  String get retranscribeWaitingThermal => '기기 온도가 내려갈 때까지 일시 정지';
+
+  @override
+  String get retranscribeCancel => '취소';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개 항목을 다시 전사했습니다');
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개 다시 전사');
+    String _temp1 = intl.Intl.pluralLogic(failed, locale: localeName, other: '#개 실패');
+    return '$_temp0, $_temp1. 실패한 항목은 다음 실행에서 다시 시도합니다.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개에서 중단했습니다');
+    return '$_temp0. 다시 실행하면 이어서 진행합니다.';
+  }
+
+  @override
   String get delete => '삭제';
 
   @override

@@ -39,6 +39,86 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retranscribe => 'Retranscrire';
 
   @override
+  String get retranscribeAllTitle => 'Tout retranscrire';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(
+      runnable,
+      locale: localeName,
+      other: '# entrées',
+      one: '# entrée',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      current,
+      locale: localeName,
+      other: '# déjà à jour',
+      one: '# déjà à jour',
+    );
+    return '$_temp0 à retranscrire, $_temp1. Les mots remplacés restent dans l\'historique de chaque entrée.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody =>
+      'Chaque enregistrement conservé est déjà transcrit par le moteur actuel.';
+
+  @override
+  String get retranscribeStart => 'Démarrer';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done sur $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'En pause le temps qu\'un enregistrement se termine';
+
+  @override
+  String get retranscribeWaitingThermal => 'En pause le temps que l\'appareil refroidisse';
+
+  @override
+  String get retranscribeCancel => 'Annuler';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entrées retranscrites',
+      one: '# entrée retranscrite',
+    );
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# retranscrites',
+      one: '# retranscrite',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '# en échec',
+      one: '# en échec',
+    );
+    return '$_temp0, $_temp1. Les entrées en échec restent en file pour le prochain passage.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entrées',
+      one: '# entrée',
+    );
+    return 'Arrêté après $_temp0. Relancer reprend là où le passage s\'était arrêté.';
+  }
+
+  @override
   String get delete => 'Supprimer';
 
   @override

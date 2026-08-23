@@ -36,6 +36,84 @@
   "@retranscribe": {
     "description": "Button to transcribe a kept recording again"
   },
+  "retranscribeAllTitle": "Re-transcribe all",
+  "@retranscribeAllTitle": {
+    "description": "Home menu row and sheet title for the bulk re-transcription over every kept recording"
+  },
+  "retranscribeIdleBody": "{runnable, plural, one {# entry} other {# entries}} to re-transcribe, {current, plural, one {# already current} other {# already current}}. Replaced words stay in each entry's history.",
+  "@retranscribeIdleBody": {
+    "description": "Idle sheet body: how many entries a run would transcribe and how many the current engine already produced",
+    "placeholders": {
+      "runnable": {
+        "type": "int"
+      },
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeAllCurrentBody": "Every kept recording is already transcribed by the current engine.",
+  "@retranscribeAllCurrentBody": {
+    "description": "Idle sheet body when a run would have nothing to do"
+  },
+  "retranscribeStart": "Start",
+  "@retranscribeStart": {
+    "description": "Button starting the bulk re-transcription run"
+  },
+  "retranscribeProgressOf": "{done} of {total}",
+  "@retranscribeProgressOf": {
+    "description": "Progress counter while the run works through its queue",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeWaitingRecording": "Paused while a recording finishes",
+  "@retranscribeWaitingRecording": {
+    "description": "Progress line while the queue waits for a live recording to end"
+  },
+  "retranscribeWaitingThermal": "Paused while the device cools down",
+  "@retranscribeWaitingThermal": {
+    "description": "Progress line while the queue waits out thermal pressure"
+  },
+  "retranscribeCancel": "Cancel",
+  "@retranscribeCancel": {
+    "description": "Button stopping the bulk run; what already landed is kept"
+  },
+  "retranscribeDoneBody": "{landed, plural, one {# entry re-transcribed} other {# entries re-transcribed}}.",
+  "@retranscribeDoneBody": {
+    "description": "Finished sheet body when nothing failed",
+    "placeholders": {
+      "landed": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeDoneFailedBody": "{landed, plural, one {# re-transcribed} other {# re-transcribed}}, {failed, plural, one {# failed} other {# failed}}. Failed entries stay in the queue for the next run.",
+  "@retranscribeDoneFailedBody": {
+    "description": "Finished sheet body when some entries failed; failures are retried by a later run",
+    "placeholders": {
+      "landed": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeCancelledBody": "Stopped after {landed, plural, one {# entry} other {# entries}}. Running again picks up where it left off.",
+  "@retranscribeCancelledBody": {
+    "description": "Finished sheet body after a cancel; a rerun skips what already landed",
+    "placeholders": {
+      "landed": {
+        "type": "int"
+      }
+    }
+  },
   "delete": "Delete",
   "@delete": {
     "description": "Button to delete an entry"

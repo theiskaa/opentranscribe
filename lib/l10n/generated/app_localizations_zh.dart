@@ -36,6 +36,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranscribe => '重新转写';
 
   @override
+  String get retranscribeAllTitle => '全部重新转写';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(runnable, locale: localeName, other: '待重新转写的条目共 # 个');
+    String _temp1 = intl.Intl.pluralLogic(current, locale: localeName, other: '另有 # 个已是最新');
+    return '$_temp0，$_temp1。被替换的文字会保留在条目的历史中。';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody => '保留的录音均已由当前引擎转写。';
+
+  @override
+  String get retranscribeStart => '开始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '录音结束前暂停';
+
+  @override
+  String get retranscribeWaitingThermal => '设备降温前暂停';
+
+  @override
+  String get retranscribeCancel => '取消';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '已重新转写 # 个条目');
+    return '$_temp0。';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '已重新转写 # 个');
+    String _temp1 = intl.Intl.pluralLogic(failed, locale: localeName, other: '# 个失败');
+    return '$_temp0，$_temp1。失败的条目会留在队列中，下次运行时重试。';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '已在 # 个条目后停止');
+    return '$_temp0。再次运行会从中断处继续。';
+  }
+
+  @override
   String get delete => '删除';
 
   @override

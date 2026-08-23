@@ -39,6 +39,86 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retranscribe => 'Erneut transkribieren';
 
   @override
+  String get retranscribeAllTitle => 'Alle erneut transkribieren';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(
+      runnable,
+      locale: localeName,
+      other: '# Einträge',
+      one: '# Eintrag',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      current,
+      locale: localeName,
+      other: '# bereits aktuell',
+      one: '# bereits aktuell',
+    );
+    return '$_temp0 erneut zu transkribieren, $_temp1. Ersetzte Wörter bleiben im Verlauf jedes Eintrags.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody =>
+      'Jede behaltene Aufnahme ist bereits mit der aktuellen Engine transkribiert.';
+
+  @override
+  String get retranscribeStart => 'Starten';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done von $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Pausiert, bis die Aufnahme beendet ist';
+
+  @override
+  String get retranscribeWaitingThermal => 'Pausiert, während das Gerät abkühlt';
+
+  @override
+  String get retranscribeCancel => 'Abbrechen';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# Einträge erneut transkribiert',
+      one: '# Eintrag erneut transkribiert',
+    );
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# erneut transkribiert',
+      one: '# erneut transkribiert',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '# fehlgeschlagen',
+      one: '# fehlgeschlagen',
+    );
+    return '$_temp0, $_temp1. Fehlgeschlagene Einträge bleiben für den nächsten Lauf in der Warteschlange.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# Einträgen',
+      one: '# Eintrag',
+    );
+    return 'Nach $_temp0 gestoppt. Ein neuer Lauf macht dort weiter.';
+  }
+
+  @override
   String get delete => 'Löschen';
 
   @override

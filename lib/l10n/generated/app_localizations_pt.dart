@@ -39,6 +39,86 @@ class AppLocalizationsPt extends AppLocalizations {
   String get retranscribe => 'Retranscrever';
 
   @override
+  String get retranscribeAllTitle => 'Retranscrever tudo';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(
+      runnable,
+      locale: localeName,
+      other: '# entradas',
+      one: '# entrada',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      current,
+      locale: localeName,
+      other: '# já atualizadas',
+      one: '# já atualizada',
+    );
+    return '$_temp0 para retranscrever, $_temp1. As palavras substituídas ficam no histórico de cada entrada.';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody =>
+      'Cada gravação guardada já foi transcrita pelo motor atual.';
+
+  @override
+  String get retranscribeStart => 'Começar';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done de $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Em pausa enquanto uma gravação termina';
+
+  @override
+  String get retranscribeWaitingThermal => 'Em pausa enquanto o dispositivo arrefece';
+
+  @override
+  String get retranscribeCancel => 'Cancelar';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entradas retranscritas',
+      one: '# entrada retranscrita',
+    );
+    return '$_temp0.';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# retranscritas',
+      one: '# retranscrita',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '# falharam',
+      one: '# falhou',
+    );
+    return '$_temp0, $_temp1. As entradas que falharam continuam na fila para a próxima execução.';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      landed,
+      locale: localeName,
+      other: '# entradas',
+      one: '# entrada',
+    );
+    return 'Parado após $_temp0. Executar de novo retoma de onde parou.';
+  }
+
+  @override
   String get delete => 'Eliminar';
 
   @override

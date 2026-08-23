@@ -162,6 +162,72 @@ abstract class AppLocalizations {
   /// **'Re-transcribe'**
   String get retranscribe;
 
+  /// Home menu row and sheet title for the bulk re-transcription over every kept recording
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribe all'**
+  String get retranscribeAllTitle;
+
+  /// Idle sheet body: how many entries a run would transcribe and how many the current engine already produced
+  ///
+  /// In en, this message translates to:
+  /// **'{runnable, plural, one {# entry} other {# entries}} to re-transcribe, {current, plural, one {# already current} other {# already current}}. Replaced words stay in each entry\'s history.'**
+  String retranscribeIdleBody(int runnable, int current);
+
+  /// Idle sheet body when a run would have nothing to do
+  ///
+  /// In en, this message translates to:
+  /// **'Every kept recording is already transcribed by the current engine.'**
+  String get retranscribeAllCurrentBody;
+
+  /// Button starting the bulk re-transcription run
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get retranscribeStart;
+
+  /// Progress counter while the run works through its queue
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String retranscribeProgressOf(int done, int total);
+
+  /// Progress line while the queue waits for a live recording to end
+  ///
+  /// In en, this message translates to:
+  /// **'Paused while a recording finishes'**
+  String get retranscribeWaitingRecording;
+
+  /// Progress line while the queue waits out thermal pressure
+  ///
+  /// In en, this message translates to:
+  /// **'Paused while the device cools down'**
+  String get retranscribeWaitingThermal;
+
+  /// Button stopping the bulk run; what already landed is kept
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get retranscribeCancel;
+
+  /// Finished sheet body when nothing failed
+  ///
+  /// In en, this message translates to:
+  /// **'{landed, plural, one {# entry re-transcribed} other {# entries re-transcribed}}.'**
+  String retranscribeDoneBody(int landed);
+
+  /// Finished sheet body when some entries failed; failures are retried by a later run
+  ///
+  /// In en, this message translates to:
+  /// **'{landed, plural, one {# re-transcribed} other {# re-transcribed}}, {failed, plural, one {# failed} other {# failed}}. Failed entries stay in the queue for the next run.'**
+  String retranscribeDoneFailedBody(int landed, int failed);
+
+  /// Finished sheet body after a cancel; a rerun skips what already landed
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after {landed, plural, one {# entry} other {# entries}}. Running again picks up where it left off.'**
+  String retranscribeCancelledBody(int landed);
+
   /// Button to delete an entry
   ///
   /// In en, this message translates to:

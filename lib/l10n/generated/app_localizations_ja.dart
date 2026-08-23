@@ -37,6 +37,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retranscribe => '再文字起こし';
 
   @override
+  String get retranscribeAllTitle => 'すべて再文字起こし';
+
+  @override
+  String retranscribeIdleBody(int runnable, int current) {
+    String _temp0 = intl.Intl.pluralLogic(runnable, locale: localeName, other: '再文字起こしするエントリーは#件');
+    String _temp1 = intl.Intl.pluralLogic(current, locale: localeName, other: '#件はすでに最新です');
+    return '$_temp0、$_temp1。置き換えられた言葉は各エントリーの履歴に残ります。';
+  }
+
+  @override
+  String get retranscribeAllCurrentBody => '保存済みの録音はすべて現在のエンジンで文字起こし済みです。';
+
+  @override
+  String get retranscribeStart => '開始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total件中$done件';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '録音が終わるまで一時停止中';
+
+  @override
+  String get retranscribeWaitingThermal => '本体の温度が下がるまで一時停止中';
+
+  @override
+  String get retranscribeCancel => 'キャンセル';
+
+  @override
+  String retranscribeDoneBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#件を再文字起こししました');
+    return '$_temp0。';
+  }
+
+  @override
+  String retranscribeDoneFailedBody(int landed, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#件を再文字起こし');
+    String _temp1 = intl.Intl.pluralLogic(failed, locale: localeName, other: '#件が失敗しました');
+    return '$_temp0、$_temp1。失敗したエントリーは次回の実行で再試行されます。';
+  }
+
+  @override
+  String retranscribeCancelledBody(int landed) {
+    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#件で停止しました');
+    return '$_temp0。再実行すると続きから再開します。';
+  }
+
+  @override
   String get delete => '削除';
 
   @override
