@@ -11,11 +11,15 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 /// that snaps between them reads as broken rather than busy. Interruptible by
 /// construction; a new fraction retargets the glide mid-flight.
 class ProgressRing extends StatelessWidget {
-  const ProgressRing({required this.fraction, this.size = 22, super.key});
+  const ProgressRing({required this.fraction, this.size = 22, this.strokeWidth = 2.5, super.key});
 
   /// Progress in [0,1]; values outside are clamped, never wrapped.
   final double fraction;
   final double size;
+
+  /// Stroke stays absolute, not proportional: the default reads solid at the
+  /// inline size, and a hero-sized ring chooses its own weight.
+  final double strokeWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -27,22 +31,32 @@ class ProgressRing extends StatelessWidget {
       curve: motion.indicatorCurve,
       builder: (context, value, _) => CustomPaint(
         size: Size.square(size),
-        painter: _RingPainter(fraction: value, track: theme.hairline, fill: theme.accent),
+        painter: _RingPainter(
+          fraction: value,
+          track: theme.hairline,
+          fill: theme.accent,
+          strokeWidth: strokeWidth,
+        ),
       ),
     );
   }
 }
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.fraction, required this.track, required this.fill});
+  const _RingPainter({
+    required this.fraction,
+    required this.track,
+    required this.fill,
+    required this.strokeWidth,
+  });
 
   final double fraction;
   final Color track;
   final Color fill;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const strokeWidth = 2.5;
     final center = size.center(Offset.zero);
     final radius = (size.shortestSide - strokeWidth) / 2;
     final paint = Paint()
@@ -62,5 +76,8 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.fraction != fraction || old.track != track || old.fill != fill;
+      old.fraction != fraction ||
+      old.track != track ||
+      old.fill != fill ||
+      old.strokeWidth != strokeWidth;
 }
