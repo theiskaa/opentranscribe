@@ -2,6 +2,10 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
+## 0.3.0 - Unreleased
+
+- Re-transcribe all, a club feature: a bulk runner over the whole journal, from the home menu, that lets a better engine re-hear the entire history. Live animated progress with cancel, and resume is free: a run skips whatever the current engine already transcribed, so stopping loses nothing. It waits for a live recording and pauses while the device runs hot. (#8)
+
 ## 0.2.0 - 2026-08-22
 
 Backups, editing, the club, and faster ways to start a recording.
