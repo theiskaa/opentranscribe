@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -37,19 +38,43 @@ class TranscriptionService {
     String Function()? idGenerator,
     Future<void> Function(File file)? fileDeleter,
     bool Function()? keepAudio,
+    bool Function()? thermalPressure,
   }) : _clock = clock ?? DateTime.now,
        _newId = idGenerator ?? _defaultId,
        _deleteFile = fileDeleter ?? _deleteFileDefault,
-       _keepAudio = keepAudio ?? _keepAudioDefault {
+       _keepAudio = keepAudio ?? _keepAudioDefault,
+       _thermalPressure = thermalPressure ?? _noThermalPressure {
     // The one rule, enforced in code: only on-device engines are allowed.
     if (!_engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${_engine.id}');
     }
+    retranscribeAll = RetranscribeRunner(
+      entries: _store.all,
+      read: _store.read,
+      retranscribe: _retranscribeGuarded,
+      engineId: () => _engine.id,
+      // Capture outranks thermal: the wait the user can see end (their own
+      // recording) names itself first.
+      hold: () => _captureActive
+          ? RetranscribeHold.capture
+          : _thermalPressure()
+          ? RetranscribeHold.thermal
+          : RetranscribeHold.none,
+      hardCancelAllowed: () => !_captureActive && _userBatches == 0,
+      cancelInFlight: () => _cancelEngineBatches(_engine),
+      notifyEntriesChanged: _notifyEntriesChanged,
+    );
   }
 
   final AudioRecorder _recorder;
   final TranscriptionEngine _engine;
   final EntryStore _store;
+
+  /// The bulk re-hear over the whole corpus: everything kept on disk the
+  /// current engine has not transcribed, run sequentially through
+  /// [retranscribe]. Constructed here (over this service's own guards) so the
+  /// queue can never compete with a live take or bypass the entry lifecycle.
+  late final RetranscribeRunner retranscribeAll;
 
   /// The transcription language (a BCP-47 tag), pushed by TranscriptionSettings.
   /// Mutable: a change takes effect on the NEXT recording; a session in flight
@@ -73,6 +98,13 @@ class TranscriptionService {
   final bool Function() _keepAudio;
 
   static bool _keepAudioDefault() => true;
+
+  /// Whether the device runs hot right now (ThermalMonitor's cached answer).
+  /// Holds only the bulk queue between entries; a user's own action always
+  /// runs.
+  final bool Function() _thermalPressure;
+
+  static bool _noThermalPressure() => false;
 
   /// Reads an audio file's amplitude envelope (0..1), injected so the service
   /// can persist a new entry's shape at save time without owning a player.
@@ -109,6 +141,23 @@ class TranscriptionService {
   /// recording into the directory BEFORE saving its record, so the file probes
   /// readable while nothing references it.
   int _adoptingImports = 0;
+
+  /// Whether a user capture could have a batch pass in flight or imminent:
+  /// recording, starting, or a finalize between claiming the capture and
+  /// saving its entry. The bulk runner defers on this window, and its hard
+  /// cancel is forbidden inside it, so a stop's batch can never queue behind
+  /// bulk work or die to a bulk cancel.
+  bool get _captureActive => _recording || _starting || _finalizingCaptures > 0;
+
+  /// User-initiated re-transcriptions in flight (the detail screen's action).
+  /// The bulk hard cancel kills EVERY batch on the engine, so it is also
+  /// forbidden while one of these runs: a bulk cancel must never be what
+  /// fails an action the user explicitly took.
+  int _userBatches = 0;
+
+  /// Ids with a re-transcription in flight, either path. One batch per entry:
+  /// a concurrent second ask throws instead of running the same file twice.
+  final Set<String> _retranscribing = {};
 
   /// Whether some path holds a readable file in the recordings directory that no
   /// entry references yet, BY DESIGN. [reconcileOrphans] must not walk while
@@ -1228,7 +1277,37 @@ class TranscriptionService {
   /// entry first transcribed in the WRONG locale keeps that locale on re-runs
   /// until a caller passes [localeId] explicitly.) The landing is a change
   /// like any other: the words it replaces stay in the entry's history.
+  /// One batch per entry: a second ask while one is in flight (this path or
+  /// the bulk runner's) throws [StateError] instead of running the file twice.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
+    _userBatches++;
+    try {
+      return await _retranscribeGuarded(entry, using: using, localeId: localeId);
+    } finally {
+      _userBatches--;
+    }
+  }
+
+  Future<Entry> _retranscribeGuarded(
+    Entry entry, {
+    TranscriptionEngine? using,
+    String? localeId,
+  }) async {
+    if (!_retranscribing.add(entry.id)) {
+      throw StateError('entry ${entry.id} is already being retranscribed');
+    }
+    try {
+      return await _retranscribeInner(entry, using: using, localeId: localeId);
+    } finally {
+      _retranscribing.remove(entry.id);
+    }
+  }
+
+  Future<Entry> _retranscribeInner(
+    Entry entry, {
+    TranscriptionEngine? using,
+    String? localeId,
+  }) async {
     final engine = using ?? _engine;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
@@ -1482,15 +1561,20 @@ class TranscriptionService {
           timeout,
           onTimeout: () {
             // The Dart side is giving up; tell the engine so the native task does not
-            // keep holding the recognizer for work nobody will read. CancellableBatchEngine
-            // does not extend TranscriptionEngine, so `is` alone cannot promote; the cast
-            // makes the member visible.
-            if (engine is CancellableBatchEngine) {
-              unawaited((engine as CancellableBatchEngine).cancelBatches());
-            }
+            // keep holding the recognizer for work nobody will read.
+            unawaited(_cancelEngineBatches(engine));
             throw const TranscriptionFailed('transcription timed out');
           },
         );
+  }
+
+  /// Cancels [engine]'s in-flight batch passes, when it supports that.
+  /// CancellableBatchEngine does not extend TranscriptionEngine, so `is`
+  /// alone cannot promote; the cast makes the member visible.
+  Future<void> _cancelEngineBatches(TranscriptionEngine engine) async {
+    if (engine is CancellableBatchEngine) {
+      await (engine as CancellableBatchEngine).cancelBatches();
+    }
   }
 
   /// Batches a mixed-language take span by span and merges the results: texts
@@ -1667,6 +1751,10 @@ class TranscriptionService {
   }
 
   Future<void> dispose() async {
+    // First, as a cancel: no NEW bulk batch may start once teardown begins.
+    // A batch already in flight finishes on its own; its late emits and
+    // notifies are close-guarded, so they land silently.
+    await retranscribeAll.dispose();
     // Never abandon a live capture: finalize and save it (untranscribed) first, or
     // the native session would keep running and the audio would never get a record.
     await finalizeActiveCapture();
