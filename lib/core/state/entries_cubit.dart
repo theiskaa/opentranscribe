@@ -187,6 +187,9 @@ class EntriesCubit extends Cubit<EntriesState> {
     // The pill and its sheet stay tappable through a retry; a second run on
     // the same entry would double-transcribe and confuse the one busy slot.
     if (state.busyId == entry.id) return;
+    // The bulk runner is on this very entry right now; a second batch over
+    // the same file would waste minutes and race the landing.
+    if (_service.retranscribeAll.state.currentEntryId == entry.id) return;
     emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.transcribe));
     Object? failure;
     try {

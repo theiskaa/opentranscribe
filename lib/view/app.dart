@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
+import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -128,6 +129,13 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
+        // Root-scoped so a bulk run outlives the sheet that started it.
+        BlocProvider(
+          create: (_) => RetranscribeCubit(
+            service: Deps.i.transcriptionService,
+            isSupporter: () => Deps.i.supportService.tier.isSupporter,
+          ),
+        ),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance. The exception to the rule above: its
