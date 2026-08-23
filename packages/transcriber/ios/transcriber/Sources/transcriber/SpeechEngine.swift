@@ -1111,10 +1111,14 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private func stopLive() {
     liveGeneration += 1
     if #available(iOS 26.0, *) {
-      let live = analyzerLive as? SpeechAnalyzerLiveSession
-      live?.cancel()
-      // Hand this session's wind-down to the next startLive to await.
-      pendingAnalyzerTeardown = live?.pendingTeardown
+      if let live = analyzerLive as? SpeechAnalyzerLiveSession {
+        live.cancel()
+        // Hand this session's wind-down to the next startLive to await. Only
+        // with a session to capture from: writing nil here would drop a stored
+        // wind-down no start has consumed yet (the routine stop-then-start
+        // flow, or a start still awaiting the capability probe).
+        pendingAnalyzerTeardown = live.pendingTeardown
+      }
       analyzerLive = nil
     }
     lock.lock()
