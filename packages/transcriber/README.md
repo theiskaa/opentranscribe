@@ -1,6 +1,6 @@
 # transcriber
 
-Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is three contracts: `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, and downloadable-model behavior as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`). `AppleSpeechEngine` is the shipped implementation: `SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` below it.
+Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is three contracts: `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, and downloadable-model behavior as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`). `AppleSpeechEngine` is the shipped implementation: `SpeechAnalyzer` on iOS 26 where the device reports analyzer locales (probed once per launch; 8-core Neural Engine devices never do), `SFSpeechRecognizer` otherwise.
 
 Guarantees a caller may rely on:
 
