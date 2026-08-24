@@ -31,6 +31,7 @@ import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_text_field.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
+import 'package:opentranscribe/view/widgets/search_field.dart';
 import 'package:opentranscribe/view/widgets/segmented_control.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
@@ -66,6 +67,7 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _text = TextEditingController();
   final TextEditingController _secret = TextEditingController();
+  final TextEditingController _search = TextEditingController();
   bool _toggle = true;
   bool _reveal = true;
   bool _busyRow = false;
@@ -111,6 +113,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   void dispose() {
     _text.dispose();
     _secret.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -192,6 +195,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 selected: _segment,
                 onChanged: (v) => setState(() => _segment = v),
               ),
+              _section('Search field'),
+              SearchField(controller: _search, placeholder: 'Search languages'),
               _section('Selectable rows'),
               SettingsCard(
                 children: [
