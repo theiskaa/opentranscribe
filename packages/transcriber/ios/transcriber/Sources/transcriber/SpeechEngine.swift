@@ -181,7 +181,9 @@ private func classicSupportedTags() -> [String] {
 }
 
 /// The classic path's reservation answer: no reservation concept, and max 0 is
-/// the contract's "no cap here".
+/// the contract's "no cap here". This and the two model answers below keep the
+/// routing uniform; today's dictation engine is not model-managed, so only a
+/// future managed classic caller would actually send them.
 private func classicReservationInfo() -> [String: Any] {
   ["max": 0, "reserved": [String]()]
 }
@@ -620,8 +622,10 @@ final class SpeechAnalyzerLiveSession {
   // started an analyzer, so it winds nothing down (no cancelAndFinishNow on an
   // unstarted analyzer) and instead chains its own priorTeardown forward, so the
   // older analyzer it was still waiting on is not orphaned. Guarded by lock.
-  // A teardown landing while start() is awaiting is handled by the start path
-  // itself, which publishes the wind-down after start() returns.
+  // A teardown landing while start() is awaiting is run by the start path itself
+  // after start() returns, but published too late for a successor that already
+  // captured pendingTeardown; that successor starts unchained beside the closing
+  // analyzer (a known chain gap).
   private var analyzerStarted = false
 
   fileprivate init(
@@ -743,11 +747,15 @@ final class SpeechAnalyzerLiveSession {
       if finished {
         lock.unlock()
         CaptureHub.session.removeConsumer(token)
-        // Teardown landed while start() was awaiting: finish()/abort() saw an
-        // unstarted analyzer and skipped the wind-down, so it is ours to run.
-        let task = Task { _ = try? await analyzer.cancelAndFinishNow() }
         lock.lock()
-        if teardownTask == nil { teardownTask = task }
+        // Teardown landed while start() was awaiting. An empty slot means
+        // finish()/abort() saw the analyzer unstarted and skipped the
+        // wind-down: ours to run. A filled slot means a graceful wind-down is
+        // already in flight, and launching a cancel beside it would cut the
+        // session's final live event short.
+        if teardownTask == nil {
+          teardownTask = Task { _ = try? await analyzer.cancelAndFinishNow() }
+        }
         lock.unlock()
       } else {
         consumerToken = token
@@ -842,9 +850,6 @@ final class SpeechAnalyzerLiveSession {
     feedFailureReported = true
     emitError(.transcribeError, message, [:])
   }
-
-  // Conversion lives in the shared file-scope convertBuffer helper, which the
-  // ranged batch feed drives through the same analyzer format.
 
   /// Marks finished and detaches from capture under the lock. Returns whether
   /// teardown had already run (so the caller skips a second analyzer wind-down) and
@@ -1403,7 +1408,8 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
   ) {
     if startMs != nil || endMs != nil {
-      result(SpeechErrorCode.transcribeError.error("ranged transcription needs the analyzer engine"))
+      result(
+        SpeechErrorCode.transcribeError.error("ranged transcription needs the analyzer engine"))
       return
     }
     transcribeFileClassic(path: path, localeId: localeId, result: result)
@@ -1535,16 +1541,22 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         }
         collected = collector
 
+        // The one wind-down for every early exit below: cancel the analyzer
+        // and the collector rather than awaiting a collector whose stream a
+        // cancellation may end with CancellationError (misreported as a
+        // transcribe error), then reply.
+        func bail(_ value: Any) async {
+          await analyzer.cancelAndFinishNow()
+          collector.cancel()
+          reply(value)
+        }
+
         if startMs == nil && endMs == nil {
           if let lastSample = try await analyzer.analyzeSequence(from: audioFile) {
             try await analyzer.finalizeAndFinish(through: lastSample)
           } else {
-            // No analyzable audio at all. Cancel and reply the valid empty result
-            // directly, rather than awaiting a collector whose stream a cancellation
-            // may end with CancellationError (misreported as a transcribe error).
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(["text": "", "segments": [[String: Any]]()])
+            // No analyzable audio at all: the valid empty result.
+            await bail(["text": "", "segments": [[String: Any]]()])
             return
           }
         } else {
@@ -1555,9 +1567,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
               transcriber
             ])
           else {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(SpeechErrorCode.transcribeError.error("no compatible audio format"))
+            await bail(SpeechErrorCode.transcribeError.error("no compatible audio format"))
             return
           }
           let sampleRate = audioFile.processingFormat.sampleRate
@@ -1575,9 +1585,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           let converter = sameFormat
             ? nil : AVAudioConverter(from: audioFile.processingFormat, to: format)
           if !sameFormat && converter == nil {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(SpeechErrorCode.transcribeError.error("audio format conversion unavailable"))
+            await bail(SpeechErrorCode.transcribeError.error("audio format conversion unavailable"))
             return
           }
           audioFile.framePosition = startFrame
@@ -1588,9 +1596,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           // path, never a finalize on an analyzer that was fed nothing.
           guard remaining > 0, let head = readSliceChunk(from: audioFile, remaining: &remaining)
           else {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(["text": "", "segments": [[String: Any]]()])
+            await bail(["text": "", "segments": [[String: Any]]()])
             return
           }
           let feed = SliceFeed(
@@ -1622,8 +1628,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 /// Streams on-device model-install progress for the requested locale over the
 /// `transcriber/speech/model` EventChannel. Single-flight: a new listen supersedes
 /// any in-flight install and abandons its stream (the Dart engine serializes
-/// overlapping installs onto this handler, one at a time). Payloads: {fraction, done:false} while installing, then a terminal
-/// {fraction:1, done:true}; {type:error,...} on failure.
+/// overlapping installs onto this handler, one at a time). Payloads: {fraction,
+/// done:false} while installing, then a terminal {fraction:1, done:true};
+/// {type:error,...} on failure.
 final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
   private var sink: FlutterEventSink?
   private var task: Task<Void, Never>?
