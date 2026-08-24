@@ -10,7 +10,6 @@ import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/language_filter.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -20,113 +19,83 @@ import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
-import 'package:opentranscribe/view/widgets/search_field.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// The whole language library in one sheet: a pinned search field over Your
-/// languages (the kept set; tapping one makes it the default and closes the
-/// sheet, the remove affordance lives here) and All languages (a tap
-/// downloads-and-keeps under a managed engine; under dictation a ready row
-/// becomes the default and an unready one tells the keyboard-settings story).
+/// The whole language library in one sheet: Your languages (the kept set;
+/// tapping one makes it the default and closes the sheet, the remove
+/// affordance lives here) over All languages (a tap downloads-and-keeps under
+/// a managed engine; under dictation a ready row becomes the default and an
+/// unready one tells the keyboard-settings story).
 Future<void> showLanguageSheet(BuildContext context, {required SettingsCubit cubit}) {
-  // Owned by this call, shared by the pinned field and the scrolled list. The
-  // route resolves at pop but tears down only after its exit transition, and
-  // a focused field writes into the controller on focus loss (EditableText
-  // clears the IME composing region), so disposal waits out the exit window
-  // instead of riding whenComplete directly.
-  final query = TextEditingController();
-  final exitWindow = context.motionNow.sheetScrim * 2;
   return showAppSheet<void>(
     context,
-    header: (context) => SearchField(
-      controller: query,
-      placeholder: AppLocalizations.of(context)!.transcriptionSearchHint,
-    ),
-    builder: (context) => BlocProvider.value(
-      value: cubit,
-      child: _LanguageList(query: query),
-    ),
-  ).whenComplete(() => Future<void>.delayed(exitWindow, query.dispose));
+    // Tighter than a message sheet: these are full-width cards, and the
+    // default inset reads as wasted margin around them.
+    inset: AppSpacing.md,
+    builder: (context) => BlocProvider.value(value: cubit, child: const _LanguageList()),
+  );
 }
 
-class _LanguageList extends StatelessWidget {
-  const _LanguageList({required this.query});
+/// Whether [row] sits in Yours rather than the library: the default is kept
+/// honestly even when unready; beyond it a managed engine keeps whatever
+/// holds a slot, and a readiness-probing one keeps what can transcribe now.
+bool keptLanguage(LanguageModelState row, {required bool managesModels}) =>
+    row.isDefault || (managesModels ? row.reserved : row.isReady);
 
-  final TextEditingController query;
+class _LanguageList extends StatelessWidget {
+  const _LanguageList();
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: query,
-      builder: (context, value, _) => BlocBuilder<SettingsCubit, SettingsState>(
-        builder: (context, state) {
-          final rows = filterLanguageRows(value.text, state.languages);
-          final canManage = state.reservationMax > 0;
-          // Yours: the default (kept honestly even when unready) plus
-          // whatever is held ready here; the rest is the library.
-          bool kept(LanguageModelState row) =>
-              row.isDefault || (state.managesModels ? row.reserved : row.isReady);
-          final yours = [
-            for (final row in rows)
-              if (kept(row)) row,
-          ];
-          final others = [
-            for (final row in rows)
-              if (!kept(row)) row,
-          ];
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Only a real search can come up empty; the pre-load blank list
-              // must not wear the no-matches line.
-              if (state.languages.isNotEmpty && rows.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.md,
-                  ),
-                  child: Text(
-                    l10n.transcriptionSearchEmpty,
-                    style: AppType.footnote.copyWith(color: theme.textSecondary),
-                  ),
-                ),
-              if (yours.isNotEmpty) ...[
-                SectionLabel(l10n.transcriptionYourLanguages),
-                SettingsCard(
-                  children: [
-                    for (final row in yours)
-                      _SheetRow(
-                        key: ValueKey(row.tag),
-                        row: row,
-                        managesModels: state.managesModels,
-                        canManage: canManage,
-                      ),
-                  ],
-                ),
-              ],
-              if (others.isNotEmpty) ...[
-                SectionLabel(l10n.transcriptionAllLanguages),
-                SettingsCard(
-                  children: [
-                    for (final row in others)
-                      _SheetRow(
-                        key: ValueKey(row.tag),
-                        row: row,
-                        managesModels: state.managesModels,
-                        canManage: canManage,
-                      ),
-                  ],
-                ),
-              ],
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      builder: (context, state) {
+        final canManage = state.reservationMax > 0;
+        final yours = [
+          for (final row in state.languages)
+            if (keptLanguage(row, managesModels: state.managesModels)) row,
+        ];
+        final others = [
+          for (final row in state.languages)
+            if (!keptLanguage(row, managesModels: state.managesModels)) row,
+        ];
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (yours.isNotEmpty) ...[
+              SectionLabel(l10n.transcriptionYourLanguages),
+              SettingsCard(
+                children: [
+                  for (final row in yours)
+                    _SheetRow(
+                      key: ValueKey(row.tag),
+                      row: row,
+                      managesModels: state.managesModels,
+                      canManage: canManage,
+                    ),
+                ],
+              ),
             ],
-          );
-        },
-      ),
+            if (others.isNotEmpty) ...[
+              SectionLabel(l10n.transcriptionAllLanguages),
+              SettingsCard(
+                children: [
+                  for (final row in others)
+                    _SheetRow(
+                      key: ValueKey(row.tag),
+                      row: row,
+                      managesModels: state.managesModels,
+                      canManage: canManage,
+                    ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -134,7 +103,8 @@ class _LanguageList extends StatelessWidget {
 /// One language in the sheet. The tap is the row's one promise: make it the
 /// default when it can transcribe now (closing the sheet), start its download
 /// when it only needs one, and tell its story when something stands in the
-/// way. The trailing control mirrors the promise.
+/// way. The trailing control carries the row's own state; the trash on a kept
+/// row is deliberately a separate affordance from the tap.
 class _SheetRow extends StatelessWidget {
   const _SheetRow({
     required this.row,
@@ -246,7 +216,9 @@ class _SheetRow extends StatelessWidget {
     // row tap still tells a broken row's story, with its own retry.
     if (canManage && row.reserved && !row.isDefault) {
       return Touchable(
-        onTap: () => unawaited(context.read<SettingsCubit>().remove(row.tag)),
+        // A refused write must stay a quiet no-op here, like every other
+        // fire-and-forget persist; the row's failure stamp tells the story.
+        onTap: () => context.read<SettingsCubit>().remove(row.tag).ignore(),
         haptic: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -262,6 +234,9 @@ class _SheetRow extends StatelessWidget {
   }
 
   Future<void> _tap(BuildContext context) async {
+    // One sheet at a time, like the screen's openers: two pointers landing on
+    // two broken rows in one frame must not stack two failure sheets.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final cubit = context.read<SettingsCubit>();
     if (rowHasFailureStory(row)) {
       unawaited(showModelFailureSheet(context, cubit: cubit, row: row));

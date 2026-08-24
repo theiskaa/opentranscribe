@@ -15,7 +15,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
-  WidgetBuilder? header,
+  double inset = AppSpacing.xxl,
 }) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
@@ -30,7 +30,7 @@ Future<T?> showAppSheet<T>(
     // sheet joins the fade instead of travelling.
     transitionDuration: motion.sheetScrim,
     pageBuilder: (context, animation, secondaryAnimation) =>
-        _SheetBody(builder: builder, header: header),
+        _SheetBody(builder: builder, inset: inset),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
         reduce ? FadeTransition(opacity: animation, child: child) : child,
   );
@@ -42,13 +42,14 @@ Future<T?> showAppSheet<T>(
 const double _exitTarget = 1.1;
 
 class _SheetBody extends StatefulWidget {
-  const _SheetBody({required this.builder, this.header});
+  const _SheetBody({required this.builder, required this.inset});
 
   final WidgetBuilder builder;
 
-  /// Content pinned between the grabber and the scrolling body: a search
-  /// field must stay under the finger while the list below it scrolls.
-  final WidgetBuilder? header;
+  /// Horizontal breathing room around the content. Message sheets read best
+  /// at the default; a sheet of full-width cards tightens it so the cards
+  /// span like a screen's.
+  final double inset;
 
   @override
   State<_SheetBody> createState() => _SheetBodyState();
@@ -185,22 +186,12 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
                         ),
                       ),
                     ),
-                    if (widget.header != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          0,
-                        ),
-                        child: widget.header!(context),
-                      ),
                     Flexible(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.fromLTRB(
+                          widget.inset,
                           AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
+                          widget.inset,
                           // Under a keyboard the framework already zeroes
                           // padding.bottom, so this clears the IME; without
                           // one it clears the home indicator.

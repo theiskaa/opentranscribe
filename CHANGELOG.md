@@ -14,7 +14,7 @@ Backups, editing, the club, engine choice, and faster ways to start a recording.
 - The launch splash is now drawn natively and plays over the boot, replacing the earlier Flutter splash screen.
 - Notifications: a master switch for reflection reminders, a toggle per period (day, week, month) for which ones nudge, and one shared time.
 - Engine choice: the transcription screen lists every engine the app ships, Apple Speech (the iOS 26 analyzer) and Apple Dictation (the classic recognizer behind iOS dictation), switchable with a tap. An engine the device cannot run stays visible, dimmed, with the reason; a new engine lands as one more row.
-- The transcription screen redesigned around the language you speak: the default language is a card with an honest status line (ready, download progress, or what stands in the way), the other ready languages are chips a tap makes the default, and the whole library moved into a searchable sheet where languages are added, removed, and switched in one place.
+- The transcription screen redesigned around the language you speak: the default language is a card with an honest status line (ready, download progress, or what stands in the way), the other ready languages are chips a tap makes the default, and the whole library moved into a sheet where languages are added, removed, and switched in one place.
 - iPhones whose hardware cannot run the iOS 26 analyzer (the iPhone 11 family and earlier chips) no longer show an empty language list: they start on Apple Dictation and transcribe normally.
 - Under Apple Dictation, a language whose system dictation model is missing says so and points at the iOS keyboard settings, instead of claiming it is ready.
 
