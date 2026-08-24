@@ -10,35 +10,27 @@ import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_theme.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/core/utils/language_tags.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
+import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
+import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
-import 'package:opentranscribe/view/widgets/delete_swipe.dart';
-import 'package:opentranscribe/view/widgets/language_menu_button.dart';
-import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
-import 'package:opentranscribe/view/widgets/model_failure_line.dart';
-import 'package:opentranscribe/view/widgets/progress_ring.dart';
-import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// Model management: the engines section on top (one row per shipped engine,
-/// tap to switch), then one row per language with its install state, live
-/// download progress, honest failure states, and the model it runs on. The
-/// DEFAULT language is chosen here too: the globe on the bar (the same
-/// adaptive menu the recorder carries), or touch and hold a row. Swipe a
-/// language left to remove it, the same gesture entries speak.
+/// The transcription screen as an answer to one question, what happens when I
+/// hit record: the default language as a hero card, the other kept languages
+/// as chips (a chip tap makes it the default), the engine picker, and the
+/// footnotes. The whole library, search included, lives in the language sheet
+/// the hero and the Add chip open.
 class ModelsScreen extends StatefulWidget {
   const ModelsScreen({super.key});
 
@@ -47,18 +39,16 @@ class ModelsScreen extends StatefulWidget {
 }
 
 class _ModelsScreenState extends State<ModelsScreen> {
-  /// The one language row with its remove disc open, shared across the list.
-  final ValueNotifier<String?> _openRemove = ValueNotifier<String?>(null);
-
   /// Debug-only: which failure kind the next section-label long-press stamps.
   int _debugFailureIndex = 0;
 
-  /// Debug-only: stamps a rotating failure kind on the default row, then tap
-  /// that row to view its sheet (its title names the kind). Long-press the
-  /// Engines section label to cycle: cap, unsupported, stuck, generic,
-  /// removeFailed. Cap fills its eviction list from the currently reserved
-  /// languages, so install a second language first to see that picker
-  /// populated. No effect in release (the gesture is never wired there).
+  /// Debug-only: stamps a rotating failure kind on the default row, so the
+  /// hero (and the sheet's row) show it; tap through to view its sheet.
+  /// Long-press the Speaking section label to cycle: cap, unsupported, stuck,
+  /// generic, removeFailed. Cap fills its eviction list from the currently
+  /// reserved languages, so install a second language first to see that
+  /// picker populated. No effect in release (the gesture is never wired
+  /// there).
   void _debugCycleFailure() {
     final cubit = context.read<SettingsCubit>();
     final rows = cubit.state.languages;
@@ -109,10 +99,21 @@ class _ModelsScreenState extends State<ModelsScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _openRemove.dispose();
-    super.dispose();
+  void _openLanguageSheet(BuildContext context) {
+    unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
+  }
+
+  /// The hero keeps its one promise: when the default is broken its tap tells
+  /// that story (with the recovery), otherwise it opens the library. The Add
+  /// chip stays a library door either way.
+  void _openHero(BuildContext context, SettingsState state) {
+    final cubit = context.read<SettingsCubit>();
+    final row = state.defaultLanguage;
+    if (row != null && rowHasFailureStory(row)) {
+      unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
+      return;
+    }
+    _openLanguageSheet(context);
   }
 
   @override
@@ -120,70 +121,79 @@ class _ModelsScreenState extends State<ModelsScreen> {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final engineRows = context.watch<EnginesCubit>().state.rows;
-    final activeEngine = engineRows.firstWhere(
-      (row) => row.isActive,
-      orElse: () => engineRows.first,
-    );
 
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
-      // The default-language choice, where the models live: the same globe
-      // the recorder carries, setting the app default instead of a session.
-      actions: const [_DefaultLanguageAction()],
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
-          // Managing (install glyphs, remove, the slot line) exists only where
+          // Managing (install affordances, the slot count) exists only where
           // a real reservation concept does; max 0 also covers the
           // could-not-answer degrade, where offering actions would be lying.
           final canManage = state.reservationMax > 0;
-          // The engine whose answers these rows describe: during a switch the
-          // picker marks the new engine before the rows reload, and the rows
-          // must stay labeled by the engine that produced them, never the new
-          // one's name on the old one's data.
-          final describedEngine = engineRows.firstWhere(
-            (row) => row.descriptor.engineId == state.engineId,
-            orElse: () => activeEngine,
-          );
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
-          // Sorted for reading, not by the engine's tag order: what you can
-          // use now on top (the default first), then major languages first.
-          final rows = [...state.languages]
-            ..sort((a, b) {
-              if (a.isDefault != b.isDefault) return a.isDefault ? -1 : 1;
-              if (a.isReady != b.isReady) return a.isReady ? -1 : 1;
-              return languageTagCompare(a.tag, b.tag);
-            });
-          final hints = [
-            if (state.deviceLanguageUnsupported)
-              l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
-            if (rows.isNotEmpty) l10n.transcriptionDefaultHint,
-            if (canManage && reserved > 0) l10n.transcriptionRemoveHint,
+          // The chips: what can transcribe now (or is about to), minus the
+          // default the hero carries. Narrower than the sheet's Yours section
+          // on purpose: a language with any failure story (a ready one wearing
+          // a refused remove included) must not wear a plain chip one tap away
+          // from becoming the default; its story lives in the sheet.
+          final chips = [
+            for (final row in state.languages)
+              if (!row.isDefault && (row.isReady || row.installing) && !rowHasFailureStory(row))
+                row,
           ];
-          return NotificationListener<ScrollStartNotification>(
-            // Scrolling closes an open remove disc, the same contract the
-            // home list keeps: the disc belongs to the row under the finger.
-            onNotification: (_) {
-              _openRemove.value = null;
-              return false;
-            },
-            child: SettingsList(
-              children: [
-                const SizedBox(height: 10),
-                SectionInfo(l10n.transcriptionInfo),
-                // Debug: long-press the section label to stamp a rotating
-                // failure kind on the default row, then tap the row to view
-                // its sheet. Never wired in release.
-                GestureDetector(
-                  // Opaque so the label's whole padded band takes the press,
-                  // not just the text ink.
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: kDebugMode ? _debugCycleFailure : null,
-                  child: SectionLabel(l10n.transcriptionEngines),
+          return SettingsList(
+            children: [
+              const SizedBox(height: 10),
+              // Debug: long-press the Speaking label to stamp a rotating
+              // failure kind on the default row. Never wired in release.
+              GestureDetector(
+                // Opaque so the label's whole padded band takes the press,
+                // not just the text ink.
+                behavior: HitTestBehavior.opaque,
+                onLongPress: kDebugMode ? _debugCycleFailure : null,
+                child: SectionLabel(l10n.transcriptionSpeaking),
+              ),
+              _Melt(
+                child: SpeakingHero(state: state, onTap: () => _openHero(context, state)),
+              ),
+              // The label only when something IS also ready; the Add chip
+              // stays either way, as the library door a broken default's hero
+              // (routing to its story) cannot be.
+              _Melt(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Crossfaded, not just resized: AnimatedSize settles the
+                    // child at final geometry immediately, so without the
+                    // fade the label would pop in over the melting gap.
+                    AnimatedSwitcher(
+                      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                      layoutBuilder: meltStack,
+                      child: chips.isNotEmpty
+                          ? SectionLabel(l10n.transcriptionAlsoReady)
+                          : const SizedBox(height: AppSpacing.xxl),
+                    ),
+                    LanguageChipStrip(
+                      rows: chips,
+                      // Same persist contract as the sheet's row tap: a
+                      // refused write leaves the chip a chip, never an
+                      // unhandled error.
+                      onPick: (tag) async {
+                        try {
+                          await context.read<SettingsCubit>().setLocale(tag);
+                        } catch (_) {}
+                      },
+                      onAdd: () => _openLanguageSheet(context),
+                    ),
+                  ],
                 ),
-                SettingsCard(
+              ),
+              SectionLabel(l10n.transcriptionEngines),
+              _Melt(
+                child: SettingsCard(
                   children: [
                     for (final engineRow in engineRows)
                       _EngineRow(
@@ -201,39 +211,21 @@ class _ModelsScreenState extends State<ModelsScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-                SectionLabel(l10n.transcriptionLanguages),
-                SettingsCard(
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _Melt(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final row in rows)
-                      _LanguageRow(
-                        // Keyed by language: after a removal's rebuild the swipe
-                        // state must follow its row (or die with it), never be
-                        // recycled onto whichever row lands in this slot.
-                        key: ValueKey(row.tag),
-                        row: row,
-                        canManage: canManage,
-                        managesModels: state.managesModels,
-                        openRemove: _openRemove,
-                        modelName: describedEngine.descriptor.displayName,
+                    if (state.deviceLanguageUnsupported)
+                      SectionInfo(
+                        l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
                       ),
+                    if (state.managesModels) SectionInfo(l10n.transcriptionFootnote),
                   ],
                 ),
-                if (hints.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, AppSpacing.md, 14, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final (index, hint) in hints.indexed) ...[
-                          if (index > 0) const SizedBox(height: AppSpacing.xs),
-                          Text(hint, style: AppType.footnote.copyWith(color: theme.textSecondary)),
-                        ],
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -241,20 +233,22 @@ class _ModelsScreenState extends State<ModelsScreen> {
   }
 }
 
-/// The bar's default-language switch: every usable language, the default
-/// checked; picking one sets the app default.
-class _DefaultLanguageAction extends StatelessWidget {
-  const _DefaultLanguageAction();
+/// An engine switch regrows half the screen at once (chips leave, slot lines
+/// and footnotes land, statuses reword); each section rides its own resize
+/// instead of snapping the whole page a frame. Instant under Reduce Motion.
+class _Melt extends StatelessWidget {
+  const _Melt({required this.child});
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final settings = context.watch<SettingsCubit>().state;
-    return LanguageMenuButton(
-      current: settings.localeId,
-      tags: settings.selectableLanguageTags(),
-      color: theme.topBar.iconColor,
-      onPick: (tag) => context.read<SettingsCubit>().setLocale(tag),
+    final motion = context.theme.motion;
+    return AnimatedSize(
+      duration: context.reduceMotion ? AppMotion.instant : motion.indicator,
+      curve: motion.indicatorCurve,
+      alignment: Alignment.topCenter,
+      child: child,
     );
   }
 }
@@ -334,317 +328,6 @@ class _EngineRow extends StatelessWidget {
         icon: AppIcons.micFill,
         title: l10n.engineBusyTitle,
         body: l10n.engineBusyBody,
-      ),
-    );
-  }
-}
-
-/// One language: flag chip (accent-tinted for the default), native name with a
-/// Default tag, the model it runs on (or its failure line), and the model
-/// control on the trailing edge. Reserved rows swipe left to remove.
-class _LanguageRow extends StatelessWidget {
-  const _LanguageRow({
-    required this.row,
-    required this.canManage,
-    required this.managesModels,
-    required this.openRemove,
-    required this.modelName,
-    super.key,
-  });
-
-  final LanguageModelState row;
-
-  /// Whether a real reservation concept exists (see the builder above); off,
-  /// no remove and no install affordances are offered.
-  final bool canManage;
-
-  /// Whether the active engine manages downloadable models; words an unready
-  /// language (a missing download vs a missing system dictation setting).
-  final bool managesModels;
-
-  final ValueNotifier<String?> openRemove;
-
-  /// The engine serving this language, named per row because future builds
-  /// will mix models in one list.
-  final String modelName;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = _content(context);
-    final cubit = context.read<SettingsCubit>();
-    final unsupported = row.status == ModelAssetStatus.unsupported;
-    // Hold = make default, everywhere the language could work. Tap stays
-    // free of meaning here on purpose (the settings picker is the primary
-    // chooser); hold is the power move for someone already managing models -
-    // EXCEPT on a row with a failure story, where tap opens the explanation.
-    final makeDefault = unsupported || row.isDefault
-        ? null
-        : () => unawaited(cubit.setLocale(row.tag));
-    final explain = rowHasFailureStory(row)
-        ? () => unawaited(showModelFailureSheet(context, cubit: cubit, row: row))
-        : null;
-    // Removing an unsupported-but-reserved language stays allowed: freeing a
-    // slot held by a broken language is the cap-recovery path itself.
-    if (!canManage || !row.reserved) {
-      return Touchable(onTap: explain, onLongPress: makeDefault, child: content);
-    }
-    return DeleteSwipe(
-      id: row.tag,
-      openId: openRemove,
-      // A tap closes an open disc (handled inside); on a settled row it opens
-      // the failure story when there is one.
-      onTap: explain ?? () {},
-      onLongPress: makeDefault,
-      // A refused removal keeps the row: the swipe's exit reopens the slot on
-      // its own, and the failure line says what happened.
-      onDelete: () => cubit.remove(row.tag),
-      child: content,
-    );
-  }
-
-  Widget _content(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.settings;
-    final l10n = AppLocalizations.of(context)!;
-    final unsupported = row.status == ModelAssetStatus.unsupported;
-    final active = row.isDefault && !unsupported;
-    final subLine = _subLine(l10n);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: tokens.iconTileSize,
-            height: tokens.iconTileSize,
-            alignment: Alignment.center,
-            decoration: SuperellipseDecoration(
-              borderRadius: tokens.iconTileRadius,
-              color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
-            ),
-            child: LocaleFlag(localeFlag(row.tag), size: 18),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        localeDisplayName(row.tag),
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.subhead.copyWith(
-                          color: unsupported ? theme.textSecondary : theme.text,
-                          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    if (row.isDefault) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      // A word, not a color: which language is the default
-                      // must survive every theme and read at a glance.
-                      Text(
-                        l10n.transcriptionDefaultTag,
-                        style: AppType.caption.copyWith(
-                          color: theme.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                // Crossfaded like the trailing control, so the downloading line
-                // melts into the model name in step with the checkmark.
-                AnimatedSwitcher(
-                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-                  layoutBuilder: (current, previous) =>
-                      Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
-                  child: row.installing
-                      ? _DownloadingLine(fraction: row.installFraction!)
-                      : Text(
-                          subLine,
-                          key: ValueKey(subLine),
-                          style: AppType.footnote.copyWith(color: theme.textSecondary),
-                        ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          _Trailing(row: row, canManage: canManage),
-        ],
-      ),
-    );
-  }
-
-  /// The quiet line under the name: a failure worded by kind and by the
-  /// asset's pre-install state, a language the platform cannot serve, a system
-  /// download still pending from an earlier attempt, and otherwise the model
-  /// this language runs on.
-  String _subLine(AppLocalizations l10n) {
-    final failure = modelFailureLine(l10n, row);
-    if (failure != null) return failure;
-    if (row.status == ModelAssetStatus.unsupported) {
-      // Without a managed model, an unready language means the SYSTEM
-      // dictation model is missing, and the recovery is an iOS setting, not a
-      // download this app could offer.
-      return managesModels ? l10n.transcriptionErrorUnsupported : l10n.languageNeedsDictation;
-    }
-    if (row.status == ModelAssetStatus.downloading && !row.installing) {
-      return l10n.transcriptionErrorStuck;
-    }
-    return modelName;
-  }
-}
-
-/// The model control for one row. Every state answers the same question, "can
-/// I use this language right now": ready (checkmark), downloading (fraction
-/// ring), failed or stuck (retry), downloadable (download), unsupported or
-/// unknowable (nothing).
-class _Trailing extends StatelessWidget {
-  const _Trailing({required this.row, required this.canManage});
-
-  final LanguageModelState row;
-  final bool canManage;
-
-  /// One footprint for every state ([_Glyph]'s 22px icon plus its padding), so
-  /// the ring, spinner, and checkmark share the glyphs' exact center instead of
-  /// hugging the row's edge a few pixels further right.
-  static const double _slot = 30;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    // Crossfaded between states, so a finishing download melts into its
-    // checkmark instead of teleporting.
-    return AnimatedSwitcher(
-      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-      child: SizedBox(
-        key: ValueKey(_stateName),
-        width: _slot,
-        height: _slot,
-        // OverflowBox, not Center: a glyph is a Text, and the wide symbols
-        // (icloud) exceed their font size, so a tight slot would make the
-        // Text clip them at its right edge. Centered at natural size, the
-        // extra width paints harmlessly over the row's padding. The minimums
-        // must be loosened too: OverflowBox keeps the slot's tight minWidth
-        // otherwise, which stretched narrow glyphs (the checkmark) into a
-        // 30-wide left-drawing Text and pushed their ink off-center.
-        child: OverflowBox(
-          minWidth: 0,
-          minHeight: 0,
-          maxWidth: double.infinity,
-          maxHeight: double.infinity,
-          child: _control(context, theme),
-        ),
-      ),
-    );
-  }
-
-  /// The state the control is in, keying the crossfade: fraction changes keep
-  /// the ring, state changes swap the child.
-  String get _stateName {
-    if (row.installing) return row.installFraction! <= 0 ? 'waiting' : 'downloading';
-    if (_installFailed || _stuck) return 'retry';
-    if (row.isReady) return 'ready';
-    if (row.status == ModelAssetStatus.unsupported || !canManage) return 'none';
-    return 'downloadable';
-  }
-
-  /// An install-side failure; a refused removal keeps the ready checkmark
-  /// (the language still works), its story lives in the sub-line and sheet.
-  bool get _installFailed =>
-      row.failure != null && row.failure!.kind != LanguageFailureKind.removeFailed;
-
-  bool get _stuck => row.status == ModelAssetStatus.downloading && !row.installing;
-
-  Widget _control(BuildContext context, AppTheme theme) {
-    if (row.installing) {
-      final fraction = row.installFraction!;
-      // Before the first real fraction there is nothing honest to draw as
-      // progress; the spinner is the sanctioned wait-with-no-known-end. Tinted
-      // by the INK color, not textSecondary: the spinner picks its black or
-      // white dots by the tint's luminance, and dark mode's mid-gray secondary
-      // sits under the threshold, which chose black dots on a dark surface.
-      if (fraction <= 0) return AppSpinner(size: 22, color: theme.text);
-      return ProgressRing(fraction: fraction);
-    }
-    if (_installFailed || _stuck) {
-      // Retry IS the sanctioned recovery for a failure AND for a system
-      // download stuck from an earlier attempt (re-issuing an install request
-      // is safe and never duplicates a download).
-      return _Glyph(
-        icon: AppIcons.arrowCounterclockwise,
-        color: theme.accent,
-        onTap: () => context.read<SettingsCubit>().install(row.tag),
-      );
-    }
-    if (row.isReady) {
-      return AppIcon(AppIcons.checkmark, size: 16, color: theme.settings.toggleActive);
-    }
-    if (row.status == ModelAssetStatus.unsupported || !canManage) {
-      // No affordance where none can act honestly: unsupported has nothing to
-      // offer, and without a reservation concept (pre-26, degraded engines)
-      // non-default rows' readiness is unknown, so a download glyph would be
-      // a perpetual no-op.
-      return const SizedBox.shrink();
-    }
-    // Downloadable, or installed system-wide but not yet usable by this app
-    // (the same tap reserves it; that path completes without a download).
-    return _Glyph(
-      icon: AppIcons.icloud,
-      color: theme.accent,
-      onTap: () => context.read<SettingsCubit>().install(row.tag),
-    );
-  }
-}
-
-/// The downloading row's sub-line: "Downloading · 42%", the percent rolling
-/// odometer-style as fractions land, so progress reads in words right where
-/// the eye already is instead of only in a 22px ring.
-class _DownloadingLine extends StatelessWidget {
-  const _DownloadingLine({required this.fraction});
-
-  final double fraction;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
-    final style = AppType.footnote.copyWith(color: theme.textSecondary);
-    final percent = (fraction.clamp(0.0, 1.0) * 100).round();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('${l10n.transcriptionDownloading} · ', style: style),
-        RollingText(
-          text: '$percent%',
-          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
-          // Quiet secondary text: every changed digit moves together.
-          stagger: Duration.zero,
-        ),
-      ],
-    );
-  }
-}
-
-class _Glyph extends StatelessWidget {
-  const _Glyph({required this.icon, required this.color, required this.onTap});
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Touchable(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xs),
-        child: AppIcon(icon, size: 22, color: color),
       ),
     );
   }
