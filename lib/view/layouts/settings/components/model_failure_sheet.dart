@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -47,7 +48,7 @@ Future<void> showModelFailureSheet(
 }) async {
   final reply = await showAppSheet<_Reply>(
     context,
-    builder: (context) => _FailureContent(row: row, managed: cubit.state.managesModels),
+    builder: (context) => _FailureContent(row: row, cubit: cubit),
   );
   switch (reply) {
     case null:
@@ -62,51 +63,63 @@ Future<void> showModelFailureSheet(
 }
 
 class _FailureContent extends StatelessWidget {
-  const _FailureContent({required this.row, required this.managed});
+  const _FailureContent({required this.row, required this.cubit});
 
   final LanguageModelState row;
-  final bool managed;
+  final SettingsCubit cubit;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final kind = modelFailureCase(row, managed: managed);
-    final (icon, title, body) = modelFailureStory(l10n, kind, localeDisplayName(row.tag));
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      bloc: cubit,
+      builder: (context, state) {
+        final kind = modelFailureCase(row, managed: state.managesModels);
+        final (icon, title, body) = modelFailureStory(l10n, kind, localeDisplayName(row.tag));
 
-    // The cap case offers the languages holding the slots, minus this one.
-    final evictable = kind == ModelFailureCase.cap
-        ? [
-            for (final tag in row.failure?.reservedTags ?? const <String>[])
-              if (tag != row.tag) tag,
-          ]
-        : const <String>[];
+        // The cap case offers the languages holding the slots, minus this
+        // one. The failure's tags are a snapshot from when the cap fired;
+        // only the ones STILL holding a slot are offered, so a slot freed
+        // since cannot be "evicted" again into a false remove failure.
+        final reservedNow = {
+          for (final r in state.languages)
+            if (r.reserved) r.tag,
+        };
+        final evictable = kind == ModelFailureCase.cap
+            ? [
+                for (final tag in row.failure?.reservedTags ?? const <String>[])
+                  if (tag != row.tag && reservedNow.contains(tag)) tag,
+              ]
+            : const <String>[];
 
-    return SheetMessage(
-      icon: icon,
-      title: title,
-      body: body,
-      rows: [
-        for (final (index, tag) in evictable.indexed) ...[
-          if (index > 0)
-            Padding(
-              padding: EdgeInsets.only(left: theme.settings.dividerInset),
-              child: Container(height: 1, color: theme.settings.dividerColor),
+        return SheetMessage(
+          icon: icon,
+          title: title,
+          body: body,
+          rows: [
+            for (final (index, tag) in evictable.indexed) ...[
+              if (index > 0)
+                Padding(
+                  padding: EdgeInsets.only(left: theme.settings.dividerInset),
+                  child: Container(height: 1, color: theme.settings.dividerColor),
+                ),
+              _EvictRow(tag: tag, onTap: () => Navigator.of(context).pop(_Evict(tag))),
+            ],
+          ],
+          action: switch (kind) {
+            ModelFailureCase.stuck || ModelFailureCase.generic => AppButton(
+              label: l10n.retry,
+              onPressed: () => Navigator.of(context).pop(const _RetryInstall()),
             ),
-          _EvictRow(tag: tag, onTap: () => Navigator.of(context).pop(_Evict(tag))),
-        ],
-      ],
-      action: switch (kind) {
-        ModelFailureCase.stuck || ModelFailureCase.generic => AppButton(
-          label: l10n.retry,
-          onPressed: () => Navigator.of(context).pop(const _RetryInstall()),
-        ),
-        ModelFailureCase.removeFailed => AppButton(
-          label: l10n.retry,
-          variant: AppButtonVariant.danger,
-          onPressed: () => Navigator.of(context).pop(const _RetryRemove()),
-        ),
-        _ => null,
+            ModelFailureCase.removeFailed => AppButton(
+              label: l10n.retry,
+              variant: AppButtonVariant.danger,
+              onPressed: () => Navigator.of(context).pop(const _RetryRemove()),
+            ),
+            _ => null,
+          },
+        );
       },
     );
   }
