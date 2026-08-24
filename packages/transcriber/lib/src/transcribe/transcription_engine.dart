@@ -196,7 +196,10 @@ abstract interface class ManagedModelEngine implements TranscriptionEngine {
   /// Overlapping calls for DIFFERENT locales are allowed (a per-language UI
   /// invites them); an implementation whose transport is single-flight must
   /// serialize them itself rather than let a later call wedge an earlier one.
-  /// Callers still promise not to run two installs for the SAME locale.
+  /// Callers still promise not to run two installs for the SAME locale, and
+  /// to listen to the returned stream immediately: a serializing
+  /// implementation may release its turn only from the stream's lifecycle, so
+  /// an unlistened stream can wedge every later install.
   Stream<ModelInstallProgress> installModel({required String localeId});
 
   /// The tags whose models are downloaded on this DEVICE. Assets are shared

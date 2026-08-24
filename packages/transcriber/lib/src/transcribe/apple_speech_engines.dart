@@ -50,7 +50,9 @@ class SpeechLiveTransport {
     final hub = _hub ??= StreamController<Map<String, dynamic>>.broadcast();
     _channelSub ??= _events.receiveBroadcastStream().listen((raw) {
       if (raw is Map) hub.add(raw.cast<String, dynamic>());
-    });
+      // Errors ride the stream as data maps; a sink-level error would
+      // otherwise land in the zone and silently end every live stream.
+    }, onError: (Object _) {});
     return hub.stream;
   }
 }
@@ -82,6 +84,18 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
   @override
   bool get onDeviceOnly => true;
 
+  /// One fold for every preflight probe: probes never throw, they answer
+  /// [fallback] when the channel cannot say (or a test has no native side).
+  Future<T> _preflight<T>(T fallback, Future<T?> Function() call) async {
+    try {
+      return await call() ?? fallback;
+    } on PlatformException {
+      return fallback;
+    } on MissingPluginException {
+      return fallback;
+    }
+  }
+
   @override
   Future<Availability> checkAvailability({required String localeId}) async {
     try {
@@ -99,17 +113,12 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
   }
 
   @override
-  Future<List<String>> supportedLocales() async {
-    try {
-      return await _methods.invokeListMethod<String>('supportedLocales', {'engine': _route}) ??
-          const [];
-    } on PlatformException {
-      // A picker with no data beats a throw in a preflight.
-      return const [];
-    } on MissingPluginException {
-      return const [];
-    }
-  }
+  Future<List<String>> supportedLocales() =>
+      // A picker with no data beats a throw.
+      _preflight(
+        const [],
+        () => _methods.invokeListMethod<String>('supportedLocales', {'engine': _route}),
+      );
 
   @override
   Future<Transcript> transcribeFile(
@@ -196,6 +205,9 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
             'engine': _route,
           })
           .catchError((Object error) {
+            // A cancel may have closed the controller before this reply
+            // landed; the failure then has no listener left to tell.
+            if (controller.isClosed) return;
             controller.addError(switch (error) {
               PlatformException(:final code, :final message, :final details) => _mapError(
                 code,
@@ -209,7 +221,9 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
           });
     };
     controller.onCancel = () async {
-      unawaited(_methods.invokeMethod<void>('stopLive', {'session': session}));
+      // Best effort, like cancelBatches: a cancel must never surface a
+      // channel failure as an unhandled error.
+      unawaited(_methods.invokeMethod<void>('stopLive', {'session': session}).catchError((_) {}));
       await settle();
     };
     return controller.stream;
@@ -287,107 +301,72 @@ class AppleSpeechEngine extends _AppleChannelEngine implements ManagedModelEngin
   /// always answers yes). Resolved natively once per process (with a deadline
   /// against a wedged catalog query), so the answer cannot flip within a
   /// session.
-  Future<bool> analyzerAvailable() async {
-    try {
-      return await _methods.invokeMethod<bool>('analyzerAvailable') ?? false;
-    } on PlatformException {
-      return false;
-    } on MissingPluginException {
-      return false;
-    }
-  }
+  Future<bool> analyzerAvailable() =>
+      _preflight(false, () => _methods.invokeMethod<bool>('analyzerAvailable'));
 
   @override
-  Future<bool> isModelInstalled({required String localeId}) async {
-    try {
-      return await _methods.invokeMethod<bool>('isModelInstalled', {
-            'localeId': localeId,
-            'engine': _route,
-          }) ??
-          false;
-    } on PlatformException {
+  Future<bool> isModelInstalled({required String localeId}) =>
       // An unknown install state is treated as not-ready rather than surfaced.
-      return false;
-    } on MissingPluginException {
-      return false;
-    }
-  }
-
-  @override
-  Future<List<String>> installedLocales() async {
-    try {
-      return await _methods.invokeListMethod<String>('installedLocales', {'engine': _route}) ??
-          const [];
-    } on PlatformException {
-      // A preflight probe never throws; no answer reads as nothing installed.
-      return const [];
-    } on MissingPluginException {
-      return const [];
-    }
-  }
-
-  @override
-  Future<LocaleModelStatus> localeStatus({required String localeId}) async {
-    try {
-      final result = await _methods.invokeMapMethod<String, dynamic>('localeStatus', {
-        'localeId': localeId,
-        'engine': _route,
-      });
-      return LocaleModelStatus(
-        status: _assetStatusFrom(result?['status']) ?? ModelAssetStatus.supported,
-        reserved: (result?['reserved'] as bool?) ?? false,
-        resolvedTag: (result?['resolvedTag'] as String?) ?? localeId,
+      _preflight(
+        false,
+        () => _methods.invokeMethod<bool>('isModelInstalled', {
+          'localeId': localeId,
+          'engine': _route,
+        }),
       );
-    } on PlatformException {
+
+  @override
+  Future<List<String>> installedLocales() =>
+      // No answer reads as nothing installed.
+      _preflight(
+        const [],
+        () => _methods.invokeListMethod<String>('installedLocales', {'engine': _route}),
+      );
+
+  @override
+  Future<LocaleModelStatus> localeStatus({required String localeId}) =>
       // Unknown state reads as downloadable-but-not-ready: it neither promises
       // a model that may be absent nor writes a language off as unsupported.
-      return LocaleModelStatus(
-        status: ModelAssetStatus.supported,
-        reserved: false,
-        resolvedTag: localeId,
-      );
-    } on MissingPluginException {
-      return LocaleModelStatus(
-        status: ModelAssetStatus.supported,
-        reserved: false,
-        resolvedTag: localeId,
-      );
-    }
-  }
-
-  @override
-  Future<bool> removeLanguage({required String localeId}) async {
-    try {
-      return await _methods.invokeMethod<bool>('removeLanguage', {
+      _preflight(
+        LocaleModelStatus(
+          status: ModelAssetStatus.supported,
+          reserved: false,
+          resolvedTag: localeId,
+        ),
+        () async {
+          final result = await _methods.invokeMapMethod<String, dynamic>('localeStatus', {
             'localeId': localeId,
             'engine': _route,
-          }) ??
-          false;
-    } on PlatformException {
-      // Nothing released is the honest answer when the channel cannot say.
-      return false;
-    } on MissingPluginException {
-      return false;
-    }
-  }
+          });
+          return LocaleModelStatus(
+            status: _assetStatusFrom(result?['status']) ?? ModelAssetStatus.supported,
+            reserved: (result?['reserved'] as bool?) ?? false,
+            resolvedTag: (result?['resolvedTag'] as String?) ?? localeId,
+          );
+        },
+      );
 
   @override
-  Future<ReservationInfo> reservationInfo() async {
-    try {
-      final result = await _methods.invokeMapMethod<String, dynamic>('reservationInfo', {
-        'engine': _route,
-      });
-      return ReservationInfo(
-        max: (result?['max'] as num?)?.toInt() ?? 0,
-        reservedTags: _stringList(result?['reserved']),
+  Future<bool> removeLanguage({required String localeId}) =>
+      // Nothing released is the honest answer when the channel cannot say.
+      _preflight(
+        false,
+        () =>
+            _methods.invokeMethod<bool>('removeLanguage', {'localeId': localeId, 'engine': _route}),
       );
-    } on PlatformException {
+
+  @override
+  Future<ReservationInfo> reservationInfo() =>
       // max 0 is the contract's "could not answer": the UI renders no cap.
-      return const ReservationInfo(max: 0, reservedTags: []);
-    } on MissingPluginException {
-      return const ReservationInfo(max: 0, reservedTags: []);
-    }
-  }
+      _preflight(const ReservationInfo(max: 0, reservedTags: []), () async {
+        final result = await _methods.invokeMapMethod<String, dynamic>('reservationInfo', {
+          'engine': _route,
+        });
+        return ReservationInfo(
+          max: (result?['max'] as num?)?.toInt() ?? 0,
+          reservedTags: _stringList(result?['reserved']),
+        );
+      });
 
   /// Completes when the most recent install stream's channel teardown finished,
   /// so overlapping installs serialize instead of decapitating each other (the
@@ -403,7 +382,11 @@ class AppleSpeechEngine extends _AppleChannelEngine implements ManagedModelEngin
   Stream<ModelInstallProgress> installModel({required String localeId}) {
     final prior = _installTeardown;
     final teardown = Completer<void>();
-    _installTeardown = teardown.future;
+    // Chained onto the prior, not swapped in: a queued install that cancels
+    // before ever running completes its own teardown early, and a successor
+    // latched on that alone would jump the still-running head of the queue
+    // and decapitate it on the single-flight channel.
+    _installTeardown = prior == null ? teardown.future : prior.then((_) => teardown.future);
 
     // A manual controller, NOT async*: a generator suspended in `await for` on
     // a channel that will never speak again cannot be unwound by a consumer
@@ -485,22 +468,17 @@ class AppleDictationEngine extends _AppleChannelEngine implements LanguageReadin
   String get id => 'apple.dictation';
 
   @override
-  Future<bool> localeReady({required String localeId}) async {
-    try {
+  Future<bool> localeReady({required String localeId}) =>
       // The classic localeStatus arm answers from the recognizer alone and
       // never requests authorization, which is this method's whole guarantee.
-      final result = await _methods.invokeMapMethod<String, dynamic>('localeStatus', {
-        'localeId': localeId,
-        'engine': _route,
-      });
-      return result?['status'] == 'installed';
-    } on PlatformException {
       // Not-ready is the honest fold when the channel cannot say.
-      return false;
-    } on MissingPluginException {
-      return false;
-    }
-  }
+      _preflight(false, () async {
+        final result = await _methods.invokeMapMethod<String, dynamic>('localeStatus', {
+          'localeId': localeId,
+          'engine': _route,
+        });
+        return result?['status'] == 'installed';
+      });
 }
 
 /// The channel's status strings, one spelling with SpeechEngine.swift.

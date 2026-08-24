@@ -464,6 +464,9 @@ class FakeDictationEngine
 
   @override
   Future<bool> localeReady({required String localeId}) async =>
+      // Per-locale like the real engine: a tag with no on-device recognizer
+      // answers false, whatever the engine-wide availability says.
+      inner.supportedLocaleTags.contains(localeId) &&
       inner.availability.status != AvailabilityStatus.onDeviceUnavailable;
 
   @override

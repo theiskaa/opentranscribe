@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:transcriber/src/transcribe/apple_speech_engines.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
 
-/// Pins the engine-routing half of the channel contract with SpeechEngine.swift:
-/// which calls carry the engine argument, and with which spelling.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
