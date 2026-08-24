@@ -4,7 +4,7 @@ All notable changes to opentranscribe are documented here. Each release section 
 
 ## 0.2.0 - 2026-08-22
 
-Backups, editing, the club, and faster ways to start a recording.
+Backups, editing, the club, engine choice, and faster ways to start a recording.
 
 - Formatted exports, the first OpenTranscribe Club feature: the whole journal handed to the share sheet as Markdown, as Obsidian notes, or as a Website that opens with a player in any browser. (#5)
 - Native archive backup: one file that restores the whole journal, audio and reflections included, sealed with a passphrase by default; without it the file is unreadable. Free for everyone, never behind the paywall, so anyone can always back up and recover. (#5)
@@ -13,6 +13,9 @@ Backups, editing, the club, and faster ways to start a recording.
 - A lock screen control and a widget row that start a recording without opening the app, plus Siri and Shortcuts support through App Intents. (#9)
 - The launch splash is now drawn natively and plays over the boot, replacing the earlier Flutter splash screen.
 - Notifications: a master switch for reflection reminders, a toggle per period (day, week, month) for which ones nudge, and one shared time.
+- Engine choice: the transcription screen lists every engine the app ships, Apple Speech (the iOS 26 analyzer) and Apple Dictation (the classic recognizer behind iOS dictation), switchable with a tap. An engine the device cannot run stays visible, dimmed, with the reason; a new engine lands as one more row.
+- iPhones whose hardware cannot run the iOS 26 analyzer (the iPhone 11 family and earlier chips) no longer show an empty language list: they start on Apple Dictation and transcribe normally.
+- Under Apple Dictation, a language whose system dictation model is missing says so and points at the iOS keyboard settings, instead of claiming it is ready.
 
 ## 0.1.0 - 2026-08-12
 
