@@ -1283,6 +1283,9 @@ class TranscriptionService {
   /// like any other: the words it replaces stay in the entry's history.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     final engine = using ?? _engine;
+    // Captured beside the engine: an engine switch landing during the awaits
+    // below must not pair this engine with the other engine's resolution.
+    final serviceLocaleId = this.localeId;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
@@ -1302,7 +1305,7 @@ class TranscriptionService {
         for (final span in spans) (startMs: span.startMs, tag: span.localeId),
       ]);
     } else {
-      final locale = localeId ?? entry.effectiveLocaleId ?? this.localeId;
+      final locale = localeId ?? entry.effectiveLocaleId ?? serviceLocaleId;
       transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
     }
     // A first-use model install may have piggybacked on this pass.

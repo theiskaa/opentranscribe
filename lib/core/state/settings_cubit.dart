@@ -258,7 +258,22 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (localeId.isNotEmpty && !tags.contains(localeId)) tags.add(localeId);
     tags.sort(languageTagCompare);
 
-    final previous = {for (final row in state.languages) row.tag: row};
+    // Carried state is one engine's story: across a switch the old rows'
+    // statuses, failures, and download fractions describe the OTHER engine,
+    // so the first load after one starts from scratch. The old engine's
+    // install trackers go with them.
+    final sameEngine = state.engineId == _service.engineId;
+    if (!sameEngine) {
+      for (final sub in _installSubs.values) {
+        // Best effort, like the service's own teardown: a rejecting cancel
+        // must not land in the zone.
+        unawaited(sub.cancel().catchError((_) {}));
+      }
+      _installSubs.clear();
+    }
+    final previous = sameEngine
+        ? {for (final row in state.languages) row.tag: row}
+        : const <String, LanguageModelState>{};
     // Where readiness is a per-language probe (the dictation engine), the
     // coarse installed list claims everything and would flash every row ready
     // until the refine wave lands; carrying the last refined status (or
@@ -318,7 +333,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     // above overstates it, so every load ends by refining every row. Riding
     // the load, not a screen, so a switch's last load always lands honest and
     // a superseded load's refinements die on the generation guard.
-    if (_service.probesLanguageReadiness) {
+    if (probes) {
       for (final tag in tags) {
         unawaited(refreshLanguage(tag));
       }
@@ -405,16 +420,29 @@ class SettingsCubit extends Cubit<SettingsState> {
   final Set<String> _removals = {};
 
   Future<bool> _remove(String tag) async {
+    // The engine this removal belongs to: a switch landing mid-flight must
+    // not let its verdict stamp the NEXT engine's row.
+    final engineId = _service.engineId;
     // A fresh attempt clears the last one's verdict either way.
     _patchRow(tag, (row) => row.copyWith(clearFailure: true));
-    final released = await _service.removeLanguage(tag);
+    // A thrown channel call is a refused removal, not an escape: the stamp
+    // below is the row's whole story once the old one was cleared.
+    bool released;
+    try {
+      released = await _service.removeLanguage(tag);
+    } catch (_) {
+      released = false;
+    }
     if (isClosed) return released;
-    if (released && tag == state.localeId) {
+    // Against the settings' truth, not cubit state: a just-picked default is
+    // in storage before the load that would update state.localeId lands, and
+    // this fallback must not overwrite it.
+    if (released && tag == _transcription.localeId) {
       await _transcription.setLocaleId(_transcription.deviceLocaleId);
     }
     await load();
     if (isClosed) return released;
-    if (!released) {
+    if (!released && _service.engineId == engineId) {
       // Nothing was released: say so on the row instead of pretending the
       // swipe did something. The failure stands until a retry clears it.
       _patchRow(
@@ -430,8 +458,13 @@ class SettingsCubit extends Cubit<SettingsState> {
   /// [evictTag], then retries the blocked [installTag]. A refused removal
   /// skips the retry; the evicted row already wears its own failure.
   Future<void> evictAndInstall(String evictTag, String installTag) async {
+    final engineId = _service.engineId;
     final released = await remove(evictTag);
     if (isClosed || !released) return;
+    // An engine switched under the gesture would receive the install instead
+    // of the one whose cap the eviction freed; drop the retry, the row's own
+    // affordances remain.
+    if (_service.engineId != engineId) return;
     install(installTag);
   }
 
@@ -492,9 +525,10 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> close() async {
     await _modelSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
-    // own tag from the live map, which would invalidate this iteration.
+    // own tag from the live map, which would invalidate this iteration. A
+    // rejecting cancel must not abort the close and leak the cubit open.
     for (final sub in List.of(_installSubs.values)) {
-      await sub.cancel();
+      await sub.cancel().catchError((_) {});
     }
     _installSubs.clear();
     return super.close();

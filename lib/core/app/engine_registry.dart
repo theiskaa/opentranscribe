@@ -14,7 +14,7 @@ final class EngineEntry {
     required this.engine,
     required this.available,
     this.unavailability,
-  });
+  }) : assert(available == (unavailability == null), 'unavailability iff not available');
 
   final EngineDescriptor descriptor;
   final TranscriptionEngine engine;

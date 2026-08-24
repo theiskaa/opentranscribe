@@ -39,8 +39,8 @@ final class EnginesState {
 /// persists the choice, and re-resolves the language default against the new
 /// engine; an engine this device cannot run is never switched to.
 // ignore_for_file: prefer_initializing_formals
-// The fields are private (a cubit owns its collaborators) and the constructor
-// must call super(state), so initializing formals do not apply.
+// Public parameters assigned to private fields, matching the sibling cubits'
+// constructor shape.
 class EnginesCubit extends Cubit<EnginesState> {
   EnginesCubit({
     required List<EngineEntry> registry,
@@ -77,14 +77,30 @@ class EnginesCubit extends Cubit<EnginesState> {
     return null;
   }
 
+  /// One pick at a time: a second tap racing the first's persist could
+  /// otherwise interleave, and the loser's revert would clobber the winner's
+  /// completed switch.
+  bool _picking = false;
+
   /// Switches to the named engine. Swap first (cheap, and refusable while a
   /// take is in flight), then persist; a failed persist attempts to revert the
   /// swap and rethrows so the surface can say the choice will not survive a
   /// relaunch. The language default re-resolves last and best-effort, in the
   /// background: a wedged or failing channel must neither hang the pick nor
   /// read as a failed switch, a late landing is dropped by apply's generation
-  /// guard, and the next launch re-resolves regardless.
+  /// guard, and the next launch re-resolves regardless. A pick racing an
+  /// in-flight pick is dropped and answers [EnginePickOutcome.unchanged].
   Future<EnginePickOutcome> pick(String engineId) async {
+    if (_picking) return EnginePickOutcome.unchanged;
+    _picking = true;
+    try {
+      return await _pick(engineId);
+    } finally {
+      _picking = false;
+    }
+  }
+
+  Future<EnginePickOutcome> _pick(String engineId) async {
     final entry = _entry(engineId);
     if (entry == null || !entry.available) return EnginePickOutcome.unavailable;
     if (_service.engineId == engineId) {
@@ -101,6 +117,7 @@ class EnginesCubit extends Cubit<EnginesState> {
     try {
       await _engineSettings.setEngineId(engineId);
     } catch (_) {
+      if (isClosed) rethrow;
       // The revert itself can be refused when a take started during the await;
       // the swap then stays for the session, the rows below say so honestly,
       // and the next launch resolves the stored value.
@@ -108,22 +125,21 @@ class EnginesCubit extends Cubit<EnginesState> {
       emit(_derive());
       // A refused revert leaves the NEW engine active with the old engine's
       // locale resolution; re-resolve for it the same way a clean switch does.
-      if (_service.engineId != previous?.descriptor.engineId) {
-        unawaited(
-          _transcriptionSettings
-              .apply()
-              .then((_) => _service.notifyModelSurfaces())
-              .catchError((_) {}),
-        );
-      }
+      if (_service.engineId != previous?.descriptor.engineId) _reresolveLocale();
       rethrow;
     }
+    if (isClosed) return EnginePickOutcome.switched;
     emit(_derive());
-    // The re-resolve lands a locale the model surfaces cannot see arrive
-    // (apply writes a plain field), so a landed apply pokes them explicitly.
+    _reresolveLocale();
+    return EnginePickOutcome.switched;
+  }
+
+  /// The re-resolve lands a locale the model surfaces cannot see arrive
+  /// (apply writes a plain field), so a landed apply pokes them explicitly.
+  /// Best effort by design; see [pick].
+  void _reresolveLocale() {
     unawaited(
       _transcriptionSettings.apply().then((_) => _service.notifyModelSurfaces()).catchError((_) {}),
     );
-    return EnginePickOutcome.switched;
   }
 }

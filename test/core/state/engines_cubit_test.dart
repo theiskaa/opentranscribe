@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
@@ -17,6 +19,13 @@ import '../../support/fake_audio_recorder.dart';
 class _FailingWrites extends LocalService {
   @override
   Future<void> write<T>(String key, T value) async => throw StateError('no disk');
+}
+
+class _GatedWrites extends LocalService {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<void> write<T>(String key, T value) => gate.future;
 }
 
 class _HookedWrites extends LocalService {
@@ -84,6 +93,24 @@ void main() {
     addTearDown(cubit.close);
     return cubit;
   }
+
+  test('a pick racing an in-flight pick is dropped as unchanged', () async {
+    final gated = _GatedWrites();
+    await gated.init(legacyKey: key);
+    final cubit = build(engineSettings: EngineSettings(storage: gated));
+
+    final first = cubit.pick('fake.dictation');
+    final second = await cubit.pick('fake.streaming');
+
+    expect(second, EnginePickOutcome.unchanged);
+    expect(service.engineId, 'fake.dictation');
+
+    gated.gate.complete();
+    expect(await first, EnginePickOutcome.switched);
+    expect(service.engineId, 'fake.dictation');
+
+    await cubit.close();
+  });
 
   test('rows mirror the registry with the active engine marked', () {
     final cubit = build(speechAvailable: false);
