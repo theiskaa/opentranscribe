@@ -191,6 +191,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcriptionErrorUnsupported => '本机暂时无法下载该语言。';
 
   @override
+  String get languageNeedsDictation => '请在 iOS 键盘设置中为此语言开启听写。';
+
+  @override
   String get transcriptionErrorStuck => '上一次下载仍在等待中。条件改善后系统会自动重试，再试一次也没有问题。';
 
   @override
@@ -225,6 +228,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '听写尚未设置';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language 使用系统听写模型转写，此 iPhone 上还没有该模型。请在 iOS 设置中添加对应键盘并开启听写。';
+  }
+
+  @override
   String get modelFailStuckTitle => '仍在下载';
 
   @override
@@ -253,6 +264,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => '语言';
+
+  @override
+  String get transcriptionEngines => '引擎';
+
+  @override
+  String get engineUnavailableNote => '此 iPhone 上不可用';
+
+  @override
+  String get engineUnavailableTitle => '此 iPhone 上不可用';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine 需要 iOS 26 和更新的 iPhone。录音将继续使用此设备可用的引擎。';
+  }
+
+  @override
+  String get engineBusyTitle => '正在录音';
+
+  @override
+  String get engineBusyBody => '请先停止当前录音，再切换引擎。';
+
+  @override
+  String get engineNotSavedTitle => '无法保存选择';
+
+  @override
+  String get engineNotSavedBody => '无法保存引擎选择，重新启动后将不会保留。';
 
   @override
   String get transcriptionDefaultTag => '默认';

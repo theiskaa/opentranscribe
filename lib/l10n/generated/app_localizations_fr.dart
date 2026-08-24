@@ -205,6 +205,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette langue ne peut pas encore être téléchargée sur cet appareil.';
 
   @override
+  String get languageNeedsDictation =>
+      'Activez la dictée pour cette langue dans les réglages du clavier iOS.';
+
+  @override
   String get transcriptionErrorStuck =>
       'Un téléchargement précédent est encore en attente. Le système réessaie quand les conditions s\'améliorent ; réessayer ne pose aucun problème.';
 
@@ -242,6 +246,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'La dictée n\'est pas configurée';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language est transcrit avec le modèle de dictée du système, absent de cet iPhone pour l\'instant. Ajoutez son clavier et activez la dictée dans les réglages iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Téléchargement en cours';
 
   @override
@@ -270,6 +282,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => 'Langues';
+
+  @override
+  String get transcriptionEngines => 'Moteurs';
+
+  @override
+  String get engineUnavailableNote => 'Indisponible sur cet iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Indisponible sur cet iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine nécessite iOS 26 et un iPhone plus récent. L\'enregistrement continue avec le moteur disponible ici.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Enregistrement en cours';
+
+  @override
+  String get engineBusyBody => 'Arrêtez l\'enregistrement en cours, puis changez de moteur.';
+
+  @override
+  String get engineNotSavedTitle => 'Choix non enregistré';
+
+  @override
+  String get engineNotSavedBody =>
+      'Le choix du moteur n\'a pas pu être enregistré et ne survivra pas à un redémarrage.';
 
   @override
   String get transcriptionDefaultTag => 'Par défaut';

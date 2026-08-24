@@ -205,6 +205,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Sprache kann auf diesem Gerät noch nicht geladen werden.';
 
   @override
+  String get languageNeedsDictation =>
+      'Aktivieren Sie das Diktieren für diese Sprache in den iOS-Tastatureinstellungen.';
+
+  @override
   String get transcriptionErrorStuck =>
       'Ein früherer Download steht noch aus. Das System wiederholt ihn, wenn sich die Bedingungen bessern; ein erneuter Versuch ist unbedenklich.';
 
@@ -243,6 +247,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'Diktieren ist nicht eingerichtet';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language wird mit dem Diktiermodell des Systems transkribiert, das auf diesem iPhone noch fehlt. Fügen Sie die Tastatur hinzu und aktivieren Sie das Diktieren in den iOS-Einstellungen.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Wird noch geladen';
 
   @override
@@ -271,6 +283,34 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => 'Sprachen';
+
+  @override
+  String get transcriptionEngines => 'Engines';
+
+  @override
+  String get engineUnavailableNote => 'Auf diesem iPhone nicht verfügbar';
+
+  @override
+  String get engineUnavailableTitle => 'Auf diesem iPhone nicht verfügbar';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine benötigt iOS 26 und ein neueres iPhone. Aufnahmen nutzen weiter die Engine, die hier funktioniert.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Aufnahme läuft';
+
+  @override
+  String get engineBusyBody =>
+      'Beenden Sie die aktuelle Aufnahme und wechseln Sie dann die Engine.';
+
+  @override
+  String get engineNotSavedTitle => 'Auswahl nicht gespeichert';
+
+  @override
+  String get engineNotSavedBody =>
+      'Die Engine-Auswahl konnte nicht gespeichert werden und übersteht keinen Neustart.';
 
   @override
   String get transcriptionDefaultTag => 'Standard';

@@ -205,6 +205,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This language can\'t be downloaded on this device yet.';
 
   @override
+  String get languageNeedsDictation =>
+      'Turn on dictation for this language in iOS keyboard settings.';
+
+  @override
   String get transcriptionErrorStuck =>
       'A previous download is still pending. The system retries when conditions improve; trying again is safe.';
 
@@ -241,6 +245,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'Dictation isn\'t set up';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language transcribes with the system\'s dictation model, which isn\'t on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Still downloading';
 
   @override
@@ -269,6 +281,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => 'Languages';
+
+  @override
+  String get transcriptionEngines => 'Engines';
+
+  @override
+  String get engineUnavailableNote => 'Not available on this iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Not available on this iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Recording in progress';
+
+  @override
+  String get engineBusyBody => 'Stop the current recording, then switch engines.';
+
+  @override
+  String get engineNotSavedTitle => 'Couldn\'t save the choice';
+
+  @override
+  String get engineNotSavedBody =>
+      'The engine choice couldn\'t be saved and won\'t survive a relaunch.';
 
   @override
   String get transcriptionDefaultTag => 'Default';

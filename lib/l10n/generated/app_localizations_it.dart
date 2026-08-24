@@ -205,6 +205,10 @@ class AppLocalizationsIt extends AppLocalizations {
       'Questa lingua non può ancora essere scaricata su questo dispositivo.';
 
   @override
+  String get languageNeedsDictation =>
+      'Attiva la dettatura per questa lingua nelle impostazioni della tastiera di iOS.';
+
+  @override
   String get transcriptionErrorStuck =>
       'Un download precedente è ancora in sospeso. Il sistema riprova quando le condizioni migliorano; riprovare è sicuro.';
 
@@ -242,6 +246,14 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'La dettatura non è configurata';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language viene trascritto con il modello di dettatura del sistema, che non è ancora su questo iPhone. Aggiungi la sua tastiera e attiva la dettatura nelle impostazioni di iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Ancora in download';
 
   @override
@@ -270,6 +282,33 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => 'Lingue';
+
+  @override
+  String get transcriptionEngines => 'Motori';
+
+  @override
+  String get engineUnavailableNote => 'Non disponibile su questo iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Non disponibile su questo iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine richiede iOS 26 e un iPhone più recente. La registrazione continua a usare il motore disponibile qui.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Registrazione in corso';
+
+  @override
+  String get engineBusyBody => 'Interrompi la registrazione in corso, poi cambia motore.';
+
+  @override
+  String get engineNotSavedTitle => 'Scelta non salvata';
+
+  @override
+  String get engineNotSavedBody =>
+      'La scelta del motore non è stata salvata e non sopravviverà a un riavvio.';
 
   @override
   String get transcriptionDefaultTag => 'Predefinita';

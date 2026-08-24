@@ -468,6 +468,12 @@ abstract class AppLocalizations {
   /// **'This language can\'t be downloaded on this device yet.'**
   String get transcriptionErrorUnsupported;
 
+  /// Row note under a language the dictation engine cannot run because the system dictation model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on dictation for this language in iOS keyboard settings.'**
+  String get languageNeedsDictation;
+
   /// Row failure line when the asset was already stuck downloading
   ///
   /// In en, this message translates to:
@@ -528,6 +534,18 @@ abstract class AppLocalizations {
   /// **'There\'s no on-device model for {language} on this device yet. It may arrive with a system update.'**
   String modelFailUnsupportedBody(String language);
 
+  /// Sheet title for a language the dictation engine cannot run because the system model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Dictation isn\'t set up'**
+  String get modelFailDictationTitle;
+
+  /// Sheet body for that language; the recovery is the iOS dictation setting
+  ///
+  /// In en, this message translates to:
+  /// **'{language} transcribes with the system\'s dictation model, which isn\'t on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.'**
+  String modelFailDictationBody(String language);
+
   /// Failure sheet title when an earlier system download is still pending
   ///
   /// In en, this message translates to:
@@ -575,6 +593,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Languages'**
   String get transcriptionLanguages;
+
+  /// Section label over the engine picker on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'Engines'**
+  String get transcriptionEngines;
+
+  /// Quiet note under a dimmed engine row this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableNote;
+
+  /// Sheet title for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableTitle;
+
+  /// Sheet body for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.'**
+  String engineUnavailableBody(String engine);
+
+  /// Sheet title when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Recording in progress'**
+  String get engineBusyTitle;
+
+  /// Sheet body when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the current recording, then switch engines.'**
+  String get engineBusyBody;
+
+  /// Sheet title when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the choice'**
+  String get engineNotSavedTitle;
+
+  /// Sheet body when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'The engine choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get engineNotSavedBody;
 
   /// Small tag on the language row currently set as the transcription default
   ///

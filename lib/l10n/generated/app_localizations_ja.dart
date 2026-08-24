@@ -194,6 +194,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
 
   @override
+  String get languageNeedsDictation => 'iOS のキーボード設定でこの言語の音声入力をオンにしてください。';
+
+  @override
   String get transcriptionErrorStuck => '以前のダウンロードがまだ保留中です。システムは条件が整うと再試行します。もう一度試しても問題ありません。';
 
   @override
@@ -228,6 +231,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '音声入力が設定されていません';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language はシステムの音声入力モデルで文字起こしされますが、この iPhone にはまだありません。iOS 設定でキーボードを追加し、音声入力をオンにしてください。';
+  }
+
+  @override
   String get modelFailStuckTitle => 'まだダウンロード中です';
 
   @override
@@ -256,6 +267,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcriptionLanguages => '言語';
+
+  @override
+  String get transcriptionEngines => 'エンジン';
+
+  @override
+  String get engineUnavailableNote => 'この iPhone では利用できません';
+
+  @override
+  String get engineUnavailableTitle => 'この iPhone では利用できません';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine には iOS 26 と新しい iPhone が必要です。録音は利用可能なエンジンで行われます。';
+  }
+
+  @override
+  String get engineBusyTitle => '録音中';
+
+  @override
+  String get engineBusyBody => '録音を停止してからエンジンを切り替えてください。';
+
+  @override
+  String get engineNotSavedTitle => '選択を保存できませんでした';
+
+  @override
+  String get engineNotSavedBody => 'エンジンの選択を保存できなかったため、再起動後は元に戻ります。';
 
   @override
   String get transcriptionDefaultTag => 'デフォルト';
