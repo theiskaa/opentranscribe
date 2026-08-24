@@ -2,13 +2,15 @@ import AVFoundation
 import Flutter
 import Speech
 
-// Apple Speech behind the Dart TranscriptionEngine contract. Live: attaches to the
-// shared capture session as a consumer, feeding buffers to an on-device recognition
-// request and streaming TranscriptEvents back over an EventChannel. Batch:
-// transcribes a kept file. On-device only; it never uses a server recognizer.
+// Apple's speech engines behind the Dart TranscriptionEngine contract. Every
+// call names its engine ("analyzer" is the iOS 26 SpeechAnalyzer, "classic" the
+// SFSpeechRecognizer) and the handler routes on it. Live: attaches to the shared
+// capture session as a consumer and streams TranscriptEvents back over an
+// EventChannel. Batch: transcribes a kept file. On-device only; neither engine
+// ever uses a server recognizer.
 
 /// Channel error codes. This set is the cross-boundary contract with
-/// apple_speech_engine.dart; keep them in sync.
+/// apple_speech_engines.dart; keep them in sync.
 private enum SpeechErrorCode: String {
   case permissionDenied = "permission_denied"
   case onDeviceUnavailable = "on_device_unavailable"
@@ -40,7 +42,8 @@ private enum RecognizerResolution {
   case ready(SFSpeechRecognizer)
   case failed(SpeechErrorCode, String)
 
-  /// The failure pair, or nil when ready. Convenience for the availability probe.
+  /// The failure pair, or nil when ready. Convenience for checkAvailability's
+  /// classic arm.
   var failure: (code: SpeechErrorCode, message: String)? {
     switch self {
     case .ready: return nil
@@ -86,13 +89,135 @@ private func resolveRecognizer(
   }
 }
 
+/// Whether the SpeechAnalyzer stack can transcribe on this device, behind the
+/// analyzerAvailable method. The OS version alone does not answer it: the
+/// analyzer model needs a 16-core Neural Engine, so 8-core devices (iPhone 11,
+/// 11 Pro, SE 2) run iOS 26 yet answer an empty supported list and can never
+/// install a model, and a device that cannot reach the asset catalog answers
+/// empty too. Resolved once per process, so the answer cannot flip within a
+/// session. Routing does NOT consult it: each call names its engine, and Dart
+/// derives which engine to use from this one answer. The simulator answers
+/// true: its explicit fail-fast arms stay the ones deciding there.
+@available(iOS 26.0, *)
+private enum AnalyzerCapability {
+  // The probe races a deadline because supportedLocales has wedged a native
+  // handler in the field without ever answering (the per-channel launch
+  // watchdog in Deps.init exists for exactly that): no answer in time counts
+  // as unavailable, so Dart derives the classic engine instead of wedging
+  // launch. The deadline sits well under that watchdog so the answer still
+  // reaches it.
+  private static let probe = Task { () -> Bool in
+    await withCheckedContinuation { continuation in
+      let latch = FirstAnswerLatch(continuation)
+      Task { latch.finish(!(await SpeechTranscriber.supportedLocales.isEmpty)) }
+      Task {
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        latch.finish(false)
+      }
+    }
+  }
+  static var usable: Bool {
+    get async {
+      #if targetEnvironment(simulator)
+        return true
+      #else
+        return await probe.value
+      #endif
+    }
+  }
+}
+
+/// Resumes a continuation with whichever answer arrives first; the loser's
+/// call (including a query that resolves long after the deadline) is a no-op.
+private final class FirstAnswerLatch: @unchecked Sendable {
+  private let lock = NSLock()
+  private var resumed = false
+  private let continuation: CheckedContinuation<Bool, Never>
+
+  init(_ continuation: CheckedContinuation<Bool, Never>) {
+    self.continuation = continuation
+  }
+
+  func finish(_ value: Bool) {
+    lock.lock()
+    let first = !resumed
+    resumed = true
+    lock.unlock()
+    if first { continuation.resume(returning: value) }
+  }
+}
+
+/// The engine a channel call routes to. This is the cross-boundary vocabulary
+/// with apple_speech_engines.dart: "analyzer" is the iOS 26 SpeechAnalyzer,
+/// "classic" the SFSpeechRecognizer path.
+private enum EngineRoute: String {
+  case analyzer
+  case classic
+}
+
+/// The route named by a call's engine argument. Missing defaults to analyzer
+/// (the argument convention, like localeId's en-US); unknown is nil and the
+/// caller replies bad_args, so a misspelled engine can never silently
+/// transcribe on the wrong stack.
+private func engineRoute(_ arguments: Any?) -> EngineRoute? {
+  guard let value = (arguments as? [String: Any])?["engine"] else { return .analyzer }
+  guard let raw = value as? String else { return nil }
+  return EngineRoute(rawValue: raw)
+}
+
+/// The one spelling of the unknown-engine refusal.
+private let unknownEngineMessage = "unknown engine"
+
+/// The classic recognizer's locale list. An approximation: the classic API cannot
+/// cheaply report per-locale on-device support (that needs a recognizer instance
+/// per locale), so this lists all recognizer locales; availability still gates the
+/// honest answer per tag. The manual underscore-to-dash mapping is deliberate: it
+/// keeps the exact tags this path has always produced, which stored locale ids and
+/// the Dart-side comparisons ride on; .identifier(.bcp47) can respell them.
+private func classicSupportedTags() -> [String] {
+  SFSpeechRecognizer.supportedLocales()
+    .map { $0.identifier.replacingOccurrences(of: "_", with: "-") }
+    .sorted()
+}
+
+/// The classic path's reservation answer: no reservation concept, and max 0 is
+/// the contract's "no cap here". This and the two model answers below keep the
+/// routing uniform; today's dictation engine is not model-managed, so only a
+/// future managed classic caller would actually send them.
+private func classicReservationInfo() -> [String: Any] {
+  ["max": 0, "reserved": [String]()]
+}
+
+/// The classic path's installed answer: no app-managed model, so an available
+/// on-device recognizer IS the model.
+private func classicModelInstalled(_ localeId: String) -> Bool {
+  onDeviceRecognizer(localeId) != nil
+}
+
+/// The classic path's installed-locales answer: the classic API cannot enumerate
+/// installed models cheaply (a recognizer per locale), so per-tag localeStatus
+/// answers readiness.
+private func classicInstalledLocales() -> [String] { [] }
+
+/// The classic path's per-locale status: no asset management, so an available
+/// on-device recognizer IS the installed model, and there is no reservation
+/// concept to fail on.
+private func classicLocaleStatus(_ localeId: String) -> [String: Any] {
+  let installed = onDeviceRecognizer(localeId) != nil
+  return [
+    "status": installed ? "installed" : "unsupported",
+    "reserved": true,
+    "resolvedTag": localeId,
+  ]
+}
+
 /// A plain `String` view of an attributed transcript.
 @available(iOS 15.0, *)
 private extension AttributedString {
   var plainText: String { String(characters) }
 }
 
-/// Timed segments from the classic SFTranscription (pre-iOS-26). Carries per-segment
+/// Timed segments from the classic SFTranscription. Carries per-segment
 /// confidence, which the SpeechAnalyzer path ([analyzerSegments]) cannot. Same
 /// defensive conversion as the analyzer path: a corrupt timestamp is skipped, never
 /// allowed to trap the process.
@@ -280,7 +405,7 @@ private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizati
   }
 }
 
-/// The channel's status strings; one spelling with apple_speech_engine.dart.
+/// The channel's status strings; one spelling with apple_speech_engines.dart.
 @available(iOS 26.0, *)
 private func statusName(_ status: AssetInventory.Status) -> String {
   switch status {
@@ -497,8 +622,10 @@ final class SpeechAnalyzerLiveSession {
   // started an analyzer, so it winds nothing down (no cancelAndFinishNow on an
   // unstarted analyzer) and instead chains its own priorTeardown forward, so the
   // older analyzer it was still waiting on is not orphaned. Guarded by lock.
-  // A teardown landing while start() is awaiting is handled by the start path
-  // itself, which publishes the wind-down after start() returns.
+  // A teardown landing while start() is awaiting is run by the start path itself
+  // after start() returns, but published too late for a successor that already
+  // captured pendingTeardown; that successor starts unchained beside the closing
+  // analyzer (a known chain gap).
   private var analyzerStarted = false
 
   fileprivate init(
@@ -620,11 +747,15 @@ final class SpeechAnalyzerLiveSession {
       if finished {
         lock.unlock()
         CaptureHub.session.removeConsumer(token)
-        // Teardown landed while start() was awaiting: finish()/abort() saw an
-        // unstarted analyzer and skipped the wind-down, so it is ours to run.
-        let task = Task { _ = try? await analyzer.cancelAndFinishNow() }
         lock.lock()
-        if teardownTask == nil { teardownTask = task }
+        // Teardown landed while start() was awaiting. An empty slot means
+        // finish()/abort() saw the analyzer unstarted and skipped the
+        // wind-down: ours to run. A filled slot means a graceful wind-down is
+        // already in flight, and launching a cancel beside it would cut the
+        // session's final live event short.
+        if teardownTask == nil {
+          teardownTask = Task { _ = try? await analyzer.cancelAndFinishNow() }
+        }
         lock.unlock()
       } else {
         consumerToken = token
@@ -719,9 +850,6 @@ final class SpeechAnalyzerLiveSession {
     feedFailureReported = true
     emitError(.transcribeError, message, [:])
   }
-
-  // Conversion lives in the shared file-scope convertBuffer helper, which the
-  // ranged batch feed drives through the same analyzer format.
 
   /// Marks finished and detaches from capture under the lock. Returns whether
   /// teardown had already run (so the caller skips a second analyzer wind-down) and
@@ -831,6 +959,11 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   // The iOS 26 analyzer-path counterpart to batchTasks, keyed from the same
   // nextBatchId sequence.
   private var batchAnalyzerTasks: [Int: Task<Void, Never>] = [:]
+  // The analyzer counterpart of the classic path's `replied` latch: a task
+  // fast enough to finish before its registration runs leaves a tombstone
+  // here, so the registration cannot re-insert a dead task nothing would
+  // ever remove. Guarded by [lock].
+  private var finishedAnalyzerBatches: Set<Int> = []
   private var nextBatchId = 0
 
   // Streams model-install progress on its own channel. Held here so it lives as long
@@ -839,7 +972,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let instance = SpeechEnginePlugin()
-    // Channel names + payload shapes: must match apple_speech_engine.dart.
+    // Channel names + payload shapes: must match apple_speech_engines.dart.
     let methods = FlutterMethodChannel(
       name: "transcriber/speech", binaryMessenger: registrar.messenger())
     let events = FlutterEventChannel(
@@ -880,27 +1013,29 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
   }
 
-  private func startLive(localeId: String, session: Int) {
+  private func startLive(localeId: String, session: Int, route: EngineRoute) {
     // Re-entrancy guard: a new live session tears down any previous one first.
     stopLive()
     liveSession = session
-    // One generation for BOTH paths: task cancellation is best-effort, so a
+    // One generation for BOTH engines: task cancellation is best-effort, so a
     // superseded session (classic or analyzer) can still be mid-emit; the guard at
     // delivery time is what actually keeps stale text, finals, and cancellation
     // errors out of the next session's stream.
     liveGeneration += 1
     let generation = liveGeneration
-    // iOS 26 streams via SpeechAnalyzer; the classic buffer recognizer below is the
-    // pre-26 path (which also does not run on the simulator).
+    if route == .classic {
+      startLiveClassic(localeId: localeId, generation: generation)
+      return
+    }
     if #available(iOS 26.0, *) {
       #if targetEnvironment(simulator)
         // No on-device model on the simulator; fail fast instead of hanging on a
         // model download that never completes. Tagged (via emitLive) so Dart
-        // routes it to this session's stream.
+        // routes it to this session's stream. The classic route above needs no
+        // counterpart: resolveRecognizer already fails fast there.
         emitLive(
           errorPayload(.onDeviceUnavailable, "on-device speech is unavailable on the simulator"),
           generation: generation)
-        return
       #else
         let analyzerSession = SpeechAnalyzerLiveSession(
           localeId: localeId,
@@ -918,9 +1053,15 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         pendingAnalyzerTeardown = nil
         analyzerLive = analyzerSession
         analyzerSession.start()
-        return
       #endif
+    } else {
+      emitLive(
+        errorPayload(.onDeviceUnavailable, "the analyzer engine needs iOS 26"),
+        generation: generation)
     }
+  }
+
+  private func startLiveClassic(localeId: String, generation: Int) {
     resolveRecognizer(localeId) { [weak self] resolution in
       guard let self = self else { return }
       // Abandon if a stop or a newer start superseded this resolve while it ran.
@@ -997,10 +1138,14 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private func stopLive() {
     liveGeneration += 1
     if #available(iOS 26.0, *) {
-      let live = analyzerLive as? SpeechAnalyzerLiveSession
-      live?.cancel()
-      // Hand this session's wind-down to the next startLive to await.
-      pendingAnalyzerTeardown = live?.pendingTeardown
+      if let live = analyzerLive as? SpeechAnalyzerLiveSession {
+        live.cancel()
+        // Hand this session's wind-down to the next startLive to await. Only
+        // with a session to capture from: writing nil here would drop a stored
+        // wind-down no start has consumed yet (the routine stop-then-start
+        // flow).
+        pendingAnalyzerTeardown = live.pendingTeardown
+      }
       analyzerLive = nil
     }
     lock.lock()
@@ -1017,14 +1162,28 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     task?.cancel()
   }
 
+  /// The call's engine route, or nil after replying bad_args for an unknown one.
+  private func routedEngine(_ call: FlutterMethodCall, _ result: FlutterResult) -> EngineRoute? {
+    if let route = engineRoute(call.arguments) { return route }
+    result(SpeechErrorCode.badArgs.error(unknownEngineMessage))
+    return nil
+  }
+
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "checkAvailability":
       let localeId = (call.arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        resolveRecognizer(localeId) { resolution in
+          result(["status": resolution.failure?.code.rawValue ?? "available"])
+        }
+        return
+      }
       if #available(iOS 26.0, *) {
-        // iOS 26 transcribes with SpeechAnalyzer, so availability tracks its model,
-        // not the classic recognizer. Available = authorized and the locale is
-        // supported (the model downloads once on first use if not yet installed).
+        // Analyzer availability tracks its model, not the classic recognizer.
+        // Available = authorized and the locale is supported (the model
+        // downloads once on first use if not yet installed).
         Task {
           let authorized = await requestSpeechAuthorization() == .authorized
           // Supported means a model exists for the language, including near
@@ -1041,12 +1200,24 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           DispatchQueue.main.async { result(["status": status]) }
         }
       } else {
-        resolveRecognizer(localeId) { resolution in
-          result(["status": resolution.failure?.code.rawValue ?? "available"])
+        result(["status": SpeechErrorCode.onDeviceUnavailable.rawValue])
+      }
+    case "analyzerAvailable":
+      if #available(iOS 26.0, *) {
+        Task {
+          let available = await AnalyzerCapability.usable
+          DispatchQueue.main.async { result(available) }
         }
+      } else {
+        result(false)
       }
     case "isModelInstalled":
       let localeId = (call.arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        result(classicModelInstalled(localeId))
+        return
+      }
       if #available(iOS 26.0, *) {
         Task {
           let resolved = await resolvedLocale(localeId)
@@ -1054,27 +1225,28 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           DispatchQueue.main.async { result(installed) }
         }
       } else {
-        // No app-managed model before iOS 26; treat the system recognizer as the model.
-        result(onDeviceRecognizer(localeId) != nil)
+        result(false)
       }
     case "supportedLocales":
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        result(classicSupportedTags())
+        return
+      }
       if #available(iOS 26.0, *) {
         Task {
           let tags = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
           DispatchQueue.main.async { result(tags.sorted()) }
         }
       } else {
-        // Approximation: the classic API cannot cheaply report per-locale on-device
-        // support (that needs a recognizer instance per locale), so this lists all
-        // recognizer locales; availability still gates the honest answer per tag.
-        // The manual underscore-to-dash mapping is deliberate: .identifier(.bcp47)
-        // needs iOS 16, and this branch must run down to the 13.0 target.
-        result(
-          SFSpeechRecognizer.supportedLocales()
-            .map { $0.identifier.replacingOccurrences(of: "_", with: "-") }
-            .sorted())
+        result([String]())
       }
     case "installedLocales":
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        result(classicInstalledLocales())
+        return
+      }
       if #available(iOS 26.0, *) {
         // Device-wide truth: assets are shared system assets, so this can list
         // languages another app or OS feature downloaded.
@@ -1083,12 +1255,15 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           DispatchQueue.main.async { result(tags.sorted()) }
         }
       } else {
-        // The classic API cannot enumerate installed models cheaply (it would
-        // need a recognizer per locale); per-tag localeStatus answers readiness.
         result([String]())
       }
     case "localeStatus":
       let localeId = (call.arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        result(classicLocaleStatus(localeId))
+        return
+      }
       if #available(iOS 26.0, *) {
         #if targetEnvironment(simulator)
           // No on-device model on the simulator; unsupported is the honest state.
@@ -1108,16 +1283,14 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           }
         #endif
       } else {
-        // Pre-26 has no asset management: an available on-device recognizer IS
-        // the installed model, and there is no reservation concept to fail on.
-        let installed = onDeviceRecognizer(localeId) != nil
-        result([
-          "status": installed ? "installed" : "unsupported",
-          "reserved": true,
-          "resolvedTag": localeId,
-        ])
+        result(["status": "unsupported", "reserved": false, "resolvedTag": localeId])
       }
     case "reservationInfo":
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        result(classicReservationInfo())
+        return
+      }
       if #available(iOS 26.0, *) {
         Task {
           let reserved = await reservedTagList()
@@ -1125,7 +1298,6 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           DispatchQueue.main.async { result(["max": max, "reserved": reserved]) }
         }
       } else {
-        // No reservation concept pre-26; max 0 is the contract's "no cap here".
         result(["max": 0, "reserved": [String]()])
       }
     case "removeLanguage":
@@ -1133,6 +1305,12 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       // and garbage arguments must not release a language nobody named.
       guard let localeId = (call.arguments as? [String: Any])?["localeId"] as? String else {
         result(SpeechErrorCode.badArgs.error("localeId required"))
+        return
+      }
+      guard let route = routedEngine(call, result) else { return }
+      if route == .classic {
+        // No app-managed assets to release on the classic path.
+        result(false)
         return
       }
       if #available(iOS 26.0, *) {
@@ -1160,10 +1338,13 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       let localeId = args["localeId"] as? String ?? "en-US"
+      guard let route = routedEngine(call, result) else { return }
       // Optional slice bounds, for one span of a mixed-language take.
       let startMs = (args["startMs"] as? NSNumber)?.intValue
       let endMs = (args["endMs"] as? NSNumber)?.intValue
-      transcribeFile(path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
+      transcribeFile(
+        path: path, localeId: localeId, startMs: startMs, endMs: endMs, route: route,
+        result: result)
     case "cancelBatches":
       // Abandons every in-flight batch task; each one's own completion/defer
       // removes it from its registry, so the dictionaries are not cleared here
@@ -1178,7 +1359,8 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     case "startLive":
       let args = call.arguments as? [String: Any]
       let session = args?["session"] as? Int ?? 0
-      startLive(localeId: args?["localeId"] as? String ?? "en-US", session: session)
+      guard let route = routedEngine(call, result) else { return }
+      startLive(localeId: args?["localeId"] as? String ?? "en-US", session: session, route: route)
       result(nil)
     case "stopLive":
       let session = (call.arguments as? [String: Any])?["session"] as? Int ?? -1
@@ -1191,11 +1373,11 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
   }
 
-  /// Picks the batch strategy: the simulator has no model, iOS 26 uses SpeechAnalyzer,
-  /// older iOS uses the classic recognizer (whole files only: a ranged ask FAILS
-  /// there, never silently answers with the whole file as if it were the slice).
+  /// Dispatches the batch to the routed engine. The simulator has no model for
+  /// either, so it fails fast before routing.
   private func transcribeFile(
-    path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+    path: String, localeId: String, startMs: Int?, endMs: Int?, route: EngineRoute,
+    result: @escaping FlutterResult
   ) {
     guard FileManager.default.fileExists(atPath: path) else {
       result(SpeechErrorCode.fileMissing.error(path))
@@ -1206,20 +1388,34 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       // here. Fail fast instead of hanging on a model download that never completes.
       result(SpeechErrorCode.onDeviceUnavailable.error("on-device speech is unavailable on the simulator"))
     #else
+      if route == .classic {
+        transcribeFileClassicGuarded(
+          path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
+        return
+      }
       if #available(iOS 26.0, *) {
         transcribeFileWithAnalyzer(
           path: path, localeId: localeId, startMs: startMs, endMs: endMs, result: result)
       } else {
-        if startMs != nil || endMs != nil {
-          result(SpeechErrorCode.transcribeError.error("ranged transcription needs iOS 26"))
-          return
-        }
-        transcribeFileClassic(path: path, localeId: localeId, result: result)
+        result(SpeechErrorCode.onDeviceUnavailable.error("the analyzer engine needs iOS 26"))
       }
     #endif
   }
 
-  /// Classic (pre-iOS-26) on-device batch: SFSpeechURLRecognitionRequest.
+  /// The classic batch behind the ranged-ask guard: a ranged ask FAILS here, never
+  /// silently answers with the whole file as if it were the slice.
+  private func transcribeFileClassicGuarded(
+    path: String, localeId: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
+    if startMs != nil || endMs != nil {
+      result(
+        SpeechErrorCode.transcribeError.error("ranged transcription needs the analyzer engine"))
+      return
+    }
+    transcribeFileClassic(path: path, localeId: localeId, result: result)
+  }
+
+  /// Classic on-device batch: SFSpeechURLRecognitionRequest.
   private func transcribeFileClassic(
     path: String, localeId: String, result: @escaping FlutterResult
   ) {
@@ -1277,9 +1473,10 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   }
 
   /// iOS 26 on-device batch transcription with SpeechAnalyzer (the dispatcher above
-  /// fails fast on the simulator before reaching here). The first call for a locale
-  /// downloads Apple's on-device model once (this needs the network that one time,
-  /// the single dent in the airplane-mode promise); after that it runs fully offline.
+  /// fails fast on the simulator before reaching here). The first call for a
+  /// locale downloads Apple's on-device model once (this needs the network that one
+  /// time, the single dent in the airplane-mode promise); after that it runs fully
+  /// offline.
   /// A [startMs]/[endMs] slice transcribes ONE SPAN of a mixed-language take; its
   /// segment timings are relative to the slice, and Dart offsets them.
   @available(iOS 26.0, *)
@@ -1288,7 +1485,8 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   ) {
     let url = URL(fileURLWithPath: path)
     // Mint the id before the task exists, so it can be registered the moment
-    // the task handle is available, before any await inside runs.
+    // the task handle is available; the task body runs concurrently with the
+    // registration, which the finished-tombstone below accounts for.
     lock.lock()
     let id = nextBatchId
     nextBatchId += 1
@@ -1296,7 +1494,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     let task = Task { [weak self] in
       defer {
         self?.lock.lock()
-        self?.batchAnalyzerTasks.removeValue(forKey: id)
+        if self?.batchAnalyzerTasks.removeValue(forKey: id) == nil {
+          self?.finishedAnalyzerBatches.insert(id)
+        }
         self?.lock.unlock()
       }
       func reply(_ value: Any) { DispatchQueue.main.async { result(value) } }
@@ -1341,16 +1541,22 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         }
         collected = collector
 
+        // The one wind-down for every early exit below: cancel the analyzer
+        // and the collector rather than awaiting a collector whose stream a
+        // cancellation may end with CancellationError (misreported as a
+        // transcribe error), then reply.
+        func bail(_ value: Any) async {
+          await analyzer.cancelAndFinishNow()
+          collector.cancel()
+          reply(value)
+        }
+
         if startMs == nil && endMs == nil {
           if let lastSample = try await analyzer.analyzeSequence(from: audioFile) {
             try await analyzer.finalizeAndFinish(through: lastSample)
           } else {
-            // No analyzable audio at all. Cancel and reply the valid empty result
-            // directly, rather than awaiting a collector whose stream a cancellation
-            // may end with CancellationError (misreported as a transcribe error).
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(["text": "", "segments": [[String: Any]]()])
+            // No analyzable audio at all: the valid empty result.
+            await bail(["text": "", "segments": [[String: Any]]()])
             return
           }
         } else {
@@ -1361,9 +1567,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
               transcriber
             ])
           else {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(SpeechErrorCode.transcribeError.error("no compatible audio format"))
+            await bail(SpeechErrorCode.transcribeError.error("no compatible audio format"))
             return
           }
           let sampleRate = audioFile.processingFormat.sampleRate
@@ -1381,9 +1585,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           let converter = sameFormat
             ? nil : AVAudioConverter(from: audioFile.processingFormat, to: format)
           if !sameFormat && converter == nil {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(SpeechErrorCode.transcribeError.error("audio format conversion unavailable"))
+            await bail(SpeechErrorCode.transcribeError.error("audio format conversion unavailable"))
             return
           }
           audioFile.framePosition = startFrame
@@ -1394,9 +1596,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           // path, never a finalize on an analyzer that was fed nothing.
           guard remaining > 0, let head = readSliceChunk(from: audioFile, remaining: &remaining)
           else {
-            await analyzer.cancelAndFinishNow()
-            collector.cancel()
-            reply(["text": "", "segments": [[String: Any]]()])
+            await bail(["text": "", "segments": [[String: Any]]()])
             return
           }
           let feed = SliceFeed(
@@ -1420,7 +1620,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       }
     }
     lock.lock()
-    batchAnalyzerTasks[id] = task
+    if finishedAnalyzerBatches.remove(id) == nil { batchAnalyzerTasks[id] = task }
     lock.unlock()
   }
 }
@@ -1428,8 +1628,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 /// Streams on-device model-install progress for the requested locale over the
 /// `transcriber/speech/model` EventChannel. Single-flight: a new listen supersedes
 /// any in-flight install and abandons its stream (the Dart engine serializes
-/// overlapping installs onto this handler, one at a time). Payloads: {fraction, done:false} while installing, then a terminal
-/// {fraction:1, done:true}; {type:error,...} on failure.
+/// overlapping installs onto this handler, one at a time). Payloads: {fraction,
+/// done:false} while installing, then a terminal {fraction:1, done:true};
+/// {type:error,...} on failure.
 final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
   private var sink: FlutterEventSink?
   private var task: Task<Void, Never>?
@@ -1445,6 +1646,16 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
     let gen = generation
     sink = eventSink
     let localeId = (arguments as? [String: Any])?["localeId"] as? String ?? "en-US"
+    guard let route = engineRoute(arguments) else {
+      emit(errorPayload(.badArgs, unknownEngineMessage), generation: gen)
+      return nil
+    }
+    // No app-managed model on the classic path; nothing to download, so the
+    // stream completes immediately.
+    if route == .classic {
+      emit(["fraction": 1.0, "done": true], generation: gen)
+      return nil
+    }
     if #available(iOS 26.0, *) {
       #if targetEnvironment(simulator)
         // No on-device model on the simulator; fail fast instead of sitting at 0%.
@@ -1455,8 +1666,8 @@ final class ModelInstallStreamHandler: NSObject, FlutterStreamHandler {
         task = Task { await self.install(localeId: localeId, generation: gen) }
       #endif
     } else {
-      // No app-managed model before iOS 26; nothing to download.
-      emit(["fraction": 1.0, "done": true], generation: gen)
+      emit(
+        errorPayload(.modelInstallFailed, "the analyzer engine needs iOS 26"), generation: gen)
     }
     return nil
   }

@@ -444,29 +444,23 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsAppLanguage;
 
-  /// Header of the transcription screen: the on-device and shared-asset promise
-  ///
-  /// In en, this message translates to:
-  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.'**
-  String get transcriptionInfo;
-
   /// Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)
   ///
   /// In en, this message translates to:
   /// **'{used} of {max} language slots used'**
   String transcriptionCap(int used, int max);
 
-  /// Footer hint for the swipe-to-remove gesture
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe left on a language to remove it.'**
-  String get transcriptionRemoveHint;
-
   /// Row failure line when the platform has no asset to serve
   ///
   /// In en, this message translates to:
   /// **'This language can\'t be downloaded on this device yet.'**
   String get transcriptionErrorUnsupported;
+
+  /// Row note under a language the dictation engine cannot run because the system dictation model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on dictation for this language in iOS keyboard settings.'**
+  String get languageNeedsDictation;
 
   /// Row failure line when the asset was already stuck downloading
   ///
@@ -528,6 +522,18 @@ abstract class AppLocalizations {
   /// **'There\'s no on-device model for {language} on this device yet. It may arrive with a system update.'**
   String modelFailUnsupportedBody(String language);
 
+  /// Sheet title for a language the dictation engine cannot run because the system model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Dictation isn\'t set up'**
+  String get modelFailDictationTitle;
+
+  /// Sheet body for that language; the recovery is the iOS dictation setting
+  ///
+  /// In en, this message translates to:
+  /// **'{language} transcribes with the system\'s dictation model, which isn\'t on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.'**
+  String modelFailDictationBody(String language);
+
   /// Failure sheet title when an earlier system download is still pending
   ///
   /// In en, this message translates to:
@@ -570,23 +576,101 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsModels;
 
-  /// Section label over the per-language model list on the models screen
+  /// Section label over the kept languages in the language sheet
   ///
   /// In en, this message translates to:
-  /// **'Languages'**
-  String get transcriptionLanguages;
+  /// **'Your languages'**
+  String get transcriptionYourLanguages;
+
+  /// Section label over the remaining library in the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get transcriptionAllLanguages;
+
+  /// Section label over the default-language hero card
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking'**
+  String get transcriptionSpeaking;
+
+  /// Section label over the kept-language chip strip
+  ///
+  /// In en, this message translates to:
+  /// **'Also ready'**
+  String get transcriptionAlsoReady;
+
+  /// The chip opening the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get transcriptionAddLanguage;
+
+  /// Hero status line for a ready default language
+  ///
+  /// In en, this message translates to:
+  /// **'Ready · transcribes on this iPhone'**
+  String get transcriptionHeroReady;
+
+  /// The one footnote under the transcription screen
+  ///
+  /// In en, this message translates to:
+  /// **'Models download once and are shared with the system.'**
+  String get transcriptionFootnote;
+
+  /// Section label over the engine picker on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'Engines'**
+  String get transcriptionEngines;
+
+  /// Quiet note under a dimmed engine row this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableNote;
+
+  /// Sheet title for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableTitle;
+
+  /// Sheet body for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.'**
+  String engineUnavailableBody(String engine);
+
+  /// Sheet title when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Recording in progress'**
+  String get engineBusyTitle;
+
+  /// Sheet body when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the current recording, then switch engines.'**
+  String get engineBusyBody;
+
+  /// Sheet title when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the choice'**
+  String get engineNotSavedTitle;
+
+  /// Sheet body when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'The engine choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get engineNotSavedBody;
 
   /// Small tag on the language row currently set as the transcription default
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get transcriptionDefaultTag;
-
-  /// Footer hint for the hold-to-set-default gesture on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'Touch and hold a language to make it the default.'**
-  String get transcriptionDefaultHint;
 
   /// Footer notice when the phone's language has no on-device model in any variant
   ///

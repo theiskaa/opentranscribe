@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/app_language.dart';
+import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/app/splash_handoff.dart';
@@ -24,6 +25,7 @@ import 'package:opentranscribe/core/routes/app_router.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
+import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
 import 'package:opentranscribe/core/services/import_service.dart';
@@ -81,7 +83,8 @@ class Deps {
     required this.notificationScheduler,
     required this.notificationSettings,
     required this.reflectionNotifier,
-    required this.engineDescriptors,
+    required this.engineRegistry,
+    required this.engineSettings,
     required this.exportService,
     required this.importService,
     required this.stagingRegistry,
@@ -150,10 +153,16 @@ class Deps {
   /// settings change.
   final ReflectionNotifier reflectionNotifier;
 
-  /// The engines this build ships, as presentation facts for surfaces that list
-  /// them. Built here because the composition root is the one place allowed to
-  /// name an engine.
-  final List<EngineDescriptor> engineDescriptors;
+  /// The engines this build ships, in preference order: descriptor, instance,
+  /// and this device's availability per entry. Built here because the
+  /// composition root is the one place allowed to name an engine; every engine
+  /// surface iterates this registry and nothing else, so a new engine is one
+  /// more entry here.
+  final List<EngineEntry> engineRegistry;
+
+  /// The persisted engine choice; unset means auto (the first available
+  /// registry entry).
+  final EngineSettings engineSettings;
 
   /// Stages exports (entry, journal, native archive) and hands them to the
   /// share sheet. Read-only with respect to journal state.
@@ -172,7 +181,7 @@ class Deps {
 
   /// The export formats this build ships, as presentation facts for the
   /// format pickers. Built here because the composition root is the one place
-  /// allowed to name an exporter, mirroring [engineDescriptors].
+  /// allowed to name an exporter, mirroring [engineRegistry].
   final List<ExporterDescriptor> exporterDescriptors;
 
   /// The one owner of the supporter answer (the paid entitlement). Reads its
@@ -258,7 +267,39 @@ class Deps {
       },
     );
 
-    final engine = AppleSpeechEngine();
+    final speechEngine = AppleSpeechEngine();
+    final dictationEngine = AppleDictationEngine();
+    // One availability probe decides the analyzer entry; the native side
+    // resolves it once per process behind its own deadline, so a wedged
+    // catalog query answers unavailable instead of holding this timeout.
+    final analyzerAvailable = await speechEngine.analyzerAvailable().timeout(
+      _channelTimeout,
+      onTimeout: () => false,
+    );
+    // Preference order: the registry's first available entry is the auto
+    // default. A future engine (whisper.cpp) is one more entry here.
+    final engineRegistry = <EngineEntry>[
+      EngineEntry(
+        descriptor: EngineDescriptor(
+          engineId: speechEngine.id,
+          displayName: 'Apple Speech',
+          logo: AppIcons.appleLogo,
+        ),
+        engine: speechEngine,
+        available: analyzerAvailable,
+        unavailability: analyzerAvailable ? null : EngineUnavailability.needsNewerDevice,
+      ),
+      EngineEntry(
+        descriptor: EngineDescriptor(
+          engineId: dictationEngine.id,
+          displayName: 'Apple Dictation',
+          logo: AppIcons.appleLogo,
+        ),
+        engine: dictationEngine,
+        available: true,
+      ),
+    ];
+    final engineSettings = EngineSettings(storage: localService);
     // Built before the service so a fresh recording's wave shape can be read
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
@@ -267,7 +308,7 @@ class Deps {
     final entryStore = EntryStore(localService);
     final transcriptionService = TranscriptionService(
       recorder: recorder,
-      engine: engine,
+      engine: engineSettings.resolveActive(engineRegistry).engine,
       store: entryStore,
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
@@ -366,15 +407,8 @@ class Deps {
       notificationScheduler: notificationScheduler,
       notificationSettings: notificationSettings,
       reflectionNotifier: reflectionNotifier,
-      // The models screen renders this registry; whisper.cpp lands as one
-      // more entry here, not new plumbing.
-      engineDescriptors: [
-        EngineDescriptor(
-          engineId: engine.id,
-          displayName: 'Apple Speech',
-          logo: AppIcons.appleLogo,
-        ),
-      ],
+      engineRegistry: engineRegistry,
+      engineSettings: engineSettings,
       exportService: exportService,
       importService: importService,
       stagingRegistry: stagingRegistry,

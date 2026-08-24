@@ -1045,8 +1045,11 @@ void main() {
 
   test('rejects an engine that is not on-device only', () {
     expect(
-      () =>
-          TranscriptionService(recorder: FakeAudioRecorder(), engine: _CloudEngine(), store: store),
+      () => TranscriptionService(
+        recorder: FakeAudioRecorder(),
+        engine: FakeOffDeviceEngine(),
+        store: store,
+      ),
       throwsArgumentError,
     );
   });
@@ -1355,7 +1358,7 @@ void main() {
     await svc.startRecording();
     final entry = await svc.stopRecording();
 
-    await expectLater(svc.retranscribe(entry, using: _CloudEngine()), throwsArgumentError);
+    await expectLater(svc.retranscribe(entry, using: FakeOffDeviceEngine()), throwsArgumentError);
 
     await svc.dispose();
   });
@@ -3454,28 +3457,4 @@ class _ManualLiveEngine implements StreamingTranscriptionEngine {
     controllers.add(controller);
     return controller.stream;
   }
-}
-
-/// An engine that would route off-device. Used only to prove the service rejects it.
-class _CloudEngine implements TranscriptionEngine {
-  @override
-  String get id => 'cloud';
-
-  @override
-  Future<List<String>> supportedLocales() async => const [];
-
-  @override
-  bool get onDeviceOnly => false;
-
-  @override
-  Future<Availability> checkAvailability({required String localeId}) async =>
-      const Availability.available();
-
-  @override
-  Future<Transcript> transcribeFile(
-    File audio, {
-    required String localeId,
-    Duration? start,
-    Duration? end,
-  }) async => throw UnimplementedError();
 }

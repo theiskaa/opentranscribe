@@ -12,7 +12,11 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 /// drag and its settle read as one motion; Reduce Motion swaps the travel for
 /// a scrim fade. Resolves to whatever the content pops with, or null when
 /// dismissed by the scrim or a downward drag.
-Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder}) {
+Future<T?> showAppSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  double inset = AppSpacing.xxl,
+}) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
   final reduce = context.reduceMotion;
@@ -25,7 +29,8 @@ Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder
     // rides this duration out when popped mid-flight. Under Reduce Motion the
     // sheet joins the fade instead of travelling.
     transitionDuration: motion.sheetScrim,
-    pageBuilder: (context, animation, secondaryAnimation) => _SheetBody(builder: builder),
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        _SheetBody(builder: builder, inset: inset),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
         reduce ? FadeTransition(opacity: animation, child: child) : child,
   );
@@ -37,9 +42,14 @@ Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder
 const double _exitTarget = 1.1;
 
 class _SheetBody extends StatefulWidget {
-  const _SheetBody({required this.builder});
+  const _SheetBody({required this.builder, required this.inset});
 
   final WidgetBuilder builder;
+
+  /// Horizontal breathing room around the content. Message sheets read best
+  /// at the default; a sheet of full-width cards tightens it so the cards
+  /// span like a screen's.
+  final double inset;
 
   @override
   State<_SheetBody> createState() => _SheetBodyState();
@@ -179,9 +189,9 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
                     Flexible(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.fromLTRB(
+                          widget.inset,
                           AppSpacing.xxl,
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
+                          widget.inset,
                           // Under a keyboard the framework already zeroes
                           // padding.bottom, so this clears the IME; without
                           // one it clears the home indicator.

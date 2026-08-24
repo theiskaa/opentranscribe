@@ -189,20 +189,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsAppLanguage => 'Idioma';
 
   @override
-  String get transcriptionInfo =>
-      'Cada idioma corre o seu próprio modelo no dispositivo, transferido uma vez e partilhado com o sistema; os modelos não contam para o armazenamento desta app. O sistema limita quantos idiomas uma app pode manter prontos de cada vez.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used de $max lugares de idioma usados';
   }
 
   @override
-  String get transcriptionRemoveHint => 'Deslize para a esquerda num idioma para o remover.';
-
-  @override
   String get transcriptionErrorUnsupported =>
       'Este idioma ainda não pode ser transferido neste dispositivo.';
+
+  @override
+  String get languageNeedsDictation =>
+      'Ative o ditado para este idioma nas definições de teclado do iOS.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -242,6 +239,14 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'O ditado não está configurado';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language é transcrito com o modelo de ditado do sistema, que ainda não está neste iPhone. Adicione o teclado e ative o ditado nas definições do iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Ainda a transferir';
 
   @override
@@ -269,14 +274,56 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsModels => 'Transcrição';
 
   @override
-  String get transcriptionLanguages => 'Idiomas';
+  String get transcriptionYourLanguages => 'Os seus idiomas';
+
+  @override
+  String get transcriptionAllLanguages => 'Todos os idiomas';
+
+  @override
+  String get transcriptionSpeaking => 'Idioma falado';
+
+  @override
+  String get transcriptionAlsoReady => 'Também prontos';
+
+  @override
+  String get transcriptionAddLanguage => 'Adicionar';
+
+  @override
+  String get transcriptionHeroReady => 'Pronto · transcreve neste iPhone';
+
+  @override
+  String get transcriptionFootnote =>
+      'Os modelos são transferidos uma vez e partilhados com o sistema.';
+
+  @override
+  String get transcriptionEngines => 'Motores';
+
+  @override
+  String get engineUnavailableNote => 'Indisponível neste iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Indisponível neste iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine precisa do iOS 26 e de um iPhone mais recente. As gravações continuam a usar o motor disponível aqui.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Gravação em curso';
+
+  @override
+  String get engineBusyBody => 'Pare a gravação atual e depois mude de motor.';
+
+  @override
+  String get engineNotSavedTitle => 'Não foi possível guardar a escolha';
+
+  @override
+  String get engineNotSavedBody =>
+      'A escolha do motor não foi guardada e não sobrevive a um reinício.';
 
   @override
   String get transcriptionDefaultTag => 'Predefinido';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Toque e mantenha premido um idioma para o tornar predefinido.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

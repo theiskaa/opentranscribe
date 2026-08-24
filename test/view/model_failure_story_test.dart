@@ -21,12 +21,12 @@ void main() {
   group('modelFailureCase', () {
     test('a cap failure asks for an eviction, never a retry', () {
       final r = row(failure: const LanguageFailure(kind: LanguageFailureKind.capReached));
-      expect(modelFailureCase(r), ModelFailureCase.cap);
+      expect(modelFailureCase(r, managed: true), ModelFailureCase.cap);
     });
 
     test('a refused removal keeps its own story on a ready row', () {
       final r = row(failure: const LanguageFailure(kind: LanguageFailureKind.removeFailed));
-      expect(modelFailureCase(r), ModelFailureCase.removeFailed);
+      expect(modelFailureCase(r, managed: true), ModelFailureCase.removeFailed);
     });
 
     test('an install that failed on an unsupported asset says unsupported', () {
@@ -36,7 +36,7 @@ void main() {
           assetStatus: ModelAssetStatus.unsupported,
         ),
       );
-      expect(modelFailureCase(r), ModelFailureCase.unsupported);
+      expect(modelFailureCase(r, managed: true), ModelFailureCase.unsupported);
     });
 
     test('an install that failed over a pending system download says stuck', () {
@@ -46,23 +46,33 @@ void main() {
           assetStatus: ModelAssetStatus.downloading,
         ),
       );
-      expect(modelFailureCase(r), ModelFailureCase.stuck);
+      expect(modelFailureCase(r, managed: true), ModelFailureCase.stuck);
     });
 
     test('an install failure with no asset story is generic', () {
       final r = row(failure: const LanguageFailure(kind: LanguageFailureKind.installFailed));
-      expect(modelFailureCase(r), ModelFailureCase.generic);
+      expect(modelFailureCase(r, managed: true), ModelFailureCase.generic);
     });
 
     test('an unsupported row needs no failure to tell its story', () {
       expect(
-        modelFailureCase(row(status: ModelAssetStatus.unsupported)),
+        modelFailureCase(row(status: ModelAssetStatus.unsupported), managed: true),
         ModelFailureCase.unsupported,
       );
     });
 
+    test('an unready language under an unmanaged engine tells the dictation story', () {
+      expect(
+        modelFailureCase(row(status: ModelAssetStatus.unsupported), managed: false),
+        ModelFailureCase.needsDictation,
+      );
+    });
+
     test('a system download nobody here started reads as stuck', () {
-      expect(modelFailureCase(row(status: ModelAssetStatus.downloading)), ModelFailureCase.stuck);
+      expect(
+        modelFailureCase(row(status: ModelAssetStatus.downloading), managed: true),
+        ModelFailureCase.stuck,
+      );
     });
   });
 

@@ -189,20 +189,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppLanguage => 'Language';
 
   @override
-  String get transcriptionInfo =>
-      'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used of $max language slots used';
   }
 
   @override
-  String get transcriptionRemoveHint => 'Swipe left on a language to remove it.';
-
-  @override
   String get transcriptionErrorUnsupported =>
       'This language can\'t be downloaded on this device yet.';
+
+  @override
+  String get languageNeedsDictation =>
+      'Turn on dictation for this language in iOS keyboard settings.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -241,6 +238,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'Dictation isn\'t set up';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language transcribes with the system\'s dictation model, which isn\'t on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Still downloading';
 
   @override
@@ -268,13 +273,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionLanguages => 'Languages';
+  String get transcriptionYourLanguages => 'Your languages';
+
+  @override
+  String get transcriptionAllLanguages => 'All languages';
+
+  @override
+  String get transcriptionSpeaking => 'Speaking';
+
+  @override
+  String get transcriptionAlsoReady => 'Also ready';
+
+  @override
+  String get transcriptionAddLanguage => 'Add';
+
+  @override
+  String get transcriptionHeroReady => 'Ready · transcribes on this iPhone';
+
+  @override
+  String get transcriptionFootnote => 'Models download once and are shared with the system.';
+
+  @override
+  String get transcriptionEngines => 'Engines';
+
+  @override
+  String get engineUnavailableNote => 'Not available on this iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Not available on this iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Recording in progress';
+
+  @override
+  String get engineBusyBody => 'Stop the current recording, then switch engines.';
+
+  @override
+  String get engineNotSavedTitle => 'Couldn\'t save the choice';
+
+  @override
+  String get engineNotSavedBody =>
+      'The engine choice couldn\'t be saved and won\'t survive a relaunch.';
 
   @override
   String get transcriptionDefaultTag => 'Default';
-
-  @override
-  String get transcriptionDefaultHint => 'Touch and hold a language to make it the default.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
