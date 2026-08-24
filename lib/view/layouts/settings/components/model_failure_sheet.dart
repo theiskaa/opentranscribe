@@ -47,7 +47,7 @@ Future<void> showModelFailureSheet(
 }) async {
   final reply = await showAppSheet<_Reply>(
     context,
-    builder: (context) => _FailureContent(row: row),
+    builder: (context) => _FailureContent(row: row, managed: cubit.state.managesModels),
   );
   switch (reply) {
     case null:
@@ -62,15 +62,16 @@ Future<void> showModelFailureSheet(
 }
 
 class _FailureContent extends StatelessWidget {
-  const _FailureContent({required this.row});
+  const _FailureContent({required this.row, required this.managed});
 
   final LanguageModelState row;
+  final bool managed;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final kind = modelFailureCase(row);
+    final kind = modelFailureCase(row, managed: managed);
     final (icon, title, body) = modelFailureStory(l10n, kind, localeDisplayName(row.tag));
 
     // The cap case offers the languages holding the slots, minus this one.

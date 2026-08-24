@@ -5,8 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -19,6 +19,7 @@ import 'package:opentranscribe/view/layouts/settings/components/model_failure_sh
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
@@ -28,12 +29,13 @@ import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// Model management: the engine on top, then one row per language with its
-/// install state, live download progress, honest failure states, and the
-/// model it runs on (several engines will share this list one day). The
+/// Model management: the engines section on top (one row per shipped engine,
+/// tap to switch), then one row per language with its install state, live
+/// download progress, honest failure states, and the model it runs on. The
 /// DEFAULT language is chosen here too: the globe on the bar (the same
 /// adaptive menu the recorder carries), or touch and hold a row. Swipe a
 /// language left to remove it, the same gesture entries speak.
@@ -48,15 +50,15 @@ class _ModelsScreenState extends State<ModelsScreen> {
   /// The one language row with its remove disc open, shared across the list.
   final ValueNotifier<String?> _openRemove = ValueNotifier<String?>(null);
 
-  /// Debug-only: which failure kind the next engine-card long-press stamps.
+  /// Debug-only: which failure kind the next section-label long-press stamps.
   int _debugFailureIndex = 0;
 
   /// Debug-only: stamps a rotating failure kind on the default row, then tap
   /// that row to view its sheet (its title names the kind). Long-press the
-  /// engine card to cycle: cap, unsupported, stuck, generic, removeFailed. Cap
-  /// fills its eviction list from the currently reserved languages, so install
-  /// a second language first to see that picker populated. No effect in
-  /// release (the gesture is never wired there).
+  /// Engines section label to cycle: cap, unsupported, stuck, generic,
+  /// removeFailed. Cap fills its eviction list from the currently reserved
+  /// languages, so install a second language first to see that picker
+  /// populated. No effect in release (the gesture is never wired there).
   void _debugCycleFailure() {
     final cubit = context.read<SettingsCubit>();
     final rows = cubit.state.languages;
@@ -90,7 +92,8 @@ class _ModelsScreenState extends State<ModelsScreen> {
     // during transcription, a system purge); entering re-reads it. The rows
     // this screen makes claims about (reserved ones) then get the exact
     // per-language probe, which is what catches a stuck system download or a
-    // model the system quietly removed. Bounded by the reservation cap.
+    // model the system quietly removed. Bounded by the reservation cap; a
+    // non-managed engine's whole-list refinement rides load() itself.
     final cubit = context.read<SettingsCubit>();
     unawaited(
       cubit.load().then((_) {
@@ -116,9 +119,11 @@ class _ModelsScreenState extends State<ModelsScreen> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    // One engine today; the card and the per-row model name are where a second
-    // one becomes visible when it ships.
-    final engine = Deps.i.engineDescriptors.first;
+    final engineRows = context.watch<EnginesCubit>().state.rows;
+    final activeEngine = engineRows.firstWhere(
+      (row) => row.isActive,
+      orElse: () => engineRows.first,
+    );
 
     return AppScaffold(
       background: theme.screens.settings,
@@ -132,6 +137,14 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // a real reservation concept does; max 0 also covers the
           // could-not-answer degrade, where offering actions would be lying.
           final canManage = state.reservationMax > 0;
+          // The engine whose answers these rows describe: during a switch the
+          // picker marks the new engine before the rows reload, and the rows
+          // must stay labeled by the engine that produced them, never the new
+          // one's name on the old one's data.
+          final describedEngine = engineRows.firstWhere(
+            (row) => row.descriptor.engineId == state.engineId,
+            orElse: () => activeEngine,
+          );
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
@@ -160,17 +173,33 @@ class _ModelsScreenState extends State<ModelsScreen> {
               children: [
                 const SizedBox(height: 10),
                 SectionInfo(l10n.transcriptionInfo),
-                // Debug: long-press the engine card to stamp a rotating
+                // Debug: long-press the section label to stamp a rotating
                 // failure kind on the default row, then tap the row to view
                 // its sheet. Never wired in release.
                 GestureDetector(
+                  // Opaque so the label's whole padded band takes the press,
+                  // not just the text ink.
+                  behavior: HitTestBehavior.opaque,
                   onLongPress: kDebugMode ? _debugCycleFailure : null,
-                  child: _EngineCard(
-                    engine: engine,
-                    slotLine: canManage
-                        ? l10n.transcriptionCap(reserved, state.reservationMax)
-                        : null,
-                  ),
+                  child: SectionLabel(l10n.transcriptionEngines),
+                ),
+                SettingsCard(
+                  children: [
+                    for (final engineRow in engineRows)
+                      _EngineRow(
+                        key: ValueKey(engineRow.descriptor.engineId),
+                        row: engineRow,
+                        // The id match keeps the slot count off a freshly
+                        // picked engine while the counts still describe the
+                        // previous one.
+                        slotLine:
+                            engineRow.isActive &&
+                                canManage &&
+                                state.engineId == engineRow.descriptor.engineId
+                            ? l10n.transcriptionCap(reserved, state.reservationMax)
+                            : null,
+                      ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.md),
                 SectionLabel(l10n.transcriptionLanguages),
@@ -184,8 +213,9 @@ class _ModelsScreenState extends State<ModelsScreen> {
                         key: ValueKey(row.tag),
                         row: row,
                         canManage: canManage,
+                        managesModels: state.managesModels,
                         openRemove: _openRemove,
-                        modelName: engine.displayName,
+                        modelName: describedEngine.descriptor.displayName,
                       ),
                   ],
                 ),
@@ -229,51 +259,82 @@ class _DefaultLanguageAction extends StatelessWidget {
   }
 }
 
-/// The engine as a card: its logo, name, and the slot line when the platform
-/// caps how many languages the app may hold ready.
-class _EngineCard extends StatelessWidget {
-  const _EngineCard({required this.engine, required this.slotLine});
+/// One engine as the picker offers it: logo chip, name, the active marker,
+/// and a quiet second line (the slot count on the active managed engine, or
+/// why a dimmed one cannot run here). Tapping switches; tapping a dimmed row
+/// opens the fuller story instead, and a switch refused mid-take says so.
+class _EngineRow extends StatelessWidget {
+  const _EngineRow({required this.row, required this.slotLine, super.key});
 
-  final EngineDescriptor engine;
+  final EngineRowState row;
   final String? slotLine;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final tokens = theme.settings;
-    return SettingsCard(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: SuperellipseDecoration(
-                  borderRadius: tokens.iconTileRadius + 2,
-                  color: tokens.iconTileBackground,
-                ),
-                child: AppIcon(engine.logo, size: 22, color: theme.text),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(engine.displayName, style: AppType.headline.copyWith(color: theme.text)),
-                    if (slotLine != null) ...[
-                      const SizedBox(height: 2),
-                      Text(slotLine!, style: AppType.footnote.copyWith(color: theme.textSecondary)),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
+    final l10n = AppLocalizations.of(context)!;
+    return SelectableRow(
+      label: row.descriptor.displayName,
+      leading: AppIcon(
+        row.descriptor.logo,
+        size: 18,
+        color: row.available ? theme.text : theme.textSecondary,
+      ),
+      selected: row.isActive,
+      dimmed: !row.available,
+      note: row.available ? slotLine : _unavailableNote(l10n),
+      onTap: () => _tap(context),
+    );
+  }
+
+  // Exhaustive on purpose: a new unavailability kind must fail to compile
+  // until it is worded, never silently borrow this one's words.
+  String _unavailableNote(AppLocalizations l10n) => switch (row.unavailability!) {
+    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableNote,
+  };
+
+  String _unavailableBody(AppLocalizations l10n) => switch (row.unavailability!) {
+    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(row.descriptor.displayName),
+  };
+
+  Future<void> _tap(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!row.available) {
+      await showAppSheet<void>(
+        context,
+        builder: (context) => SheetMessage(
+          icon: row.descriptor.logo,
+          title: l10n.engineUnavailableTitle,
+          body: _unavailableBody(l10n),
         ),
-      ],
+      );
+      return;
+    }
+    final EnginePickOutcome outcome;
+    try {
+      outcome = await context.read<EnginesCubit>().pick(row.descriptor.engineId);
+    } catch (_) {
+      // The switch (or its revert) happened; only the stored choice is lost.
+      // The rows above already say what is active; this says it will not hold.
+      if (!context.mounted) return;
+      await showAppSheet<void>(
+        context,
+        builder: (context) => SheetMessage(
+          icon: AppIcons.internaldrive,
+          title: l10n.engineNotSavedTitle,
+          body: l10n.engineNotSavedBody,
+        ),
+      );
+      return;
+    }
+    if (outcome != EnginePickOutcome.busy || !context.mounted) return;
+    await showAppSheet<void>(
+      context,
+      builder: (context) => SheetMessage(
+        icon: AppIcons.micFill,
+        title: l10n.engineBusyTitle,
+        body: l10n.engineBusyBody,
+      ),
     );
   }
 }
@@ -285,6 +346,7 @@ class _LanguageRow extends StatelessWidget {
   const _LanguageRow({
     required this.row,
     required this.canManage,
+    required this.managesModels,
     required this.openRemove,
     required this.modelName,
     super.key,
@@ -295,6 +357,10 @@ class _LanguageRow extends StatelessWidget {
   /// Whether a real reservation concept exists (see the builder above); off,
   /// no remove and no install affordances are offered.
   final bool canManage;
+
+  /// Whether the active engine manages downloadable models; words an unready
+  /// language (a missing download vs a missing system dictation setting).
+  final bool managesModels;
 
   final ValueNotifier<String?> openRemove;
 
@@ -421,7 +487,12 @@ class _LanguageRow extends StatelessWidget {
   String _subLine(AppLocalizations l10n) {
     final failure = modelFailureLine(l10n, row);
     if (failure != null) return failure;
-    if (row.status == ModelAssetStatus.unsupported) return l10n.transcriptionErrorUnsupported;
+    if (row.status == ModelAssetStatus.unsupported) {
+      // Without a managed model, an unready language means the SYSTEM
+      // dictation model is missing, and the recovery is an iOS setting, not a
+      // download this app could offer.
+      return managesModels ? l10n.transcriptionErrorUnsupported : l10n.languageNeedsDictation;
+    }
     if (row.status == ModelAssetStatus.downloading && !row.installing) {
       return l10n.transcriptionErrorStuck;
     }

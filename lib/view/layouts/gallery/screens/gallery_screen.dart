@@ -218,6 +218,32 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   ),
                 ],
               ),
+              _section('Engine rows'),
+              SettingsCard(
+                children: [
+                  SelectableRow(
+                    label: 'Apple Speech',
+                    leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.text),
+                    selected: true,
+                    note: '2 of 5 language slots used',
+                    onTap: () {},
+                  ),
+                  SelectableRow(
+                    label: 'Apple Dictation',
+                    leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.text),
+                    selected: false,
+                    onTap: () {},
+                  ),
+                  SelectableRow(
+                    label: 'Apple Speech',
+                    leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.textSecondary),
+                    selected: false,
+                    dimmed: true,
+                    note: 'Not available on this iPhone',
+                    onTap: () {},
+                  ),
+                ],
+              ),
               _section('Export formats'),
               SettingsCard(
                 children: [
