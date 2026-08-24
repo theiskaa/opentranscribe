@@ -2,7 +2,7 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
-## 0.2.0 - 2026-08-22
+## 0.2.0 - 2026-08-24
 
 Backups, editing, the club, engine choice, and faster ways to start a recording.
 
@@ -17,6 +17,7 @@ Backups, editing, the club, engine choice, and faster ways to start a recording.
 - The transcription screen redesigned around the language you speak: the default language is a card with an honest status line (ready, download progress, or what stands in the way), the other ready languages are chips a tap makes the default, and the whole library moved into a sheet where languages are added, removed, and switched in one place.
 - iPhones whose hardware cannot run the iOS 26 analyzer (the iPhone 11 family and earlier chips) no longer show an empty language list: they start on Apple Dictation and transcribe normally.
 - Under Apple Dictation, a language whose system dictation model is missing says so and points at the iOS keyboard settings, instead of claiming it is ready.
+- Reliability around engine switches: a switch landing mid-download, mid-removal, or mid-load can no longer leave one engine's status, failure badge, or download progress on the other engine's language rows; queued model downloads survive a cancelled predecessor; and a blocked install whose slot-holders have since left offers a retry instead of a dead end.
 
 ## 0.1.0 - 2026-08-12
 
