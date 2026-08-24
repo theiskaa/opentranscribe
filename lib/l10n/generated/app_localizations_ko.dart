@@ -179,16 +179,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAppLanguage => '언어';
 
   @override
-  String get transcriptionInfo =>
-      '각 언어는 자체 온디바이스 모델로 실행되며, 한 번 다운로드하면 시스템과 공유됩니다. 모델은 이 앱의 저장 공간에 포함되지 않습니다. 시스템은 앱이 한 번에 준비해 둘 수 있는 언어 수를 제한합니다.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '언어 슬롯 $max개 중 $used개 사용 중';
   }
-
-  @override
-  String get transcriptionRemoveHint => '언어를 왼쪽으로 밀어 삭제하세요.';
 
   @override
   String get transcriptionErrorUnsupported => '이 언어는 아직 이 기기에서 다운로드할 수 없습니다.';
@@ -267,7 +260,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsModels => '전사';
 
   @override
-  String get transcriptionLanguages => '언어';
+  String get transcriptionSearchHint => '언어 검색';
+
+  @override
+  String get transcriptionYourLanguages => '내 언어';
+
+  @override
+  String get transcriptionAllLanguages => '모든 언어';
+
+  @override
+  String get transcriptionSearchEmpty => '일치하는 언어가 없습니다.';
+
+  @override
+  String get transcriptionSpeaking => '말하는 언어';
+
+  @override
+  String get transcriptionAlsoReady => '준비된 다른 언어';
+
+  @override
+  String get transcriptionAddLanguage => '추가';
+
+  @override
+  String get transcriptionHeroReady => '준비됨 · 이 iPhone에서 텍스트 변환';
+
+  @override
+  String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
 
   @override
   String get transcriptionEngines => '엔진';
@@ -297,9 +314,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => '기본';
-
-  @override
-  String get transcriptionDefaultHint => '언어를 길게 눌러 기본으로 설정하세요.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

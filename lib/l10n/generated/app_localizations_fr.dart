@@ -189,16 +189,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAppLanguage => 'Langue';
 
   @override
-  String get transcriptionInfo =>
-      'Chaque langue utilise son propre modèle sur l\'appareil, téléchargé une fois et partagé avec le système ; les modèles ne comptent pas dans le stockage de cette app. Le système limite le nombre de langues qu\'une app peut garder prêtes à la fois.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used emplacements de langue sur $max utilisés';
   }
-
-  @override
-  String get transcriptionRemoveHint => 'Balayez une langue vers la gauche pour la retirer.';
 
   @override
   String get transcriptionErrorUnsupported =>
@@ -281,7 +274,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionLanguages => 'Langues';
+  String get transcriptionSearchHint => 'Rechercher une langue';
+
+  @override
+  String get transcriptionYourLanguages => 'Vos langues';
+
+  @override
+  String get transcriptionAllLanguages => 'Toutes les langues';
+
+  @override
+  String get transcriptionSearchEmpty => 'Aucune langue trouvée.';
+
+  @override
+  String get transcriptionSpeaking => 'Langue parlée';
+
+  @override
+  String get transcriptionAlsoReady => 'Aussi prêtes';
+
+  @override
+  String get transcriptionAddLanguage => 'Ajouter';
+
+  @override
+  String get transcriptionHeroReady => 'Prête · transcrit sur cet iPhone';
+
+  @override
+  String get transcriptionFootnote =>
+      'Les modèles se téléchargent une fois et sont partagés avec le système.';
 
   @override
   String get transcriptionEngines => 'Moteurs';
@@ -312,10 +330,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => 'Par défaut';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Touchez et maintenez une langue pour en faire la langue par défaut.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

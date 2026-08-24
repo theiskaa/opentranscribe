@@ -224,10 +224,6 @@
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
   },
-  "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. The system limits how many languages an app can keep ready at once.",
-  "@transcriptionInfo": {
-    "description": "Header of the transcription screen: the on-device and shared-asset promise"
-  },
   "transcriptionCap": "{used} of {max} language slots used",
   "@transcriptionCap": {
     "description": "Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)",
@@ -239,10 +235,6 @@
         "type": "int"
       }
     }
-  },
-  "transcriptionRemoveHint": "Swipe left on a language to remove it.",
-  "@transcriptionRemoveHint": {
-    "description": "Footer hint for the swipe-to-remove gesture"
   },
   "transcriptionErrorUnsupported": "This language can't be downloaded on this device yet.",
   "@transcriptionErrorUnsupported": {
@@ -358,9 +350,41 @@
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
-  "transcriptionLanguages": "Languages",
-  "@transcriptionLanguages": {
-    "description": "Section label over the per-language model list on the models screen"
+  "transcriptionSearchHint": "Search languages",
+  "@transcriptionSearchHint": {
+    "description": "Placeholder in the language sheet search field"
+  },
+  "transcriptionYourLanguages": "Your languages",
+  "@transcriptionYourLanguages": {
+    "description": "Section label over the kept languages in the language sheet"
+  },
+  "transcriptionAllLanguages": "All languages",
+  "@transcriptionAllLanguages": {
+    "description": "Section label over the remaining library in the language sheet"
+  },
+  "transcriptionSearchEmpty": "No languages match.",
+  "@transcriptionSearchEmpty": {
+    "description": "Quiet line when a language search matches nothing"
+  },
+  "transcriptionSpeaking": "Speaking",
+  "@transcriptionSpeaking": {
+    "description": "Section label over the default-language hero card"
+  },
+  "transcriptionAlsoReady": "Also ready",
+  "@transcriptionAlsoReady": {
+    "description": "Section label over the kept-language chip strip"
+  },
+  "transcriptionAddLanguage": "Add",
+  "@transcriptionAddLanguage": {
+    "description": "The chip opening the language sheet"
+  },
+  "transcriptionHeroReady": "Ready · transcribes on this iPhone",
+  "@transcriptionHeroReady": {
+    "description": "Hero status line for a ready default language"
+  },
+  "transcriptionFootnote": "Models download once and are shared with the system.",
+  "@transcriptionFootnote": {
+    "description": "The one footnote under the transcription screen"
   },
   "transcriptionEngines": "Engines",
   "@transcriptionEngines": {
@@ -402,10 +426,6 @@
   "transcriptionDefaultTag": "Default",
   "@transcriptionDefaultTag": {
     "description": "Small tag on the language row currently set as the transcription default"
-  },
-  "transcriptionDefaultHint": "Touch and hold a language to make it the default.",
-  "@transcriptionDefaultHint": {
-    "description": "Footer hint for the hold-to-set-default gesture on the models screen"
   },
   "transcriptionDeviceLanguageFallback": "Your phone's language isn't supported for on-device transcription yet, so {fallback} is the default.",
   "@transcriptionDeviceLanguageFallback": {

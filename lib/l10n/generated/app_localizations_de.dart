@@ -189,16 +189,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAppLanguage => 'Sprache';
 
   @override
-  String get transcriptionInfo =>
-      'Jede Sprache nutzt ihr eigenes Modell auf dem Gerät, das einmal geladen und mit dem System geteilt wird; Modelle zählen nicht zum Speicher dieser App. Das System begrenzt, wie viele Sprachen eine App gleichzeitig bereithalten kann.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used von $max Sprachplätzen belegt';
   }
-
-  @override
-  String get transcriptionRemoveHint => 'Wischen Sie eine Sprache nach links, um sie zu entfernen.';
 
   @override
   String get transcriptionErrorUnsupported =>
@@ -282,7 +275,31 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsModels => 'Transkription';
 
   @override
-  String get transcriptionLanguages => 'Sprachen';
+  String get transcriptionSearchHint => 'Sprachen suchen';
+
+  @override
+  String get transcriptionYourLanguages => 'Ihre Sprachen';
+
+  @override
+  String get transcriptionAllLanguages => 'Alle Sprachen';
+
+  @override
+  String get transcriptionSearchEmpty => 'Keine Sprachen gefunden.';
+
+  @override
+  String get transcriptionSpeaking => 'Sprechen';
+
+  @override
+  String get transcriptionAlsoReady => 'Ebenfalls bereit';
+
+  @override
+  String get transcriptionAddLanguage => 'Hinzufügen';
+
+  @override
+  String get transcriptionHeroReady => 'Bereit · transkribiert auf diesem iPhone';
+
+  @override
+  String get transcriptionFootnote => 'Modelle werden einmal geladen und mit dem System geteilt.';
 
   @override
   String get transcriptionEngines => 'Engines';
@@ -314,10 +331,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => 'Standard';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Halten Sie eine Sprache gedrückt, um sie zum Standard zu machen.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

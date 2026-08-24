@@ -189,16 +189,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsAppLanguage => 'Lingua';
 
   @override
-  String get transcriptionInfo =>
-      'Ogni lingua usa il proprio modello sul dispositivo, scaricato una volta e condiviso con il sistema; i modelli non incidono sullo spazio di questa app. Il sistema limita quante lingue un\'app può tenere pronte contemporaneamente.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used di $max slot lingua usati';
   }
-
-  @override
-  String get transcriptionRemoveHint => 'Scorri verso sinistra su una lingua per rimuoverla.';
 
   @override
   String get transcriptionErrorUnsupported =>
@@ -281,7 +274,32 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsModels => 'Trascrizione';
 
   @override
-  String get transcriptionLanguages => 'Lingue';
+  String get transcriptionSearchHint => 'Cerca lingue';
+
+  @override
+  String get transcriptionYourLanguages => 'Le tue lingue';
+
+  @override
+  String get transcriptionAllLanguages => 'Tutte le lingue';
+
+  @override
+  String get transcriptionSearchEmpty => 'Nessuna lingua trovata.';
+
+  @override
+  String get transcriptionSpeaking => 'Parlato';
+
+  @override
+  String get transcriptionAlsoReady => 'Anche pronte';
+
+  @override
+  String get transcriptionAddLanguage => 'Aggiungi';
+
+  @override
+  String get transcriptionHeroReady => 'Pronta · trascrive su questo iPhone';
+
+  @override
+  String get transcriptionFootnote =>
+      'I modelli si scaricano una volta e sono condivisi con il sistema.';
 
   @override
   String get transcriptionEngines => 'Motori';
@@ -312,10 +330,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => 'Predefinita';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Tocca e tieni premuta una lingua per renderla predefinita.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

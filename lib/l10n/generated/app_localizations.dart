@@ -444,23 +444,11 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsAppLanguage;
 
-  /// Header of the transcription screen: the on-device and shared-asset promise
-  ///
-  /// In en, this message translates to:
-  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.'**
-  String get transcriptionInfo;
-
   /// Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)
   ///
   /// In en, this message translates to:
   /// **'{used} of {max} language slots used'**
   String transcriptionCap(int used, int max);
-
-  /// Footer hint for the swipe-to-remove gesture
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe left on a language to remove it.'**
-  String get transcriptionRemoveHint;
 
   /// Row failure line when the platform has no asset to serve
   ///
@@ -588,11 +576,59 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsModels;
 
-  /// Section label over the per-language model list on the models screen
+  /// Placeholder in the language sheet search field
   ///
   /// In en, this message translates to:
-  /// **'Languages'**
-  String get transcriptionLanguages;
+  /// **'Search languages'**
+  String get transcriptionSearchHint;
+
+  /// Section label over the kept languages in the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Your languages'**
+  String get transcriptionYourLanguages;
+
+  /// Section label over the remaining library in the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get transcriptionAllLanguages;
+
+  /// Quiet line when a language search matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No languages match.'**
+  String get transcriptionSearchEmpty;
+
+  /// Section label over the default-language hero card
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking'**
+  String get transcriptionSpeaking;
+
+  /// Section label over the kept-language chip strip
+  ///
+  /// In en, this message translates to:
+  /// **'Also ready'**
+  String get transcriptionAlsoReady;
+
+  /// The chip opening the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get transcriptionAddLanguage;
+
+  /// Hero status line for a ready default language
+  ///
+  /// In en, this message translates to:
+  /// **'Ready · transcribes on this iPhone'**
+  String get transcriptionHeroReady;
+
+  /// The one footnote under the transcription screen
+  ///
+  /// In en, this message translates to:
+  /// **'Models download once and are shared with the system.'**
+  String get transcriptionFootnote;
 
   /// Section label over the engine picker on the models screen
   ///
@@ -647,12 +683,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Default'**
   String get transcriptionDefaultTag;
-
-  /// Footer hint for the hold-to-set-default gesture on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'Touch and hold a language to make it the default.'**
-  String get transcriptionDefaultHint;
 
   /// Footer notice when the phone's language has no on-device model in any variant
   ///

@@ -179,16 +179,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppLanguage => '言語';
 
   @override
-  String get transcriptionInfo =>
-      '各言語は独自の端末内モデルで動作します。モデルは一度だけダウンロードされ、システムと共有されるため、このアプリのストレージには計上されません。同時に準備しておける言語の数はシステムによって制限されます。';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$max 個中 $used 個の言語スロットを使用中';
   }
-
-  @override
-  String get transcriptionRemoveHint => '言語を左にスワイプすると削除できます。';
 
   @override
   String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
@@ -266,7 +259,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsModels => '文字起こし';
 
   @override
-  String get transcriptionLanguages => '言語';
+  String get transcriptionSearchHint => '言語を検索';
+
+  @override
+  String get transcriptionYourLanguages => '自分の言語';
+
+  @override
+  String get transcriptionAllLanguages => 'すべての言語';
+
+  @override
+  String get transcriptionSearchEmpty => '一致する言語はありません。';
+
+  @override
+  String get transcriptionSpeaking => '話す言語';
+
+  @override
+  String get transcriptionAlsoReady => '準備済みの言語';
+
+  @override
+  String get transcriptionAddLanguage => '追加';
+
+  @override
+  String get transcriptionHeroReady => '準備完了 · この iPhone で文字起こし';
+
+  @override
+  String get transcriptionFootnote => 'モデルは一度だけダウンロードされ、システムと共有されます。';
 
   @override
   String get transcriptionEngines => 'エンジン';
@@ -296,9 +313,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => 'デフォルト';
-
-  @override
-  String get transcriptionDefaultHint => '言語を長押しすると、デフォルトに設定できます。';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {

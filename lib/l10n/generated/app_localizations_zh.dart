@@ -177,15 +177,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAppLanguage => '语言';
 
   @override
-  String get transcriptionInfo => '每种语言都使用各自的设备端模型，下载一次后与系统共享；模型不计入本应用的存储占用。系统会限制一个应用同时可保持就绪的语言数量。';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '已使用 $max 个语言名额中的 $used 个';
   }
-
-  @override
-  String get transcriptionRemoveHint => '向左滑动某种语言即可移除。';
 
   @override
   String get transcriptionErrorUnsupported => '本机暂时无法下载该语言。';
@@ -263,7 +257,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsModels => '转写';
 
   @override
-  String get transcriptionLanguages => '语言';
+  String get transcriptionSearchHint => '搜索语言';
+
+  @override
+  String get transcriptionYourLanguages => '我的语言';
+
+  @override
+  String get transcriptionAllLanguages => '所有语言';
+
+  @override
+  String get transcriptionSearchEmpty => '没有匹配的语言。';
+
+  @override
+  String get transcriptionSpeaking => '说话的语言';
+
+  @override
+  String get transcriptionAlsoReady => '其他就绪语言';
+
+  @override
+  String get transcriptionAddLanguage => '添加';
+
+  @override
+  String get transcriptionHeroReady => '已就绪 · 在此 iPhone 上转写';
+
+  @override
+  String get transcriptionFootnote => '模型只下载一次，并与系统共享。';
 
   @override
   String get transcriptionEngines => '引擎';
@@ -293,9 +311,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcriptionDefaultTag => '默认';
-
-  @override
-  String get transcriptionDefaultHint => '轻触并按住某种语言，即可将其设为默认。';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
