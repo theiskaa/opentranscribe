@@ -1,10 +1,11 @@
 # transcriber
 
-Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is three contracts: `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, and downloadable-model behavior as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`). `AppleSpeechEngine` is the shipped implementation: `SpeechAnalyzer` on iOS 26 where the device reports analyzer locales (probed once per launch; 8-core Neural Engine devices never do), `SFSpeechRecognizer` otherwise.
+Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is three contracts: `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, and downloadable-model behavior as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`). `AppleSpeechEngine` is the shipped `SpeechAnalyzer` implementation (iOS 26); `AppleDictationEngine` is the classic `SFSpeechRecognizer` one, the engine behind iOS dictation.
 
 Guarantees a caller may rely on:
 
-- `TranscriptionEngine.onDeviceOnly` states whether an engine keeps audio on the device. `AppleSpeechEngine` forces on-device recognition and answers true, and nothing in this package opens a network connection.
+- `TranscriptionEngine.onDeviceOnly` states whether an engine keeps audio on the device. both `AppleSpeechEngine` and `AppleDictationEngine` force on-device recognition and answer true, and nothing in this package opens a network connection.
+- Both engines share one live-event transport over `transcriber/speech/events`, and live session tokens are unique across them; every engine-answering channel call names its engine, so the native side routes explicitly.
 - Audio buffers never cross the platform channel. Capture and recognition share one native session; only paths, durations, levels, statuses, and text reach Dart.
 - Recording and playback share the audio session and never overlap. Starting a capture stops live playback with a terminal event, and `AudioPlayer.play` throws `busy_recording` while a capture runs.
 - Recordings land in the app's Application Support under iOS data protection (`completeUnlessOpen`), excluded from backup by default; `AudioRecorder.setBackupExcluded` flips that for the whole directory.

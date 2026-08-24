@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:transcriber/src/transcribe/apple_speech_engine.dart';
+import 'package:transcriber/src/transcribe/apple_speech_engines.dart';
 import 'package:transcriber/src/transcribe/transcript.dart';
 import 'package:transcriber/src/transcribe/transcript_event.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
@@ -21,7 +21,7 @@ void main() {
   late AppleSpeechEngine engine;
 
   setUp(() {
-    engine = AppleSpeechEngine(clock: () => fixedClock);
+    engine = AppleSpeechEngine(clock: () => fixedClock, live: SpeechLiveTransport());
   });
 
   tearDown(() {

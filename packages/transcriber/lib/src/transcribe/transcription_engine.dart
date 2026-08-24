@@ -171,6 +171,16 @@ abstract interface class CancellableBatchEngine {
   Future<void> cancelBatches();
 }
 
+/// An engine that answers per-language readiness WITHOUT side effects: no
+/// download started, no permission prompt raised, safe to call from any
+/// surface at any time (a list screen probing sixty rows, a preflight before
+/// onboarding has asked for anything). Distinct from [checkAvailability],
+/// which may request speech authorization when it is undetermined.
+abstract interface class LanguageReadinessEngine implements TranscriptionEngine {
+  /// Whether [localeId] can transcribe on this device right now.
+  Future<bool> localeReady({required String localeId});
+}
+
 /// An engine whose on-device model is downloaded and managed on the device. Apple
 /// Speech implements this (its language assets); a future whisper.cpp engine would
 /// too (its model file). An engine with no downloadable model does not implement it,
