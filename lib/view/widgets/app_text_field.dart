@@ -23,6 +23,7 @@ class AppTextField extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.obscureText = false,
+    this.bare = false,
     this.onChanged,
     this.textInputAction = TextInputAction.done,
     this.onSubmitted,
@@ -34,6 +35,11 @@ class AppTextField extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool obscureText;
+
+  /// Skips the field's own surface and padding, for a host that draws the
+  /// shell itself (a search pill); the editing core is unchanged.
+  final bool bare;
+
   final ValueChanged<String>? onChanged;
   final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -59,62 +65,63 @@ class _AppTextFieldState extends State<AppTextField> {
     final theme = context.theme;
     final textStyle = AppType.body.copyWith(color: theme.text);
 
+    final core = Stack(
+      children: [
+        if (widget.placeholder != null)
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, _) => value.text.isEmpty
+                ? Text(
+                    widget.placeholder!,
+                    style: AppType.body.copyWith(color: theme.textSecondary),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        EditableText(
+          key: _editableKey,
+          controller: widget.controller,
+          focusNode: _focusNode,
+          autofocus: widget.autofocus,
+          obscureText: widget.obscureText,
+          autocorrect: !widget.obscureText,
+          enableSuggestions: !widget.obscureText,
+          // Null, not the empty-list default: an empty list still opts
+          // the field into autofill and lets the platform guess.
+          autofillHints: null,
+          // No caret-into-view scroll. The default 20 makes every focus
+          // gain nudge the enclosing scrollable, so moving between two
+          // fields in one sheet ticks the content up and back down.
+          // Surfaces here seat their fields clear of the keyboard
+          // themselves, so there is nothing left for it to reveal.
+          scrollPadding: EdgeInsets.zero,
+          style: textStyle,
+          cursorColor: theme.accent,
+          backgroundCursorColor: theme.textSecondary,
+          selectionColor: theme.accent.withValues(alpha: 0.25),
+          keyboardAppearance: theme.brightness,
+          textInputAction: widget.textInputAction,
+          onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
+        ),
+      ],
+    );
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
         _focusNode.requestFocus();
         _editableKey.currentState?.requestKeyboard();
       },
-      child: DecoratedBox(
-        decoration: SuperellipseDecoration(
-          borderRadius: AppRadius.card,
-          color: theme.surface,
-          border: BorderSide(color: theme.surfaceBorder),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Stack(
-            children: [
-              if (widget.placeholder != null)
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: widget.controller,
-                  builder: (context, value, _) => value.text.isEmpty
-                      ? Text(
-                          widget.placeholder!,
-                          style: AppType.body.copyWith(color: theme.textSecondary),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              EditableText(
-                key: _editableKey,
-                controller: widget.controller,
-                focusNode: _focusNode,
-                autofocus: widget.autofocus,
-                obscureText: widget.obscureText,
-                autocorrect: !widget.obscureText,
-                enableSuggestions: !widget.obscureText,
-                // Null, not the empty-list default: an empty list still opts
-                // the field into autofill and lets the platform guess.
-                autofillHints: null,
-                // No caret-into-view scroll. The default 20 makes every focus
-                // gain nudge the enclosing scrollable, so moving between two
-                // fields in one sheet ticks the content up and back down.
-                // Surfaces here seat their fields clear of the keyboard
-                // themselves, so there is nothing left for it to reveal.
-                scrollPadding: EdgeInsets.zero,
-                style: textStyle,
-                cursorColor: theme.accent,
-                backgroundCursorColor: theme.textSecondary,
-                selectionColor: theme.accent.withValues(alpha: 0.25),
-                keyboardAppearance: theme.brightness,
-                textInputAction: widget.textInputAction,
-                onChanged: widget.onChanged,
-                onSubmitted: widget.onSubmitted,
+      child: widget.bare
+          ? core
+          : DecoratedBox(
+              decoration: SuperellipseDecoration(
+                borderRadius: AppRadius.card,
+                color: theme.surface,
+                border: BorderSide(color: theme.surfaceBorder),
               ),
-            ],
-          ),
-        ),
-      ),
+              child: Padding(padding: const EdgeInsets.all(AppSpacing.lg), child: core),
+            ),
     );
   }
 }

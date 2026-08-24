@@ -12,7 +12,11 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 /// drag and its settle read as one motion; Reduce Motion swaps the travel for
 /// a scrim fade. Resolves to whatever the content pops with, or null when
 /// dismissed by the scrim or a downward drag.
-Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder}) {
+Future<T?> showAppSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  WidgetBuilder? header,
+}) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
   final reduce = context.reduceMotion;
@@ -25,7 +29,8 @@ Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder
     // rides this duration out when popped mid-flight. Under Reduce Motion the
     // sheet joins the fade instead of travelling.
     transitionDuration: motion.sheetScrim,
-    pageBuilder: (context, animation, secondaryAnimation) => _SheetBody(builder: builder),
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        _SheetBody(builder: builder, header: header),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
         reduce ? FadeTransition(opacity: animation, child: child) : child,
   );
@@ -37,9 +42,13 @@ Future<T?> showAppSheet<T>(BuildContext context, {required WidgetBuilder builder
 const double _exitTarget = 1.1;
 
 class _SheetBody extends StatefulWidget {
-  const _SheetBody({required this.builder});
+  const _SheetBody({required this.builder, this.header});
 
   final WidgetBuilder builder;
+
+  /// Content pinned between the grabber and the scrolling body: a search
+  /// field must stay under the finger while the list below it scrolls.
+  final WidgetBuilder? header;
 
   @override
   State<_SheetBody> createState() => _SheetBodyState();
@@ -176,6 +185,16 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
                         ),
                       ),
                     ),
+                    if (widget.header != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          0,
+                        ),
+                        child: widget.header!(context),
+                      ),
                     Flexible(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.fromLTRB(
