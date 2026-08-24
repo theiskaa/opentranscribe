@@ -259,12 +259,22 @@ class SettingsCubit extends Cubit<SettingsState> {
     tags.sort(languageTagCompare);
 
     final previous = {for (final row in state.languages) row.tag: row};
+    // Where readiness is a per-language probe (the dictation engine), the
+    // coarse installed list claims everything and would flash every row ready
+    // until the refine wave lands; carrying the last refined status (or
+    // starting at supported) keeps rows honest and their sections stable, and
+    // no tap can promote a language the engine has not yet vouched for.
+    final probes = _service.probesLanguageReadiness;
     final rows = <LanguageModelState>[];
     for (final tag in tags) {
       final refined = tag == localeId ? defaultStatus : null;
       final status =
           refined?.status ??
-          (installed.contains(tag) ? ModelAssetStatus.installed : ModelAssetStatus.supported);
+          (probes
+              ? (previous[tag]?.status ?? ModelAssetStatus.supported)
+              : (installed.contains(tag)
+                    ? ModelAssetStatus.installed
+                    : ModelAssetStatus.supported));
       // max 0 means no reservation concept (pre-26, unmanaged engines):
       // usable is the honest default there.
       final reserved =
