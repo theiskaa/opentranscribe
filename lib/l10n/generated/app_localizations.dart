@@ -576,12 +576,6 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsModels;
 
-  /// Placeholder in the language sheet search field
-  ///
-  /// In en, this message translates to:
-  /// **'Search languages'**
-  String get transcriptionSearchHint;
-
   /// Section label over the kept languages in the language sheet
   ///
   /// In en, this message translates to:
@@ -593,12 +587,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All languages'**
   String get transcriptionAllLanguages;
-
-  /// Quiet line when a language search matches nothing
-  ///
-  /// In en, this message translates to:
-  /// **'No languages match.'**
-  String get transcriptionSearchEmpty;
 
   /// Section label over the default-language hero card
   ///

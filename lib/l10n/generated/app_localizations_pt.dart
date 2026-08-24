@@ -274,19 +274,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsModels => 'Transcrição';
 
   @override
-  String get transcriptionSearchHint => 'Procurar idiomas';
-
-  @override
   String get transcriptionYourLanguages => 'Os seus idiomas';
 
   @override
   String get transcriptionAllLanguages => 'Todos os idiomas';
 
   @override
-  String get transcriptionSearchEmpty => 'Nenhum idioma encontrado.';
-
-  @override
-  String get transcriptionSpeaking => 'Fala';
+  String get transcriptionSpeaking => 'Idioma falado';
 
   @override
   String get transcriptionAlsoReady => 'Também prontos';
@@ -299,7 +293,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transcriptionFootnote =>
-      'Os modelos são descarregados uma vez e partilhados com o sistema.';
+      'Os modelos são transferidos uma vez e partilhados com o sistema.';
 
   @override
   String get transcriptionEngines => 'Motores';

@@ -257,19 +257,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsModels => '转写';
 
   @override
-  String get transcriptionSearchHint => '搜索语言';
-
-  @override
   String get transcriptionYourLanguages => '我的语言';
 
   @override
   String get transcriptionAllLanguages => '所有语言';
 
   @override
-  String get transcriptionSearchEmpty => '没有匹配的语言。';
-
-  @override
-  String get transcriptionSpeaking => '说话的语言';
+  String get transcriptionSpeaking => '你说的语言';
 
   @override
   String get transcriptionAlsoReady => '其他就绪语言';

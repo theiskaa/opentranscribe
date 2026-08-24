@@ -274,19 +274,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsModels => 'Trascrizione';
 
   @override
-  String get transcriptionSearchHint => 'Cerca lingue';
-
-  @override
   String get transcriptionYourLanguages => 'Le tue lingue';
 
   @override
   String get transcriptionAllLanguages => 'Tutte le lingue';
 
   @override
-  String get transcriptionSearchEmpty => 'Nessuna lingua trovata.';
-
-  @override
-  String get transcriptionSpeaking => 'Parlato';
+  String get transcriptionSpeaking => 'Lingua parlata';
 
   @override
   String get transcriptionAlsoReady => 'Anche pronte';

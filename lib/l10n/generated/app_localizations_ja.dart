@@ -259,16 +259,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsModels => '文字起こし';
 
   @override
-  String get transcriptionSearchHint => '言語を検索';
-
-  @override
   String get transcriptionYourLanguages => '自分の言語';
 
   @override
   String get transcriptionAllLanguages => 'すべての言語';
-
-  @override
-  String get transcriptionSearchEmpty => '一致する言語はありません。';
 
   @override
   String get transcriptionSpeaking => '話す言語';
@@ -296,7 +290,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String engineUnavailableBody(String engine) {
-    return '$engine には iOS 26 と新しい iPhone が必要です。録音は利用可能なエンジンで行われます。';
+    return '$engine には iOS 26 と新しい iPhone が必要です。録音には、この iPhone で使えるエンジンが引き続き使われます。';
   }
 
   @override

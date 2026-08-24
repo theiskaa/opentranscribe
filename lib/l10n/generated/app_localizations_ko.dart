@@ -225,11 +225,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get modelFailDictationTitle => '받아쓰기가 설정되지 않았습니다';
+  String get modelFailDictationTitle => '받아쓰기가 설정되지 않음';
 
   @override
   String modelFailDictationBody(String language) {
-    return '$language은(는) 시스템 받아쓰기 모델로 텍스트 변환되는데, 이 iPhone에는 아직 없습니다. iOS 설정에서 키보드를 추가하고 받아쓰기를 켜세요.';
+    return '$language은(는) 시스템 받아쓰기 모델로 전사되는데, 이 iPhone에는 아직 없습니다. iOS 설정에서 키보드를 추가하고 받아쓰기를 켜세요.';
   }
 
   @override
@@ -260,16 +260,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsModels => '전사';
 
   @override
-  String get transcriptionSearchHint => '언어 검색';
-
-  @override
   String get transcriptionYourLanguages => '내 언어';
 
   @override
   String get transcriptionAllLanguages => '모든 언어';
-
-  @override
-  String get transcriptionSearchEmpty => '일치하는 언어가 없습니다.';
 
   @override
   String get transcriptionSpeaking => '말하는 언어';
@@ -281,7 +275,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcriptionAddLanguage => '추가';
 
   @override
-  String get transcriptionHeroReady => '준비됨 · 이 iPhone에서 텍스트 변환';
+  String get transcriptionHeroReady => '준비됨 · 이 iPhone에서 전사';
 
   @override
   String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
@@ -307,7 +301,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
 
   @override
-  String get engineNotSavedTitle => '선택을 저장하지 못했습니다';
+  String get engineNotSavedTitle => '선택을 저장하지 못함';
 
   @override
   String get engineNotSavedBody => '엔진 선택을 저장하지 못해 다시 시작하면 유지되지 않습니다.';

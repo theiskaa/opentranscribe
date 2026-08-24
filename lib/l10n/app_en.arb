@@ -350,10 +350,6 @@
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
-  "transcriptionSearchHint": "Search languages",
-  "@transcriptionSearchHint": {
-    "description": "Placeholder in the language sheet search field"
-  },
   "transcriptionYourLanguages": "Your languages",
   "@transcriptionYourLanguages": {
     "description": "Section label over the kept languages in the language sheet"
@@ -361,10 +357,6 @@
   "transcriptionAllLanguages": "All languages",
   "@transcriptionAllLanguages": {
     "description": "Section label over the remaining library in the language sheet"
-  },
-  "transcriptionSearchEmpty": "No languages match.",
-  "@transcriptionSearchEmpty": {
-    "description": "Quiet line when a language search matches nothing"
   },
   "transcriptionSpeaking": "Speaking",
   "@transcriptionSpeaking": {
