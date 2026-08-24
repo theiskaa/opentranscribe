@@ -491,4 +491,59 @@ void main() {
       await cubit.close();
     });
   });
+
+  test('a load on a readiness-probing engine ends with honest rows', () async {
+    final dictationService = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: FakeDictationEngine(
+        availability: const Availability(AvailabilityStatus.onDeviceUnavailable),
+        supportedLocaleTags: ['en-US', 'de-DE'],
+      ),
+      store: EntryStore(storage),
+    );
+    final cubit = SettingsCubit(
+      service: dictationService,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: dictationService,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: audioStorage,
+    );
+    await pumpEventQueue();
+
+    expect(
+      cubit.state.languages.map((row) => row.status),
+      everyElement(ModelAssetStatus.unsupported),
+    );
+
+    await cubit.close();
+    await dictationService.dispose();
+  });
+
+  test('a degraded managed engine still reads as managing models', () async {
+    final degraded = FakeStreamingEngine(maxReservedLocales: 0);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: degraded,
+      store: EntryStore(storage),
+    );
+    final cubit = SettingsCubit(
+      service: svc,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: svc,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: audioStorage,
+    );
+    await pumpEventQueue();
+
+    expect(cubit.state.reservationMax, 0);
+    expect(cubit.state.managesModels, isTrue);
+    expect(cubit.state.engineId, 'fake.streaming');
+
+    await cubit.close();
+    await svc.dispose();
+  });
 }

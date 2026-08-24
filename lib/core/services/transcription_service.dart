@@ -48,8 +48,27 @@ class TranscriptionService {
   }
 
   final AudioRecorder _recorder;
-  final TranscriptionEngine _engine;
+  TranscriptionEngine _engine;
   final EntryStore _store;
+
+  /// The active engine's id, for surfaces marking the current choice.
+  String get engineId => _engine.id;
+
+  /// Tells every model surface to re-read (see [modelStateChanged]), for a
+  /// caller whose change the service cannot see land itself: the engine
+  /// switch's background locale re-resolution.
+  void notifyModelSurfaces() => _notifyModelStateChanged();
+
+  /// Whether the active engine manages downloadable models, for surfaces that
+  /// word an unready language (a missing download and a missing system setting
+  /// are different stories).
+  bool get managesModels => _engine is ManagedModelEngine;
+
+  /// Whether the active engine answers per-language readiness cheaply and
+  /// without side effects, so a list surface may refine every row. A managed
+  /// engine answers false: its model status is already the per-language truth.
+  bool get probesLanguageReadiness =>
+      _engine is! ManagedModelEngine && _engine is LanguageReadinessEngine;
 
   /// The transcription language (a BCP-47 tag), pushed by TranscriptionSettings.
   /// Mutable: a change takes effect on the NEXT recording; a session in flight
@@ -223,6 +242,24 @@ class TranscriptionService {
   /// silent while paused or idle, nothing replayed, nothing persisted.
   Stream<double> get inputLevel => _recorder.level;
 
+  /// Swaps the active engine. Refused (false) while a take is starting,
+  /// recording, or finalizing: a take's live stream and its settled batch must
+  /// come from one engine. An in-flight re-transcription is not a refusal; it
+  /// holds the engine reference it started with and lands on it. On a change
+  /// every model surface is told to reload and the caller re-resolves the
+  /// locale default; swapping to the already-active engine is a no-op that
+  /// still answers true.
+  bool useEngine(TranscriptionEngine engine) {
+    if (!engine.onDeviceOnly) {
+      throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
+    }
+    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
+    if (identical(engine, _engine)) return true;
+    _engine = engine;
+    _notifyModelStateChanged();
+    return true;
+  }
+
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
   Future<List<String>> supportedLocales() => _engine.supportedLocales();
 
@@ -246,7 +283,8 @@ class TranscriptionService {
   Future<PermissionStatus> ensureMicPermission() => _recorder.ensurePermission();
 
   /// Whether the model is downloaded so transcription runs with no wait. An engine
-  /// with no downloadable model is always ready. Kept with [checkAvailability]
+  /// with no downloadable model answers ready here (the coarse answer;
+  /// [localeStatus] refines per language). Kept with [checkAvailability]
   /// for the same future recording gate.
   Future<bool> isModelInstalled({String? localeId}) async {
     final engine = _engine;
@@ -256,8 +294,9 @@ class TranscriptionService {
   }
 
   /// Fires after any path that may have changed a model's install state (a
-  /// first-use install during transcription, an explicit install, a removal),
-  /// so state layers re-read instead of polling or going stale.
+  /// first-use install during transcription, an explicit install, a removal,
+  /// or an engine switch and its locale re-resolution), so state layers
+  /// re-read instead of polling or going stale.
   Stream<void> get modelStateChanged => _modelStateChanged.stream;
 
   void _notifyModelStateChanged() {
@@ -293,7 +332,8 @@ class TranscriptionService {
   }
 
   /// The tags whose models are downloaded on this device. An engine with no
-  /// downloadable model is ready for everything it supports.
+  /// downloadable model lists everything it supports (the coarse answer;
+  /// [localeStatus] refines per language).
   Future<List<String>> installedLocales() {
     final engine = _engine;
     return engine is ManagedModelEngine ? engine.installedLocales() : engine.supportedLocales();
@@ -305,7 +345,20 @@ class TranscriptionService {
   Future<LocaleModelStatus> localeStatus(String localeId) async {
     final engine = _engine;
     if (engine is ManagedModelEngine) return engine.localeStatus(localeId: localeId);
-    // No managed model: a supported language is ready as-is.
+    // No managed model to download: readiness is whether the engine can run
+    // the language here NOW (for a dictation-style engine, whether the
+    // system's own model is present, added in iOS Settings, never by this
+    // app). Probed through localeReady, which guarantees no side effects;
+    // checkAvailability may raise the speech-permission prompt.
+    if (engine is LanguageReadinessEngine) {
+      final ready = await engine.localeReady(localeId: localeId);
+      return LocaleModelStatus(
+        status: ready ? ModelAssetStatus.installed : ModelAssetStatus.unsupported,
+        reserved: true,
+        resolvedTag: localeId,
+      );
+    }
+    // An engine that cannot say per-language readiness: supported is ready.
     final supported = (await engine.supportedLocales()).contains(localeId);
     return LocaleModelStatus(
       status: supported ? ModelAssetStatus.installed : ModelAssetStatus.unsupported,

@@ -92,6 +92,8 @@ final class LanguageModelState {
 final class SettingsState {
   const SettingsState({
     this.localeId = '',
+    this.engineId = '',
+    this.managesModels = false,
     this.supportedLocales = const [],
     this.languages = const [],
     this.reservationMax = 0,
@@ -101,6 +103,16 @@ final class SettingsState {
   });
 
   final String localeId;
+
+  /// The engine whose answers this state describes, so a surface pairing these
+  /// rows with the picker's active engine can tell a switch-in-flight frame
+  /// from a settled one.
+  final String engineId;
+
+  /// Whether that engine manages downloadable models. Wording keys off this
+  /// (an unready language's story), never off [reservationMax], which only
+  /// gates affordances.
+  final bool managesModels;
 
   /// True when the phone's language has no on-device model in any variant and
   /// the current default equals the derived fallback, so a surface can say why
@@ -116,7 +128,9 @@ final class SettingsState {
   /// choice kept honestly).
   final List<LanguageModelState> languages;
 
-  /// The platform's language cap; 0 means no cap concept, render none.
+  /// The platform's language cap; 0 means no cap concept. Gates install and
+  /// remove affordances and the slot line only; see [managesModels] for
+  /// wording.
   final int reservationMax;
 
   final bool backupExcluded;
@@ -153,6 +167,8 @@ final class SettingsState {
 
   SettingsState copyWith({
     String? localeId,
+    String? engineId,
+    bool? managesModels,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
     int? reservationMax,
@@ -161,6 +177,8 @@ final class SettingsState {
     bool? deviceLanguageUnsupported,
   }) => SettingsState(
     localeId: localeId ?? this.localeId,
+    engineId: engineId ?? this.engineId,
+    managesModels: managesModels ?? this.managesModels,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
@@ -191,6 +209,8 @@ class SettingsCubit extends Cubit<SettingsState> {
        super(
          SettingsState(
            localeId: transcription.localeId,
+           engineId: service.engineId,
+           managesModels: service.managesModels,
            backupExcluded: audioStorage.backupExcluded,
            keepAudio: audioStorage.keepAudio,
          ),
@@ -272,6 +292,8 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(
       state.copyWith(
         localeId: localeId,
+        engineId: _service.engineId,
+        managesModels: _service.managesModels,
         supportedLocales: supported,
         languages: rows,
         reservationMax: reservations.max,
@@ -281,6 +303,16 @@ class SettingsCubit extends Cubit<SettingsState> {
             _transcription.deviceLanguageUnsupported && localeId == _transcription.deviceLocaleId,
       ),
     );
+    // Where readiness is knowable per language without side effects (the
+    // dictation engine's system models), the coarse membership derivation
+    // above overstates it, so every load ends by refining every row. Riding
+    // the load, not a screen, so a switch's last load always lands honest and
+    // a superseded load's refinements die on the generation guard.
+    if (_service.probesLanguageReadiness) {
+      for (final tag in tags) {
+        unawaited(refreshLanguage(tag));
+      }
+    }
   }
 
   /// Refines one row through the engine's fine-grained probe: the list load

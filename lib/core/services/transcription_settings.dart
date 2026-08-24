@@ -54,17 +54,23 @@ class TranscriptionSettings {
   /// derived default fell back (see [apply]).
   bool get deviceLanguageUnsupported => _deviceLanguageUnsupported;
 
+  /// Bumped per [apply] so a slow call superseded by a newer one (an engine
+  /// switch racing another, or racing launch) lands nothing stale.
+  int _applyGeneration = 0;
+
   /// Resolves the device default against the engine's supported list, then
   /// pushes the current language to the service. The chain: a supported
   /// variant of the device language, else English, else the engine's first
   /// language, else the raw tag (an empty answer resolves nothing, so nothing
   /// wrong is cached). A stored tag persisted before resolution existed
   /// migrates to its language's supported spelling (tr-GE to tr-TR); a stored
-  /// LANGUAGE the engine cannot run at all is kept as chosen. Called once at
-  /// startup; the change lands on the next recording (a live session keeps
-  /// its locale).
+  /// LANGUAGE the engine cannot run at all is kept as chosen. Called at
+  /// startup and after an engine switch; the change lands on the next
+  /// recording (a live session keeps its locale).
   Future<void> apply() async {
+    final generation = ++_applyGeneration;
     final supported = await _service.supportedLocales();
+    if (generation != _applyGeneration) return;
     if (supported.isNotEmpty) {
       final device = resolveSupportedTag(_deviceTag(), supported);
       _deviceLanguageUnsupported = device == null;
