@@ -9,12 +9,12 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -50,16 +50,36 @@ Future<void> showModelFailureSheet(
     context,
     builder: (context) => _FailureContent(row: row, cubit: cubit),
   );
-  switch (reply) {
-    case null:
-      break;
-    case _RetryInstall():
-      cubit.install(row.tag);
-    case _RetryRemove():
-      await cubit.remove(row.tag);
-    case _Evict(tag: final tag):
-      await cubit.evictAndInstall(tag, row.tag);
-  }
+  // A refused write inside a recovery must not escape this fire-and-forget
+  // flow as an unhandled error; the rows' failure stamps carry the story.
+  try {
+    switch (reply) {
+      case null:
+        break;
+      case _RetryInstall():
+        cubit.install(row.tag);
+      case _RetryRemove():
+        await cubit.remove(row.tag);
+      case _Evict(tag: final tag):
+        await cubit.evictAndInstall(tag, row.tag);
+    }
+  } catch (_) {}
+}
+
+/// The cap sheet's eviction offers: the tags snapshot from when the cap
+/// fired, minus the blocked row itself, minus the current default (evicting
+/// the language the user records in is the surprise the language sheet's own
+/// trash rule refuses), and only those STILL holding a slot, so a slot freed
+/// since cannot be "evicted" again into a false remove failure.
+List<String> evictableLanguages(LanguageModelState row, SettingsState state) {
+  final reservedNow = {
+    for (final r in state.languages)
+      if (r.reserved) r.tag,
+  };
+  return [
+    for (final tag in row.failure?.reservedTags ?? const <String>[])
+      if (tag != row.tag && tag != state.localeId && reservedNow.contains(tag)) tag,
+  ];
 }
 
 class _FailureContent extends StatelessWidget {
@@ -77,20 +97,8 @@ class _FailureContent extends StatelessWidget {
       builder: (context, state) {
         final kind = modelFailureCase(row, managed: state.managesModels);
         final (icon, title, body) = modelFailureStory(l10n, kind, localeDisplayName(row.tag));
-
-        // The cap case offers the languages holding the slots, minus this
-        // one. The failure's tags are a snapshot from when the cap fired;
-        // only the ones STILL holding a slot are offered, so a slot freed
-        // since cannot be "evicted" again into a false remove failure.
-        final reservedNow = {
-          for (final r in state.languages)
-            if (r.reserved) r.tag,
-        };
         final evictable = kind == ModelFailureCase.cap
-            ? [
-                for (final tag in row.failure?.reservedTags ?? const <String>[])
-                  if (tag != row.tag && reservedNow.contains(tag)) tag,
-              ]
+            ? evictableLanguages(row, state)
             : const <String>[];
 
         return SheetMessage(
@@ -108,6 +116,13 @@ class _FailureContent extends StatelessWidget {
             ],
           ],
           action: switch (kind) {
+            // Every offered slot-holder can stop qualifying while the failure
+            // stands (freed, or become the default); the sheet must then
+            // offer the retry itself, or the row wedges with no way out.
+            ModelFailureCase.cap when evictable.isEmpty => AppButton(
+              label: l10n.retry,
+              onPressed: () => Navigator.of(context).pop(const _RetryInstall()),
+            ),
             ModelFailureCase.stuck || ModelFailureCase.generic => AppButton(
               label: l10n.retry,
               onPressed: () => Navigator.of(context).pop(const _RetryInstall()),

@@ -17,16 +17,18 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The default language as the screen's answer to "what happens when I hit
 /// record": big flag, name, and an honest status line. The whole card taps
-/// into the language sheet.
+/// into whatever the screen wires: the library, or a broken default's story.
 class SpeakingHero extends StatelessWidget {
   const SpeakingHero({required this.state, required this.onTap, super.key});
 
   final SettingsState state;
   final VoidCallback onTap;
 
-  /// The list tile grown to headline scale; the flag grows with it.
+  /// The list tile grown to headline scale; the flag and the corner grow
+  /// with it.
   static const double _tileSize = 52;
   static const double _flagSize = 26;
+  static const double _tileRadiusBump = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +59,7 @@ class SpeakingHero extends StatelessWidget {
                     height: _tileSize,
                     alignment: Alignment.center,
                     decoration: SuperellipseDecoration(
-                      borderRadius: tokens.iconTileRadius + 4,
+                      borderRadius: tokens.iconTileRadius + _tileRadiusBump,
                       color: tokens.iconTileBackground,
                     ),
                     child: LocaleFlag(localeFlag(tag), size: _flagSize),
@@ -69,9 +71,14 @@ class SpeakingHero extends StatelessWidget {
                       children: [
                         Text(
                           localeDisplayName(tag),
+                          // One line always: a wrapping name would break the
+                          // constant card geometry the status ruler holds.
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppType.headline.copyWith(color: theme.text),
                         ),
+                        // 3, off the scale: xs floats the status too far off
+                        // the name it qualifies.
                         const SizedBox(height: 3),
                         // The status slot is ALWAYS two footnote lines tall
                         // (the invisible ruler below holds it): statuses run

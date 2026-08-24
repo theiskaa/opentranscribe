@@ -29,8 +29,8 @@ import 'package:transcriber/transcriber.dart';
 /// The transcription screen as an answer to one question, what happens when I
 /// hit record: the default language as a hero card, the other kept languages
 /// as chips (a chip tap makes it the default), the engine picker, and the
-/// footnotes. The whole library, search included, lives in the language sheet
-/// the hero and the Add chip open.
+/// footnotes. The whole library lives in the language sheet the hero and the
+/// Add chip open.
 class ModelsScreen extends StatefulWidget {
   const ModelsScreen({super.key});
 
@@ -99,7 +99,12 @@ class _ModelsScreenState extends State<ModelsScreen> {
     );
   }
 
+  /// Whether the screen is still the top route: two pointers landing on two
+  /// sheet-opening surfaces in one frame would otherwise stack two sheets.
+  bool _onTop(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
+
   void _openLanguageSheet(BuildContext context) {
+    if (!_onTop(context)) return;
     unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
   }
 
@@ -107,13 +112,14 @@ class _ModelsScreenState extends State<ModelsScreen> {
   /// that story (with the recovery), otherwise it opens the library. The Add
   /// chip stays a library door either way.
   void _openHero(BuildContext context, SettingsState state) {
+    if (!_onTop(context)) return;
     final cubit = context.read<SettingsCubit>();
     final row = state.defaultLanguage;
     if (row != null && rowHasFailureStory(row)) {
       unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
       return;
     }
-    _openLanguageSheet(context);
+    unawaited(showLanguageSheet(context, cubit: cubit));
   }
 
   @override
@@ -134,21 +140,12 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
-          // The chips: what can transcribe now (or is about to), minus the
-          // default the hero carries. Narrower than the sheet's Yours section
-          // on purpose: a language with any failure story (a ready one wearing
-          // a refused remove included) must not wear a plain chip one tap away
-          // from becoming the default; its story lives in the sheet.
-          final chips = [
-            for (final row in state.languages)
-              if (!row.isDefault && (row.isReady || row.installing) && !rowHasFailureStory(row))
-                row,
-          ];
+          final chips = chipLanguages(state.languages);
           return SettingsList(
             children: [
+              // Breath under the bar before the first label; sm reads cramped
+              // against the frosted edge, md doubles the label's own top pad.
               const SizedBox(height: 10),
-              // Debug: long-press the Speaking label to stamp a rotating
-              // failure kind on the default row. Never wired in release.
               GestureDetector(
                 // Opaque so the label's whole padded band takes the press,
                 // not just the text ink.
@@ -292,6 +289,9 @@ class _EngineRow extends StatelessWidget {
   };
 
   Future<void> _tap(BuildContext context) async {
+    // Same one-sheet rule as the hero: a second pointer in the same frame
+    // must not stack another sheet.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
     if (!row.available) {
       await showAppSheet<void>(
@@ -310,7 +310,9 @@ class _EngineRow extends StatelessWidget {
     } catch (_) {
       // The switch (or its revert) happened; only the stored choice is lost.
       // The rows above already say what is active; this says it will not hold.
-      if (!context.mounted) return;
+      // Re-checked, not just mounted: the screen may have been covered or
+      // popped during the pick, and this sheet belongs on it alone.
+      if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
       await showAppSheet<void>(
         context,
         builder: (context) => SheetMessage(
@@ -322,6 +324,7 @@ class _EngineRow extends StatelessWidget {
       return;
     }
     if (outcome != EnginePickOutcome.busy || !context.mounted) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(

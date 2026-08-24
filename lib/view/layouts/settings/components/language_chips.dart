@@ -6,11 +6,21 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// The rows that earn a chip: not the default (the hero carries it), ready or
+/// mid-download, and never one wearing a failure story: a broken language (a
+/// ready one with a refused remove included) must not sit one tap away from
+/// becoming the default; its story lives in the sheet.
+List<LanguageModelState> chipLanguages(List<LanguageModelState> rows) => [
+  for (final row in rows)
+    if (!row.isDefault && (row.isReady || row.installing) && !rowHasFailureStory(row)) row,
+];
 
 /// The kept languages minus the default, as a chip strip: tapping a chip makes
 /// that language the default, a downloading chip carries its ring, and the
@@ -28,6 +38,11 @@ class LanguageChipStrip extends StatelessWidget {
   final ValueChanged<String> onPick;
   final VoidCallback onAdd;
 
+  /// The chip's identity metrics, off the spacing scale on purpose: sm reads
+  /// airy between flag and name, and md-tall chips read as buttons.
+  static const double _flagGap = 6;
+  static const double _chipVPad = 9;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -44,7 +59,7 @@ class LanguageChipStrip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 LocaleFlag(localeFlag(row.tag), size: 14),
-                const SizedBox(width: 6),
+                const SizedBox(width: LanguageChipStrip._flagGap),
                 Text(
                   localeDisplayName(row.tag),
                   // Dimmed while installing, like every disabled control: the
@@ -92,7 +107,10 @@ class _Chip extends StatelessWidget {
       onTap: onTap,
       haptic: onTap != null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: LanguageChipStrip._chipVPad,
+        ),
         decoration: SuperellipseDecoration(
           borderRadius: AppRadius.chip,
           color: tokens.cardBackground,
