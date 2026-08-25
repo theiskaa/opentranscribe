@@ -94,7 +94,7 @@ final class SupportState {
 class SupportCubit extends Cubit<SupportState> {
   SupportCubit({required SupportService service})
     : _service = service,
-      super(SupportState(tier: service.tier)) {
+      super(SupportState(tier: service.tier, product: service.cachedProduct)) {
     // Any tier change also ends an Ask to Buy wait: whatever landed, the
     // answer arrived.
     _changes = _service.changes.listen(

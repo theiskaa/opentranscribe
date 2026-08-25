@@ -43,6 +43,14 @@ void main() {
     expect(cubit.state.storeUnreachable, isFalse);
   });
 
+  test('seeds the price from the service cache so the button needs no round trip', () async {
+    await build();
+    await service.warmProduct();
+    final warmed = SupportCubit(service: service);
+    expect(warmed.state.product, product);
+    await warmed.close();
+  });
+
   test('an unreachable store flags honestly and keeps the tier', () async {
     await build();
     store.productsError = const SupportStoreException('offline', SupportStoreException.unavailable);

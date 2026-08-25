@@ -482,6 +482,9 @@ class Deps {
     // Fire-and-forget: entitlement staleness costs a locked format at worst,
     // and the cached tier already answered the launch.
     unawaited(_quietly('supporter refresh', () => i.supportService.refresh()));
+    // Warm the price so the support screen's join button renders at once
+    // instead of waiting on StoreKit when the user opens it.
+    unawaited(_quietly('supporter price', () => i.supportService.warmProduct()));
     // Fire-and-forget, like the passes above: a stale staging directory
     // costs disk, not correctness, so it must not gate the re-arm below.
     unawaited(_quietly('staging sweep', _sweepStaging));
