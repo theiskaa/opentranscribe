@@ -13,12 +13,15 @@ import 'package:transcriber/transcriber.dart';
 /// kept recording with any engine. Engine-agnostic: it talks only to the
 /// contracts, so swapping Apple Speech for whisper.cpp touches nothing here.
 ///
-/// The settled transcript is always a batch pass over the kept file. That is the
+/// The settled transcript is a batch pass over the kept file. That is the
 /// source of truth: robust to a streaming engine's duration limits, identical to
 /// what re-transcription would produce, and the reason raw audio is kept. A
-/// streaming engine's live stream is used only for real-time UI ([liveEvents]); it
-/// never decides the persisted transcript. If transcription fails, the recording is
-/// kept untranscribed rather than lost, and can be re-transcribed later.
+/// streaming engine's live stream is real-time UI first ([liveEvents]), with one
+/// exception on the stop path: when the batch throws or settles blank on a take
+/// whose live stream carried words, those words are saved (untimed) instead of
+/// an empty entry, and the audio is kept regardless of preference so a real
+/// batch can replace them. A failure with no live words keeps the recording
+/// untranscribed rather than lost, re-transcribable later.
 ///
 /// When the keep-audio preference is off, a recording is discarded after its
 /// FIRST successful transcription: the transcript is persisted first, then the
@@ -158,6 +161,22 @@ class TranscriptionService {
   /// start with one span at 0; [setSessionLocale] appends. More than one span
   /// means a mixed-language take, batched span by span on stop.
   List<({int startMs, String tag})> _sessionSpans = [];
+
+  /// Live text heard this session, retained ONLY to salvage a take whose
+  /// settling batch yields nothing: the batch stays the source of truth, but a
+  /// take the user watched being written must not save as an empty entry when
+  /// the engine's file pass fails on audio its live pass understood (the
+  /// classic engine does exactly this in some locales). Two parts because a
+  /// mid-take language switch restarts the live stream: [_sessionLiveCommitted]
+  /// holds the finished streams' text, [_sessionLiveCurrent] the running one's
+  /// latest partial.
+  String _sessionLiveCommitted = '';
+  String _sessionLiveCurrent = '';
+
+  String get _sessionLiveText => [
+    _sessionLiveCommitted,
+    _sessionLiveCurrent,
+  ].where((part) => part.trim().isNotEmpty).join(' ');
 
   /// The opening span's start round-trip window. A language chosen before any
   /// audio (the queued switch that fires the instant start() resolves) can read
@@ -433,6 +452,8 @@ class TranscriptionService {
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = localeId;
       _sessionSpans = [(startMs: 0, tag: localeId)];
+      _sessionLiveCommitted = '';
+      _sessionLiveCurrent = '';
       _audioMsAccumulated = 0;
       _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
@@ -484,7 +505,9 @@ class TranscriptionService {
             // the one that races a new take and paints it with the old text.
             // Drop it here; the engine still uses it to close its own stream.
             if (event.isFinal) return;
-            if (generation != _liveGeneration || _live.isClosed) return;
+            if (generation != _liveGeneration) return;
+            _sessionLiveCurrent = event.text;
+            if (_live.isClosed) return;
             _live.add(event);
           },
           onError: (Object error, StackTrace stack) {
@@ -535,6 +558,8 @@ class TranscriptionService {
     // contract: [StreamingTranscriptionEngine.transcribeLive] promises a new
     // listen works while the old stream's teardown is still completing.
     unawaited(liveSub?.cancel());
+    _sessionLiveCommitted = _sessionLiveText;
+    _sessionLiveCurrent = '';
     _liveSub = _subscribeLive(engine, tag);
   }
 
@@ -543,7 +568,8 @@ class TranscriptionService {
   /// interruption saved (in flight or completed) instead of throwing; a plain
   /// double-stop throws [StateError]; a persistence failure throws
   /// [EntrySaveFailed] carrying the entry, recoverable via [retrySave]; a
-  /// transcription failure does NOT throw, the entry is saved untranscribed.
+  /// transcription failure does NOT throw, the entry is saved with the session's
+  /// live text when there was one, untranscribed otherwise.
   Future<Entry> stopRecording() async {
     if (_recording) {
       // We were recording, so this call produces the entry. _finalizing is set only
@@ -630,6 +656,12 @@ class TranscriptionService {
     final sessionLocale = _sessionLocaleId;
     final spans = _sessionSpans;
     _sessionSpans = [];
+    // The live text is NOT claimed here: the recognizer's end-of-audio flush
+    // lands during the recorder stop below, and reading now would drop the last
+    // words the user watched arrive. The generation is the claim instead: a
+    // newer session bumps it before touching the live-text fields, so the
+    // deferred read can never absorb another take's words.
+    final liveGeneration = _liveGeneration;
     _audioClockPause();
     try {
       // Inside the try, and still in the same synchronous block as the flips
@@ -645,9 +677,17 @@ class TranscriptionService {
       // the zone and the finally would fail a stop that fully succeeded.
       unawaited(liveSub?.cancel().catchError((_) {}));
 
+      var liveText = '';
+      if (_liveGeneration == liveGeneration) {
+        liveText = _sessionLiveText.trim();
+        _sessionLiveCommitted = '';
+        _sessionLiveCurrent = '';
+      }
+
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
       Transcript? transcript;
+      var salvaged = false;
       if (transcribe) {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
@@ -660,6 +700,20 @@ class TranscriptionService {
           // Any failure keeps the recording untranscribed rather than losing it; it
           // can be re-transcribed later. Never let a transcription error orphan audio.
           transcript = null;
+        }
+        // A take the user watched being written must not settle empty because the
+        // engine's file pass failed on audio its live pass understood. The live
+        // text stands in (untimed, so no segments), and the audio is kept below
+        // regardless of the preference so a better pass can replace this one.
+        if (liveText.isNotEmpty && (transcript?.fullText.trim().isEmpty ?? true)) {
+          salvaged = true;
+          transcript = Transcript(
+            fullText: liveText,
+            segments: const [],
+            localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
+            engineId: _engine.id,
+            createdAt: _clock(),
+          );
         }
       }
 
@@ -694,7 +748,10 @@ class TranscriptionService {
       // returned entry deliberately still carries its path: the store is the
       // truth, and surfaces refresh from it.
       // An empty landing keeps the audio: it is the only path back to the words.
-      final discard = transcript != null && transcript.fullText.trim().isNotEmpty && !_keepAudio();
+      // So does a salvaged one: its text is the live stream's approximation, and
+      // the audio is the only way a real batch can ever replace it.
+      final discard =
+          !salvaged && transcript != null && transcript.fullText.trim().isNotEmpty && !_keepAudio();
       unawaited(
         _backfillPeaks(entry).then((_) async {
           if (discard) await _discardAudio(entry.id);
@@ -834,6 +891,8 @@ class TranscriptionService {
     final statusSub = _statusSub;
     _statusSub = null;
     _sessionLocaleId = null;
+    _sessionLiveCommitted = '';
+    _sessionLiveCurrent = '';
     await statusSub?.cancel();
     try {
       await _recorder.cancel();

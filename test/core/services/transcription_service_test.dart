@@ -214,6 +214,142 @@ void main() {
     await svc.dispose();
   });
 
+  test('a streaming take whose batch fails saves the live text instead of nothing', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        failBatch: true,
+        stopSignal: rec.stopped,
+      ),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'words heard live');
+    expect(entry.transcript?.engineId, 'fake.streaming');
+    expect(entry.transcript?.localeId, svc.localeId);
+    expect(entry.transcript?.segments, isEmpty);
+    expect(entry.audioPath, isNotNull);
+    expect(store.read(entry.id), entry);
+
+    await svc.dispose();
+  });
+
+  test('a streaming take whose batch settles empty saves the live text', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        batchText: '',
+        stopSignal: rec.stopped,
+      ),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'words heard live');
+
+    await svc.dispose();
+  });
+
+  test('a salvaged landing keeps the audio even with keep-audio off', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        failBatch: true,
+        stopSignal: rec.stopped,
+      ),
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(store.read(entry.id)?.audioPath, isNotNull);
+
+    await svc.dispose();
+  });
+
+  test('a take with no live words stays untranscribed when the batch fails', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(cannedText: '', failBatch: true, stopSignal: rec.stopped),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript, isNull);
+    expect(entry.audioPath, isNotNull);
+
+    await svc.dispose();
+  });
+
+  test('a mid-take language switch keeps the earlier live words in the salvage', () async {
+    final svc = build(
+      (rec) =>
+          FakeStreamingEngine(cannedText: 'span words', failBatch: true, stopSignal: rec.stopped),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    await svc.setSessionLocale('de-DE');
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'span words span words');
+    expect(entry.transcript?.localeId, entry.recordedLocaleId);
+
+    await svc.dispose();
+  });
+
+  test('the words flushed during the recorder stop reach the salvage', () async {
+    final engine = _ManualSalvageEngine();
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 30));
+    final svc = build((_) => engine, recorder: rec);
+
+    await svc.startRecording();
+    engine.controllers[0].add(const TranscriptEvent(text: 'early words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+
+    final stopping = svc.stopRecording();
+    await Future<void>.delayed(Duration.zero);
+    engine.controllers[0].add(const TranscriptEvent(text: 'early words plus tail', isFinal: false));
+    final entry = await stopping;
+
+    expect(entry.transcript?.fullText, 'early words plus tail');
+
+    await svc.dispose();
+  });
+
+  test("a cancelled take's live words never salvage into the next take", () async {
+    final engine = _ManualSalvageEngine();
+    final svc = build((_) => engine);
+
+    await svc.startRecording();
+    engine.controllers[0].add(const TranscriptEvent(text: 'discarded words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+    await svc.cancelRecording();
+
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript, isNull);
+
+    await svc.dispose();
+  });
+
   test('retranscribe replaces the transcript with another engine', () async {
     final svc = build(
       (rec) => FakeStreamingEngine(
@@ -3421,6 +3557,38 @@ class _GatedSaveStore extends EntryStore {
 /// a test can emit on a superseded take's stream after a newer take started.
 /// Unlike [FakeStreamingEngine] it does NOT suppress a late final on cancel, so
 /// the service's own guards (isFinal drop, generation gate) are what must hold.
+class _ManualSalvageEngine implements StreamingTranscriptionEngine {
+  final List<StreamController<TranscriptEvent>> controllers = [];
+
+  @override
+  String get id => 'manual.salvage';
+
+  @override
+  bool get onDeviceOnly => true;
+
+  @override
+  Future<List<String>> supportedLocales() async => const ['en-US'];
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) async =>
+      const Availability.available();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => throw const TranscriptionFailed('manual batch failure');
+
+  @override
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) {
+    final controller = StreamController<TranscriptEvent>();
+    controllers.add(controller);
+    return controller.stream;
+  }
+}
+
 class _ManualLiveEngine implements StreamingTranscriptionEngine {
   final List<StreamController<TranscriptEvent>> controllers = [];
 
