@@ -107,7 +107,6 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 - Styling comes from `AppTheme` through `context.theme`. No literal colors or magic numbers in widgets; add a token to `core/theming/` instead, and derive new component groups from the base palette (`AppTheme.fromBase`).
 - Icons come from `AppIcons`, a vendored SF Symbols subset font (`assets/icons/sficons.ttf`). Regenerate the subset to add a glyph. Do not add icons from another set, and do not turn `uses-material-design` back on.
 - Native iOS 26 Liquid Glass chrome comes from `packages/liquid` (vendored, renders locally). Every use is gated on `PlatformCaps.nativeGlass` with a drawn fallback such as `AppIconButton` or `showAppMenu`, because the plugin renders nothing below iOS 26.
-- New shared widgets belong in the gallery (`Routes.gallery`, debug builds only) so they can be eyeballed on device in every state.
 
 ## The native layer (iOS)
 
