@@ -282,7 +282,8 @@ class Deps {
       EngineEntry(
         descriptor: EngineDescriptor(
           engineId: speechEngine.id,
-          displayName: 'Apple Speech',
+          displayName: 'SpeechAnalyzer',
+          blurb: (l10n) => l10n.engineBlurbSpeechAnalyzer,
           logo: AppIcons.appleLogo,
         ),
         engine: speechEngine,
@@ -292,7 +293,8 @@ class Deps {
       EngineEntry(
         descriptor: EngineDescriptor(
           engineId: dictationEngine.id,
-          displayName: 'Apple Dictation',
+          displayName: 'Dictation',
+          blurb: (l10n) => l10n.engineBlurbDictation,
           logo: AppIcons.appleLogo,
         ),
         engine: dictationEngine,

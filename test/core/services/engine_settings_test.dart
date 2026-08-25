@@ -20,7 +20,12 @@ void main() {
   });
 
   EngineEntry entry(String id, {required bool available}) => EngineEntry(
-    descriptor: EngineDescriptor(engineId: id, displayName: id, logo: const IconData(0x21)),
+    descriptor: EngineDescriptor(
+      engineId: id,
+      displayName: id,
+      blurb: (_) => id,
+      logo: const IconData(0x21),
+    ),
     engine: FakeBatchEngine(),
     available: available,
     unavailability: available ? null : EngineUnavailability.needsNewerDevice,

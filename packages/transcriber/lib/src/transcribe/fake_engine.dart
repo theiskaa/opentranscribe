@@ -418,7 +418,7 @@ class FakeManagedEngine implements ManagedModelEngine {
   }) async => _cannedTranscript(cannedText, localeId, id, _clock());
 }
 
-/// Deterministic engine shaped like Apple Dictation: streaming and cancellable
+/// Deterministic engine shaped like AppleDictationEngine: streaming and cancellable
 /// but NOT model-managed, so tests can pin a caller's non-managed behavior (no
 /// downloads, no slots, supported-equals-installed) on an engine that still
 /// streams. Wraps a [FakeStreamingEngine] for the shared behavior and knobs;

@@ -69,6 +69,7 @@ void main() {
     descriptor: EngineDescriptor(
       engineId: engine.id,
       displayName: engine.id,
+      blurb: (_) => engine.id,
       logo: const IconData(0x21),
     ),
     engine: engine,

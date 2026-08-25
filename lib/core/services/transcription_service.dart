@@ -11,7 +11,7 @@ import 'package:transcriber/transcriber.dart';
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
-/// contracts, so swapping Apple Speech for whisper.cpp touches nothing here.
+/// contracts, so swapping SpeechAnalyzer for whisper.cpp touches nothing here.
 ///
 /// The settled transcript is a batch pass over the kept file. That is the
 /// source of truth: robust to a streaming engine's duration limits, identical to
