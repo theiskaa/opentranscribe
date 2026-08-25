@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +7,6 @@ import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/routes/slide_page.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
-import 'package:opentranscribe/view/layouts/gallery/screens/gallery_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
 import 'package:opentranscribe/view/layouts/recorder/screens/recorder_screen.dart';
@@ -131,15 +129,6 @@ class AppRouter {
         pageBuilder: (context, state) =>
             SlideUpPage<void>(key: state.pageKey, child: const RecorderScreen()),
       ),
-      if (kDebugMode)
-        GoRoute(
-          path: Routes.gallery,
-          name: Routes.galleryName,
-          // A fade, not a slide: the gallery mounts several platform views and
-          // sliding them horizontally is what made the push read as laggy.
-          pageBuilder: (context, state) =>
-              FadePage<void>(key: state.pageKey, child: const GalleryScreen()),
-        ),
     ],
   );
 }

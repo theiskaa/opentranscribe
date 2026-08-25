@@ -3,18 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 
-/// A plain cross-fade, for a screen that should NOT slide - one carrying
-/// platform views, whose horizontal travel composites badly (the gallery).
-class FadePage<T> extends CustomTransitionPage<T> {
-  FadePage({required super.child, super.key, super.name})
-    : super(
-        transitionDuration: const Duration(milliseconds: 200),
-        reverseTransitionDuration: const Duration(milliseconds: 200),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      );
-}
-
 /// Home's arrival out of onboarding: a fade with a touch of scale, so the app
 /// reads as coming forward to meet the user rather than snapping into place.
 /// An initial route never animates, so a plain launch is untouched; this only

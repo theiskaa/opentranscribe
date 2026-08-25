@@ -58,8 +58,4 @@ abstract final class Routes {
   /// The recorder, a full-screen sheet over the shell.
   static const record = '/record';
   static const recordName = 'record';
-
-  /// The widget gallery, registered in debug builds only.
-  static const gallery = '/gallery';
-  static const galleryName = 'gallery';
 }
