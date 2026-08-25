@@ -7,7 +7,7 @@ export function GET() {
 
 > ${SITE_TAGLINE} You speak, it transcribes on the device, and nothing ever leaves the phone.
 
-OpenTranscribe is an open source voice journal for iOS. It records audio natively, shows a live transcript while you speak, and transcribes the full recording on the device when you stop. Apple Intelligence reads the entries and writes a short reflection for every day, week, and month, entirely on the device. There is no network layer in the app: no requests, no sockets, no third-party SDKs, no analytics, and no accounts. It works the same in airplane mode. Entries are stored encrypted on the phone. Under Apple Speech the models are downloaded once per language, under Apple Dictation the system's own dictation models serve, and recognition runs entirely on the handset either way. Raw audio is kept by default so an entry can be transcribed again later by a better engine, and with keeping off each recording is deleted after its first transcription. Transcripts can be edited in place, with a revision history that keeps every prior version. The whole journal backs up to one passphrase-sealed archive file and restores from it. A lock screen control, a widget, and Siri through App Intents start a recording without opening the app.
+OpenTranscribe is an open source voice journal for iOS. It records audio natively, shows a live transcript while you speak, and transcribes the full recording on the device when you stop. Apple Intelligence reads the entries and writes a short reflection for every day, week, and month, entirely on the device. There is no network layer in the app: no requests, no sockets, no third-party SDKs, no analytics, and no accounts. It works the same in airplane mode. Entries are stored encrypted on the phone. Under SpeechAnalyzer the models are downloaded once per language, under Dictation the system's own dictation models serve, and recognition runs entirely on the handset either way. Raw audio is kept by default so an entry can be transcribed again later by a better engine, and with keeping off each recording is deleted after its first transcription. Transcripts can be edited in place, with a revision history that keeps every prior version. The whole journal backs up to one passphrase-sealed archive file and restores from it. A lock screen control, a widget, and Siri through App Intents start a recording without opening the app.
 
 ## Links
 
@@ -25,7 +25,7 @@ OpenTranscribe is an open source voice journal for iOS. It records audio nativel
 ## Facts
 
 - Platform: iOS only, built with Flutter
-- Transcription: on-device, engine-agnostic; the app refuses any engine that does not declare it runs on the device. Two engines ship, Apple Speech (iOS 26) and Apple Dictation (the classic recognizer), switchable in the app
+- Transcription: on-device, engine-agnostic; the app refuses any engine that does not declare it runs on the device. Two engines ship, SpeechAnalyzer (iOS 26) and Dictation (the classic recognizer), switchable in the app
 - Reflections: written by on-device Apple Intelligence for each day, week, and month; silence is a valid result
 - Audio: recordings stay in the native capture layer; only file paths, durations, levels, and text cross into the app
 - Storage: entries encrypted at rest on the phone
