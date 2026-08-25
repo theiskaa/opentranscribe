@@ -238,6 +238,76 @@ private func segments(from transcription: SFTranscription) -> [[String: Any]] {
   }
 }
 
+/// The classic batch feeder's own failure: PCM buffer allocation refused, which
+/// only an absurd processing format produces.
+private enum SpeechFeedError: Error { case bufferAllocation }
+
+/// Rebuilds a cumulative transcript from classic recognizer partials. In several
+/// locales the on-device recognizer holds only the current utterance: a pause (in
+/// weak locales, nearly every word) RESETS bestTranscription, so the latest
+/// partial alone loses everything before the reset. A reset is detected by the
+/// new partial starting at or after the current utterance's end; the finished
+/// utterance is committed and the transcript is the committed text plus the
+/// current utterance. A partial starting inside the current utterance, or
+/// reusing its start, is the recognizer's own rewrite and replaces it (the
+/// start test matters: a one-short-word utterance ends within the slack of its
+/// own start, and only the reused start tells its rewrite from the next
+/// utterance). When the recognizer carries the whole take in one transcription
+/// (en-US does), every partial reuses the first word's start and this reduces
+/// to plain replacement. Zero-timestamp results (a known on-device quirk) also
+/// reduce to replacement rather than misfiling rewrites as resets.
+private final class UtteranceStitcher {
+  private let lock = NSLock()
+  private var committedText: [String] = []
+  private var committedSegments: [[String: Any]] = []
+  private var currentText = ""
+  private var currentSegments: [[String: Any]] = []
+  private var currentStart: TimeInterval = -1
+  private var currentEnd: TimeInterval = 0
+
+  /// Timing slack between a rewrite and a reset: rewrites start inside the
+  /// current utterance, resets at or a hair before its end.
+  private static let resetSlack: TimeInterval = 0.15
+
+  func feed(_ transcription: SFTranscription) {
+    let text = transcription.formattedString
+    // An empty partial is the recognizer clearing at a boundary; absorbing it
+    // would erase the uncommitted utterance it just delivered.
+    if text.isEmpty, transcription.segments.isEmpty { return }
+    let start = transcription.segments.first?.timestamp ?? 0
+    let end = transcription.segments.last.map { $0.timestamp + $0.duration } ?? 0
+    lock.lock()
+    defer { lock.unlock() }
+    let resets =
+      !currentText.isEmpty && currentEnd > 0 && start > currentStart
+      && start >= currentEnd - Self.resetSlack
+    if resets {
+      committedText.append(currentText)
+      committedSegments.append(contentsOf: currentSegments)
+    }
+    if resets || currentStart < 0 { currentStart = start }
+    currentText = text
+    currentSegments = segments(from: transcription)
+    if end > 0 { currentEnd = end }
+  }
+
+  /// How far into the audio recognition has reached, for the batch feeder's
+  /// pacing. Advances only while the recognizer emits; silence moves nothing.
+  var progressSeconds: TimeInterval {
+    lock.lock()
+    defer { lock.unlock() }
+    return currentEnd
+  }
+
+  var whole: (text: String, segments: [[String: Any]]) {
+    lock.lock()
+    defer { lock.unlock() }
+    var parts = committedText
+    if !currentText.isEmpty { parts.append(currentText) }
+    return (parts.joined(separator: " "), committedSegments + currentSegments)
+  }
+}
+
 /// Timed segments from a SpeechAnalyzer result. With `attributeOptions:
 /// [.audioTimeRange]`, each attributed run carries an `audioTimeRange`; map each to a
 /// `{text, startMs, endMs}` (no confidence: SpeechAnalyzer provides none per run).
@@ -956,6 +1026,10 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
   // Batch tasks are retained by id so overlapping calls do not drop each other.
   private var batchTasks: [Int: SFSpeechRecognitionTask] = [:]
+  // Classic batches cancelled through cancelBatches, so their error callback
+  // answers cancellation honestly instead of salvaging heard-so-far text the
+  // caller has abandoned. Entries are removed by the batch's own reply.
+  private var cancelledBatches: Set<Int> = []
   // The iOS 26 analyzer-path counterpart to batchTasks, keyed from the same
   // nextBatchId sequence.
   private var batchAnalyzerTasks: [Int: Task<Void, Never>] = [:]
@@ -1086,14 +1160,17 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     // Generation-guarded emits: after stopLive cancels this task, Speech still
     // delivers a "canceled" error asynchronously; without the guard it would fault
     // the NEXT session's fresh stream.
+    let stitcher = UtteranceStitcher()
     let task = recognizer.recognitionTask(with: request) { [weak self] result, error in
       guard let self = self else { return }
       if let result = result {
+        stitcher.feed(result.bestTranscription)
+        let whole = stitcher.whole
         var payload: [String: Any] = [
-          "text": result.bestTranscription.formattedString,
+          "text": whole.text,
           "isFinal": result.isFinal,
         ]
-        if result.isFinal { payload["segments"] = segments(from: result.bestTranscription) }
+        if result.isFinal { payload["segments"] = whole.segments }
         self.emitLive(payload, generation: generation)
       }
       if let error = error {
@@ -1351,6 +1428,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       // (that would race a reply already in flight and double-remove).
       lock.lock()
       let tasks = Array(batchTasks.values)
+      cancelledBatches.formUnion(batchTasks.keys)
       let analyzerTasks = Array(batchAnalyzerTasks.values)
       lock.unlock()
       tasks.forEach { $0.cancel() }
@@ -1415,7 +1493,13 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     transcribeFileClassic(path: path, localeId: localeId, result: result)
   }
 
-  /// Classic on-device batch: SFSpeechURLRecognitionRequest.
+  /// Classic on-device batch. Deliberately NOT SFSpeechURLRecognitionRequest: in
+  /// several locales the on-device URL request errors or finalizes empty on audio
+  /// the buffer request transcribes fine (tr-TR reproduces both), so the file is
+  /// decoded here and fed through the same buffer request the live path runs on.
+  /// Partials stay on so [UtteranceStitcher] keeps the text the recognizer drops
+  /// at utterance resets; the reply is the stitched whole, and an error arriving
+  /// after speech was heard salvages what accumulated instead of failing the take.
   private func transcribeFileClassic(
     path: String, localeId: String, result: @escaping FlutterResult
   ) {
@@ -1430,9 +1514,9 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
 
-      let request = SFSpeechURLRecognitionRequest(url: URL(fileURLWithPath: path))
+      let request = SFSpeechAudioBufferRecognitionRequest()
       request.requiresOnDeviceRecognition = true
-      request.shouldReportPartialResults = false
+      request.shouldReportPartialResults = true
 
       // Reply at most once, on the main thread, and remove the retained task under
       // the lock (the completion runs on Speech's queue, not main).
@@ -1449,26 +1533,100 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         }
         replied = true
         self.batchTasks.removeValue(forKey: id)
+        self.cancelledBatches.remove(id)
         self.lock.unlock()
         DispatchQueue.main.async { result(value) }
       }
+
+      let stitcher = UtteranceStitcher()
+      // Flipped by the feeder before endAudio(). Errors before it are a
+      // recognizer dying mid-file: those must FAIL, not answer the heard prefix
+      // as a successful transcript (retranscribe would install the truncation
+      // over a fuller stored one). Errors after it are the recognizer's
+      // end-of-audio quirks, where the stitched text is the honest result.
+      var audioEnded = false
       // Create the task OUTSIDE the lock: the same lock serves the realtime buffer
       // consumer, and holding it across an opaque framework call would contend with
       // the audio tap thread. `replied` closes the store-vs-reply ordering instead.
       let task = recognizer.recognitionTask(with: request) { recognitionResult, error in
-        if let error = error {
-          reply(SpeechErrorCode.transcribeError.error("\(error)"))
-          return
+        if let recognitionResult = recognitionResult {
+          stitcher.feed(recognitionResult.bestTranscription)
+          if recognitionResult.isFinal {
+            let whole = stitcher.whole
+            reply(["text": whole.text, "segments": whole.segments])
+          }
         }
-        guard let recognitionResult = recognitionResult, recognitionResult.isFinal else { return }
-        reply([
-          "text": recognitionResult.bestTranscription.formattedString,
-          "segments": segments(from: recognitionResult.bestTranscription),
-        ])
+        if let error = error {
+          self.lock.lock()
+          let cancelled = self.cancelledBatches.contains(id)
+          let ended = audioEnded
+          self.lock.unlock()
+          let whole = stitcher.whole
+          if cancelled || !ended || whole.text.isEmpty {
+            reply(SpeechErrorCode.transcribeError.error("\(error)"))
+          } else {
+            reply(["text": whole.text, "segments": whole.segments])
+          }
+        }
       }
       self.lock.lock()
       if !replied { self.batchTasks[id] = task }
       self.lock.unlock()
+
+      let done: () -> Bool = {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return replied || self.cancelledBatches.contains(id)
+      }
+      let endAudio = {
+        self.lock.lock()
+        audioEnded = true
+        self.lock.unlock()
+        request.endAudio()
+      }
+      // Decode and feed off the main thread; the recognizer transcribes as the
+      // buffers land, and endAudio() makes it finalize. Paced: decode outruns
+      // on-device recognition by orders of magnitude, and the request queues
+      // every appended buffer, so an unpaced feed holds a long take's whole
+      // decoded PCM in memory. Feeding holds while more than the window sits
+      // unrecognized, as long as progress still advances: silence advances
+      // nothing, so a stall lets the feed continue rather than deadlock.
+      DispatchQueue.global(qos: .userInitiated).async {
+        do {
+          let file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
+          let format = file.processingFormat
+          var fedSeconds: TimeInterval = 0
+          while !done() {
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32 * 1024)
+            else { throw SpeechFeedError.bufferAllocation }
+            try file.read(into: buffer)
+            if buffer.frameLength == 0 { break }
+            request.append(buffer)
+            fedSeconds += TimeInterval(buffer.frameLength) / format.sampleRate
+            var lastProgress = stitcher.progressSeconds
+            var stalledFor: TimeInterval = 0
+            while !done(), fedSeconds - stitcher.progressSeconds > 30, stalledFor < 2 {
+              usleep(100_000)
+              let progress = stitcher.progressSeconds
+              if progress > lastProgress {
+                lastProgress = progress
+                stalledFor = 0
+              } else {
+                stalledFor += 0.1
+              }
+            }
+          }
+          endAudio()
+        } catch {
+          // Finalize what was heard before the decode broke; with nothing heard
+          // the recognizer may never call back, so fail the batch here (the
+          // `replied` latch makes the two answers race safely).
+          endAudio()
+          if stitcher.whole.text.isEmpty {
+            reply(SpeechErrorCode.transcribeError.error("audio decode failed: \(error)"))
+          }
+        }
+      }
     }
   }
 
