@@ -289,7 +289,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get transcriptionAddLanguage => 'Aggiungi';
 
   @override
-  String get transcriptionHeroReady => 'Pronta · trascrive su questo iPhone';
+  String transcriptionHeroReady(String engine) {
+    return 'Pronta · $engine';
+  }
 
   @override
   String get transcriptionFootnote =>
@@ -297,6 +299,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get transcriptionEngines => 'Motori';
+
+  @override
+  String get engineBlurbSpeechAnalyzer =>
+      'Il motore più recente di Apple, un modello scaricato per lingua';
+
+  @override
+  String get engineBlurbDictation => 'Il riconoscimento dietro la dettatura della tastiera iOS';
 
   @override
   String get engineUnavailableNote => 'Non disponibile su questo iPhone';

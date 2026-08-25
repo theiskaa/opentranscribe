@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -16,24 +15,32 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The default language as the screen's answer to "what happens when I hit
-/// record": big flag, name, and an honest status line. The whole card taps
-/// into whatever the screen wires: the library, or a broken default's story.
+/// record": big bare flag, name, and an honest status line naming the engine
+/// that answers. The whole card taps into whatever the screen wires: the
+/// library, or a broken default's story.
 class SpeakingHero extends StatelessWidget {
-  const SpeakingHero({required this.state, required this.onTap, super.key});
+  const SpeakingHero({
+    required this.state,
+    required this.engineName,
+    required this.onTap,
+    super.key,
+  });
 
   final SettingsState state;
+
+  /// Display name of the engine the state's readiness describes; null until
+  /// known, and the ready line waits for it.
+  final String? engineName;
+
   final VoidCallback onTap;
 
-  /// The list tile grown to headline scale; the flag and the corner grow
-  /// with it.
-  static const double _tileSize = 52;
-  static const double _flagSize = 26;
-  static const double _tileRadiusBump = 4;
+  /// Bare flag in a fixed slot, so the name column stays still across languages.
+  static const double _flagSize = 34;
+  static const double _flagSlot = 44;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final tokens = theme.settings;
     final l10n = AppLocalizations.of(context)!;
     final row = state.defaultLanguage;
     final tag = row?.tag ?? state.localeId;
@@ -54,17 +61,11 @@ class SpeakingHero extends StatelessWidget {
               child: Row(
                 key: ValueKey(tag),
                 children: [
-                  Container(
-                    width: _tileSize,
-                    height: _tileSize,
-                    alignment: Alignment.center,
-                    decoration: SuperellipseDecoration(
-                      borderRadius: tokens.iconTileRadius + _tileRadiusBump,
-                      color: tokens.iconTileBackground,
-                    ),
+                  SizedBox(
+                    width: _flagSlot,
                     child: LocaleFlag(localeFlag(tag), size: _flagSize),
                   ),
-                  const SizedBox(width: AppSpacing.lg),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,15 +81,12 @@ class SpeakingHero extends StatelessWidget {
                         // 3, off the scale: xs floats the status too far off
                         // the name it qualifies.
                         const SizedBox(height: 3),
-                        // The status slot is ALWAYS two footnote lines tall
-                        // (the invisible ruler below holds it): statuses run
-                        // one line on one engine and two on the other, and a
-                        // slot that breathed with them would shove the name
-                        // and tile around the card on every switch. Only the
-                        // words change, crossfading in place.
+                        // One footnote line always, held by the invisible ruler: a slot
+                        // that breathed with the words would shove the name and flag
+                        // on every switch.
                         Stack(
                           children: [
-                            const Opacity(opacity: 0, child: Text('\n', style: AppType.footnote)),
+                            const Opacity(opacity: 0, child: Text(' ', style: AppType.footnote)),
                             AnimatedSwitcher(
                               duration: crossfade,
                               layoutBuilder: meltStack,
@@ -96,10 +94,12 @@ class SpeakingHero extends StatelessWidget {
                                   ? const SizedBox.shrink()
                                   : row.installing
                                   ? _DownloadingLine(fraction: row.installFraction!)
+                                  : statusLine == null
+                                  ? const SizedBox.shrink()
                                   : Text(
-                                      statusLine!,
+                                      statusLine,
                                       key: ValueKey(statusLine),
-                                      maxLines: 2,
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: AppType.footnote.copyWith(color: theme.textSecondary),
                                     ),
@@ -120,11 +120,11 @@ class SpeakingHero extends StatelessWidget {
     );
   }
 
-  /// The honest one-liner under the name: whatever stands in the way, else
-  /// ready. A running download takes [_DownloadingLine] instead.
-  String _statusLine(AppLocalizations l10n, LanguageModelState row) =>
+  /// Whatever stands in the way, else ready naming the engine; a running
+  /// download takes [_DownloadingLine] instead.
+  String? _statusLine(AppLocalizations l10n, LanguageModelState row) =>
       modelTroubleLine(l10n, row, managesModels: state.managesModels) ??
-      l10n.transcriptionHeroReady;
+      (engineName == null ? null : l10n.transcriptionHeroReady(engineName!));
 }
 
 /// "Downloading · 42%", the percent rolling odometer-style as fractions land,

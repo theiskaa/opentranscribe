@@ -272,13 +272,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcriptionAddLanguage => '添加';
 
   @override
-  String get transcriptionHeroReady => '已就绪 · 在此 iPhone 上转写';
+  String transcriptionHeroReady(String engine) {
+    return '已就绪 · $engine';
+  }
 
   @override
   String get transcriptionFootnote => '模型只下载一次，并与系统共享。';
 
   @override
   String get transcriptionEngines => '引擎';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple 最新的引擎，每种语言下载一个模型';
+
+  @override
+  String get engineBlurbDictation => 'iOS 键盘听写背后的识别引擎';
 
   @override
   String get engineUnavailableNote => '此 iPhone 上不可用';

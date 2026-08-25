@@ -288,13 +288,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionAddLanguage => 'Add';
 
   @override
-  String get transcriptionHeroReady => 'Ready · transcribes on this iPhone';
+  String transcriptionHeroReady(String engine) {
+    return 'Ready · $engine';
+  }
 
   @override
   String get transcriptionFootnote => 'Models download once and are shared with the system.';
 
   @override
   String get transcriptionEngines => 'Engines';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple\'s newest engine, a downloaded model per language';
+
+  @override
+  String get engineBlurbDictation => 'The recognizer behind iOS keyboard dictation';
 
   @override
   String get engineUnavailableNote => 'Not available on this iPhone';

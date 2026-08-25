@@ -275,13 +275,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcriptionAddLanguage => '추가';
 
   @override
-  String get transcriptionHeroReady => '준비됨 · 이 iPhone에서 전사';
+  String transcriptionHeroReady(String engine) {
+    return '준비 완료 · $engine';
+  }
 
   @override
   String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
 
   @override
   String get transcriptionEngines => '엔진';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple의 최신 엔진, 언어마다 모델을 다운로드';
+
+  @override
+  String get engineBlurbDictation => 'iOS 키보드 받아쓰기에 쓰이는 인식 엔진';
 
   @override
   String get engineUnavailableNote => '이 iPhone에서는 사용할 수 없음';

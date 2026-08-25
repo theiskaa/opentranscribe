@@ -154,7 +154,17 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 child: SectionLabel(l10n.transcriptionSpeaking),
               ),
               _Melt(
-                child: SpeakingHero(state: state, onTap: () => _openHero(context, state)),
+                child: SpeakingHero(
+                  state: state,
+                  // By the state's own engine id, not the active row: mid-switch
+                  // the readiness still describes the previous engine.
+                  engineName: engineRows
+                      .where((row) => row.descriptor.engineId == state.engineId)
+                      .firstOrNull
+                      ?.descriptor
+                      .displayName,
+                  onTap: () => _openHero(context, state),
+                ),
               ),
               // The label only when something IS also ready; the Add chip
               // stays either way, as the library door a broken default's hero
@@ -193,19 +203,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 child: SettingsCard(
                   children: [
                     for (final engineRow in engineRows)
-                      _EngineRow(
-                        key: ValueKey(engineRow.descriptor.engineId),
-                        row: engineRow,
-                        // The id match keeps the slot count off a freshly
-                        // picked engine while the counts still describe the
-                        // previous one.
-                        slotLine:
-                            engineRow.isActive &&
-                                canManage &&
-                                state.engineId == engineRow.descriptor.engineId
-                            ? l10n.transcriptionCap(reserved, state.reservationMax)
-                            : null,
-                      ),
+                      _EngineRow(key: ValueKey(engineRow.descriptor.engineId), row: engineRow),
                   ],
                 ),
               ),
@@ -218,6 +216,13 @@ class _ModelsScreenState extends State<ModelsScreen> {
                       SectionInfo(
                         l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
                       ),
+                    // Only on settled frames: mid-switch the count still describes
+                    // the previous engine while the picker marks the new one.
+                    if (canManage &&
+                        engineRows.any(
+                          (r) => r.isActive && r.descriptor.engineId == state.engineId,
+                        ))
+                      SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
                     if (state.managesModels) SectionInfo(l10n.transcriptionFootnote),
                   ],
                 ),
@@ -250,15 +255,14 @@ class _Melt extends StatelessWidget {
   }
 }
 
-/// One engine as the picker offers it: logo chip, name, the active marker,
-/// and a quiet second line (the slot count on the active managed engine, or
-/// why a dimmed one cannot run here). Tapping switches; tapping a dimmed row
-/// opens the fuller story instead, and a switch refused mid-take says so.
+/// One engine as the picker offers it: logo chip, name, the active marker, and
+/// a quiet second line (the descriptor's blurb, or why a dimmed one cannot run
+/// here). Tapping switches; tapping a dimmed row opens the fuller story
+/// instead, and a switch refused mid-take says so.
 class _EngineRow extends StatelessWidget {
-  const _EngineRow({required this.row, required this.slotLine, super.key});
+  const _EngineRow({required this.row, super.key});
 
   final EngineRowState row;
-  final String? slotLine;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +277,7 @@ class _EngineRow extends StatelessWidget {
       ),
       selected: row.isActive,
       dimmed: !row.available,
-      note: row.available ? slotLine : _unavailableNote(l10n),
+      note: row.available ? row.descriptor.blurb(l10n) : _unavailableNote(l10n),
       onTap: () => _tap(context),
     );
   }

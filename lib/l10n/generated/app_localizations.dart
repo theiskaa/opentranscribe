@@ -606,11 +606,11 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get transcriptionAddLanguage;
 
-  /// Hero status line for a ready default language
+  /// Hero status line for a ready default language, naming the active engine
   ///
   /// In en, this message translates to:
-  /// **'Ready · transcribes on this iPhone'**
-  String get transcriptionHeroReady;
+  /// **'Ready · {engine}'**
+  String transcriptionHeroReady(String engine);
 
   /// The one footnote under the transcription screen
   ///
@@ -623,6 +623,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Engines'**
   String get transcriptionEngines;
+
+  /// One-line explanation under the SpeechAnalyzer engine row
+  ///
+  /// In en, this message translates to:
+  /// **'Apple\'s newest engine, a downloaded model per language'**
+  String get engineBlurbSpeechAnalyzer;
+
+  /// One-line explanation under the Dictation engine row
+  ///
+  /// In en, this message translates to:
+  /// **'The recognizer behind iOS keyboard dictation'**
+  String get engineBlurbDictation;
 
   /// Quiet note under a dimmed engine row this device cannot run
   ///

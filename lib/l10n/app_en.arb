@@ -370,9 +370,14 @@
   "@transcriptionAddLanguage": {
     "description": "The chip opening the language sheet"
   },
-  "transcriptionHeroReady": "Ready · transcribes on this iPhone",
+  "transcriptionHeroReady": "Ready · {engine}",
   "@transcriptionHeroReady": {
-    "description": "Hero status line for a ready default language"
+    "description": "Hero status line for a ready default language, naming the active engine",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
   },
   "transcriptionFootnote": "Models download once and are shared with the system.",
   "@transcriptionFootnote": {
@@ -381,6 +386,14 @@
   "transcriptionEngines": "Engines",
   "@transcriptionEngines": {
     "description": "Section label over the engine picker on the models screen"
+  },
+  "engineBlurbSpeechAnalyzer": "Apple's newest engine, a downloaded model per language",
+  "@engineBlurbSpeechAnalyzer": {
+    "description": "One-line explanation under the SpeechAnalyzer engine row"
+  },
+  "engineBlurbDictation": "The recognizer behind iOS keyboard dictation",
+  "@engineBlurbDictation": {
+    "description": "One-line explanation under the Dictation engine row"
   },
   "engineUnavailableNote": "Not available on this iPhone",
   "@engineUnavailableNote": {

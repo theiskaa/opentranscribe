@@ -222,20 +222,21 @@ class _GalleryScreenState extends State<GalleryScreen> {
               SettingsCard(
                 children: [
                   SelectableRow(
-                    label: 'Apple Speech',
+                    label: 'SpeechAnalyzer',
                     leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.text),
                     selected: true,
-                    note: '2 of 5 language slots used',
+                    note: "Apple's newest engine, a downloaded model per language",
                     onTap: () {},
                   ),
                   SelectableRow(
-                    label: 'Apple Dictation',
+                    label: 'Dictation',
                     leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.text),
                     selected: false,
+                    note: 'The recognizer behind iOS keyboard dictation',
                     onTap: () {},
                   ),
                   SelectableRow(
-                    label: 'Apple Speech',
+                    label: 'SpeechAnalyzer',
                     leading: AppIcon(AppIcons.appleLogo, size: 18, color: theme.textSecondary),
                     selected: false,
                     dimmed: true,

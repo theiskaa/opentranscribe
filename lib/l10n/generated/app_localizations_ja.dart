@@ -274,13 +274,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcriptionAddLanguage => '追加';
 
   @override
-  String get transcriptionHeroReady => '準備完了 · この iPhone で文字起こし';
+  String transcriptionHeroReady(String engine) {
+    return '準備完了 · $engine';
+  }
 
   @override
   String get transcriptionFootnote => 'モデルは一度だけダウンロードされ、システムと共有されます。';
 
   @override
   String get transcriptionEngines => 'エンジン';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple の最新エンジン。言語ごとにモデルをダウンロード';
+
+  @override
+  String get engineBlurbDictation => 'iOS キーボードの音声入力を支える認識エンジン';
 
   @override
   String get engineUnavailableNote => 'この iPhone では利用できません';
