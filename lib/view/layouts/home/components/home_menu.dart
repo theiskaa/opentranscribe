@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show Uint8List, kDebugMode;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -128,10 +128,6 @@ class _HomeMenuState extends State<HomeMenu> {
       const AppMenuItem.divider(),
       AppMenuItem(id: 'act:support', label: l10n.settingsSupport, icon: AppIcons.heart),
       AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes),
-      if (kDebugMode) ...[
-        const AppMenuItem.divider(),
-        const AppMenuItem(id: 'act:gallery', label: 'Widget gallery', icon: AppIcons.waveform),
-      ],
     ];
 
     return AppMenuButton(
@@ -161,8 +157,6 @@ class _HomeMenuState extends State<HomeMenu> {
             context.pushNamed(Routes.settingsNotificationsName);
           case 'act:support':
             context.pushNamed(Routes.settingsSupportName);
-          case 'act:gallery':
-            context.pushNamed(Routes.galleryName);
           case 'act:source':
             unawaited(openLink(kRepoUrl));
         }
