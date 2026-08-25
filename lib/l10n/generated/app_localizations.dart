@@ -1686,6 +1686,12 @@ abstract class AppLocalizations {
   /// **'Club members get'**
   String get supportUnlocksSection;
 
+  /// Section label above the perks on a member's confirmation screen, framed as what the member already has
+  ///
+  /// In en, this message translates to:
+  /// **'What you get'**
+  String get supportMemberUnlocks;
+
   /// Eyebrow under the app name on the support screen header
   ///
   /// In en, this message translates to:

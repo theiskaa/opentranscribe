@@ -1153,6 +1153,10 @@
   "@supportUnlocksSection": {
     "description": "Section label above the list of features supporting unlocks"
   },
+  "supportMemberUnlocks": "What you get",
+  "@supportMemberUnlocks": {
+    "description": "Section label above the perks on a member's confirmation screen, framed as what the member already has"
+  },
   "supporterTag": "Club",
   "@supporterTag": {
     "description": "Eyebrow under the app name on the support screen header"

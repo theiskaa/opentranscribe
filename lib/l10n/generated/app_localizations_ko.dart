@@ -867,6 +867,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportUnlocksSection => '클럽 혜택';
 
   @override
+  String get supportMemberUnlocks => '이용 가능한 혜택';
+
+  @override
   String get supporterTag => '클럽';
 
   @override

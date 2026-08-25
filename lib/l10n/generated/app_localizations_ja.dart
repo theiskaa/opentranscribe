@@ -865,6 +865,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportUnlocksSection => 'クラブ特典';
 
   @override
+  String get supportMemberUnlocks => '利用できる特典';
+
+  @override
   String get supporterTag => 'クラブ';
 
   @override

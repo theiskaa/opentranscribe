@@ -925,6 +925,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get supportUnlocksSection => 'Per i membri del club';
 
   @override
+  String get supportMemberUnlocks => 'Cosa ottieni';
+
+  @override
   String get supporterTag => 'Club';
 
   @override

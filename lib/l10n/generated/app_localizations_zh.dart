@@ -855,6 +855,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportUnlocksSection => '俱乐部权益';
 
   @override
+  String get supportMemberUnlocks => '你的权益';
+
+  @override
   String get supporterTag => '俱乐部';
 
   @override
