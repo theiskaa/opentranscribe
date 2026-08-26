@@ -10,13 +10,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-const UPDATED = "July 30, 2026";
+const UPDATED = "August 13, 2026";
 
 const SECTIONS = [
   {
     head: "No network",
     body: [
       "The app has no networking code. It creates no accounts, contacts no servers, and includes no analytics, advertising, or crash-reporting SDKs. It functions identically with no internet connection.",
+      "The optional supporter purchase goes through Apple's StoreKit: the operating system talks to the App Store, no journal content is in that conversation, and only the act of buying needs a connection.",
     ],
   },
   {

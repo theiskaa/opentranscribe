@@ -1,9 +1,11 @@
+import 'dart:async' show unawaited;
 import 'dart:ui' show Brightness, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter/widgets.dart' show BuildContext, MediaQuery;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:opentranscribe/core/app/launch_backdrop.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
@@ -41,7 +43,7 @@ final class ThemeState {
 /// Owns theme resolution and mode persistence. The root widget pushes platform
 /// brightness changes in; everything else reads `context.theme`.
 class ThemeCubit extends Cubit<ThemeState> {
-  ThemeCubit({required LocalService storage, Brightness? platformBrightness})
+  ThemeCubit({required LocalService storage, this._backdrop, Brightness? platformBrightness})
     : _storage = storage,
       super(
         ThemeState(
@@ -49,12 +51,34 @@ class ThemeCubit extends Cubit<ThemeState> {
           familyId: _storedFamily(storage),
           platformBrightness: platformBrightness ?? PlatformDispatcher.instance.platformBrightness,
         ),
-      );
+      ) {
+    _mirror(state);
+  }
 
   static const key = 'theme.mode';
   static const familyKey = 'theme.family';
 
   final LocalService _storage;
+  final LaunchBackdrop? _backdrop;
+
+  /// Keeps the native splash's colours current. At construction and on any
+  /// family or mode change; a platform brightness flip re-emits the same
+  /// palettes, so it writes nothing.
+  void _mirror(ThemeState state) {
+    final backdrop = _backdrop;
+    if (backdrop == null) return;
+    unawaited(backdrop.write(family: state.family, mode: state.mode));
+  }
+
+  @override
+  void onChange(Change<ThemeState> change) {
+    super.onChange(change);
+    if (change.currentState.familyId == change.nextState.familyId &&
+        change.currentState.mode == change.nextState.mode) {
+      return;
+    }
+    _mirror(change.nextState);
+  }
 
   /// Unknown or undecryptable values fail safe to system, like the other
   /// settings readers: a settings read must never throw at boot.

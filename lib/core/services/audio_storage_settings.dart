@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Persists the audio storage preferences. Backup: kept audio is excluded from
 /// the device's iCloud/local backup by default, so nothing leaves the phone; the

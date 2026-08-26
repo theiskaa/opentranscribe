@@ -9,8 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/transcriber.dart';
 
 enum RecorderStatus { idle, recording, paused, saving, restarting }
 

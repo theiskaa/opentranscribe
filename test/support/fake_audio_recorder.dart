@@ -1,8 +1,5 @@
 import 'dart:async';
-
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// In-memory [AudioRecorder] for tests. Emits capture status and, on stop,
 /// completes [stopped] so a paired streaming engine can settle its final event,
@@ -61,6 +58,10 @@ class FakeAudioRecorder implements AudioRecorder {
   /// pause round trip open (gate not yet completed) while it lands a
   /// concurrent stop, then release it to see how the delayed pause resolves.
   final Future<void>? pauseGate;
+
+  /// One-shot: consumed by the NEXT [stop] call only, which awaits it before
+  /// proceeding. Later [stop] calls see it already cleared and are unaffected.
+  Future<void>? nextStopGate;
 
   /// The last value passed to [setBackupExcluded], for assertions.
   bool? backupExcluded;
@@ -165,6 +166,9 @@ class FakeAudioRecorder implements AudioRecorder {
 
   @override
   Future<Recording> stop() async {
+    final gate = nextStopGate;
+    nextStopGate = null;
+    if (gate != null) await gate;
     if (stopDelay != null) await Future<void>.delayed(stopDelay!);
     _capturing = false;
     paused = false;

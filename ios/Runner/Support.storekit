@@ -1,0 +1,33 @@
+{
+  "identifier" : "C6C0F5A0-0000-4000-8000-5E1F00000001",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "6743000000000001",
+      "localizations" : [
+        {
+          "description" : "One payment. Every club feature, for good.",
+          "displayName" : "OpenTranscribe Club",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "xyz.opentranscribe.supporter.lifetime",
+      "referenceName" : "Club lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

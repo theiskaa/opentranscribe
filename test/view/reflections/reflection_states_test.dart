@@ -1,10 +1,9 @@
 import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_states.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));

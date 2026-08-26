@@ -4,14 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
-import 'package:opentranscribe/core/reflect/fake_reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
+import 'package:reflections/reflections.dart';
+import 'package:reflections/testing.dart';
 
 import '../../support/reflection_fixtures.dart';
 
@@ -64,6 +62,21 @@ void main() {
     final cubit = build();
 
     expect(cubit.state.loaded, isTrue);
+    await cubit.close();
+  });
+
+  test('autoLoad false defers every derive until load is called', () async {
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'kept'));
+    final cubit = ReflectionsCubit(service: service, settings: settings, autoLoad: false);
+
+    await pumpEventQueue();
+    expect(cubit.state, const ReflectionsState());
+    expect(cubit.state.loaded, isFalse);
+
+    await cubit.load();
+
+    expect(cubit.state.loaded, isTrue);
+    expect(cubit.state.history.map((r) => r.text), ['kept']);
     await cubit.close();
   });
 
@@ -268,6 +281,33 @@ void main() {
     expect(cubit.state.regenerating, lastWeek);
     gate.complete();
     await Future.wait([first, second]);
+
+    expect(engine.reflectCalls, 1);
+    expect(cubit.state.regenerating, isNull);
+    await cubit.close();
+  });
+
+  test('a period switch does not lift the regenerate guard', () async {
+    await settings.setEnabledFor(ReflectionPeriod.daily, true);
+    await store.save(Reflection(periodStart: lastWeek, generatedAt: now, text: 'x'));
+    entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+    final gate = Completer<void>();
+    engine.gate = gate.future;
+    final cubit = build();
+    await cubit.load();
+
+    final run = cubit.regenerate(lastWeek);
+    expect(cubit.state.regenerating, lastWeek);
+
+    cubit.setViewedPeriod(ReflectionPeriod.daily);
+    expect(cubit.state.regenerating, isNull);
+
+    final otherStart = DateTime(2026, 7, 28);
+    await cubit.regenerate(otherStart);
+    expect(engine.reflectCalls, 1);
+
+    gate.complete();
+    await run;
 
     expect(engine.reflectCalls, 1);
     expect(cubit.state.regenerating, isNull);

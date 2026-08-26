@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
+import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -15,7 +16,6 @@ import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/splash/screens/splash_screen.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// The root widget, wired to the router with the journal cubits provided above
@@ -36,20 +36,31 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   /// observer inside the cubit.
   late final ReflectionsCubit _reflectionsCubit;
 
-  /// The startup splash sits above the router until its animation finishes, then
-  /// removes itself for good. One cold-start affair, never shown again.
-  bool _splashDone = false;
-
   @override
   void initState() {
     super.initState();
-    _themeCubit = ThemeCubit(storage: Deps.i.localService);
+    _themeCubit = ThemeCubit(storage: Deps.i.localService, backdrop: Deps.i.launchBackdrop);
     _reflectionsCubit = ReflectionsCubit(
       service: Deps.i.reflectionService,
       settings: Deps.i.reflectionSettings,
       notifier: Deps.i.reflectionNotifier,
+      autoLoad: false,
     );
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // The native wave collapses over a home that has painted, never over the
+      // frames building it.
+      unawaited(Deps.i.splashHandoff.finish());
+      // A launch the user asked to record in opens the sheet over a built
+      // journal, ahead of the decrypt below.
+      unawaited(Deps.i.intentActionService.serve());
+      // Same decrypt-off-the-watched-frames rule as maintenance below: the
+      // cubit's first derive walks the whole reflection store and journal.
+      unawaited(_reflectionsCubit.load());
+      // Only now: this decrypts the whole journal, and the frames before this
+      // one are the ones the user is watching.
+      unawaited(Deps.launchMaintenance());
+    });
   }
 
   @override
@@ -84,6 +95,16 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       return;
     }
     if (state != AppLifecycleState.resumed) return;
+    // First, ahead of the maintenance passes below: `unawaited` still runs a
+    // call's synchronous prefix inline, and a tap waiting on the lock screen
+    // must not queue behind a whole-journal decrypt.
+    unawaited(Deps.i.intentActionService.drain());
+    // A no-op once the launch pass has completed. It does anything only when
+    // the audio sweep did not walk the whole directory (a capture was live or
+    // finalizing, or the sweep threw), leaving an orphan no UI can reach; the
+    // rerun then repeats all three passes, which the two below deliberately
+    // duplicate because each is single-flighted and a no-op when idle.
+    unawaited(Deps.launchMaintenance());
     // Reflect any week that closed while the app was away. Single-flighted and
     // a no-op when there is nothing due; never throws.
     unawaited(Deps.i.reflectionService.catchUp());
@@ -101,17 +122,38 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
+        // Lazy on purpose. `lazy: false` reads the value inside THIS build, so a
+        // cubit whose constructor decrypts the journal (EntriesCubit, HomeCubit)
+        // would pay for it in the frame the splash is waiting to commit, which
+        // is the frame launch is measured by.
         BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
-        // routes) share one instance.
+        // routes) share one instance. The exception to the rule above: its
+        // constructor seeds from three synchronous settings reads and then
+        // fires an UNAWAITED load, so building it here costs this frame
+        // microseconds rather than a journal decrypt, and its language list is
+        // ready before the first recording instead of populating under the
+        // user's eyes.
         BlocProvider(
+          lazy: false,
           create: (_) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
+          ),
+        ),
+        // Root-scoped so the choice survives leaving the models screen. Lazy
+        // is fine: nothing needs it before that screen builds, and its
+        // constructor only snapshots synchronous state.
+        BlocProvider(
+          create: (_) => EnginesCubit(
+            registry: Deps.i.engineRegistry,
+            service: Deps.i.transcriptionService,
+            engineSettings: Deps.i.engineSettings,
+            transcriptionSettings: Deps.i.transcriptionSettings,
           ),
         ),
         // Root-scoped so the Reflections screen and the home card (separate
@@ -149,37 +191,19 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                 final reduceMotion =
                     media.disableAnimations ||
                     WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.reduceMotion;
-                final Widget content;
-                if (!_splashDone) {
-                  // The splash REPLACES the app while it runs rather than
-                  // overlaying it. Home's top-bar buttons are native platform
-                  // views, and those composite ABOVE any Flutter overlay (the
-                  // same reason AppToggle cannot be blurred under the frosted
-                  // bar), so an overlay lets them punch through. Not building
-                  // home until the splash is done keeps them out of the tree;
-                  // the splash shares home's background colour, so the swap is
-                  // a seamless cut.
-                  content = SplashScreen(
-                    onFinished: () {
-                      if (mounted) setState(() => _splashDone = true);
-                    },
-                  );
-                } else {
+                return MediaQuery(
+                  data: media.copyWith(disableAnimations: reduceMotion),
                   // Above the router's navigator, so it also tints the text
                   // selection handles and menu, which render in the root
                   // overlay.
-                  content = SelectionTheme(
+                  child: SelectionTheme(
                     accent: theme.accent,
                     brightness: theme.brightness,
                     child: DefaultTextStyle(
                       style: AppType.body.copyWith(color: theme.text),
                       child: child ?? const SizedBox.shrink(),
                     ),
-                  );
-                }
-                return MediaQuery(
-                  data: media.copyWith(disableAnimations: reduceMotion),
-                  child: content,
+                  ),
                 );
               },
             ),

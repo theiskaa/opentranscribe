@@ -7,10 +7,10 @@ import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
+import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
 
@@ -490,5 +490,110 @@ void main() {
 
       await cubit.close();
     });
+  });
+
+  test('a load on a readiness-probing engine ends with honest rows', () async {
+    final dictationService = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: FakeDictationEngine(
+        availability: const Availability(AvailabilityStatus.onDeviceUnavailable),
+        supportedLocaleTags: ['en-US', 'de-DE'],
+      ),
+      store: EntryStore(storage),
+    );
+    final cubit = SettingsCubit(
+      service: dictationService,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: dictationService,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: audioStorage,
+    );
+    await pumpEventQueue();
+
+    expect(
+      cubit.state.languages.map((row) => row.status),
+      everyElement(ModelAssetStatus.unsupported),
+    );
+
+    await cubit.close();
+    await dictationService.dispose();
+  });
+
+  test('an engine switch drops the previous engine\'s failure stamps', () async {
+    engine.failInstall = true;
+    final cubit = build();
+    await pumpEventQueue();
+    cubit.install();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(cubit.state.defaultLanguage?.failure, isNotNull);
+
+    service.useEngine(FakeDictationEngine(supportedLocaleTags: ['en-US', 'de-DE']));
+    await pumpEventQueue();
+
+    expect(cubit.state.languages.every((row) => row.failure == null), isTrue);
+
+    await cubit.close();
+  });
+
+  test('an engine switch cancels the previous engine\'s install tracking', () async {
+    final gate = Completer<void>();
+    engine.installSteps = [0.3];
+    engine.installGate = gate.future;
+    final cubit = build();
+    await pumpEventQueue();
+    cubit.install();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(cubit.state.defaultLanguage?.installing, isTrue);
+
+    service.useEngine(FakeDictationEngine(supportedLocaleTags: ['en-US', 'de-DE']));
+    await pumpEventQueue();
+
+    expect(cubit.state.languages.every((row) => row.installFraction == null), isTrue);
+
+    gate.complete();
+    await cubit.close();
+  });
+
+  test('removing the old default while a new pick is in storage keeps the pick', () async {
+    engine.installed = true;
+    final cubit = build();
+    await pumpEventQueue();
+
+    await transcription.setLocaleId('de-DE');
+    expect(cubit.state.localeId, 'en-US');
+
+    await cubit.remove('en-US');
+
+    expect(transcription.localeId, 'de-DE');
+
+    await cubit.close();
+  });
+
+  test('a degraded managed engine still reads as managing models', () async {
+    final degraded = FakeStreamingEngine(maxReservedLocales: 0);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: degraded,
+      store: EntryStore(storage),
+    );
+    final cubit = SettingsCubit(
+      service: svc,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: svc,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: audioStorage,
+    );
+    await pumpEventQueue();
+
+    expect(cubit.state.reservationMax, 0);
+    expect(cubit.state.managesModels, isTrue);
+    expect(cubit.state.engineId, 'fake.streaming');
+
+    await cubit.close();
+    await svc.dispose();
   });
 }

@@ -3,16 +3,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
+import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
 
@@ -214,6 +210,142 @@ void main() {
     expect(entry.isTranscribed, isFalse);
     expect(entry.audioPath, 'fake-recording.m4a');
     expect(store.read(entry.id), entry);
+
+    await svc.dispose();
+  });
+
+  test('a streaming take whose batch fails saves the live text instead of nothing', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        failBatch: true,
+        stopSignal: rec.stopped,
+      ),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'words heard live');
+    expect(entry.transcript?.engineId, 'fake.streaming');
+    expect(entry.transcript?.localeId, svc.localeId);
+    expect(entry.transcript?.segments, isEmpty);
+    expect(entry.audioPath, isNotNull);
+    expect(store.read(entry.id), entry);
+
+    await svc.dispose();
+  });
+
+  test('a streaming take whose batch settles empty saves the live text', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        batchText: '',
+        stopSignal: rec.stopped,
+      ),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'words heard live');
+
+    await svc.dispose();
+  });
+
+  test('a salvaged landing keeps the audio even with keep-audio off', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(
+        cannedText: 'words heard live',
+        failBatch: true,
+        stopSignal: rec.stopped,
+      ),
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(store.read(entry.id)?.audioPath, isNotNull);
+
+    await svc.dispose();
+  });
+
+  test('a take with no live words stays untranscribed when the batch fails', () async {
+    final svc = build(
+      (rec) => FakeStreamingEngine(cannedText: '', failBatch: true, stopSignal: rec.stopped),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript, isNull);
+    expect(entry.audioPath, isNotNull);
+
+    await svc.dispose();
+  });
+
+  test('a mid-take language switch keeps the earlier live words in the salvage', () async {
+    final svc = build(
+      (rec) =>
+          FakeStreamingEngine(cannedText: 'span words', failBatch: true, stopSignal: rec.stopped),
+    );
+
+    await svc.startRecording();
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    await svc.setSessionLocale('de-DE');
+    await svc.liveEvents.first;
+    await Future<void>.delayed(Duration.zero);
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript?.fullText, 'span words span words');
+    expect(entry.transcript?.localeId, entry.recordedLocaleId);
+
+    await svc.dispose();
+  });
+
+  test('the words flushed during the recorder stop reach the salvage', () async {
+    final engine = _ManualSalvageEngine();
+    final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 30));
+    final svc = build((_) => engine, recorder: rec);
+
+    await svc.startRecording();
+    engine.controllers[0].add(const TranscriptEvent(text: 'early words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+
+    final stopping = svc.stopRecording();
+    await Future<void>.delayed(Duration.zero);
+    engine.controllers[0].add(const TranscriptEvent(text: 'early words plus tail', isFinal: false));
+    final entry = await stopping;
+
+    expect(entry.transcript?.fullText, 'early words plus tail');
+
+    await svc.dispose();
+  });
+
+  test("a cancelled take's live words never salvage into the next take", () async {
+    final engine = _ManualSalvageEngine();
+    final svc = build((_) => engine);
+
+    await svc.startRecording();
+    engine.controllers[0].add(const TranscriptEvent(text: 'discarded words', isFinal: false));
+    await Future<void>.delayed(Duration.zero);
+    await svc.cancelRecording();
+
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    expect(entry.transcript, isNull);
 
     await svc.dispose();
   });
@@ -1049,8 +1181,11 @@ void main() {
 
   test('rejects an engine that is not on-device only', () {
     expect(
-      () =>
-          TranscriptionService(recorder: FakeAudioRecorder(), engine: _CloudEngine(), store: store),
+      () => TranscriptionService(
+        recorder: FakeAudioRecorder(),
+        engine: FakeOffDeviceEngine(),
+        store: store,
+      ),
       throwsArgumentError,
     );
   });
@@ -1359,7 +1494,7 @@ void main() {
     await svc.startRecording();
     final entry = await svc.stopRecording();
 
-    await expectLater(svc.retranscribe(entry, using: _CloudEngine()), throwsArgumentError);
+    await expectLater(svc.retranscribe(entry, using: FakeOffDeviceEngine()), throwsArgumentError);
 
     await svc.dispose();
   });
@@ -1576,6 +1711,312 @@ void main() {
     await svc.dispose();
   });
 
+  test('editTranscript lays the engine base then pushes the trimmed edit', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final edited = await svc.editTranscript(entry, '  fixed words  ');
+    expect(edited.revisions, hasLength(2));
+    expect(edited.revisions!.first.text, 'batch transcript');
+    expect(edited.revisions!.first.isHand, isFalse);
+    expect(edited.head?.text, 'fixed words');
+    expect(edited.head?.isHand, isTrue);
+    expect(edited.head?.at, fixedClock);
+    expect(edited.transcript?.fullText, 'batch transcript');
+    expect(store.read(entry.id)?.readableText, 'fixed words');
+
+    await svc.dispose();
+  });
+
+  test('a blank commit writes nothing, since revert is its own surface', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    await svc.editTranscript(entry, 'fixed');
+    final blanked = await svc.editTranscript(entry, '   ');
+
+    expect(blanked.head?.text, 'fixed');
+    expect(blanked.revisions, hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('typing the head words back writes nothing, edge whitespace and all', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: ' batch transcript '));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final same = await svc.editTranscript(entry, 'batch transcript');
+    expect(same.revisions, isNull);
+
+    await svc.editTranscript(entry, 'fixed');
+    final repeat = await svc.editTranscript(entry, ' fixed ');
+    expect(repeat.revisions, hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('a typed paragraph break is a change and pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed words');
+
+    final reflowed = await svc.editTranscript(entry, 'fixed\n\nwords');
+
+    expect(reflowed.revisions, hasLength(3));
+    expect(reflowed.head?.text, 'fixed\n\nwords');
+
+    await svc.dispose();
+  });
+
+  test('an unchanged edit keeps the head stamp', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: FakeBatchEngine(),
+      store: store,
+      clock: () => now,
+      fileDeleter: (f) async => f.deleteSync(),
+    );
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final first = await svc.editTranscript(entry, 'fixed');
+    now = now.add(const Duration(hours: 1));
+    final repeat = await svc.editTranscript(entry, ' fixed ');
+
+    expect(repeat.head?.at, first.head?.at);
+    expect(store.read(entry.id)?.head?.at, first.head?.at);
+
+    await svc.dispose();
+  });
+
+  test('editTranscript applies to the stored entry, not a stale caller copy', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final stale = await svc.stopRecording();
+
+    final fresher = await svc.retranscribe(stale, using: FakeBatchEngine(cannedText: 'second'));
+    final edited = await svc.editTranscript(stale, 'kept');
+
+    expect(edited.head?.text, 'kept');
+    expect(edited.transcript?.fullText, fresher.transcript?.fullText);
+
+    await svc.dispose();
+  });
+
+  test('editTranscript throws for a deleted entry', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    await svc.deleteEntry(entry);
+
+    await expectLater(svc.editTranscript(entry, 'ghost'), throwsStateError);
+    await svc.dispose();
+  });
+
+  test('an edit landing mid-retranscribe stays in the landed history', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final slow = svc.retranscribe(
+      entry,
+      using: FakeBatchEngine(cannedText: 'second', delay: const Duration(milliseconds: 30)),
+    );
+    await svc.editTranscript(entry, 'mid-flight edit');
+    final updated = await slow;
+
+    expect(updated.head?.text, 'second');
+    expect(updated.head?.isHand, isFalse);
+    expect(updated.transcript?.fullText, 'second');
+    expect(updated.revisions!.map((r) => r.text), ['first', 'mid-flight edit', 'second']);
+
+    await svc.dispose();
+  });
+
+  test('retranscribe pushes the replaced words into history', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed');
+
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: 'second'));
+
+    expect(landed.head?.text, 'second');
+    expect(landed.head?.isHand, isFalse);
+    expect(landed.revisions!.map((r) => r.text), ['first', 'fixed', 'second']);
+    expect(landed.readsAsTranscript, isTrue);
+
+    await svc.dispose();
+  });
+
+  test('a landing that moved only whitespace pushes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed');
+
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: ' fixed '));
+
+    expect(landed.revisions!.map((r) => r.text), ['first words', 'fixed']);
+    expect(landed.transcript?.fullText, ' fixed ');
+
+    await svc.dispose();
+  });
+
+  test('an empty landing on a pristine entry keeps the old words as the head', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    expect(entry.revisions, isNull);
+
+    final landed = await svc.retranscribe(entry, using: FakeBatchEngine(cannedText: '   '));
+
+    expect(landed.transcript?.fullText, '   ');
+    expect(landed.readableText, 'first words');
+    expect(landed.revisions!.map((r) => r.text), ['first words']);
+
+    await svc.dispose();
+  });
+
+  test('a first transcription of an untouched entry pushes no history', () async {
+    final engine = FakeBatchEngine(failBatch: true);
+    final svc = build((_) => engine);
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    expect(entry.transcript, isNull);
+
+    engine.failBatch = false;
+    final landed = await svc.retranscribe(entry);
+
+    expect(landed.transcript?.fullText, 'batch transcript');
+    expect(landed.revisions, isNull);
+
+    await svc.dispose();
+  });
+
+  test('restoreRevision pushes a stamped copy, origin kept', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final restored = await svc.restoreRevision(edited, edited.revisions!.first);
+
+    expect(restored.revisions!.map((r) => r.text), ['first', 'fixed', 'first']);
+    expect(restored.head?.isHand, isFalse);
+    expect(restored.head?.at, fixedClock);
+    expect(restored.readsAsTranscript, isTrue);
+    expect(store.read(entry.id)?.readableText, 'first');
+
+    await svc.dispose();
+  });
+
+  test('restoring what the entry already reads as writes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final same = await svc.restoreRevision(edited, edited.revisions!.last);
+    expect(same.revisions, hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('restoring the engine base under a hand reflow pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'hello world'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final reflowed = await svc.editTranscript(entry, 'hello\n\nworld');
+
+    final restored = await svc.restoreRevision(reflowed, reflowed.revisions!.first);
+
+    expect(restored.revisions, hasLength(3));
+    expect(restored.readableText, 'hello world');
+    expect(restored.readsAsTranscript, isTrue);
+
+    await svc.dispose();
+  });
+
+  test('restoring a hand revision that differs only in whitespace pushes', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first words'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed\n\nwords');
+    final reflowed = await svc.editTranscript(entry, 'fixed words');
+
+    final restored = await svc.restoreRevision(reflowed, reflowed.revisions![1]);
+
+    expect(restored.revisions, hasLength(4));
+    expect(restored.readableText, 'fixed\n\nwords');
+
+    await svc.dispose();
+  });
+
+  test('deleteRevision removes one revision; deleting the head changes the reading', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await svc.editTranscript(entry, 'fixed');
+    final edited = await svc.editTranscript(entry, 'fixed again');
+
+    final trimmed = await svc.deleteRevision(edited, edited.revisions!.last);
+
+    expect(trimmed.revisions!.map((r) => r.text), ['first', 'fixed']);
+    expect(trimmed.readableText, 'fixed');
+    expect(store.read(entry.id)?.readableText, 'fixed');
+
+    await svc.dispose();
+  });
+
+  test('the last remaining revision cannot be deleted', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    final one = await svc.deleteRevision(edited, edited.revisions!.last);
+    final still = await svc.deleteRevision(one, one.revisions!.single);
+
+    expect(still.revisions!.map((r) => r.text), ['first']);
+    expect(still.readableText, 'first');
+
+    await svc.dispose();
+  });
+
+  test('deleting a revision the stack no longer holds writes nothing', () async {
+    final svc = build((_) => FakeBatchEngine(cannedText: 'first'));
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+    final gone = edited.revisions!.last;
+    await svc.deleteRevision(edited, gone);
+
+    final repeat = await svc.deleteRevision(edited, gone);
+
+    expect(repeat.revisions!.map((r) => r.text), ['first']);
+
+    await svc.dispose();
+  });
+
+  test('restoreRevision throws for a deleted entry', () async {
+    final svc = build((_) => FakeBatchEngine());
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final edited = await svc.editTranscript(entry, 'fixed');
+
+    await svc.deleteEntry(entry);
+
+    await expectLater(svc.restoreRevision(edited, edited.revisions!.first), throwsStateError);
+    await svc.dispose();
+  });
+
   test('a stop landing during an in-flight pause leaves no stale pause flag', () async {
     final svc = build((_) => FakeBatchEngine());
     await svc.startRecording();
@@ -1646,6 +2087,160 @@ void main() {
     expect(svc.entries(), isEmpty);
 
     await sub.cancel();
+    await svc.dispose();
+  });
+
+  test(
+    'cancelRecording after a completed interruption finalize deletes the auto-saved entry',
+    () async {
+      final rec = FakeAudioRecorder();
+      final svc = build((_) => FakeBatchEngine(), recorder: rec);
+      final sub = svc.autoFinalized.listen((_) {});
+
+      await svc.startRecording();
+      rec.interrupt();
+      await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+      expect(svc.entries(), hasLength(1)); // the interruption's save landed
+
+      await svc.cancelRecording();
+
+      expect(svc.entries(), isEmpty);
+
+      await sub.cancel();
+      await svc.dispose();
+    },
+  );
+
+  test('stopRecording after a cancel that discarded the interruption save throws', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero);
+    await svc.cancelRecording();
+
+    // The take was discarded; there is nothing left to promise a stop.
+    await expectLater(svc.stopRecording(), throwsStateError);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('cancelRecording after the interruption entry was delivered by a stop is a no-op', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-delivered');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    final entry = await svc.stopRecording(); // delivered to this caller
+
+    await svc.cancelRecording();
+
+    expect(store.read(entry.id), entry);
+    expect(file.existsSync(), isTrue);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('cancelRecording after a failed restart does not delete the delivered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-failed-restart');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    final entry = await svc.stopRecording(); // delivered to this caller
+
+    // The user re-taps record while the phone call still holds the mic.
+    rec.throwOnStart = true;
+    await expectLater(svc.startRecording(), throwsA(isA<CaptureFailed>()));
+
+    await svc.cancelRecording();
+
+    expect(store.read(entry.id), entry);
+    expect(file.existsSync(), isTrue);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a stop after delivery throws instead of handing the entry out twice', () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final sub = svc.autoFinalized.listen((_) {});
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the auto-finalize completes
+
+    await svc.stopRecording(); // first delivery consumes the handle
+
+    await expectLater(svc.stopRecording(), throwsStateError);
+
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test("cancel around a second take never touches the first take's stalled finalize", () async {
+    final rec = FakeAudioRecorder();
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    final saved = <Entry>[];
+    final sub = svc.autoFinalized.listen(saved.add);
+    final gate = Completer<void>();
+
+    await svc.startRecording(); // take 1
+    rec.nextStopGate = gate.future;
+    rec.interrupt(); // take 1's finalize claims the stop and stalls on the gate
+    await Future<void>.delayed(Duration.zero); // the handler claims the stop
+
+    await svc.startRecording(); // take 2, unaffected by take 1's stalled stop
+    final entry2 = await svc.stopRecording(); // take 2's own stop sees no gate
+
+    await svc.cancelRecording(); // an idle cancel issued around take 2
+
+    gate.complete(); // release take 1's stop
+    await svc.autoFinalized.first.timeout(const Duration(seconds: 1));
+    await pumpEventQueue();
+    await sub.cancel();
+
+    expect(saved, hasLength(1)); // only take 1 auto-finalized
+    final entry1 = saved.single;
+    expect(store.read(entry1.id), entry1);
+    expect(store.read(entry2.id), entry2);
+    expect(svc.entries(), hasLength(2));
+
+    await svc.dispose();
+  });
+
+  test('cancelRecording while idle with no interruption save is a no-op', () async {
+    final svc = build((_) => FakeBatchEngine());
+    final entry = Entry(
+      id: 'e1',
+      createdAt: fixedClock,
+      audioPath: null,
+      duration: const Duration(seconds: 1),
+    );
+    await store.save(entry);
+
+    await svc.cancelRecording();
+
+    expect(store.read('e1'), isNotNull);
+
     await svc.dispose();
   });
 
@@ -1824,6 +2419,68 @@ void main() {
     await svc.dispose();
   });
 
+  test('the heal is a no-op while a finalize holds the unreferenced guard', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-healgate');
+    final rec = FakeAudioRecorder(recordingsDir: dir.path);
+    final svc = build((_) => FakeBatchEngine(), recorder: rec);
+    await store.save(
+      Entry(
+        id: 'hg1',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+    final sub = svc.autoFinalized.listen((_) {});
+    final gate = Completer<void>();
+
+    await svc.startRecording();
+    rec.nextStopGate = gate.future;
+    rec.interrupt(); // the finalize claims the stop and stalls on the gate
+    await Future<void>.delayed(Duration.zero); // the handler claims the stop
+
+    expect(await svc.healDanglingAudio(), 0);
+    expect(store.read('hg1')?.audioPath, 'gone.m4a');
+
+    gate.complete();
+    await svc.autoFinalized.first.timeout(const Duration(seconds: 1));
+    await pumpEventQueue();
+
+    expect(await svc.healDanglingAudio(), 1);
+    expect(store.read('hg1')?.audioPath, isNull);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a heal never deletes a file that is back on disk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-healback');
+    final file = File('${dir.path}/back.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'hb1',
+        createdAt: fixedClock,
+        audioPath: 'back.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+
+    expect(await svc.healDanglingAudio(), 0);
+
+    expect(store.read('hb1')?.audioPath, 'back.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('a discard killed between file delete and save is healed at launch', () async {
     // The kill-window shape: the file went, the record still points at it.
     final dir = await Directory.systemTemp.createTemp('otr-healkill');
@@ -1979,6 +2636,114 @@ void main() {
     await svc.dispose();
   });
 
+  test('keep-off: a batch that heard nothing keeps the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptystop');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
+      keepAudio: () => false,
+    );
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(store.read('id-0')?.transcript?.fullText, '');
+    expect(store.read('id-0')?.audioPath, 'take.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: an empty retranscribe keeps the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptyretr');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('e1')!);
+
+    expect(updated.transcript?.fullText, '');
+    expect(updated.audioPath, 'clip.m4a');
+    expect(store.read('e1')?.audioPath, 'clip.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-off: a material landing after an empty one discards the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptythenreal');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final engine = FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '';
+    final svc = build(
+      (_) => engine,
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      keepAudio: () => false,
+    );
+    await store.save(
+      Entry(
+        id: 'e2',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    await svc.retranscribe(store.read('e2')!);
+    expect(store.read('e2')?.audioPath, 'clip.m4a');
+
+    engine.transcriptBuilder = (locale, start, end) => 'landed';
+    final updated = await svc.retranscribe(store.read('e2')!);
+
+    expect(updated.transcript?.fullText, 'landed');
+    expect(updated.audioPath, isNull);
+    expect(store.read('e2')?.audioPath, isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('keep-on: an empty landing changes nothing about the audio', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-emptykeepon');
+    final file = File('${dir.path}/clip.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine()..transcriptBuilder = (locale, start, end) => '',
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    await store.save(
+      Entry(
+        id: 'e3',
+        createdAt: fixedClock,
+        audioPath: 'clip.m4a',
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final updated = await svc.retranscribe(store.read('e3')!);
+
+    expect(updated.transcript?.fullText, '');
+    expect(updated.audioPath, 'clip.m4a');
+    expect(store.read('e3')?.audioPath, 'clip.m4a');
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
   test('retranscribe of a transcript-only entry throws before any engine work', () async {
     final engine = FakeBatchEngine();
     final svc = build((_) => engine);
@@ -2070,6 +2835,411 @@ void main() {
     expect(store.read('b1')?.audioPath, isNull);
     expect(orphan.existsSync(), isTrue);
 
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans answers null rather than zero when a capture blocks the sweep', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recoblocked');
+    final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) => const Duration(seconds: 2),
+      ),
+    );
+    await svc.startRecording();
+
+    expect(await svc.reconcileOrphans(), isNull);
+    expect(orphan.existsSync(), isTrue);
+    expect(svc.entries(), isEmpty);
+
+    await svc.stopRecording();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans keeps sweeping the directory after a probe throws', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recoprobe');
+    File('${dir.path}/orphan-a.m4a').writeAsStringSync('audio');
+    File('${dir.path}/orphan-b.m4a').writeAsStringSync('audio');
+    var probes = 0;
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) =>
+            probes++ == 0 ? throw const CaptureFailed('probe failed') : const Duration(seconds: 3),
+      ),
+    );
+
+    expect(await svc.reconcileOrphans(), 1);
+    expect(probes, 2);
+    expect(svc.entries(), hasLength(1));
+    expect(File('${dir.path}/orphan-a.m4a').existsSync(), isTrue);
+    expect(File('${dir.path}/orphan-b.m4a').existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('reconcileOrphans stops and answers null when a capture starts mid-walk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-recomidwalk');
+    File('${dir.path}/orphan-a.m4a').writeAsStringSync('audio');
+    File('${dir.path}/orphan-b.m4a').writeAsStringSync('audio');
+    late final TranscriptionService svc;
+    Future<void>? started;
+    svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) {
+          started ??= svc.startRecording();
+          return const Duration(seconds: 3);
+        },
+      ),
+    );
+
+    expect(await svc.reconcileOrphans(), isNull);
+    await started;
+    expect(svc.entries(), hasLength(1));
+    expect(File('${dir.path}/orphan-a.m4a').existsSync(), isTrue);
+    expect(File('${dir.path}/orphan-b.m4a').existsSync(), isTrue);
+
+    await svc.stopRecording();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test(
+    'reconcileOrphans answers null while a finalize is in flight, then sweeps once it lands',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('otr-recofinalize');
+      final orphan = File('${dir.path}/orphan.m4a')..writeAsStringSync('audio');
+      final svc = build(
+        (_) => FakeBatchEngine(),
+        recorder: FakeAudioRecorder(
+          path: 'take.m4a',
+          recordingsDir: dir.path,
+          probe: (_) => const Duration(seconds: 3),
+          stopDelay: const Duration(milliseconds: 20),
+        ),
+      );
+      await svc.startRecording();
+      final finalizing = svc.stopRecording();
+
+      expect(svc.isRecording, isFalse);
+      expect(await svc.reconcileOrphans(), isNull);
+      expect(svc.entries(), isEmpty);
+
+      await finalizing;
+      expect(svc.entries().map((e) => e.audioPath), ['take.m4a']);
+      expect(orphan.existsSync(), isTrue);
+
+      expect(await svc.reconcileOrphans(), 1);
+      expect(svc.entries().map((e) => e.audioPath), containsAll(['take.m4a', 'orphan.m4a']));
+
+      await dir.delete(recursive: true);
+      await svc.dispose();
+    },
+  );
+
+  test('reconcileOrphans answers null while an import adopts, then sweeps once it lands', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-adoptsweep');
+    final staging = await Directory.systemTemp.createTemp('otr-adoptstage');
+    File('${dir.path}/orphan.m4a').writeAsStringSync('audio');
+    final stagedAudio = File('${staging.path}/import.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(
+        recordingsDir: dir.path,
+        probe: (_) => const Duration(seconds: 3),
+      ),
+    );
+
+    final adopting = svc.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'imported',
+          createdAt: fixedClock,
+          audioPath: 'import.m4a',
+          duration: const Duration(seconds: 1),
+        ),
+        stagedAudio: stagedAudio,
+      ),
+    ]);
+    expect(await svc.reconcileOrphans(), isNull);
+    await adopting;
+
+    expect(await svc.reconcileOrphans(), 1);
+    expect(svc.entries(), hasLength(2));
+    expect(svc.entries().map((e) => e.audioPath), containsAll(['import.m4a', 'orphan.m4a']));
+
+    await dir.delete(recursive: true);
+    await staging.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('deleteEntry leaves a recording another entry still references on disk', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-shareddelete');
+    final file = File('${dir.path}/shared.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    const duration = Duration(seconds: 1);
+    final twin = Entry(
+      id: 'twin',
+      createdAt: fixedClock,
+      audioPath: 'shared.m4a',
+      duration: duration,
+    );
+    final original = Entry(
+      id: 'original',
+      createdAt: fixedClock,
+      audioPath: 'shared.m4a',
+      duration: duration,
+    );
+    await store.save(twin);
+    await store.save(original);
+
+    await svc.deleteEntry(original);
+
+    expect(file.existsSync(), isTrue);
+    expect(store.read('original'), isNull);
+    expect(store.read('twin'), twin);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('purgeTranscribedAudio reclaims a solo recording but never one two entries share', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-sharedpurge');
+    final shared = File('${dir.path}/shared.m4a')..writeAsStringSync('audio');
+    final solo = File('${dir.path}/solo.m4a')..writeAsStringSync('audio');
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+    );
+    const duration = Duration(seconds: 1);
+    for (final (id, path) in [('a', 'shared.m4a'), ('b', 'shared.m4a'), ('c', 'solo.m4a')]) {
+      await store.save(
+        Entry(
+          id: id,
+          createdAt: fixedClock,
+          audioPath: path,
+          duration: duration,
+          transcript: canned(id),
+        ),
+      );
+    }
+
+    expect(await svc.purgeTranscribedAudio(), 1);
+
+    expect(shared.existsSync(), isTrue);
+    expect(solo.existsSync(), isFalse);
+    expect(store.read('a')?.audioPath, 'shared.m4a');
+    expect(store.read('b')?.audioPath, 'shared.m4a');
+    expect(store.read('c')?.audioPath, isNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('recoverInterruptedSave adds nothing once the sweep adopted the same recording', () async {
+    final svc = build((_) => FakeBatchEngine());
+    const duration = Duration(seconds: 2);
+    final swept = Entry(
+      id: 'swept',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: duration,
+    );
+    await store.save(swept);
+
+    await svc.recoverInterruptedSave(
+      Entry(id: 'lost', createdAt: fixedClock, audioPath: 'take.m4a', duration: duration),
+    );
+
+    expect(svc.entries(), [swept]);
+
+    await svc.dispose();
+  });
+
+  test('retrySave adds nothing once the sweep adopted the same recording', () async {
+    final svc = build((_) => FakeBatchEngine());
+    const duration = Duration(seconds: 2);
+    final swept = Entry(
+      id: 'swept',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: duration,
+    );
+    await store.save(swept);
+
+    await svc.retrySave(
+      Entry(id: 'lost', createdAt: fixedClock, audioPath: 'take.m4a', duration: duration),
+    );
+
+    expect(svc.entries(), [swept]);
+
+    await svc.dispose();
+  });
+
+  test('a cancelled take is not resurrected by the save recovery', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-cancelled-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'take.m4a',
+      stopDelay: const Duration(milliseconds: 20),
+    );
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: _ThrowingStore(storage),
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+    Object? error;
+    final sub = svc.autoFinalized.listen((_) {}, onError: (Object e) => error = e);
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the interruption claims the stop
+
+    // cancelRecording awaits the still-failing save itself and discards it.
+    await svc.cancelRecording();
+    await pumpEventQueue();
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+    expect(error, isA<EntrySaveFailed>());
+    final failed = (error as EntrySaveFailed).entry;
+
+    // The racing cubit's unawaited recovery arrives after the discard.
+    await svc.recoverInterruptedSave(failed);
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+
+    await sub.cancel();
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a stop during the save recovery returns the recovered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-stop-during-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final entry = Entry(
+      id: 'id-0',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: const Duration(seconds: 2),
+    );
+    final gate = Completer<void>();
+    final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: gatedStore,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    final recovering = svc.recoverInterruptedSave(entry);
+    await pumpEventQueue(); // the recovery's save is now gated, mid-flight
+
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    gate.complete(); // release the gated save
+    await recovering;
+
+    final stopped = await stopping;
+
+    expect(stopped.id, 'id-0');
+    expect(store.read('id-0'), stopped);
+    expect(file.existsSync(), isTrue);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('a cancel during the save recovery discards the recovered entry', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-cancel-during-recovery');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final entry = Entry(
+      id: 'id-0',
+      createdAt: fixedClock,
+      audioPath: 'take.m4a',
+      duration: const Duration(seconds: 2),
+    );
+    final gate = Completer<void>();
+    final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
+    final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: gatedStore,
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+
+    final recovering = svc.recoverInterruptedSave(entry);
+    await pumpEventQueue(); // the recovery's save is now gated, mid-flight
+
+    final cancelling = svc.cancelRecording();
+    await pumpEventQueue();
+    gate.complete(); // release the gated save
+    await recovering;
+    await cancelling;
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test('retrySave still saves a take the user cancelled', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-retry-after-cancel');
+    final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
+    final rec = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'take.m4a',
+      stopDelay: const Duration(milliseconds: 20),
+    );
+    final svc = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: _ThrowingStore(storage, failures: 1),
+      clock: () => fixedClock,
+      idGenerator: () => 'id-0',
+    );
+    Object? error;
+    final sub = svc.autoFinalized.listen((_) {}, onError: (Object e) => error = e);
+
+    await svc.startRecording();
+    rec.interrupt();
+    await Future<void>.delayed(Duration.zero); // the interruption claims the stop
+
+    await svc.cancelRecording(); // discards, marking the id
+    await pumpEventQueue();
+
+    expect(store.read('id-0'), isNull);
+    expect(file.existsSync(), isFalse); // the discard's deleteEntry already took it
+    expect(error, isA<EntrySaveFailed>());
+    final failed = (error as EntrySaveFailed).entry;
+
+    // The explicit, user-driven retry is a deliberate resurrection: it must not
+    // consult the discard marker.
+    await svc.retrySave(failed);
+
+    expect(store.read('id-0'), failed);
+
+    await sub.cancel();
     await dir.delete(recursive: true);
     await svc.dispose();
   });
@@ -2365,11 +3535,60 @@ class _ThrowingStore extends EntryStore {
   }
 }
 
+/// A store whose save for one specific entry id awaits [gate] before writing,
+/// modeling a save recovery's write held open so a racing stop or cancel can be
+/// issued while it is still in flight. Saves for any other id pass straight
+/// through.
+class _GatedSaveStore extends EntryStore {
+  _GatedSaveStore(super.storage, {required this.gatedId, required this.gate});
+
+  final String gatedId;
+  final Future<void> gate;
+
+  @override
+  Future<void> save(Entry entry) async {
+    if (entry.id == gatedId) await gate;
+    return super.save(entry);
+  }
+}
+
 /// A streaming engine whose live events the test drives by hand: each
 /// [transcribeLive] call hands back a fresh controller, kept in [controllers] so
 /// a test can emit on a superseded take's stream after a newer take started.
 /// Unlike [FakeStreamingEngine] it does NOT suppress a late final on cancel, so
 /// the service's own guards (isFinal drop, generation gate) are what must hold.
+class _ManualSalvageEngine implements StreamingTranscriptionEngine {
+  final List<StreamController<TranscriptEvent>> controllers = [];
+
+  @override
+  String get id => 'manual.salvage';
+
+  @override
+  bool get onDeviceOnly => true;
+
+  @override
+  Future<List<String>> supportedLocales() async => const ['en-US'];
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) async =>
+      const Availability.available();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => throw const TranscriptionFailed('manual batch failure');
+
+  @override
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) {
+    final controller = StreamController<TranscriptEvent>();
+    controllers.add(controller);
+    return controller.stream;
+  }
+}
+
 class _ManualLiveEngine implements StreamingTranscriptionEngine {
   final List<StreamController<TranscriptEvent>> controllers = [];
 
@@ -2406,28 +3625,4 @@ class _ManualLiveEngine implements StreamingTranscriptionEngine {
     controllers.add(controller);
     return controller.stream;
   }
-}
-
-/// An engine that would route off-device. Used only to prove the service rejects it.
-class _CloudEngine implements TranscriptionEngine {
-  @override
-  String get id => 'cloud';
-
-  @override
-  Future<List<String>> supportedLocales() async => const [];
-
-  @override
-  bool get onDeviceOnly => false;
-
-  @override
-  Future<Availability> checkAvailability({required String localeId}) async =>
-      const Availability.available();
-
-  @override
-  Future<Transcript> transcribeFile(
-    File audio, {
-    required String localeId,
-    Duration? start,
-    Duration? end,
-  }) async => throw UnimplementedError();
 }

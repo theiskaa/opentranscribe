@@ -3,11 +3,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/notify/reflection_notifier.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/state/notifications_cubit.dart';
+import 'package:reflections/reflections.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_notification_scheduler.dart';

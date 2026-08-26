@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_reflections.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   test('reflectionsEligible is true for any hardware that could run reflections', () {

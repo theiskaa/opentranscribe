@@ -1,14 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:reflections/reflections.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _DeleteFails extends LocalService {
   @override
   Future<bool> delete(String key) async => throw StateError('delete refused');
+}
+
+class _CountingReads extends LocalService {
+  int readJsonCalls = 0;
+
+  @override
+  T? readJson<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+    readJsonCalls++;
+    return super.readJson(key, fromJson);
+  }
 }
 
 void main() {
@@ -152,5 +161,53 @@ void main() {
     expect(store.read(start)!.text, 'week');
     expect(store.deletedWeeks(), isEmpty);
     expect(store.deletedRefs().single, (period: ReflectionPeriod.daily, start: start));
+  });
+
+  test('all() decrypts once until a save lands', () async {
+    final counting = _CountingReads();
+    await counting.init(legacyKey: key);
+    final countingStore = ReflectionStore(counting);
+    await countingStore.save(reflection(DateTime(2026, 7, 20), text: 'a'));
+
+    countingStore.all();
+    final callsAfterFirstRead = counting.readJsonCalls;
+    countingStore.all();
+
+    expect(counting.readJsonCalls, callsAfterFirstRead);
+  });
+
+  test('a save invalidates both the rows and the tombstones memo', () async {
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+    await store.delete(DateTime(2026, 7, 20));
+    expect(store.all(), isEmpty);
+    expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'again'));
+
+    expect(store.all(), hasLength(1));
+    expect(store.deletedWeeks(), isEmpty);
+  });
+
+  test('a delete invalidates both memos', () async {
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'first'));
+    expect(store.all(), hasLength(1));
+    expect(store.deletedWeeks(), isEmpty);
+
+    await store.delete(DateTime(2026, 7, 20));
+
+    expect(store.all(), isEmpty);
+    expect(store.deletedWeeks(), [DateTime(2026, 7, 20)]);
+  });
+
+  test('callers mutating the returned list cannot corrupt the memo', () async {
+    await store.save(reflection(DateTime(2026, 7, 6), text: 'kept'));
+    await store.save(reflection(DateTime(2026, 7, 20), text: 'to delete'));
+    await store.delete(DateTime(2026, 7, 20));
+
+    store.all().clear();
+    store.deletedRefs().clear();
+
+    expect(store.all(), hasLength(1));
+    expect(store.deletedRefs(), hasLength(1));
   });
 }

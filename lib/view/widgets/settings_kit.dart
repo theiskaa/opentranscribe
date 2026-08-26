@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -76,36 +77,55 @@ class SettingsDivider extends StatelessWidget {
   }
 }
 
-/// A language row you pick from a list, reeed's shape: a tinted flag chip, the
-/// language in its own name, and a checkmark on the current one. The selected
-/// row inks and bolds; the rest stay quiet. Tapping the current one is a no-op.
+/// A row you pick from a list, reeed's shape: a tinted chip (a language's flag,
+/// an export format's mark), the choice's own name, and a checkmark on the
+/// current one. The selected row inks and bolds; the rest stay quiet. Tapping
+/// the current one is a no-op.
 class SelectableRow extends StatelessWidget {
   const SelectableRow({
     required this.label,
     required this.selected,
     required this.onTap,
     this.flag,
+    this.leading,
+    this.note,
     this.dimmed = false,
+    this.locked = false,
     super.key,
   });
 
   final String label;
 
+  /// A quiet second line saying what the choice actually is (what an export
+  /// format writes). One line, and only inside a card: it makes the row taller
+  /// than the fixed height showAppDropdown estimates its popup by.
+  final String? note;
+
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
   /// choice with no chip (a reflection option).
   final String? flag;
+
+  /// A widget for the leading chip instead of a flag (a format's brand mark).
+  final Widget? leading;
   final bool selected;
 
   /// A kept-but-unavailable choice (an unsupported language): shown honestly,
   /// quieter than the rest.
   final bool dimmed;
+
+  /// A supporter-gated choice: a quiet lock takes the checkmark's seat, and
+  /// the row never reads as selected while it is on.
+  final bool locked;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.settings;
-    final active = selected && !dimmed;
+    final active = selected && !dimmed && !locked;
+    final duration = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
+    final curve = theme.motion.indicatorCurve;
+    final chipColor = active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground;
     return Touchable(
       onTap: onTap,
       haptic: onTap != null,
@@ -113,29 +133,82 @@ class SelectableRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            if (flag != null) ...[
-              Container(
-                width: tokens.iconTileSize,
-                height: tokens.iconTileSize,
-                alignment: Alignment.center,
-                decoration: SuperellipseDecoration(
-                  borderRadius: tokens.iconTileRadius,
-                  color: active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+            if (flag != null || leading != null) ...[
+              // TweenAnimationBuilder rather than AnimatedContainer: the
+              // superellipse decoration has no lerp, so AnimatedContainer
+              // would snap the color halfway instead of fading it.
+              TweenAnimationBuilder<Color?>(
+                tween: ColorTween(end: chipColor),
+                duration: duration,
+                curve: curve,
+                builder: (context, color, child) => Container(
+                  width: tokens.iconTileSize,
+                  height: tokens.iconTileSize,
+                  alignment: Alignment.center,
+                  decoration: SuperellipseDecoration(
+                    borderRadius: tokens.iconTileRadius,
+                    color: color ?? chipColor,
+                  ),
+                  child: child,
                 ),
-                child: LocaleFlag(flag!, size: 18),
+                child: leading ?? LocaleFlag(flag!, size: 18),
               ),
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: Text(
-                label,
-                style: AppType.subhead.copyWith(
-                  color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: duration,
+                    curve: curve,
+                    style: AppType.subhead.copyWith(
+                      color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                    // One line: a wrapped row would break showAppDropdown's
+                    // fixed row estimate and misplace the popup.
+                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  if (note != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      note!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (active) AppIcon(AppIcons.checkmark, size: 14, color: theme.accent),
+            // One trailing seat, crossfaded between its occupants so an
+            // unlock animates like every other state change here. The
+            // checkmark keeps its zero-opacity residency either way, so the
+            // label never reflows.
+            AnimatedSwitcher(
+              duration: duration,
+              child: locked
+                  ? AppIcon(
+                      AppIcons.lock,
+                      key: const ValueKey('locked'),
+                      size: 14,
+                      color: theme.textSecondary,
+                    )
+                  : AnimatedOpacity(
+                      key: const ValueKey('check'),
+                      opacity: active ? 1 : 0,
+                      duration: duration,
+                      curve: curve,
+                      child: AnimatedScale(
+                        scale: active ? 1 : 0.5,
+                        duration: duration,
+                        curve: curve,
+                        child: AppIcon(AppIcons.checkmark, size: 14, color: theme.text),
+                      ),
+                    ),
+            ),
           ],
         ),
       ),
@@ -251,6 +324,79 @@ class SettingsActionRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
             ],
             AppIcon(AppIcons.chevronForward, size: 14, color: theme.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A long-running action row: icon tile, label, and a trailing seat the
+/// spinner takes while the operation runs, showing [detail] otherwise.
+/// [tint] colors the tile, icon and label for a destructive flavor. A null
+/// [onTap] disables the row.
+class SettingsBusyRow extends StatelessWidget {
+  const SettingsBusyRow({
+    required this.icon,
+    required this.label,
+    required this.busy,
+    required this.onTap,
+    this.detail,
+    this.tint,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool busy;
+  final VoidCallback? onTap;
+  final String? detail;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tokens = theme.settings;
+    final enabled = onTap != null;
+    final accent = tint ?? theme.accent;
+    final labelColor = switch ((enabled, tint)) {
+      (false, _) => theme.textSecondary,
+      (true, null) => theme.text,
+      (true, _) => tint!,
+    };
+    return Touchable(
+      onTap: onTap,
+      haptic: enabled,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: tokens.iconTileSize,
+              height: tokens.iconTileSize,
+              alignment: Alignment.center,
+              decoration: SuperellipseDecoration(
+                borderRadius: tokens.iconTileRadius,
+                color: enabled ? accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+              ),
+              child: AppIcon(icon, size: 16, color: enabled ? accent : theme.textSecondary),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(label, style: AppType.subhead.copyWith(color: labelColor)),
+            ),
+            AnimatedSwitcher(
+              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+              child: busy
+                  ? AppSpinner(size: 16, color: theme.textSecondary)
+                  : detail != null
+                  ? Text(
+                      detail!,
+                      key: ValueKey(detail),
+                      style: AppType.digits(AppType.subhead).copyWith(color: theme.textSecondary),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),

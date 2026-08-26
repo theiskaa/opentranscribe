@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 
 void main() {
   test('round-trips a written reflection through JSON', () {

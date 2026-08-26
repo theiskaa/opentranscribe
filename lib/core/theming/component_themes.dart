@@ -24,6 +24,7 @@ final class TopBarTheme {
     this.largeHeight = 72.0,
     this.fadeTail = 24.0,
     this.backChevronSize = 18.0,
+    this.actionSize = 44.0,
   });
 
   final Color background;
@@ -40,6 +41,10 @@ final class TopBarTheme {
   /// the bar's edge instead of clipping.
   final double fadeTail;
   final double backChevronSize;
+
+  /// Tap target for a bar action, and the seat anything standing in for one
+  /// (a spinner) must fill so the bar's layout does not shift.
+  final double actionSize;
 }
 
 /// The general button (primary fill, secondary surface, danger reuses primary
@@ -335,6 +340,24 @@ final class RecorderTheme {
   /// Every control circle on the recorder's row. One size: the complete button
   /// carries its weight with a FILL, not with a bigger footprint.
   final double controlSize;
+}
+
+/// The revision diff's ink: what a change removed and what it added, each as
+/// text color plus the wash behind it. Derived from the base danger and
+/// positive colors, so every family shows ITS red and green, not a stock pair.
+@immutable
+final class DiffTheme {
+  const DiffTheme({
+    required this.removed,
+    required this.removedWash,
+    required this.added,
+    required this.addedWash,
+  });
+
+  final Color removed;
+  final Color removedWash;
+  final Color added;
+  final Color addedWash;
 }
 
 /// The audio player on entry detail.

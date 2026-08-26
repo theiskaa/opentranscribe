@@ -2,6 +2,23 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
+## 0.2.0 - 2026-08-25
+
+Backups, editing, the club, engine choice, and faster ways to start a recording.
+
+- Formatted exports, the first OpenTranscribe Club feature: the whole journal handed to the share sheet as Markdown, as Obsidian notes, or as a Website that opens with a player in any browser. (#5)
+- Native archive backup: one file that restores the whole journal, audio and reflections included, sealed with a passphrase by default; without it the file is unreadable. Free for everyone, never behind the paywall, so anyone can always back up and recover. (#5)
+- The OpenTranscribe Club, an optional one-time purchase that supports the app: club features start with the formatted exports, and whatever joins the club later is included. Direct StoreKit 2 with no purchase SDK, no account, and no server: the entitlement is verified on-device from Apple's own record, membership works in airplane mode, and no journal content is in the purchase conversation.
+- Manual transcript editing, in place on the entry screen, with a revision history that keeps every prior version and lets one be restored. (#14)
+- A lock screen control and a widget row that start a recording without opening the app, plus Siri and Shortcuts support through App Intents. (#9)
+- The launch splash is now drawn natively and plays over the boot, replacing the earlier Flutter splash screen.
+- Notifications: a master switch for reflection reminders, a toggle per period (day, week, month) for which ones nudge, and one shared time.
+- Engine choice: the transcription screen lists every engine the app ships, SpeechAnalyzer (the iOS 26 engine) and Dictation (the classic recognizer the system's dictation uses), each described in one line and switchable with a tap. An engine the device cannot run stays visible, dimmed, with the reason; a new engine lands as one more row.
+- The transcription screen redesigned around the language you speak: the default language is a card with an honest status line (ready and naming the engine that answers, download progress, or what stands in the way), the other ready languages are chips a tap makes the default, and the whole library moved into a sheet where languages are added, removed, and switched in one place.
+- iPhones whose hardware cannot run SpeechAnalyzer (the iPhone 11 family and earlier chips) no longer show an empty language list: they start on Dictation and transcribe normally.
+- Under Dictation, a language whose system dictation model is missing says so and points at the iOS keyboard settings, instead of claiming it is ready.
+- Reliability around engine switches: a switch landing mid-download, mid-removal, or mid-load can no longer leave one engine's status, failure badge, or download progress on the other engine's language rows; queued model downloads survive a cancelled predecessor; and a blocked install whose slot-holders have since left offers a retry instead of a dead end.
+
 ## 0.1.0 - 2026-08-12
 
 The first release: a voice journal for iOS that works entirely on the device. There is no account, no sync, no telemetry, and no code in the app that opens a network connection.

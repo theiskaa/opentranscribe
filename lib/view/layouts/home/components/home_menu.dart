@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show Uint8List, kDebugMode;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -107,6 +107,7 @@ class _HomeMenuState extends State<HomeMenu> {
       AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
       AppMenuItem(id: 'act:notifications', label: l10n.settingsNotifications, icon: AppIcons.bell),
       AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
+      AppMenuItem(id: 'act:backup', label: l10n.settingsBackup, icon: AppIcons.squareAndArrowUp),
       const AppMenuItem.divider(),
       AppMenuItem(id: 'act:appearance', label: l10n.settingsAppearance, icon: AppIcons.moonFill),
       AppMenuItem(
@@ -125,11 +126,8 @@ class _HomeMenuState extends State<HomeMenu> {
         ],
       ),
       const AppMenuItem.divider(),
+      AppMenuItem(id: 'act:support', label: l10n.settingsSupport, icon: AppIcons.heart),
       AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes),
-      if (kDebugMode) ...[
-        const AppMenuItem.divider(),
-        const AppMenuItem(id: 'act:gallery', label: 'Widget gallery', icon: AppIcons.waveform),
-      ],
     ];
 
     return AppMenuButton(
@@ -153,10 +151,12 @@ class _HomeMenuState extends State<HomeMenu> {
             context.pushNamed(Routes.reflectionsName);
           case 'act:cache':
             context.pushNamed(Routes.settingsCacheName);
+          case 'act:backup':
+            context.pushNamed(Routes.settingsBackupName);
           case 'act:notifications':
             context.pushNamed(Routes.settingsNotificationsName);
-          case 'act:gallery':
-            context.pushNamed(Routes.galleryName);
+          case 'act:support':
+            context.pushNamed(Routes.settingsSupportName);
           case 'act:source':
             unawaited(openLink(kRepoUrl));
         }

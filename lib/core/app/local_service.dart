@@ -66,8 +66,18 @@ class LocalService {
   /// legacy Fernet records. When [deviceKey] is supplied (exactly 32 bytes),
   /// writes produce `v3:` records and every stored value is migrated to `v3:`
   /// in place before [init] returns.
-  Future<void> init({required String legacyKey, Uint8List? deviceKey}) async {
-    _prefs = await SharedPreferences.getInstance();
+  ///
+  /// [channelTimeout] bounds the OPEN only, the one round trip here that a
+  /// wedged platform channel can park forever. It deliberately does not cover
+  /// [migrate], which is bounded work that always finishes and legitimately
+  /// takes seconds on a large journal.
+  Future<void> init({
+    required String legacyKey,
+    Uint8List? deviceKey,
+    Duration? channelTimeout,
+  }) async {
+    final open = SharedPreferences.getInstance();
+    _prefs = channelTimeout == null ? await open : await open.timeout(channelTimeout);
     _deviceKey = deviceKey;
 
     if (legacyKey.isNotEmpty) {

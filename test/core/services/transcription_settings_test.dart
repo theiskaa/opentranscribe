@@ -1,12 +1,44 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
+import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+
+class _QueuedLocalesEngine implements TranscriptionEngine {
+  _QueuedLocalesEngine(this._answers);
+
+  final List<Future<List<String>>> _answers;
+  var _next = 0;
+
+  @override
+  String get id => 'queued';
+
+  @override
+  bool get onDeviceOnly => true;
+
+  @override
+  Future<List<String>> supportedLocales() => _answers[_next++];
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) async =>
+      const Availability.available();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => throw UnimplementedError();
+}
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -154,5 +186,35 @@ void main() {
 
     expect(settings.localeId, 'en-GB');
     expect(service.localeId, 'en-GB');
+  });
+
+  test('a superseded apply lands nothing stale', () async {
+    final slow = Completer<List<String>>();
+    final engine = _QueuedLocalesEngine([
+      slow.future,
+      Future.value(['de-DE']),
+    ]);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: EntryStore(storage),
+    );
+    final settings = TranscriptionSettings(
+      storage: storage,
+      service: svc,
+      deviceTag: () => 'de-AT',
+    );
+
+    final first = settings.apply();
+    await settings.apply();
+    expect(svc.localeId, 'de-DE');
+
+    slow.complete(['tr-TR']);
+    await first;
+
+    expect(svc.localeId, 'de-DE');
+    expect(settings.deviceLocaleId, 'de-DE');
+
+    await svc.dispose();
   });
 }

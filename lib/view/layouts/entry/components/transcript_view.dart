@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/playback.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -15,9 +14,12 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The transcript body. Where the transcript carries timings, the segment under
-/// the playhead is MARKED (never the rest dimmed). The text selects and copies
+/// the playhead is MARKED (never the rest dimmed, and never on a hand-edited
+/// entry, whose words the timings no longer name). The text selects and copies
 /// through the enclosing SelectableRegion; seeking is the wave scrubber's job.
 /// Untranscribed entries get a quiet explanation and a transcribe action.
 ///
@@ -90,7 +92,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       // A run started. Dissolve the words if there are any; a first transcribe
       // shimmers a placeholder shaped like the transcript the audio should
       // produce instead. Reduce motion (or a failed prep) shows the loader.
-      final hadText = (old.entry.transcript?.fullText.trim().isNotEmpty) ?? false;
+      final hadText = old.entry.readableText?.trim().isNotEmpty ?? false;
       if (context.reduceMotion) {
         _phase = _Phase.loading;
       } else if (hadText ? _captureText() : _prepareInkLines()) {
@@ -280,8 +282,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final loading = _phase == _Phase.loading;
     return AnimatedSwitcher(
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-      layoutBuilder: (current, previous) =>
-          Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
+      layoutBuilder: meltStack,
       child: loading
           ? Align(
               key: const ValueKey('loading'),
@@ -299,15 +300,19 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   Widget _content(BuildContext context) {
     final theme = context.theme;
     final transcript = widget.entry.transcript;
-    final text = transcript?.fullText.trim() ?? '';
-    if (transcript == null || text.isEmpty) {
+    final text = widget.entry.readableText?.trim() ?? '';
+    if (text.isEmpty) {
       // Two different silences: never transcribed (the action lives in the
       // screen's bottom CTA) versus transcribed and empty (no speech, no action).
       return _TranscriptEmpty(untranscribed: transcript == null);
     }
 
-    final segments = transcript.segments;
-    if (segments.isEmpty) {
+    // No transcript can still mean words: an edit typed over an entry that was
+    // never transcribed (or restored from an archive that way) must show.
+    final segments = transcript?.segments ?? const <TranscriptSegment>[];
+    // An entry not reading as its transcript renders plain: the timings name
+    // the engine's words, and the mark would light text the audio never said.
+    if (segments.isEmpty || !widget.entry.readsAsTranscript) {
       return RepaintBoundary(
         key: _textKey,
         child: Text(text, style: AppType.body.copyWith(color: theme.text)),

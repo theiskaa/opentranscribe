@@ -3,25 +3,25 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:opentranscribe/core/audio/audio_recorder.dart';
-import 'package:opentranscribe/core/audio/recording.dart';
+import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
-import 'package:opentranscribe/core/transcribe/transcript.dart';
-import 'package:opentranscribe/core/transcribe/transcript_event.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
+import 'package:opentranscribe/core/utils/word_diff.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
-/// contracts, so swapping Apple Speech for whisper.cpp touches nothing here.
+/// contracts, so swapping SpeechAnalyzer for whisper.cpp touches nothing here.
 ///
-/// The settled transcript is always a batch pass over the kept file. That is the
+/// The settled transcript is a batch pass over the kept file. That is the
 /// source of truth: robust to a streaming engine's duration limits, identical to
 /// what re-transcription would produce, and the reason raw audio is kept. A
-/// streaming engine's live stream is used only for real-time UI ([liveEvents]); it
-/// never decides the persisted transcript. If transcription fails, the recording is
-/// kept untranscribed rather than lost, and can be re-transcribed later.
+/// streaming engine's live stream is real-time UI first ([liveEvents]), with one
+/// exception on the stop path: when the batch throws or settles blank on a take
+/// whose live stream carried words, those words are saved (untimed) instead of
+/// an empty entry, and the audio is kept regardless of preference so a real
+/// batch can replace them. A failure with no live words keeps the recording
+/// untranscribed rather than lost, re-transcribable later.
 ///
 /// When the keep-audio preference is off, a recording is discarded after its
 /// FIRST successful transcription: the transcript is persisted first, then the
@@ -51,8 +51,27 @@ class TranscriptionService {
   }
 
   final AudioRecorder _recorder;
-  final TranscriptionEngine _engine;
+  TranscriptionEngine _engine;
   final EntryStore _store;
+
+  /// The active engine's id, for surfaces marking the current choice.
+  String get engineId => _engine.id;
+
+  /// Tells every model surface to re-read (see [modelStateChanged]), for a
+  /// caller whose change the service cannot see land itself: the engine
+  /// switch's background locale re-resolution.
+  void notifyModelSurfaces() => _notifyModelStateChanged();
+
+  /// Whether the active engine manages downloadable models, for surfaces that
+  /// word an unready language (a missing download and a missing system setting
+  /// are different stories).
+  bool get managesModels => _engine is ManagedModelEngine;
+
+  /// Whether the active engine answers per-language readiness cheaply and
+  /// without side effects, so a list surface may refine every row. A managed
+  /// engine answers false: its model status is already the per-language truth.
+  bool get probesLanguageReadiness =>
+      _engine is! ManagedModelEngine && _engine is LanguageReadinessEngine;
 
   /// The transcription language (a BCP-47 tag), pushed by TranscriptionSettings.
   /// Mutable: a change takes effect on the NEXT recording; a session in flight
@@ -100,6 +119,25 @@ class TranscriptionService {
   /// Single-flights [reconcileOrphans] so two sweeps never race one snapshot.
   bool _reconciling = false;
 
+  /// How many finalizes sit between claiming the capture and saving its entry.
+  /// Across that window the file is finalized on disk (so it probes readable)
+  /// while no entry references it yet, and [reconcileOrphans] would adopt it as
+  /// a second entry sharing one recording. A count, not a flag: a new take can
+  /// start and stop while an older finalize is still in its batch pass.
+  int _finalizingCaptures = 0;
+
+  /// How many [adoptImportedEntries] passes are in flight. Same window as
+  /// [_finalizingCaptures] and for the same reason: an import moves each staged
+  /// recording into the directory BEFORE saving its record, so the file probes
+  /// readable while nothing references it.
+  int _adoptingImports = 0;
+
+  /// Whether some path holds a readable file in the recordings directory that no
+  /// entry references yet, BY DESIGN. [reconcileOrphans] must not walk while
+  /// this is true, and must abandon a walk that sees it turn true: its
+  /// `referenced` snapshot is taken once and cannot know about such a file.
+  bool get _unreferencedByDesign => _finalizingCaptures > 0 || _adoptingImports > 0;
+
   /// Single-flights [purgeTranscribedAudio]. Deliberately not shared with
   /// [_reconciling]: the Cache screen's clear must not silently no-op because
   /// the launch orphan sweep happens to be running.
@@ -123,6 +161,22 @@ class TranscriptionService {
   /// start with one span at 0; [setSessionLocale] appends. More than one span
   /// means a mixed-language take, batched span by span on stop.
   List<({int startMs, String tag})> _sessionSpans = [];
+
+  /// Live text heard this session, retained ONLY to salvage a take whose
+  /// settling batch yields nothing: the batch stays the source of truth, but a
+  /// take the user watched being written must not save as an empty entry when
+  /// the engine's file pass fails on audio its live pass understood (the
+  /// classic engine does exactly this in some locales). Two parts because a
+  /// mid-take language switch restarts the live stream: [_sessionLiveCommitted]
+  /// holds the finished streams' text, [_sessionLiveCurrent] the running one's
+  /// latest partial.
+  String _sessionLiveCommitted = '';
+  String _sessionLiveCurrent = '';
+
+  String get _sessionLiveText => [
+    _sessionLiveCommitted,
+    _sessionLiveCurrent,
+  ].where((part) => part.trim().isNotEmpty).join(' ');
 
   /// The opening span's start round-trip window. A language chosen before any
   /// audio (the queued switch that fires the instant start() resolves) can read
@@ -156,7 +210,11 @@ class TranscriptionService {
 
   /// The entry saved by an interruption's auto-finalize, so a stop that races it
   /// (arriving after it completed) returns it instead of throwing. Deliberately NOT
-  /// set on a user stop: a plain double-stop must keep throwing.
+  /// set on a user stop: a plain double-stop must keep throwing. Consumed (set back
+  /// to null) by whichever hand-out delivers it, and cleared by a successful new
+  /// start, so it only ever holds an UNDELIVERED auto-save of the current or
+  /// just-ended take. That invariant is what makes [cancelRecording]'s delete safe:
+  /// a delivered entry can never be sitting here for a later cancel to destroy.
   Entry? _lastFinalized;
 
   /// The finalize in flight right now, so a stop that races it (arriving while the
@@ -167,6 +225,17 @@ class TranscriptionService {
   /// tell an auto-save (which its discard must undo) from a user stop's finalize
   /// (whose caller was promised the entry).
   Future<Entry?>? _interruptionFinalize;
+
+  /// Ids of takes whose failed auto-save the user discarded before
+  /// [recoverInterruptedSave] ran for them. Consumed (removed) by that check, so a
+  /// racing recovery no-ops instead of resurrecting a take the user just discarded.
+  /// Never cleared wholesale; bounded by how rarely a save fails.
+  final Set<String> _discardedSaves = {};
+
+  /// The interruption's save-recovery in flight right now ([recoverInterruptedSave]),
+  /// so a racing idle [stopRecording] or [cancelRecording] awaits it instead of
+  /// treating the session as idle mid-save.
+  Future<void>? _recovering;
 
   /// Live partial/final events while recording, for real-time UI. Errors on the
   /// underlying live stream are forwarded here; they do not affect the persisted
@@ -192,6 +261,24 @@ class TranscriptionService {
   /// silent while paused or idle, nothing replayed, nothing persisted.
   Stream<double> get inputLevel => _recorder.level;
 
+  /// Swaps the active engine. Refused (false) while a take is starting,
+  /// recording, or finalizing: a take's live stream and its settled batch must
+  /// come from one engine. An in-flight re-transcription is not a refusal; it
+  /// holds the engine reference it started with and lands on it. On a change
+  /// every model surface is told to reload and the caller re-resolves the
+  /// locale default; swapping to the already-active engine is a no-op that
+  /// still answers true.
+  bool useEngine(TranscriptionEngine engine) {
+    if (!engine.onDeviceOnly) {
+      throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
+    }
+    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
+    if (identical(engine, _engine)) return true;
+    _engine = engine;
+    _notifyModelStateChanged();
+    return true;
+  }
+
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
   Future<List<String>> supportedLocales() => _engine.supportedLocales();
 
@@ -215,7 +302,8 @@ class TranscriptionService {
   Future<PermissionStatus> ensureMicPermission() => _recorder.ensurePermission();
 
   /// Whether the model is downloaded so transcription runs with no wait. An engine
-  /// with no downloadable model is always ready. Kept with [checkAvailability]
+  /// with no downloadable model answers ready here (the coarse answer;
+  /// [localeStatus] refines per language). Kept with [checkAvailability]
   /// for the same future recording gate.
   Future<bool> isModelInstalled({String? localeId}) async {
     final engine = _engine;
@@ -225,8 +313,9 @@ class TranscriptionService {
   }
 
   /// Fires after any path that may have changed a model's install state (a
-  /// first-use install during transcription, an explicit install, a removal),
-  /// so state layers re-read instead of polling or going stale.
+  /// first-use install during transcription, an explicit install, a removal,
+  /// or an engine switch and its locale re-resolution), so state layers
+  /// re-read instead of polling or going stale.
   Stream<void> get modelStateChanged => _modelStateChanged.stream;
 
   void _notifyModelStateChanged() {
@@ -262,7 +351,8 @@ class TranscriptionService {
   }
 
   /// The tags whose models are downloaded on this device. An engine with no
-  /// downloadable model is ready for everything it supports.
+  /// downloadable model lists everything it supports (the coarse answer;
+  /// [localeStatus] refines per language).
   Future<List<String>> installedLocales() {
     final engine = _engine;
     return engine is ManagedModelEngine ? engine.installedLocales() : engine.supportedLocales();
@@ -274,7 +364,20 @@ class TranscriptionService {
   Future<LocaleModelStatus> localeStatus(String localeId) async {
     final engine = _engine;
     if (engine is ManagedModelEngine) return engine.localeStatus(localeId: localeId);
-    // No managed model: a supported language is ready as-is.
+    // No managed model to download: readiness is whether the engine can run
+    // the language here NOW (for a dictation-style engine, whether the
+    // system's own model is present, added in iOS Settings, never by this
+    // app). Probed through localeReady, which guarantees no side effects;
+    // checkAvailability may raise the speech-permission prompt.
+    if (engine is LanguageReadinessEngine) {
+      final ready = await engine.localeReady(localeId: localeId);
+      return LocaleModelStatus(
+        status: ready ? ModelAssetStatus.installed : ModelAssetStatus.unsupported,
+        reserved: true,
+        resolvedTag: localeId,
+      );
+    }
+    // An engine that cannot say per-language readiness: supported is ready.
     final supported = (await engine.supportedLocales()).contains(localeId);
     return LocaleModelStatus(
       status: supported ? ModelAssetStatus.installed : ModelAssetStatus.unsupported,
@@ -349,12 +452,19 @@ class TranscriptionService {
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = localeId;
       _sessionSpans = [(startMs: 0, tag: localeId)];
+      _sessionLiveCommitted = '';
+      _sessionLiveCurrent = '';
       _audioMsAccumulated = 0;
       _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
       // call that interrupted us) must not lose the entry a prior finalize saved.
+      // All three session handles clear here so a new take starts with none of the
+      // previous take's finalize state reachable by a later stop or cancel;
+      // _handleInterruption's finally guards with identical(...), so this early
+      // clear cannot double-clear a newer finalize that started after it.
       _lastFinalized = null;
       _finalizing = null;
+      _interruptionFinalize = null;
       // Replay an interruption that landed while start() was in flight; the capture
       // it killed is real and must be finalized like any other.
       if (_pendingInterruption) {
@@ -395,7 +505,9 @@ class TranscriptionService {
             // the one that races a new take and paints it with the old text.
             // Drop it here; the engine still uses it to close its own stream.
             if (event.isFinal) return;
-            if (generation != _liveGeneration || _live.isClosed) return;
+            if (generation != _liveGeneration) return;
+            _sessionLiveCurrent = event.text;
+            if (_live.isClosed) return;
             _live.add(event);
           },
           onError: (Object error, StackTrace stack) {
@@ -446,6 +558,8 @@ class TranscriptionService {
     // contract: [StreamingTranscriptionEngine.transcribeLive] promises a new
     // listen works while the old stream's teardown is still completing.
     unawaited(liveSub?.cancel());
+    _sessionLiveCommitted = _sessionLiveText;
+    _sessionLiveCurrent = '';
     _liveSub = _subscribeLive(engine, tag);
   }
 
@@ -454,7 +568,8 @@ class TranscriptionService {
   /// interruption saved (in flight or completed) instead of throwing; a plain
   /// double-stop throws [StateError]; a persistence failure throws
   /// [EntrySaveFailed] carrying the entry, recoverable via [retrySave]; a
-  /// transcription failure does NOT throw, the entry is saved untranscribed.
+  /// transcription failure does NOT throw, the entry is saved with the session's
+  /// live text when there was one, untranscribed otherwise.
   Future<Entry> stopRecording() async {
     if (_recording) {
       // We were recording, so this call produces the entry. _finalizing is set only
@@ -475,7 +590,10 @@ class TranscriptionService {
     if (pending != null) {
       try {
         final entry = await pending;
-        if (entry != null) return entry;
+        if (entry != null) {
+          if (identical(_lastFinalized, entry)) _lastFinalized = null;
+          return entry;
+        }
       } on EntrySaveFailed {
         // The audio was finalized but its record was not saved; this caller needs
         // the entry (carried by the error) to retrySave. Never downgrade this to
@@ -486,8 +604,23 @@ class TranscriptionService {
         // CaptureFailed etc.: nothing was captured, nothing to return.
       }
     }
+    // A save-recovery may be mid-flight (recoverInterruptedSave, racing this
+    // stop from the cubit's unawaited call). Await it so a completed recovery's
+    // stamped _lastFinalized is what the hand-out below sees, instead of falling
+    // through to a bogus 'not recording' while the entry lands moments later.
+    final recovering = _recovering;
+    if (recovering != null) {
+      try {
+        await recovering;
+      } catch (_) {
+        // Errors are reported through recoverInterruptedSave's own caller.
+      }
+    }
     final last = _lastFinalized;
-    if (last != null) return last;
+    if (last != null) {
+      _lastFinalized = null;
+      return last;
+    }
     throw StateError('not recording');
   }
 
@@ -497,9 +630,20 @@ class TranscriptionService {
   /// interruption cannot both proceed; the loser returns early. `_statusSub` is
   /// cancelled up front, before the first await, so a second `interrupted` event
   /// during `_recorder.stop()` cannot re-enter `_handleInterruption`. Returns null
-  /// only when nothing was recording.
+  /// only when nothing was recording. The [_finalizingCaptures] claim rides the
+  /// same synchronous block, so every path here (a stop, an interruption, a
+  /// termination) hides its file from [reconcileOrphans] until the entry lands.
+  /// One exception, deliberate: on the [EntrySaveFailed] path the claim is
+  /// released with the file finalized and no record pointing at it, because
+  /// holding it would disable the sweep for the rest of the process. The sweep
+  /// recovering that file is the intended outcome; see [recoverInterruptedSave]
+  /// for how a retry avoids duplicating it.
   Future<Entry?> _stopAndPersist({required bool transcribe}) async {
-    if (!_recording) return _lastFinalized;
+    if (!_recording) {
+      final last = _lastFinalized;
+      _lastFinalized = null;
+      return last;
+    }
     _recording = false;
     _paused = false;
     // Claim ALL session state synchronously with the claim above: a new recording
@@ -512,9 +656,20 @@ class TranscriptionService {
     final sessionLocale = _sessionLocaleId;
     final spans = _sessionSpans;
     _sessionSpans = [];
+    // The live text is NOT claimed here: the recognizer's end-of-audio flush
+    // lands during the recorder stop below, and reading now would drop the last
+    // words the user watched arrive. The generation is the claim instead: a
+    // newer session bumps it before touching the live-text fields, so the
+    // deferred read can never absorb another take's words.
+    final liveGeneration = _liveGeneration;
     _audioClockPause();
-    await statusSub?.cancel();
     try {
+      // Inside the try, and still in the same synchronous block as the flips
+      // above (nothing between them awaits), so the claim can never leak: a
+      // leaked one is unrecoverable, silencing [reconcileOrphans] for the
+      // process.
+      _finalizingCaptures++;
+      await statusSub?.cancel();
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
       // session is not queued behind it. Re-awaited in the finally; a cancel
@@ -522,9 +677,17 @@ class TranscriptionService {
       // the zone and the finally would fail a stop that fully succeeded.
       unawaited(liveSub?.cancel().catchError((_) {}));
 
+      var liveText = '';
+      if (_liveGeneration == liveGeneration) {
+        liveText = _sessionLiveText.trim();
+        _sessionLiveCommitted = '';
+        _sessionLiveCurrent = '';
+      }
+
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
       Transcript? transcript;
+      var salvaged = false;
       if (transcribe) {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
@@ -537,6 +700,20 @@ class TranscriptionService {
           // Any failure keeps the recording untranscribed rather than losing it; it
           // can be re-transcribed later. Never let a transcription error orphan audio.
           transcript = null;
+        }
+        // A take the user watched being written must not settle empty because the
+        // engine's file pass failed on audio its live pass understood. The live
+        // text stands in (untimed, so no segments), and the audio is kept below
+        // regardless of the preference so a better pass can replace this one.
+        if (liveText.isNotEmpty && (transcript?.fullText.trim().isEmpty ?? true)) {
+          salvaged = true;
+          transcript = Transcript(
+            fullText: liveText,
+            segments: const [],
+            localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
+            engineId: _engine.id,
+            createdAt: _clock(),
+          );
         }
       }
 
@@ -570,7 +747,11 @@ class TranscriptionService {
       // backfill, so the waveform is captured before the file disappears. The
       // returned entry deliberately still carries its path: the store is the
       // truth, and surfaces refresh from it.
-      final discard = transcript != null && !_keepAudio();
+      // An empty landing keeps the audio: it is the only path back to the words.
+      // So does a salvaged one: its text is the live stream's approximation, and
+      // the audio is the only way a real batch can ever replace it.
+      final discard =
+          !salvaged && transcript != null && transcript.fullText.trim().isNotEmpty && !_keepAudio();
       unawaited(
         _backfillPeaks(entry).then((_) async {
           if (discard) await _discardAudio(entry.id);
@@ -583,6 +764,9 @@ class TranscriptionService {
       } catch (_) {
         // The subscription is dead either way; the outcome above stands.
       }
+      // After the cancel, not before: that cancel is a native recognizer
+      // teardown, and the file would otherwise be unguarded for its duration.
+      _finalizingCaptures--;
     }
   }
 
@@ -623,10 +807,19 @@ class TranscriptionService {
   /// discipline mirrors [_stopAndPersist] (synchronous flips, status
   /// subscription cancelled before the first await) so a racing interruption
   /// cannot double-finalize. Quiet when nothing is recording, except one case:
-  /// an interruption that claimed the session first auto-saves it, and a
-  /// discard must win over that save, so the finalize is awaited and its entry
-  /// deleted. Throws [StateError] during an in-flight start, which cannot be
-  /// safely undone from here.
+  /// an interruption that claimed the session auto-saves it, and a discard must
+  /// win over that save whether the finalize is still in flight (awaited, then
+  /// its entry deleted) or already completed ([_lastFinalized] holds it, deleted
+  /// directly). [_lastFinalized] is set only by an interruption path and cleared
+  /// by the next [startRecording], so this can only ever delete the auto-saved
+  /// take the user is currently looking at, never a user-stop's entry (a user
+  /// stop never sets it) and never a previous take (a new start clears it). It
+  /// also cannot delete a DELIVERED entry: every hand-out of [_lastFinalized]
+  /// (a stop returning it, in flight or already completed) consumes it first, so
+  /// a caller who already received the entry has, by construction, taken it out
+  /// of this branch's reach; this completed-save branch can only ever discard
+  /// the still-undelivered auto-save of the take on screen. Throws [StateError]
+  /// during an in-flight start, which cannot be safely undone from here.
   Future<void> cancelRecording() async {
     if (_starting) throw StateError('start in flight');
     if (!_recording) {
@@ -644,6 +837,9 @@ class TranscriptionService {
           // must still discard it, or reconcileOrphans resurrects the take next
           // launch. deleteEntry removes the orphaned file (the record delete is a
           // no-op). Best-effort: a failed discard falls back to that sweep.
+          // Marked before the delete so a racing recoverInterruptedSave (either
+          // order) never resurrects the discarded take.
+          _discardedSaves.add(e.entry.id);
           try {
             await deleteEntry(e.entry);
           } catch (_) {}
@@ -659,6 +855,32 @@ class TranscriptionService {
             // keeps its record and the user deletes it visibly instead.
           }
         }
+        return;
+      }
+      // A save-recovery may be mid-flight (recoverInterruptedSave, racing this
+      // cancel from the cubit's unawaited call). Await it so a completed recovery's
+      // stamped _lastFinalized is what the check below sees and discards, instead
+      // of missing it by milliseconds and leaving the recovered take saved.
+      final recovering = _recovering;
+      if (recovering != null) {
+        try {
+          await recovering;
+        } catch (_) {
+          // Errors are reported through recoverInterruptedSave's own caller.
+        }
+      }
+      // The interruption's finalize already completed by the time this cancel
+      // arrived; the save it left behind is the same take the user just asked
+      // to discard.
+      final finalized = _lastFinalized;
+      if (finalized != null) {
+        _lastFinalized = null;
+        try {
+          await deleteEntry(finalized);
+        } catch (_) {
+          // Best effort, same rule as the in-flight branch: a locked file keeps
+          // its record and the user deletes it visibly instead.
+        }
       }
       return;
     }
@@ -669,6 +891,8 @@ class TranscriptionService {
     final statusSub = _statusSub;
     _statusSub = null;
     _sessionLocaleId = null;
+    _sessionLiveCommitted = '';
+    _sessionLiveCurrent = '';
     await statusSub?.cancel();
     try {
       await _recorder.cancel();
@@ -683,11 +907,172 @@ class TranscriptionService {
     }
   }
 
+  /// Whether a stored entry OTHER than [exceptId] already references the file
+  /// [audioPath] names. Two entries on one recording is never a state the app
+  /// creates on purpose, but a retry racing [reconcileOrphans] can produce it,
+  /// and every file delete below must survive it: deleting a shared file would
+  /// leave the survivor pointing at nothing, and a swept twin is untranscribed,
+  /// so [healDanglingAudio] would never repair it.
+  bool _referencedElsewhere(String audioPath, String exceptId) {
+    final name = baseName(audioPath);
+    return _store.all().any(
+      (e) => e.id != exceptId && e.audioPath != null && baseName(e.audioPath!) == name,
+    );
+  }
+
+  /// The basenames more than one stored entry references, for the bulk sweeps:
+  /// one pass over the journal instead of [_referencedElsewhere] per entry,
+  /// which would decrypt the whole journal once per discard. Snapshotted, so a
+  /// name that stops being shared mid-sweep is simply left for the next run.
+  Set<String> _sharedAudioNames() {
+    final seen = <String>{}, shared = <String>{};
+    for (final entry in _store.all()) {
+      final path = entry.audioPath;
+      if (path != null && !seen.add(baseName(path))) shared.add(baseName(path));
+    }
+    return shared;
+  }
+
   /// Retries persisting an entry whose save failed ([EntrySaveFailed]). The entry
   /// already references its kept audio, so a successful retry fully recovers it.
-  /// Pure: no side effects, so [dispose]/[finalizeActiveCapture] can use it
-  /// during teardown without touching the controllers they are closing.
-  Future<void> retrySave(Entry entry) => _store.save(entry);
+  /// A no-op when [reconcileOrphans] already adopted that file under a record of
+  /// its own: the audio is recovered either way, and this is the only path that
+  /// could put two entries on one recording. Pure: no side effects, so
+  /// [dispose]/[finalizeActiveCapture] can use it during teardown without
+  /// touching the controllers they are closing.
+  Future<void> retrySave(Entry entry) async {
+    final path = entry.audioPath;
+    if (path != null && _referencedElsewhere(path, entry.id)) return;
+    await _store.save(entry);
+  }
+
+  /// Adopts entries restored from an archive, keeping the entry lifecycle's
+  /// single owner: per entry, the staged audio moves into the recordings
+  /// directory BEFORE the record is saved, so a kill mid-import leaves a
+  /// probeable orphan the launch sweep recovers, never a record pointing at
+  /// nothing. Merge is by id: an identical stored entry is skipped (re-import
+  /// is a no-op), a differing one is overwritten with the archive's. An
+  /// overwritten record's old audio file is deleted only when the archive
+  /// brought REPLACEMENT audio and nothing else references the old file; a
+  /// transcript-only record never destroys a local recording (the sweep
+  /// resurrects the file as a visible orphan instead). A basename already
+  /// owned by a different entry sends the restored audio under a fresh name;
+  /// filenames are not identity, ids are. Fires [entriesChanged] once when
+  /// anything changed, even when a later entry's adoption failed midway.
+  /// [reconcileOrphans] is blocked for the whole pass, not just the move-to-save
+  /// gap: it snapshots what is referenced once, so any record saved after that
+  /// snapshot is invisible to it and its file would be adopted a second time.
+  Future<AdoptResult> adoptImportedEntries(List<StagedImportEntry> staged) async {
+    var added = 0;
+    var updated = 0;
+    var unchanged = 0;
+    var audioRestored = 0;
+    var changed = false;
+    final owners = <String, String>{
+      for (final stored in _store.all())
+        if (stored.audioPath != null) baseName(stored.audioPath!): stored.id,
+    };
+    try {
+      // First statement in the try so it can never leak, like the finalize
+      // claim: between the move and the save each restored file is readable
+      // with nothing referencing it, which is exactly what the sweep adopts.
+      _adoptingImports++;
+      for (final item in staged) {
+        var entry = item.entry;
+        final existing = _store.read(entry.id);
+        if (item.stagedAudio != null && entry.audioPath != null) {
+          final (adopted, restored) = await _adoptRestoredAudio(
+            entry,
+            item.stagedAudio!,
+            owners,
+            existing,
+          );
+          entry = adopted;
+          if (restored) audioRestored++;
+        }
+        if (existing == entry) {
+          unchanged++;
+          continue;
+        }
+        await _store.save(entry);
+        changed = true;
+        existing == null ? added++ : updated++;
+        await _reapReplacedAudio(existing, entry, owners);
+      }
+    } finally {
+      _adoptingImports--;
+      if (changed) _notifyEntriesChanged();
+    }
+    return AdoptResult(
+      added: added,
+      updated: updated,
+      unchanged: unchanged,
+      audioRestored: audioRestored,
+    );
+  }
+
+  /// Moves one staged recording into place, renaming when [owners] says the
+  /// basename belongs to a different entry. Returns the (possibly renamed)
+  /// entry and whether a file actually landed.
+  Future<(Entry, bool)> _adoptRestoredAudio(
+    Entry entry,
+    File stagedAudio,
+    Map<String, String> owners,
+    Entry? existing,
+  ) async {
+    var name = baseName(entry.audioPath!);
+    final owner = owners[name];
+    if (owner != null && owner != entry.id) {
+      // A rename this entry already went through on an earlier import of the
+      // same archive is reused, or every re-import would mint another name
+      // and rewrite the record: re-import must stay a no-op.
+      final adopted = existing?.audioPath;
+      name = adopted != null && owners[baseName(adopted)] == entry.id
+          ? baseName(adopted)
+          : 'otr-import-${_newId()}${extensionOf(name)}';
+      entry = entry.withAudioPath(name);
+    }
+    owners[name] = entry.id;
+    final destination = File(await _resolveAudioPath(name));
+    if (destination.existsSync()) return (entry, false);
+    await _moveIntoRecordings(stagedAudio, destination);
+    return (entry, true);
+  }
+
+  /// Deletes an overwritten record's old audio file, but only when the new
+  /// record carries audio of its own and no stored entry still references the
+  /// old file. [owners] maps a basename to its LAST claimant, so it can
+  /// detect collisions but not prove uniqueness; the reap re-checks against
+  /// the store, the source of truth.
+  Future<void> _reapReplacedAudio(Entry? existing, Entry entry, Map<String, String> owners) async {
+    final oldAudio = existing?.audioPath;
+    if (oldAudio == null || entry.audioPath == null) return;
+    final basename = baseName(oldAudio);
+    if (basename == entry.audioPath) return;
+    final referenced = _store.all().any(
+      (e) => e.audioPath != null && baseName(e.audioPath!) == basename,
+    );
+    if (referenced) return;
+    owners.remove(basename);
+    try {
+      await _deleteFile(File(await _resolveAudioPath(oldAudio)));
+    } catch (_) {
+      // Best effort: a survivor is recovered as an orphan next launch,
+      // visible rather than lost.
+    }
+  }
+
+  /// Rename first (atomic within a volume); a cross-volume staging dir falls
+  /// back to copy-then-delete, ordered so the recordings-side file is whole
+  /// before the staging copy disappears.
+  Future<void> _moveIntoRecordings(File staged, File destination) async {
+    try {
+      await staged.rename(destination.path);
+    } on FileSystemException {
+      await staged.copy(destination.path);
+      await staged.delete();
+    }
+  }
 
   /// Recovers an interruption's auto-save after it failed and surfaced on
   /// [autoFinalized] as an [EntrySaveFailed]. Persists the entry, then
@@ -695,7 +1080,31 @@ class TranscriptionService {
   /// refresh. Sets [_lastFinalized] only while idle, so a take that started
   /// meanwhile keeps its own double-stop contract (a stale entry must never be
   /// handed to a new take's stop).
+  ///
+  /// Silently does nothing when [reconcileOrphans] already adopted the audio
+  /// under its own record: that record IS the recovery, and saving this one too
+  /// would double the take. Nothing is announced then either, or [_lastFinalized]
+  /// would hand out an entry the store does not hold.
+  ///
+  /// Also a no-op when the user's [cancelRecording] already discarded this take
+  /// (either arrival order is safe, see [_discardedSaves]). While the save is in
+  /// flight, [_recovering] holds it: both [stopRecording] and [cancelRecording]
+  /// await it before deciding idle, so a racing stop or cancel gets the recovered
+  /// entry delivered (or discarded) instead of a bogus 'not recording'.
   Future<void> recoverInterruptedSave(Entry entry) async {
+    if (_discardedSaves.remove(entry.id)) return;
+    final path = entry.audioPath;
+    if (path != null && _referencedElsewhere(path, entry.id)) return;
+    final future = _recoverInterruptedSave(entry);
+    _recovering = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_recovering, future)) _recovering = null;
+    }
+  }
+
+  Future<void> _recoverInterruptedSave(Entry entry) async {
     await _store.save(entry);
     if (!_recording && !_starting) _lastFinalized = entry;
     if (!_autoFinalized.isClosed) _autoFinalized.add(entry);
@@ -734,10 +1143,12 @@ class TranscriptionService {
   }
 
   /// Deletes an entry and its kept audio file. The audio is the source of truth,
-  /// so removing the record removes the recording with it.
+  /// so removing the record removes the recording with it - unless another entry
+  /// references the same file, in which case only this record goes and the
+  /// recording stays with its remaining owner (see [_referencedElsewhere]).
   Future<void> deleteEntry(Entry entry) async {
     final path = entry.audioPath;
-    if (path != null) {
+    if (path != null && !_referencedElsewhere(path, entry.id)) {
       final File file;
       try {
         file = File(await _resolveAudioPath(path));
@@ -769,21 +1180,42 @@ class TranscriptionService {
   /// discarded: the entry is gone, or the audio is still on disk and referenced
   /// (a later sweep retries). Never throws, since it runs detached behind saves.
   /// Bulk sweeps pass [notify] false and announce once at the end, so an
-  /// N-entry purge costs the listeners one reload, not N.
-  Future<bool> _discardAudio(String entryId, {bool notify = true}) async {
+  /// N-entry purge costs the listeners one reload, not N, and pass [shared]
+  /// ([_sharedAudioNames]) so the shared-file check below costs one journal pass
+  /// for the whole sweep rather than one per entry. This acts only on the exact
+  /// record-state it evaluated: [expectMissing] (set by [healDanglingAudio])
+  /// bails the instant the file it was told is gone turns out to be back, and
+  /// the final save bails if the path it resolved no longer matches the
+  /// stored entry's path (an import adoption rewrote it mid-flight); either
+  /// way this is a no-op, left for a later sweep to reconsider.
+  Future<bool> _discardAudio(
+    String entryId, {
+    bool notify = true,
+    Set<String>? shared,
+    bool expectMissing = false,
+  }) async {
     try {
       final stored = _store.read(entryId);
       if (stored == null) return false;
       final path = stored.audioPath;
       if (path == null) return true;
+      final file = File(await _resolveAudioPath(path));
+      if (expectMissing && file.existsSync()) return false;
+      // A file another entry also references outlives this discard, path and
+      // all: stripping the path here would cost this entry its playback while
+      // freeing nothing. Only checked while the file is actually there, so a
+      // heal (whose file is already gone) still repairs both records.
+      if (file.existsSync() &&
+          (shared?.contains(baseName(path)) ?? _referencedElsewhere(path, entryId))) {
+        return false;
+      }
       if (stored.peaks == null && _peaksReader != null) {
         try {
-          await saveEntryPeaks(stored, await _peaksReader(await _resolveAudioPath(path)));
+          await saveEntryPeaks(stored, await _peaksReader(file.path));
         } catch (_) {
           // The wave is cosmetic; losing it never blocks reclaiming the space.
         }
       }
-      final file = File(await _resolveAudioPath(path));
       if (file.existsSync()) {
         try {
           await _deleteFile(file);
@@ -795,6 +1227,7 @@ class TranscriptionService {
       }
       final fresh = _store.read(entryId);
       if (fresh == null || fresh.audioPath == null) return true;
+      if (fresh.audioPath != path) return false;
       await _store.save(fresh.withoutAudio());
       // Detached mutation: without this, an open screen keeps offering the
       // player and re-transcribe for audio that no longer exists.
@@ -812,15 +1245,28 @@ class TranscriptionService {
   /// deletes a file, so it can never destroy kept history; bulk reclaim stays
   /// [purgeTranscribedAudio] behind the Cache screen's confirm. Untranscribed
   /// records with missing audio are left alone: their words are gone, and a
-  /// visibly broken entry the user can delete beats a silent empty one.
+  /// visibly broken entry the user can delete beats a silent empty one. Gated
+  /// on [_unreferencedByDesign], the same predicate [reconcileOrphans] obeys:
+  /// an adoption mid-restore can put a file back under a path this sweep
+  /// already decided was gone, making "the file is absent" a stale fact.
   Future<int> healDanglingAudio() async {
+    if (_unreferencedByDesign) return 0;
     var healed = 0;
+    final shared = _sharedAudioNames();
     for (final entry in _store.all()) {
+      if (_unreferencedByDesign) break;
       try {
         final path = entry.audioPath;
         if (path == null || entry.transcript == null) continue;
-        if (File(await _resolveAudioPath(path)).existsSync()) continue;
-        if (await _discardAudio(entry.id, notify: false)) healed++;
+        // exists(), not existsSync(): on the common path where nothing needs
+        // healing this is the loop's only await that leaves the microtask queue
+        // (the recordings dir is memoized, and the discard below runs for the
+        // rare broken record), and Dart drains microtasks before the next
+        // frame, so a sync stat would run the whole sweep inside one frame.
+        if (await File(await _resolveAudioPath(path)).exists()) continue;
+        if (await _discardAudio(entry.id, notify: false, shared: shared, expectMissing: true)) {
+          healed++;
+        }
       } catch (_) {
         // Best effort per entry, like the reconcile sweep; next launch retries.
       }
@@ -872,9 +1318,10 @@ class TranscriptionService {
     _purging = true;
     try {
       var discarded = 0;
+      final shared = _sharedAudioNames();
       for (final entry in _store.all()) {
         if (entry.transcript == null || entry.audioPath == null) continue;
-        if (await _discardAudio(entry.id, notify: false)) discarded++;
+        if (await _discardAudio(entry.id, notify: false, shared: shared)) discarded++;
       }
       if (discarded > 0) _notifyEntriesChanged();
       return discarded;
@@ -891,9 +1338,13 @@ class TranscriptionService {
   /// default. So a default change never silently re-languages an entry, and an
   /// untranscribed take keeps the language it was spoken in. (Note the pin: an
   /// entry first transcribed in the WRONG locale keeps that locale on re-runs
-  /// until a caller passes [localeId] explicitly.)
+  /// until a caller passes [localeId] explicitly.) The landing is a change
+  /// like any other: the words it replaces stay in the entry's history.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     final engine = using ?? _engine;
+    // Captured beside the engine: an engine switch landing during the awaits
+    // below must not pair this engine with the other engine's resolution.
+    final serviceLocaleId = this.localeId;
     // The one rule holds here too: re-transcription must stay on-device.
     if (!engine.onDeviceOnly) {
       throw ArgumentError('retranscribe requires an on-device engine: ${engine.id}');
@@ -913,7 +1364,7 @@ class TranscriptionService {
         for (final span in spans) (startMs: span.startMs, tag: span.localeId),
       ]);
     } else {
-      final locale = localeId ?? entry.effectiveLocaleId ?? this.localeId;
+      final locale = localeId ?? entry.effectiveLocaleId ?? serviceLocaleId;
       transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
     }
     // A first-use model install may have piggybacked on this pass.
@@ -927,13 +1378,34 @@ class TranscriptionService {
     if (stored == null) {
       throw StateError('entry ${entry.id} was deleted during retranscribe');
     }
-    // Discard only on the FIRST successful transcription: that is the keep-off
-    // deferral completing (a failed or interrupted first pass finally landing).
-    // A repeat re-transcription never deletes; bulk reclaim is explicit only.
-    final firstSuccess = stored.transcript == null;
-    final updated = stored.withTranscript(transcript);
+    // Discard only on the FIRST landing that heard words: that is the keep-off
+    // deferral completing (a failed, interrupted, or empty first pass finally
+    // landing something). A repeat re-transcription never deletes; bulk
+    // reclaim is explicit only.
+    final hadWords = stored.transcript != null && stored.transcript!.fullText.trim().isNotEmpty;
+    final retranscribed = stored.withTranscript(transcript);
+    // The words this landing replaces go into history; a first transcription
+    // of an untouched entry replaces nothing and pushes nothing. Two more
+    // silences: a landing that heard NOTHING pushes no empty head, and a
+    // re-run that heard the same words again (whitespace aside, like the
+    // diff reads them) has no change to record - the head already is that
+    // revision.
+    final base = _revisionsWithBase(stored);
+    final heardNothing = transcript.fullText.trim().isEmpty;
+    final skipPush = base.isEmpty || heardNothing || sameWords(base.last.text, transcript.fullText);
+    final Entry updated;
+    if (!skipPush) {
+      updated = retranscribed.withRevisions([...base, Revision.ofTranscript(transcript)]);
+    } else if (heardNothing && base.isNotEmpty) {
+      // The empty landing still replaced the transcript; on a pristine entry
+      // the base must materialize with it, or the words it buried are gone
+      // from display and history both.
+      updated = retranscribed.withRevisions(base);
+    } else {
+      updated = retranscribed;
+    }
     await _store.save(updated);
-    if (firstSuccess && !_keepAudio()) {
+    if (!hadWords && !heardNothing && !_keepAudio()) {
       await _discardAudio(entry.id);
       return _store.read(entry.id) ?? updated;
     }
@@ -956,6 +1428,97 @@ class TranscriptionService {
     final updated = stored.withTitle(normalized);
     await _store.save(updated);
     return updated;
+  }
+
+  /// Applies a hand edit of the transcript text to the STORED entry, pushed
+  /// as a revision onto its history. A blank [text], or what the entry reads
+  /// as typed back, writes nothing: restoring is History's job, not a side
+  /// effect of the field. Hand whitespace IS a change (a typed paragraph
+  /// break must never be silently swallowed); only ENGINE landings compare
+  /// whitespace-blind, since their spacing variance is noise. Throws
+  /// [StateError] when the entry was deleted meanwhile (same ghost rule as
+  /// [retranscribe]); safe against an interleaved delete because the store's
+  /// visible state mutates synchronously (see EntryStore).
+  Future<Entry> editTranscript(Entry entry, String text) async {
+    final trimmed = text.trim();
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during edit');
+    }
+    if (trimmed.isEmpty || trimmed == stored.readableText?.trim()) {
+      return stored;
+    }
+    final updated = stored.withRevisions([
+      ..._revisionsWithBase(stored),
+      Revision(text: trimmed, at: _clock()),
+    ]);
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// Restores [revision] as the new head by pushing a COPY stamped now, its
+  /// origin kept: history only grows, so a restore can itself be reverted.
+  /// Restoring what the entry already reads as writes nothing; the compare
+  /// is whitespace-blind only between engine text on BOTH sides. A hand
+  /// revision's whitespace, or a hand head's, is a deliberate change, so
+  /// restoring across it must push - undoing a typed paragraph break by
+  /// tapping the engine base is exactly the restore that matters. Same
+  /// stored entry and ghost rules as [editTranscript].
+  Future<Entry> restoreRevision(Entry entry, Revision revision) async {
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during restore');
+    }
+    final reads = stored.readableText;
+    final blind = !revision.isHand && !(stored.head?.isHand ?? false);
+    final already = blind
+        ? sameWords(revision.text, reads ?? '')
+        : revision.text.trim() == reads?.trim();
+    if (already) return stored;
+    final updated = stored.withRevisions([
+      ..._revisionsWithBase(stored),
+      Revision(
+        text: revision.text,
+        at: _clock(),
+        engineId: revision.engineId,
+        localeId: revision.localeId,
+      ),
+    ]);
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// Removes [revision] from the entry's history: the one place the stack
+  /// shrinks, and only ever by the user's own hand. Deleting the head makes
+  /// the revision under it what the entry reads as. The LAST remaining
+  /// revision is untouchable: what the entry reads as must always have a
+  /// revision to stand on once it has any. A revision no longer in the
+  /// stored stack is a no-op. Same stored entry and ghost rules as
+  /// [editTranscript].
+  Future<Entry> deleteRevision(Entry entry, Revision revision) async {
+    final stored = _store.read(entry.id);
+    if (stored == null) {
+      throw StateError('entry ${entry.id} was deleted during revision delete');
+    }
+    final revisions = stored.revisions;
+    final index = revisions?.indexOf(revision) ?? -1;
+    if (revisions == null || index < 0) return stored;
+    if (revisions.length == 1) return stored;
+    final updated = stored.withRevisions([...revisions]..removeAt(index));
+    await _store.save(updated);
+    return updated;
+  }
+
+  /// The stored stack, materialized under a FIRST change: the engine base is
+  /// laid down so history always starts at the words the engine wrote. A
+  /// silent or absent transcript lays no base, since there were no words to
+  /// remember.
+  List<Revision> _revisionsWithBase(Entry stored) {
+    final existing = stored.revisions;
+    if (existing != null && existing.isNotEmpty) return existing;
+    final transcript = stored.transcript;
+    if (transcript == null || transcript.fullText.trim().isEmpty) return const [];
+    return [Revision.ofTranscript(transcript)];
   }
 
   /// The absolute path of an entry's kept audio, for playback. The service owns
@@ -1125,10 +1688,17 @@ class TranscriptionService {
   /// record landed) become untranscribed entries; unreadable ones (an unfinalized
   /// header after a mid-recording kill) are deleted. Without this sweep such files
   /// would persist invisibly forever, undeletable by any UI, holding the user's
-  /// voice after they believe it is gone. Skipped while a capture is live (its
-  /// in-progress file has no entry yet by design). Returns the number recovered.
-  Future<int> reconcileOrphans() async {
-    if (_recording || _starting || _reconciling) return 0;
+  /// voice after they believe it is gone. Skipped while a capture is live or
+  /// finalizing, or an import is adopting (their files have no entry yet by
+  /// design).
+  ///
+  /// Returns the number recovered, or null when the whole directory was not
+  /// walked: a capture was live or starting, a finalize or an import had not yet
+  /// saved its entry, another sweep already held the snapshot, or one of those
+  /// began mid-walk. Null is not zero: the caller must rerun the sweep later,
+  /// because whatever it did not reach stays invisible.
+  Future<int?> reconcileOrphans() async {
+    if (_recording || _starting || _reconciling || _unreferencedByDesign) return null;
     // Single-flight: the `referenced` set is snapshotted once, so two concurrent
     // sweeps could double-recover or double-delete the same file.
     _reconciling = true;
@@ -1146,15 +1716,22 @@ class TranscriptionService {
           .map((p) => p.split('/').last)
           .toSet();
       var recovered = 0;
+      var complete = true;
       await for (final item in dir.list(followLinks: false)) {
         if (item is! File) continue;
         final name = item.uri.pathSegments.last;
         if (referenced.contains(name)) continue;
-        // A capture may have started while this sweep awaited; its file has no
-        // entry yet and must not be touched.
-        if (_recording || _starting) break;
-        final duration = await _recorder.probeRecording(name);
+        // A capture may have started, or a finalize or an import may have
+        // claimed one, while this sweep awaited; either file has no entry yet
+        // and must not be touched. The `referenced` snapshot cannot know them.
+        if (_recording || _starting || _unreferencedByDesign) {
+          complete = false;
+          break;
+        }
+        // The probe is inside the per-file try: it reaches the recorder, and a
+        // CaptureFailed on one unreadable file must not abandon the rest.
         try {
+          final duration = await _recorder.probeRecording(name);
           if (duration == null) {
             await item.delete();
           } else {
@@ -1175,7 +1752,7 @@ class TranscriptionService {
       // Detached recovery: without this, a take recovered after home seeded
       // its list stays invisible until an unrelated reload.
       if (recovered > 0) _notifyEntriesChanged();
-      return recovered;
+      return complete ? recovered : null;
     } finally {
       _reconciling = false;
     }
@@ -1280,4 +1857,42 @@ final class EntryDeleteFailed implements Exception {
 
   @override
   String toString() => 'EntryDeleteFailed(${entry.id}): $cause';
+}
+
+/// One archive entry ready for adoption: the record (its [Entry.audioPath]
+/// already the intended bare filename, or null for transcript-only) and the
+/// temp-staged audio file to move in, when the archive carried one.
+@immutable
+final class StagedImportEntry {
+  const StagedImportEntry({required this.entry, this.stagedAudio});
+
+  final Entry entry;
+  final File? stagedAudio;
+}
+
+/// What adopting an archive's entries actually did, for the import summary.
+@immutable
+final class AdoptResult {
+  const AdoptResult({
+    required this.added,
+    required this.updated,
+    required this.unchanged,
+    required this.audioRestored,
+  });
+
+  final int added;
+  final int updated;
+  final int unchanged;
+  final int audioRestored;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdoptResult &&
+      other.added == added &&
+      other.updated == updated &&
+      other.unchanged == unchanged &&
+      other.audioRestored == audioRestored;
+
+  @override
+  int get hashCode => Object.hash(added, updated, unchanged, audioRestored);
 }

@@ -12,8 +12,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Tutto resta su questo dispositivo. Nessun account, nessun cloud, nessuna rete.';
+  String get launchFailedTitle => 'Avvio non riuscito';
+
+  @override
+  String get launchFailedBody =>
+      'Qualcosa che serve all\'avvio non si è caricato. Chiudi l\'app dal selettore delle app e riaprila; se non basta, riavvia il telefono.';
 
   @override
   String get entryUntranscribed => 'Non trascritta';
@@ -77,6 +80,25 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get rename => 'Rinomina';
+
+  @override
+  String get editTranscript => 'Modifica';
+
+  @override
+  String get editedMarker => 'Modificato';
+
+  @override
+  String get revisionHistory => 'Cronologia';
+
+  @override
+  String get revisionHistoryBody =>
+      'Tutto ciò che il testo di questa voce ha attraversato. Un tocco ripristina una versione come la più recente.';
+
+  @override
+  String get revisionCurrent => 'Attuale';
+
+  @override
+  String get revisionTranscribed => 'Trascritto';
 
   @override
   String get transcribe => 'Trascrivi';
@@ -167,20 +189,17 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsAppLanguage => 'Lingua';
 
   @override
-  String get transcriptionInfo =>
-      'Ogni lingua usa il proprio modello sul dispositivo, scaricato una volta e condiviso con il sistema; i modelli non incidono sullo spazio di questa app. Il sistema limita quante lingue un\'app può tenere pronte contemporaneamente.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used di $max slot lingua usati';
   }
 
   @override
-  String get transcriptionRemoveHint => 'Scorri verso sinistra su una lingua per rimuoverla.';
-
-  @override
   String get transcriptionErrorUnsupported =>
       'Questa lingua non può ancora essere scaricata su questo dispositivo.';
+
+  @override
+  String get languageNeedsDictation =>
+      'Attiva la dettatura per questa lingua nelle impostazioni della tastiera di iOS.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -220,6 +239,14 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'La dettatura non è configurata';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language viene trascritto con il modello di dettatura del sistema, che non è ancora su questo iPhone. Aggiungi la sua tastiera e attiva la dettatura nelle impostazioni di iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Ancora in download';
 
   @override
@@ -247,14 +274,65 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsModels => 'Trascrizione';
 
   @override
-  String get transcriptionLanguages => 'Lingue';
+  String get transcriptionYourLanguages => 'Le tue lingue';
+
+  @override
+  String get transcriptionAllLanguages => 'Tutte le lingue';
+
+  @override
+  String get transcriptionSpeaking => 'Lingua parlata';
+
+  @override
+  String get transcriptionAlsoReady => 'Anche pronte';
+
+  @override
+  String get transcriptionAddLanguage => 'Aggiungi';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return 'Pronta · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote =>
+      'I modelli si scaricano una volta e sono condivisi con il sistema.';
+
+  @override
+  String get transcriptionEngines => 'Motori';
+
+  @override
+  String get engineBlurbSpeechAnalyzer =>
+      'Il motore più recente di Apple, un modello scaricato per lingua';
+
+  @override
+  String get engineBlurbDictation => 'Il riconoscimento dietro la dettatura della tastiera iOS';
+
+  @override
+  String get engineUnavailableNote => 'Non disponibile su questo iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Non disponibile su questo iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine richiede iOS 26 e un iPhone più recente. La registrazione continua a usare il motore disponibile qui.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Registrazione in corso';
+
+  @override
+  String get engineBusyBody => 'Interrompi la registrazione in corso, poi cambia motore.';
+
+  @override
+  String get engineNotSavedTitle => 'Scelta non salvata';
+
+  @override
+  String get engineNotSavedBody =>
+      'La scelta del motore non è stata salvata e non sopravviverà a un riavvio.';
 
   @override
   String get transcriptionDefaultTag => 'Predefinita';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Tocca e tieni premuta una lingua per renderla predefinita.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -600,4 +678,260 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Richiedi un tema su GitHub';
+
+  @override
+  String get exportEntry => 'Esporta';
+
+  @override
+  String get exportEntryTitle => 'Esporta la voce';
+
+  @override
+  String get exportIncludeAudio => 'Includi l\'audio';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'Un file di testo per voce, più un .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Note con proprietà e audio incorporato.';
+
+  @override
+  String get exportFormatWeb => 'Sito web';
+
+  @override
+  String get exportFormatWebNote => 'Si apre in ogni browser, con player.';
+
+  @override
+  String get exportFailedTitle => 'Esportazione non riuscita';
+
+  @override
+  String get exportFailedBody => 'Impossibile preparare i file. Non è stato condiviso nulla.';
+
+  @override
+  String get exportUntitled => 'Senza titolo';
+
+  @override
+  String get exportTranscriptHeading => 'Trascrizione';
+
+  @override
+  String get exportQuiet => 'Un periodo tranquillo.';
+
+  @override
+  String get settingsBackup => 'Backup';
+
+  @override
+  String get backupInfo =>
+      'Un backup contiene ogni voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Un backup contiene tutte le $count voci con il loro audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
+      one:
+          'Un backup contiene la tua unica voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
+      zero:
+          'Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Esporta il diario';
+
+  @override
+  String get backupExportInfo =>
+      'Scrive ogni voce nel formato scelto, audio incluso, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
+
+  @override
+  String get backupSeal => 'Cifra con passphrase';
+
+  @override
+  String get backupSave => 'Salva backup';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Ultimo backup $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Cifra il backup';
+
+  @override
+  String get passphraseCreateBody =>
+      'La passphrase è l\'unica chiave. Non viene salvata da nessuna parte; senza, il backup è rumore.';
+
+  @override
+  String get passphrasePlaceholder => 'Passphrase';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Ripeti la passphrase';
+
+  @override
+  String get passphraseTooShort => 'Almeno 8 caratteri';
+
+  @override
+  String get passphraseMismatch => 'Le passphrase non coincidono';
+
+  @override
+  String get importUnlockTitle => 'Backup cifrato';
+
+  @override
+  String get importUnlockBody => 'Inserisci la passphrase con cui questo backup è stato cifrato.';
+
+  @override
+  String get importUnlock => 'Sblocca';
+
+  @override
+  String get importWrongPassphrase =>
+      'Impossibile sbloccare. Passphrase errata o file danneggiato.';
+
+  @override
+  String get importConfirmTitle => 'Ripristinare questo backup?';
+
+  @override
+  String get importConfirmBody =>
+      'Aggiunge le sue voci al tuo diario. Ripristinare due volte lo stesso backup non duplica mai.';
+
+  @override
+  String get importConfirm => 'Ripristina';
+
+  @override
+  String get importSummaryTitle => 'Ripristino completato';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci ripristinate.',
+      one: '1 voce ripristinata.',
+      zero: 'Niente di nuovo da ripristinare.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci erano già nel diario.',
+      one: '1 voce era già nel diario.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Ripristino non riuscito';
+
+  @override
+  String get importFailedBody =>
+      'Impossibile leggere il backup. Nulla nel diario è stato modificato.';
+
+  @override
+  String get importNotArchive =>
+      'Non è un backup OpenTranscribe. Nulla nel diario è stato modificato.';
+
+  @override
+  String get importNewerVersion =>
+      'Creato da una versione più recente dell\'app. Aggiorna per importarlo.';
+
+  @override
+  String get importRezipped =>
+      'Questo backup è stato ri-zippato da un altro strumento. Salvane uno nuovo e ripristina quello.';
+
+  @override
+  String get done => 'Fine';
+
+  @override
+  String get importFailedMidway =>
+      'Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.';
+
+  @override
+  String get supportGateBody =>
+      'Le esportazioni formattate sono per i membri del club. Il backup resta gratuito per tutti.';
+
+  @override
+  String get settingsSupport => 'Sostieni';
+
+  @override
+  String get supportGateAction => 'Diventa membro del club';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe è gratuito e privato, e sostenerlo lo mantiene così. Entrare nel club è un solo pagamento, per sempre.';
+
+  @override
+  String get supportPerkExports => 'Esportazioni formattate';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian o un sito web.';
+
+  @override
+  String get supportPerkFuture => 'Future funzioni del club';
+
+  @override
+  String get supportPerkFutureNote => 'Ciò che arriverà al club, incluso.';
+
+  @override
+  String get supportThanks => 'Sei nel club per sempre. Grazie.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Entra nel club per $price';
+  }
+
+  @override
+  String get supportRestore => 'Ripristina acquisti';
+
+  @override
+  String get supportUnreachable =>
+      'Impossibile raggiungere l\'App Store. Riapri questa schermata per riprovare.';
+
+  @override
+  String get supportPending =>
+      'In attesa di approvazione. L\'acquisto si completa una volta approvato.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Niente da ripristinare';
+
+  @override
+  String get supportRestoreNoneBody => 'Nessun acquisto del club è associato a questo ID Apple.';
+
+  @override
+  String get supportFailedTitle => 'Non è andata a buon fine';
+
+  @override
+  String get supportFailedBody => 'L\'App Store non è riuscito a completare. Riprova.';
+
+  @override
+  String get supportPrivacy => 'informativa sulla privacy';
+
+  @override
+  String get supportTerms => 'condizioni d\'uso';
+
+  @override
+  String get supportUnlocksSection => 'Per i membri del club';
+
+  @override
+  String get supportMemberUnlocks => 'Cosa ottieni';
+
+  @override
+  String get supporterTag => 'Club';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono, come indicato nella $privacy, e l\'acquisto segue le $terms standard di Apple.';
+  }
 }

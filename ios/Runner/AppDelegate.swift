@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import transcriber
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -16,23 +17,27 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     let registry = engineBridge.pluginRegistry
     GeneratedPluginRegistrant.register(with: registry)
-    if let registrar = registry.registrar(forPlugin: "AudioRecorderPlugin") {
-      AudioRecorderPlugin.register(with: registrar)
-    }
-    if let registrar = registry.registrar(forPlugin: "SpeechEnginePlugin") {
-      SpeechEnginePlugin.register(with: registrar)
-    }
-    if let registrar = registry.registrar(forPlugin: "AudioPlayerPlugin") {
-      AudioPlayerPlugin.register(with: registrar)
-    }
-    if let registrar = registry.registrar(forPlugin: "ReflectionEnginePlugin") {
-      ReflectionEnginePlugin.register(with: registrar)
+    // The island mirrors capture state; the plugin fires this after Dart.
+    TranscriberPlugin.recordingStatusObserver = { status in
+      RecordingLiveActivityController.shared.handle(status)
     }
     if let registrar = registry.registrar(forPlugin: "NotificationsPlugin") {
       NotificationsPlugin.register(with: registrar)
     }
     if let registrar = registry.registrar(forPlugin: "StorageKeyPlugin") {
       StorageKeyPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "ShareExportPlugin") {
+      ShareExportPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "SplashHandoffPlugin") {
+      SplashHandoffPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "IntentActionsPlugin") {
+      IntentActionsPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "SupportStorePlugin") {
+      SupportStorePlugin.register(with: registrar)
     }
   }
 }

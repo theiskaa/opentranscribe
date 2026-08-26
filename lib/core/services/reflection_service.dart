@@ -5,12 +5,11 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 // The collaborators are private (the service owns them) and named parameters
 // cannot be private, so initializing formals do not apply.
@@ -72,11 +71,73 @@ class ReflectionService {
   /// relaunch; a timeout instead reads as the transient could-not-run.
   final Duration _reflectTimeout;
 
+  /// Starts currently generating, keyed `'${period.wire}:${Reflection.keyFor(start)}'`.
+  /// [regenerate] and [_catchUpPeriod] both call through [_reflectPeriod], so
+  /// this set is the single source of "who is generating what": a start
+  /// already generating is skipped rather than run twice, its own save covers
+  /// the request that was skipped, and catch-up's next pass reconsiders
+  /// anything it left alone.
+  final Set<String> _generating = {};
+
   final StreamController<void> _changed = StreamController<void>.broadcast();
 
   /// Fires whenever a reflection is written, regenerated, or deleted, so a
   /// surface can refresh its history.
   Stream<void> get reflectionsChanged => _changed.stream;
+
+  /// The archive-fidelity read: rows, tombstones, and the per-period
+  /// no-backfill floors. Tombstones and floors ride along because they are
+  /// what make a restore honest: without tombstones the catch-up re-reflects
+  /// erased periods, and without floors it either backfills nothing or churns
+  /// pre-feature history.
+  ReflectionArchive archiveSnapshot() => ReflectionArchive(
+    rows: _store.all(),
+    tombstones: _store.deletedRefs(),
+    floors: {
+      for (final period in ReflectionPeriod.values)
+        if (_settings.floorRecordedFor(period) && _settings.floorFor(period) != null)
+          period: _settings.floorFor(period)!,
+    },
+  );
+
+  /// Applies an archive's reflection state, keeping this service the one
+  /// writer: rows overwrite by (period, start) and clear any local tombstone;
+  /// tombstones erase, skipped when the same archive carries a row for the
+  /// key (rows are data, and an inconsistent archive must resolve
+  /// deterministically); a floor only ever moves EARLIER, since an earlier
+  /// floor is more history legitimately reflectable and a later one would
+  /// silently orphan reflectable periods. Idempotent: re-applying the same
+  /// archive changes nothing. Fires [reflectionsChanged] once when anything
+  /// changed; returns how many rows, tombstones and floors were applied.
+  Future<int> adoptImportedReflections(ReflectionArchive archive) async {
+    var applied = 0;
+    final rowKeys = {for (final row in archive.rows) (row.period, row.periodKey)};
+    for (final row in archive.rows) {
+      if (_store.read(row.periodStart, period: row.period) == row) continue;
+      await _store.save(row);
+      applied++;
+    }
+    final erased = {
+      for (final ref in _store.deletedRefs()) (ref.period, Reflection.keyFor(ref.start)),
+    };
+    for (final tombstone in archive.tombstones) {
+      final key = (tombstone.period, Reflection.keyFor(tombstone.start));
+      if (rowKeys.contains(key)) continue;
+      final hasRow = _store.read(tombstone.start, period: tombstone.period) != null;
+      if (!hasRow && erased.contains(key)) continue;
+      await _store.delete(tombstone.start, period: tombstone.period);
+      applied++;
+    }
+    for (final floor in archive.floors.entries) {
+      final local = _settings.floorFor(floor.key);
+      final recorded = _settings.floorRecordedFor(floor.key);
+      if (recorded && local != null && !floor.value.isBefore(local)) continue;
+      await _settings.setFloorFor(floor.key, floor.value);
+      applied++;
+    }
+    if (applied > 0 && !_changed.isClosed) _changed.add(null);
+    return applied;
+  }
 
   /// Single-flights [catchUp]: a resume racing the launch kick must not run
   /// twice. A call landing mid-flight is coalesced into one trailing pass, so
@@ -154,13 +215,14 @@ class ReflectionService {
   /// a backlog and self-hides once drained.
   bool hasBacklog() {
     final stored = _store.all();
+    final deleted = _store.deletedRefs();
     for (final period in ReflectionPeriod.values) {
       if (!_settings.enabledFor(period)) continue;
       final current = _currentStart(period);
       for (final start in journaledStartsFor(period)) {
         if (!start.isBefore(current)) continue;
         if (_covered(period, start, stored)) continue;
-        if (_tombstoned(period, start)) continue;
+        if (_tombstoned(period, start, deleted)) continue;
         return true;
       }
     }
@@ -211,7 +273,7 @@ class ReflectionService {
       if (_covered(period, start, _store.all())) continue;
       // An erased period stays erased: the user's delete must not be overruled
       // by the next open re-reflecting a period whose entries still exist.
-      if (_tombstoned(period, start)) continue;
+      if (_tombstoned(period, start, _store.deletedRefs())) continue;
       try {
         await _reflectPeriod(period, start, byStart[start]!);
       } on ReflectionUnavailable {
@@ -272,9 +334,13 @@ class ReflectionService {
   bool _covered(ReflectionPeriod period, DateTime start, List<Reflection> stored) =>
       stored.any((r) => r.period == period && periodsOverlap(start, r.periodStart, period));
 
-  /// Whether a user erasure of [period] covers [start]'s range.
-  bool _tombstoned(ReflectionPeriod period, DateTime start) =>
-      _store.deletedRefs().any((d) => d.period == period && periodsOverlap(start, d.start, period));
+  /// Whether a user erasure of [period] covers [start]'s range, judged against
+  /// [deleted].
+  bool _tombstoned(
+    ReflectionPeriod period,
+    DateTime start,
+    List<({ReflectionPeriod period, DateTime start})> deleted,
+  ) => deleted.any((d) => d.period == period && periodsOverlap(start, d.start, period));
 
   /// [period]'s stored history, newest first, for the surfaces. The store stays
   /// private so every write goes through this service.
@@ -333,41 +399,52 @@ class ReflectionService {
     List<Entry> entries, {
     bool force = false,
   }) async {
-    final inputs = _inputsFor(period, entries);
-    // Nothing transcribed to read. On catch-up, leave the period unreflected so
-    // a later transcription can still produce one. On an explicit regenerate,
-    // the user asked, so record an honest silence.
-    if (inputs.isEmpty && !force) return;
+    // Checked before any side effect (a floor write, a style read): a start
+    // already generating is skipped outright, not merely deduplicated at the
+    // save.
+    final key = '${period.wire}:${Reflection.keyFor(start)}';
+    if (_generating.contains(key)) return;
+    _generating.add(key);
+    try {
+      final inputs = _inputsFor(period, entries);
+      // Nothing transcribed to read. On catch-up, leave the period unreflected
+      // so a later transcription can still produce one. On an explicit
+      // regenerate, the user asked, so record an honest silence.
+      if (inputs.isEmpty && !force) return;
 
-    // Read the style ONCE, before the await, so the persisted voice is the one
-    // the text was actually generated with even if a setting changes mid-run.
-    final style = _settings.styleFor(period);
-    final erased = _tombstoned(period, start);
-    final text = inputs.isEmpty
-        ? null
-        : await _engine
-              .reflect(period: period, entries: inputs, style: style, localeId: _language())
-              .timeout(
-                _reflectTimeout,
-                onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
-              );
+      // Read the style ONCE, before the await, so the persisted voice is the
+      // one the text was actually generated with even if a setting changes
+      // mid-run.
+      final style = _settings.styleFor(period);
+      final erased = _tombstoned(period, start, _store.deletedRefs());
+      final text = inputs.isEmpty
+          ? null
+          : await _engine
+                .reflect(period: period, entries: inputs, style: style, localeId: _language())
+                .timeout(
+                  _reflectTimeout,
+                  onTimeout: () => throw const ReflectionUnavailable('generation timed out'),
+                );
 
-    // A delete that landed during the generation wins: saving now would clear
-    // the tombstone the user just wrote and resurrect the period. A tombstone
-    // that predates the run is a regenerate of an erased period, which the user
-    // asked for, so that one saves through.
-    if (!erased && _tombstoned(period, start)) return;
+      // A delete that landed during the generation wins: saving now would
+      // clear the tombstone the user just wrote and resurrect the period. A
+      // tombstone that predates the run is a regenerate of an erased period,
+      // which the user asked for, so that one saves through.
+      if (!erased && _tombstoned(period, start, _store.deletedRefs())) return;
 
-    await _store.save(
-      Reflection(
-        period: period,
-        periodStart: start,
-        generatedAt: _clock(),
-        text: text,
-        voice: style.voice,
-      ),
-    );
-    _emitChanged();
+      await _store.save(
+        Reflection(
+          period: period,
+          periodStart: start,
+          generatedAt: _clock(),
+          text: text,
+          voice: style.voice,
+        ),
+      );
+      _emitChanged();
+    } finally {
+      _generating.remove(key);
+    }
   }
 
   Map<DateTime, List<Entry>> _entriesByPeriod(ReflectionPeriod period) {
@@ -394,8 +471,8 @@ class ReflectionService {
       period == ReflectionPeriod.weekly ? _weekOf(day) : startOfPeriod(day, period);
 
   /// The one material test, shared by generation and the surfaces: an entry
-  /// counts only once it carries transcribed text.
-  static bool _hasMaterial(Entry e) => e.transcript?.fullText.trim().isNotEmpty ?? false;
+  /// counts only once it carries readable text, transcribed or typed.
+  static bool _hasMaterial(Entry e) => e.readableText?.trim().isNotEmpty ?? false;
 
   /// The period's entries as the engine sees them: chronological, material only,
   /// each tagged with the civil date it was recorded on; the whole is capped to
@@ -407,7 +484,7 @@ class ReflectionService {
         if (_hasMaterial(e))
           ReflectionEntryInput(
             date: dateOnly(e.createdAt.toLocal()),
-            text: e.transcript!.fullText.trim(),
+            text: e.readableText!.trim(),
             title: e.title,
           ),
     ]);
@@ -516,4 +593,21 @@ class ReflectionService {
   }
 
   Future<void> dispose() => _changed.close();
+}
+
+/// Everything an archive carries about reflections: the stored rows, the
+/// user's erasures, and where each period's backfill legitimately stops.
+@immutable
+final class ReflectionArchive {
+  ReflectionArchive({
+    required List<Reflection> rows,
+    required List<({ReflectionPeriod period, DateTime start})> tombstones,
+    required Map<ReflectionPeriod, DateTime> floors,
+  }) : rows = List.unmodifiable(rows),
+       tombstones = List.unmodifiable(tombstones),
+       floors = Map.unmodifiable(floors);
+
+  final List<Reflection> rows;
+  final List<({ReflectionPeriod period, DateTime start})> tombstones;
+  final Map<ReflectionPeriod, DateTime> floors;
 }

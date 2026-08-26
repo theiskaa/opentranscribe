@@ -128,12 +128,16 @@ class _PullToRecordHintState extends State<PullToRecordHint> with TickerProvider
   static const double _parallax = 0.5;
   static const double _travel = 44;
 
-  late final AnimationController _phase = AnimationController(vsync: this);
+  /// Built here rather than lazily: a hint that is disposed without ever having
+  /// been pulled would otherwise construct its controller inside [dispose], where
+  /// asking for a ticker reads an ancestor that is already deactivated.
+  late final AnimationController _phase;
   bool _waving = false;
 
   @override
   void initState() {
     super.initState();
+    _phase = AnimationController(vsync: this);
     widget.pull.addListener(_onPull);
   }
 

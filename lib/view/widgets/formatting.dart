@@ -2,9 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:reflections/reflections.dart';
 
 /// The one place display formatting for entries lives, so every surface renders
 /// the same shapes. Date formats take an explicit locale so they render in the

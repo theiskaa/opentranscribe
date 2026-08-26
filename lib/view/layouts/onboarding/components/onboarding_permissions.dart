@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/audio/recording.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -14,6 +13,7 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_row
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Permissions step: primes microphone and speech recognition, both on-device.
 /// The rows carry no controls of their own - the screen's Next button fires the

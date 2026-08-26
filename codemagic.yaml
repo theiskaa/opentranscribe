@@ -33,21 +33,19 @@ workflows:
       xcode: latest
     # No automatic triggering: this workflow is started ON DEMAND from the
     # Codemagic UI ("Start new build" -> pick this workflow + the main branch).
-    # Each run queries TestFlight and ships the next build number for the current
-    # pubspec version, so 0.1.0 iterates as (1), (2), (3)... with no version bump
-    # and no git tag. Bump `version:` in pubspec.yaml when you want a new line.
+    # Each run queries TestFlight and ships the next build number app-wide, so
+    # builds climb 1, 2, 3... across every version and a bump in pubspec.yaml
+    # never restarts the count. No version bump and no git tag are required to
+    # ship again.
     # Because nothing here fires on a PR, secrets are never exposed to fork code.
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Analyze
-        script: flutter analyze
-      # Vendored packages/liquid keeps its arrival formatting (see its
-      # analysis_options.yaml), so the check covers the app's own code.
-      - name: Check formatting
-        script: dart format --output=none --set-exit-if-changed lib test
-      - name: Test
-        script: flutter test
+      # Analyzes, format-checks, and tests the app and every package under
+      # packages/ (liquid keeps its own vendored formatting, so it is skipped
+      # by the format-check but still tested); see tool/checks.sh.
+      - name: Run checks
+        script: ./tool/checks.sh
       - name: Set up keychain
         script: keychain initialize
       - name: Create or fetch the App Store signing files
@@ -70,14 +68,29 @@ workflows:
       - name: Build signed IPA
         script: |
           # Version (build-name) is the source of truth in pubspec.yaml, e.g.
-          # "version: 0.1.0+1" -> 0.1.0. Build numbers are scoped PER VERSION:
-          # query the latest build already on TestFlight for THIS version and add
-          # one, so 0.1.0 can ship as build 1, 2, 3... and a new version starts
-          # its own count at 1. The "|| echo 0" handles a version with no builds
-          # yet (the lookup returns nothing) without failing the script.
+          # "version: 0.2.0+1" -> 0.2.0; the "+1" is for local builds only and
+          # is ignored here.
+          #
+          # get-latest-build-number, NOT the testflight one: it spans App Store
+          # and TestFlight together, so a build already released (and no longer
+          # listed in TestFlight) still counts and cannot be handed out twice.
+          # --all-versions drops the default "highest version" scoping, which
+          # would restart the count at 1 the first time a version bump ships.
+          # Anything but a number here is a broken lookup (--all-versions needs
+          # cli-tools 0.67.0, the action itself 0.35.0; credentials can lapse),
+          # and a build number guessed from a broken lookup uploads as the
+          # wrong build. Refuse instead, with the CLI version already in the log
+          # to say which it was.
           BUILD_NAME=$(grep '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//; s/\+.*//')
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --pre-release-version="$BUILD_NAME" 2>/dev/null || echo 0)
-          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+          app-store-connect --version
+          LATEST=$(app-store-connect get-latest-build-number --all-versions --platform IOS "$APP_STORE_APPLE_ID")
+          case "$LATEST" in
+            '' | *[!0-9]*)
+              echo "Latest build number lookup answered '$LATEST'; refusing to guess"
+              exit 1
+              ;;
+          esac
+          BUILD_NUMBER=$(( LATEST + 1 ))
           echo "Building $BUILD_NAME ($BUILD_NUMBER)"
           flutter build ipa --release \
             --build-name="$BUILD_NAME" \
@@ -114,11 +127,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Analyze
-        script: flutter analyze
-      # Vendored packages/liquid keeps its arrival formatting (see its
-      # analysis_options.yaml), so the check covers the app's own code.
-      - name: Check formatting
-        script: dart format --output=none --set-exit-if-changed lib test
-      - name: Test
-        script: flutter test
+      # Analyzes, format-checks, and tests the app and every package under
+      # packages/ (liquid keeps its own vendored formatting, so it is skipped
+      # by the format-check but still tested); see tool/checks.sh.
+      - name: Run checks
+        script: ./tool/checks.sh

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:reflections/reflections.dart';
 
 Reflection reflection(
   DateTime start, {

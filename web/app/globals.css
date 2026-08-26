@@ -170,9 +170,22 @@ button:focus-visible {
 .boot-3 { animation-delay: 0.29s; }
 .boot-4 { animation-delay: 0.41s; }
 
+@keyframes doc-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes doc-panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+.doc-scrim { animation: doc-scrim-in 0.18s var(--ease-out) both; }
+.doc-panel { animation: doc-panel-in 0.24s var(--ease-out) both; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .boot { animation: none; opacity: 1; }
+  .doc-scrim,
+  .doc-panel { animation: none; }
   .btn:active,
   .btn-ghost:active { transform: none; }
   .reveal,

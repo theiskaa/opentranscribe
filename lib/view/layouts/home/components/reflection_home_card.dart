@@ -1,16 +1,17 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:reflections/reflections.dart';
 
 /// A card's identity in the home timeline: its period and start, so a day, its
 /// week, and its month are distinct even when they share a start date.

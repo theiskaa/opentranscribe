@@ -5,15 +5,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/reflect/fake_reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
-import 'package:opentranscribe/core/reflect/reflection_exception.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:reflections/reflections.dart';
+import 'package:reflections/testing.dart';
 
 import '../../support/reflection_fixtures.dart';
 
@@ -125,6 +122,26 @@ void main() {
       expect(engine.lastStyle, ReflectionStyle.defaults);
       expect(engine.lastLocaleId, 'en');
       expect(engine.lastPeriod, ReflectionPeriod.weekly);
+    });
+
+    test('inputs read the hand edit, and an edit over silence is material', () async {
+      entries = [
+        withText(
+          'a',
+          DateTime(2026, 7, 22, 12),
+          text: 'wrong words',
+        ).withRevisions([Revision(text: 'right words', at: now)]),
+        withText(
+          'b',
+          DateTime(2026, 7, 23, 12),
+          text: '',
+        ).withRevisions([Revision(text: 'typed in', at: now)]),
+      ];
+      engine.output = 'a week';
+
+      await service.catchUp();
+
+      expect(engine.lastEntries!.map((e) => e.text), ['right words', 'typed in']);
     });
 
     test('silence is stored as a quiet week and never re-run', () async {
@@ -422,6 +439,22 @@ void main() {
 
       expect(engine.reflectCalls, 2);
       expect(store.read(twoWeeksAgo)!.text, 'the user version');
+    });
+
+    test('a start already generating is not generated twice', () async {
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final gate = Completer<void>();
+      engine.gate = gate.future;
+
+      final run = service.catchUp();
+      await untilParkedInReflect();
+
+      await service.regenerate(lastWeek);
+      gate.complete();
+      await run;
+
+      expect(engine.reflectCalls, 1);
+      expect(store.read(lastWeek)!.isSilent, isFalse);
     });
 
     test('buckets by the app language week, not the ambient Intl locale', () async {

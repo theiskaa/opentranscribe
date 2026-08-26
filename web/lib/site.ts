@@ -11,6 +11,7 @@ export const SITE_DESCRIPTION =
   "A voice journal for iOS with no network layer. Recording, transcription, and reflections all happen on the device. No account, no sync, no telemetry.";
 
 export const GITHUB_URL = "https://github.com/theiskaa/opentranscribe";
+export const GITHUB_RAW = "https://raw.githubusercontent.com/theiskaa/opentranscribe/main";
 export const APP_STORE_URL = "https://apps.apple.com/app/opentranscribe/id6794718941";
 
 export const FEATURES = [
@@ -65,6 +66,26 @@ export const FEATURES = [
     cap: "On-device language models",
   },
 ] as const;
+
+export const CLUB = {
+  price: "$25",
+  priceNote: "Once. No subscription.",
+  pitch: [
+    "OpenTranscribe is free and private, and supporting it keeps it that way. The club is an optional one-time purchase, made directly through the App Store with no purchase SDK, no account, and no server behind it.",
+    "Membership is verified on the device from Apple's own record, so it works in airplane mode, like everything else.",
+  ],
+  perksHead: "Club members get",
+  perks: [
+    {
+      title: "Formatted exports",
+      note: "The whole journal as Markdown, as Obsidian notes, or as a website that opens with a player in any browser.",
+    },
+    {
+      title: "Future club features",
+      note: "Whatever joins the club later, included.",
+    },
+  ],
+} as const;
 
 export const SHOTS = [
   { src: "/shots/home@2x.png", cap: "The week of entries" },

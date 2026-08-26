@@ -2,7 +2,7 @@ name: opentranscribe
 description: "A private, offline voice journal. Nothing leaves your phone."
 publish_to: "none"
 
-version: 0.1.0+1
+version: 0.2.0+1
 
 environment:
   sdk: ^3.12.2
@@ -24,12 +24,19 @@ dependencies:
   # someone else's releases of it.
   liquid:
     path: packages/liquid
+  # App-owned plugin: audio capture, playback, and on-device transcription.
+  transcriber:
+    path: packages/transcriber
+  # App-owned plugin: on-device reflection generation.
+  reflections:
+    path: packages/reflections
 
   shared_preferences: ^2.5.4
   encrypt: ^5.0.3
   pointycastle: ^3.9.1
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.1
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:

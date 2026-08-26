@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 36-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 43-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -42,6 +42,9 @@ abstract final class AppIcons {
   /// SF Symbol `chevron.forward`.
   static const IconData chevronForward = IconData(0x100BFB, fontFamily: _family);
 
+  /// SF Symbol `clock.arrow.circlepath` (the history clock).
+  static const IconData clockHistory = IconData(0x1008D4, fontFamily: _family);
+
   /// SF Symbol `document.on.document`.
   static const IconData docOnDoc = IconData(0x100241, fontFamily: _family);
 
@@ -51,14 +54,11 @@ abstract final class AppIcons {
   /// SF Symbol `gearshape.fill`.
   static const IconData gearshapeFill = IconData(0x1008CC, fontFamily: _family);
 
-  /// SF Symbol `globe`.
-  static const IconData globe = IconData(0x1001AA, fontFamily: _family);
-
-  /// SF Symbol `magnifyingglass`.
-  static const IconData magnifyingglass = IconData(0x1002AB, fontFamily: _family);
-
   /// SF Symbol `gearshape` (the outline gear).
   static const IconData gearshape = IconData(0x1008CB, fontFamily: _family);
+
+  /// SF Symbol `globe`.
+  static const IconData globe = IconData(0x1001AA, fontFamily: _family);
 
   /// SF Symbol `house.fill`.
   static const IconData houseFill = IconData(0x10039F, fontFamily: _family);
@@ -66,8 +66,20 @@ abstract final class AppIcons {
   /// SF Symbol `icloud`.
   static const IconData icloud = IconData(0x10030B, fontFamily: _family);
 
+  /// SF Symbol `heart` (the support surfaces).
+  static const IconData heart = IconData(0x1002B4, fontFamily: _family);
+
+  /// SF Symbol `heart.fill` (the join button).
+  static const IconData heartFill = IconData(0x1002B5, fontFamily: _family);
+
   /// SF Symbol `internaldrive`.
   static const IconData internaldrive = IconData(0x10097E, fontFamily: _family);
+
+  /// SF Symbol `lock`.
+  static const IconData lock = IconData(0x1003A0, fontFamily: _family);
+
+  /// SF Symbol `magnifyingglass`.
+  static const IconData magnifyingglass = IconData(0x1002AB, fontFamily: _family);
 
   /// SF Symbol `microphone`.
   static const IconData mic = IconData(0x1002B0, fontFamily: _family);
@@ -81,6 +93,9 @@ abstract final class AppIcons {
   /// SF Symbol `pause.fill`.
   static const IconData pauseFill = IconData(0x100286, fontFamily: _family);
 
+  /// SF Symbol `pencil`.
+  static const IconData pencil = IconData(0x10020A, fontFamily: _family);
+
   /// SF Symbol `play.fill`.
   static const IconData playFill = IconData(0x100284, fontFamily: _family);
 
@@ -89,6 +104,12 @@ abstract final class AppIcons {
 
   /// SF Symbol `sparkles`.
   static const IconData sparkles = IconData(0x1001BF, fontFamily: _family);
+
+  /// SF Symbol `square.and.arrow.down`.
+  static const IconData squareAndArrowDown = IconData(0x100204, fontFamily: _family);
+
+  /// SF Symbol `square.and.arrow.up`.
+  static const IconData squareAndArrowUp = IconData(0x100202, fontFamily: _family);
 
   /// SF Symbol `square.fill`.
   static const IconData squareFill = IconData(0x100093, fontFamily: _family);
@@ -132,22 +153,29 @@ abstract final class AppIcons {
         0x100185: 'checkmark',
         0x100BF6: 'chevron.backward',
         0x100BFB: 'chevron.forward',
+        0x1008D4: 'clock.arrow.circlepath',
         0x100241: 'doc.on.doc',
         0x100360: 'ellipsis',
         0x1008CB: 'gearshape',
         0x1008CC: 'gearshape.fill',
         0x1001AA: 'globe',
+        0x1002B4: 'heart',
+        0x1002B5: 'heart.fill',
         0x10039F: 'house.fill',
         0x10030B: 'icloud',
         0x10097E: 'internaldrive',
+        0x1003A0: 'lock',
         0x1002AB: 'magnifyingglass',
         0x1002B0: 'mic',
         0x1002B1: 'mic.fill',
         0x1001BA: 'moon.fill',
         0x100286: 'pause.fill',
+        0x10020A: 'pencil',
         0x100284: 'play.fill',
         0x100306: 'slider.horizontal.3',
         0x1001BF: 'sparkles',
+        0x100204: 'square.and.arrow.down',
+        0x100202: 'square.and.arrow.up',
         0x100093: 'square.fill',
         0x1006F7: 'stop.fill',
         0x1001AD: 'sun.max',

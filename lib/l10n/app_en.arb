@@ -4,9 +4,13 @@
   "@appTitle": {
     "description": "The title of the application"
   },
-  "settingsOffline": "Everything stays on this device. No account, no cloud, no network.",
-  "@settingsOffline": {
-    "description": "Settings note describing the offline promise"
+  "launchFailedTitle": "Could not start",
+  "@launchFailedTitle": {
+    "description": "Title of the screen shown when startup failed before the app was ready to open"
+  },
+  "launchFailedBody": "Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.",
+  "@launchFailedBody": {
+    "description": "What the user can do about a failed startup. 'App switcher' is the iOS App Switcher; use Apple's official term for it in this locale"
   },
   "entryUntranscribed": "Untranscribed",
   "@entryUntranscribed": {
@@ -83,6 +87,30 @@
   "rename": "Rename",
   "@rename": {
     "description": "Action that renames an entry"
+  },
+  "editTranscript": "Edit",
+  "@editTranscript": {
+    "description": "Action that opens the transcript for hand editing"
+  },
+  "editedMarker": "Edited",
+  "@editedMarker": {
+    "description": "Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision"
+  },
+  "revisionHistory": "History",
+  "@revisionHistory": {
+    "description": "Action that opens the entry's revision history"
+  },
+  "revisionHistoryBody": "Everything this entry's text has been through. Tapping a version restores it as the newest.",
+  "@revisionHistoryBody": {
+    "description": "Body of the revision history sheet"
+  },
+  "revisionCurrent": "Current",
+  "@revisionCurrent": {
+    "description": "Tag on the revision the entry currently reads as"
+  },
+  "revisionTranscribed": "Transcribed",
+  "@revisionTranscribed": {
+    "description": "Origin label of a revision an engine produced"
   },
   "transcribe": "Transcribe",
   "@transcribe": {
@@ -196,10 +224,6 @@
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
   },
-  "transcriptionInfo": "Each language runs its own on-device model, downloaded once and shared with the system; models don't count against this app's storage. The system limits how many languages an app can keep ready at once.",
-  "@transcriptionInfo": {
-    "description": "Header of the transcription screen: the on-device and shared-asset promise"
-  },
   "transcriptionCap": "{used} of {max} language slots used",
   "@transcriptionCap": {
     "description": "Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)",
@@ -212,13 +236,13 @@
       }
     }
   },
-  "transcriptionRemoveHint": "Swipe left on a language to remove it.",
-  "@transcriptionRemoveHint": {
-    "description": "Footer hint for the swipe-to-remove gesture"
-  },
   "transcriptionErrorUnsupported": "This language can't be downloaded on this device yet.",
   "@transcriptionErrorUnsupported": {
     "description": "Row failure line when the platform has no asset to serve"
+  },
+  "languageNeedsDictation": "Turn on dictation for this language in iOS keyboard settings.",
+  "@languageNeedsDictation": {
+    "description": "Row note under a language the dictation engine cannot run because the system dictation model is missing"
   },
   "transcriptionErrorStuck": "A previous download is still pending. The system retries when conditions improve; trying again is safe.",
   "@transcriptionErrorStuck": {
@@ -270,6 +294,19 @@
       }
     }
   },
+  "modelFailDictationTitle": "Dictation isn't set up",
+  "@modelFailDictationTitle": {
+    "description": "Sheet title for a language the dictation engine cannot run because the system model is missing"
+  },
+  "modelFailDictationBody": "{language} transcribes with the system's dictation model, which isn't on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.",
+  "@modelFailDictationBody": {
+    "description": "Sheet body for that language; the recovery is the iOS dictation setting",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
   "modelFailStuckTitle": "Still downloading",
   "@modelFailStuckTitle": {
     "description": "Failure sheet title when an earlier system download is still pending"
@@ -313,17 +350,87 @@
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
-  "transcriptionLanguages": "Languages",
-  "@transcriptionLanguages": {
-    "description": "Section label over the per-language model list on the models screen"
+  "transcriptionYourLanguages": "Your languages",
+  "@transcriptionYourLanguages": {
+    "description": "Section label over the kept languages in the language sheet"
+  },
+  "transcriptionAllLanguages": "All languages",
+  "@transcriptionAllLanguages": {
+    "description": "Section label over the remaining library in the language sheet"
+  },
+  "transcriptionSpeaking": "Speaking",
+  "@transcriptionSpeaking": {
+    "description": "Section label over the default-language hero card"
+  },
+  "transcriptionAlsoReady": "Also ready",
+  "@transcriptionAlsoReady": {
+    "description": "Section label over the kept-language chip strip"
+  },
+  "transcriptionAddLanguage": "Add",
+  "@transcriptionAddLanguage": {
+    "description": "The chip opening the language sheet"
+  },
+  "transcriptionHeroReady": "Ready · {engine}",
+  "@transcriptionHeroReady": {
+    "description": "Hero status line for a ready default language, naming the active engine",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionFootnote": "Models download once and are shared with the system.",
+  "@transcriptionFootnote": {
+    "description": "The one footnote under the transcription screen"
+  },
+  "transcriptionEngines": "Engines",
+  "@transcriptionEngines": {
+    "description": "Section label over the engine picker on the models screen"
+  },
+  "engineBlurbSpeechAnalyzer": "Apple's newest engine, a downloaded model per language",
+  "@engineBlurbSpeechAnalyzer": {
+    "description": "One-line explanation under the SpeechAnalyzer engine row"
+  },
+  "engineBlurbDictation": "The recognizer behind iOS keyboard dictation",
+  "@engineBlurbDictation": {
+    "description": "One-line explanation under the Dictation engine row"
+  },
+  "engineUnavailableNote": "Not available on this iPhone",
+  "@engineUnavailableNote": {
+    "description": "Quiet note under a dimmed engine row this device cannot run"
+  },
+  "engineUnavailableTitle": "Not available on this iPhone",
+  "@engineUnavailableTitle": {
+    "description": "Sheet title for an engine this device cannot run"
+  },
+  "engineUnavailableBody": "{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.",
+  "@engineUnavailableBody": {
+    "description": "Sheet body for an engine this device cannot run",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "engineBusyTitle": "Recording in progress",
+  "@engineBusyTitle": {
+    "description": "Sheet title when an engine switch is refused mid-take"
+  },
+  "engineBusyBody": "Stop the current recording, then switch engines.",
+  "@engineBusyBody": {
+    "description": "Sheet body when an engine switch is refused mid-take"
+  },
+  "engineNotSavedTitle": "Couldn't save the choice",
+  "@engineNotSavedTitle": {
+    "description": "Sheet title when the engine choice failed to persist"
+  },
+  "engineNotSavedBody": "The engine choice couldn't be saved and won't survive a relaunch.",
+  "@engineNotSavedBody": {
+    "description": "Sheet body when the engine choice failed to persist"
   },
   "transcriptionDefaultTag": "Default",
   "@transcriptionDefaultTag": {
     "description": "Small tag on the language row currently set as the transcription default"
-  },
-  "transcriptionDefaultHint": "Touch and hold a language to make it the default.",
-  "@transcriptionDefaultHint": {
-    "description": "Footer hint for the hold-to-set-default gesture on the models screen"
   },
   "transcriptionDeviceLanguageFallback": "Your phone's language isn't supported for on-device transcription yet, so {fallback} is the default.",
   "@transcriptionDeviceLanguageFallback": {
@@ -756,5 +863,314 @@
   "themeRequestLink": "Request a theme on GitHub",
   "@themeRequestLink": {
     "description": "Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser"
+  },
+  "exportEntry": "Export",
+  "@exportEntry": {
+    "description": "Menu row and button label for exporting one entry"
+  },
+  "exportEntryTitle": "Export entry",
+  "@exportEntryTitle": {
+    "description": "Entry export sheet title"
+  },
+  "exportIncludeAudio": "Include audio",
+  "@exportIncludeAudio": {
+    "description": "Toggle for bundling the recording with an export"
+  },
+  "exportFormatMarkdown": "Markdown",
+  "@exportFormatMarkdown": {
+    "description": "Name of the Markdown export format. A format is named by its makers: keep it verbatim"
+  },
+  "exportFormatMarkdownNote": "One text file per entry, plus a .json.",
+  "@exportFormatMarkdownNote": {
+    "description": "One line under the Markdown format row saying what it writes"
+  },
+  "exportFormatObsidian": "Obsidian",
+  "@exportFormatObsidian": {
+    "description": "Name of the Obsidian export format. A product name: keep it verbatim"
+  },
+  "exportFormatObsidianNote": "Notes with properties, audio embedded.",
+  "@exportFormatObsidianNote": {
+    "description": "One line under the Obsidian format row saying what it writes"
+  },
+  "exportFormatWeb": "Website",
+  "@exportFormatWeb": {
+    "description": "The app's own name for the HTML export format; a plain noun, so it translates"
+  },
+  "exportFormatWebNote": "Opens in any browser, with a player.",
+  "@exportFormatWebNote": {
+    "description": "One line under the web page format row saying what it writes"
+  },
+  "exportFailedTitle": "Export failed",
+  "@exportFailedTitle": {
+    "description": "Export failure sheet title"
+  },
+  "exportFailedBody": "Could not prepare the files. Nothing was shared.",
+  "@exportFailedBody": {
+    "description": "Export failure explanation; nothing left the phone"
+  },
+  "exportUntitled": "Untitled",
+  "@exportUntitled": {
+    "description": "File and heading fallback for an entry with no title"
+  },
+  "exportTranscriptHeading": "Transcript",
+  "@exportTranscriptHeading": {
+    "description": "Markdown heading over the exported transcript"
+  },
+  "exportQuiet": "A quiet stretch.",
+  "@exportQuiet": {
+    "description": "How a silent reflection reads in an export"
+  },
+  "settingsBackup": "Backup",
+  "@settingsBackup": {
+    "description": "Home menu row opening the Backup screen"
+  },
+  "backupInfo": "A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.",
+  "@backupInfo": {
+    "description": "Backup screen intro: what a backup holds and what encryption does"
+  },
+  "backupInfoCount": "{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}",
+  "@backupInfoCount": {
+    "description": "The Backup screen intro once the entry count is measured",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupExportSection": "Export",
+  "@backupExportSection": {
+    "description": "Section label over the format picker and export row"
+  },
+  "backupExportJournal": "Export journal",
+  "@backupExportJournal": {
+    "description": "Action row exporting the whole journal in the chosen format"
+  },
+  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
+  "@backupExportInfo": {
+    "description": "Help paragraph under the export card"
+  },
+  "backupSeal": "Encrypt with passphrase",
+  "@backupSeal": {
+    "description": "Toggle for sealing archives with a passphrase"
+  },
+  "backupSave": "Save backup",
+  "@backupSave": {
+    "description": "The Backup section row that saves a backup file"
+  },
+  "backupLastBackup": "Last backup {date}",
+  "@backupLastBackup": {
+    "description": "Detail under Save backup showing when the last backup was handed off",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "passphraseCreateTitle": "Encrypt the backup",
+  "@passphraseCreateTitle": {
+    "description": "Sealing passphrase sheet title"
+  },
+  "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the backup is noise.",
+  "@passphraseCreateBody": {
+    "description": "Sealing passphrase sheet body: the passphrase is the only key"
+  },
+  "passphrasePlaceholder": "Passphrase",
+  "@passphrasePlaceholder": {
+    "description": "Passphrase field placeholder"
+  },
+  "passphraseRepeatPlaceholder": "Repeat passphrase",
+  "@passphraseRepeatPlaceholder": {
+    "description": "Confirmation field placeholder"
+  },
+  "passphraseTooShort": "At least 8 characters",
+  "@passphraseTooShort": {
+    "description": "Footnote while the passphrase is under the minimum length"
+  },
+  "passphraseMismatch": "Passphrases do not match",
+  "@passphraseMismatch": {
+    "description": "Footnote while the two passphrase fields differ"
+  },
+  "importUnlockTitle": "Encrypted backup",
+  "@importUnlockTitle": {
+    "description": "Unlock sheet title for a sealed archive"
+  },
+  "importUnlockBody": "Enter the passphrase this backup was encrypted with.",
+  "@importUnlockBody": {
+    "description": "Unlock sheet body asking for the sealing passphrase"
+  },
+  "importUnlock": "Unlock",
+  "@importUnlock": {
+    "description": "Unlock sheet action button"
+  },
+  "importWrongPassphrase": "Could not unlock. Wrong passphrase, or a damaged file.",
+  "@importWrongPassphrase": {
+    "description": "Unlock retry error; GCM cannot tell wrong passphrase from damage"
+  },
+  "importConfirmTitle": "Restore this backup?",
+  "@importConfirmTitle": {
+    "description": "Import confirmation sheet title"
+  },
+  "importConfirmBody": "Adds its entries to your journal. Restoring the same backup twice never duplicates.",
+  "@importConfirmBody": {
+    "description": "Import confirmation body: additive, nothing touched"
+  },
+  "importConfirm": "Restore",
+  "@importConfirm": {
+    "description": "Import confirmation action button"
+  },
+  "importSummaryTitle": "Restore complete",
+  "@importSummaryTitle": {
+    "description": "Import summary sheet title"
+  },
+  "importSummaryImported": "{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}",
+  "@importSummaryImported": {
+    "description": "Summary line for how many entries were imported",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSummarySkipped": "{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}",
+  "@importSummarySkipped": {
+    "description": "Summary line for entries already present, shown only when some were",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailedTitle": "Restore failed",
+  "@importFailedTitle": {
+    "description": "Import failure sheet title"
+  },
+  "importFailedBody": "The backup could not be read. Nothing in the journal was changed.",
+  "@importFailedBody": {
+    "description": "Generic import failure body; journal unchanged"
+  },
+  "importNotArchive": "Not an OpenTranscribe backup. Nothing in the journal was changed.",
+  "@importNotArchive": {
+    "description": "Failure body for a file that is not an archive"
+  },
+  "importNewerVersion": "Made by a newer version of the app. Update to import it.",
+  "@importNewerVersion": {
+    "description": "Failure body for an archive from a newer app version"
+  },
+  "importRezipped": "This backup was re-zipped by another tool. Save a fresh one and restore that.",
+  "@importRezipped": {
+    "description": "Failure body for an archive re-compressed by another tool"
+  },
+  "done": "Done",
+  "@done": {
+    "description": "Generic dismiss button"
+  },
+  "importFailedMidway": "The restore stopped partway. Everything restored so far is kept; restore again to finish.",
+  "@importFailedMidway": {
+    "description": "Failure body when adoption already wrote; restored entries are kept"
+  },
+  "supportGateBody": "Formatted exports are for club members. The backup stays free for everyone.",
+  "@supportGateBody": {
+    "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
+  },
+  "settingsSupport": "Support",
+  "@settingsSupport": {
+    "description": "Home menu row opening the support screen"
+  },
+  "supportGateAction": "Become a club member",
+  "@supportGateAction": {
+    "description": "Gate sheet action that opens the support screen"
+  },
+  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
+  "@supportPitch": {
+    "description": "Support screen intro for a non-supporter"
+  },
+  "supportPerkExports": "Formatted exports",
+  "@supportPerkExports": {
+    "description": "Perk row label: the formatted exports"
+  },
+  "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
+  "@supportPerkExportsNote": {
+    "description": "Perk row note naming the formats; one line"
+  },
+  "supportPerkFuture": "Future club features",
+  "@supportPerkFuture": {
+    "description": "Perk row label: later club-only features are included"
+  },
+  "supportPerkFutureNote": "Whatever joins the club later, included.",
+  "@supportPerkFutureNote": {
+    "description": "Perk row note for future club features; one line"
+  },
+  "supportThanks": "You're in the club for good. Thank you.",
+  "@supportThanks": {
+    "description": "Support screen intro for a club member"
+  },
+  "supportJoin": "Join the club for {price}",
+  "@supportJoin": {
+    "description": "Label of the pinned join button; price is the store's localized price string",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "supportRestore": "Restore purchases",
+  "@supportRestore": {
+    "description": "Link that restores purchases via the store sync"
+  },
+  "supportUnreachable": "The App Store could not be reached. Reopen this screen to try again.",
+  "@supportUnreachable": {
+    "description": "Line shown when the price fetch failed"
+  },
+  "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
+  "@supportPending": {
+    "description": "Line shown after an Ask to Buy purchase answered pending"
+  },
+  "supportRestoreNoneTitle": "Nothing to restore",
+  "@supportRestoreNoneTitle": {
+    "description": "Sheet title when restore finds no purchase"
+  },
+  "supportRestoreNoneBody": "No club purchase is attached to this Apple ID.",
+  "@supportRestoreNoneBody": {
+    "description": "Sheet body when restore finds no purchase"
+  },
+  "supportFailedTitle": "That did not go through",
+  "@supportFailedTitle": {
+    "description": "Sheet title when a purchase or restore failed"
+  },
+  "supportFailedBody": "The App Store could not finish. Try again.",
+  "@supportFailedBody": {
+    "description": "Sheet body when a purchase or restore failed"
+  },
+  "supportPrivacy": "privacy policy",
+  "@supportPrivacy": {
+    "description": "Privacy policy link label"
+  },
+  "supportTerms": "terms of use",
+  "@supportTerms": {
+    "description": "Terms of use link label"
+  },
+  "supportUnlocksSection": "Club members get",
+  "@supportUnlocksSection": {
+    "description": "Section label above the list of features supporting unlocks"
+  },
+  "supportMemberUnlocks": "What you get",
+  "@supportMemberUnlocks": {
+    "description": "Section label above the perks on a member's confirmation screen, framed as what the member already has"
+  },
+  "supporterTag": "Club",
+  "@supporterTag": {
+    "description": "Eyebrow under the app name on the support screen header"
+  },
+  "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple's standard {terms}.",
+  "@supportFooter": {
+    "description": "Footer paragraph; privacy and terms are the inline tappable link labels",
+    "placeholders": {
+      "privacy": {
+        "type": "String"
+      },
+      "terms": {
+        "type": "String"
+      }
+    }
   }
 }

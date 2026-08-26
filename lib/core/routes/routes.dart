@@ -1,5 +1,9 @@
 /// Route paths and names, kept in one place so navigation call sites and the
 /// router agree on a single source of truth.
+///
+/// There is no single settings screen: the home menu ([HomeMenu]) is the
+/// settings surface, and each `settings*` route below is pushed straight
+/// from it.
 abstract final class Routes {
   static const home = '/';
   static const homeName = 'home';
@@ -9,9 +13,8 @@ abstract final class Routes {
   static const onboarding = '/onboarding';
   static const onboardingName = 'onboarding';
 
-  /// The models screen (per-language on-device models). There is no settings
-  /// screen: the home menu ([HomeMenu]) is the settings surface, and Models is
-  /// the one setting deep enough to earn its own screen. Pushed over home.
+  /// The models screen (per-language on-device speech models). Pushed over
+  /// home from the menu.
   static const settingsModels = '/settings/models';
   static const settingsModelsName = 'settingsModels';
 
@@ -23,10 +26,21 @@ abstract final class Routes {
   static const settingsCache = '/settings/cache';
   static const settingsCacheName = 'settingsCache';
 
-  /// The notifications screen (local, on-device nudges; a single weekly
-  /// reflection toggle today). Pushed over home from the menu.
+  /// The backup screen (export, archive, import).
+  static const settingsBackup = '/settings/backup';
+  static const settingsBackupName = 'settingsBackup';
+
+  /// The notifications screen (local, on-device nudges: a master switch, a
+  /// toggle per reflection period, and one shared time). Pushed over home
+  /// from the menu.
   static const settingsNotifications = '/settings/notifications';
   static const settingsNotificationsName = 'settingsNotifications';
+
+  /// The support screen (the supporter purchase, restore, and manage
+  /// surface). Pushed over home from the menu, and from the gate sheet a
+  /// locked export answers with.
+  static const settingsSupport = '/settings/support';
+  static const settingsSupportName = 'settingsSupport';
 
   /// The ONE reflections surface: past weeks one page at a time, with the one
   /// menu acting on the viewed week. Reached plain from the home menu (lands
@@ -44,8 +58,4 @@ abstract final class Routes {
   /// The recorder, a full-screen sheet over the shell.
   static const record = '/record';
   static const recordName = 'record';
-
-  /// The widget gallery, registered in debug builds only.
-  static const gallery = '/gallery';
-  static const galleryName = 'gallery';
 }

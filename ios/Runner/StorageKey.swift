@@ -28,10 +28,32 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  // Only `absent` may generate a fresh key. Every other read outcome must fail
+  // loudly: generating one over a key that exists but could not be read re-keys
+  // the journal, and the user's whole history then decrypts as nothing.
+  private enum KeyRead {
+    case found(Data)
+    case absent
+    case failed(OSStatus)
+    // The read succeeded but the item is not raw key data, which is not a
+    // failure status and must not be reported as one. Carries what it was
+    // instead, so this arm is as diagnosable as the ones carrying a status.
+    case malformed(String)
+  }
+
   private func obtain(result: @escaping FlutterResult) {
-    if let existing = readKey() {
+    switch readKey() {
+    case .found(let existing):
       result(existing.base64EncodedString())
       return
+    case .failed(let status):
+      result(unavailable("SecItemCopyMatching failed: \(status)"))
+      return
+    case .malformed(let kind):
+      result(unavailable("keychain item is not raw key data: \(kind)"))
+      return
+    case .absent:
+      break
     }
 
     var bytes = [UInt8](repeating: 0, count: storageKeyLength)
@@ -56,18 +78,25 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     }
     if addStatus == errSecDuplicateItem {
       // Another writer raced us (e.g. a second launch path); the item it wrote
-      // is just as valid as the one we generated.
-      if let existing = readKey() {
+      // is just as valid as the one we generated. The re-read outcomes are told
+      // apart because this message is the only diagnostic for a launch that is
+      // otherwise undebuggable.
+      switch readKey() {
+      case .found(let existing):
         result(existing.base64EncodedString())
-      } else {
-        result(unavailable("duplicate item reported but re-read failed"))
+      case .absent:
+        result(unavailable("duplicate item reported but the re-read found none"))
+      case .failed(let status):
+        result(unavailable("duplicate item reported but the re-read failed: \(status)"))
+      case .malformed(let kind):
+        result(unavailable("duplicate item reported but it is not raw key data: \(kind)"))
       }
       return
     }
     result(unavailable("SecItemAdd failed: \(addStatus)"))
   }
 
-  private func readKey() -> Data? {
+  private func readKey() -> KeyRead {
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: storageKeyService,
@@ -77,8 +106,12 @@ final class StorageKeyPlugin: NSObject, FlutterPlugin {
     ]
     var item: CFTypeRef?
     let status = SecItemCopyMatching(query as CFDictionary, &item)
-    guard status == errSecSuccess, let data = item as? Data else { return nil }
-    return data
+    if status == errSecItemNotFound { return .absent }
+    guard status == errSecSuccess else { return .failed(status) }
+    guard let data = item as? Data else {
+      return .malformed(item.map { String(describing: type(of: $0)) } ?? "nil")
+    }
+    return .found(data)
   }
 
   private func unavailable(_ message: String) -> FlutterError {

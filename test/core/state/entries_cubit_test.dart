@@ -6,8 +6,8 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
-import 'package:opentranscribe/core/transcribe/fake_engine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transcriber/testing.dart';
 
 import '../../support/fake_audio_recorder.dart';
 
@@ -64,6 +64,94 @@ void main() {
     expect(cubit.state.error, isNotNull);
     expect(cubit.state.entries, isEmpty);
     expect(cubit.state.busyId, isNull);
+
+    await cubit.close();
+  });
+
+  test('edit updates the list and never touches busy', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    final busyIds = <String?>[];
+    final sub = cubit.stream.listen((s) => busyIds.add(s.busyId));
+
+    await cubit.edit(entry, 'fixed words');
+    await sub.cancel();
+
+    expect(cubit.state.entries.single.head?.text, 'fixed words');
+    expect(cubit.state.entries.single.readableText, 'fixed words');
+    expect(busyIds, everyElement(isNull));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('an edit failure surfaces on its own entry and still refreshes', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await service.deleteEntry(entry);
+
+    await cubit.edit(entry, 'ghost');
+
+    expect(cubit.state.errorFor(entry.id), isNotNull);
+    expect(cubit.state.entries, isEmpty);
+    expect(cubit.state.busyId, isNull);
+
+    await cubit.close();
+  });
+
+  test('retranscribe replaces the head and keeps the edit in history', () async {
+    final cubit = await seeded();
+    final entry = cubit.state.entries.single;
+    await cubit.edit(entry, 'fixed words');
+
+    await cubit.retranscribe(entry);
+    final landed = cubit.state.entries.single;
+    expect(landed.readableText, isNot('fixed words'));
+    expect(landed.revisions!.map((r) => r.text), contains('fixed words'));
+
+    await cubit.close();
+  });
+
+  test('restore pushes an old revision back as the head', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+
+    await cubit.restore(edited, edited.revisions!.first);
+
+    final restored = cubit.state.entries.single;
+    expect(restored.readableText, edited.revisions!.first.text);
+    expect(restored.revisions, hasLength(3));
+    expect(cubit.state.busyId, isNull);
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('deleteRevision trims the history in the list', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+
+    await cubit.deleteRevision(edited, edited.revisions!.last);
+
+    final trimmed = cubit.state.entries.single;
+    expect(trimmed.revisions!.map((r) => r.text), isNot(contains('fixed words')));
+    expect(cubit.state.error, isNull);
+
+    await cubit.close();
+  });
+
+  test('a restore failure surfaces on its own entry and still refreshes', () async {
+    final cubit = await seeded();
+    await cubit.edit(cubit.state.entries.single, 'fixed words');
+    final edited = cubit.state.entries.single;
+    await service.deleteEntry(edited);
+
+    await cubit.restore(edited, edited.revisions!.first);
+
+    expect(cubit.state.errorFor(edited.id), isNotNull);
+    expect(cubit.state.entries, isEmpty);
 
     await cubit.close();
   });

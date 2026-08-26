@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
+import 'package:reflections/reflections.dart';
 
 /// How a period stands in the reflections pager.
 enum ReflectionPageStatus {

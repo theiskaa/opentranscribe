@@ -12,7 +12,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => 'すべてこの端末内に保存されます。アカウントもクラウドも通信もありません。';
+  String get launchFailedTitle => '起動できませんでした';
+
+  @override
+  String get launchFailedBody =>
+      '起動に必要なものを読み込めませんでした。App スイッチャーでアプリを終了してから開き直してください。直らないときは端末を再起動してください。';
 
   @override
   String get entryUntranscribed => '文字起こし未実行';
@@ -70,6 +74,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get rename => '名前を変更';
+
+  @override
+  String get editTranscript => '編集';
+
+  @override
+  String get editedMarker => '編集済み';
+
+  @override
+  String get revisionHistory => '履歴';
+
+  @override
+  String get revisionHistoryBody => 'このエントリーのテキストがたどってきた履歴です。タップすると、その版が最新として復元されます。';
+
+  @override
+  String get revisionCurrent => '現在';
+
+  @override
+  String get revisionTranscribed => '文字起こし済み';
 
   @override
   String get transcribe => '文字起こし';
@@ -157,19 +179,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppLanguage => '言語';
 
   @override
-  String get transcriptionInfo =>
-      '各言語は独自の端末内モデルで動作します。モデルは一度だけダウンロードされ、システムと共有されるため、このアプリのストレージには計上されません。同時に準備しておける言語の数はシステムによって制限されます。';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$max 個中 $used 個の言語スロットを使用中';
   }
 
   @override
-  String get transcriptionRemoveHint => '言語を左にスワイプすると削除できます。';
+  String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
 
   @override
-  String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
+  String get languageNeedsDictation => 'iOS のキーボード設定でこの言語の音声入力をオンにしてください。';
 
   @override
   String get transcriptionErrorStuck => '以前のダウンロードがまだ保留中です。システムは条件が整うと再試行します。もう一度試しても問題ありません。';
@@ -206,6 +224,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '音声入力が設定されていません';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language はシステムの音声入力モデルで文字起こしされますが、この iPhone にはまだありません。iOS 設定でキーボードを追加し、音声入力をオンにしてください。';
+  }
+
+  @override
   String get modelFailStuckTitle => 'まだダウンロード中です';
 
   @override
@@ -233,13 +259,62 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsModels => '文字起こし';
 
   @override
-  String get transcriptionLanguages => '言語';
+  String get transcriptionYourLanguages => '自分の言語';
+
+  @override
+  String get transcriptionAllLanguages => 'すべての言語';
+
+  @override
+  String get transcriptionSpeaking => '話す言語';
+
+  @override
+  String get transcriptionAlsoReady => '準備済みの言語';
+
+  @override
+  String get transcriptionAddLanguage => '追加';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return '準備完了 · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote => 'モデルは一度だけダウンロードされ、システムと共有されます。';
+
+  @override
+  String get transcriptionEngines => 'エンジン';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple の最新エンジン。言語ごとにモデルをダウンロード';
+
+  @override
+  String get engineBlurbDictation => 'iOS キーボードの音声入力を支える認識エンジン';
+
+  @override
+  String get engineUnavailableNote => 'この iPhone では利用できません';
+
+  @override
+  String get engineUnavailableTitle => 'この iPhone では利用できません';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine には iOS 26 と新しい iPhone が必要です。録音には、この iPhone で使えるエンジンが引き続き使われます。';
+  }
+
+  @override
+  String get engineBusyTitle => '録音中';
+
+  @override
+  String get engineBusyBody => '録音を停止してからエンジンを切り替えてください。';
+
+  @override
+  String get engineNotSavedTitle => '選択を保存できませんでした';
+
+  @override
+  String get engineNotSavedBody => 'エンジンの選択を保存できなかったため、再起動後は元に戻ります。';
 
   @override
   String get transcriptionDefaultTag => 'デフォルト';
-
-  @override
-  String get transcriptionDefaultHint => '言語を長押しすると、デフォルトに設定できます。';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -561,4 +636,242 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'GitHub でテーマをリクエスト';
+
+  @override
+  String get exportEntry => '書き出す';
+
+  @override
+  String get exportEntryTitle => 'エントリーを書き出す';
+
+  @override
+  String get exportIncludeAudio => '音声を含める';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+
+  @override
+  String get exportFormatWeb => 'Webサイト';
+
+  @override
+  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
+
+  @override
+  String get exportFailedTitle => '書き出しに失敗しました';
+
+  @override
+  String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
+
+  @override
+  String get exportUntitled => '無題';
+
+  @override
+  String get exportTranscriptHeading => '文字起こし';
+
+  @override
+  String get exportQuiet => '静かなひととき。';
+
+  @override
+  String get settingsBackup => 'バックアップ';
+
+  @override
+  String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
+      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '書き出し';
+
+  @override
+  String get backupExportJournal => 'ジャーナルを書き出す';
+
+  @override
+  String get backupExportInfo =>
+      'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
+
+  @override
+  String get backupSeal => 'パスフレーズで暗号化';
+
+  @override
+  String get backupSave => 'バックアップを保存';
+
+  @override
+  String backupLastBackup(String date) {
+    return '前回のバックアップ $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'バックアップを暗号化';
+
+  @override
+  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければバックアップはただのノイズです。';
+
+  @override
+  String get passphrasePlaceholder => 'パスフレーズ';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'パスフレーズを再入力';
+
+  @override
+  String get passphraseTooShort => '8文字以上';
+
+  @override
+  String get passphraseMismatch => 'パスフレーズが一致しません';
+
+  @override
+  String get importUnlockTitle => '暗号化されたバックアップ';
+
+  @override
+  String get importUnlockBody => 'このバックアップを暗号化したパスフレーズを入力してください。';
+
+  @override
+  String get importUnlock => '解錠';
+
+  @override
+  String get importWrongPassphrase => '解錠できませんでした。パスフレーズが違うか、ファイルが破損しています。';
+
+  @override
+  String get importConfirmTitle => 'このバックアップを復元しますか？';
+
+  @override
+  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
+
+  @override
+  String get importConfirm => '復元';
+
+  @override
+  String get importSummaryTitle => '復元完了';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のエントリーを復元しました。',
+      zero: '新しく復元するものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は既にジャーナルにありました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '復元に失敗しました';
+
+  @override
+  String get importFailedBody => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNotArchive => 'OpenTranscribeのバックアップではありません。ジャーナルは何も変わっていません。';
+
+  @override
+  String get importNewerVersion => 'より新しいバージョンのアプリで作られています。更新してから読み込んでください。';
+
+  @override
+  String get importRezipped => 'このバックアップは別のツールで再圧縮されています。新しく保存したものを復元してください。';
+
+  @override
+  String get done => '完了';
+
+  @override
+  String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
+
+  @override
+  String get supportGateBody => '形式を選べる書き出しはクラブメンバー向けです。バックアップは誰でも無料のままです。';
+
+  @override
+  String get settingsSupport => 'サポート';
+
+  @override
+  String get supportGateAction => 'クラブメンバーになる';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。クラブへの参加は一度の支払いだけ、ずっと有効です。';
+
+  @override
+  String get supportPerkExports => '形式を選べる書き出し';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
+
+  @override
+  String get supportPerkFuture => '今後のクラブ機能';
+
+  @override
+  String get supportPerkFutureNote => '後から加わるクラブ機能も含まれます。';
+
+  @override
+  String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';
+
+  @override
+  String supportJoin(String price) {
+    return '$priceでクラブに参加';
+  }
+
+  @override
+  String get supportRestore => '購入を復元';
+
+  @override
+  String get supportUnreachable => 'App Storeに接続できません。この画面を開き直すと再試行します。';
+
+  @override
+  String get supportPending => '承認待ちです。承認されると購入が完了します。';
+
+  @override
+  String get supportRestoreNoneTitle => '復元できる購入はありません';
+
+  @override
+  String get supportRestoreNoneBody => 'このApple IDにクラブの購入は関連付けられていません。';
+
+  @override
+  String get supportFailedTitle => '完了できませんでした';
+
+  @override
+  String get supportFailedBody => 'App Storeが完了できませんでした。もう一度お試しください。';
+
+  @override
+  String get supportPrivacy => 'プライバシーポリシー';
+
+  @override
+  String get supportTerms => '利用規約';
+
+  @override
+  String get supportUnlocksSection => 'クラブ特典';
+
+  @override
+  String get supportMemberUnlocks => '利用できる特典';
+
+  @override
+  String get supporterTag => 'クラブ';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。購入はAppleの標準$termsに従います。';
+  }
 }

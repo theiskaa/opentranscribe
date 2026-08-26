@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/reflect/reflection_engine.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -16,6 +15,7 @@ import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:reflections/reflections.dart';
 
 /// Model step: offer the default language for download so transcription works
 /// offline right away. Optional - more languages live in the Models screen, and

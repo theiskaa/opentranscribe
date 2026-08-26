@@ -6,9 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
-import 'package:opentranscribe/core/transcribe/transcription_exception.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Why a language row failed, as a kind the UI words. [capReached] is not a
 /// retry story: the fix is removing one of the languages holding the cap.
@@ -93,6 +92,8 @@ final class LanguageModelState {
 final class SettingsState {
   const SettingsState({
     this.localeId = '',
+    this.engineId = '',
+    this.managesModels = false,
     this.supportedLocales = const [],
     this.languages = const [],
     this.reservationMax = 0,
@@ -102,6 +103,16 @@ final class SettingsState {
   });
 
   final String localeId;
+
+  /// The engine whose answers this state describes, so a surface pairing these
+  /// rows with the picker's active engine can tell a switch-in-flight frame
+  /// from a settled one.
+  final String engineId;
+
+  /// Whether that engine manages downloadable models. Wording keys off this
+  /// (an unready language's story), never off [reservationMax], which only
+  /// gates affordances.
+  final bool managesModels;
 
   /// True when the phone's language has no on-device model in any variant and
   /// the current default equals the derived fallback, so a surface can say why
@@ -117,7 +128,9 @@ final class SettingsState {
   /// choice kept honestly).
   final List<LanguageModelState> languages;
 
-  /// The platform's language cap; 0 means no cap concept, render none.
+  /// The platform's language cap; 0 means no cap concept. Gates install and
+  /// remove affordances and the slot line only; see [managesModels] for
+  /// wording.
   final int reservationMax;
 
   final bool backupExcluded;
@@ -154,6 +167,8 @@ final class SettingsState {
 
   SettingsState copyWith({
     String? localeId,
+    String? engineId,
+    bool? managesModels,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
     int? reservationMax,
@@ -162,6 +177,8 @@ final class SettingsState {
     bool? deviceLanguageUnsupported,
   }) => SettingsState(
     localeId: localeId ?? this.localeId,
+    engineId: engineId ?? this.engineId,
+    managesModels: managesModels ?? this.managesModels,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
@@ -185,7 +202,19 @@ class SettingsCubit extends Cubit<SettingsState> {
   }) : _service = service,
        _transcription = transcription,
        _audioStorage = audioStorage,
-       super(const SettingsState()) {
+       // Seeded from the synchronous holders rather than defaulted: [load] needs
+       // four channel round trips to answer, and a Cache screen that renders
+       // "keep audio on" for a second before flipping itself off is telling the
+       // user their setting is something it is not.
+       super(
+         SettingsState(
+           localeId: transcription.localeId,
+           engineId: service.engineId,
+           managesModels: service.managesModels,
+           backupExcluded: audioStorage.backupExcluded,
+           keepAudio: audioStorage.keepAudio,
+         ),
+       ) {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());
@@ -229,13 +258,38 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (localeId.isNotEmpty && !tags.contains(localeId)) tags.add(localeId);
     tags.sort(languageTagCompare);
 
-    final previous = {for (final row in state.languages) row.tag: row};
+    // Carried state is one engine's story: across a switch the old rows'
+    // statuses, failures, and download fractions describe the OTHER engine,
+    // so the first load after one starts from scratch. The old engine's
+    // install trackers go with them.
+    final sameEngine = state.engineId == _service.engineId;
+    if (!sameEngine) {
+      for (final sub in _installSubs.values) {
+        // Best effort, like the service's own teardown: a rejecting cancel
+        // must not land in the zone.
+        unawaited(sub.cancel().catchError((_) {}));
+      }
+      _installSubs.clear();
+    }
+    final previous = sameEngine
+        ? {for (final row in state.languages) row.tag: row}
+        : const <String, LanguageModelState>{};
+    // Where readiness is a per-language probe (the dictation engine), the
+    // coarse installed list claims everything and would flash every row ready
+    // until the refine wave lands; carrying the last refined status (or
+    // starting at supported) keeps rows honest and their sections stable, and
+    // no tap can promote a language the engine has not yet vouched for.
+    final probes = _service.probesLanguageReadiness;
     final rows = <LanguageModelState>[];
     for (final tag in tags) {
       final refined = tag == localeId ? defaultStatus : null;
       final status =
           refined?.status ??
-          (installed.contains(tag) ? ModelAssetStatus.installed : ModelAssetStatus.supported);
+          (probes
+              ? (previous[tag]?.status ?? ModelAssetStatus.supported)
+              : (installed.contains(tag)
+                    ? ModelAssetStatus.installed
+                    : ModelAssetStatus.supported));
       // max 0 means no reservation concept (pre-26, unmanaged engines):
       // usable is the honest default there.
       final reserved =
@@ -263,6 +317,8 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(
       state.copyWith(
         localeId: localeId,
+        engineId: _service.engineId,
+        managesModels: _service.managesModels,
         supportedLocales: supported,
         languages: rows,
         reservationMax: reservations.max,
@@ -272,6 +328,16 @@ class SettingsCubit extends Cubit<SettingsState> {
             _transcription.deviceLanguageUnsupported && localeId == _transcription.deviceLocaleId,
       ),
     );
+    // Where readiness is knowable per language without side effects (the
+    // dictation engine's system models), the coarse membership derivation
+    // above overstates it, so every load ends by refining every row. Riding
+    // the load, not a screen, so a switch's last load always lands honest and
+    // a superseded load's refinements die on the generation guard.
+    if (probes) {
+      for (final tag in tags) {
+        unawaited(refreshLanguage(tag));
+      }
+    }
   }
 
   /// Refines one row through the engine's fine-grained probe: the list load
@@ -354,16 +420,29 @@ class SettingsCubit extends Cubit<SettingsState> {
   final Set<String> _removals = {};
 
   Future<bool> _remove(String tag) async {
+    // The engine this removal belongs to: a switch landing mid-flight must
+    // not let its verdict stamp the NEXT engine's row.
+    final engineId = _service.engineId;
     // A fresh attempt clears the last one's verdict either way.
     _patchRow(tag, (row) => row.copyWith(clearFailure: true));
-    final released = await _service.removeLanguage(tag);
+    // A thrown channel call is a refused removal, not an escape: the stamp
+    // below is the row's whole story once the old one was cleared.
+    bool released;
+    try {
+      released = await _service.removeLanguage(tag);
+    } catch (_) {
+      released = false;
+    }
     if (isClosed) return released;
-    if (released && tag == state.localeId) {
+    // Against the settings' truth, not cubit state: a just-picked default is
+    // in storage before the load that would update state.localeId lands, and
+    // this fallback must not overwrite it.
+    if (released && tag == _transcription.localeId) {
       await _transcription.setLocaleId(_transcription.deviceLocaleId);
     }
     await load();
     if (isClosed) return released;
-    if (!released) {
+    if (!released && _service.engineId == engineId) {
       // Nothing was released: say so on the row instead of pretending the
       // swipe did something. The failure stands until a retry clears it.
       _patchRow(
@@ -379,8 +458,13 @@ class SettingsCubit extends Cubit<SettingsState> {
   /// [evictTag], then retries the blocked [installTag]. A refused removal
   /// skips the retry; the evicted row already wears its own failure.
   Future<void> evictAndInstall(String evictTag, String installTag) async {
+    final engineId = _service.engineId;
     final released = await remove(evictTag);
     if (isClosed || !released) return;
+    // An engine switched under the gesture would receive the install instead
+    // of the one whose cap the eviction freed; drop the retry, the row's own
+    // affordances remain.
+    if (_service.engineId != engineId) return;
     install(installTag);
   }
 
@@ -441,9 +525,10 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> close() async {
     await _modelSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
-    // own tag from the live map, which would invalidate this iteration.
+    // own tag from the live map, which would invalidate this iteration. A
+    // rejecting cancel must not abort the close and leak the cubit open.
     for (final sub in List.of(_installSubs.values)) {
-      await sub.cancel();
+      await sub.cancel().catchError((_) {});
     }
     _installSubs.clear();
     return super.close();

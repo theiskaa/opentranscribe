@@ -12,8 +12,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline =>
-      'Tout reste sur cet appareil. Aucun compte, aucun cloud, aucun réseau.';
+  String get launchFailedTitle => 'Démarrage impossible';
+
+  @override
+  String get launchFailedBody =>
+      'Un élément nécessaire au lancement n\'a pas pu être chargé. Fermez l\'app depuis le sélecteur d\'apps, puis rouvrez-la ; si cela ne suffit pas, redémarrez le téléphone.';
 
   @override
   String get entryUntranscribed => 'Non transcrit';
@@ -77,6 +80,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rename => 'Renommer';
+
+  @override
+  String get editTranscript => 'Modifier';
+
+  @override
+  String get editedMarker => 'Modifié';
+
+  @override
+  String get revisionHistory => 'Historique';
+
+  @override
+  String get revisionHistoryBody =>
+      'Tout ce que le texte de cette entrée a traversé. Toucher une version la restaure en tête.';
+
+  @override
+  String get revisionCurrent => 'Actuelle';
+
+  @override
+  String get revisionTranscribed => 'Transcrit';
 
   @override
   String get transcribe => 'Transcrire';
@@ -167,20 +189,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAppLanguage => 'Langue';
 
   @override
-  String get transcriptionInfo =>
-      'Chaque langue utilise son propre modèle sur l\'appareil, téléchargé une fois et partagé avec le système ; les modèles ne comptent pas dans le stockage de cette app. Le système limite le nombre de langues qu\'une app peut garder prêtes à la fois.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used emplacements de langue sur $max utilisés';
   }
 
   @override
-  String get transcriptionRemoveHint => 'Balayez une langue vers la gauche pour la retirer.';
-
-  @override
   String get transcriptionErrorUnsupported =>
       'Cette langue ne peut pas encore être téléchargée sur cet appareil.';
+
+  @override
+  String get languageNeedsDictation =>
+      'Activez la dictée pour cette langue dans les réglages du clavier iOS.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -220,6 +239,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'La dictée n\'est pas configurée';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language est transcrit avec le modèle de dictée du système, absent de cet iPhone pour l\'instant. Ajoutez son clavier et activez la dictée dans les réglages iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Téléchargement en cours';
 
   @override
@@ -247,14 +274,65 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionLanguages => 'Langues';
+  String get transcriptionYourLanguages => 'Vos langues';
+
+  @override
+  String get transcriptionAllLanguages => 'Toutes les langues';
+
+  @override
+  String get transcriptionSpeaking => 'Langue parlée';
+
+  @override
+  String get transcriptionAlsoReady => 'Aussi prêtes';
+
+  @override
+  String get transcriptionAddLanguage => 'Ajouter';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return 'Prête · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote =>
+      'Les modèles se téléchargent une fois et sont partagés avec le système.';
+
+  @override
+  String get transcriptionEngines => 'Moteurs';
+
+  @override
+  String get engineBlurbSpeechAnalyzer =>
+      'Le moteur le plus récent d\'Apple, un modèle téléchargé par langue';
+
+  @override
+  String get engineBlurbDictation => 'La reconnaissance derrière la dictée du clavier iOS';
+
+  @override
+  String get engineUnavailableNote => 'Indisponible sur cet iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Indisponible sur cet iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine nécessite iOS 26 et un iPhone plus récent. L\'enregistrement continue avec le moteur disponible ici.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Enregistrement en cours';
+
+  @override
+  String get engineBusyBody => 'Arrêtez l\'enregistrement en cours, puis changez de moteur.';
+
+  @override
+  String get engineNotSavedTitle => 'Choix non enregistré';
+
+  @override
+  String get engineNotSavedBody =>
+      'Le choix du moteur n\'a pas pu être enregistré et ne survivra pas à un redémarrage.';
 
   @override
   String get transcriptionDefaultTag => 'Par défaut';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Touchez et maintenez une langue pour en faire la langue par défaut.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -600,4 +678,261 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'Demander un thème sur GitHub';
+
+  @override
+  String get exportEntry => 'Exporter';
+
+  @override
+  String get exportEntryTitle => 'Exporter l\'entrée';
+
+  @override
+  String get exportIncludeAudio => 'Inclure l\'audio';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => 'Un fichier texte par entrée, plus .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => 'Notes avec propriétés et audio intégré.';
+
+  @override
+  String get exportFormatWeb => 'Site web';
+
+  @override
+  String get exportFormatWebNote => 'S\'ouvre dans un navigateur, avec lecteur.';
+
+  @override
+  String get exportFailedTitle => 'Échec de l\'export';
+
+  @override
+  String get exportFailedBody => 'Impossible de préparer les fichiers. Rien n\'a été partagé.';
+
+  @override
+  String get exportUntitled => 'Sans titre';
+
+  @override
+  String get exportTranscriptHeading => 'Transcription';
+
+  @override
+  String get exportQuiet => 'Une période calme.';
+
+  @override
+  String get settingsBackup => 'Sauvegarde';
+
+  @override
+  String get backupInfo =>
+      'Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Une sauvegarde contient vos $count entrées avec leur audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
+      one:
+          'Une sauvegarde contient votre unique entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
+      zero:
+          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => 'Export';
+
+  @override
+  String get backupExportJournal => 'Exporter le journal';
+
+  @override
+  String get backupExportInfo =>
+      'Écrit chaque entrée dans le format choisi, audio compris, en zip pour la feuille de partage. Une copie pour d\'autres apps ; restaurer demande une sauvegarde.';
+
+  @override
+  String get backupSeal => 'Chiffrer avec une phrase secrète';
+
+  @override
+  String get backupSave => 'Enregistrer la sauvegarde';
+
+  @override
+  String backupLastBackup(String date) {
+    return 'Dernière sauvegarde $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => 'Chiffrer la sauvegarde';
+
+  @override
+  String get passphraseCreateBody =>
+      'La phrase secrète est la seule clé. Elle n\'est stockée nulle part ; sans elle, la sauvegarde n\'est que du bruit.';
+
+  @override
+  String get passphrasePlaceholder => 'Phrase secrète';
+
+  @override
+  String get passphraseRepeatPlaceholder => 'Répéter la phrase secrète';
+
+  @override
+  String get passphraseTooShort => 'Au moins 8 caractères';
+
+  @override
+  String get passphraseMismatch => 'Les phrases secrètes ne correspondent pas';
+
+  @override
+  String get importUnlockTitle => 'Sauvegarde chiffrée';
+
+  @override
+  String get importUnlockBody =>
+      'Saisissez la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
+
+  @override
+  String get importUnlock => 'Déverrouiller';
+
+  @override
+  String get importWrongPassphrase =>
+      'Déverrouillage impossible. Phrase secrète erronée, ou fichier endommagé.';
+
+  @override
+  String get importConfirmTitle => 'Restaurer cette sauvegarde ?';
+
+  @override
+  String get importConfirmBody =>
+      'Ajoute ses entrées à votre journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
+
+  @override
+  String get importConfirm => 'Restaurer';
+
+  @override
+  String get importSummaryTitle => 'Restauration terminée';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées restaurées.',
+      one: '1 entrée restaurée.',
+      zero: 'Rien de nouveau à restaurer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées étaient déjà dans le journal.',
+      one: '1 entrée était déjà dans le journal.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => 'Échec de la restauration';
+
+  @override
+  String get importFailedBody =>
+      'La sauvegarde n\'a pas pu être lue. Rien dans le journal n\'a été modifié.';
+
+  @override
+  String get importNotArchive =>
+      'Ce n\'est pas une sauvegarde OpenTranscribe. Rien dans le journal n\'a été modifié.';
+
+  @override
+  String get importNewerVersion =>
+      'Créée par une version plus récente de l\'app. Mettez à jour pour l\'importer.';
+
+  @override
+  String get importRezipped =>
+      'Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.';
+
+  @override
+  String get done => 'OK';
+
+  @override
+  String get importFailedMidway =>
+      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
+
+  @override
+  String get supportGateBody =>
+      'Les exports formatés sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.';
+
+  @override
+  String get settingsSupport => 'Soutenir';
+
+  @override
+  String get supportGateAction => 'Devenir membre du club';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe est gratuit et privé, et le soutenir le maintient ainsi. Rejoindre le club, c\'est un seul paiement, pour de bon.';
+
+  @override
+  String get supportPerkExports => 'Exports formatés';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian ou un site web.';
+
+  @override
+  String get supportPerkFuture => 'Les fonctions club à venir';
+
+  @override
+  String get supportPerkFutureNote => 'Tout ce qui rejoindra le club, inclus.';
+
+  @override
+  String get supportThanks => 'Vous faites partie du club pour de bon. Merci.';
+
+  @override
+  String supportJoin(String price) {
+    return 'Rejoindre le club pour $price';
+  }
+
+  @override
+  String get supportRestore => 'Restaurer les achats';
+
+  @override
+  String get supportUnreachable =>
+      'L\'App Store est injoignable. Rouvrez cet écran pour réessayer.';
+
+  @override
+  String get supportPending => 'En attente d\'approbation. L\'achat se termine une fois approuvé.';
+
+  @override
+  String get supportRestoreNoneTitle => 'Rien à restaurer';
+
+  @override
+  String get supportRestoreNoneBody =>
+      'Aucun achat du club n\'est associé à cet identifiant Apple.';
+
+  @override
+  String get supportFailedTitle => 'Ça n\'a pas abouti';
+
+  @override
+  String get supportFailedBody => 'L\'App Store n\'a pas pu terminer. Réessayez.';
+
+  @override
+  String get supportPrivacy => 'politique de confidentialité';
+
+  @override
+  String get supportTerms => 'conditions d\'utilisation';
+
+  @override
+  String get supportUnlocksSection => 'Pour les membres du club';
+
+  @override
+  String get supportMemberUnlocks => 'Ce que vous avez';
+
+  @override
+  String get supporterTag => 'Club';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return 'Soutenir ne change rien à la confidentialité. Le journal ne quitte jamais le téléphone, comme le dit la $privacy, et l\'achat suit les $terms standard d\'Apple.';
+  }
 }

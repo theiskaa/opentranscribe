@@ -1,12 +1,12 @@
 # Contributing to opentranscribe
 
-Thanks for wanting to help. This is the practical guide: how to build it, how the code is arranged, the conventions it holds to, and what will get a pull request sent back.
+Thanks for wanting to help. This covers how to build the app, how the code is arranged, the conventions it follows, and what will get a pull request sent back.
 
 ## The one rule
 
-**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app must work fully in airplane mode. This is not a feature, it is the architecture, and it is not negotiable in a pull request. Anything that opens a socket or ships data off-device does not belong here, whatever it is attached to.
+**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app has to keep working with the phone in airplane mode. Most of the architecture below follows from that, and a pull request that adds a network call will be declined.
 
-Transcription and reflection each run behind a contract, `TranscriptionEngine` and `ReflectionEngine`, with a hard `onDeviceOnly` gate: the app refuses at construction any engine that answers false, and there is no cloud fallback for either. Only text ever crosses those boundaries, never audio.
+Transcription and reflection each run behind a contract, `TranscriptionEngine` and `ReflectionEngine`, with an `onDeviceOnly` gate: the app refuses at construction any engine that answers false, and there is no cloud fallback for either. Only text crosses those boundaries, never audio.
 
 ## Getting started
 
@@ -25,60 +25,62 @@ flutter run --release --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Before you open a pull request
 
-All four must pass. Review holds this line.
-
 ```sh
-flutter analyze      # must be clean
-flutter test         # must be green
-dart format .        # 100 columns
-flutter gen-l10n     # after editing lib/l10n/app_en.arb
+./tool/checks.sh
 ```
+
+Bare `flutter test` and `flutter analyze` only cover the app; the plugins under `packages/` carry their own analysis context and test suite, so `tool/checks.sh` is the one command that runs everything CI does. Run `flutter gen-l10n` too after editing `lib/l10n/app_en.arb`.
 
 ## Project layout
 
-Two layers, and there is no third. There is no `features/` folder and we do not want one.
+Two layers, `lib/core/` and `lib/view/`. There is no `features/` folder, and adding one will be declined.
 
 `lib/core/` is everything non-UI:
 
 - `app/` the composition root (`deps.dart`), encrypted storage (`local_service.dart`), locale source of truth, onboarding flags.
-- `audio/` the `AudioRecorder` and `AudioPlayer` contracts with their platform-channel implementations and value types.
-- `models/` plain data (`entry.dart`, `engine_descriptor.dart`).
+- `export/` the `JournalExporter` contract, the shipped format exporters, and the native archive: store-only zip codec, manifest, sealed container crypto, and the share-sheet channel wrapper.
+- `models/` plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `routes/` the `GoRouter`, the path and name constants, page transitions.
 - `services/` `transcription_service.dart` (the one owner of the entry lifecycle), `entry_store.dart`, the settings holders.
 - `state/` one cubit per concern.
 - `theming/` `AppTheme` and its tokens, `AppIcons`, motion, shapes, the type scale.
-- `transcribe/` the transcription engine contract and its implementations.
-- `reflect/` the reflection engine contract and its implementations.
-- `notify/` the local notification scheduler and the weekly reflection nudge.
+- `notify/` the local notification scheduler and the reflection reminders.
+- `intents/` actions from a system surface (the lock screen control, Siri, Shortcuts) routed to the recorder.
 - `utils/` haptics, platform capability probes, small helpers.
 
 `lib/view/` is everything UI:
 
 - `app.dart` the root `App` widget, a `WidgetsApp.router` with no Material or Cupertino shell, providing the cubits above the router.
-- `layouts/<domain>/screens/` full screens and `layouts/<domain>/components/` the widgets private to that domain (`entry`, `home`, `recorder`, `reflections`, `settings`, `onboarding`, `splash`, `gallery`).
+- `layouts/<domain>/screens/` full screens and `layouts/<domain>/components/` the widgets private to that domain (`entry`, `home`, `recorder`, `reflections`, `settings`, `onboarding`, `gallery`).
 - `widgets/` the shared, reusable design system.
 
-The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `lottie` for the splash, and the vendored `packages/liquid` plugin for native iOS chrome. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
+`packages/` is the plugins the app depends on by path, each standalone with its own readme:
+
+- `transcriber/` audio capture, playback, and on-device transcription: the `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine` contracts, their platform implementations, and the Swift behind them.
+- `reflections/` the `ReflectionEngine` contract, the `ReflectionPeriod` vocabulary, and the Foundation Models implementation.
+- `liquid/` vendored native iOS 26 Liquid Glass chrome.
+
+The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, `shared_preferences` plus `encrypt` for storage, `flutter_svg` for the export format marks, and the three `packages/` plugins above. The launch splash is native (`ios/Runner/WaveSplash.swift`, handed off from `lib/core/app/splash_handoff.dart`), not a Flutter asset. No `get_it`, no `injectable`, no `build_runner`. The only code generation is `flutter gen-l10n`.
 
 ## How it works
 
-**Dependency injection** is a typed composition root, `Deps` in `core/app/deps.dart`. No service locator, no code generation, no `BuildContext` needed to reach a dependency. Access anything with `Deps.i.<field>`. To add a dependency, give it a typed field on `Deps` and construct it in `Deps.init()`, which runs once before `runApp` and is where launch-time repair belongs.
+**Dependency injection** is a typed composition root, `Deps` in `core/app/deps.dart`. No service locator, no code generation, no `BuildContext` needed to reach a dependency. Access anything with `Deps.i.<field>`. To add a dependency, give it a typed field on `Deps` and construct it in `Deps.init()`, which runs once before `runApp` and holds only what the first frame cannot be built without. Launch-time repair (reconciling orphaned audio, healing dangling records, the reflection catch-up) belongs in `Deps.launchMaintenance()`, not `init()`: every pass decrypts the whole journal, so it must not run on the frames the user is watching.
 
-**Transcription** sits behind `TranscriptionEngine`. Apple's Speech framework is the first implementation (`SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` below it), with whisper.cpp meant to land as a second without the rest of the app noticing. Streaming and downloadable-model behavior are separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `ManagedModelEngine`), not flags. Live text is painted while you speak and then discarded; the saved transcript is a batch pass over the finished file. Speech models are per-language and on-device, bounded by the cap iOS 26 places on how many one app may hold. `transcription_service.dart` owns the whole entry lifecycle, keeping the recorder, engine, and store private inside it.
+**Transcription** sits behind `TranscriptionEngine`. Apple's Speech framework is the first implementation (`SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` below it); whisper.cpp is meant to follow as a second one, with no change to the rest of the app. Streaming and downloadable-model behavior are separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `ManagedModelEngine`), not flags. Live text is painted while you speak and then discarded; the saved transcript is a batch pass over the finished file. Speech models are per-language and on-device, bounded by the cap iOS 26 places on how many one app may hold. `transcription_service.dart` owns the whole entry lifecycle, keeping the recorder, engine, and store private inside it.
 
-**Reflection** sits behind `ReflectionEngine`, held to the same on-device gate. It runs on Apple's Foundation Models, writes one note per closed week, and is simply absent on hardware without Apple Intelligence. An optional weekly notification, local and on-device like everything else, nudges you when a new one is ready.
+**Reflection** sits behind `ReflectionEngine`, held to the same on-device gate. It runs on Apple's Foundation Models, writes one note per closed period, and is absent on hardware without Apple Intelligence. An optional notification, scheduled locally, says when a new one is ready.
 
-**Audio capture** is app-owned, not engine-owned. Buffers stay native and only paths, durations, levels, and text cross the platform channel. Raw audio is kept by default so any entry can be re-transcribed later, in another language or by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
+**Audio capture** is recorder-owned, not engine-owned. Buffers stay native and only paths, durations, levels, and text cross the platform channel. Raw audio is kept by default so any entry can be re-transcribed later, in another language or by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history happens only through the Cache screen, as an explicit confirmed action.
 
-**The native layer** is Swift under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for its streams: audio capture (`opentranscribe/audio`, `/audio/status`, `/audio/level`), speech (`opentranscribe/speech`, `/speech/events`, `/speech/model`), playback (`opentranscribe/player`, `/player/state`), notifications (`opentranscribe/notify`), and reflection. The in-progress recording drives a Live Activity (`RecordingLiveActivity.swift`, the widget extension in `ios/RecorderActivity/`, attributes in `ios/Shared/`). Channels are touched only from a `core/` wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`, and each wrapper takes its channels as constructor arguments so tests can inject fakes.
+**The native layer** is Swift in two places. The plugin packages own capture, speech, playback, and reflection, each a `MethodChannel` for control plus `EventChannel`s for its streams: `transcriber/audio` (`/audio/status`, `/audio/level`), `transcriber/speech` (`/speech/events`, `/speech/model`), `transcriber/player` (`/player/state`), and `reflections/reflect`, all registered through the generated registrant. App-only Swift stays under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`: notifications (`opentranscribe/notify`), the storage key, share export, the splash hand-off, and intent actions. The in-progress recording drives a Live Activity (`RecordingLiveActivity.swift`, the widget extension in `ios/RecorderActivity/`, attributes in `ios/Shared/`), fed capture status through `TranscriberPlugin.recordingStatusObserver`. Channels are touched only from a package wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`), never from `view/`, and each wrapper takes its channels as constructor arguments so tests can inject fakes.
 
-**At rest**, recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device, never a value in the repo. See [SECURITY.md](SECURITY.md) for the trust model.
+**At rest**, recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
 
 **UI** is drawn by the app itself. The root is a `WidgetsApp.router` with no Material or Cupertino shell. Styling comes from `AppTheme` through `context.theme`; icons come from `AppIcons`, a vendored SF Symbols subset, regenerated to add a glyph. Native iOS 26 Liquid Glass chrome comes from `packages/liquid`, gated on `PlatformCaps.nativeGlass` with a drawn fallback, because the plugin renders nothing below iOS 26.
 
 ## Conventions
 
-- `analysis_options.yaml` is the law: single quotes, trailing commas, `const` wherever possible, package imports only (no relative `lib` imports), `prefer_final_locals`, 100-column formatting.
+- `analysis_options.yaml` sets the rules: single quotes, trailing commas, `const` wherever possible, package imports only (no relative `lib` imports), `prefer_final_locals`, 100-column formatting.
 - One cubit per concern under `core/state/`, consumed through `BlocProvider` and `BlocBuilder`. Business logic belongs in a cubit or a service, never in a widget.
 - Reusable widgets go in `view/widgets/`, screen-specific ones in that domain's `components/`. Prefer small, composable, `const` widgets over deep build methods, and extract a private widget rather than building one from a method. New shared widgets belong in the gallery (`Routes.gallery`, debug builds only) so they can be eyeballed on device in every state.
 - Navigation: add the path and name to `Routes`, wire the `GoRoute` in `app_router.dart`, navigate with `context.goNamed(Routes.<x>Name)`. Never hardcode a path at a call site.
@@ -87,7 +89,7 @@ The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, 
 
 ## Testing
 
-Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI behavior needs coverage, pull the logic into a pure function next to the widget and test that; this is why `test/view/` exists and why nothing in it pumps a widget tree. Fakes live in `test/support/` and are injected through constructors, so no test reaches a real platform channel or real storage. Test names read as sentences about behavior, and tests carry no comments because the name is the explanation.
+Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. **No widget tests.** When UI behavior needs coverage, pull the logic into a pure function next to the widget and test that; this is why `test/view/` exists and why nothing in it pumps a widget tree. Fakes live in `test/support/` and are injected through constructors, so no test reaches a real platform channel or real storage. Test names read as sentences about behavior, and tests carry no comments because the name is the explanation.
 
 ## Rules that will fail review
 
@@ -106,6 +108,7 @@ Unit tests only, under `test/` mirroring `lib/`. **No widget tests.** When UI be
 - **A route:** the path and name on `Routes`, a `GoRoute` in `app_router.dart`, reached with `context.goNamed`.
 - **A user-facing string:** the key in `app_en.arb` and every other `app_*.arb`, then `flutter gen-l10n`, read with `AppLocalizations`.
 - **A transcription or reflection engine:** implement the contract, answer `onDeviceOnly` true, wire it in only from `Deps`. Surfaces that must show an engine name read the `EngineDescriptor` list `Deps` builds, so nothing else names a concrete engine.
+- **An export format** (Notion, Apple Notes, ...): implement `JournalExporter` in `core/export/` as pure Dart, models in and files out, with no I/O, no clock reads, and no l10n (the localized scaffold strings arrive in `ExportContext`). Register it in the exporter map in `Deps.init()` and add its `ExporterDescriptor` there, the one place allowed to name an exporter; the entry sheet, the Backup screen, and both export paths pick it up from the descriptor list with no further plumbing.
 - **A shared widget:** put it in `view/widgets/` and add it to the debug-only gallery.
 
 ## Commits
@@ -117,7 +120,7 @@ type(scope): what changed
 ```
 
 - Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`.
-- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid`, extended as the code grows.
+- Scopes: `core`, `view`, `routes`, `storage`, `l10n`, `deps`, `transcribe`, `audio`, `theming`, `ios`, `liquid`, `transcriber`, `reflections`, extended as the code grows.
 - No body, no title and body split. Describe the change, not the process.
 
 ## Pull requests

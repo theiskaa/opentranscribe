@@ -12,7 +12,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => '一切都留在这台设备上。无账号、无云端、无网络。';
+  String get launchFailedTitle => '无法启动';
+
+  @override
+  String get launchFailedBody => '启动所需的内容没有加载成功。请在应用切换器中关闭应用后重新打开；如果还不行，请重启手机。';
 
   @override
   String get entryUntranscribed => '未转写';
@@ -70,6 +73,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rename => '重命名';
+
+  @override
+  String get editTranscript => '编辑';
+
+  @override
+  String get editedMarker => '已编辑';
+
+  @override
+  String get revisionHistory => '历史记录';
+
+  @override
+  String get revisionHistoryBody => '这条条目的文字经历过的所有版本。轻点某个版本即可将其恢复为最新版本。';
+
+  @override
+  String get revisionCurrent => '当前';
+
+  @override
+  String get revisionTranscribed => '已转写';
 
   @override
   String get transcribe => '转写';
@@ -156,18 +177,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAppLanguage => '语言';
 
   @override
-  String get transcriptionInfo => '每种语言都使用各自的设备端模型，下载一次后与系统共享；模型不计入本应用的存储占用。系统会限制一个应用同时可保持就绪的语言数量。';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '已使用 $max 个语言名额中的 $used 个';
   }
 
   @override
-  String get transcriptionRemoveHint => '向左滑动某种语言即可移除。';
+  String get transcriptionErrorUnsupported => '本机暂时无法下载该语言。';
 
   @override
-  String get transcriptionErrorUnsupported => '本机暂时无法下载该语言。';
+  String get languageNeedsDictation => '请在 iOS 键盘设置中为此语言开启听写。';
 
   @override
   String get transcriptionErrorStuck => '上一次下载仍在等待中。条件改善后系统会自动重试，再试一次也没有问题。';
@@ -204,6 +222,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '听写尚未设置';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language 使用系统听写模型转写，此 iPhone 上还没有该模型。请在 iOS 设置中添加对应键盘并开启听写。';
+  }
+
+  @override
   String get modelFailStuckTitle => '仍在下载';
 
   @override
@@ -231,13 +257,62 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsModels => '转写';
 
   @override
-  String get transcriptionLanguages => '语言';
+  String get transcriptionYourLanguages => '我的语言';
+
+  @override
+  String get transcriptionAllLanguages => '所有语言';
+
+  @override
+  String get transcriptionSpeaking => '你说的语言';
+
+  @override
+  String get transcriptionAlsoReady => '其他就绪语言';
+
+  @override
+  String get transcriptionAddLanguage => '添加';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return '已就绪 · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote => '模型只下载一次，并与系统共享。';
+
+  @override
+  String get transcriptionEngines => '引擎';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple 最新的引擎，每种语言下载一个模型';
+
+  @override
+  String get engineBlurbDictation => 'iOS 键盘听写背后的识别引擎';
+
+  @override
+  String get engineUnavailableNote => '此 iPhone 上不可用';
+
+  @override
+  String get engineUnavailableTitle => '此 iPhone 上不可用';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine 需要 iOS 26 和更新的 iPhone。录音将继续使用此设备可用的引擎。';
+  }
+
+  @override
+  String get engineBusyTitle => '正在录音';
+
+  @override
+  String get engineBusyBody => '请先停止当前录音，再切换引擎。';
+
+  @override
+  String get engineNotSavedTitle => '无法保存选择';
+
+  @override
+  String get engineNotSavedBody => '无法保存引擎选择，重新启动后将不会保留。';
 
   @override
   String get transcriptionDefaultTag => '默认';
-
-  @override
-  String get transcriptionDefaultHint => '轻触并按住某种语言，即可将其设为默认。';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -557,4 +632,236 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themeRequestLink => '在 GitHub 上申请主题';
+
+  @override
+  String get exportEntry => '导出';
+
+  @override
+  String get exportEntryTitle => '导出条目';
+
+  @override
+  String get exportIncludeAudio => '包含音频';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => '每条记录一个文本文件，外加 .json。';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
+
+  @override
+  String get exportFormatWeb => '网站';
+
+  @override
+  String get exportFormatWebNote => '任何浏览器都能打开，带播放器。';
+
+  @override
+  String get exportFailedTitle => '导出失败';
+
+  @override
+  String get exportFailedBody => '无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportUntitled => '无标题';
+
+  @override
+  String get exportTranscriptHeading => '转写';
+
+  @override
+  String get exportQuiet => '一段安静的时光。';
+
+  @override
+  String get settingsBackup => '备份';
+
+  @override
+  String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '备份包含 $count 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。',
+      zero: '暂时没有可备份的内容。备份包含记录、音频和回顾。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '导出';
+
+  @override
+  String get backupExportJournal => '导出日记';
+
+  @override
+  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
+
+  @override
+  String get backupSeal => '用口令加密';
+
+  @override
+  String get backupSave => '保存备份';
+
+  @override
+  String backupLastBackup(String date) {
+    return '上次备份 $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => '加密备份';
+
+  @override
+  String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，备份只是噪音。';
+
+  @override
+  String get passphrasePlaceholder => '口令';
+
+  @override
+  String get passphraseRepeatPlaceholder => '再次输入口令';
+
+  @override
+  String get passphraseTooShort => '至少 8 个字符';
+
+  @override
+  String get passphraseMismatch => '两次口令不一致';
+
+  @override
+  String get importUnlockTitle => '已加密的备份';
+
+  @override
+  String get importUnlockBody => '输入加密这份备份时使用的口令。';
+
+  @override
+  String get importUnlock => '解锁';
+
+  @override
+  String get importWrongPassphrase => '无法解锁。口令错误，或文件已损坏。';
+
+  @override
+  String get importConfirmTitle => '恢复这份备份？';
+
+  @override
+  String get importConfirmBody => '把其中的记录加入你的日记。同一份备份恢复两次也不会重复。';
+
+  @override
+  String get importConfirm => '恢复';
+
+  @override
+  String get importSummaryTitle => '恢复完成';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已恢复 $count 条记录。',
+      zero: '没有新内容可恢复。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '恢复失败';
+
+  @override
+  String get importFailedBody => '无法读取备份。日记没有任何改动。';
+
+  @override
+  String get importNotArchive => '这不是 OpenTranscribe 备份。日记没有任何改动。';
+
+  @override
+  String get importNewerVersion => '由更新版本的应用创建。请更新后再导入。';
+
+  @override
+  String get importRezipped => '这份备份被其他工具重新压缩过。请重新保存一份再恢复。';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
+
+  @override
+  String get supportGateBody => '格式化导出是俱乐部会员功能。备份对所有人保持免费。';
+
+  @override
+  String get settingsSupport => '支持';
+
+  @override
+  String get supportGateAction => '成为俱乐部会员';
+
+  @override
+  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';
+
+  @override
+  String get supportPerkExports => '格式化导出';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
+
+  @override
+  String get supportPerkFuture => '未来的俱乐部功能';
+
+  @override
+  String get supportPerkFutureNote => '之后加入俱乐部的功能也包含在内。';
+
+  @override
+  String get supportThanks => '你已永久加入俱乐部。谢谢。';
+
+  @override
+  String supportJoin(String price) {
+    return '以 $price 加入俱乐部';
+  }
+
+  @override
+  String get supportRestore => '恢复购买';
+
+  @override
+  String get supportUnreachable => '无法连接 App Store。重新打开此页面即可重试。';
+
+  @override
+  String get supportPending => '等待批准。批准后购买即完成。';
+
+  @override
+  String get supportRestoreNoneTitle => '没有可恢复的购买';
+
+  @override
+  String get supportRestoreNoneBody => '此 Apple ID 未关联任何俱乐部购买。';
+
+  @override
+  String get supportFailedTitle => '未能完成';
+
+  @override
+  String get supportFailedBody => 'App Store 未能完成。请重试。';
+
+  @override
+  String get supportPrivacy => '隐私政策';
+
+  @override
+  String get supportTerms => '使用条款';
+
+  @override
+  String get supportUnlocksSection => '俱乐部权益';
+
+  @override
+  String get supportMemberUnlocks => '你的权益';
+
+  @override
+  String get supporterTag => '俱乐部';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。购买遵循 Apple 的标准$terms。';
+  }
 }

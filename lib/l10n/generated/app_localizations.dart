@@ -114,11 +114,17 @@ abstract class AppLocalizations {
   /// **'OpenTranscribe'**
   String get appTitle;
 
-  /// Settings note describing the offline promise
+  /// Title of the screen shown when startup failed before the app was ready to open
   ///
   /// In en, this message translates to:
-  /// **'Everything stays on this device. No account, no cloud, no network.'**
-  String get settingsOffline;
+  /// **'Could not start'**
+  String get launchFailedTitle;
+
+  /// What the user can do about a failed startup. 'App switcher' is the iOS App Switcher; use Apple's official term for it in this locale
+  ///
+  /// In en, this message translates to:
+  /// **'Something the app needs at launch did not load. Close the app from the app switcher and open it again; if that does not help, restart the phone.'**
+  String get launchFailedBody;
 
   /// One-word placeholder for an untranscribed entry's excerpt in the home list
   ///
@@ -233,6 +239,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rename'**
   String get rename;
+
+  /// Action that opens the transcript for hand editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editTranscript;
+
+  /// Metadata line marker on an entry not reading as its transcript, and the origin label of a hand revision
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get editedMarker;
+
+  /// Action that opens the entry's revision history
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get revisionHistory;
+
+  /// Body of the revision history sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Everything this entry\'s text has been through. Tapping a version restores it as the newest.'**
+  String get revisionHistoryBody;
+
+  /// Tag on the revision the entry currently reads as
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get revisionCurrent;
+
+  /// Origin label of a revision an engine produced
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed'**
+  String get revisionTranscribed;
 
   /// Button that transcribes an untranscribed entry
   ///
@@ -402,29 +444,23 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsAppLanguage;
 
-  /// Header of the transcription screen: the on-device and shared-asset promise
-  ///
-  /// In en, this message translates to:
-  /// **'Each language runs its own on-device model, downloaded once and shared with the system; models don\'t count against this app\'s storage. The system limits how many languages an app can keep ready at once.'**
-  String get transcriptionInfo;
-
   /// Engine-card line showing used vs available reservation slots (the per-device cap, unrelated to list length)
   ///
   /// In en, this message translates to:
   /// **'{used} of {max} language slots used'**
   String transcriptionCap(int used, int max);
 
-  /// Footer hint for the swipe-to-remove gesture
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe left on a language to remove it.'**
-  String get transcriptionRemoveHint;
-
   /// Row failure line when the platform has no asset to serve
   ///
   /// In en, this message translates to:
   /// **'This language can\'t be downloaded on this device yet.'**
   String get transcriptionErrorUnsupported;
+
+  /// Row note under a language the dictation engine cannot run because the system dictation model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on dictation for this language in iOS keyboard settings.'**
+  String get languageNeedsDictation;
 
   /// Row failure line when the asset was already stuck downloading
   ///
@@ -486,6 +522,18 @@ abstract class AppLocalizations {
   /// **'There\'s no on-device model for {language} on this device yet. It may arrive with a system update.'**
   String modelFailUnsupportedBody(String language);
 
+  /// Sheet title for a language the dictation engine cannot run because the system model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Dictation isn\'t set up'**
+  String get modelFailDictationTitle;
+
+  /// Sheet body for that language; the recovery is the iOS dictation setting
+  ///
+  /// In en, this message translates to:
+  /// **'{language} transcribes with the system\'s dictation model, which isn\'t on this iPhone yet. Add its keyboard and turn on dictation in iOS Settings.'**
+  String modelFailDictationBody(String language);
+
   /// Failure sheet title when an earlier system download is still pending
   ///
   /// In en, this message translates to:
@@ -528,23 +576,113 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsModels;
 
-  /// Section label over the per-language model list on the models screen
+  /// Section label over the kept languages in the language sheet
   ///
   /// In en, this message translates to:
-  /// **'Languages'**
-  String get transcriptionLanguages;
+  /// **'Your languages'**
+  String get transcriptionYourLanguages;
+
+  /// Section label over the remaining library in the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get transcriptionAllLanguages;
+
+  /// Section label over the default-language hero card
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking'**
+  String get transcriptionSpeaking;
+
+  /// Section label over the kept-language chip strip
+  ///
+  /// In en, this message translates to:
+  /// **'Also ready'**
+  String get transcriptionAlsoReady;
+
+  /// The chip opening the language sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get transcriptionAddLanguage;
+
+  /// Hero status line for a ready default language, naming the active engine
+  ///
+  /// In en, this message translates to:
+  /// **'Ready · {engine}'**
+  String transcriptionHeroReady(String engine);
+
+  /// The one footnote under the transcription screen
+  ///
+  /// In en, this message translates to:
+  /// **'Models download once and are shared with the system.'**
+  String get transcriptionFootnote;
+
+  /// Section label over the engine picker on the models screen
+  ///
+  /// In en, this message translates to:
+  /// **'Engines'**
+  String get transcriptionEngines;
+
+  /// One-line explanation under the SpeechAnalyzer engine row
+  ///
+  /// In en, this message translates to:
+  /// **'Apple\'s newest engine, a downloaded model per language'**
+  String get engineBlurbSpeechAnalyzer;
+
+  /// One-line explanation under the Dictation engine row
+  ///
+  /// In en, this message translates to:
+  /// **'The recognizer behind iOS keyboard dictation'**
+  String get engineBlurbDictation;
+
+  /// Quiet note under a dimmed engine row this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableNote;
+
+  /// Sheet title for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this iPhone'**
+  String get engineUnavailableTitle;
+
+  /// Sheet body for an engine this device cannot run
+  ///
+  /// In en, this message translates to:
+  /// **'{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.'**
+  String engineUnavailableBody(String engine);
+
+  /// Sheet title when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Recording in progress'**
+  String get engineBusyTitle;
+
+  /// Sheet body when an engine switch is refused mid-take
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the current recording, then switch engines.'**
+  String get engineBusyBody;
+
+  /// Sheet title when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the choice'**
+  String get engineNotSavedTitle;
+
+  /// Sheet body when the engine choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'The engine choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get engineNotSavedBody;
 
   /// Small tag on the language row currently set as the transcription default
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get transcriptionDefaultTag;
-
-  /// Footer hint for the hold-to-set-default gesture on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'Touch and hold a language to make it the default.'**
-  String get transcriptionDefaultHint;
 
   /// Footer notice when the phone's language has no on-device model in any variant
   ///
@@ -1151,6 +1289,420 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
+
+  /// Menu row and button label for exporting one entry
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportEntry;
+
+  /// Entry export sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export entry'**
+  String get exportEntryTitle;
+
+  /// Toggle for bundling the recording with an export
+  ///
+  /// In en, this message translates to:
+  /// **'Include audio'**
+  String get exportIncludeAudio;
+
+  /// Name of the Markdown export format. A format is named by its makers: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown'**
+  String get exportFormatMarkdown;
+
+  /// One line under the Markdown format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'One text file per entry, plus a .json.'**
+  String get exportFormatMarkdownNote;
+
+  /// Name of the Obsidian export format. A product name: keep it verbatim
+  ///
+  /// In en, this message translates to:
+  /// **'Obsidian'**
+  String get exportFormatObsidian;
+
+  /// One line under the Obsidian format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes with properties, audio embedded.'**
+  String get exportFormatObsidianNote;
+
+  /// The app's own name for the HTML export format; a plain noun, so it translates
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get exportFormatWeb;
+
+  /// One line under the web page format row saying what it writes
+  ///
+  /// In en, this message translates to:
+  /// **'Opens in any browser, with a player.'**
+  String get exportFormatWebNote;
+
+  /// Export failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get exportFailedTitle;
+
+  /// Export failure explanation; nothing left the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the files. Nothing was shared.'**
+  String get exportFailedBody;
+
+  /// File and heading fallback for an entry with no title
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get exportUntitled;
+
+  /// Markdown heading over the exported transcript
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get exportTranscriptHeading;
+
+  /// How a silent reflection reads in an export
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet stretch.'**
+  String get exportQuiet;
+
+  /// Home menu row opening the Backup screen
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get settingsBackup;
+
+  /// Backup screen intro: what a backup holds and what encryption does
+  ///
+  /// In en, this message translates to:
+  /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
+  String get backupInfo;
+
+  /// The Backup screen intro once the entry count is measured
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
+  String backupInfoCount(int count);
+
+  /// Section label over the format picker and export row
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get backupExportSection;
+
+  /// Action row exporting the whole journal in the chosen format
+  ///
+  /// In en, this message translates to:
+  /// **'Export journal'**
+  String get backupExportJournal;
+
+  /// Help paragraph under the export card
+  ///
+  /// In en, this message translates to:
+  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
+  String get backupExportInfo;
+
+  /// Toggle for sealing archives with a passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt with passphrase'**
+  String get backupSeal;
+
+  /// The Backup section row that saves a backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Save backup'**
+  String get backupSave;
+
+  /// Detail under Save backup showing when the last backup was handed off
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup {date}'**
+  String backupLastBackup(String date);
+
+  /// Sealing passphrase sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt the backup'**
+  String get passphraseCreateTitle;
+
+  /// Sealing passphrase sheet body: the passphrase is the only key
+  ///
+  /// In en, this message translates to:
+  /// **'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.'**
+  String get passphraseCreateBody;
+
+  /// Passphrase field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase'**
+  String get passphrasePlaceholder;
+
+  /// Confirmation field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat passphrase'**
+  String get passphraseRepeatPlaceholder;
+
+  /// Footnote while the passphrase is under the minimum length
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters'**
+  String get passphraseTooShort;
+
+  /// Footnote while the two passphrase fields differ
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases do not match'**
+  String get passphraseMismatch;
+
+  /// Unlock sheet title for a sealed archive
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup'**
+  String get importUnlockTitle;
+
+  /// Unlock sheet body asking for the sealing passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the passphrase this backup was encrypted with.'**
+  String get importUnlockBody;
+
+  /// Unlock sheet action button
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get importUnlock;
+
+  /// Unlock retry error; GCM cannot tell wrong passphrase from damage
+  ///
+  /// In en, this message translates to:
+  /// **'Could not unlock. Wrong passphrase, or a damaged file.'**
+  String get importWrongPassphrase;
+
+  /// Import confirmation sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get importConfirmTitle;
+
+  /// Import confirmation body: additive, nothing touched
+  ///
+  /// In en, this message translates to:
+  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
+  String get importConfirmBody;
+
+  /// Import confirmation action button
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get importConfirm;
+
+  /// Import summary sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore complete'**
+  String get importSummaryTitle;
+
+  /// Summary line for how many entries were imported
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
+  String importSummaryImported(int count);
+
+  /// Summary line for entries already present, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
+  String importSummarySkipped(int count);
+
+  /// Import failure sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed'**
+  String get importFailedTitle;
+
+  /// Generic import failure body; journal unchanged
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be read. Nothing in the journal was changed.'**
+  String get importFailedBody;
+
+  /// Failure body for a file that is not an archive
+  ///
+  /// In en, this message translates to:
+  /// **'Not an OpenTranscribe backup. Nothing in the journal was changed.'**
+  String get importNotArchive;
+
+  /// Failure body for an archive from a newer app version
+  ///
+  /// In en, this message translates to:
+  /// **'Made by a newer version of the app. Update to import it.'**
+  String get importNewerVersion;
+
+  /// Failure body for an archive re-compressed by another tool
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
+  String get importRezipped;
+
+  /// Generic dismiss button
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// Failure body when adoption already wrote; restored entries are kept
+  ///
+  /// In en, this message translates to:
+  /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
+  String get importFailedMidway;
+
+  /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted exports are for club members. The backup stays free for everyone.'**
+  String get supportGateBody;
+
+  /// Home menu row opening the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get settingsSupport;
+
+  /// Gate sheet action that opens the support screen
+  ///
+  /// In en, this message translates to:
+  /// **'Become a club member'**
+  String get supportGateAction;
+
+  /// Support screen intro for a non-supporter
+  ///
+  /// In en, this message translates to:
+  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.'**
+  String get supportPitch;
+
+  /// Perk row label: the formatted exports
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted exports'**
+  String get supportPerkExports;
+
+  /// Perk row note naming the formats; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown, Obsidian, or a website.'**
+  String get supportPerkExportsNote;
+
+  /// Perk row label: later club-only features are included
+  ///
+  /// In en, this message translates to:
+  /// **'Future club features'**
+  String get supportPerkFuture;
+
+  /// Perk row note for future club features; one line
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever joins the club later, included.'**
+  String get supportPerkFutureNote;
+
+  /// Support screen intro for a club member
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re in the club for good. Thank you.'**
+  String get supportThanks;
+
+  /// Label of the pinned join button; price is the store's localized price string
+  ///
+  /// In en, this message translates to:
+  /// **'Join the club for {price}'**
+  String supportJoin(String price);
+
+  /// Link that restores purchases via the store sync
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get supportRestore;
+
+  /// Line shown when the price fetch failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not be reached. Reopen this screen to try again.'**
+  String get supportUnreachable;
+
+  /// Line shown after an Ask to Buy purchase answered pending
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval. The purchase finishes once it is approved.'**
+  String get supportPending;
+
+  /// Sheet title when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to restore'**
+  String get supportRestoreNoneTitle;
+
+  /// Sheet body when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'No club purchase is attached to this Apple ID.'**
+  String get supportRestoreNoneBody;
+
+  /// Sheet title when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'That did not go through'**
+  String get supportFailedTitle;
+
+  /// Sheet body when a purchase or restore failed
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not finish. Try again.'**
+  String get supportFailedBody;
+
+  /// Privacy policy link label
+  ///
+  /// In en, this message translates to:
+  /// **'privacy policy'**
+  String get supportPrivacy;
+
+  /// Terms of use link label
+  ///
+  /// In en, this message translates to:
+  /// **'terms of use'**
+  String get supportTerms;
+
+  /// Section label above the list of features supporting unlocks
+  ///
+  /// In en, this message translates to:
+  /// **'Club members get'**
+  String get supportUnlocksSection;
+
+  /// Section label above the perks on a member's confirmation screen, framed as what the member already has
+  ///
+  /// In en, this message translates to:
+  /// **'What you get'**
+  String get supportMemberUnlocks;
+
+  /// Eyebrow under the app name on the support screen header
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get supporterTag;
+
+  /// Footer paragraph; privacy and terms are the inline tappable link labels
+  ///
+  /// In en, this message translates to:
+  /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
+  String supportFooter(String privacy, String terms);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

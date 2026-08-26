@@ -72,8 +72,8 @@ class AppTopBar extends StatelessWidget {
 
   /// The SECONDARY bar (reeed's): a translucent frost that content shows
   /// through, fading from its midpoint, rather than home's opaque material.
-  /// Every screen that is not home (settings and its sub-screens, the gallery)
-  /// wears it - the home bar stays as it was.
+  /// Every screen that is not home (settings and its sub-screens) wears it -
+  /// the home bar stays as it was.
   final bool frosted;
 
   /// Whether a poppable route auto-grows a back chevron in an empty leading

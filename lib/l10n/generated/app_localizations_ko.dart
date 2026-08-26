@@ -12,7 +12,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appTitle => 'OpenTranscribe';
 
   @override
-  String get settingsOffline => '모든 것이 이 기기에만 남습니다. 계정도, 클라우드도, 네트워크도 없습니다.';
+  String get launchFailedTitle => '시작하지 못했습니다';
+
+  @override
+  String get launchFailedBody =>
+      '실행에 필요한 것을 불러오지 못했습니다. 앱 전환기에서 앱을 종료한 뒤 다시 열어 보세요. 그래도 안 되면 기기를 재시작하세요.';
 
   @override
   String get entryUntranscribed => '미전사';
@@ -70,6 +74,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get rename => '이름 변경';
+
+  @override
+  String get editTranscript => '편집';
+
+  @override
+  String get editedMarker => '편집됨';
+
+  @override
+  String get revisionHistory => '기록';
+
+  @override
+  String get revisionHistoryBody => '이 항목의 텍스트가 거쳐 온 모든 버전입니다. 탭하면 해당 버전이 최신으로 복원됩니다.';
+
+  @override
+  String get revisionCurrent => '현재';
+
+  @override
+  String get revisionTranscribed => '전사됨';
 
   @override
   String get transcribe => '전사';
@@ -157,19 +179,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAppLanguage => '언어';
 
   @override
-  String get transcriptionInfo =>
-      '각 언어는 자체 온디바이스 모델로 실행되며, 한 번 다운로드하면 시스템과 공유됩니다. 모델은 이 앱의 저장 공간에 포함되지 않습니다. 시스템은 앱이 한 번에 준비해 둘 수 있는 언어 수를 제한합니다.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '언어 슬롯 $max개 중 $used개 사용 중';
   }
 
   @override
-  String get transcriptionRemoveHint => '언어를 왼쪽으로 밀어 삭제하세요.';
+  String get transcriptionErrorUnsupported => '이 언어는 아직 이 기기에서 다운로드할 수 없습니다.';
 
   @override
-  String get transcriptionErrorUnsupported => '이 언어는 아직 이 기기에서 다운로드할 수 없습니다.';
+  String get languageNeedsDictation => 'iOS 키보드 설정에서 이 언어의 받아쓰기를 켜세요.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -207,6 +225,14 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '받아쓰기가 설정되지 않음';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language은(는) 시스템 받아쓰기 모델로 전사되는데, 이 iPhone에는 아직 없습니다. iOS 설정에서 키보드를 추가하고 받아쓰기를 켜세요.';
+  }
+
+  @override
   String get modelFailStuckTitle => '아직 다운로드 중';
 
   @override
@@ -234,13 +260,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsModels => '전사';
 
   @override
-  String get transcriptionLanguages => '언어';
+  String get transcriptionYourLanguages => '내 언어';
+
+  @override
+  String get transcriptionAllLanguages => '모든 언어';
+
+  @override
+  String get transcriptionSpeaking => '말하는 언어';
+
+  @override
+  String get transcriptionAlsoReady => '준비된 다른 언어';
+
+  @override
+  String get transcriptionAddLanguage => '추가';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return '준비 완료 · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
+
+  @override
+  String get transcriptionEngines => '엔진';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple의 최신 엔진, 언어마다 모델을 다운로드';
+
+  @override
+  String get engineBlurbDictation => 'iOS 키보드 받아쓰기에 쓰이는 인식 엔진';
+
+  @override
+  String get engineUnavailableNote => '이 iPhone에서는 사용할 수 없음';
+
+  @override
+  String get engineUnavailableTitle => '이 iPhone에서는 사용할 수 없음';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine은(는) iOS 26과 최신 iPhone이 필요합니다. 녹음은 사용 가능한 엔진으로 계속됩니다.';
+  }
+
+  @override
+  String get engineBusyTitle => '녹음 진행 중';
+
+  @override
+  String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
+
+  @override
+  String get engineNotSavedTitle => '선택을 저장하지 못함';
+
+  @override
+  String get engineNotSavedBody => '엔진 선택을 저장하지 못해 다시 시작하면 유지되지 않습니다.';
 
   @override
   String get transcriptionDefaultTag => '기본';
-
-  @override
-  String get transcriptionDefaultHint => '언어를 길게 눌러 기본으로 설정하세요.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -563,4 +638,242 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get themeRequestLink => 'GitHub에서 테마 요청하기';
+
+  @override
+  String get exportEntry => '내보내기';
+
+  @override
+  String get exportEntryTitle => '항목 내보내기';
+
+  @override
+  String get exportIncludeAudio => '오디오 포함';
+
+  @override
+  String get exportFormatMarkdown => 'Markdown';
+
+  @override
+  String get exportFormatMarkdownNote => '항목마다 텍스트 파일 하나와 .json.';
+
+  @override
+  String get exportFormatObsidian => 'Obsidian';
+
+  @override
+  String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
+
+  @override
+  String get exportFormatWeb => '웹사이트';
+
+  @override
+  String get exportFormatWebNote => '어떤 브라우저에서나 열립니다. 재생 지원.';
+
+  @override
+  String get exportFailedTitle => '내보내기 실패';
+
+  @override
+  String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportUntitled => '제목 없음';
+
+  @override
+  String get exportTranscriptHeading => '텍스트 변환';
+
+  @override
+  String get exportQuiet => '조용한 시간.';
+
+  @override
+  String get settingsBackup => '백업';
+
+  @override
+  String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
+
+  @override
+  String backupInfoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
+      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupExportSection => '내보내기';
+
+  @override
+  String get backupExportJournal => '저널 내보내기';
+
+  @override
+  String get backupExportInfo =>
+      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
+
+  @override
+  String get backupSeal => '암호구로 암호화';
+
+  @override
+  String get backupSave => '백업 저장';
+
+  @override
+  String backupLastBackup(String date) {
+    return '마지막 백업 $date';
+  }
+
+  @override
+  String get passphraseCreateTitle => '백업 암호화';
+
+  @override
+  String get passphraseCreateBody => '암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 백업은 잡음일 뿐입니다.';
+
+  @override
+  String get passphrasePlaceholder => '암호구';
+
+  @override
+  String get passphraseRepeatPlaceholder => '암호구 다시 입력';
+
+  @override
+  String get passphraseTooShort => '8자 이상';
+
+  @override
+  String get passphraseMismatch => '암호구가 일치하지 않습니다';
+
+  @override
+  String get importUnlockTitle => '암호화된 백업';
+
+  @override
+  String get importUnlockBody => '이 백업을 암호화한 암호구를 입력하세요.';
+
+  @override
+  String get importUnlock => '잠금 해제';
+
+  @override
+  String get importWrongPassphrase => '열 수 없습니다. 암호구가 틀렸거나 파일이 손상되었습니다.';
+
+  @override
+  String get importConfirmTitle => '이 백업을 복원할까요?';
+
+  @override
+  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
+
+  @override
+  String get importConfirm => '복원';
+
+  @override
+  String get importSummaryTitle => '복원 완료';
+
+  @override
+  String importSummaryImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '항목 $count개를 복원했습니다.',
+      zero: '새로 복원할 것이 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummarySkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 이미 저널에 있었습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailedTitle => '복원 실패';
+
+  @override
+  String get importFailedBody => '백업을 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
+
+  @override
+  String get importNotArchive => 'OpenTranscribe 백업이 아닙니다. 저널은 아무것도 바뀌지 않았습니다.';
+
+  @override
+  String get importNewerVersion => '더 새로운 버전의 앱으로 만들어졌습니다. 업데이트 후 가져오세요.';
+
+  @override
+  String get importRezipped => '이 백업은 다른 도구로 다시 압축되었습니다. 새로 저장한 것을 복원하세요.';
+
+  @override
+  String get done => '완료';
+
+  @override
+  String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
+
+  @override
+  String get supportGateBody => '서식 있는 내보내기는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
+
+  @override
+  String get settingsSupport => '후원';
+
+  @override
+  String get supportGateAction => '클럽 멤버 되기';
+
+  @override
+  String get supportPitch =>
+      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 클럽 가입은 한 번의 결제로 평생 유지됩니다.';
+
+  @override
+  String get supportPerkExports => '서식 있는 내보내기';
+
+  @override
+  String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+
+  @override
+  String get supportPerkFuture => '앞으로의 클럽 기능';
+
+  @override
+  String get supportPerkFutureNote => '나중에 추가되는 클럽 기능도 포함됩니다.';
+
+  @override
+  String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';
+
+  @override
+  String supportJoin(String price) {
+    return '$price에 클럽 가입';
+  }
+
+  @override
+  String get supportRestore => '구입 항목 복원';
+
+  @override
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 이 화면을 다시 열면 다시 시도합니다.';
+
+  @override
+  String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
+
+  @override
+  String get supportRestoreNoneTitle => '복원할 항목 없음';
+
+  @override
+  String get supportRestoreNoneBody => '이 Apple ID에 연결된 클럽 구입이 없습니다.';
+
+  @override
+  String get supportFailedTitle => '완료되지 않았습니다';
+
+  @override
+  String get supportFailedBody => 'App Store에서 완료하지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get supportPrivacy => '개인정보 처리방침';
+
+  @override
+  String get supportTerms => '이용 약관';
+
+  @override
+  String get supportUnlocksSection => '클럽 혜택';
+
+  @override
+  String get supportMemberUnlocks => '이용 가능한 혜택';
+
+  @override
+  String get supporterTag => '클럽';
+
+  @override
+  String supportFooter(String privacy, String terms) {
+    return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구매는 Apple 표준 $terms을 따릅니다.';
+  }
 }

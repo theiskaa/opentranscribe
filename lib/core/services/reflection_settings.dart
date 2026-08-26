@@ -1,7 +1,6 @@
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/reflect/reflection_options.dart';
-import 'package:opentranscribe/core/reflect/reflection_period.dart';
+import 'package:reflections/reflections.dart';
 
 // The storage is private and named parameters cannot be, so an initializing
 // formal does not apply.

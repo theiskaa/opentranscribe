@@ -1,6 +1,6 @@
 import 'package:opentranscribe/core/state/settings_cubit.dart';
-import 'package:opentranscribe/core/transcribe/transcription_engine.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// The one wording for a language row's failure, shared by every surface that
 /// shows one (the Models screen, the onboarding model step). Null when the row
@@ -17,4 +17,24 @@ String? modelFailureLine(AppLocalizations l10n, LanguageModelState row) {
       _ => l10n.transcriptionErrorGeneric,
     },
   };
+}
+
+/// The one wording for everything standing in a language's way: a standing
+/// failure, an unready language (worded by whether the engine manages models,
+/// or the system dictation setting is the recovery), or a system download
+/// stuck from an earlier attempt. Null when nothing stands in the way.
+String? modelTroubleLine(
+  AppLocalizations l10n,
+  LanguageModelState row, {
+  required bool managesModels,
+}) {
+  final failure = modelFailureLine(l10n, row);
+  if (failure != null) return failure;
+  if (row.status == ModelAssetStatus.unsupported) {
+    return managesModels ? l10n.transcriptionErrorUnsupported : l10n.languageNeedsDictation;
+  }
+  if (row.status == ModelAssetStatus.downloading && !row.installing) {
+    return l10n.transcriptionErrorStuck;
+  }
+  return null;
 }

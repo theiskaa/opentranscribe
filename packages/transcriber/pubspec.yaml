@@ -1,0 +1,23 @@
+name: transcriber
+description: Audio capture, playback, and on-device transcription behind swappable engine contracts.
+version: 1.0.0
+publish_to: "none"
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: TranscriberPlugin
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
