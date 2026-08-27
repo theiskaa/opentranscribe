@@ -258,4 +258,22 @@ void main() {
       ),
     );
   });
+
+  test('the cached price is null until the first product read answers', () async {
+    await build();
+    expect(service.cachedProduct, isNull);
+    store.productsAnswer = const [StoreProduct(id: lifetime, displayPrice: r'$24.99')];
+    await service.product();
+    expect(service.cachedProduct?.displayPrice, r'$24.99');
+  });
+
+  test('warming the price caches it without throwing on a store failure', () async {
+    await build();
+    store.productsAnswer = const [];
+    await service.warmProduct();
+    expect(service.cachedProduct, isNull);
+    store.productsAnswer = const [StoreProduct(id: lifetime, displayPrice: r'$24.99')];
+    await service.warmProduct();
+    expect(service.cachedProduct?.id, lifetime);
+  });
 }

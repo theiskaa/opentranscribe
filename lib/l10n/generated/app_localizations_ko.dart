@@ -228,19 +228,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAppLanguage => '언어';
 
   @override
-  String get transcriptionInfo =>
-      '각 언어는 자체 온디바이스 모델로 실행되며, 한 번 다운로드하면 시스템과 공유됩니다. 모델은 이 앱의 저장 공간에 포함되지 않습니다. 시스템은 앱이 한 번에 준비해 둘 수 있는 언어 수를 제한합니다.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '언어 슬롯 $max개 중 $used개 사용 중';
   }
 
   @override
-  String get transcriptionRemoveHint => '언어를 왼쪽으로 밀어 삭제하세요.';
+  String get transcriptionErrorUnsupported => '이 언어는 아직 이 기기에서 다운로드할 수 없습니다.';
 
   @override
-  String get transcriptionErrorUnsupported => '이 언어는 아직 이 기기에서 다운로드할 수 없습니다.';
+  String get languageNeedsDictation => 'iOS 키보드 설정에서 이 언어의 받아쓰기를 켜세요.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -278,6 +274,14 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '받아쓰기가 설정되지 않음';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language은(는) 시스템 받아쓰기 모델로 전사되는데, 이 iPhone에는 아직 없습니다. iOS 설정에서 키보드를 추가하고 받아쓰기를 켜세요.';
+  }
+
+  @override
   String get modelFailStuckTitle => '아직 다운로드 중';
 
   @override
@@ -305,13 +309,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsModels => '전사';
 
   @override
-  String get transcriptionLanguages => '언어';
+  String get transcriptionYourLanguages => '내 언어';
+
+  @override
+  String get transcriptionAllLanguages => '모든 언어';
+
+  @override
+  String get transcriptionSpeaking => '말하는 언어';
+
+  @override
+  String get transcriptionAlsoReady => '준비된 다른 언어';
+
+  @override
+  String get transcriptionAddLanguage => '추가';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return '준비 완료 · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
+
+  @override
+  String get transcriptionEngines => '엔진';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple의 최신 엔진, 언어마다 모델을 다운로드';
+
+  @override
+  String get engineBlurbDictation => 'iOS 키보드 받아쓰기에 쓰이는 인식 엔진';
+
+  @override
+  String get engineUnavailableNote => '이 iPhone에서는 사용할 수 없음';
+
+  @override
+  String get engineUnavailableTitle => '이 iPhone에서는 사용할 수 없음';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine은(는) iOS 26과 최신 iPhone이 필요합니다. 녹음은 사용 가능한 엔진으로 계속됩니다.';
+  }
+
+  @override
+  String get engineBusyTitle => '녹음 진행 중';
+
+  @override
+  String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
+
+  @override
+  String get engineNotSavedTitle => '선택을 저장하지 못함';
+
+  @override
+  String get engineNotSavedBody => '엔진 선택을 저장하지 못해 다시 시작하면 유지되지 않습니다.';
 
   @override
   String get transcriptionDefaultTag => '기본';
-
-  @override
-  String get transcriptionDefaultHint => '언어를 길게 눌러 기본으로 설정하세요.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -861,6 +914,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get supportUnlocksSection => '클럽 혜택';
+
+  @override
+  String get supportMemberUnlocks => '이용 가능한 혜택';
 
   @override
   String get supporterTag => '클럽';

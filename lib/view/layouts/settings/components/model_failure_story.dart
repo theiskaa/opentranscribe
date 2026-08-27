@@ -8,10 +8,14 @@ import 'package:transcriber/transcriber.dart';
 /// The failure cases the model-failure sheet words, folded from a row's
 /// failure kind and the asset's pre-install status. One surface, one honest
 /// story per case.
-enum ModelFailureCase { cap, unsupported, stuck, removeFailed, generic }
+enum ModelFailureCase { cap, unsupported, needsDictation, stuck, removeFailed, generic }
 
 /// The story [row] tells. Pure, so the fold is testable off the widget.
-ModelFailureCase modelFailureCase(LanguageModelState row) {
+/// [managed] is whether the active engine manages downloadable models: an
+/// unready language then awaits a model the app can fetch or the system may
+/// ship, while without it (the dictation engine) the recovery is the system's
+/// own dictation setting, a different story.
+ModelFailureCase modelFailureCase(LanguageModelState row, {required bool managed}) {
   final failure = row.failure;
   if (failure != null) {
     return switch (failure.kind) {
@@ -24,7 +28,9 @@ ModelFailureCase modelFailureCase(LanguageModelState row) {
       },
     };
   }
-  if (row.status == ModelAssetStatus.unsupported) return ModelFailureCase.unsupported;
+  if (row.status == ModelAssetStatus.unsupported) {
+    return managed ? ModelFailureCase.unsupported : ModelFailureCase.needsDictation;
+  }
   return ModelFailureCase.stuck;
 }
 
@@ -47,6 +53,11 @@ bool rowHasFailureStory(LanguageModelState row) =>
     AppIcons.globe,
     l10n.modelFailUnsupportedTitle,
     l10n.modelFailUnsupportedBody(language),
+  ),
+  ModelFailureCase.needsDictation => (
+    AppIcons.mic,
+    l10n.modelFailDictationTitle,
+    l10n.modelFailDictationBody(language),
   ),
   ModelFailureCase.stuck => (
     AppIcons.icloud,

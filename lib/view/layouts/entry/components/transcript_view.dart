@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:transcriber/transcriber.dart';
 
 /// The transcript body. Where the transcript carries timings, the segment under
@@ -281,8 +282,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final loading = _phase == _Phase.loading;
     return AnimatedSwitcher(
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-      layoutBuilder: (current, previous) =>
-          Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
+      layoutBuilder: meltStack,
       child: loading
           ? Align(
               key: const ValueKey('loading'),

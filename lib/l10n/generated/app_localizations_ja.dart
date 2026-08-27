@@ -228,19 +228,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppLanguage => '言語';
 
   @override
-  String get transcriptionInfo =>
-      '各言語は独自の端末内モデルで動作します。モデルは一度だけダウンロードされ、システムと共有されるため、このアプリのストレージには計上されません。同時に準備しておける言語の数はシステムによって制限されます。';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$max 個中 $used 個の言語スロットを使用中';
   }
 
   @override
-  String get transcriptionRemoveHint => '言語を左にスワイプすると削除できます。';
+  String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
 
   @override
-  String get transcriptionErrorUnsupported => 'この言語は、この端末ではまだダウンロードできません。';
+  String get languageNeedsDictation => 'iOS のキーボード設定でこの言語の音声入力をオンにしてください。';
 
   @override
   String get transcriptionErrorStuck => '以前のダウンロードがまだ保留中です。システムは条件が整うと再試行します。もう一度試しても問題ありません。';
@@ -277,6 +273,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => '音声入力が設定されていません';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language はシステムの音声入力モデルで文字起こしされますが、この iPhone にはまだありません。iOS 設定でキーボードを追加し、音声入力をオンにしてください。';
+  }
+
+  @override
   String get modelFailStuckTitle => 'まだダウンロード中です';
 
   @override
@@ -304,13 +308,62 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsModels => '文字起こし';
 
   @override
-  String get transcriptionLanguages => '言語';
+  String get transcriptionYourLanguages => '自分の言語';
+
+  @override
+  String get transcriptionAllLanguages => 'すべての言語';
+
+  @override
+  String get transcriptionSpeaking => '話す言語';
+
+  @override
+  String get transcriptionAlsoReady => '準備済みの言語';
+
+  @override
+  String get transcriptionAddLanguage => '追加';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return '準備完了 · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote => 'モデルは一度だけダウンロードされ、システムと共有されます。';
+
+  @override
+  String get transcriptionEngines => 'エンジン';
+
+  @override
+  String get engineBlurbSpeechAnalyzer => 'Apple の最新エンジン。言語ごとにモデルをダウンロード';
+
+  @override
+  String get engineBlurbDictation => 'iOS キーボードの音声入力を支える認識エンジン';
+
+  @override
+  String get engineUnavailableNote => 'この iPhone では利用できません';
+
+  @override
+  String get engineUnavailableTitle => 'この iPhone では利用できません';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine には iOS 26 と新しい iPhone が必要です。録音には、この iPhone で使えるエンジンが引き続き使われます。';
+  }
+
+  @override
+  String get engineBusyTitle => '録音中';
+
+  @override
+  String get engineBusyBody => '録音を停止してからエンジンを切り替えてください。';
+
+  @override
+  String get engineNotSavedTitle => '選択を保存できませんでした';
+
+  @override
+  String get engineNotSavedBody => 'エンジンの選択を保存できなかったため、再起動後は元に戻ります。';
 
   @override
   String get transcriptionDefaultTag => 'デフォルト';
-
-  @override
-  String get transcriptionDefaultHint => '言語を長押しすると、デフォルトに設定できます。';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -859,6 +912,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get supportUnlocksSection => 'クラブ特典';
+
+  @override
+  String get supportMemberUnlocks => '利用できる特典';
 
   @override
   String get supporterTag => 'クラブ';

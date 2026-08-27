@@ -30,6 +30,11 @@ class SupportService {
   late final StreamSubscription<SupporterTier> _pushes;
   Future<SupporterTier>? _refreshing;
 
+  /// The last price a [product] call read, kept for the session so a surface
+  /// opening after launch can render the join button at once instead of
+  /// waiting on a fresh round trip. Null until the first fetch answers.
+  StoreProduct? _cachedProduct;
+
   /// Bumped on every applied change, so an answer computed before a push
   /// landed can see it is stale and stand down instead of overwriting.
   int _epoch = 0;
@@ -41,6 +46,19 @@ class SupportService {
   /// The current tier. Never a channel call; a bad stored value reads as
   /// [SupporterTier.none] like every settings read.
   SupporterTier get tier => _tier;
+
+  /// The last read price, or null before any [product] call has answered. A
+  /// surface seeds its first frame from this so the button need not wait on a
+  /// round trip; [product] still refreshes it.
+  StoreProduct? get cachedProduct => _cachedProduct;
+
+  /// Warms [cachedProduct] off the launch path, swallowing failure: an unwarmed
+  /// price just falls back to the surface's own fetch.
+  Future<void> warmProduct() async {
+    try {
+      await product();
+    } catch (_) {}
+  }
 
   /// Emits on every change of [tier]. No replay for a new listener; pair
   /// with [tier] for the current answer.
@@ -59,7 +77,7 @@ class SupportService {
     if (products.isEmpty) {
       throw const SupportStoreException('product not in the store', SupportStoreException.failed);
     }
-    return products.first;
+    return _cachedProduct = products.first;
   }
 
   /// Presents the purchase sheet for the lifetime unlock. A purchased answer

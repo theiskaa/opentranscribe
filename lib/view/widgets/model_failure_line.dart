@@ -18,3 +18,23 @@ String? modelFailureLine(AppLocalizations l10n, LanguageModelState row) {
     },
   };
 }
+
+/// The one wording for everything standing in a language's way: a standing
+/// failure, an unready language (worded by whether the engine manages models,
+/// or the system dictation setting is the recovery), or a system download
+/// stuck from an earlier attempt. Null when nothing stands in the way.
+String? modelTroubleLine(
+  AppLocalizations l10n,
+  LanguageModelState row, {
+  required bool managesModels,
+}) {
+  final failure = modelFailureLine(l10n, row);
+  if (failure != null) return failure;
+  if (row.status == ModelAssetStatus.unsupported) {
+    return managesModels ? l10n.transcriptionErrorUnsupported : l10n.languageNeedsDictation;
+  }
+  if (row.status == ModelAssetStatus.downloading && !row.installing) {
+    return l10n.transcriptionErrorStuck;
+  }
+  return null;
+}

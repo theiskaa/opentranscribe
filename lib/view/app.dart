@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
+import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -150,6 +151,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
+          ),
+        ),
+        // Root-scoped so the choice survives leaving the models screen. Lazy
+        // is fine: nothing needs it before that screen builds, and its
+        // constructor only snapshots synchronous state.
+        BlocProvider(
+          create: (_) => EnginesCubit(
+            registry: Deps.i.engineRegistry,
+            service: Deps.i.transcriptionService,
+            engineSettings: Deps.i.engineSettings,
+            transcriptionSettings: Deps.i.transcriptionSettings,
           ),
         ),
         // Root-scoped so the Reflections screen and the home card (separate

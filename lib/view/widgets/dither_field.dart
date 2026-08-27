@@ -7,15 +7,27 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/widgets/dither.dart';
 
+/// Which corner the glow anchors to. The reflection cards glow up from the
+/// bottom-right; the website's brand halo glows down from the top-right.
+enum DitherCorner { topRight, bottomRight }
+
 /// A quiet corner of living dither: cells lit by an ordered-dither threshold
 /// against a glow that breathes on drifting noise, the website background's
 /// grammar drawn in plain Dart - no shader asset, nothing added to the
-/// bundle. The glow anchors to the BOTTOM-RIGHT corner and dies toward the
-/// text. Under Reduce Motion the field holds one still frame.
+/// bundle. The glow anchors to [corner] and dies toward the far edge. Under
+/// Reduce Motion the field holds one still frame.
 class DitherField extends StatefulWidget {
-  const DitherField({required this.color, this.cell = 4.0, super.key});
+  const DitherField({
+    required this.color,
+    this.corner = DitherCorner.bottomRight,
+    this.cell = 4.0,
+    super.key,
+  });
 
   final Color color;
+
+  /// The corner the glow anchors to.
+  final DitherCorner corner;
 
   /// Logical pixels per dither cell.
   final double cell;
@@ -107,6 +119,7 @@ class _DitherFieldState extends State<DitherField> with SingleTickerProviderStat
         painter: _DitherPainter(
           time: _time,
           color: widget.color,
+          corner: widget.corner,
           cell: widget.cell,
           onPaint: _heartbeat,
         ),
@@ -119,12 +132,14 @@ class _DitherPainter extends CustomPainter {
   _DitherPainter({
     required this.time,
     required this.color,
+    required this.corner,
     required this.cell,
     required this.onPaint,
   }) : super(repaint: time);
 
   final ValueListenable<double> time;
   final Color color;
+  final DitherCorner corner;
   final double cell;
 
   /// The liveness heartbeat back to the field's ticker.
@@ -149,10 +164,10 @@ class _DitherPainter extends CustomPainter {
         final qx = x / size.width;
         final qy = y / size.width;
         // DELIBERATE deviation: the web glows from mid-screen with a 0.62
-        // reach; anchored to the bottom-right corner the falloff runs to
-        // 0.95 so the field spans the patch before dying toward the text.
+        // reach; anchored to a corner the falloff runs to 0.95 so the field
+        // spans the patch before dying toward the far edge.
         final dx = 1 - qx;
-        final dy = size.height / size.width - qy;
+        final dy = corner == DitherCorner.topRight ? qy : size.height / size.width - qy;
         final d = math.sqrt(dx * dx + dy * dy);
         var glow = 1 - ditherSmoothstep(0.05, 0.95, d);
         glow = ditherSmoothstep(0, 1, glow);
@@ -169,5 +184,6 @@ class _DitherPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DitherPainter old) => old.color != color || old.cell != cell;
+  bool shouldRepaint(_DitherPainter old) =>
+      old.color != color || old.corner != corner || old.cell != cell;
 }

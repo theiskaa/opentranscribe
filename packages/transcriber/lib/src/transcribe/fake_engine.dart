@@ -417,3 +417,112 @@ class FakeManagedEngine implements ManagedModelEngine {
     Duration? end,
   }) async => _cannedTranscript(cannedText, localeId, id, _clock());
 }
+
+/// Deterministic engine shaped like AppleDictationEngine: streaming and cancellable
+/// but NOT model-managed, so tests can pin a caller's non-managed behavior (no
+/// downloads, no slots, supported-equals-installed) on an engine that still
+/// streams. Wraps a [FakeStreamingEngine] for the shared behavior and knobs;
+/// transcripts are re-stamped with this engine's id.
+class FakeDictationEngine
+    implements StreamingTranscriptionEngine, CancellableBatchEngine, LanguageReadinessEngine {
+  FakeDictationEngine({
+    String cannedText = 'the quick brown fox jumps over the lazy dog',
+    String? batchText,
+    Future<void>? stopSignal,
+    bool failLive = false,
+    bool failBatch = false,
+    Duration? batchDelay,
+    Availability availability = const Availability.available(),
+    List<String> supportedLocaleTags = const ['en-US'],
+    DateTime Function()? clock,
+  }) : inner = FakeStreamingEngine(
+         cannedText: cannedText,
+         batchText: batchText,
+         stopSignal: stopSignal,
+         failLive: failLive,
+         failBatch: failBatch,
+         batchDelay: batchDelay,
+         availability: availability,
+         supportedLocaleTags: supportedLocaleTags,
+         clock: clock,
+       );
+
+  /// The wrapped fake, exposed so tests reach its counters and fixtures.
+  /// Reach it for those only; injecting it AS the engine would hand a caller
+  /// the managed behavior this wrapper exists to deny.
+  final FakeStreamingEngine inner;
+
+  @override
+  String get id => 'fake.dictation';
+
+  @override
+  bool get onDeviceOnly => true;
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) =>
+      inner.checkAvailability(localeId: localeId);
+
+  @override
+  Future<bool> localeReady({required String localeId}) async =>
+      // Per-locale like the real engine: a tag with no on-device recognizer
+      // answers false, whatever the engine-wide availability says.
+      inner.supportedLocaleTags.contains(localeId) &&
+      inner.availability.status != AvailabilityStatus.onDeviceUnavailable;
+
+  @override
+  Future<List<String>> supportedLocales() => inner.supportedLocales();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async {
+    final transcript = await inner.transcribeFile(
+      audio,
+      localeId: localeId,
+      start: start,
+      end: end,
+    );
+    return Transcript(
+      fullText: transcript.fullText,
+      segments: transcript.segments,
+      localeId: transcript.localeId,
+      engineId: id,
+      createdAt: transcript.createdAt,
+    );
+  }
+
+  @override
+  Stream<TranscriptEvent> transcribeLive({required String localeId}) =>
+      inner.transcribeLive(localeId: localeId);
+
+  @override
+  Future<void> cancelBatches() => inner.cancelBatches();
+}
+
+/// An engine that would route off-device. Exists only to prove callers reject
+/// it (the service's one-rule guard); every other member is unreachable.
+class FakeOffDeviceEngine implements TranscriptionEngine {
+  @override
+  String get id => 'fake.cloud';
+
+  @override
+  bool get onDeviceOnly => false;
+
+  @override
+  Future<List<String>> supportedLocales() async => const [];
+
+  @override
+  Future<Availability> checkAvailability({required String localeId}) async =>
+      const Availability.available();
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) async => throw UnimplementedError();
+}

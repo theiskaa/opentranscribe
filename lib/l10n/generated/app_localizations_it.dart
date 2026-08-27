@@ -269,20 +269,17 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsAppLanguage => 'Lingua';
 
   @override
-  String get transcriptionInfo =>
-      'Ogni lingua usa il proprio modello sul dispositivo, scaricato una volta e condiviso con il sistema; i modelli non incidono sullo spazio di questa app. Il sistema limita quante lingue un\'app può tenere pronte contemporaneamente.';
-
-  @override
   String transcriptionCap(int used, int max) {
     return '$used di $max slot lingua usati';
   }
 
   @override
-  String get transcriptionRemoveHint => 'Scorri verso sinistra su una lingua per rimuoverla.';
-
-  @override
   String get transcriptionErrorUnsupported =>
       'Questa lingua non può ancora essere scaricata su questo dispositivo.';
+
+  @override
+  String get languageNeedsDictation =>
+      'Attiva la dettatura per questa lingua nelle impostazioni della tastiera di iOS.';
 
   @override
   String get transcriptionErrorStuck =>
@@ -322,6 +319,14 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get modelFailDictationTitle => 'La dettatura non è configurata';
+
+  @override
+  String modelFailDictationBody(String language) {
+    return '$language viene trascritto con il modello di dettatura del sistema, che non è ancora su questo iPhone. Aggiungi la sua tastiera e attiva la dettatura nelle impostazioni di iOS.';
+  }
+
+  @override
   String get modelFailStuckTitle => 'Ancora in download';
 
   @override
@@ -349,14 +354,65 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsModels => 'Trascrizione';
 
   @override
-  String get transcriptionLanguages => 'Lingue';
+  String get transcriptionYourLanguages => 'Le tue lingue';
+
+  @override
+  String get transcriptionAllLanguages => 'Tutte le lingue';
+
+  @override
+  String get transcriptionSpeaking => 'Lingua parlata';
+
+  @override
+  String get transcriptionAlsoReady => 'Anche pronte';
+
+  @override
+  String get transcriptionAddLanguage => 'Aggiungi';
+
+  @override
+  String transcriptionHeroReady(String engine) {
+    return 'Pronta · $engine';
+  }
+
+  @override
+  String get transcriptionFootnote =>
+      'I modelli si scaricano una volta e sono condivisi con il sistema.';
+
+  @override
+  String get transcriptionEngines => 'Motori';
+
+  @override
+  String get engineBlurbSpeechAnalyzer =>
+      'Il motore più recente di Apple, un modello scaricato per lingua';
+
+  @override
+  String get engineBlurbDictation => 'Il riconoscimento dietro la dettatura della tastiera iOS';
+
+  @override
+  String get engineUnavailableNote => 'Non disponibile su questo iPhone';
+
+  @override
+  String get engineUnavailableTitle => 'Non disponibile su questo iPhone';
+
+  @override
+  String engineUnavailableBody(String engine) {
+    return '$engine richiede iOS 26 e un iPhone più recente. La registrazione continua a usare il motore disponibile qui.';
+  }
+
+  @override
+  String get engineBusyTitle => 'Registrazione in corso';
+
+  @override
+  String get engineBusyBody => 'Interrompi la registrazione in corso, poi cambia motore.';
+
+  @override
+  String get engineNotSavedTitle => 'Scelta non salvata';
+
+  @override
+  String get engineNotSavedBody =>
+      'La scelta del motore non è stata salvata e non sopravviverà a un riavvio.';
 
   @override
   String get transcriptionDefaultTag => 'Predefinita';
-
-  @override
-  String get transcriptionDefaultHint =>
-      'Tocca e tieni premuta una lingua per renderla predefinita.';
 
   @override
   String transcriptionDeviceLanguageFallback(String fallback) {
@@ -947,6 +1003,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get supportUnlocksSection => 'Per i membri del club';
+
+  @override
+  String get supportMemberUnlocks => 'Cosa ottieni';
 
   @override
   String get supporterTag => 'Club';

@@ -2,14 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:transcriber/src/transcribe/apple_speech_engine.dart';
+import 'package:transcriber/src/transcribe/apple_speech_engines.dart';
 import 'package:transcriber/src/transcribe/transcript.dart';
 import 'package:transcriber/src/transcribe/transcript_event.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
 
-/// Pins the channel contract with SpeechEngine.swift: payload shapes, error codes,
-/// and stream completion semantics. This is where native/Dart drift would surface.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -21,7 +19,7 @@ void main() {
   late AppleSpeechEngine engine;
 
   setUp(() {
-    engine = AppleSpeechEngine(clock: () => fixedClock);
+    engine = AppleSpeechEngine(clock: () => fixedClock, live: SpeechLiveTransport());
   });
 
   tearDown(() {
@@ -93,8 +91,6 @@ void main() {
     });
 
     test('structured details ride into the typed exceptions', () async {
-      // The native side sends the pre-install asset status and the reserved
-      // tags as structured details; Dart must never parse message strings.
       mockMethods(
         (call) async => throw PlatformException(
           code: 'model_install_failed',
@@ -136,8 +132,6 @@ void main() {
 
   group('transcribeFile slices', () {
     test('bounds ride the channel as milliseconds; whole files omit them', () async {
-      // A typo'd key here would make Swift see nil bounds and transcribe the
-      // WHOLE file per span - duplicated text across a mixed take. Pin it.
       Map<Object?, Object?>? seenArgs;
       mockMethods((call) async {
         seenArgs = call.arguments as Map<Object?, Object?>;
@@ -171,8 +165,6 @@ void main() {
       await engine.cancelBatches();
       expect(called, isTrue);
 
-      // Best effort: neither a platform error nor a missing plugin may throw,
-      // since the caller has already given up on the batch by the time this runs.
       mockMethods((call) async => throw PlatformException(code: 'x'));
       await engine.cancelBatches();
 
@@ -198,8 +190,6 @@ void main() {
   });
 
   group('missing plugin', () {
-    // No handlers registered at all: every method must stay inside its contract
-    // rather than leaking a raw MissingPluginException.
     test('checkAvailability degrades, isModelInstalled is false, actions throw typed', () async {
       final availability = await engine.checkAvailability(localeId: 'en-US');
       expect(availability.status, AvailabilityStatus.onDeviceUnavailable);
@@ -304,9 +294,6 @@ void main() {
       expect(await statusFor('supported'), ModelAssetStatus.supported);
       expect(await statusFor('downloading'), ModelAssetStatus.downloading);
       expect(await statusFor('installed'), ModelAssetStatus.installed);
-      // Unknown strings, channel errors, and a missing plugin all degrade to
-      // supported-but-not-ready: neither promising a model nor writing the
-      // language off.
       expect(await statusFor('bogus'), ModelAssetStatus.supported);
 
       mockMethods((call) async => throw PlatformException(code: 'x'));
@@ -362,10 +349,6 @@ void main() {
   });
 
   group('transcribeLive', () {
-    // The protocol: the events channel is listened ONCE; each take is driven by
-    // a startLive method call and every event is tagged with the session token,
-    // so a take's stream sees only its own events and consecutive takes never
-    // race each other's channel handoff.
     MockStreamHandlerEventSink? liveSink;
     final started = <int>[];
     final stopped = <int>[];
@@ -430,7 +413,6 @@ void main() {
     });
 
     test('the final event stops the session natively', () async {
-      // The final closing the stream drives onCancel -> the stopLive call; pin it.
       mockLive();
       final done = engine.transcribeLive(localeId: 'en-US').toList();
       await Future<void>.delayed(Duration.zero);
@@ -442,8 +424,6 @@ void main() {
     });
 
     test('concurrent sessions route by token; each stream sees only its own', () async {
-      // The core of the new design: an old take finalizing while a new one runs
-      // cannot cross into it, because every event carries its owning session.
       mockLive();
       final aEvents = <TranscriptEvent>[];
       final bEvents = <TranscriptEvent>[];
@@ -455,7 +435,6 @@ void main() {
 
       liveSink!.success({'session': sa, 'text': 'alpha', 'isFinal': false});
       liveSink!.success({'session': sb, 'text': 'bravo', 'isFinal': false});
-      // The old session's late final must land ONLY on its own stream.
       liveSink!.success({'session': sa, 'text': 'alpha done', 'isFinal': true});
       await Future<void>.delayed(Duration.zero);
 
@@ -489,8 +468,6 @@ void main() {
     });
 
     test('completion on done cancels the native subscription', () async {
-      // Cancelling drives native onCancel -> install-task teardown; pin it like the
-      // live stream's cleanup.
       var cancelled = false;
       messenger.setMockStreamHandler(
         modelEvents,
@@ -540,9 +517,6 @@ void main() {
     });
 
     test('overlapping installs serialize; the second waits for the first teardown', () async {
-      // The native install handler is single-flight on ONE channel: an
-      // unserialized second listen would cancel the first download and leave
-      // its stream waiting forever (the frozen-progress-ring bug).
       final listens = <String>[];
       messenger.setMockStreamHandler(
         modelEvents,
@@ -564,7 +538,6 @@ void main() {
       final second = engine.installModel(localeId: 'b').toList();
       await Future<void>.delayed(Duration.zero);
 
-      // The second install has NOT touched the channel while the first runs.
       expect(listens, ['a']);
       expect(firstEvents, [const ModelInstallProgress(fraction: 0.5, done: false)]);
 
