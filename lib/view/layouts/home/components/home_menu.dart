@@ -12,7 +12,6 @@ import 'package:opentranscribe/core/state/app_language_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/home/components/retranscribe_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
@@ -105,11 +104,6 @@ class _HomeMenuState extends State<HomeMenu> {
 
     final items = <AppMenuItem>[
       AppMenuItem(id: 'act:models', label: l10n.settingsModels, icon: AppIcons.waveform),
-      AppMenuItem(
-        id: 'act:retranscribe',
-        label: l10n.retranscribeAllTitle,
-        icon: AppIcons.arrowCounterclockwise,
-      ),
       AppMenuItem(id: 'act:reflections', label: l10n.reflectionsTitle, icon: AppIcons.calendar),
       AppMenuItem(id: 'act:notifications', label: l10n.settingsNotifications, icon: AppIcons.bell),
       AppMenuItem(id: 'act:cache', label: l10n.settingsCache, icon: AppIcons.internaldrive),
@@ -151,8 +145,6 @@ class _HomeMenuState extends State<HomeMenu> {
             _pickAppLanguage(appLang);
           case 'act:models':
             context.pushNamed(Routes.settingsModelsName);
-          case 'act:retranscribe':
-            unawaited(showRetranscribeSheet(context));
           case 'act:appearance':
             context.pushNamed(Routes.settingsAppearanceName);
           case 'act:reflections':

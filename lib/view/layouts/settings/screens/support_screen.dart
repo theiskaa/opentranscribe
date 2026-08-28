@@ -423,6 +423,12 @@ class _PerksCard extends StatelessWidget {
               owned: checked,
             ),
             _PerkRow(
+              leading: AppIcon(AppIcons.arrowCounterclockwise, size: 16, color: theme.text),
+              label: l10n.retranscribeAllTitle,
+              note: l10n.supportPerkRetranscribeNote,
+              owned: checked,
+            ),
+            _PerkRow(
               leading: AppIcon(AppIcons.sparkles, size: 16, color: theme.text),
               label: l10n.supportPerkFuture,
               note: l10n.supportPerkFutureNote,

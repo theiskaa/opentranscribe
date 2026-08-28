@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
@@ -14,22 +15,16 @@ import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 
-/// The bulk re-transcription sheet, off the transcription screen's row under
-/// the engine picker. Club-gated whole, like the entry export sheet: for a
-/// non-supporter the gate takes its place. The run belongs to the root-scoped
-/// cubit, so dismissing the sheet stops nothing; reopening lands on the live
-/// face.
+/// Club-gated whole, like the entry export sheet. The run belongs to the
+/// root-scoped cubit, so dismissing stops nothing; reopening lands on the live face.
 Future<void> showRetranscribeSheet(BuildContext context) async {
-  // TEMP: club gate bypassed for the device pass; restore this line and the
-  // core/app/deps.dart import before commit.
-  // if (!Deps.i.supportService.tier.isSupporter) return showSupportGateSheet(context);
+  if (!Deps.i.supportService.tier.isSupporter) return showSupportGateSheet(context);
   context.read<RetranscribeCubit>().refresh();
   final locked = await showAppSheet<bool>(
     context,
@@ -53,9 +48,8 @@ RetranscribeFace retranscribeFace(RetranscribePhase phase, {required bool sawRun
       _ => RetranscribeFace.idle,
     };
 
-/// The display name of the engine a run would use: the picker's active row.
-/// The registry always marks one, so an empty answer only ever means a
-/// surface built before the cubit derived its rows.
+/// The active row's display name; empty only on a surface built before the
+/// cubit derived its rows.
 String activeEngineName(List<EngineRowState> rows) =>
     rows.where((row) => row.isActive).firstOrNull?.descriptor.displayName ?? '';
 
@@ -85,18 +79,18 @@ class _RetranscribeSheetBodyState extends State<_RetranscribeSheetBody> {
     final reduce = context.reduceMotion;
     final state = context.watch<RetranscribeCubit>().state;
     final progress = state.progress;
+    // Same subtitle on every face, so the header never re-seats on a swap.
+    final engine = activeEngineName(context.watch<EnginesCubit>().state.rows);
     final faceKey = retranscribeFace(progress.phase, sawRunning: _sawRunning);
     final Widget face = switch (faceKey) {
-      RetranscribeFace.running => _RunningFace(progress: progress),
-      RetranscribeFace.finished => _FinishedFace(progress: progress),
-      RetranscribeFace.idle => _IdleFace(state: state),
+      RetranscribeFace.running => _RunningFace(progress: progress, engine: engine),
+      RetranscribeFace.finished => _FinishedFace(progress: progress, engine: engine),
+      RetranscribeFace.idle => _IdleFace(state: state, engine: engine),
     };
     return MultiBlocListener(
       listeners: [
-        // Latched from a listener, not from build: provider coalesces
-        // notifications, so a run that reaches terminal within one frame
-        // (an all-skipped queue, instant failures) never shows build a
-        // running state - and without the latch its summary would be lost.
+        // Latched in a listener: a run that lands within one frame never shows
+        // build a running state, and its summary would be lost.
         BlocListener<RetranscribeCubit, RetranscribeState>(
           listenWhen: (_, next) => next.isRunning,
           listener: (_, _) {
@@ -112,23 +106,22 @@ class _RetranscribeSheetBodyState extends State<_RetranscribeSheetBody> {
           listener: (_, _) => Haptics.medium(),
         ),
       ],
+      // A crossfade or rise on the incoming face reads as the sheet closing and reopening.
       child: AnimatedSize(
         duration: reduce ? AppMotion.instant : motion.expand,
         curve: Curves.easeOutCubic,
         alignment: Alignment.topCenter,
-        child: AnimatedSwitcher(
-          duration: reduce ? Duration.zero : motion.crossfade,
-          child: KeyedSubtree(key: ValueKey(faceKey), child: face),
-        ),
+        child: face,
       ),
     );
   }
 }
 
 class _IdleFace extends StatelessWidget {
-  const _IdleFace({required this.state});
+  const _IdleFace({required this.state, required this.engine});
 
   final RetranscribeState state;
+  final String engine;
 
   void _start(BuildContext context) {
     final started = context.read<RetranscribeCubit>().start();
@@ -141,13 +134,21 @@ class _IdleFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final hasWork = state.runnable > 0;
-    final engine = activeEngineName(context.watch<EnginesCubit>().state.rows);
     return SheetMessage(
       icon: AppIcons.arrowCounterclockwise,
       title: l10n.retranscribeAllTitle,
-      body: hasWork
-          ? l10n.retranscribeIdleBody(state.runnable, state.current, engine)
-          : l10n.retranscribeAllCurrentBody(engine),
+      subtitle: engine,
+      body: hasWork ? null : l10n.retranscribeAllCurrentBody(engine),
+      rows: [
+        if (hasWork)
+          _Facts(
+            rows: [
+              (l10n.retranscribeRowQueued, state.runnable),
+              (l10n.retranscribeRowCurrent, state.current),
+            ],
+            note: l10n.retranscribeHistoryNote,
+          ),
+      ],
       action: hasWork
           ? AppButton(label: l10n.retranscribeStart, onPressed: () => _start(context))
           : null,
@@ -155,10 +156,47 @@ class _IdleFace extends StatelessWidget {
   }
 }
 
+/// Rows, not prose, so a count never has to agree with a sentence in any locale.
+class _Facts extends StatelessWidget {
+  const _Facts({required this.rows, this.note});
+
+  final List<(String, int)> rows;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, (label, count)) in rows.indexed) ...[
+          if (i > 0) Container(height: 1, color: theme.settings.dividerColor),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(label, style: AppType.subhead.copyWith(color: theme.textSecondary)),
+                ),
+                Text('$count', style: AppType.digits(AppType.subhead).copyWith(color: theme.text)),
+              ],
+            ),
+          ),
+        ],
+        if (note != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(note!, style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.5)),
+        ],
+      ],
+    );
+  }
+}
+
 class _RunningFace extends StatelessWidget {
-  const _RunningFace({required this.progress});
+  const _RunningFace({required this.progress, required this.engine});
 
   final RetranscribeProgress progress;
+  final String engine;
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +206,7 @@ class _RunningFace extends StatelessWidget {
     return SheetMessage(
       icon: AppIcons.arrowCounterclockwise,
       title: l10n.retranscribeAllTitle,
+      subtitle: engine,
       rows: [
         Center(child: ProgressRing(fraction: fraction, size: 96, strokeWidth: 4)),
         const SizedBox(height: AppSpacing.xl),
@@ -231,31 +270,30 @@ class _CurrentLine extends StatelessWidget {
 }
 
 class _FinishedFace extends StatelessWidget {
-  const _FinishedFace({required this.progress});
+  const _FinishedFace({required this.progress, required this.engine});
 
   final RetranscribeProgress progress;
+  final String engine;
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final cancelled = progress.phase == RetranscribePhase.cancelled;
-    final body = cancelled
-        ? l10n.retranscribeCancelledBody(progress.landed)
-        : progress.failed > 0
-        ? l10n.retranscribeDoneFailedBody(progress.landed, progress.failed)
-        : l10n.retranscribeDoneBody(progress.landed);
+    final note = switch (progress.phase) {
+      RetranscribePhase.cancelled => l10n.retranscribeCancelledNote,
+      _ when progress.failed > 0 => l10n.retranscribeFailedNote,
+      _ => null,
+    };
     return SheetMessage(
       icon: AppIcons.arrowCounterclockwise,
       title: l10n.retranscribeAllTitle,
-      // As a row, not the body slot: only the summary earns the rise, while
-      // the header stays the constant the crossfade already carries.
+      subtitle: engine,
       rows: [
-        EntranceRise(
-          child: Text(
-            body,
-            style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
-          ),
+        _Facts(
+          rows: [
+            (l10n.retranscribeRowLanded, progress.landed),
+            if (progress.failed > 0) (l10n.retranscribeRowFailed, progress.failed),
+          ],
+          note: note,
         ),
       ],
       action: AppButton(label: l10n.done, onPressed: () => Navigator.of(context).pop()),
