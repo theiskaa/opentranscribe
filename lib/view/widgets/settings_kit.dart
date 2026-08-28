@@ -391,10 +391,12 @@ class ThemeFamilyCard extends StatefulWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    required this.background,
-    required this.foreground,
     required this.accent,
     required this.onAccent,
+    this.background,
+    this.foreground,
+    this.child,
+    this.aspectRatio = 92 / 108,
     this.marked = false,
     super.key,
   });
@@ -402,10 +404,16 @@ class ThemeFamilyCard extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final Color background;
-  final Color foreground;
   final Color accent;
   final Color onAccent;
+
+  /// The palette the drawn mock previews; unused when [child] fills the tile.
+  final Color? background;
+  final Color? foreground;
+
+  /// A ready preview (an app icon) in place of the drawn palette mock.
+  final Widget? child;
+  final double aspectRatio;
 
   /// Wears the club's heart in the badge seat: a look the viewer cannot wear yet.
   final bool marked;
@@ -453,7 +461,8 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
   Widget build(BuildContext context) {
     final theme = context.theme;
     final popCurve = theme.motion.swipePopCurve;
-    final faded = widget.foreground.withValues(alpha: 0.4);
+    final foreground = widget.foreground ?? theme.text;
+    final faded = foreground.withValues(alpha: 0.4);
 
     return Touchable(
       onTap: () {
@@ -465,7 +474,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
         mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: 92 / 108,
+            aspectRatio: widget.aspectRatio,
             child: AnimatedBuilder(
               animation: _sel,
               builder: (context, _) {
@@ -473,33 +482,41 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                 final pop = popCurve.transform(t.clamp(0.0, 1.0));
                 return Stack(
                   children: [
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: SuperellipseDecoration(
-                          borderRadius: _radius,
-                          color: widget.background,
-                          // The theme's own faint edge, so the card reads as a
-                          // real surface in that palette, not a flat swatch.
-                          border: BorderSide(color: widget.foreground.withValues(alpha: 0.12)),
+                    if (widget.child != null)
+                      Positioned.fill(
+                        child: ClipPath(
+                          clipper: const ShapeBorderClipper(shape: Superellipse(radius: _radius)),
+                          child: widget.child,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title in the ACCENT: the theme's defining hue
-                              // reads as content, no stray chip to look odd.
-                              _bar(0.62, 6, widget.accent),
-                              const SizedBox(height: 9),
-                              _bar(0.95, 3, faded),
-                              const SizedBox(height: 5),
-                              _bar(0.7, 3, faded),
-                            ],
+                      )
+                    else
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: SuperellipseDecoration(
+                            borderRadius: _radius,
+                            color: widget.background,
+                            // The theme's own faint edge, so the card reads as a
+                            // real surface in that palette, not a flat swatch.
+                            border: BorderSide(color: foreground.withValues(alpha: 0.12)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title in the ACCENT: the theme's defining hue
+                                // reads as content, no stray chip to look odd.
+                                _bar(0.62, 6, widget.accent),
+                                const SizedBox(height: 9),
+                                _bar(0.95, 3, faded),
+                                const SizedBox(height: 5),
+                                _bar(0.7, 3, faded),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     // Accent ring on the edge, faded in (no layout shift).
                     if (t > 0)
                       Positioned.fill(
