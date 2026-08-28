@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:opentranscribe/core/app/app_icon.dart';
 import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/launch_backdrop.dart';
@@ -17,6 +18,7 @@ import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/intents/intent_action_service.dart';
 import 'package:opentranscribe/core/intents/intent_actions.dart';
+import 'package:opentranscribe/core/models/app_icon_descriptor.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
@@ -95,6 +97,8 @@ class Deps {
     required this.splashHandoff,
     required this.launchBackdrop,
     required this.supportService,
+    required this.appIconStore,
+    required this.appIconDescriptors,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -189,6 +193,12 @@ class Deps {
   /// cached tier synchronously at construction; no store channel is awaited
   /// on the launch path, and [launchMaintenance] refreshes it off-frame.
   final SupportService supportService;
+
+  final AppIconStore appIconStore;
+
+  /// The icons this build ships, in picker order: the primary first, then the
+  /// club's. Named here and nowhere else, like [exporterDescriptors].
+  final List<AppIconDescriptor> appIconDescriptors;
 
   /// How long any ONE platform-channel round trip below may take before
   /// startup gives up on it.
@@ -431,6 +441,43 @@ class Deps {
       splashHandoff: SplashHandoff(),
       launchBackdrop: LaunchBackdrop(),
       supportService: supportService,
+      appIconStore: AppIconStore(),
+      appIconDescriptors: [
+        AppIconDescriptor(
+          id: 'default',
+          iconName: null,
+          preview: 'assets/icons/app/default.png',
+          name: (l10n) => l10n.themeNameDefault,
+        ),
+        AppIconDescriptor(
+          id: 'midnight',
+          iconName: 'AppIcon-Midnight',
+          preview: 'assets/icons/app/midnight.png',
+          name: (l10n) => l10n.themeNameMidnight,
+          club: true,
+        ),
+        AppIconDescriptor(
+          id: 'ember',
+          iconName: 'AppIcon-Ember',
+          preview: 'assets/icons/app/ember.png',
+          name: (l10n) => l10n.themeNameEmber,
+          club: true,
+        ),
+        AppIconDescriptor(
+          id: 'forest',
+          iconName: 'AppIcon-Forest',
+          preview: 'assets/icons/app/forest.png',
+          name: (l10n) => l10n.themeNameForest,
+          club: true,
+        ),
+        AppIconDescriptor(
+          id: 'paper',
+          iconName: 'AppIcon-Paper',
+          preview: 'assets/icons/app/paper.png',
+          name: (l10n) => l10n.appIconNamePaper,
+          club: true,
+        ),
+      ],
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
