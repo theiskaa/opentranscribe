@@ -869,23 +869,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSupport => 'サポート';
 
   @override
-  String get supportPitch =>
-      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。クラブへの参加は一度の支払いだけ、ずっと有効です。';
+  String get supportPitch => 'クラブはOpenTranscribeを支える方法です。一度の支払いでずっと有効、お礼にいくつかのルックが付きます。';
 
   @override
-  String get supportPerkExports => '形式を選べる書き出し';
+  String get supportPitchFree => 'すべての機能は誰でも無料で、書き出しも全件の再文字起こしも含まれます。これからも変わりません。';
 
   @override
-  String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
+  String get supportPerkThemes => 'クラブのテーマ';
 
   @override
-  String get supportPerkRetranscribeNote => '日記全体を、新しいエンジンで聞き直します。';
+  String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord、デフォルト以外のすべてのテーマ。';
 
   @override
-  String get supportPerkFuture => '今後のクラブ機能';
+  String get supportPerkFuture => '今後のルック';
 
   @override
-  String get supportPerkFutureNote => '後から加わるクラブ機能も含まれます。';
+  String get supportPerkFutureNote => '後からクラブに加わるルックも含まれます。';
 
   @override
   String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';

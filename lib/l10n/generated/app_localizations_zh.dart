@@ -861,22 +861,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSupport => '支持';
 
   @override
-  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';
+  String get supportPitch => '俱乐部是支持 OpenTranscribe 的方式：付费一次，永久有效，并以几款外观作为答谢。';
 
   @override
-  String get supportPerkExports => '格式化导出';
+  String get supportPitchFree => '所有功能对所有人免费，包括导出和全部重新转写，并将一直如此。';
 
   @override
-  String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
+  String get supportPerkThemes => '俱乐部主题';
 
   @override
-  String get supportPerkRetranscribeNote => '整本日记，由更新的引擎重新转写。';
+  String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord 以及默认之外的所有主题。';
 
   @override
-  String get supportPerkFuture => '未来的俱乐部功能';
+  String get supportPerkFuture => '未来的外观';
 
   @override
-  String get supportPerkFutureNote => '之后加入俱乐部的功能也包含在内。';
+  String get supportPerkFutureNote => '之后加入俱乐部的外观也包含在内。';
 
   @override
   String get supportThanks => '你已永久加入俱乐部。谢谢。';

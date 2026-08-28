@@ -872,22 +872,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 클럽 가입은 한 번의 결제로 평생 유지됩니다.';
+      '클럽은 OpenTranscribe를 후원하는 방법입니다. 한 번의 결제로 평생 유지되며, 감사의 뜻으로 몇 가지 룩이 제공됩니다.';
 
   @override
-  String get supportPerkExports => '서식 있는 내보내기';
+  String get supportPitchFree => '모든 기능은 누구에게나 무료이며, 내보내기와 전체 다시 전사도 포함됩니다. 앞으로도 그렇습니다.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+  String get supportPerkThemes => '클럽 테마';
 
   @override
-  String get supportPerkRetranscribeNote => '일기 전체를 더 새로운 엔진으로 다시 듣습니다.';
+  String get supportPerkThemesNote => 'Gruvbox, Dracula, Nord 등 기본 테마를 제외한 모든 테마.';
 
   @override
-  String get supportPerkFuture => '앞으로의 클럽 기능';
+  String get supportPerkFuture => '앞으로의 룩';
 
   @override
-  String get supportPerkFutureNote => '나중에 추가되는 클럽 기능도 포함됩니다.';
+  String get supportPerkFutureNote => '나중에 클럽에 추가되는 룩도 포함됩니다.';
 
   @override
   String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';

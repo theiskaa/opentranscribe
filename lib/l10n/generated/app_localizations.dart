@@ -1692,40 +1692,40 @@ abstract class AppLocalizations {
   /// **'Support'**
   String get settingsSupport;
 
-  /// Support screen intro for a non-supporter
+  /// Support screen pitch, second paragraph: what membership is
   ///
   /// In en, this message translates to:
-  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.'**
+  /// **'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.'**
   String get supportPitch;
 
-  /// Perk row label: the formatted exports
+  /// Support screen pitch, first paragraph: every feature is free, the club gates looks only
   ///
   /// In en, this message translates to:
-  /// **'Formatted exports'**
-  String get supportPerkExports;
+  /// **'Every feature is free for everyone, exports and bulk re-transcription included, and stays that way.'**
+  String get supportPitchFree;
 
-  /// Perk row note naming the formats; one line
+  /// Perk row label: the club theme families
   ///
   /// In en, this message translates to:
-  /// **'Markdown, Obsidian, or a website.'**
-  String get supportPerkExportsNote;
+  /// **'Club themes'**
+  String get supportPerkThemes;
 
-  /// Perk row note under the re-transcribe all label; one line
+  /// Perk row note naming a few club themes; one line
   ///
   /// In en, this message translates to:
-  /// **'The whole journal, heard again by a newer engine.'**
-  String get supportPerkRetranscribeNote;
+  /// **'Gruvbox, Dracula, Nord, and every family beyond Default.'**
+  String get supportPerkThemesNote;
 
-  /// Perk row label: later club-only features are included
+  /// Perk row label: later club looks are included
   ///
   /// In en, this message translates to:
-  /// **'Future club features'**
+  /// **'Future looks'**
   String get supportPerkFuture;
 
-  /// Perk row note for future club features; one line
+  /// Perk row note for future club looks; one line
   ///
   /// In en, this message translates to:
-  /// **'Whatever joins the club later, included.'**
+  /// **'Whatever look joins the club later, included.'**
   String get supportPerkFutureNote;
 
   /// Support screen intro for a club member

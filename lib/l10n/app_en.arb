@@ -1165,29 +1165,29 @@
   "@settingsSupport": {
     "description": "Home menu row opening the support screen"
   },
-  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
+  "supportPitch": "The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.",
   "@supportPitch": {
-    "description": "Support screen intro for a non-supporter"
+    "description": "Support screen pitch, second paragraph: what membership is"
   },
-  "supportPerkExports": "Formatted exports",
-  "@supportPerkExports": {
-    "description": "Perk row label: the formatted exports"
+  "supportPitchFree": "Every feature is free for everyone, exports and bulk re-transcription included, and stays that way.",
+  "@supportPitchFree": {
+    "description": "Support screen pitch, first paragraph: every feature is free, the club gates looks only"
   },
-  "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
-  "@supportPerkExportsNote": {
-    "description": "Perk row note naming the formats; one line"
+  "supportPerkThemes": "Club themes",
+  "@supportPerkThemes": {
+    "description": "Perk row label: the club theme families"
   },
-  "supportPerkRetranscribeNote": "The whole journal, heard again by a newer engine.",
-  "@supportPerkRetranscribeNote": {
-    "description": "Perk row note under the re-transcribe all label; one line"
+  "supportPerkThemesNote": "Gruvbox, Dracula, Nord, and every family beyond Default.",
+  "@supportPerkThemesNote": {
+    "description": "Perk row note naming a few club themes; one line"
   },
-  "supportPerkFuture": "Future club features",
+  "supportPerkFuture": "Future looks",
   "@supportPerkFuture": {
-    "description": "Perk row label: later club-only features are included"
+    "description": "Perk row label: later club looks are included"
   },
-  "supportPerkFutureNote": "Whatever joins the club later, included.",
+  "supportPerkFutureNote": "Whatever look joins the club later, included.",
   "@supportPerkFutureNote": {
-    "description": "Perk row note for future club features; one line"
+    "description": "Perk row note for future club looks; one line"
   },
   "supportThanks": "You're in the club for good. Thank you.",
   "@supportThanks": {

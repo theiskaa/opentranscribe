@@ -920,22 +920,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.';
+      'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.';
 
   @override
-  String get supportPerkExports => 'Formatted exports';
+  String get supportPitchFree =>
+      'Every feature is free for everyone, exports and bulk re-transcription included, and stays that way.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
+  String get supportPerkThemes => 'Club themes';
 
   @override
-  String get supportPerkRetranscribeNote => 'The whole journal, heard again by a newer engine.';
+  String get supportPerkThemesNote => 'Gruvbox, Dracula, Nord, and every family beyond Default.';
 
   @override
-  String get supportPerkFuture => 'Future club features';
+  String get supportPerkFuture => 'Future looks';
 
   @override
-  String get supportPerkFutureNote => 'Whatever joins the club later, included.';
+  String get supportPerkFutureNote => 'Whatever look joins the club later, included.';
 
   @override
   String get supportThanks => 'You\'re in the club for good. Thank you.';

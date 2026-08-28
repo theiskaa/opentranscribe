@@ -931,23 +931,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportPitch =>
-      'OpenTranscribe ist kostenlos und privat, und Unterstützung hält es dabei. Der Clubbeitritt ist eine Zahlung, für immer.';
+      'Der Club ist die Art, OpenTranscribe zu unterstützen: eine Zahlung, für immer, und ein paar Looks als Dank.';
 
   @override
-  String get supportPerkExports => 'Formatierte Exporte';
+  String get supportPitchFree =>
+      'Jede Funktion ist für alle kostenlos, Exporte und das erneute Transkribieren eingeschlossen, und bleibt es.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian oder eine Website.';
+  String get supportPerkThemes => 'Club-Themes';
 
   @override
-  String get supportPerkRetranscribeNote =>
-      'Das ganze Tagebuch, neu gehört von einer neueren Engine.';
+  String get supportPerkThemesNote => 'Gruvbox, Dracula, Nord und jedes Theme außer Standard.';
 
   @override
-  String get supportPerkFuture => 'Künftige Club-Funktionen';
+  String get supportPerkFuture => 'Künftige Looks';
 
   @override
-  String get supportPerkFutureNote => 'Was später zum Club kommt, inklusive.';
+  String get supportPerkFutureNote => 'Jeder Look, der später zum Club kommt, inklusive.';
 
   @override
   String get supportThanks => 'Du bist für immer im Club. Danke.';
