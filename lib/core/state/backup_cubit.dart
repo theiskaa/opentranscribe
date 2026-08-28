@@ -18,9 +18,7 @@ enum BackupBusy { none, exporting, archiving, importing }
 
 /// How an export action ended. Cancel is a quiet outcome (the user closed
 /// the share sheet, nothing to explain); only [failed] earns a failure sheet.
-/// [locked] is a formatted export refused for a non-supporter: the surface
-/// answers it with the support gate, never the failure sheet.
-enum BackupActionResult { shared, cancelled, failed, locked }
+enum BackupActionResult { shared, cancelled, failed }
 
 /// What a finished import attempt means for the flow: show the summary, ask
 /// for the passphrase again, or fail with which copy. The one mapping from
@@ -227,8 +225,6 @@ class BackupCubit extends Cubit<BackupState> {
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
-    } on ExportLockedException {
-      return BackupActionResult.locked;
     } on ShareExportException catch (e) {
       // Nothing was ever presented, so nothing failed: a sheet claiming the
       // export broke would be a lie. Quiet, like a cancel.

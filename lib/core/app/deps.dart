@@ -391,7 +391,6 @@ class Deps {
       share: shareExport,
       appVersion: () async => appVersion ??= (await PackageInfo.fromPlatform()).version,
       staging: stagingRegistry,
-      isSupporter: () => supportService.tier.isSupporter,
     );
     final importService = ImportService(
       transcription: transcriptionService,
@@ -484,8 +483,8 @@ class Deps {
   static Future<void> _maintain() async {
     unawaited(_quietly('reflection catch-up', () => i.reflectionService.catchUp()));
     unawaited(_quietly('notification sync', () => i.reflectionNotifier.sync()));
-    // Fire-and-forget: entitlement staleness costs a locked format at worst,
-    // and the cached tier already answered the launch.
+    // Fire-and-forget: entitlement staleness costs a stale look at worst, and
+    // the cached tier already answered the launch.
     unawaited(_quietly('supporter refresh', () => i.supportService.refresh()));
     // Warm the price so the support screen's join button renders at once
     // instead of waiting on StoreKit when the user opens it.

@@ -87,8 +87,7 @@ final class SupportState {
       Object.hash(tier, product, storeUnreachable, purchasing, restoring, pendingApproval);
 }
 
-/// Presentation over [SupportService] for the gate surfaces and the support
-/// screen: the live tier, the fetched price, and the one-at-a-time
+/// Presentation over [SupportService] for the support screen: the live tier, the fetched price, and the one-at-a-time
 /// purchase/restore choreography. Business policy stays in the service; this
 /// only shapes answers for rendering.
 class SupportCubit extends Cubit<SupportState> {

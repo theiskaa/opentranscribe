@@ -6,10 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 
-/// What asking for a bulk run got. [locked] is a non-supporter's ask; the
-/// surface answers with the support gate, mirroring BackupActionResult.
-enum RetranscribeStart { started, locked }
-
 /// The bulk re-transcribe surface's whole vocabulary: the runner's live
 /// progress plus the idle preview (what a run would do right now).
 @immutable
@@ -52,10 +48,10 @@ final class RetranscribeState {
 }
 
 /// Drives [TranscriptionService.retranscribeAll] for the sheet: preview,
-/// start (supporter-gated), cancel, live progress. Root-scoped so a run
-/// outlives the sheet that started it and any navigation over it.
+/// start, cancel, live progress. Root-scoped so a run outlives the sheet that
+/// started it and any navigation over it.
 class RetranscribeCubit extends Cubit<RetranscribeState> {
-  RetranscribeCubit({required this._service, required this._isSupporter})
+  RetranscribeCubit({required this._service})
     : super(RetranscribeState(progress: _service.retranscribeAll.state)) {
     refresh();
     _progressSub = _service.retranscribeAll.stream.listen(_onProgress);
@@ -74,7 +70,6 @@ class RetranscribeCubit extends Cubit<RetranscribeState> {
   }
 
   final TranscriptionService _service;
-  final bool Function() _isSupporter;
   late final StreamSubscription<RetranscribeProgress> _progressSub;
   late final StreamSubscription<void> _changesSub;
   late final StreamSubscription<void> _engineSub;
@@ -105,14 +100,7 @@ class RetranscribeCubit extends Cubit<RetranscribeState> {
     emit(state.copyWith(runnable: runnable, current: current));
   }
 
-  /// Fires the run and lets the stream drive state; the answer says only
-  /// whether it started. Club-gated: a free user's ask starts nothing, so no
-  /// code path runs the bulk pass around the gate.
-  RetranscribeStart start() {
-    if (!_isSupporter()) return RetranscribeStart.locked;
-    unawaited(_service.retranscribeAll.start());
-    return RetranscribeStart.started;
-  }
+  void start() => unawaited(_service.retranscribeAll.start());
 
   void cancel() => _service.retranscribeAll.cancel();
 

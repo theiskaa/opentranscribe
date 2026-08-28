@@ -20,7 +20,6 @@ void main() {
   late LocalService storage;
   late EntryStore store;
   late TranscriptionService service;
-  var supporter = true;
 
   TranscriptionService build(TranscriptionEngine engine) => TranscriptionService(
     recorder: FakeAudioRecorder(),
@@ -31,14 +30,13 @@ void main() {
     fileDeleter: (f) async {},
   );
 
-  RetranscribeCubit cubit() => RetranscribeCubit(service: service, isSupporter: () => supporter);
+  RetranscribeCubit cubit() => RetranscribeCubit(service: service);
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = LocalService();
     await storage.init(legacyKey: key);
     store = EntryStore(storage);
-    supporter = true;
   });
 
   Transcript transcriptBy(String engineId) => Transcript(
@@ -75,47 +73,27 @@ void main() {
     await service.dispose();
   });
 
-  test('a free user\'s start is refused and starts nothing', () async {
-    final engine = FakeBatchEngine();
-    service = build(engine);
+  test('a start drives the state through running to done and refreshes the preview', () async {
+    service = build(FakeBatchEngine());
     await store.save(entry('untranscribed'));
-    supporter = false;
     final c = cubit();
+    final phases = <RetranscribePhase>[];
+    final sub = c.stream.listen((s) => phases.add(s.progress.phase));
+    final done = c.stream.firstWhere((s) => s.progress.phase == RetranscribePhase.done);
 
-    expect(c.start(), RetranscribeStart.locked);
+    c.start();
+    final landed = await done;
     await Future<void>.delayed(Duration.zero);
+    await sub.cancel();
 
-    expect(engine.batchCalls, isEmpty);
-    expect(c.state.progress.phase, RetranscribePhase.idle);
+    expect(phases, contains(RetranscribePhase.running));
+    expect(landed.progress.landed, 1);
+    expect(c.state.runnable, 0);
+    expect(c.state.current, 1);
 
     await c.close();
     await service.dispose();
   });
-
-  test(
-    'a supporter\'s start drives the state through running to done and refreshes the preview',
-    () async {
-      service = build(FakeBatchEngine());
-      await store.save(entry('untranscribed'));
-      final c = cubit();
-      final phases = <RetranscribePhase>[];
-      final sub = c.stream.listen((s) => phases.add(s.progress.phase));
-      final done = c.stream.firstWhere((s) => s.progress.phase == RetranscribePhase.done);
-
-      expect(c.start(), RetranscribeStart.started);
-      final landed = await done;
-      await Future<void>.delayed(Duration.zero);
-      await sub.cancel();
-
-      expect(phases, contains(RetranscribePhase.running));
-      expect(landed.progress.landed, 1);
-      expect(c.state.runnable, 0);
-      expect(c.state.current, 1);
-
-      await c.close();
-      await service.dispose();
-    },
-  );
 
   test('cancel lands the run as cancelled', () async {
     final gate = Completer<void>();

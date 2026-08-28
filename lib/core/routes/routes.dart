@@ -37,8 +37,7 @@ abstract final class Routes {
   static const settingsNotificationsName = 'settingsNotifications';
 
   /// The support screen (the supporter purchase, restore, and manage
-  /// surface). Pushed over home from the menu, and from the gate sheet a
-  /// locked export answers with.
+  /// surface). Pushed over home from the menu.
   static const settingsSupport = '/settings/support';
   static const settingsSupportName = 'settingsSupport';
 
