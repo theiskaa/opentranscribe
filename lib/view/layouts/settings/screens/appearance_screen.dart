@@ -43,9 +43,7 @@ class AppearanceScreen extends StatelessWidget {
             child: _ModeSelector(mode: state.mode, onChanged: themeCubit.setMode),
           ),
           SectionLabel(l10n.settingsTheme),
-          _FamilyGroup(families: AppThemeFamily.freeFamilies),
-          SectionLabel(l10n.appearanceClubSection),
-          _FamilyGroup(families: AppThemeFamily.clubFamilies),
+          _FamilyGroup(families: AppThemeFamily.all),
           const SizedBox(height: AppSpacing.md),
           SectionInfoLink(
             text: l10n.themeRequestInfo,
@@ -100,6 +98,7 @@ class _FamilyGroup extends StatelessWidget {
     AppThemeFamily.midnightId => l10n.themeNameMidnight,
     AppThemeFamily.emberId => l10n.themeNameEmber,
     AppThemeFamily.forestId => l10n.themeNameForest,
+    AppThemeFamily.roseId => l10n.themeNameRose,
     _ => l10n.themeNameDefault,
   };
 
@@ -164,8 +163,8 @@ class _FamilyCard extends StatelessWidget {
   }
 }
 
-/// Lays the theme cards out in equal columns that fill the row, so they scale
-/// with the device width and never leave an orphan on a second line.
+/// Lays the cards out in four equal columns that fill the row, so they scale
+/// with the device width and every row, full or not, shares one card size.
 class _FamilyGrid extends StatelessWidget {
   const _FamilyGrid({required this.cards});
 
