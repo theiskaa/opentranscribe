@@ -8,10 +8,14 @@ import 'package:opentranscribe/core/theming/app_theme.dart';
 /// colors differ, so every component token derives the same way across families.
 @immutable
 final class AppThemeFamily {
-  const AppThemeFamily({required this.id, required this.light, this.dark});
+  const AppThemeFamily({required this.id, required this.light, this.dark, this.club = false});
 
   final String id;
   final AppTheme light;
+
+  /// A club look: worn only while the supporter tier says member, the pick
+  /// itself stays stored either way.
+  final bool club;
 
   /// Null for a light-only family, which then shows [light] even in dark mode.
   /// Every family currently ships a dark; the capability stays for future ones.
@@ -28,14 +32,23 @@ final class AppThemeFamily {
   static const gruvboxId = 'gruvbox';
   static const solarizedId = 'solarized';
   static const sepiaId = 'sepia';
+  static const midnightId = 'midnight';
+  static const emberId = 'ember';
+  static const forestId = 'forest';
 
-  /// Every family the app ships, in picker order.
+  /// Every family the app ships, in picker order: the free ones, then the club's.
   static final List<AppThemeFamily> all = List.unmodifiable([
     _default,
     _gruvbox,
     _solarized,
     _sepia,
+    _midnight,
+    _ember,
+    _forest,
   ]);
+
+  static Iterable<AppThemeFamily> get freeFamilies => all.where((f) => !f.club);
+  static Iterable<AppThemeFamily> get clubFamilies => all.where((f) => f.club);
 
   static AppThemeFamily byId(String id) =>
       all.firstWhere((f) => f.id == id, orElse: () => _default);
@@ -158,6 +171,123 @@ final class AppThemeFamily {
       record: const Color(0xFFCF6A4C),
       danger: const Color(0xFFD1553F),
       positive: const Color(0xFF9FA05F),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+  );
+
+  static final _midnight = AppThemeFamily(
+    id: midnightId,
+    club: true,
+    light: AppTheme.fromBase(
+      brightness: Brightness.light,
+      background: const Color(0xFFF6F8FB),
+      surface: const Color(0xFFEDF1F7),
+      surfaceBorder: const Color(0xFFD9E0EA),
+      text: const Color(0xFF14213D),
+      textSecondary: const Color(0xFF5B6B85),
+      hairline: const Color(0xFFD9E0EA),
+      accent: const Color(0xFF2F5BD1),
+      accentPressed: const Color(0xFF2447A8),
+      onAccent: const Color(0xFFFFFFFF),
+      record: const Color(0xFFD64550),
+      danger: const Color(0xFFC8323E),
+      positive: const Color(0xFF2E8B57),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+    dark: AppTheme.fromBase(
+      brightness: Brightness.dark,
+      background: const Color(0xFF0B1220),
+      surface: const Color(0xFF141D30),
+      surfaceBorder: const Color(0xFF223052),
+      text: const Color(0xFFE6ECF7),
+      textSecondary: const Color(0xFF8FA0BF),
+      hairline: const Color(0xFF223052),
+      accent: const Color(0xFF7FA3FF),
+      accentPressed: const Color(0xFF5E86E6),
+      onAccent: const Color(0xFF0B1220),
+      record: const Color(0xFFFF6B6B),
+      danger: const Color(0xFFFF6B6B),
+      positive: const Color(0xFF6CCB8A),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+  );
+
+  static final _ember = AppThemeFamily(
+    id: emberId,
+    club: true,
+    light: AppTheme.fromBase(
+      brightness: Brightness.light,
+      background: const Color(0xFFFBF6F0),
+      surface: const Color(0xFFF3EBE1),
+      surfaceBorder: const Color(0xFFE4D6C6),
+      text: const Color(0xFF2C211B),
+      textSecondary: const Color(0xFF7A6A5E),
+      hairline: const Color(0xFFE4D6C6),
+      accent: const Color(0xFFB8432B),
+      accentPressed: const Color(0xFF93341F),
+      onAccent: const Color(0xFFFFF7F0),
+      record: const Color(0xFFC5432E),
+      danger: const Color(0xFFB0301F),
+      positive: const Color(0xFF5E7F3E),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+    dark: AppTheme.fromBase(
+      brightness: Brightness.dark,
+      background: const Color(0xFF1B1512),
+      surface: const Color(0xFF261E19),
+      surfaceBorder: const Color(0xFF3A2E27),
+      text: const Color(0xFFF1E6DA),
+      textSecondary: const Color(0xFFA8978A),
+      hairline: const Color(0xFF3A2E27),
+      accent: const Color(0xFFE2694C),
+      accentPressed: const Color(0xFFC3533A),
+      onAccent: const Color(0xFF1B1512),
+      record: const Color(0xFFF06A50),
+      danger: const Color(0xFFF06A50),
+      positive: const Color(0xFF9DB56C),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+  );
+
+  static final _forest = AppThemeFamily(
+    id: forestId,
+    club: true,
+    light: AppTheme.fromBase(
+      brightness: Brightness.light,
+      background: const Color(0xFFF6F9F4),
+      surface: const Color(0xFFECF2EA),
+      surfaceBorder: const Color(0xFFD3DECF),
+      text: const Color(0xFF1C2A1F),
+      textSecondary: const Color(0xFF5F7362),
+      hairline: const Color(0xFFD3DECF),
+      accent: const Color(0xFF2F7A4B),
+      accentPressed: const Color(0xFF24603A),
+      onAccent: const Color(0xFFFFFFFF),
+      record: const Color(0xFFC94C3C),
+      danger: const Color(0xFFB33A2C),
+      positive: const Color(0xFF2F7A4B),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+    dark: AppTheme.fromBase(
+      brightness: Brightness.dark,
+      background: const Color(0xFF0F1712),
+      surface: const Color(0xFF18241B),
+      surfaceBorder: const Color(0xFF27362B),
+      text: const Color(0xFFE4EEE6),
+      textSecondary: const Color(0xFF93A697),
+      hairline: const Color(0xFF27362B),
+      accent: const Color(0xFF6FC48A),
+      accentPressed: const Color(0xFF55A56F),
+      onAccent: const Color(0xFF0F1712),
+      record: const Color(0xFFF0705C),
+      danger: const Color(0xFFF0705C),
+      positive: const Color(0xFF6FC48A),
       shadow: const Color(0xFF000000),
       barrier: const Color(0x73000000),
     ),
