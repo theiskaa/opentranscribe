@@ -21,7 +21,7 @@ void main() {
   });
 
   ThemeCubit build({Brightness brightness = Brightness.light}) =>
-      ThemeCubit(storage: storage, platformBrightness: brightness);
+      ThemeCubit(storage: storage, platformBrightness: brightness, isSupporter: () => true);
 
   test('resolution matrix: mode wins, system follows brightness', () {
     final cubit = build();
@@ -163,10 +163,11 @@ void main() {
       expect(fresh.state.wornFamily.id, AppThemeFamily.defaultId);
     });
 
-    test('a free pick ignores the tier', () async {
-      final cubit = club();
-      await cubit.setFamily(AppThemeFamily.gruvboxId);
-      expect(cubit.state.wornFamily.id, AppThemeFamily.gruvboxId);
+    test('a pick made before the club existed is worn only by a member', () async {
+      await storage.write(ThemeCubit.familyKey, AppThemeFamily.gruvboxId);
+      expect(club().state.wornFamily.id, AppThemeFamily.defaultId);
+      member = true;
+      expect(club().state.wornFamily.id, AppThemeFamily.gruvboxId);
     });
   });
 
@@ -183,6 +184,7 @@ void main() {
       storage: storage,
       backdrop: LaunchBackdrop(),
       platformBrightness: Brightness.light,
+      isSupporter: () => true,
     );
 
     test('writes the packed palettes at construction', () async {

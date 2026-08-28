@@ -36,7 +36,8 @@ final class AppThemeFamily {
   static const emberId = 'ember';
   static const forestId = 'forest';
 
-  /// Every family the app ships, in picker order: the free ones, then the club's.
+  /// Every family the app ships, in picker order. Default is the free look;
+  /// every other family is the club's.
   static final List<AppThemeFamily> all = List.unmodifiable([
     _default,
     _gruvbox,
@@ -46,9 +47,6 @@ final class AppThemeFamily {
     _ember,
     _forest,
   ]);
-
-  static Iterable<AppThemeFamily> get freeFamilies => all.where((f) => !f.club);
-  static Iterable<AppThemeFamily> get clubFamilies => all.where((f) => f.club);
 
   static AppThemeFamily byId(String id) =>
       all.firstWhere((f) => f.id == id, orElse: () => _default);
@@ -61,6 +59,7 @@ final class AppThemeFamily {
 
   static final _gruvbox = AppThemeFamily(
     id: gruvboxId,
+    club: true,
     light: AppTheme.fromBase(
       brightness: Brightness.light,
       background: const Color(0xFFFBF1C7),
@@ -99,6 +98,7 @@ final class AppThemeFamily {
 
   static final _solarized = AppThemeFamily(
     id: solarizedId,
+    club: true,
     light: AppTheme.fromBase(
       brightness: Brightness.light,
       background: const Color(0xFFFDF6E3),
@@ -140,6 +140,7 @@ final class AppThemeFamily {
   /// A warm reading mode: brown ink on paper by day, warm espresso by night.
   static final _sepia = AppThemeFamily(
     id: sepiaId,
+    club: true,
     light: AppTheme.fromBase(
       brightness: Brightness.light,
       background: const Color(0xFFF4ECD8),
