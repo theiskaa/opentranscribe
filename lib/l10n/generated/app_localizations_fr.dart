@@ -936,7 +936,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get supportPitchFree =>
-      'Chaque fonction est gratuite pour tous, exports et retranscription compris, et le reste.';
+      'Tout ce qui rend OpenTranscribe utile est gratuit pour tous, et le reste.';
 
   @override
   String get supportPerkThemes => 'Thèmes du club';
@@ -946,10 +946,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Gruvbox, Dracula, Nord et tous les autres, hors thème par défaut.';
 
   @override
-  String get supportPerkFuture => 'Looks à venir';
+  String get supportPerkIcons => 'Icônes de l\'app';
 
   @override
-  String get supportPerkFutureNote => 'Tout look qui rejoindra le club, inclus.';
+  String get supportPerkIconsNote => 'D\'autres icônes pour l\'écran d\'accueil, bientôt.';
 
   @override
   String get supportThanks => 'Vous faites partie du club pour de bon. Merci.';

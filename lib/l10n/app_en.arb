@@ -1169,9 +1169,9 @@
   "@supportPitch": {
     "description": "Support screen pitch, second paragraph: what membership is"
   },
-  "supportPitchFree": "Every feature is free for everyone, exports and bulk re-transcription included, and stays that way.",
+  "supportPitchFree": "Everything that makes OpenTranscribe useful is free for everyone, and stays that way.",
   "@supportPitchFree": {
-    "description": "Support screen pitch, first paragraph: every feature is free, the club gates looks only"
+    "description": "Support screen pitch, first paragraph: everything useful is free; names no feature"
   },
   "supportPerkThemes": "Club themes",
   "@supportPerkThemes": {
@@ -1181,13 +1181,13 @@
   "@supportPerkThemesNote": {
     "description": "Perk row note naming a few club themes; one line"
   },
-  "supportPerkFuture": "Future looks",
-  "@supportPerkFuture": {
-    "description": "Perk row label: later club looks are included"
+  "supportPerkIcons": "App icons",
+  "@supportPerkIcons": {
+    "description": "Perk row label: alternate app icons, not shipped yet"
   },
-  "supportPerkFutureNote": "Whatever look joins the club later, included.",
-  "@supportPerkFutureNote": {
-    "description": "Perk row note for future club looks; one line"
+  "supportPerkIconsNote": "Alternate home screen icons, on the way.",
+  "@supportPerkIconsNote": {
+    "description": "Perk row note saying the icons are on the way; one line"
   },
   "supportThanks": "You're in the club for good. Thank you.",
   "@supportThanks": {

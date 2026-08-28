@@ -872,7 +872,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportPitch => 'クラブはOpenTranscribeを支える方法です。一度の支払いでずっと有効、お礼にいくつかのルックが付きます。';
 
   @override
-  String get supportPitchFree => 'すべての機能は誰でも無料で、書き出しも全件の再文字起こしも含まれます。これからも変わりません。';
+  String get supportPitchFree => 'OpenTranscribeを便利にしているものはすべて誰でも無料で、これからも変わりません。';
 
   @override
   String get supportPerkThemes => 'クラブのテーマ';
@@ -881,10 +881,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord、デフォルト以外のすべてのテーマ。';
 
   @override
-  String get supportPerkFuture => '今後のルック';
+  String get supportPerkIcons => 'アプリアイコン';
 
   @override
-  String get supportPerkFutureNote => '後からクラブに加わるルックも含まれます。';
+  String get supportPerkIconsNote => 'ホーム画面用の別アイコン、近日公開。';
 
   @override
   String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';

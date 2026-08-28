@@ -1698,10 +1698,10 @@ abstract class AppLocalizations {
   /// **'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.'**
   String get supportPitch;
 
-  /// Support screen pitch, first paragraph: every feature is free, the club gates looks only
+  /// Support screen pitch, first paragraph: everything useful is free; names no feature
   ///
   /// In en, this message translates to:
-  /// **'Every feature is free for everyone, exports and bulk re-transcription included, and stays that way.'**
+  /// **'Everything that makes OpenTranscribe useful is free for everyone, and stays that way.'**
   String get supportPitchFree;
 
   /// Perk row label: the club theme families
@@ -1716,17 +1716,17 @@ abstract class AppLocalizations {
   /// **'Gruvbox, Dracula, Nord, and every family beyond Default.'**
   String get supportPerkThemesNote;
 
-  /// Perk row label: later club looks are included
+  /// Perk row label: alternate app icons, not shipped yet
   ///
   /// In en, this message translates to:
-  /// **'Future looks'**
-  String get supportPerkFuture;
+  /// **'App icons'**
+  String get supportPerkIcons;
 
-  /// Perk row note for future club looks; one line
+  /// Perk row note saying the icons are on the way; one line
   ///
   /// In en, this message translates to:
-  /// **'Whatever look joins the club later, included.'**
-  String get supportPerkFutureNote;
+  /// **'Alternate home screen icons, on the way.'**
+  String get supportPerkIconsNote;
 
   /// Support screen intro for a club member
   ///

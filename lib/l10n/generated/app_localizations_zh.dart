@@ -864,7 +864,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportPitch => '俱乐部是支持 OpenTranscribe 的方式：付费一次，永久有效，并以几款外观作为答谢。';
 
   @override
-  String get supportPitchFree => '所有功能对所有人免费，包括导出和全部重新转写，并将一直如此。';
+  String get supportPitchFree => '让 OpenTranscribe 好用的一切都对所有人免费，并将一直如此。';
 
   @override
   String get supportPerkThemes => '俱乐部主题';
@@ -873,10 +873,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord 以及默认之外的所有主题。';
 
   @override
-  String get supportPerkFuture => '未来的外观';
+  String get supportPerkIcons => '应用图标';
 
   @override
-  String get supportPerkFutureNote => '之后加入俱乐部的外观也包含在内。';
+  String get supportPerkIconsNote => '主屏幕备选图标，即将推出。';
 
   @override
   String get supportThanks => '你已永久加入俱乐部。谢谢。';

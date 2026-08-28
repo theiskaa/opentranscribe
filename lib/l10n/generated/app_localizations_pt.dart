@@ -934,7 +934,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportPitchFree =>
-      'Todas as funções são gratuitas para todos, exportações e retranscrição incluídas, e assim continuam.';
+      'Tudo o que torna o OpenTranscribe útil é gratuito para todos, e assim continua.';
 
   @override
   String get supportPerkThemes => 'Temas do clube';
@@ -944,10 +944,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Gruvbox, Dracula, Nord e todos os temas além do predefinido.';
 
   @override
-  String get supportPerkFuture => 'Futuros visuais';
+  String get supportPerkIcons => 'Ícones da app';
 
   @override
-  String get supportPerkFutureNote => 'O visual que chegar ao clube depois, incluído.';
+  String get supportPerkIconsNote => 'Ícones alternativos para o ecrã principal, a caminho.';
 
   @override
   String get supportThanks => 'Está no clube para sempre. Obrigado.';
