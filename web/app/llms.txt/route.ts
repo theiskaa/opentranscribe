@@ -31,6 +31,7 @@ OpenTranscribe is an open source voice journal for iOS. It records audio nativel
 - Storage: entries encrypted at rest on the phone
 - Backup: one archive file restores the whole journal, sealed with a passphrase by default; free, never behind the paywall
 - Exports: the journal as Markdown, Obsidian notes, or a standalone website, part of the optional OpenTranscribe Club
+- Re-transcribe all: a bulk run that lets a newer engine re-hear the whole journal, part of the club
 - Club: a $25 one-time purchase that supports the app; direct StoreKit with no purchase SDK, no account, and no server
 - Editing: transcripts edit in place, with a restorable revision history
 - Quick start: lock screen control, widget row, Siri and Shortcuts through App Intents

@@ -81,6 +81,10 @@ export const CLUB = {
       note: "The whole journal as Markdown, as Obsidian notes, or as a website that opens with a player in any browser.",
     },
     {
+      title: "Re-transcribe all",
+      note: "The whole journal, heard again by a newer engine, without opening entries one by one.",
+    },
+    {
       title: "Future club features",
       note: "Whatever joins the club later, included.",
     },
