@@ -24,8 +24,9 @@ final class EngineRowState {
   final EngineUnavailability? unavailability;
 }
 
-/// The picker's answer to a tap, for the surface to word (or ignore).
-enum EnginePickOutcome { switched, busy, unavailable, unchanged }
+/// The picker's answer to a tap, for the surface to word (or ignore). [busy]
+/// is a take; [retranscribing] the cancellable bulk run, so they word apart.
+enum EnginePickOutcome { switched, busy, retranscribing, unavailable, unchanged }
 
 @immutable
 final class EnginesState {
@@ -113,6 +114,7 @@ class EnginesCubit extends Cubit<EnginesState> {
       return EnginePickOutcome.unchanged;
     }
     final previous = _entry(_service.engineId);
+    if (_service.retranscribeAll.isRunning) return EnginePickOutcome.retranscribing;
     if (!_service.useEngine(entry.engine)) return EnginePickOutcome.busy;
     try {
       await _engineSettings.setEngineId(engineId);

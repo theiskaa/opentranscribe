@@ -311,17 +311,19 @@ class TranscriptionService {
   Stream<double> get inputLevel => _recorder.level;
 
   /// Swaps the active engine. Refused (false) while a take is starting,
-  /// recording, or finalizing: a take's live stream and its settled batch must
-  /// come from one engine. An in-flight re-transcription is not a refusal; it
-  /// holds the engine reference it started with and lands on it. On a change
-  /// every model surface is told to reload and the caller re-resolves the
-  /// locale default; swapping to the already-active engine is a no-op that
-  /// still answers true.
+  /// recording, or finalizing, and while a bulk re-transcribe runs: a take's
+  /// live stream and its settled batch must come from one engine, and the bulk
+  /// queue is defined against one engine from start to end. A single in-flight
+  /// re-transcription is not a refusal; it holds the engine reference it
+  /// started with and lands on it. On a change every model surface is told to
+  /// reload and the caller re-resolves the locale default; swapping to the
+  /// already-active engine is a no-op that still answers true.
   bool useEngine(TranscriptionEngine engine) {
     if (!engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
     }
     if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
+    if (retranscribeAll.isRunning) return false;
     if (identical(engine, _engine)) return true;
     _engine = engine;
     _notifyModelStateChanged();

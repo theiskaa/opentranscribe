@@ -66,12 +66,18 @@ class RetranscribeCubit extends Cubit<RetranscribeState> {
     _changesSub = _service.entriesChanged.listen((_) {
       if (!state.isRunning) refresh();
     }, onError: (Object _) {});
+    // An engine switch redefines the queue (the skip rule is stamped per
+    // engine) without touching any entry, so it needs its own re-sync.
+    _engineSub = _service.modelStateChanged.listen((_) {
+      if (!state.isRunning) refresh();
+    }, onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   final bool Function() _isSupporter;
   late final StreamSubscription<RetranscribeProgress> _progressSub;
   late final StreamSubscription<void> _changesSub;
+  late final StreamSubscription<void> _engineSub;
 
   void _onProgress(RetranscribeProgress progress) {
     if (isClosed) return;
@@ -114,6 +120,7 @@ class RetranscribeCubit extends Cubit<RetranscribeState> {
   Future<void> close() async {
     await _progressSub.cancel();
     await _changesSub.cancel();
+    await _engineSub.cancel();
     return super.close();
   }
 }

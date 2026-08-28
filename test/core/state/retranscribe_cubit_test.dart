@@ -154,6 +154,23 @@ void main() {
     await service.dispose();
   });
 
+  test('an engine switch while idle refreshes the preview against the new engine', () async {
+    service = build(FakeBatchEngine());
+    await store.save(entry('heard', transcript: transcriptBy('fake.batch')));
+    final c = cubit();
+    expect(c.state.runnable, 0);
+    expect(c.state.current, 1);
+
+    expect(service.useEngine(FakeDictationEngine()), isTrue);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(c.state.runnable, 1);
+    expect(c.state.current, 0);
+
+    await c.close();
+    await service.dispose();
+  });
+
   test('a closed cubit ignores later runner emissions', () async {
     service = build(FakeBatchEngine());
     await store.save(entry('a'));
