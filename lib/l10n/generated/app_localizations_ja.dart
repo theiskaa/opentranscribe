@@ -37,6 +37,52 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retranscribe => '再文字起こし';
 
   @override
+  String get retranscribeAllTitle => 'すべて再文字起こし';
+
+  @override
+  String get retranscribeRowQueued => '再文字起こし対象';
+
+  @override
+  String get retranscribeRowCurrent => 'すでに最新';
+
+  @override
+  String get retranscribeRowLanded => '再文字起こし済み';
+
+  @override
+  String get retranscribeRowFailed => '失敗';
+
+  @override
+  String get retranscribeHistoryNote => '置き換えられた言葉は各エントリーの履歴に残ります。';
+
+  @override
+  String get retranscribeFailedNote => '失敗したエントリーは次回の実行で再度処理されます。';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '保存済みの録音はすべて$engineで文字起こし済みです。';
+  }
+
+  @override
+  String get retranscribeStart => '開始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total件中$done件';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '録音が終わるまで一時停止中';
+
+  @override
+  String get retranscribeWaitingThermal => '本体の温度が下がるまで一時停止中';
+
+  @override
+  String get retranscribeCancel => 'キャンセル';
+
+  @override
+  String get retranscribeCancelledNote => '途中で停止しました。再実行すると続きから再開します。';
+
+  @override
   String get delete => '削除';
 
   @override
@@ -306,6 +352,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get engineBusyBody => '録音を停止してからエンジンを切り替えてください。';
+
+  @override
+  String get engineRetranscribingTitle => '再文字起こし中';
+
+  @override
+  String get engineRetranscribingBody => '処理が終わるのを待つか中止してから、エンジンを切り替えてください。';
 
   @override
   String get engineNotSavedTitle => '選択を保存できませんでした';
@@ -802,7 +854,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
-  String get supportGateBody => '形式を選べる書き出しはクラブメンバー向けです。バックアップは誰でも無料のままです。';
+  String get supportGateBody => '形式を選べる書き出しと全件の再文字起こしはクラブメンバー向けです。バックアップは誰でも無料のままです。';
 
   @override
   String get settingsSupport => 'サポート';
@@ -819,6 +871,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
+
+  @override
+  String get supportPerkRetranscribeNote => '日記全体を、新しいエンジンで聞き直します。';
 
   @override
   String get supportPerkFuture => '今後のクラブ機能';

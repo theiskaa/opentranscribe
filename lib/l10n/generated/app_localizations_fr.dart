@@ -39,6 +39,55 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retranscribe => 'Retranscrire';
 
   @override
+  String get retranscribeAllTitle => 'Tout retranscrire';
+
+  @override
+  String get retranscribeRowQueued => 'À retranscrire';
+
+  @override
+  String get retranscribeRowCurrent => 'Déjà à jour';
+
+  @override
+  String get retranscribeRowLanded => 'Entrées retranscrites';
+
+  @override
+  String get retranscribeRowFailed => 'Entrées en échec';
+
+  @override
+  String get retranscribeHistoryNote =>
+      'Les mots remplacés restent dans l\'historique de chaque entrée.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'Les entrées en échec restent en attente du prochain passage.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Chaque enregistrement conservé est déjà transcrit par $engine.';
+  }
+
+  @override
+  String get retranscribeStart => 'Démarrer';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done sur $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'En pause le temps qu\'un enregistrement se termine';
+
+  @override
+  String get retranscribeWaitingThermal => 'En pause le temps que l\'appareil refroidisse';
+
+  @override
+  String get retranscribeCancel => 'Annuler';
+
+  @override
+  String get retranscribeCancelledNote =>
+      'Arrêté en cours de route. Relancer reprend là où ça s\'est arrêté.';
+
+  @override
   String get delete => 'Supprimer';
 
   @override
@@ -323,6 +372,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Arrêtez l\'enregistrement en cours, puis changez de moteur.';
+
+  @override
+  String get engineRetranscribingTitle => 'Retranscription en cours';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Attendez la fin du traitement, ou annulez-le, puis changez de moteur.';
 
   @override
   String get engineNotSavedTitle => 'Choix non enregistré';
@@ -861,7 +917,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Les exports formatés sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.';
+      'Les exports formatés et la retranscription de tout le journal sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.';
 
   @override
   String get settingsSupport => 'Soutenir';
@@ -878,6 +934,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian ou un site web.';
+
+  @override
+  String get supportPerkRetranscribeNote => 'Tout le journal, réécouté par un moteur plus récent.';
 
   @override
   String get supportPerkFuture => 'Les fonctions club à venir';

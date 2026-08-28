@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -16,6 +17,7 @@ import 'package:opentranscribe/view/layouts/settings/components/language_chips.d
 import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
+import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
@@ -208,6 +210,8 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+              const SettingsCard(children: [_RetranscribeRow()]),
+              const SizedBox(height: AppSpacing.md),
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -251,6 +255,28 @@ class _Melt extends StatelessWidget {
       curve: motion.indicatorCurve,
       alignment: Alignment.topCenter,
       child: child,
+    );
+  }
+}
+
+/// Seated under the picker because the picker defines it: everything the
+/// active engine has not heard.
+class _RetranscribeRow extends StatelessWidget {
+  const _RetranscribeRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = context.watch<RetranscribeCubit>().state;
+    return SettingsBusyRow(
+      icon: AppIcons.arrowCounterclockwise,
+      label: l10n.retranscribeAllTitle,
+      busy: state.isRunning,
+      detail: state.runnable > 0 ? '${state.runnable}' : null,
+      onTap: () {
+        if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+        unawaited(showRetranscribeSheet(context));
+      },
     );
   }
 }
@@ -327,15 +353,25 @@ class _EngineRow extends StatelessWidget {
       );
       return;
     }
-    if (outcome != EnginePickOutcome.busy || !context.mounted) return;
-    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
-    await showAppSheet<void>(
-      context,
-      builder: (context) => SheetMessage(
+    if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    final refusal = switch (outcome) {
+      EnginePickOutcome.busy => (
         icon: AppIcons.micFill,
         title: l10n.engineBusyTitle,
         body: l10n.engineBusyBody,
       ),
+      EnginePickOutcome.retranscribing => (
+        icon: AppIcons.arrowCounterclockwise,
+        title: l10n.engineRetranscribingTitle,
+        body: l10n.engineRetranscribingBody,
+      ),
+      _ => null,
+    };
+    if (refusal == null) return;
+    await showAppSheet<void>(
+      context,
+      builder: (context) =>
+          SheetMessage(icon: refusal.icon, title: refusal.title, body: refusal.body),
     );
   }
 }

@@ -39,6 +39,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retranscribe => 'Re-transcribe';
 
   @override
+  String get retranscribeAllTitle => 'Re-transcribe all';
+
+  @override
+  String get retranscribeRowQueued => 'To re-transcribe';
+
+  @override
+  String get retranscribeRowCurrent => 'Already current';
+
+  @override
+  String get retranscribeRowLanded => 'Re-transcribed';
+
+  @override
+  String get retranscribeRowFailed => 'Failed';
+
+  @override
+  String get retranscribeHistoryNote => 'Replaced words stay in each entry\'s history.';
+
+  @override
+  String get retranscribeFailedNote => 'Failed entries stay queued for the next run.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Every kept recording is already transcribed by $engine.';
+  }
+
+  @override
+  String get retranscribeStart => 'Start';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Paused while a recording finishes';
+
+  @override
+  String get retranscribeWaitingThermal => 'Paused while the device cools down';
+
+  @override
+  String get retranscribeCancel => 'Cancel';
+
+  @override
+  String get retranscribeCancelledNote =>
+      'Stopped early. Running again picks up where it left off.';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -320,6 +367,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Stop the current recording, then switch engines.';
+
+  @override
+  String get engineRetranscribingTitle => 'Re-transcribing';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Wait for the run to finish, or cancel it, then switch engines.';
 
   @override
   String get engineNotSavedTitle => 'Couldn\'t save the choice';
@@ -851,7 +905,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Formatted exports are for club members. The backup stays free for everyone.';
+      'Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.';
 
   @override
   String get settingsSupport => 'Support';
@@ -868,6 +922,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
+
+  @override
+  String get supportPerkRetranscribeNote => 'The whole journal, heard again by a newer engine.';
 
   @override
   String get supportPerkFuture => 'Future club features';

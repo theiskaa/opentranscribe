@@ -39,6 +39,54 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retranscribe => 'Erneut transkribieren';
 
   @override
+  String get retranscribeAllTitle => 'Alle erneut transkribieren';
+
+  @override
+  String get retranscribeRowQueued => 'Erneut zu transkribieren';
+
+  @override
+  String get retranscribeRowCurrent => 'Bereits aktuell';
+
+  @override
+  String get retranscribeRowLanded => 'Erneut transkribiert';
+
+  @override
+  String get retranscribeRowFailed => 'Fehlgeschlagen';
+
+  @override
+  String get retranscribeHistoryNote => 'Ersetzte Wörter bleiben im Verlauf jedes Eintrags.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'Fehlgeschlagene Einträge bleiben für den nächsten Durchlauf in der Warteschlange.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Jede behaltene Aufnahme ist bereits mit $engine transkribiert.';
+  }
+
+  @override
+  String get retranscribeStart => 'Starten';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done von $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Pausiert, bis die Aufnahme beendet ist';
+
+  @override
+  String get retranscribeWaitingThermal => 'Pausiert, während das Gerät abkühlt';
+
+  @override
+  String get retranscribeCancel => 'Abbrechen';
+
+  @override
+  String get retranscribeCancelledNote =>
+      'Vorzeitig beendet. Ein neuer Durchlauf macht dort weiter.';
+
+  @override
   String get delete => 'Löschen';
 
   @override
@@ -323,6 +371,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get engineBusyBody =>
       'Beenden Sie die aktuelle Aufnahme und wechseln Sie dann die Engine.';
+
+  @override
+  String get engineRetranscribingTitle => 'Erneute Transkription läuft';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Lassen Sie den Durchlauf enden oder brechen Sie ihn ab, und wechseln Sie dann die Engine.';
 
   @override
   String get engineNotSavedTitle => 'Auswahl nicht gespeichert';
@@ -861,7 +916,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Formatierte Exporte sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
+      'Formatierte Exporte und das erneute Transkribieren des ganzen Tagebuchs sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
 
   @override
   String get settingsSupport => 'Unterstützen';
@@ -878,6 +933,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian oder eine Website.';
+
+  @override
+  String get supportPerkRetranscribeNote =>
+      'Das ganze Tagebuch, neu gehört von einer neueren Engine.';
 
   @override
   String get supportPerkFuture => 'Künftige Club-Funktionen';

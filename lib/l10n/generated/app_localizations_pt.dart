@@ -39,6 +39,54 @@ class AppLocalizationsPt extends AppLocalizations {
   String get retranscribe => 'Retranscrever';
 
   @override
+  String get retranscribeAllTitle => 'Retranscrever tudo';
+
+  @override
+  String get retranscribeRowQueued => 'Para retranscrever';
+
+  @override
+  String get retranscribeRowCurrent => 'Entradas já atualizadas';
+
+  @override
+  String get retranscribeRowLanded => 'Entradas retranscritas';
+
+  @override
+  String get retranscribeRowFailed => 'Com falha';
+
+  @override
+  String get retranscribeHistoryNote =>
+      'As palavras substituídas ficam no histórico de cada entrada.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'As entradas falhadas ficam em fila para a próxima execução.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Cada gravação guardada já foi transcrita por $engine.';
+  }
+
+  @override
+  String get retranscribeStart => 'Começar';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done de $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Em pausa enquanto uma gravação termina';
+
+  @override
+  String get retranscribeWaitingThermal => 'Em pausa enquanto o dispositivo arrefece';
+
+  @override
+  String get retranscribeCancel => 'Cancelar';
+
+  @override
+  String get retranscribeCancelledNote => 'Parado a meio. Voltar a executar retoma onde ficou.';
+
+  @override
   String get delete => 'Eliminar';
 
   @override
@@ -323,6 +371,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Pare a gravação atual e depois mude de motor.';
+
+  @override
+  String get engineRetranscribingTitle => 'Retranscrição em curso';
+
+  @override
+  String get engineRetranscribingBody => 'Espere que termine, ou cancele, e depois mude de motor.';
 
   @override
   String get engineNotSavedTitle => 'Não foi possível guardar a escolha';
@@ -861,7 +915,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'As exportações formatadas são para membros do clube. A cópia de segurança continua gratuita para todos.';
+      'As exportações formatadas e a retranscrição de todo o diário são para membros do clube. A cópia de segurança continua gratuita para todos.';
 
   @override
   String get settingsSupport => 'Apoiar';
@@ -878,6 +932,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian ou um site.';
+
+  @override
+  String get supportPerkRetranscribeNote =>
+      'Todo o diário, ouvido de novo por um motor mais recente.';
 
   @override
   String get supportPerkFuture => 'Futuras funções do clube';

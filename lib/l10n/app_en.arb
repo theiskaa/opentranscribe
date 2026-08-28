@@ -36,6 +36,75 @@
   "@retranscribe": {
     "description": "Button to transcribe a kept recording again"
   },
+  "retranscribeAllTitle": "Re-transcribe all",
+  "@retranscribeAllTitle": {
+    "description": "Transcription screen row, club perk, and sheet title for the bulk re-transcription over every kept recording"
+  },
+  "retranscribeRowQueued": "To re-transcribe",
+  "@retranscribeRowQueued": {
+    "description": "Fact row label: entries a run would re-transcribe; the count sits right of it"
+  },
+  "retranscribeRowCurrent": "Already current",
+  "@retranscribeRowCurrent": {
+    "description": "Fact row label: entries the active engine already produced"
+  },
+  "retranscribeRowLanded": "Re-transcribed",
+  "@retranscribeRowLanded": {
+    "description": "Fact row label on the finished face: entries that landed this run"
+  },
+  "retranscribeRowFailed": "Failed",
+  "@retranscribeRowFailed": {
+    "description": "Fact row label on the finished face: entries that failed this run"
+  },
+  "retranscribeHistoryNote": "Replaced words stay in each entry's history.",
+  "@retranscribeHistoryNote": {
+    "description": "Footnote under the idle rows"
+  },
+  "retranscribeFailedNote": "Failed entries stay queued for the next run.",
+  "@retranscribeFailedNote": {
+    "description": "Footnote under the finished rows when some entries failed; they stay queued"
+  },
+  "retranscribeAllCurrentBody": "Every kept recording is already transcribed by {engine}.",
+  "@retranscribeAllCurrentBody": {
+    "description": "Idle sheet body when a run would have nothing to do",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "retranscribeStart": "Start",
+  "@retranscribeStart": {
+    "description": "Button starting the bulk re-transcription run"
+  },
+  "retranscribeProgressOf": "{done} of {total}",
+  "@retranscribeProgressOf": {
+    "description": "Progress counter while the run works through its queue",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeWaitingRecording": "Paused while a recording finishes",
+  "@retranscribeWaitingRecording": {
+    "description": "Progress line while the queue waits for a live recording to end"
+  },
+  "retranscribeWaitingThermal": "Paused while the device cools down",
+  "@retranscribeWaitingThermal": {
+    "description": "Progress line while the queue waits out thermal pressure"
+  },
+  "retranscribeCancel": "Cancel",
+  "@retranscribeCancel": {
+    "description": "Button stopping the bulk run; what already landed is kept"
+  },
+  "retranscribeCancelledNote": "Stopped early. Running again picks up where it left off.",
+  "@retranscribeCancelledNote": {
+    "description": "Finished sheet footnote after a cancel; a new run resumes where it stopped"
+  },
   "delete": "Delete",
   "@delete": {
     "description": "Button to delete an entry"
@@ -419,6 +488,14 @@
   "engineBusyBody": "Stop the current recording, then switch engines.",
   "@engineBusyBody": {
     "description": "Sheet body when an engine switch is refused mid-take"
+  },
+  "engineRetranscribingTitle": "Re-transcribing",
+  "@engineRetranscribingTitle": {
+    "description": "Sheet title when an engine switch is refused during a bulk re-transcription"
+  },
+  "engineRetranscribingBody": "Wait for the run to finish, or cancel it, then switch engines.",
+  "@engineRetranscribingBody": {
+    "description": "Sheet body when an engine switch is refused during a bulk re-transcription"
   },
   "engineNotSavedTitle": "Couldn't save the choice",
   "@engineNotSavedTitle": {
@@ -1068,7 +1145,7 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateBody": "Formatted exports are for club members. The backup stays free for everyone.",
+  "supportGateBody": "Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.",
   "@supportGateBody": {
     "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
   },
@@ -1091,6 +1168,10 @@
   "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
   "@supportPerkExportsNote": {
     "description": "Perk row note naming the formats; one line"
+  },
+  "supportPerkRetranscribeNote": "The whole journal, heard again by a newer engine.",
+  "@supportPerkRetranscribeNote": {
+    "description": "Perk row note under the re-transcribe all label; one line"
   },
   "supportPerkFuture": "Future club features",
   "@supportPerkFuture": {

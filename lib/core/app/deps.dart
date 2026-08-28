@@ -38,6 +38,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/support/support_store.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/utils/thermal.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reflections/reflections.dart';
 import 'package:transcriber/transcriber.dart';
@@ -308,12 +309,16 @@ class Deps {
     // Hoisted so both the transcription lifecycle and the reflection lifecycle
     // read the same entries; the store is stateless, so sharing one is safe.
     final entryStore = EntryStore(localService);
+    // Costs the launch a channel listen; the bulk re-transcribe queue reads
+    // the cached answer between entries.
+    final thermalMonitor = ThermalMonitor()..start();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engineSettings.resolveActive(engineRegistry).engine,
       store: entryStore,
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
+      thermalPressure: () => thermalMonitor.underPressure,
     );
     final transcriptionSettings = TranscriptionSettings(
       storage: localService,

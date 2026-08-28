@@ -14,6 +14,7 @@ class SheetMessage extends StatelessWidget {
   const SheetMessage({
     required this.icon,
     required this.title,
+    this.subtitle,
     this.body,
     this.rows = const [],
     this.action,
@@ -22,6 +23,10 @@ class SheetMessage extends StatelessWidget {
 
   final IconData icon;
   final String title;
+
+  /// A quiet line under the title naming the subject (the engine a run would
+  /// use); null for a title that stands alone.
+  final String? subtitle;
 
   /// Null for a sheet whose rows say everything (a picker); the title alone
   /// then carries the header.
@@ -44,7 +49,15 @@ class SheetMessage extends StatelessWidget {
             CircleTile(child: AppIcon(icon, size: 20, color: theme.textSecondary)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(title, style: AppType.headline.copyWith(color: theme.text)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppType.headline.copyWith(color: theme.text)),
+                  if (subtitle != null)
+                    Text(subtitle!, style: AppType.footnote.copyWith(color: theme.textSecondary)),
+                ],
+              ),
             ),
           ],
         ),

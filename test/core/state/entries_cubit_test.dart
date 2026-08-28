@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -367,5 +368,40 @@ void main() {
     await cubit.close();
     await svc.dispose();
     await dir.delete(recursive: true);
+  });
+
+  test('re-transcribe quietly yields to a bulk run already on that entry', () async {
+    final gate = Completer<void>();
+    final gatedEngine = FakeBatchEngine(gate: gate.future);
+    final storage = LocalService();
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+    final store = EntryStore(storage);
+    final svc = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: gatedEngine,
+      store: store,
+    );
+    await store.save(
+      Entry(
+        id: 'queued',
+        createdAt: DateTime.utc(2026, 3),
+        audioPath: '/audio/queued.m4a',
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    final cubit = EntriesCubit(service: svc);
+    final run = svc.retranscribeAll.start();
+    await Future<void>.delayed(Duration.zero);
+
+    await cubit.retranscribe(store.read('queued')!);
+
+    expect(cubit.state.error, isNull);
+    expect(cubit.state.busyId, isNull);
+    gate.complete();
+    await run;
+    expect(gatedEngine.batchCalls, hasLength(1));
+
+    await cubit.close();
+    await svc.dispose();
   });
 }

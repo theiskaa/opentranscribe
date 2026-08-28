@@ -36,6 +36,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranscribe => '重新转写';
 
   @override
+  String get retranscribeAllTitle => '全部重新转写';
+
+  @override
+  String get retranscribeRowQueued => '待重新转写';
+
+  @override
+  String get retranscribeRowCurrent => '已是最新';
+
+  @override
+  String get retranscribeRowLanded => '已重新转写';
+
+  @override
+  String get retranscribeRowFailed => '失败';
+
+  @override
+  String get retranscribeHistoryNote => '被替换的文字会保留在条目的历史中。';
+
+  @override
+  String get retranscribeFailedNote => '失败的条目会在下次运行时重试。';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '保留的录音均已由 $engine 转写。';
+  }
+
+  @override
+  String get retranscribeStart => '开始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '录音结束前暂停';
+
+  @override
+  String get retranscribeWaitingThermal => '设备降温前暂停';
+
+  @override
+  String get retranscribeCancel => '取消';
+
+  @override
+  String get retranscribeCancelledNote => '已提前停止。再次运行会从中断处继续。';
+
+  @override
   String get delete => '删除';
 
   @override
@@ -304,6 +350,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get engineBusyBody => '请先停止当前录音，再切换引擎。';
+
+  @override
+  String get engineRetranscribingTitle => '正在重新转写';
+
+  @override
+  String get engineRetranscribingBody => '请等待完成或取消后，再切换引擎。';
 
   @override
   String get engineNotSavedTitle => '无法保存选择';
@@ -793,7 +845,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateBody => '格式化导出是俱乐部会员功能。备份对所有人保持免费。';
+  String get supportGateBody => '格式化导出和全部重新转写是俱乐部会员功能。备份对所有人保持免费。';
 
   @override
   String get settingsSupport => '支持';
@@ -809,6 +861,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
+
+  @override
+  String get supportPerkRetranscribeNote => '整本日记，由更新的引擎重新转写。';
 
   @override
   String get supportPerkFuture => '未来的俱乐部功能';

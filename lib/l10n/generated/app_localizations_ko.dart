@@ -37,6 +37,52 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranscribe => '다시 전사';
 
   @override
+  String get retranscribeAllTitle => '모두 다시 전사';
+
+  @override
+  String get retranscribeRowQueued => '다시 전사할 항목';
+
+  @override
+  String get retranscribeRowCurrent => '이미 최신';
+
+  @override
+  String get retranscribeRowLanded => '다시 전사됨';
+
+  @override
+  String get retranscribeRowFailed => '실패';
+
+  @override
+  String get retranscribeHistoryNote => '대체된 문구는 각 항목의 기록에 남습니다.';
+
+  @override
+  String get retranscribeFailedNote => '실패한 항목은 다음 실행 때 다시 처리됩니다.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '보관된 모든 녹음이 이미 $engine 엔진으로 전사되어 있습니다.';
+  }
+
+  @override
+  String get retranscribeStart => '시작';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total개 중 $done개';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '녹음이 끝날 때까지 일시 정지';
+
+  @override
+  String get retranscribeWaitingThermal => '기기 온도가 내려갈 때까지 일시 정지';
+
+  @override
+  String get retranscribeCancel => '취소';
+
+  @override
+  String get retranscribeCancelledNote => '도중에 중지되었습니다. 다시 실행하면 이어서 진행됩니다.';
+
+  @override
   String get delete => '삭제';
 
   @override
@@ -307,6 +353,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
+
+  @override
+  String get engineRetranscribingTitle => '다시 전사 진행 중';
+
+  @override
+  String get engineRetranscribingBody => '작업이 끝날 때까지 기다리거나 취소한 다음 엔진을 전환하세요.';
 
   @override
   String get engineNotSavedTitle => '선택을 저장하지 못함';
@@ -804,7 +856,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
-  String get supportGateBody => '서식 있는 내보내기는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
+  String get supportGateBody => '서식 있는 내보내기와 전체 다시 전사는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
 
   @override
   String get settingsSupport => '후원';
@@ -821,6 +873,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+
+  @override
+  String get supportPerkRetranscribeNote => '일기 전체를 더 새로운 엔진으로 다시 듣습니다.';
 
   @override
   String get supportPerkFuture => '앞으로의 클럽 기능';
