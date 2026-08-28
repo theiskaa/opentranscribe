@@ -510,12 +510,6 @@ abstract class AppLocalizations {
   /// **'Gruvbox'**
   String get themeNameGruvbox;
 
-  /// Name of the Solarized theme family (a proper noun; not translated)
-  ///
-  /// In en, this message translates to:
-  /// **'Solarized'**
-  String get themeNameSolarized;
-
   /// Name of the Sepia theme family (a warm reading mode)
   ///
   /// In en, this message translates to:
@@ -528,23 +522,29 @@ abstract class AppLocalizations {
   /// **'Midnight'**
   String get themeNameMidnight;
 
-  /// Name of the Ember club theme family (paper and rust); a proper noun, not translated
+  /// Name of the Dracula club theme family (the palette of that name, MIT); a proper noun, not translated
   ///
   /// In en, this message translates to:
-  /// **'Ember'**
-  String get themeNameEmber;
+  /// **'Dracula'**
+  String get themeNameDracula;
 
-  /// Name of the Forest club theme family (moss green); a proper noun, not translated
+  /// Name of the Nord club theme family (the palette of that name, MIT); a proper noun, not translated
   ///
   /// In en, this message translates to:
-  /// **'Forest'**
-  String get themeNameForest;
+  /// **'Nord'**
+  String get themeNameNord;
 
-  /// Name of the Rose club theme family (dusty pink); a proper noun, not translated
+  /// Name of the Catppuccin club theme family (the palette of that name, MIT); a proper noun, not translated
   ///
   /// In en, this message translates to:
-  /// **'Rose'**
-  String get themeNameRose;
+  /// **'Catppuccin'**
+  String get themeNameCatppuccin;
+
+  /// Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Tokyo Night'**
+  String get themeNameTokyoNight;
 
   /// Home menu row that picks the interface (UI) language
   ///

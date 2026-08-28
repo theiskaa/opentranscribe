@@ -281,10 +281,6 @@
   "@themeNameGruvbox": {
     "description": "Name of the Gruvbox theme family (a proper noun; not translated)"
   },
-  "themeNameSolarized": "Solarized",
-  "@themeNameSolarized": {
-    "description": "Name of the Solarized theme family (a proper noun; not translated)"
-  },
   "themeNameSepia": "Sepia",
   "@themeNameSepia": {
     "description": "Name of the Sepia theme family (a warm reading mode)"
@@ -293,17 +289,21 @@
   "@themeNameMidnight": {
     "description": "Name of the Midnight club theme family (a deep blue night look); a proper noun, not translated"
   },
-  "themeNameEmber": "Ember",
-  "@themeNameEmber": {
-    "description": "Name of the Ember club theme family (paper and rust); a proper noun, not translated"
+  "themeNameDracula": "Dracula",
+  "@themeNameDracula": {
+    "description": "Name of the Dracula club theme family (the palette of that name, MIT); a proper noun, not translated"
   },
-  "themeNameForest": "Forest",
-  "@themeNameForest": {
-    "description": "Name of the Forest club theme family (moss green); a proper noun, not translated"
+  "themeNameNord": "Nord",
+  "@themeNameNord": {
+    "description": "Name of the Nord club theme family (the palette of that name, MIT); a proper noun, not translated"
   },
-  "themeNameRose": "Rose",
-  "@themeNameRose": {
-    "description": "Name of the Rose club theme family (dusty pink); a proper noun, not translated"
+  "themeNameCatppuccin": "Catppuccin",
+  "@themeNameCatppuccin": {
+    "description": "Name of the Catppuccin club theme family (the palette of that name, MIT); a proper noun, not translated"
+  },
+  "themeNameTokyoNight": "Tokyo Night",
+  "@themeNameTokyoNight": {
+    "description": "Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated"
   },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {

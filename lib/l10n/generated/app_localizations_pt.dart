@@ -228,22 +228,22 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
-
-  @override
   String get themeNameSepia => 'Sépia';
 
   @override
   String get themeNameMidnight => 'Midnight';
 
   @override
-  String get themeNameEmber => 'Ember';
+  String get themeNameDracula => 'Dracula';
 
   @override
-  String get themeNameForest => 'Forest';
+  String get themeNameNord => 'Nord';
 
   @override
-  String get themeNameRose => 'Rose';
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
 
   @override
   String get settingsAppLanguage => 'Idioma';
