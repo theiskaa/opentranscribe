@@ -59,3 +59,15 @@ class ReservationCapReached extends TranscriptionException {
 class TranscriptionFailed extends TranscriptionException {
   const TranscriptionFailed([super.message]);
 }
+
+/// An audio merge could not produce its file. [code] carries the native reason
+/// (a missing or unreadable input versus a write failure) for callers that
+/// branch; every case leaves the inputs untouched and nothing partial behind.
+class AudioComposeFailed extends TranscriptionException {
+  const AudioComposeFailed([super.message, this.code]);
+
+  final String? code;
+
+  @override
+  String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
+}

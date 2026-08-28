@@ -1,13 +1,15 @@
 /// Audio capture, playback, and on-device transcription.
 ///
-/// The engine and device contracts live here (`AudioRecorder`, `AudioPlayer`,
-/// `TranscriptionEngine` and its extensions) together with the platform-channel
-/// implementations. Fakes for tests are exported separately from
-/// `package:transcriber/testing.dart`.
+/// The engine and device contracts live here (`AudioRecorder`, `AudioComposer`,
+/// `AudioPlayer`, `TranscriptionEngine` and its extensions) together with the
+/// platform-channel implementations. Fakes for tests are exported separately
+/// from `package:transcriber/testing.dart`.
 library;
 
+export 'src/audio/audio_composer.dart';
 export 'src/audio/audio_player.dart';
 export 'src/audio/audio_recorder.dart';
+export 'src/audio/platform_audio_composer.dart';
 export 'src/audio/platform_audio_player.dart';
 export 'src/audio/platform_audio_recorder.dart';
 export 'src/audio/playback.dart';
