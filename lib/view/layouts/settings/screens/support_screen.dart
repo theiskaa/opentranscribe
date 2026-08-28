@@ -404,9 +404,9 @@ class _PerksCard extends StatelessWidget {
               owned: checked,
             ),
             _PerkRow(
-              leading: AppIcon(AppIcons.sparkles, size: 16, color: theme.text),
-              label: l10n.supportPerkFuture,
-              note: l10n.supportPerkFutureNote,
+              leading: AppIcon(AppIcons.squareFill, size: 16, color: theme.text),
+              label: l10n.supportPerkIcons,
+              note: l10n.supportPerkIconsNote,
               owned: checked,
             ),
           ],
