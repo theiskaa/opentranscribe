@@ -5,10 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
-import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/state/support_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -19,7 +19,6 @@ import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/club_lockup.dart';
 import 'package:opentranscribe/view/widgets/dither_field.dart';
-import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -34,25 +33,15 @@ class SupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final descriptors = Deps.i.exporterDescriptors;
     return BlocProvider(
       create: (_) => SupportCubit(service: Deps.i.supportService)..load(),
-      child: _SupportView(
-        exportMark:
-            descriptors.where((d) => d.format == ExportFormat.markdown).firstOrNull ??
-            descriptors.first,
-      ),
+      child: const _SupportView(),
     );
   }
 }
 
 class _SupportView extends StatelessWidget {
-  const _SupportView({required this.exportMark});
-
-  /// The format whose mark fronts the exports perk (markdown, with the first
-  /// shipped format standing in if a build ever drops it): the same asset the
-  /// Backup screen picks from, so the promise and the feature wear one face.
-  final ExporterDescriptor exportMark;
+  const _SupportView();
 
   Future<void> _buy(BuildContext context) async {
     final result = await context.read<SupportCubit>().purchase();
@@ -105,9 +94,8 @@ class _SupportView extends StatelessWidget {
     final member = state.tier.isSupporter;
     final onRestore = idle ? () => unawaited(_restore(context)) : null;
     final body = member
-        ? _MemberBody(exportMark: exportMark, onRestore: onRestore, restoring: state.restoring)
+        ? _MemberBody(onRestore: onRestore, restoring: state.restoring)
         : _PaywallBody(
-            exportMark: exportMark,
             state: state,
             onBuy: idle ? () => unawaited(_buy(context)) : null,
             onRestore: onRestore,
@@ -124,14 +112,8 @@ class _SupportView extends StatelessWidget {
 /// button, with the perks framed as a promise and the compliance footer the
 /// store requires before a purchase.
 class _PaywallBody extends StatelessWidget {
-  const _PaywallBody({
-    required this.exportMark,
-    required this.state,
-    required this.onBuy,
-    required this.onRestore,
-  });
+  const _PaywallBody({required this.state, required this.onBuy, required this.onRestore});
 
-  final ExporterDescriptor exportMark;
   final SupportState state;
   final VoidCallback? onBuy;
   final VoidCallback? onRestore;
@@ -160,6 +142,7 @@ class _PaywallBody extends StatelessWidget {
                 child: ClubLockup(),
               ),
               const SizedBox(height: AppSpacing.lg),
+              SectionInfo(l10n.supportPitchFree),
               SectionInfo(l10n.supportPitch),
               if (state.storeUnreachable) ...[
                 const SizedBox(height: AppSpacing.xs),
@@ -169,7 +152,7 @@ class _PaywallBody extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 SectionInfo(l10n.supportPending),
               ],
-              _PerksCard(exportMark: exportMark, member: false, checked: false),
+              const _PerksCard(member: false, checked: false),
               const SizedBox(height: AppSpacing.xl),
               const _FooterNote(),
             ],
@@ -191,9 +174,8 @@ class _PaywallBody extends StatelessWidget {
 /// checkmarks pop in instead of landing already ticked. Under Reduce Motion the
 /// flip is a single frame with no crossfade, so it reads as an instant tick.
 class _MemberBody extends StatefulWidget {
-  const _MemberBody({required this.exportMark, required this.onRestore, required this.restoring});
+  const _MemberBody({required this.onRestore, required this.restoring});
 
-  final ExporterDescriptor exportMark;
   final VoidCallback? onRestore;
   final bool restoring;
 
@@ -247,7 +229,7 @@ class _MemberBodyState extends State<_MemberBody> {
                     const SizedBox(height: AppSpacing.lg),
                     SectionInfo(l10n.supportThanks),
                     const SizedBox(height: AppSpacing.xl),
-                    _PerksCard(exportMark: widget.exportMark, member: true, checked: _owned),
+                    _PerksCard(member: true, checked: _owned),
                   ],
                 ),
               ),
@@ -400,9 +382,8 @@ class _RestoreLink extends StatelessWidget {
 /// member's perks can tick over after the screen has settled without the label
 /// flickering.
 class _PerksCard extends StatelessWidget {
-  const _PerksCard({required this.exportMark, required this.member, required this.checked});
+  const _PerksCard({required this.member, required this.checked});
 
-  final ExporterDescriptor exportMark;
   final bool member;
   final bool checked;
 
@@ -417,15 +398,9 @@ class _PerksCard extends StatelessWidget {
         SettingsCard(
           children: [
             _PerkRow(
-              leading: ExporterLogo(exportMark),
-              label: l10n.supportPerkExports,
-              note: l10n.supportPerkExportsNote,
-              owned: checked,
-            ),
-            _PerkRow(
-              leading: AppIcon(AppIcons.arrowCounterclockwise, size: 16, color: theme.text),
-              label: l10n.retranscribeAllTitle,
-              note: l10n.supportPerkRetranscribeNote,
+              leading: const _SwatchMark(),
+              label: l10n.supportPerkThemes,
+              note: l10n.supportPerkThemesNote,
               owned: checked,
             ),
             _PerkRow(
@@ -441,9 +416,50 @@ class _PerksCard extends StatelessWidget {
   }
 }
 
-/// One thing the club gets, said as a benefit: a mark in the settings tile,
-/// a plain name, and a one-line note. Inert on purpose; the join button is
-/// the only action this screen sells.
+/// Three club accents fanned as one mark, so the themes perk previews the palettes.
+class _SwatchMark extends StatelessWidget {
+  const _SwatchMark();
+
+  static const _families = [
+    AppThemeFamily.gruvboxId,
+    AppThemeFamily.draculaId,
+    AppThemeFamily.nordId,
+  ];
+  static const _dot = 12.0;
+  static const _step = 6.0;
+  static const _ring = 1.5;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return SizedBox(
+      width: _dot + _step * (_families.length - 1),
+      height: _dot,
+      child: Stack(
+        children: [
+          for (final (i, id) in _families.indexed)
+            Positioned(
+              left: _step * i,
+              child: Container(
+                width: _dot,
+                height: _dot,
+                decoration: BoxDecoration(
+                  color: AppThemeFamily.byId(
+                    id,
+                  ).resolve(wantDark: theme.brightness == Brightness.dark).accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.surface, width: _ring),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One club perk as a benefit: a mark, a plain name, a one-line note. Inert on
+/// purpose; the join button is the only action this screen sells.
 class _PerkRow extends StatelessWidget {
   const _PerkRow({
     required this.leading,
