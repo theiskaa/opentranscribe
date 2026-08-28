@@ -140,19 +140,19 @@ void main() {
 
     test('a tier change re-resolves the stored pick without touching it', () async {
       final cubit = club();
-      await cubit.setFamily(AppThemeFamily.emberId);
+      await cubit.setFamily(AppThemeFamily.draculaId);
       expect(cubit.state.wornFamily.id, AppThemeFamily.defaultId);
 
       member = true;
       tier.add(null);
       await Future<void>.delayed(Duration.zero);
-      expect(cubit.state.wornFamily.id, AppThemeFamily.emberId);
+      expect(cubit.state.wornFamily.id, AppThemeFamily.draculaId);
 
       member = false;
       tier.add(null);
       await Future<void>.delayed(Duration.zero);
       expect(cubit.state.wornFamily.id, AppThemeFamily.defaultId);
-      expect(cubit.state.familyId, AppThemeFamily.emberId);
+      expect(cubit.state.familyId, AppThemeFamily.draculaId);
     });
 
     test('a stored club pick survives a restart for a non-member', () async {
@@ -172,7 +172,7 @@ void main() {
   });
 
   test('an unknown stored family falls back to the default family', () async {
-    await storage.write(ThemeCubit.familyKey, 'dracula');
+    await storage.write(ThemeCubit.familyKey, 'solarized');
     expect(build().state.familyId, AppThemeFamily.defaultId);
   });
 
@@ -228,7 +228,7 @@ void main() {
         tierChanges: tier.stream,
       );
       addTearDown(cubit.close);
-      await cubit.setFamily(AppThemeFamily.emberId);
+      await cubit.setFamily(AppThemeFamily.draculaId);
       await pumpEventQueue();
       expect(
         await mirrored(),
@@ -244,7 +244,7 @@ void main() {
       expect(
         await mirrored(),
         launchBackdropOf(
-          family: AppThemeFamily.byId(AppThemeFamily.emberId),
+          family: AppThemeFamily.byId(AppThemeFamily.draculaId),
           mode: AppThemeMode.system,
         ),
       );
