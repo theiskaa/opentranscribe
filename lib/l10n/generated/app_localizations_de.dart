@@ -246,6 +246,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeNameTokyoNight => 'Tokyo Night';
 
   @override
+  String get appearanceIconSection => 'App-Symbol';
+
+  @override
+  String get appIconNamePaper => 'Paper';
+
+  @override
+  String get appIconFailedTitle => 'Das Symbol wurde nicht geändert';
+
+  @override
+  String get appIconFailedBody => 'iOS hat die Änderung abgelehnt. Versuchen Sie es erneut.';
+
+  @override
   String get settingsAppLanguage => 'Sprache';
 
   @override

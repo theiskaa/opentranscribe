@@ -234,6 +234,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeNameTokyoNight => 'Tokyo Night';
 
   @override
+  String get appearanceIconSection => 'アプリアイコン';
+
+  @override
+  String get appIconNamePaper => 'Paper';
+
+  @override
+  String get appIconFailedTitle => 'アイコンを変更できませんでした';
+
+  @override
+  String get appIconFailedBody => 'iOSが変更を拒否しました。もう一度お試しください。';
+
+  @override
   String get settingsAppLanguage => '言語';
 
   @override

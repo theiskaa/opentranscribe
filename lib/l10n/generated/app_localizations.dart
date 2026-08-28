@@ -546,6 +546,30 @@ abstract class AppLocalizations {
   /// **'Tokyo Night'**
   String get themeNameTokyoNight;
 
+  /// Section label above the app icon picker on the appearance screen
+  ///
+  /// In en, this message translates to:
+  /// **'App icon'**
+  String get appearanceIconSection;
+
+  /// Name of the Paper club app icon (the wave on a light ground); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Paper'**
+  String get appIconNamePaper;
+
+  /// Sheet title when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'The icon did not change'**
+  String get appIconFailedTitle;
+
+  /// Sheet body when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'iOS refused the change. Try again.'**
+  String get appIconFailedBody;
+
   /// Home menu row that picks the interface (UI) language
   ///
   /// In en, this message translates to:

@@ -232,6 +232,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeNameTokyoNight => 'Tokyo Night';
 
   @override
+  String get appearanceIconSection => '应用图标';
+
+  @override
+  String get appIconNamePaper => 'Paper';
+
+  @override
+  String get appIconFailedTitle => '图标未更改';
+
+  @override
+  String get appIconFailedBody => 'iOS 拒绝了更改。请重试。';
+
+  @override
   String get settingsAppLanguage => '语言';
 
   @override

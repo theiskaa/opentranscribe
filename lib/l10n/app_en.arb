@@ -305,6 +305,22 @@
   "@themeNameTokyoNight": {
     "description": "Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated"
   },
+  "appearanceIconSection": "App icon",
+  "@appearanceIconSection": {
+    "description": "Section label above the app icon picker on the appearance screen"
+  },
+  "appIconNamePaper": "Paper",
+  "@appIconNamePaper": {
+    "description": "Name of the Paper club app icon (the wave on a light ground); a proper noun, not translated"
+  },
+  "appIconFailedTitle": "The icon did not change",
+  "@appIconFailedTitle": {
+    "description": "Sheet title when iOS refused an icon change"
+  },
+  "appIconFailedBody": "iOS refused the change. Try again.",
+  "@appIconFailedBody": {
+    "description": "Sheet body when iOS refused an icon change"
+  },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
