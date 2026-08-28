@@ -121,7 +121,6 @@ class SelectableRow extends StatelessWidget {
     final active = selected && !dimmed;
     final duration = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
     final curve = theme.motion.indicatorCurve;
-    final chipColor = active ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground;
     return Touchable(
       onTap: onTap,
       haptic: onTap != null,
@@ -130,22 +129,15 @@ class SelectableRow extends StatelessWidget {
         child: Row(
           children: [
             if (flag != null || leading != null) ...[
-              // TweenAnimationBuilder rather than AnimatedContainer: the
-              // superellipse decoration has no lerp, so AnimatedContainer
-              // would snap the color halfway instead of fading it.
-              TweenAnimationBuilder<Color?>(
-                tween: ColorTween(end: chipColor),
-                duration: duration,
-                curve: curve,
-                builder: (context, color, child) => Container(
-                  width: tokens.iconTileSize,
-                  height: tokens.iconTileSize,
-                  alignment: Alignment.center,
-                  decoration: SuperellipseDecoration(
-                    borderRadius: tokens.iconTileRadius,
-                    color: color ?? chipColor,
-                  ),
-                  child: child,
+              // The tile stays neutral whatever the selection: the check and
+              // the label weight carry it, so every row's tile matches.
+              Container(
+                width: tokens.iconTileSize,
+                height: tokens.iconTileSize,
+                alignment: Alignment.center,
+                decoration: SuperellipseDecoration(
+                  borderRadius: tokens.iconTileRadius,
+                  color: tokens.iconTileBackground,
                 ),
                 child: leading ?? LocaleFlag(flag!, size: 18),
               ),
@@ -360,7 +352,9 @@ class SettingsBusyRow extends StatelessWidget {
               alignment: Alignment.center,
               decoration: SuperellipseDecoration(
                 borderRadius: tokens.iconTileRadius,
-                color: enabled ? accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
+                color: enabled && tint != null
+                    ? tint!.withValues(alpha: 0.14)
+                    : tokens.iconTileBackground,
               ),
               child: AppIcon(icon, size: 16, color: enabled ? accent : theme.textSecondary),
             ),
