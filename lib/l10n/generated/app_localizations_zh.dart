@@ -229,7 +229,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeNameForest => 'Forest';
 
   @override
-  String get appearanceClubSection => '俱乐部';
+  String get themeNameRose => 'Rose';
 
   @override
   String get settingsAppLanguage => '语言';
@@ -692,7 +692,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有提醒可发送。';
 
   @override
-  String get themeRequestInfo => '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。';
+  String get themeRequestInfo =>
+      '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。新增的主题仅面向 OpenTranscribe Club 会员。';
 
   @override
   String get themeRequestLink => '在 GitHub 上申请主题';

@@ -301,9 +301,9 @@
   "@themeNameForest": {
     "description": "Name of the Forest club theme family (moss green); a proper noun, not translated"
   },
-  "appearanceClubSection": "Club",
-  "@appearanceClubSection": {
-    "description": "Section label above the club theme families on the appearance screen"
+  "themeNameRose": "Rose",
+  "@themeNameRose": {
+    "description": "Name of the Rose club theme family (dusty pink); a proper noun, not translated"
   },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
@@ -949,7 +949,7 @@
   "@notifyReflectionsUnavailable": {
     "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
   },
-  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release.",
+  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release. Added themes are for OpenTranscribe Club members.",
   "@themeRequestInfo": {
     "description": "Footer under the theme grid on the appearance screen; precedes the request-a-theme link"
   },

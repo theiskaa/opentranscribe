@@ -244,7 +244,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get themeNameForest => 'Forest';
 
   @override
-  String get appearanceClubSection => 'Club';
+  String get themeNameRose => 'Rose';
 
   @override
   String get settingsAppLanguage => 'Langue';
@@ -742,7 +742,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'Vous voulez OpenTranscribe dans un thème absent d\'ici ? Ouvrez une issue sur GitHub et nous l\'ajouterons dans une prochaine version.';
+      'Vous voulez OpenTranscribe dans un thème absent d\'ici ? Ouvrez une issue sur GitHub et nous l\'ajouterons dans une prochaine version. Les thèmes ajoutés sont réservés aux membres de l\'OpenTranscribe Club.';
 
   @override
   String get themeRequestLink => 'Demander un thème sur GitHub';

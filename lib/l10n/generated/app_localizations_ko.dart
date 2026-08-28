@@ -231,7 +231,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get themeNameForest => 'Forest';
 
   @override
-  String get appearanceClubSection => '클럽';
+  String get themeNameRose => 'Rose';
 
   @override
   String get settingsAppLanguage => '언어';
@@ -698,7 +698,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다.';
+      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다. 추가된 테마는 OpenTranscribe Club 멤버를 위한 것입니다.';
 
   @override
   String get themeRequestLink => 'GitHub에서 테마 요청하기';

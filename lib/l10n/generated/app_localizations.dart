@@ -540,11 +540,11 @@ abstract class AppLocalizations {
   /// **'Forest'**
   String get themeNameForest;
 
-  /// Section label above the club theme families on the appearance screen
+  /// Name of the Rose club theme family (dusty pink); a proper noun, not translated
   ///
   /// In en, this message translates to:
-  /// **'Club'**
-  String get appearanceClubSection;
+  /// **'Rose'**
+  String get themeNameRose;
 
   /// Home menu row that picks the interface (UI) language
   ///
@@ -1401,7 +1401,7 @@ abstract class AppLocalizations {
   /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link
   ///
   /// In en, this message translates to:
-  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.'**
+  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release. Added themes are for OpenTranscribe Club members.'**
   String get themeRequestInfo;
 
   /// Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser
