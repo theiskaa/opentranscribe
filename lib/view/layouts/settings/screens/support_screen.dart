@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
@@ -22,7 +23,6 @@ import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
-import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// Support: the club purchase and restore surface. Owns a [SupportCubit] so
 /// the price is fetched on every open; the cached tier renders truthfully
@@ -405,7 +405,12 @@ class _PerksCard extends StatelessWidget {
               owned: checked,
             ),
             _PerkRow(
-              leading: WaveGlyph(size: 18, barWidth: 2, gap: 2, color: theme.text),
+              leading: SvgPicture.asset(
+                'assets/brand/wave.svg',
+                width: 16,
+                height: 16,
+                theme: SvgTheme(currentColor: theme.text),
+              ),
               label: l10n.supportPerkIcons,
               note: l10n.supportPerkIconsNote,
               owned: checked,
