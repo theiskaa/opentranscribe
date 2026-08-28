@@ -14,14 +14,13 @@ import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
-import 'package:opentranscribe/view/widgets/segmented_control.dart';
+import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
-/// Appearance: two independent axes. A System / Light / Dark segment picks HOW
-/// the appearance is decided; the theme grid picks WHICH family. They do not
-/// interfere - choosing Gruvbox with System on keeps following the platform, so
-/// light uses gruvbox-light and dark uses gruvbox-dark. Each family card previews
-/// in the currently resolved appearance.
+/// Appearance: two independent axes. The bar's menu picks HOW the appearance
+/// is decided (System / Light / Dark); the theme grid picks WHICH family. They
+/// do not interfere - choosing Gruvbox with System on keeps following the
+/// platform. Each family card previews in the currently resolved appearance.
 class AppearanceScreen extends StatelessWidget {
   const AppearanceScreen({super.key});
 
@@ -29,19 +28,13 @@ class AppearanceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final themeCubit = context.watch<ThemeCubit>();
-    final state = themeCubit.state;
-
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
+      actions: [_ModeMenu(color: theme.topBar.iconColor)],
       child: SettingsList(
         children: [
-          SectionLabel(l10n.settingsAppearance),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            child: _ModeSelector(mode: state.mode, onChanged: themeCubit.setMode),
-          ),
+          const SizedBox(height: 10),
           SectionLabel(l10n.settingsTheme),
           _FamilyGroup(families: AppThemeFamily.all),
           const SizedBox(height: AppSpacing.md),
@@ -57,13 +50,13 @@ class AppearanceScreen extends StatelessWidget {
   }
 }
 
-/// A three-way appearance switch: System / Light / Dark, on the app's
-/// segmented control.
-class _ModeSelector extends StatelessWidget {
-  const _ModeSelector({required this.mode, required this.onChanged});
+/// System / Light / Dark as a bar menu, the current one ticked. The glyph
+/// follows the resolved appearance, so the bar says what is on before the
+/// menu opens.
+class _ModeMenu extends StatelessWidget {
+  const _ModeMenu({required this.color});
 
-  final AppThemeMode mode;
-  final ValueChanged<AppThemeMode> onChanged;
+  final Color color;
 
   static const _modes = [AppThemeMode.system, AppThemeMode.light, AppThemeMode.dark];
 
@@ -76,10 +69,19 @@ class _ModeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AppSegmentedControl<AppThemeMode>(
-      segments: [for (final m in _modes) (m, _label(m, l10n))],
-      selected: mode,
-      onChanged: onChanged,
+    final cubit = context.watch<ThemeCubit>();
+    final state = cubit.state;
+    return AppMenuButton(
+      icon: state.wantDark ? AppIcons.moonFill : AppIcons.sunMax,
+      // The sun and moon ink fatter than the ellipsis the size was tuned for.
+      iconSize: 16,
+      color: color,
+      items: [
+        for (final mode in _modes)
+          AppMenuItem(id: mode.name, label: _label(mode, l10n), selected: state.mode == mode),
+      ],
+      onSelectedId: (id) =>
+          unawaited(cubit.setMode(AppThemeMode.values.firstWhere((m) => m.name == id))),
     );
   }
 }
@@ -93,12 +95,12 @@ class _FamilyGroup extends StatelessWidget {
 
   String _name(String id, AppLocalizations l10n) => switch (id) {
     AppThemeFamily.gruvboxId => l10n.themeNameGruvbox,
-    AppThemeFamily.solarizedId => l10n.themeNameSolarized,
     AppThemeFamily.sepiaId => l10n.themeNameSepia,
     AppThemeFamily.midnightId => l10n.themeNameMidnight,
-    AppThemeFamily.emberId => l10n.themeNameEmber,
-    AppThemeFamily.forestId => l10n.themeNameForest,
-    AppThemeFamily.roseId => l10n.themeNameRose,
+    AppThemeFamily.draculaId => l10n.themeNameDracula,
+    AppThemeFamily.nordId => l10n.themeNameNord,
+    AppThemeFamily.catppuccinId => l10n.themeNameCatppuccin,
+    AppThemeFamily.tokyoNightId => l10n.themeNameTokyoNight,
     _ => l10n.themeNameDefault,
   };
 
