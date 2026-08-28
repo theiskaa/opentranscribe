@@ -16,28 +16,19 @@ import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 
 /// The format choice persists as the shared last-used format, so the Backup
 /// screen and this sheet stay one memory. The composition-root reach-in
 /// happens here, once, so the body is plain.
-Future<void> showEntryExportSheet(BuildContext context, Entry entry) async {
-  // Everything this sheet offers is a format, so for a non-supporter the
-  // gate takes its place whole; there is nothing else to render.
-  if (!Deps.i.supportService.tier.isSupporter) return showSupportGateSheet(context);
-  final locked = await showAppSheet<bool>(
-    context,
-    builder: (context) => _EntryExportSheetBody(
-      entry: entry,
-      descriptors: Deps.i.exporterDescriptors,
-      settings: Deps.i.backupSettings,
-      export: Deps.i.exportService,
-    ),
-  );
-  // The entitlement lapsed while the sheet was open; the gate answers the
-  // refusal here, over the surface that owns the context.
-  if (locked == true && context.mounted) return showSupportGateSheet(context);
-}
+Future<void> showEntryExportSheet(BuildContext context, Entry entry) => showAppSheet<void>(
+  context,
+  builder: (context) => _EntryExportSheetBody(
+    entry: entry,
+    descriptors: Deps.i.exporterDescriptors,
+    settings: Deps.i.backupSettings,
+    export: Deps.i.exportService,
+  ),
+);
 
 class _EntryExportSheetBody extends StatefulWidget {
   const _EntryExportSheetBody({
@@ -94,11 +85,6 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
       } else {
         setState(() => _busy = false);
       }
-    } on ExportLockedException {
-      // A refusal is not a failure: hand the answer back so the gate sheet
-      // opens where this sheet stood.
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
     } catch (_) {
       if (!mounted) return;
       setState(() {

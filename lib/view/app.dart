@@ -131,12 +131,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so a bulk run outlives the sheet that started it.
-        BlocProvider(
-          create: (_) => RetranscribeCubit(
-            service: Deps.i.transcriptionService,
-            isSupporter: () => Deps.i.supportService.tier.isSupporter,
-          ),
-        ),
+        BlocProvider(create: (_) => RetranscribeCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance. The exception to the rule above: its

@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
@@ -19,20 +18,12 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 
-/// Club-gated whole, like the entry export sheet. The run belongs to the
-/// root-scoped cubit, so dismissing stops nothing; reopening lands on the live face.
-Future<void> showRetranscribeSheet(BuildContext context) async {
-  if (!Deps.i.supportService.tier.isSupporter) return showSupportGateSheet(context);
+/// The run belongs to the root-scoped cubit, so dismissing stops nothing;
+/// reopening lands on the live face.
+Future<void> showRetranscribeSheet(BuildContext context) {
   context.read<RetranscribeCubit>().refresh();
-  final locked = await showAppSheet<bool>(
-    context,
-    builder: (context) => const _RetranscribeSheetBody(),
-  );
-  // The entitlement lapsed while the sheet was open; the gate answers the
-  // refusal here, over the surface that owns the context.
-  if (locked == true && context.mounted) return showSupportGateSheet(context);
+  return showAppSheet<void>(context, builder: (context) => const _RetranscribeSheetBody());
 }
 
 enum RetranscribeFace { idle, running, finished }
@@ -123,13 +114,6 @@ class _IdleFace extends StatelessWidget {
   final RetranscribeState state;
   final String engine;
 
-  void _start(BuildContext context) {
-    final started = context.read<RetranscribeCubit>().start();
-    // The entitlement lapsed under an open sheet; hand the refusal back so
-    // the gate opens where this sheet stood.
-    if (started == RetranscribeStart.locked) Navigator.of(context).pop(true);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -150,7 +134,10 @@ class _IdleFace extends StatelessWidget {
           ),
       ],
       action: hasWork
-          ? AppButton(label: l10n.retranscribeStart, onPressed: () => _start(context))
+          ? AppButton(
+              label: l10n.retranscribeStart,
+              onPressed: () => context.read<RetranscribeCubit>().start(),
+            )
           : null,
     );
   }
