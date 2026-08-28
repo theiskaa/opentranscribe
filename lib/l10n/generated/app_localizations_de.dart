@@ -42,25 +42,28 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retranscribeAllTitle => 'Alle erneut transkribieren';
 
   @override
-  String retranscribeIdleBody(int runnable, int current) {
-    String _temp0 = intl.Intl.pluralLogic(
-      runnable,
-      locale: localeName,
-      other: '# Einträge',
-      one: '# Eintrag',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      current,
-      locale: localeName,
-      other: '# bereits aktuell',
-      one: '# bereits aktuell',
-    );
-    return '$_temp0 erneut zu transkribieren, $_temp1. Ersetzte Wörter bleiben im Verlauf jedes Eintrags.';
-  }
+  String get retranscribeRowQueued => 'Erneut zu transkribieren';
 
   @override
-  String get retranscribeAllCurrentBody =>
-      'Jede behaltene Aufnahme ist bereits mit der aktuellen Engine transkribiert.';
+  String get retranscribeRowCurrent => 'Bereits aktuell';
+
+  @override
+  String get retranscribeRowLanded => 'Erneut transkribiert';
+
+  @override
+  String get retranscribeRowFailed => 'Fehlgeschlagen';
+
+  @override
+  String get retranscribeHistoryNote => 'Ersetzte Wörter bleiben im Verlauf jedes Eintrags.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'Fehlgeschlagene Einträge bleiben für den nächsten Durchlauf in der Warteschlange.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Jede behaltene Aufnahme ist bereits mit $engine transkribiert.';
+  }
 
   @override
   String get retranscribeStart => 'Starten';
@@ -80,43 +83,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retranscribeCancel => 'Abbrechen';
 
   @override
-  String retranscribeDoneBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# Einträge erneut transkribiert',
-      one: '# Eintrag erneut transkribiert',
-    );
-    return '$_temp0.';
-  }
-
-  @override
-  String retranscribeDoneFailedBody(int landed, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# erneut transkribiert',
-      one: '# erneut transkribiert',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '# fehlgeschlagen',
-      one: '# fehlgeschlagen',
-    );
-    return '$_temp0, $_temp1. Fehlgeschlagene Einträge bleiben für den nächsten Lauf in der Warteschlange.';
-  }
-
-  @override
-  String retranscribeCancelledBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# Einträgen',
-      one: '# Eintrag',
-    );
-    return 'Nach $_temp0 gestoppt. Ein neuer Lauf macht dort weiter.';
-  }
+  String get retranscribeCancelledNote =>
+      'Vorzeitig beendet. Ein neuer Durchlauf macht dort weiter.';
 
   @override
   String get delete => 'Löschen';
@@ -403,6 +371,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get engineBusyBody =>
       'Beenden Sie die aktuelle Aufnahme und wechseln Sie dann die Engine.';
+
+  @override
+  String get engineRetranscribingTitle => 'Erneute Transkription läuft';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Lassen Sie den Durchlauf enden oder brechen Sie ihn ab, und wechseln Sie dann die Engine.';
 
   @override
   String get engineNotSavedTitle => 'Auswahl nicht gespeichert';
@@ -941,7 +916,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Formatierte Exporte sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
+      'Formatierte Exporte und das erneute Transkribieren des ganzen Tagebuchs sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
 
   @override
   String get settingsSupport => 'Unterstützen';
@@ -958,6 +933,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian oder eine Website.';
+
+  @override
+  String get supportPerkRetranscribeNote =>
+      'Das ganze Tagebuch, neu gehört von einer neueren Engine.';
 
   @override
   String get supportPerkFuture => 'Künftige Club-Funktionen';

@@ -42,25 +42,29 @@ class AppLocalizationsIt extends AppLocalizations {
   String get retranscribeAllTitle => 'Ritrascrivi tutto';
 
   @override
-  String retranscribeIdleBody(int runnable, int current) {
-    String _temp0 = intl.Intl.pluralLogic(
-      runnable,
-      locale: localeName,
-      other: '# voci',
-      one: '# voce',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      current,
-      locale: localeName,
-      other: '# già aggiornate',
-      one: '# già aggiornata',
-    );
-    return '$_temp0 da ritrascrivere, $_temp1. Le parole sostituite restano nella cronologia di ogni voce.';
-  }
+  String get retranscribeRowQueued => 'Da ritrascrivere';
 
   @override
-  String get retranscribeAllCurrentBody =>
-      'Ogni registrazione conservata è già trascritta dal motore attuale.';
+  String get retranscribeRowCurrent => 'Voci già aggiornate';
+
+  @override
+  String get retranscribeRowLanded => 'Voci ritrascritte';
+
+  @override
+  String get retranscribeRowFailed => 'Voci non riuscite';
+
+  @override
+  String get retranscribeHistoryNote =>
+      'Le parole sostituite restano nella cronologia di ogni voce.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'Le voci non riuscite restano in coda per la prossima esecuzione.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Ogni registrazione conservata è già trascritta da $engine.';
+  }
 
   @override
   String get retranscribeStart => 'Avvia';
@@ -80,43 +84,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get retranscribeCancel => 'Annulla';
 
   @override
-  String retranscribeDoneBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# voci ritrascritte',
-      one: '# voce ritrascritta',
-    );
-    return '$_temp0.';
-  }
-
-  @override
-  String retranscribeDoneFailedBody(int landed, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# ritrascritte',
-      one: '# ritrascritta',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '# non riuscite',
-      one: '# non riuscita',
-    );
-    return '$_temp0, $_temp1. Le voci non riuscite restano in coda per la prossima esecuzione.';
-  }
-
-  @override
-  String retranscribeCancelledBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# voci',
-      one: '# voce',
-    );
-    return 'Interrotto dopo $_temp0. Riavviando riprende da dove si era fermato.';
-  }
+  String get retranscribeCancelledNote =>
+      'Interrotto prima della fine. Riavviando si riprende da dove era rimasto.';
 
   @override
   String get delete => 'Elimina';
@@ -403,6 +372,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Interrompi la registrazione in corso, poi cambia motore.';
+
+  @override
+  String get engineRetranscribingTitle => 'Ritrascrizione in corso';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Attendi la fine dell\'operazione, o annullala, poi cambia motore.';
 
   @override
   String get engineNotSavedTitle => 'Scelta non salvata';
@@ -940,7 +916,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Le esportazioni formattate sono per i membri del club. Il backup resta gratuito per tutti.';
+      'Le esportazioni formattate e la ritrascrizione dell\'intero diario sono per i membri del club. Il backup resta gratuito per tutti.';
 
   @override
   String get settingsSupport => 'Sostieni';
@@ -957,6 +933,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian o un sito web.';
+
+  @override
+  String get supportPerkRetranscribeNote =>
+      'L\'intero diario, riascoltato da un motore più recente.';
 
   @override
   String get supportPerkFuture => 'Future funzioni del club';

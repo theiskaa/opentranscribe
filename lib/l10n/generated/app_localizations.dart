@@ -162,23 +162,53 @@ abstract class AppLocalizations {
   /// **'Re-transcribe'**
   String get retranscribe;
 
-  /// Home menu row and sheet title for the bulk re-transcription over every kept recording
+  /// Transcription screen row, club perk, and sheet title for the bulk re-transcription over every kept recording
   ///
   /// In en, this message translates to:
   /// **'Re-transcribe all'**
   String get retranscribeAllTitle;
 
-  /// Idle sheet body: how many entries a run would transcribe and how many the current engine already produced
+  /// Fact row label: entries a run would re-transcribe; the count sits right of it
   ///
   /// In en, this message translates to:
-  /// **'{runnable, plural, one {# entry} other {# entries}} to re-transcribe, {current, plural, one {# already current} other {# already current}}. Replaced words stay in each entry\'s history.'**
-  String retranscribeIdleBody(int runnable, int current);
+  /// **'To re-transcribe'**
+  String get retranscribeRowQueued;
+
+  /// Fact row label: entries the active engine already produced
+  ///
+  /// In en, this message translates to:
+  /// **'Already current'**
+  String get retranscribeRowCurrent;
+
+  /// Fact row label on the finished face: entries that landed this run
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribed'**
+  String get retranscribeRowLanded;
+
+  /// Fact row label on the finished face: entries that failed this run
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get retranscribeRowFailed;
+
+  /// Footnote under the idle rows
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced words stay in each entry\'s history.'**
+  String get retranscribeHistoryNote;
+
+  /// Footnote under the finished rows when some entries failed; they stay queued
+  ///
+  /// In en, this message translates to:
+  /// **'Failed entries stay queued for the next run.'**
+  String get retranscribeFailedNote;
 
   /// Idle sheet body when a run would have nothing to do
   ///
   /// In en, this message translates to:
-  /// **'Every kept recording is already transcribed by the current engine.'**
-  String get retranscribeAllCurrentBody;
+  /// **'Every kept recording is already transcribed by {engine}.'**
+  String retranscribeAllCurrentBody(String engine);
 
   /// Button starting the bulk re-transcription run
   ///
@@ -210,23 +240,11 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get retranscribeCancel;
 
-  /// Finished sheet body when nothing failed
+  /// Finished sheet footnote after a cancel; a new run resumes where it stopped
   ///
   /// In en, this message translates to:
-  /// **'{landed, plural, one {# entry re-transcribed} other {# entries re-transcribed}}.'**
-  String retranscribeDoneBody(int landed);
-
-  /// Finished sheet body when some entries failed; failures are retried by a later run
-  ///
-  /// In en, this message translates to:
-  /// **'{landed, plural, one {# re-transcribed} other {# re-transcribed}}, {failed, plural, one {# failed} other {# failed}}. Failed entries stay in the queue for the next run.'**
-  String retranscribeDoneFailedBody(int landed, int failed);
-
-  /// Finished sheet body after a cancel; a rerun skips what already landed
-  ///
-  /// In en, this message translates to:
-  /// **'Stopped after {landed, plural, one {# entry} other {# entries}}. Running again picks up where it left off.'**
-  String retranscribeCancelledBody(int landed);
+  /// **'Stopped early. Running again picks up where it left off.'**
+  String get retranscribeCancelledNote;
 
   /// Button to delete an entry
   ///
@@ -731,6 +749,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop the current recording, then switch engines.'**
   String get engineBusyBody;
+
+  /// Sheet title when an engine switch is refused during a bulk re-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribing'**
+  String get engineRetranscribingTitle;
+
+  /// Sheet body when an engine switch is refused during a bulk re-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the run to finish, or cancel it, then switch engines.'**
+  String get engineRetranscribingBody;
 
   /// Sheet title when the engine choice failed to persist
   ///
@@ -1635,7 +1665,7 @@ abstract class AppLocalizations {
   /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
   ///
   /// In en, this message translates to:
-  /// **'Formatted exports are for club members. The backup stays free for everyone.'**
+  /// **'Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.'**
   String get supportGateBody;
 
   /// Home menu row opening the support screen
@@ -1667,6 +1697,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Markdown, Obsidian, or a website.'**
   String get supportPerkExportsNote;
+
+  /// Perk row note under the re-transcribe all label; one line
+  ///
+  /// In en, this message translates to:
+  /// **'The whole journal, heard again by a newer engine.'**
+  String get supportPerkRetranscribeNote;
 
   /// Perk row label: later club-only features are included
   ///

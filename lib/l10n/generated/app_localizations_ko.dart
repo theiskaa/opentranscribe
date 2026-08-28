@@ -40,14 +40,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranscribeAllTitle => '모두 다시 전사';
 
   @override
-  String retranscribeIdleBody(int runnable, int current) {
-    String _temp0 = intl.Intl.pluralLogic(runnable, locale: localeName, other: '다시 전사할 항목 #개');
-    String _temp1 = intl.Intl.pluralLogic(current, locale: localeName, other: '#개는 이미 최신입니다');
-    return '$_temp0, $_temp1. 대체된 문구는 각 항목의 기록에 남습니다.';
-  }
+  String get retranscribeRowQueued => '다시 전사할 항목';
 
   @override
-  String get retranscribeAllCurrentBody => '보관된 모든 녹음이 이미 현재 엔진으로 전사되어 있습니다.';
+  String get retranscribeRowCurrent => '이미 최신';
+
+  @override
+  String get retranscribeRowLanded => '다시 전사됨';
+
+  @override
+  String get retranscribeRowFailed => '실패';
+
+  @override
+  String get retranscribeHistoryNote => '대체된 문구는 각 항목의 기록에 남습니다.';
+
+  @override
+  String get retranscribeFailedNote => '실패한 항목은 다음 실행 때 다시 처리됩니다.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '보관된 모든 녹음이 이미 $engine 엔진으로 전사되어 있습니다.';
+  }
 
   @override
   String get retranscribeStart => '시작';
@@ -67,23 +80,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranscribeCancel => '취소';
 
   @override
-  String retranscribeDoneBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개 항목을 다시 전사했습니다');
-    return '$_temp0.';
-  }
-
-  @override
-  String retranscribeDoneFailedBody(int landed, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개 다시 전사');
-    String _temp1 = intl.Intl.pluralLogic(failed, locale: localeName, other: '#개 실패');
-    return '$_temp0, $_temp1. 실패한 항목은 다음 실행에서 다시 시도합니다.';
-  }
-
-  @override
-  String retranscribeCancelledBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(landed, locale: localeName, other: '#개에서 중단했습니다');
-    return '$_temp0. 다시 실행하면 이어서 진행합니다.';
-  }
+  String get retranscribeCancelledNote => '도중에 중지되었습니다. 다시 실행하면 이어서 진행됩니다.';
 
   @override
   String get delete => '삭제';
@@ -356,6 +353,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
+
+  @override
+  String get engineRetranscribingTitle => '다시 전사 진행 중';
+
+  @override
+  String get engineRetranscribingBody => '작업이 끝날 때까지 기다리거나 취소한 다음 엔진을 전환하세요.';
 
   @override
   String get engineNotSavedTitle => '선택을 저장하지 못함';
@@ -853,7 +856,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
-  String get supportGateBody => '서식 있는 내보내기는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
+  String get supportGateBody => '서식 있는 내보내기와 전체 다시 전사는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
 
   @override
   String get settingsSupport => '후원';
@@ -870,6 +873,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+
+  @override
+  String get supportPerkRetranscribeNote => '일기 전체를 더 새로운 엔진으로 다시 듣습니다.';
 
   @override
   String get supportPerkFuture => '앞으로의 클럽 기능';

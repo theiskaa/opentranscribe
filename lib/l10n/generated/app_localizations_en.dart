@@ -42,25 +42,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retranscribeAllTitle => 'Re-transcribe all';
 
   @override
-  String retranscribeIdleBody(int runnable, int current) {
-    String _temp0 = intl.Intl.pluralLogic(
-      runnable,
-      locale: localeName,
-      other: '# entries',
-      one: '# entry',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      current,
-      locale: localeName,
-      other: '# already current',
-      one: '# already current',
-    );
-    return '$_temp0 to re-transcribe, $_temp1. Replaced words stay in each entry\'s history.';
-  }
+  String get retranscribeRowQueued => 'To re-transcribe';
 
   @override
-  String get retranscribeAllCurrentBody =>
-      'Every kept recording is already transcribed by the current engine.';
+  String get retranscribeRowCurrent => 'Already current';
+
+  @override
+  String get retranscribeRowLanded => 'Re-transcribed';
+
+  @override
+  String get retranscribeRowFailed => 'Failed';
+
+  @override
+  String get retranscribeHistoryNote => 'Replaced words stay in each entry\'s history.';
+
+  @override
+  String get retranscribeFailedNote => 'Failed entries stay queued for the next run.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Every kept recording is already transcribed by $engine.';
+  }
 
   @override
   String get retranscribeStart => 'Start';
@@ -80,43 +82,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retranscribeCancel => 'Cancel';
 
   @override
-  String retranscribeDoneBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# entries re-transcribed',
-      one: '# entry re-transcribed',
-    );
-    return '$_temp0.';
-  }
-
-  @override
-  String retranscribeDoneFailedBody(int landed, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# re-transcribed',
-      one: '# re-transcribed',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '# failed',
-      one: '# failed',
-    );
-    return '$_temp0, $_temp1. Failed entries stay in the queue for the next run.';
-  }
-
-  @override
-  String retranscribeCancelledBody(int landed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      landed,
-      locale: localeName,
-      other: '# entries',
-      one: '# entry',
-    );
-    return 'Stopped after $_temp0. Running again picks up where it left off.';
-  }
+  String get retranscribeCancelledNote =>
+      'Stopped early. Running again picks up where it left off.';
 
   @override
   String get delete => 'Delete';
@@ -400,6 +367,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Stop the current recording, then switch engines.';
+
+  @override
+  String get engineRetranscribingTitle => 'Re-transcribing';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Wait for the run to finish, or cancel it, then switch engines.';
 
   @override
   String get engineNotSavedTitle => 'Couldn\'t save the choice';
@@ -931,7 +905,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportGateBody =>
-      'Formatted exports are for club members. The backup stays free for everyone.';
+      'Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.';
 
   @override
   String get settingsSupport => 'Support';
@@ -948,6 +922,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
+
+  @override
+  String get supportPerkRetranscribeNote => 'The whole journal, heard again by a newer engine.';
 
   @override
   String get supportPerkFuture => 'Future club features';
