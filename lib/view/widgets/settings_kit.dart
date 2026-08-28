@@ -401,6 +401,7 @@ class ThemeFamilyCard extends StatefulWidget {
     required this.foreground,
     required this.accent,
     required this.onAccent,
+    this.marked = false,
     super.key,
   });
 
@@ -411,6 +412,9 @@ class ThemeFamilyCard extends StatefulWidget {
   final Color foreground;
   final Color accent;
   final Color onAccent;
+
+  /// Wears the club's heart in the badge seat: a look the viewer cannot wear yet.
+  final bool marked;
 
   @override
   State<ThemeFamilyCard> createState() => _ThemeFamilyCardState();
@@ -516,6 +520,12 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                             ),
                           ),
                         ),
+                      ),
+                    if (widget.marked)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: AppIcon(AppIcons.heartFill, size: 11, color: widget.accent),
                       ),
                     // Checkmark badge in the accent, popping in with overshoot.
                     if (pop > 0)

@@ -8,6 +8,7 @@ The whole journal re-heard by a better engine.
 
 - Re-transcribe all: a bulk runner over the whole journal, seated under the engine picker on the transcription screen, that lets the engine you switched to re-hear the entire history. Live animated progress with cancel, and resume is free: a run skips whatever the current engine already transcribed, so stopping loses nothing. It waits for a live recording and pauses while the device runs hot. (#8)
 - Formatted exports and re-transcribe all are free for everyone. The club no longer gates any feature; what it unlocks from here on is looks: themes and app icons, and nothing else.
+- Club themes: three new families, Midnight, Ember, and Forest, in their own group on the appearance screen. A pick is kept whether or not the club covers it, so it snaps on the moment a membership lands.
 
 ## 0.2.0 - 2026-08-25
 

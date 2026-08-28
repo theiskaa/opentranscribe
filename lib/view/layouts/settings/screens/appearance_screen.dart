@@ -4,9 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:opentranscribe/core/utils/url.dart';
@@ -22,33 +24,6 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 /// in the currently resolved appearance.
 class AppearanceScreen extends StatelessWidget {
   const AppearanceScreen({super.key});
-
-  String _familyName(String id, AppLocalizations l10n) => switch (id) {
-    AppThemeFamily.gruvboxId => l10n.themeNameGruvbox,
-    AppThemeFamily.solarizedId => l10n.themeNameSolarized,
-    AppThemeFamily.sepiaId => l10n.themeNameSepia,
-    _ => l10n.themeNameDefault,
-  };
-
-  Widget _familyCard(
-    AppThemeFamily family,
-    ThemeState state,
-    ThemeCubit cubit,
-    AppLocalizations l10n,
-  ) {
-    // Preview in the currently resolved appearance, so the grid tracks the
-    // System/Light/Dark segment above it.
-    final variant = family.resolve(wantDark: state.wantDark);
-    return ThemeFamilyCard(
-      label: _familyName(family.id, l10n),
-      selected: state.familyId == family.id,
-      onTap: () => cubit.setFamily(family.id),
-      background: variant.background,
-      foreground: variant.text,
-      accent: variant.accent,
-      onAccent: variant.onAccent,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,16 +43,9 @@ class AppearanceScreen extends StatelessWidget {
             child: _ModeSelector(mode: state.mode, onChanged: themeCubit.setMode),
           ),
           SectionLabel(l10n.settingsTheme),
-          SettingsCard(
-            children: [
-              _FamilyGrid(
-                cards: [
-                  for (final family in AppThemeFamily.all)
-                    _familyCard(family, state, themeCubit, l10n),
-                ],
-              ),
-            ],
-          ),
+          _FamilyGroup(families: AppThemeFamily.freeFamilies),
+          SectionLabel(l10n.appearanceClubSection),
+          _FamilyGroup(families: AppThemeFamily.clubFamilies),
           const SizedBox(height: AppSpacing.md),
           SectionInfoLink(
             text: l10n.themeRequestInfo,
@@ -118,6 +86,84 @@ class _ModeSelector extends StatelessWidget {
   }
 }
 
+/// One card per family, previewed in the currently resolved appearance so the
+/// grid tracks the System/Light/Dark segment above it.
+class _FamilyGroup extends StatelessWidget {
+  const _FamilyGroup({required this.families});
+
+  final Iterable<AppThemeFamily> families;
+
+  String _name(String id, AppLocalizations l10n) => switch (id) {
+    AppThemeFamily.gruvboxId => l10n.themeNameGruvbox,
+    AppThemeFamily.solarizedId => l10n.themeNameSolarized,
+    AppThemeFamily.sepiaId => l10n.themeNameSepia,
+    AppThemeFamily.midnightId => l10n.themeNameMidnight,
+    AppThemeFamily.emberId => l10n.themeNameEmber,
+    AppThemeFamily.forestId => l10n.themeNameForest,
+    _ => l10n.themeNameDefault,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.watch<ThemeCubit>();
+    final state = cubit.state;
+    return SettingsCard(
+      children: [
+        _FamilyGrid(
+          cards: [
+            for (final family in families)
+              _FamilyCard(
+                family: family,
+                variant: family.resolve(wantDark: state.wantDark),
+                label: _name(family.id, l10n),
+                // Selection follows the worn family, so a stored club pick
+                // reads as the default until the entitlement lands.
+                selected: state.wornFamily.id == family.id,
+                locked: family.club && !state.member,
+                onPick: () => cubit.setFamily(family.id),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A locked card (a club look a non-member cannot wear yet) opens the club
+/// instead of switching.
+class _FamilyCard extends StatelessWidget {
+  const _FamilyCard({
+    required this.family,
+    required this.variant,
+    required this.label,
+    required this.selected,
+    required this.locked,
+    required this.onPick,
+  });
+
+  final AppThemeFamily family;
+  final AppTheme variant;
+  final String label;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return ThemeFamilyCard(
+      label: label,
+      selected: selected,
+      marked: locked,
+      onTap: locked ? () => context.pushNamed(Routes.settingsSupportName) : onPick,
+      background: variant.background,
+      foreground: variant.text,
+      accent: variant.accent,
+      onAccent: variant.onAccent,
+    );
+  }
+}
+
 /// Lays the theme cards out in equal columns that fill the row, so they scale
 /// with the device width and never leave an orphan on a second line.
 class _FamilyGrid extends StatelessWidget {
@@ -132,7 +178,7 @@ class _FamilyGrid extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = cards.length < 4 ? cards.length : 4;
+          const columns = 4;
           final itemWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
           return Wrap(
             spacing: spacing,

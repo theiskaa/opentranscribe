@@ -40,7 +40,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _themeCubit = ThemeCubit(storage: Deps.i.localService, backdrop: Deps.i.launchBackdrop);
+    _themeCubit = ThemeCubit(
+      storage: Deps.i.localService,
+      backdrop: Deps.i.launchBackdrop,
+      isSupporter: () => Deps.i.supportService.tier.isSupporter,
+      tierChanges: Deps.i.supportService.changes,
+    );
     _reflectionsCubit = ReflectionsCubit(
       service: Deps.i.reflectionService,
       settings: Deps.i.reflectionSettings,
