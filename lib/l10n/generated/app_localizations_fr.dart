@@ -916,14 +916,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
 
   @override
-  String get supportGateBody =>
-      'Les exports formatés et la retranscription de tout le journal sont réservés aux membres du club. La sauvegarde reste gratuite pour tous.';
-
-  @override
   String get settingsSupport => 'Soutenir';
-
-  @override
-  String get supportGateAction => 'Devenir membre du club';
 
   @override
   String get supportPitch =>

@@ -914,14 +914,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 
   @override
-  String get supportGateBody =>
-      'As exportações formatadas e a retranscrição de todo o diário são para membros do clube. A cópia de segurança continua gratuita para todos.';
-
-  @override
   String get settingsSupport => 'Apoiar';
-
-  @override
-  String get supportGateAction => 'Tornar-se membro do clube';
 
   @override
   String get supportPitch =>

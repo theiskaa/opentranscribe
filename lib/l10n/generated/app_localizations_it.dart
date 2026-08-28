@@ -915,14 +915,7 @@ class AppLocalizationsIt extends AppLocalizations {
       'Il ripristino si è fermato a metà. Quanto già ripristinato resta; ripristina di nuovo per finire.';
 
   @override
-  String get supportGateBody =>
-      'Le esportazioni formattate e la ritrascrizione dell\'intero diario sono per i membri del club. Il backup resta gratuito per tutti.';
-
-  @override
   String get settingsSupport => 'Sostieni';
-
-  @override
-  String get supportGateAction => 'Diventa membro del club';
 
   @override
   String get supportPitch =>

@@ -1145,17 +1145,9 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateBody": "Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.",
-  "@supportGateBody": {
-    "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
-  },
   "settingsSupport": "Support",
   "@settingsSupport": {
     "description": "Home menu row opening the support screen"
-  },
-  "supportGateAction": "Become a club member",
-  "@supportGateAction": {
-    "description": "Gate sheet action that opens the support screen"
   },
   "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
   "@supportPitch": {

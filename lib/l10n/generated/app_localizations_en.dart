@@ -904,14 +904,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 
   @override
-  String get supportGateBody =>
-      'Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.';
-
-  @override
   String get settingsSupport => 'Support';
-
-  @override
-  String get supportGateAction => 'Become a club member';
 
   @override
   String get supportPitch =>

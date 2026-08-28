@@ -856,13 +856,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
-  String get supportGateBody => '서식 있는 내보내기와 전체 다시 전사는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
-
-  @override
   String get settingsSupport => '후원';
-
-  @override
-  String get supportGateAction => '클럽 멤버 되기';
 
   @override
   String get supportPitch =>

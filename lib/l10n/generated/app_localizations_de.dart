@@ -915,14 +915,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
 
   @override
-  String get supportGateBody =>
-      'Formatierte Exporte und das erneute Transkribieren des ganzen Tagebuchs sind für Clubmitglieder. Das Backup bleibt für alle kostenlos.';
-
-  @override
   String get settingsSupport => 'Unterstützen';
-
-  @override
-  String get supportGateAction => 'Clubmitglied werden';
 
   @override
   String get supportPitch =>

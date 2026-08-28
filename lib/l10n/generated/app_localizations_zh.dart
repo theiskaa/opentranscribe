@@ -845,13 +845,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateBody => '格式化导出和全部重新转写是俱乐部会员功能。备份对所有人保持免费。';
-
-  @override
   String get settingsSupport => '支持';
-
-  @override
-  String get supportGateAction => '成为俱乐部会员';
 
   @override
   String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';

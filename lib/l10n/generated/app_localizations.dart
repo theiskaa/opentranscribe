@@ -1662,23 +1662,11 @@ abstract class AppLocalizations {
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
 
-  /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
-  ///
-  /// In en, this message translates to:
-  /// **'Formatted exports and re-transcribing the whole journal are for club members. The backup stays free for everyone.'**
-  String get supportGateBody;
-
   /// Home menu row opening the support screen
   ///
   /// In en, this message translates to:
   /// **'Support'**
   String get settingsSupport;
-
-  /// Gate sheet action that opens the support screen
-  ///
-  /// In en, this message translates to:
-  /// **'Become a club member'**
-  String get supportGateAction;
 
   /// Support screen intro for a non-supporter
   ///
