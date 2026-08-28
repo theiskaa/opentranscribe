@@ -222,6 +222,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get themeNameSepia => '세피아';
 
   @override
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameEmber => 'Ember';
+
+  @override
+  String get themeNameForest => 'Forest';
+
+  @override
+  String get appearanceClubSection => '클럽';
+
+  @override
   String get settingsAppLanguage => '언어';
 
   @override

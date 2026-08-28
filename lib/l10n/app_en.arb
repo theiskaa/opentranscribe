@@ -289,6 +289,22 @@
   "@themeNameSepia": {
     "description": "Name of the Sepia theme family (a warm reading mode)"
   },
+  "themeNameMidnight": "Midnight",
+  "@themeNameMidnight": {
+    "description": "Name of the Midnight club theme family (a deep blue night look); a proper noun, not translated"
+  },
+  "themeNameEmber": "Ember",
+  "@themeNameEmber": {
+    "description": "Name of the Ember club theme family (paper and rust); a proper noun, not translated"
+  },
+  "themeNameForest": "Forest",
+  "@themeNameForest": {
+    "description": "Name of the Forest club theme family (moss green); a proper noun, not translated"
+  },
+  "appearanceClubSection": "Club",
+  "@appearanceClubSection": {
+    "description": "Section label above the club theme families on the appearance screen"
+  },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"

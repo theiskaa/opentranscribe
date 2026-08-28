@@ -522,6 +522,30 @@ abstract class AppLocalizations {
   /// **'Sepia'**
   String get themeNameSepia;
 
+  /// Name of the Midnight club theme family (a deep blue night look); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Midnight'**
+  String get themeNameMidnight;
+
+  /// Name of the Ember club theme family (paper and rust); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Ember'**
+  String get themeNameEmber;
+
+  /// Name of the Forest club theme family (moss green); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get themeNameForest;
+
+  /// Section label above the club theme families on the appearance screen
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get appearanceClubSection;
+
   /// Home menu row that picks the interface (UI) language
   ///
   /// In en, this message translates to:

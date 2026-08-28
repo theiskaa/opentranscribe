@@ -234,6 +234,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeNameSepia => 'Sépia';
 
   @override
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameEmber => 'Ember';
+
+  @override
+  String get themeNameForest => 'Forest';
+
+  @override
+  String get appearanceClubSection => 'Clube';
+
+  @override
   String get settingsAppLanguage => 'Idioma';
 
   @override

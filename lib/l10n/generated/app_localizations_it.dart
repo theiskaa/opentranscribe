@@ -235,6 +235,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get themeNameSepia => 'Seppia';
 
   @override
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameEmber => 'Ember';
+
+  @override
+  String get themeNameForest => 'Forest';
+
+  @override
+  String get appearanceClubSection => 'Club';
+
+  @override
   String get settingsAppLanguage => 'Lingua';
 
   @override

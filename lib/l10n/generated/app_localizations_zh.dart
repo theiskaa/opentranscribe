@@ -220,6 +220,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeNameSepia => 'Sepia';
 
   @override
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameEmber => 'Ember';
+
+  @override
+  String get themeNameForest => 'Forest';
+
+  @override
+  String get appearanceClubSection => '俱乐部';
+
+  @override
   String get settingsAppLanguage => '语言';
 
   @override
