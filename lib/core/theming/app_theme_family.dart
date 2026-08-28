@@ -35,6 +35,7 @@ final class AppThemeFamily {
   static const midnightId = 'midnight';
   static const emberId = 'ember';
   static const forestId = 'forest';
+  static const roseId = 'rose';
 
   /// Every family the app ships, in picker order. Default is the free look;
   /// every other family is the club's.
@@ -46,6 +47,7 @@ final class AppThemeFamily {
     _midnight,
     _ember,
     _forest,
+    _rose,
   ]);
 
   static AppThemeFamily byId(String id) =>
@@ -289,6 +291,45 @@ final class AppThemeFamily {
       record: const Color(0xFFF0705C),
       danger: const Color(0xFFF0705C),
       positive: const Color(0xFF6FC48A),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+  );
+
+  static final _rose = AppThemeFamily(
+    id: roseId,
+    club: true,
+    light: AppTheme.fromBase(
+      brightness: Brightness.light,
+      background: const Color(0xFFFBF5F6),
+      surface: const Color(0xFFF4E9EC),
+      surfaceBorder: const Color(0xFFE6D3D8),
+      text: const Color(0xFF2B1C21),
+      textSecondary: const Color(0xFF7A5F67),
+      hairline: const Color(0xFFE6D3D8),
+      accent: const Color(0xFFC2506E),
+      accentPressed: const Color(0xFF9E3D58),
+      onAccent: const Color(0xFFFFFFFF),
+      record: const Color(0xFFCF4A5A),
+      danger: const Color(0xFFB8384A),
+      positive: const Color(0xFF4E8C5F),
+      shadow: const Color(0xFF000000),
+      barrier: const Color(0x73000000),
+    ),
+    dark: AppTheme.fromBase(
+      brightness: Brightness.dark,
+      background: const Color(0xFF191114),
+      surface: const Color(0xFF241A1E),
+      surfaceBorder: const Color(0xFF37292E),
+      text: const Color(0xFFF2E4E8),
+      textSecondary: const Color(0xFFA88F97),
+      hairline: const Color(0xFF37292E),
+      accent: const Color(0xFFE8809A),
+      accentPressed: const Color(0xFFC96580),
+      onAccent: const Color(0xFF191114),
+      record: const Color(0xFFF2707A),
+      danger: const Color(0xFFF2707A),
+      positive: const Color(0xFF8CC79A),
       shadow: const Color(0xFF000000),
       barrier: const Color(0x73000000),
     ),

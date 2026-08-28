@@ -7,6 +7,10 @@ void main() {
     expect(AppThemeFamily.all.where((f) => !f.club).map((f) => f.id), [AppThemeFamily.defaultId]);
   });
 
+  test('eight families ship', () {
+    expect(AppThemeFamily.all, hasLength(8));
+  });
+
   test('every family ships a dark variant', () {
     expect(AppThemeFamily.all.every((f) => f.hasDark), isTrue);
   });
