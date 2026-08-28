@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/state/support_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_theme_family.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -22,6 +23,7 @@ import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// Support: the club purchase and restore surface. Owns a [SupportCubit] so
 /// the price is fetched on every open; the cached tier renders truthfully
@@ -389,7 +391,6 @@ class _PerksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -404,7 +405,7 @@ class _PerksCard extends StatelessWidget {
               owned: checked,
             ),
             _PerkRow(
-              leading: AppIcon(AppIcons.squareFill, size: 16, color: theme.text),
+              leading: const _IconMark(),
               label: l10n.supportPerkIcons,
               note: l10n.supportPerkIconsNote,
               owned: checked,
@@ -454,6 +455,27 @@ class _SwatchMark extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The app icon in miniature: the wave on an ink tile, so the icons perk
+/// shows the thing it promises.
+class _IconMark extends StatelessWidget {
+  const _IconMark();
+
+  static const _tile = 20.0;
+  static const _radius = 5.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Container(
+      width: _tile,
+      height: _tile,
+      alignment: Alignment.center,
+      decoration: SuperellipseDecoration(borderRadius: _radius, color: theme.text),
+      child: WaveGlyph(size: 12, barWidth: 1.5, gap: 1.5, color: theme.background),
     );
   }
 }
