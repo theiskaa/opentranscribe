@@ -70,6 +70,7 @@ export const FEATURES = [
 export const CLUB = {
   price: "$25",
   priceNote: "Once. No subscription.",
+  priceRegion: "In US dollars; the price follows your App Store region.",
   pitch: [
     "OpenTranscribe is free and private, and supporting it keeps it that way. The club is an optional one-time purchase, made directly through the App Store with no purchase SDK, no account, and no server behind it.",
     "Membership is verified on the device from Apple's own record, so it works in airplane mode, like everything else.",
