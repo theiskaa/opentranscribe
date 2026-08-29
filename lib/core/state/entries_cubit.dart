@@ -137,6 +137,13 @@ class EntriesCubit extends Cubit<EntriesState> {
     return true;
   }
 
+  /// Drops a failure the user has acted on; a kind with no retry (a take kept
+  /// apart) would otherwise pulse until some later landing.
+  void dismissFailure(String entryId) {
+    if (state.error?.entryId != entryId) return;
+    emit(state.copyWith(clearError: true));
+  }
+
   void clearContinuing(String entryId) {
     if (state.busyId != entryId || state.busyAction != EntriesAction.continueRecording) return;
     emit(state.copyWith(clearBusy: true));
@@ -148,42 +155,36 @@ class EntriesCubit extends Cubit<EntriesState> {
     // clear the re-transcription that refused it.
     final clearBusy =
         state.busyId == outcome.baseId && state.busyAction == EntriesAction.continueRecording;
-    // A discard changed no record; the others reload here and again on the
-    // service's own change notice.
-    if (outcome is ContinuationDiscarded) {
-      emit(state.copyWith(clearBusy: clearBusy));
-      return;
-    }
-    final entries = _service.entries();
     switch (outcome) {
+      // A discard changed no record.
+      case ContinuationDiscarded():
+        emit(state.copyWith(clearBusy: clearBusy));
       case ContinuationLanded(additionUntranscribed: true):
         emit(
           _failure(
             outcome.baseId,
             EntriesError.additionUntranscribed,
-          ).copyWith(entries: entries, clearBusy: clearBusy),
+          ).copyWith(entries: _service.entries(), clearBusy: clearBusy),
         );
       case ContinuationLanded():
         emit(
           state.copyWith(
-            entries: entries,
+            entries: _service.entries(),
             clearBusy: clearBusy,
             clearError: state.error?.entryId == outcome.baseId,
           ),
         );
-      case ContinuationDiscarded():
-        return;
       case ContinuationFellBack(entry: null):
         // The take's own save failed too; that failure surfaces on the
         // recorder, and no new entry exists for a pill to point at.
-        emit(state.copyWith(entries: entries, clearBusy: clearBusy));
-      case ContinuationFellBack(:final entry):
+        emit(state.copyWith(entries: _service.entries(), clearBusy: clearBusy));
+      case ContinuationFellBack(:final entry?):
         emit(
           _failure(
             outcome.baseId,
             EntriesError.savedSeparately,
-            relatedId: entry?.id,
-          ).copyWith(entries: entries, clearBusy: clearBusy),
+            relatedId: entry.id,
+          ).copyWith(entries: _service.entries(), clearBusy: clearBusy),
         );
     }
   }

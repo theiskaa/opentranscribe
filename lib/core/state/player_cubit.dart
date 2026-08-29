@@ -248,11 +248,7 @@ class PlayerCubit extends Cubit<PlayerState> {
     // Forgotten first: a wave remounting in this same frame must find no
     // shape to skip loading over.
     emit(PlayerState(rate: _rate));
-    try {
-      await _player.stop();
-    } on PlaybackException {
-      // Already silent.
-    }
+    await silence();
   }
 
   /// Silences playback for screen exit. Safe to call with nothing playing.
