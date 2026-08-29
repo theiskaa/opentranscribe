@@ -238,6 +238,36 @@ final class Entry {
     revisions: revisions,
   );
 
+  /// Returns a copy pointing at a new recording. Peaks are dropped: the
+  /// envelope described the old file, and the backfill recomputes only when
+  /// they are absent.
+  Entry withRecording(String audioPath, Duration duration) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    languageSpans: languageSpans,
+    revisions: revisions,
+  );
+
+  /// Returns a copy carrying [spans] as the language mix; null flattens to
+  /// one language, like a fresh single-language take.
+  Entry withLanguageSpans(List<LanguageSpan>? spans) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    peaks: peaks,
+    languageSpans: spans,
+    revisions: revisions,
+  );
+
   /// Returns a copy carrying the computed amplitude envelope.
   Entry withPeaks(List<int> peaks) => Entry(
     id: id,
