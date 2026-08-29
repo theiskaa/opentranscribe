@@ -1002,7 +1002,7 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => 'Continua la registrazione';
+  String get continueRecording => 'Registra ancora';
 
   @override
   String continuingEntry(String title) {

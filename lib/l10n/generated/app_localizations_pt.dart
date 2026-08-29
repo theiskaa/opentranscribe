@@ -1000,7 +1000,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => 'Continuar a gravar';
+  String get continueRecording => 'Gravar mais';
 
   @override
   String continuingEntry(String title) {

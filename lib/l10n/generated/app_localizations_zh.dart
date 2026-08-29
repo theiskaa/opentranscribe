@@ -928,7 +928,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => '继续录制';
+  String get continueRecording => '继续录音';
 
   @override
   String continuingEntry(String title) {

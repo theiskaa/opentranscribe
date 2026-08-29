@@ -989,7 +989,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => 'Continue recording';
+  String get continueRecording => 'Record more';
 
   @override
   String continuingEntry(String title) {

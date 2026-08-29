@@ -936,7 +936,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => '録音を続ける';
+  String get continueRecording => '追加で録音';
 
   @override
   String continuingEntry(String title) {

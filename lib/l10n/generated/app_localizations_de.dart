@@ -1001,7 +1001,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => 'Aufnahme fortsetzen';
+  String get continueRecording => 'Mehr aufnehmen';
 
   @override
   String continuingEntry(String title) {

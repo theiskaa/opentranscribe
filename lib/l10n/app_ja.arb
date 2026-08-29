@@ -285,7 +285,7 @@
   "supportMemberUnlocks": "利用できる特典",
   "supporterTag": "クラブ",
   "supportFooter": "サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（{privacy}）。購入はAppleの標準{terms}に従います。",
-  "continueRecording": "録音を続ける",
+  "continueRecording": "追加で録音",
   "continuingEntry": "{title} の続き",
   "continueUntranscribedLabel": "追加部分の文字起こしなし",
   "continueUntranscribedTitle": "追加部分は文字起こしされませんでした",

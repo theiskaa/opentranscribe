@@ -939,7 +939,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => '이어서 녹음';
+  String get continueRecording => '추가 녹음';
 
   @override
   String continuingEntry(String title) {

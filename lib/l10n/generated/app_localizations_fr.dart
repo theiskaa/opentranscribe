@@ -1003,7 +1003,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get continueRecording => 'Continuer l\'enregistrement';
+  String get continueRecording => 'Enregistrer la suite';
 
   @override
   String continuingEntry(String title) {
