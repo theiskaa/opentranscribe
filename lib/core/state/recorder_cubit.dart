@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -420,7 +421,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   Future<void> setLanguage(String tag) async {
     if (!state.isBusy || state.localeId == tag) return;
     final prior = state.liveText.trim();
-    _livePrefix = prior.isEmpty ? '' : '$prior [${tag.split('-').first}] ';
+    _livePrefix = prior.isEmpty ? '' : '$prior ${languageMarker(tag)} ';
     emit(state.copyWith(localeId: tag, liveText: _livePrefix));
     try {
       // A switch tapped while the sheet is still rising races the start

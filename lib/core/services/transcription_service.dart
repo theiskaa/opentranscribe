@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
+import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -1622,7 +1623,9 @@ class TranscriptionService {
   Future<void> saveEntryPeaks(Entry entry, List<double> peaks) async {
     if (peaks.isEmpty) return;
     final stored = _store.read(entry.id);
-    if (stored == null || stored.peaks != null) return;
+    // The caller's copy names the file the peaks describe; a continuation may
+    // have repointed the entry since it decoded.
+    if (stored == null || stored.peaks != null || stored.audioPath != entry.audioPath) return;
     final quantized = [for (final v in peaks) (v.clamp(0.0, 1.0) * 255).round()];
     try {
       await _store.save(stored.withPeaks(quantized));
@@ -1738,7 +1741,7 @@ class TranscriptionService {
         if (text.isNotEmpty && buffer.isEmpty) {
           buffer.write(text);
         } else if (text.isNotEmpty) {
-          final marker = '[${spans[i].tag.split('-').first}]';
+          final marker = languageMarker(spans[i].tag);
           buffer.write(' $marker $text');
           // The marker also rides as its own zero-length segment at the
           // switch instant: the transcript VIEW renders segments (not
