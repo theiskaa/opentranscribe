@@ -59,6 +59,7 @@ void main() {
     final recordings = Directory('${temp.path}/recordings');
     await recordings.create(recursive: true);
     final transcription = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: recordings.path),
       engine: FakeBatchEngine(),
       store: store,

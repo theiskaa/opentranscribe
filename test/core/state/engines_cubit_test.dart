@@ -57,6 +57,7 @@ void main() {
     speech = FakeStreamingEngine(stopSignal: recorder.stopped);
     dictation = FakeDictationEngine();
     service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: recorder,
       engine: speech,
       store: EntryStore(storage),

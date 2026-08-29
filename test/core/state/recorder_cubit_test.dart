@@ -39,7 +39,12 @@ void main() {
 
   (RecorderCubit, TranscriptionService) build({FakeAudioRecorder? recorder}) {
     final rec = recorder ?? FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     return (RecorderCubit(service: service), service);
   }
 
@@ -49,6 +54,7 @@ void main() {
     // whole take in the old language under a chip claiming the new one.
     final rec = FakeAudioRecorder(startDelay: const Duration(milliseconds: 20));
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(supportedLocaleTags: const ['en-US', 'fr-FR']),
       store: store,
@@ -113,6 +119,7 @@ void main() {
   test('a language switch keeps the live text and marks the new span', () async {
     final rec = FakeAudioRecorder();
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(
         cannedText: 'hello world',
@@ -542,7 +549,12 @@ void main() {
     // pause/resume/interruption bank exactly.
     var now = DateTime(2026, 1, 1, 12);
     final rec = FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service, now: () => now);
 
     await cubit.start();
@@ -574,7 +586,12 @@ void main() {
   test('a backward wall-clock adjustment never shrinks elapsed', () async {
     var now = DateTime(2026, 1, 1, 12);
     final rec = FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service, now: () => now);
 
     await cubit.start();
@@ -631,7 +648,12 @@ void main() {
     // recorder round trip). The service's live gate must drop it.
     final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
     final engine = _ScriptedLiveEngine();
-    final service = TranscriptionService(recorder: rec, engine: engine, store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service);
 
     await cubit.start();
@@ -686,6 +708,7 @@ void main() {
   test('prepareTake clears a finishing take, and is quiet mid-take', () async {
     final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(cannedText: 'hello world', stopSignal: rec.stopped),
       store: store,

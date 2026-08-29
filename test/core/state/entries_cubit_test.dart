@@ -22,6 +22,7 @@ void main() {
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     engine = FakeBatchEngine();
     service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: EntryStore(storage),
@@ -281,6 +282,7 @@ void main() {
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final store = EntryStore(storage);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
       engine: FakeBatchEngine(cannedText: 'finally'),
       store: store,
@@ -316,6 +318,7 @@ void main() {
     final store = EntryStore(storage);
     final localEngine = FakeBatchEngine();
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: localEngine,
       store: store,
@@ -348,6 +351,7 @@ void main() {
     final storage = LocalService();
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
       engine: FakeBatchEngine(),
       store: EntryStore(storage),
@@ -377,6 +381,7 @@ void main() {
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final store = EntryStore(storage);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: gatedEngine,
       store: store,

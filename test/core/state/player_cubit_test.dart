@@ -46,6 +46,7 @@ void main() {
       final storage = LocalService();
       await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       service = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),
         engine: FakeBatchEngine(),
         store: EntryStore(storage),
@@ -247,6 +248,7 @@ void main() {
       await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       final store = EntryStore(storage);
       final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),
         engine: FakeBatchEngine(),
         store: store,

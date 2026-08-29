@@ -22,6 +22,7 @@ void main() {
   TranscriptionService build(TranscriptionEngine engine) {
     idCounter = 0;
     return TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,

@@ -33,7 +33,12 @@ void main() {
       availability: availability,
       throwOnCheckAvailability: speechThrows,
     );
-    final service = TranscriptionService(recorder: recorder, engine: engine, store: store);
+    final service = TranscriptionService(
+      recorder: recorder,
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     return OnboardingCubit(service: service);
   }
 
