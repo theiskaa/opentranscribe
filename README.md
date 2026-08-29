@@ -16,11 +16,11 @@ opentranscribe is a voice journal for iOS. Recording, transcription, reflection,
 
 <img alt="The week of entries, recording with live text, a finished entry, a written reflection, and the on-device language models" src="assets/readme/showcase.png" width="830">
 
-Transcription and reflection sit behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, shipped as the app-owned plugins [`packages/transcriber`](packages/transcriber/) and [`packages/reflections`](packages/reflections/). An engine that does not declare itself on-device is refused at construction. Recordings and entries stay encrypted in the app's own storage. [CONTRIBUTING.md](CONTRIBUTING.md) covers how it fits together and how to work on it.
+Transcription and reflection sit behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, shipped as the app-owned plugins [`packages/transcriber`](packages/transcriber/) and [`packages/reflections`](packages/reflections/). An engine that does not declare itself on-device is refused at construction. Recordings and entries stay encrypted in the app's own storage. An entry can be continued: a later take merges into its recording on the device and is transcribed onto the end of the transcript. [CONTRIBUTING.md](CONTRIBUTING.md) covers how it fits together and how to work on it.
 
 ## At rest
 
-Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. An entry can be continued: a later take merges into its recording on the device and is transcribed onto the end of the transcript. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
+Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
 
 ## Build
 
