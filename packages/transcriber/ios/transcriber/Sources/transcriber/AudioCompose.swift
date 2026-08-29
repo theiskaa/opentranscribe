@@ -147,7 +147,9 @@ enum AudioCompose {
       && inFormat.commonFormat == outFormat.commonFormat
       && inFormat.isInterleaved == outFormat.isInterleaved
     {
-      while true {
+      // Stop on the frame count: a read at the end of a compressed file throws
+      // instead of answering zero frames.
+      while input.framePosition < input.length {
         guard let buffer = AVAudioPCMBuffer(pcmFormat: inFormat, frameCapacity: chunkFrames)
         else { throw ComposeError.writeFailed("buffer allocation failed") }
         try read(into: buffer)
@@ -168,7 +170,8 @@ enum AudioCompose {
       else { throw ComposeError.writeFailed("buffer allocation failed") }
       var error: NSError?
       let status = converter.convert(to: buffer, error: &error) { requested, outStatus in
-        if drained {
+        if drained || input.framePosition >= input.length {
+          drained = true
           outStatus.pointee = .endOfStream
           return nil
         }
