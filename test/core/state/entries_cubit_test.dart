@@ -415,7 +415,7 @@ void main() {
       final cubit = await seeded();
       final base = cubit.state.entries.single;
 
-      cubit.markContinuing(base);
+      expect(cubit.markContinuing(base), isTrue);
       expect(cubit.state.busyId, base.id);
       expect(cubit.state.busyAction, EntriesAction.continueRecording);
 
@@ -486,6 +486,19 @@ void main() {
       expect(cubit.state.busyId, base.id);
       cubit.clearContinuing(base.id);
       expect(cubit.state.busyId, isNull);
+
+      await cubit.close();
+    });
+
+    test('an entry with an action in flight cannot be continued', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.markContinuing(base);
+      expect(cubit.canContinue(base), isFalse);
+      expect(cubit.markContinuing(base), isFalse);
+      cubit.clearContinuing(base.id);
+      expect(cubit.canContinue(base), isTrue);
 
       await cubit.close();
     });

@@ -122,12 +122,19 @@ class EntriesCubit extends Cubit<EntriesState> {
   late final StreamSubscription<void> _changesSub;
   late final StreamSubscription<ContinuationOutcome> _continuationsSub;
 
+  /// Whether a take may extend [entry] now: no action of its own in flight
+  /// and the bulk runner not on it (the service would refuse at the mic).
+  bool canContinue(Entry entry) =>
+      state.busyId != entry.id && _service.retranscribeAll.state.currentEntryId != entry.id;
+
   /// Marks [entry] busy before its recorder sheet is pushed, so the detail
   /// behind it already shows the take in flight. The service's outcome clears
   /// it, whatever the take's ending; [clearContinuing] is for a sheet that
-  /// never asked the service at all.
-  void markContinuing(Entry entry) {
+  /// never asked the service at all. False when [canContinue] refuses.
+  bool markContinuing(Entry entry) {
+    if (!canContinue(entry)) return false;
     emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.continueRecording));
+    return true;
   }
 
   void clearContinuing(String entryId) {

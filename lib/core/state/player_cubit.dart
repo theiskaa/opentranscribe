@@ -231,6 +231,18 @@ class PlayerCubit extends Cubit<PlayerState> {
     }
   }
 
+  /// Silences playback and forgets the loaded shape: the entry's file was
+  /// replaced under the screen (a continuation landing), and the wave reads
+  /// the new one on its next mount. Safe to call with nothing playing.
+  Future<void> rebind() async {
+    try {
+      await _player.stop();
+    } on PlaybackException {
+      // Already silent.
+    }
+    if (!isClosed) emit(PlayerState(rate: _rate));
+  }
+
   /// Silences playback for screen exit. Safe to call with nothing playing.
   Future<void> stopAndDetach() async {
     _detached = true;
