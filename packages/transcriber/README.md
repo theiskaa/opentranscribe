@@ -1,6 +1,6 @@
 # transcriber
 
-Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is three contracts: `AudioRecorder`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, downloadable-model behavior, and side-effect-free per-language readiness as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`, `LanguageReadinessEngine`). `AppleSpeechEngine` is the shipped `SpeechAnalyzer` implementation (iOS 26); `AppleDictationEngine` is the classic `SFSpeechRecognizer` one, the engine behind iOS dictation.
+Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is four contracts: `AudioRecorder`, `AudioComposer`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, downloadable-model behavior, and side-effect-free per-language readiness as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`, `LanguageReadinessEngine`). `AppleSpeechEngine` is the shipped `SpeechAnalyzer` implementation (iOS 26); `AppleDictationEngine` is the classic `SFSpeechRecognizer` one, the engine behind iOS dictation.
 
 Guarantees a caller may rely on:
 
@@ -9,12 +9,14 @@ Guarantees a caller may rely on:
 - Audio buffers never cross the platform channel. Capture and recognition share one native session; only paths, durations, levels, statuses, and text reach Dart.
 - Recording and playback share the audio session and never overlap. Starting a capture stops live playback with a terminal event, and `AudioPlayer.play` throws `busy_recording` while a capture runs.
 - Recordings land in the app's Application Support under iOS data protection (`completeUnlessOpen`), excluded from backup by default; `AudioRecorder.setBackupExcluded` flips that for the whole directory.
+- `AudioComposer.concatenate` (riding the recorder's channel, with no channel of its own) joins kept recordings into one new file: each input is decoded to PCM and re-encoded once at the first input's sample rate and channel count with the capture bitrate tier, so takes from different routes merge cleanly. The output is staged under `Application Support/compose` and moved into the recordings directory only when complete; inputs are never touched, and a failure leaves nothing partial in the recordings directory.
 
 The channels, one Swift class per channel family, all internal to the package (the two speech engines are two Dart wrappers over the one speech class, routed by the engine argument):
 
 | Dart wrapper | Method channel | Event channels |
 | --- | --- | --- |
 | `PlatformAudioRecorder` | `transcriber/audio` | `transcriber/audio/status`, `transcriber/audio/level` |
+| `PlatformAudioComposer` | `transcriber/audio` (`concatenate`) | |
 | `AppleSpeechEngine`, `AppleDictationEngine` | `transcriber/speech` | `transcriber/speech/events`, `transcriber/speech/model` |
 | `PlatformAudioPlayer` | `transcriber/player` | `transcriber/player/state` |
 

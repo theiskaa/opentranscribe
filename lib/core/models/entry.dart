@@ -106,9 +106,10 @@ final class Entry {
     this.title,
     this.recordedLocaleId,
     this.peaks,
-    this.languageSpans,
+    List<LanguageSpan>? languageSpans,
     List<Revision>? revisions,
   }) : createdAt = createdAt.toUtc(),
+       languageSpans = languageSpans == null || languageSpans.isEmpty ? null : languageSpans,
        revisions = revisions == null || revisions.isEmpty ? null : List.unmodifiable(revisions);
 
   final String id;
@@ -235,6 +236,36 @@ final class Entry {
     recordedLocaleId: recordedLocaleId,
     peaks: peaks,
     languageSpans: languageSpans,
+    revisions: revisions,
+  );
+
+  /// Returns a copy pointing at a new recording. Peaks are dropped: the
+  /// envelope described the old file, and the backfill recomputes only when
+  /// they are absent.
+  Entry withRecording(String audioPath, Duration duration) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    languageSpans: languageSpans,
+    revisions: revisions,
+  );
+
+  /// Returns a copy carrying [spans] as the language mix; null flattens to
+  /// one language, like a fresh single-language take.
+  Entry withLanguageSpans(List<LanguageSpan>? spans) => Entry(
+    id: id,
+    createdAt: createdAt,
+    audioPath: audioPath,
+    duration: duration,
+    transcript: transcript,
+    title: title,
+    recordedLocaleId: recordedLocaleId,
+    peaks: peaks,
+    languageSpans: spans,
     revisions: revisions,
   );
 

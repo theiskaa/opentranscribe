@@ -24,6 +24,7 @@ void main() {
   });
 
   TranscriptionService build(TranscriptionEngine engine) => TranscriptionService(
+    composer: FakeAudioComposer(),
     recorder: recorder,
     engine: engine,
     store: EntryStore(storage),
@@ -73,6 +74,7 @@ void main() {
         ),
       );
       final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: recorder,
         engine: FakeBatchEngine(gate: gate.future),
         store: store,

@@ -284,5 +284,13 @@
   "supportUnlocksSection": "Para membros do clube",
   "supportMemberUnlocks": "O que você tem",
   "supporterTag": "Clube",
-  "supportFooter": "Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a {privacy}, e a compra segue os {terms} padrão da Apple."
+  "supportFooter": "Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a {privacy}, e a compra segue os {terms} padrão da Apple.",
+  "continueRecording": "Gravar mais",
+  "continuingEntry": "A continuar {title}",
+  "continueUntranscribedLabel": "Parte nova não transcrita",
+  "continueUntranscribedTitle": "A parte nova não foi transcrita",
+  "continueUntranscribedBody": "A gravação cresceu, mas as palavras que acabou de acrescentar não foram transcritas. Retranscreva para ouvir tudo.",
+  "continueSavedSeparatelyLabel": "Guardado como nova entrada",
+  "continueSavedSeparatelyBody": "A nova gravação não pôde ser junta a esta entrada, por isso foi guardada à parte.",
+  "continueEntryBusy": "Esta entrada ainda está a ser transcrita."
 }

@@ -22,6 +22,7 @@ void main() {
   late TranscriptionService service;
 
   TranscriptionService build(TranscriptionEngine engine) => TranscriptionService(
+    composer: FakeAudioComposer(),
     recorder: FakeAudioRecorder(),
     engine: engine,
     store: store,

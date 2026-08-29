@@ -934,4 +934,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。購入はAppleの標準$termsに従います。';
   }
+
+  @override
+  String get continueRecording => '追加で録音';
+
+  @override
+  String continuingEntry(String title) {
+    return '$titleの続き';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '追加部分の文字起こしなし';
+
+  @override
+  String get continueUntranscribedTitle => '追加部分は文字起こしされませんでした';
+
+  @override
+  String get continueUntranscribedBody => '録音は追加されましたが、追加した言葉は文字起こしされませんでした。再文字起こしですべてを聞き取れます。';
+
+  @override
+  String get continueSavedSeparatelyLabel => '新しいエントリとして保存';
+
+  @override
+  String get continueSavedSeparatelyBody => '新しい録音はこのエントリに結合できなかったため、単独で保存しました。';
+
+  @override
+  String get continueEntryBusy => 'このエントリはまだ文字起こし中です。';
 }

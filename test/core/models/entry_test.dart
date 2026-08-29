@@ -343,10 +343,59 @@ void main() {
       revised.withPeaks(const [1]),
       revised.withoutAudio(),
       revised.withAudioPath('b.m4a'),
+      revised.withRecording('c.m4a', Duration.zero),
+      revised.withLanguageSpans(null),
     ]) {
       expect(copy.head?.text, 'fixed');
       expect(copy.head?.at, editStamp);
     }
+  });
+
+  test('withRecording repoints the recording, keeps the rest and drops the peaks', () {
+    const spans = [
+      LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: 5000, localeId: 'fr-FR'),
+    ];
+    final full = Entry(
+      id: 'abc',
+      createdAt: DateTime.utc(2026, 3, 4, 9),
+      audioPath: 'otr-old.m4a',
+      duration: const Duration(seconds: 12),
+      transcript: transcript,
+      title: 't',
+      recordedLocaleId: 'en-US',
+      peaks: const [1, 2, 3],
+      languageSpans: spans,
+      revisions: [Revision.ofTranscript(transcript)],
+    );
+
+    final entry = full.withRecording('otr-new.m4a', const Duration(seconds: 30));
+
+    expect(entry.audioPath, 'otr-new.m4a');
+    expect(entry.duration, const Duration(seconds: 30));
+    expect(entry.peaks, isNull);
+    expect(entry.transcript, transcript);
+    expect(entry.title, 't');
+    expect(entry.recordedLocaleId, 'en-US');
+    expect(entry.languageSpans, spans);
+    expect(entry.revisions, full.revisions);
+  });
+
+  test('an empty language mix normalizes to null, one spelling everywhere', () {
+    expect(baseEntry().withLanguageSpans(const []).languageSpans, isNull);
+    expect(Entry.fromJson({...baseEntry().toJson(), 'languageSpans': []}).languageSpans, isNull);
+  });
+
+  test('withLanguageSpans swaps the mix and null flattens it', () {
+    const spans = [
+      LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: 5000, localeId: 'fr-FR'),
+    ];
+    final mixed = baseEntry().withPeaks(const [9]).withLanguageSpans(spans);
+
+    expect(mixed.languageSpans, spans);
+    expect(mixed.peaks, const [9]);
+    expect(Entry.fromJson(mixed.withLanguageSpans(null).toJson()).languageSpans, isNull);
   });
 
   test('readableText prefers the head and falls back to the transcript', () {

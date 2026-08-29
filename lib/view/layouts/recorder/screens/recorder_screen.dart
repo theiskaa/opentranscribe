@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
@@ -14,6 +15,7 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/recorder/components/continuing_line.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/recorder_controls.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
@@ -36,7 +38,10 @@ const double _columnInset = AppSpacing.xxxl + AppSpacing.sm;
 /// first. A denied microphone renders as a persistent in-screen state, not a
 /// dialog.
 class RecorderScreen extends StatefulWidget {
-  const RecorderScreen({super.key});
+  const RecorderScreen({super.key, this.continueEntryId});
+
+  /// The entry this take extends, from the route's query; null for a fresh take.
+  final String? continueEntryId;
 
   @override
   State<RecorderScreen> createState() => _RecorderScreenState();
@@ -44,6 +49,17 @@ class RecorderScreen extends StatefulWidget {
 
 class _RecorderScreenState extends State<RecorderScreen> {
   Animation<double>? _entrance;
+  EntriesCubit? _entries;
+
+  /// Whether this sheet reached the cubit. Closed before the rise settles,
+  /// it never did, and the mark the detail set has no outcome coming.
+  bool _asked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _entries = context.read<EntriesCubit>();
+  }
 
   @override
   void initState() {
@@ -83,7 +99,22 @@ class _RecorderScreenState extends State<RecorderScreen> {
     // previous screen (a save still running behind a popped sheet). Guarding on
     // isBusy here refused to start on exactly the states it knows how to heal,
     // and the screen sat dead with the last take's clock and text on it.
-    context.read<RecorderCubit>().start();
+    final cubit = context.read<RecorderCubit>();
+    _asked = true;
+    final id = widget.continueEntryId;
+    if (id == null) {
+      cubit.start();
+      return;
+    }
+    final entries = context.read<EntriesCubit>();
+    final entry = entries.state.entries.where((e) => e.id == id).firstOrNull;
+    // A stale link records a fresh take; the mark it left has no take to wait for.
+    if (entry == null) {
+      entries.clearContinuing(id);
+      cubit.start();
+      return;
+    }
+    cubit.start(continuing: entry);
   }
 
   /// Leave, keeping what was said. The sheet closes onto the journal it came
@@ -118,6 +149,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
   @override
   void dispose() {
     _entrance?.removeStatusListener(_onEntrance);
+    final id = widget.continueEntryId;
+    if (!_asked && id != null) _entries?.clearContinuing(id);
     super.dispose();
   }
 
@@ -145,7 +178,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
             previous.error != current.error ||
             previous.live != current.live ||
             previous.interrupted != current.interrupted ||
-            previous.localeId != current.localeId,
+            previous.localeId != current.localeId ||
+            (previous.continuing == null) != (current.continuing == null),
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
           final restarting = state.status == RecorderStatus.restarting;
@@ -192,6 +226,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
               else ...[
                 // Mathematical centre reads low; the block settles just above it.
                 const Spacer(flex: 45),
+                // From the route, so it rises with the sheet; gone once a
+                // restart after an interruption made this a fresh take.
+                if (widget.continueEntryId != null && (state.continuing != null || !state.isBusy))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                    child: ContinuingLine(entryId: widget.continueEntryId!),
+                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _columnInset),
                   child: Waveform(
@@ -211,16 +252,23 @@ class _RecorderScreenState extends State<RecorderScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _columnInset),
                   child: AppNotice(
-                    message: state.error == RecorderError.generic
-                        ? l10n.recordErrorMessage
-                        : state.interrupted
-                        ? l10n.recordInterruptedSaved
-                        : null,
+                    message: switch (state.error) {
+                      RecorderError.generic => l10n.recordErrorMessage,
+                      RecorderError.entryBusy => l10n.continueEntryBusy,
+                      _ => state.interrupted ? l10n.recordInterruptedSaved : null,
+                    },
                     onDismiss: () {
                       final cubit = context.read<RecorderCubit>();
-                      state.error == RecorderError.generic
-                          ? cubit.clearError()
-                          : cubit.clearInterrupted();
+                      state.error != null ? cubit.clearError() : cubit.clearInterrupted();
+                      // Nothing to record on a refused base: the sheet leaves
+                      // with its notice.
+                      final route = ModalRoute.of(context);
+                      if (state.error == RecorderError.entryBusy &&
+                          route != null &&
+                          route.isCurrent &&
+                          context.canPop()) {
+                        context.pop();
+                      }
                     },
                   ),
                 ),

@@ -32,6 +32,7 @@ void main() {
     final rec = recorder ?? FakeAudioRecorder();
     idCounter = 0;
     return TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: engine(rec),
       store: store,
@@ -446,6 +447,7 @@ void main() {
   test('an interruption surfaces a save failure instead of orphaning the audio', () async {
     final rec = FakeAudioRecorder();
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: _ThrowingStore(storage),
@@ -526,6 +528,7 @@ void main() {
   test('stopRecording surfaces a racing interruption save failure as EntrySaveFailed', () async {
     final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 20));
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: _ThrowingStore(storage),
@@ -584,6 +587,7 @@ void main() {
 
   test('a failed save on stop throws EntrySaveFailed carrying the entry', () async {
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(),
       store: _ThrowingStore(storage),
@@ -696,6 +700,7 @@ void main() {
 
   test('a new recording gets its wave shape persisted off the critical path', () async {
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(),
       store: store,
@@ -732,6 +737,13 @@ void main() {
     await svc.saveEntryPeaks(entry, [1.0]);
     expect(store.read('p1')?.peaks, [128]);
 
+    // Repointed meanwhile: a shape decoded from the old file never lands.
+    await store.save(entry.withRecording('/tmp/q.m4a', Duration.zero));
+    await svc.saveEntryPeaks(entry, [0.5]);
+    expect(store.read('p1')?.peaks, isNull);
+    await svc.saveEntryPeaks(entry.withRecording('/tmp/q.m4a', Duration.zero), [0.5]);
+    expect(store.read('p1')?.peaks, [128]);
+
     // Deleted meanwhile: never resurrected. Empty input: never stored.
     await store.delete('p1');
     await svc.saveEntryPeaks(entry, [0.5]);
@@ -747,6 +759,7 @@ void main() {
     final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR'])
       ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,
@@ -792,6 +805,7 @@ void main() {
     final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR'])
       ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,
@@ -825,6 +839,7 @@ void main() {
     final engine = FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR', 'de-DE'])
       ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,
@@ -855,6 +870,7 @@ void main() {
       ..failRanged = true
       ..transcriptBuilder = (locale, start, end) => 'whole-$locale';
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,
@@ -906,6 +922,7 @@ void main() {
   test('pauses do not inflate span starts: audio time, not wall time', () async {
     var now = DateTime.utc(2026, 3, 4, 12);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeStreamingEngine(supportedLocaleTags: ['en-US', 'fr-FR']),
       store: store,
@@ -1022,6 +1039,7 @@ void main() {
   test('retrySave recovers an entry whose first save failed', () async {
     final failOnce = _ThrowingStore(storage, failures: 1);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(),
       store: failOnce,
@@ -1182,6 +1200,7 @@ void main() {
   test('rejects an engine that is not on-device only', () {
     expect(
       () => TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(),
         engine: FakeOffDeviceEngine(),
         store: store,
@@ -1223,6 +1242,7 @@ void main() {
 
   test('batch timeout keeps the recording untranscribed', () async {
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(duration: Duration.zero),
       engine: FakeBatchEngine(delay: const Duration(milliseconds: 200)),
       store: store,
@@ -1244,6 +1264,7 @@ void main() {
     // service tells a CancellableBatchEngine to abandon it too.
     final engine = FakeBatchEngine(delay: const Duration(milliseconds: 200));
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(duration: Duration.zero),
       engine: engine,
       store: store,
@@ -1413,6 +1434,7 @@ void main() {
     final file = File('${dir.path}/clip.m4a');
     await file.writeAsString('audio');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
       engine: FakeBatchEngine(),
       store: store,
@@ -1447,6 +1469,7 @@ void main() {
     final file = File('${dir.path}/clip.m4a');
     await file.writeAsString('audio');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
       engine: FakeBatchEngine(),
       store: store,
@@ -1502,6 +1525,7 @@ void main() {
   test('persists createdAt as UTC even from a local clock', () async {
     final localClock = DateTime(2026, 3, 4, 12);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(clock: () => localClock),
       store: store,
@@ -1775,6 +1799,7 @@ void main() {
   test('an unchanged edit keeps the head stamp', () async {
     var now = DateTime.utc(2026, 3, 4, 12);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(),
       store: store,
@@ -2487,6 +2512,7 @@ void main() {
     File('${dir.path}/take.m4a').writeAsStringSync('audio');
     final failing = _NullPathSaveFailsOnce(storage);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
       engine: FakeBatchEngine(),
       store: failing,
@@ -3096,6 +3122,7 @@ void main() {
       stopDelay: const Duration(milliseconds: 20),
     );
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: _ThrowingStore(storage),
@@ -3142,6 +3169,7 @@ void main() {
     final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
     final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: gatedStore,
@@ -3180,6 +3208,7 @@ void main() {
     final gatedStore = _GatedSaveStore(storage, gatedId: 'id-0', gate: gate.future);
     final rec = FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: gatedStore,
@@ -3212,6 +3241,7 @@ void main() {
       stopDelay: const Duration(milliseconds: 20),
     );
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeBatchEngine(),
       store: _ThrowingStore(storage, failures: 1),
@@ -3437,6 +3467,7 @@ void main() {
     final file = File('${dir.path}/take.m4a')..writeAsStringSync('audio');
     final throwing = _ThrowingStore(storage, failures: 1);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path, path: 'take.m4a'),
       engine: FakeBatchEngine(),
       store: throwing,

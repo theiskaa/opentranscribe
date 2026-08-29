@@ -103,17 +103,27 @@ final class AudioCaptureSession {
       name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
   }
 
+  /// Total stream rate, 32 kbps per channel: speech stays intelligible at under
+  /// half the encoder default. Below 16 kHz (narrowband HFP) 24 is its ceiling.
+  static func aacBitRate(sampleRate: Double, channels: Int) -> Int {
+    (sampleRate >= 16_000 ? 32_000 : 24_000) * channels
+  }
+
   /// The durable, app-private directory for kept recordings:
-  /// Application Support/recordings. Created on demand with data protection so a
-  /// file is encrypted at rest when the device is locked, yet stays writable if the
-  /// screen locks mid-recording (.completeUnlessOpen). New files inherit the
-  /// directory's protection class. Defaults to excluded from backup so nothing
-  /// rides iCloud off-device until the user opts in.
+  /// Application Support/recordings.
   static func recordingsDirectory() throws -> URL {
+    try protectedDirectory(named: "recordings")
+  }
+
+  /// Application Support/<name>, created on demand with data protection so a file
+  /// is encrypted at rest when locked yet stays writable if the screen locks
+  /// mid-write (.completeUnlessOpen), and excluded from backup until the user
+  /// opts in. New files inherit the directory's protection class.
+  static func protectedDirectory(named name: String) throws -> URL {
     let fm = FileManager.default
     let base = try fm.url(
       for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    var dir = base.appendingPathComponent("recordings", isDirectory: true)
+    var dir = base.appendingPathComponent(name, isDirectory: true)
     if !fm.fileExists(atPath: dir.path) {
       try fm.createDirectory(
         at: dir, withIntermediateDirectories: true,
@@ -188,19 +198,12 @@ final class AudioCaptureSession {
       throw CaptureError.noInput
     }
 
-    // 32 kbps per channel: speech at this AAC rate stays fully intelligible and
-    // transcribes as well as the encoder's default, at less than half the size.
-    // The key is the TOTAL stream rate, so a stereo route scales rather than
-    // starving both channels. Band-limited routes step down to the BEST rate
-    // the encoder accepts there, not the floor: below 16 kHz (narrowband HFP,
-    // old Bluetooth headsets) the ceiling is 24 kbps and 32 would be rejected
-    // at file creation; from 16 kHz up (mSBC and everything better) 32 fits.
-    let perChannelRate = format.sampleRate >= 16_000 ? 32_000 : 24_000
     let settings: [String: Any] = [
       AVFormatIDKey: kAudioFormatMPEG4AAC,
       AVSampleRateKey: format.sampleRate,
       AVNumberOfChannelsKey: format.channelCount,
-      AVEncoderBitRateKey: perChannelRate * Int(format.channelCount),
+      AVEncoderBitRateKey: AudioCaptureSession.aacBitRate(
+        sampleRate: format.sampleRate, channels: Int(format.channelCount)),
       AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
     ]
     let url: URL
@@ -683,6 +686,9 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     events.setStreamHandler(instance)
     levels.setStreamHandler(instance.levelHandler)
     registrar.addMethodCallDelegate(instance, channel: methods)
+    // A merge a kill cut short leaves its partial under compose/; clear it now
+    // rather than at the next merge.
+    AudioCompose.queue.async { _ = try? AudioCompose.stagingDirectory() }
     instance.session.onStatus = { [weak instance] status in
       DispatchQueue.main.async {
         instance?.statusSink?(status)
@@ -709,6 +715,25 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
     statusSink = nil
     return nil
+  }
+
+  /// Off the platform thread: an hour of audio decodes and re-encodes in
+  /// seconds, and the composer's own queue serializes merges.
+  private func concatenate(names: [String], result: @escaping FlutterResult) {
+    AudioCompose.queue.async {
+      let reply: Any
+      do {
+        let outcome = try AudioCompose.concatenate(names: names)
+        reply = [
+          "name": outcome.name, "durationMs": outcome.durationMs, "startsMs": outcome.startsMs,
+        ]
+      } catch let error as AudioCompose.ComposeError {
+        reply = FlutterError(code: error.code, message: error.errorDescription, details: nil)
+      } catch {
+        reply = FlutterError(code: "compose_failed", message: "\(error)", details: nil)
+      }
+      DispatchQueue.main.async { result(reply) }
+    }
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -789,6 +814,12 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       } catch {
         result(nil)
       }
+    case "concatenate":
+      guard let names = (call.arguments as? [String: Any])?["names"] as? [String] else {
+        result(FlutterError(code: "bad_args", message: "names required", details: nil))
+        return
+      }
+      concatenate(names: names, result: result)
     case "setBackupExcluded":
       do {
         let excluded = (call.arguments as? [String: Any])?["excluded"] as? Bool ?? true

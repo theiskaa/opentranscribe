@@ -937,4 +937,30 @@ class AppLocalizationsKo extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구매는 Apple 표준 $terms을 따릅니다.';
   }
+
+  @override
+  String get continueRecording => '추가 녹음';
+
+  @override
+  String continuingEntry(String title) {
+    return '$title에 이어서';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '새 부분 전사 안 됨';
+
+  @override
+  String get continueUntranscribedTitle => '새 부분이 전사되지 않았습니다';
+
+  @override
+  String get continueUntranscribedBody => '녹음은 이어졌지만 방금 추가한 말은 전사되지 않았습니다. 다시 전사하면 전체를 들을 수 있습니다.';
+
+  @override
+  String get continueSavedSeparatelyLabel => '새 항목으로 저장됨';
+
+  @override
+  String get continueSavedSeparatelyBody => '새 녹음을 이 항목에 합칠 수 없어 따로 저장했습니다.';
+
+  @override
+  String get continueEntryBusy => '이 항목은 아직 전사 중입니다.';
 }

@@ -28,7 +28,12 @@ void main() {
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     recorder = FakeAudioRecorder();
     engine = FakeManagedEngine(supportedLocaleTags: ['en-US', 'de-DE']);
-    service = TranscriptionService(recorder: recorder, engine: engine, store: EntryStore(storage));
+    service = TranscriptionService(
+      recorder: recorder,
+      engine: engine,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+    );
     transcription = TranscriptionSettings(
       storage: storage,
       service: service,
@@ -82,6 +87,7 @@ void main() {
     required String deviceTag,
   }) async {
     final scopedService = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: recorder,
       engine: FakeManagedEngine(supportedLocaleTags: tags),
       store: EntryStore(storage),
@@ -247,6 +253,7 @@ void main() {
         installedLocaleTags: ['en-US'],
       );
       final multiService = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(),
         engine: multi,
         store: EntryStore(storage),
@@ -494,6 +501,7 @@ void main() {
 
   test('a load on a readiness-probing engine ends with honest rows', () async {
     final dictationService = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeDictationEngine(
         availability: const Availability(AvailabilityStatus.onDeviceUnavailable),
@@ -574,6 +582,7 @@ void main() {
   test('a degraded managed engine still reads as managing models', () async {
     final degraded = FakeStreamingEngine(maxReservedLocales: 0);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: degraded,
       store: EntryStore(storage),

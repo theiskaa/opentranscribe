@@ -78,6 +78,7 @@ void main() {
       final storage = LocalService();
       await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       service = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(),
         engine: FakeBatchEngine(),
         store: EntryStore(storage),
@@ -129,6 +130,7 @@ void main() {
       final storage = LocalService();
       await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
       final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: rec,
         engine: FakeBatchEngine(),
         store: EntryStore(storage),
@@ -158,6 +160,7 @@ void main() {
       File('${dir.path}/done.m4a').writeAsStringSync('audio');
       final gate = Completer<void>();
       final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
         recorder: FakeAudioRecorder(recordingsDir: dir.path),
         engine: FakeBatchEngine(),
         store: store,

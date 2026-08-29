@@ -1817,6 +1817,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
   String supportFooter(String privacy, String terms);
+
+  /// Entry menu row that records more onto this entry
+  ///
+  /// In en, this message translates to:
+  /// **'Record more'**
+  String get continueRecording;
+
+  /// Recorder line naming the entry the take extends
+  ///
+  /// In en, this message translates to:
+  /// **'Continuing {title}'**
+  String continuingEntry(String title);
+
+  /// Pill label when a continuation merged its audio but its words did not land
+  ///
+  /// In en, this message translates to:
+  /// **'New part not transcribed'**
+  String get continueUntranscribedLabel;
+
+  /// Sheet title for the untranscribed addition
+  ///
+  /// In en, this message translates to:
+  /// **'The new part wasn\'t transcribed'**
+  String get continueUntranscribedTitle;
+
+  /// Sheet body for the untranscribed addition
+  ///
+  /// In en, this message translates to:
+  /// **'The recording grew, but the words you just added didn\'t land. Re-transcribe to hear all of it.'**
+  String get continueUntranscribedBody;
+
+  /// Pill label and sheet title when a continuation could not land and the take became its own entry; the pill opens it
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new entry'**
+  String get continueSavedSeparatelyLabel;
+
+  /// Sheet body for a take saved separately
+  ///
+  /// In en, this message translates to:
+  /// **'The new take couldn\'t be joined onto this entry, so it was saved on its own.'**
+  String get continueSavedSeparatelyBody;
+
+  /// Recorder notice when the entry to continue is mid-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'This entry is still being transcribed.'**
+  String get continueEntryBusy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

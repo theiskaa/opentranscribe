@@ -284,5 +284,13 @@
   "supportUnlocksSection": "Pour les membres du club",
   "supportMemberUnlocks": "Ce que vous avez",
   "supporterTag": "Club",
-  "supportFooter": "Soutenir ne change rien à la confidentialité. Le journal ne quitte jamais le téléphone, comme le dit la {privacy}, et l'achat suit les {terms} standard d'Apple."
+  "supportFooter": "Soutenir ne change rien à la confidentialité. Le journal ne quitte jamais le téléphone, comme le dit la {privacy}, et l'achat suit les {terms} standard d'Apple.",
+  "continueRecording": "Enregistrer la suite",
+  "continuingEntry": "Suite de {title}",
+  "continueUntranscribedLabel": "Nouvelle partie non transcrite",
+  "continueUntranscribedTitle": "La nouvelle partie n'a pas été transcrite",
+  "continueUntranscribedBody": "L'enregistrement s'est allongé, mais les mots ajoutés n'ont pas été transcrits. Retranscrire pour tout entendre.",
+  "continueSavedSeparatelyLabel": "Enregistré comme nouvelle entrée",
+  "continueSavedSeparatelyBody": "La nouvelle prise n'a pas pu être jointe à cette entrée, elle a donc été enregistrée à part.",
+  "continueEntryBusy": "Cette entrée est encore en cours de transcription."
 }

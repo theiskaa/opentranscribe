@@ -998,4 +998,32 @@ class AppLocalizationsPt extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a $privacy, e a compra segue os $terms padrão da Apple.';
   }
+
+  @override
+  String get continueRecording => 'Gravar mais';
+
+  @override
+  String continuingEntry(String title) {
+    return 'A continuar $title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => 'Parte nova não transcrita';
+
+  @override
+  String get continueUntranscribedTitle => 'A parte nova não foi transcrita';
+
+  @override
+  String get continueUntranscribedBody =>
+      'A gravação cresceu, mas as palavras que acabou de acrescentar não foram transcritas. Retranscreva para ouvir tudo.';
+
+  @override
+  String get continueSavedSeparatelyLabel => 'Guardado como nova entrada';
+
+  @override
+  String get continueSavedSeparatelyBody =>
+      'A nova gravação não pôde ser junta a esta entrada, por isso foi guardada à parte.';
+
+  @override
+  String get continueEntryBusy => 'Esta entrada ainda está a ser transcrita.';
 }

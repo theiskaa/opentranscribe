@@ -57,4 +57,7 @@ abstract final class Routes {
   /// The recorder, a full-screen sheet over the shell.
   static const record = '/record';
   static const recordName = 'record';
+
+  /// Query key naming the entry a recorder take extends; absent for a fresh take.
+  static const recordEntryQuery = 'entry';
 }

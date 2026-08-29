@@ -18,6 +18,12 @@ enum EntriesError {
   onDeviceUnavailable,
   modelInstallFailed,
   reservationCap,
+
+  /// A continuation merged its audio but the new part's words did not land.
+  additionUntranscribed,
+
+  /// A continuation could not land and the take became its own entry.
+  savedSeparately,
   generic,
 }
 
@@ -26,22 +32,30 @@ enum EntriesError {
 /// another entry's screen.
 @immutable
 final class EntriesFailure {
-  const EntriesFailure({required this.entryId, required this.kind});
+  const EntriesFailure({required this.entryId, required this.kind, this.relatedId});
 
   final String entryId;
   final EntriesError kind;
 
-  @override
-  bool operator ==(Object other) =>
-      other is EntriesFailure && other.entryId == entryId && other.kind == kind;
+  /// Another entry the failure points at: for [EntriesError.savedSeparately],
+  /// the one the take became.
+  final String? relatedId;
 
   @override
-  int get hashCode => Object.hash(entryId, kind);
+  bool operator ==(Object other) =>
+      other is EntriesFailure &&
+      other.entryId == entryId &&
+      other.kind == kind &&
+      other.relatedId == relatedId;
+
+  @override
+  int get hashCode => Object.hash(entryId, kind, relatedId);
 }
 
 /// The in-flight action's kind. The transcript view dissolves into its shimmer
-/// only for a transcribe; a delete must not run it on the way out.
-enum EntriesAction { transcribe, delete }
+/// only for a transcribe; a delete must not run it on the way out, and a
+/// continuation must not dissolve the words either.
+enum EntriesAction { transcribe, delete, continueRecording }
 
 /// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesState {
@@ -101,10 +115,79 @@ class EntriesCubit extends Cubit<EntriesState> {
     // scenes; without this, an open detail screen keeps offering the player
     // and re-transcribe for a file that no longer exists.
     _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
+    _continuationsSub = _service.continuations.listen(_onContinuation, onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   late final StreamSubscription<void> _changesSub;
+  late final StreamSubscription<ContinuationOutcome> _continuationsSub;
+
+  /// Whether a take may extend [entry] now: no action of its own in flight
+  /// and the bulk runner not on it (the service would refuse at the mic).
+  bool canContinue(Entry entry) =>
+      state.busyId != entry.id && _service.retranscribeAll.state.currentEntryId != entry.id;
+
+  /// Marks [entry] busy before its recorder sheet is pushed, so the detail
+  /// behind it already shows the take in flight. The service's outcome clears
+  /// it, whatever the take's ending; [clearContinuing] is for a sheet that
+  /// never asked the service at all. False when [canContinue] refuses.
+  bool markContinuing(Entry entry) {
+    if (!canContinue(entry)) return false;
+    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.continueRecording));
+    return true;
+  }
+
+  /// Drops a failure the user has acted on; a kind with no retry (a take kept
+  /// apart) would otherwise pulse until some later landing.
+  void dismissFailure(String entryId) {
+    if (state.error?.entryId != entryId) return;
+    emit(state.copyWith(clearError: true));
+  }
+
+  void clearContinuing(String entryId) {
+    if (state.busyId != entryId || state.busyAction != EntriesAction.continueRecording) return;
+    emit(state.copyWith(clearBusy: true));
+  }
+
+  void _onContinuation(ContinuationOutcome outcome) {
+    if (isClosed) return;
+    // Only this continuation's own mark: a refused start's outcome must not
+    // clear the re-transcription that refused it.
+    final clearBusy =
+        state.busyId == outcome.baseId && state.busyAction == EntriesAction.continueRecording;
+    switch (outcome) {
+      // A discard changed no record.
+      case ContinuationDiscarded():
+        emit(state.copyWith(clearBusy: clearBusy));
+      case ContinuationLanded(additionUntranscribed: true):
+        emit(
+          _failure(
+            outcome.baseId,
+            EntriesError.additionUntranscribed,
+          ).copyWith(entries: _service.entries(), clearBusy: clearBusy),
+        );
+      case ContinuationLanded():
+        emit(
+          state.copyWith(
+            entries: _service.entries(),
+            clearBusy: clearBusy,
+            clearError: state.error?.entryId == outcome.baseId,
+          ),
+        );
+      case ContinuationFellBack(entry: null):
+        // The take's own save failed too; that failure surfaces on the
+        // recorder, and no new entry exists for a pill to point at.
+        emit(state.copyWith(entries: _service.entries(), clearBusy: clearBusy));
+      case ContinuationFellBack(:final entry?):
+        emit(
+          _failure(
+            outcome.baseId,
+            EntriesError.savedSeparately,
+            relatedId: entry.id,
+          ).copyWith(entries: _service.entries(), clearBusy: clearBusy),
+        );
+    }
+  }
 
   void load() {
     if (isClosed) return;
@@ -167,6 +250,9 @@ class EntriesCubit extends Cubit<EntriesState> {
   }
 
   Future<void> delete(Entry entry) async {
+    // A take is extending this entry: the landing needs its file, and the
+    // delete would wipe the take's busy mark.
+    if (state.busyId == entry.id) return;
     emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.delete));
     try {
       await _service.deleteEntry(entry);
@@ -212,10 +298,12 @@ class EntriesCubit extends Cubit<EntriesState> {
     );
   }
 
+  EntriesState _withFailure(Entry entry, Object e) => _failure(entry.id, _kind(e));
+
   /// One failure landing: the error pinned to its entry plus the tick bump
   /// that lets a surface re-announce a repeat of the same failure.
-  EntriesState _withFailure(Entry entry, Object e) => state.copyWith(
-    error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
+  EntriesState _failure(String entryId, EntriesError kind, {String? relatedId}) => state.copyWith(
+    error: EntriesFailure(entryId: entryId, kind: kind, relatedId: relatedId),
     errorTick: state.errorTick + 1,
   );
 
@@ -236,6 +324,7 @@ class EntriesCubit extends Cubit<EntriesState> {
   @override
   Future<void> close() async {
     await _changesSub.cancel();
+    await _continuationsSub.cancel();
     return super.close();
   }
 }
