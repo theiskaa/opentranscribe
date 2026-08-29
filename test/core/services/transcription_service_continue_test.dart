@@ -376,16 +376,123 @@ void main() {
     await svc.dispose();
   });
 
-  test('a transcript-only base cannot be continued', () async {
-    await seedBase(transcript: heard('a'));
+  test('a base without a recording takes the take as its file and its words untimed', () async {
+    await seedBase(transcript: heard('old words'));
     await store.save(store.read('base')!.withoutAudio());
-    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final svc = build(FakeBatchEngine(cannedText: 'new words'));
 
-    await expectLater(
-      () => svc.startRecording(continuing: store.read('base')),
-      throwsA(isA<ContinuationRefused>()),
+    await svc.startRecording(continuing: store.read('base'));
+    final landed = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(landed.id, 'base');
+    expect(landed.audioPath, 'tail.m4a');
+    expect(landed.duration, tailDuration);
+    expect(landed.transcript?.fullText, 'old words new words');
+    expect(landed.transcript?.segments, isEmpty);
+    expect(landed.languageSpans, isNull);
+    expect(composer.calls, isEmpty);
+    expect(tailFile.existsSync(), isTrue);
+    expect(store.read('base')?.audioPath, 'tail.m4a');
+
+    await svc.dispose();
+  });
+
+  test('a base without a recording or transcript grows its typed words with the take', () async {
+    await seedBase(
+      revisions: [Revision(text: 'typed', at: fixedClock)],
     );
-    expect(svc.isRecording, isFalse);
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(cannedText: 'heard'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    final landed = await svc.stopRecording();
+
+    expect(landed.audioPath, 'tail.m4a');
+    expect(landed.transcript?.fullText, 'heard');
+    expect(landed.transcript?.segments, isNotEmpty);
+    expect(landed.readableText, 'typed heard');
+    expect(landed.revisions?.map((r) => r.text), ['typed', 'typed heard']);
+    expect(landed.head?.isHand, isTrue);
+
+    await svc.dispose();
+  });
+
+  test('a base without a recording continued in another language reads as that language', () async {
+    await seedBase(transcript: heard('old'));
+    await store.save(store.read('base')!.withoutAudio());
+    final engine = FakeBatchEngine(cannedText: 'nouveau', supportedLocaleTags: ['en-US', 'fr-FR']);
+    final svc = build(engine);
+
+    await svc.startRecording(continuing: store.read('base'), localeId: 'fr-FR');
+    final landed = await svc.stopRecording();
+
+    expect(landed.transcript?.fullText, 'old [fr] nouveau');
+    expect(landed.effectiveLocaleId, 'fr-FR');
+    final again = await svc.retranscribe(landed);
+    expect(engine.batchCalls.last.localeId, 'fr-FR');
+    expect(again.transcript?.localeId, 'fr-FR');
+
+    await svc.dispose();
+  });
+
+  test('a base without a recording whose take was not transcribed keeps the take apart', () async {
+    await seedBase(transcript: heard('old'));
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(failBatch: true));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final saved = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(saved.id, 'id-0');
+    expect(saved.audioPath, 'tail.m4a');
+    expect(saved.transcript, isNull);
+    expect(store.read('base')?.audioPath, isNull);
+    expect(store.read('base')?.transcript?.fullText, 'old');
+    expect(
+      outcomes.single,
+      ContinuationFellBack(
+        baseId: 'base',
+        reason: ContinuationFallback.untranscribed,
+        entry: saved,
+      ),
+    );
+
+    await svc.dispose();
+  });
+
+  test('a base without a recording deleted mid-take files the take alone', () async {
+    await seedBase(transcript: heard('old'));
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(cannedText: 'new'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.deleteEntry(store.read('base')!);
+    final saved = await svc.stopRecording();
+
+    expect(saved.id, 'id-0');
+    expect(saved.transcript?.fullText, 'new');
+    expect(tailFile.existsSync(), isTrue);
+
+    await svc.dispose();
+  });
+
+  test('keep-audio off returns a base that had no recording to transcript-only', () async {
+    await seedBase(transcript: heard('old'));
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(cannedText: 'new'), keepAudio: () => false);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    final stored = store.read('base')!;
+    expect(stored.audioPath, isNull);
+    expect(stored.transcript?.fullText, 'old new');
+    expect(tailFile.existsSync(), isFalse);
 
     await svc.dispose();
   });
@@ -672,16 +779,18 @@ void main() {
 
   test('a refused or failed start ends the continuation with a discard', () async {
     await seedBase(transcript: heard('a'));
-    await store.save(store.read('base')!.withoutAudio());
-    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final gate = Completer<void>();
+    final svc = build(FakeBatchEngine(cannedText: 'b', gate: gate.future));
     final outcomes = <ContinuationOutcome>[];
     svc.continuations.listen(outcomes.add);
 
+    final batching = svc.retranscribe(store.read('base')!);
     await expectLater(
       () => svc.startRecording(continuing: store.read('base')),
       throwsA(isA<ContinuationRefused>()),
     );
-    await store.save(store.read('base')!.withAudioPath('base.m4a'));
+    gate.complete();
+    await batching;
     recorder.throwOnStart = true;
     await expectLater(
       () => svc.startRecording(continuing: store.read('base')),

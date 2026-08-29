@@ -496,8 +496,9 @@ class TranscriptionService {
   ///
   /// With [continuing], the take extends that entry instead of becoming one:
   /// its stop merges the new audio onto the entry's kept file and grows the
-  /// transcript (see [continuations]). The entry must have audio and must not
-  /// be mid-batch, else [ContinuationRefused]; it is claimed against
+  /// transcript (see [continuations]). An entry without a recording takes the
+  /// take as its file and its words untimed after the old ones. The entry
+  /// must not be mid-batch, else [ContinuationRefused]; it is claimed against
   /// re-transcription from here until the landing. [localeId] opens the session in that
   /// language instead of the service default.
   Future<void> startRecording({Entry? continuing, String? localeId}) async {
@@ -505,10 +506,6 @@ class TranscriptionService {
       throw StateError('already recording');
     }
     if (continuing != null) {
-      if (!continuing.hasAudio) {
-        _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
-        throw ContinuationRefused('entry ${continuing.id} is transcript-only');
-      }
       if (!_retranscribing.add(continuing.id) && continuing.id != _restartingId) {
         if (!_landingIds.contains(continuing.id)) {
           _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
@@ -856,6 +853,7 @@ class TranscriptionService {
           spans: spans,
           sessionLocale: sessionLocale,
           transcribe: transcribe,
+          salvaged: salvaged,
           salvage: liveText.isEmpty ? null : salvage,
         );
         switch (landing) {
@@ -945,13 +943,15 @@ class TranscriptionService {
     if (!_continuations.isClosed) _continuations.add(outcome);
   }
 
-  /// Lands a continuation on its base: merges the files, grows the record,
+  /// Lands a continuation on its base: merges the files (a base without a
+  /// file adopts the take instead and removes nothing), grows the record,
   /// saves, then removes the two inputs. Runs inside the [_finalizingCaptures]
   /// window. The base record and file are untouched until the merged file is
   /// on disk and the record saved; a kill before that leaves the tail an
   /// orphan, after it leaves the two inputs as stale files. Either is swept;
   /// audio is never lost. Falls back when the base is gone or changed files,
-  /// or the merge or the save failed; the caller then files the tail alone.
+  /// the merge or the save failed, or a base without a file got no words to
+  /// add; the caller then files the tail alone.
   Future<_Landing> _landContinuation(
     Entry base,
     Recording recording, {
@@ -959,42 +959,43 @@ class TranscriptionService {
     required List<({int startMs, String tag})> spans,
     required String? sessionLocale,
     required bool transcribe,
+    required bool salvaged,
     required Transcript Function()? salvage,
   }) async {
     final stored = _store.read(base.id);
-    final basePath = stored?.audioPath;
-    if (stored == null || basePath == null) return const _FellBack(ContinuationFallback.deleted);
-    final Composition merged;
-    final String mergedPath;
-    try {
-      // The directory first: a channel failure must land before anything is written.
-      await _resolveAudioPath(basePath);
-      merged = await _composer.concatenate([baseName(basePath), baseName(recording.path)]);
-      mergedPath = await _resolveAudioPath(merged.name);
-    } catch (_) {
-      return const _FellBack(ContinuationFallback.mergeFailed);
-    }
+    if (stored == null) return const _FellBack(ContinuationFallback.deleted);
+    final basePath = stored.audioPath;
+    final baseHadAudio = basePath != null;
+    final file = await _mergeOrAdopt(basePath, recording);
+    if (file == null) return const _FellBack(ContinuationFallback.mergeFailed);
 
-    final offset = merged.starts[1];
+    final tailSpans = [
+      for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag),
+    ];
     final tailLocale = tail?.localeId ?? (spans.isNotEmpty ? spans.first.tag : sessionLocale);
-    final baseLocale = stored.effectiveLocaleId ?? tailLocale ?? localeId;
-    final newSpans = extendSpans(
-      base: stored.languageSpans,
-      baseLocaleId: baseLocale,
-      offset: offset,
-      tail: [for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag)],
-    );
+    // A merged file starts in the base's language; an adopted one IS the take.
+    final baseLocale = baseHadAudio
+        ? stored.effectiveLocaleId ?? tailLocale ?? localeId
+        : tailLocale ?? stored.effectiveLocaleId ?? localeId;
+    final newSpans = baseHadAudio
+        ? extendSpans(
+            base: stored.languageSpans,
+            baseLocaleId: baseLocale,
+            offset: file.offset,
+            tail: tailSpans,
+          )
+        : (tailSpans.length > 1 ? tailSpans : null);
     // Never heard: the stitch has nothing to grow, so the merged file gets the
     // pass the base was owed. A failure leaves it untranscribed, as it was.
     Transcript? whole;
     if (stored.transcript == null && transcribe) {
       try {
-        final file = File(mergedPath);
+        final audio = File(file.path);
         whole = newSpans != null
-            ? await _segmentedBatch(_engine, file, merged.duration, [
+            ? await _segmentedBatch(_engine, audio, file.duration, [
                 for (final span in newSpans) (startMs: span.startMs, tag: span.localeId),
               ])
-            : await _batch(_engine, file, merged.duration, localeId: baseLocale);
+            : await _batch(_engine, audio, file.duration, localeId: baseLocale);
       } catch (_) {
         whole = null;
       }
@@ -1005,65 +1006,124 @@ class TranscriptionService {
     // the save.
     final fresh = _store.read(base.id);
     if (fresh == null || fresh.audioPath != basePath) {
-      try {
-        await _deleteFile(File(mergedPath));
-      } catch (_) {
-        // Unreferenced; the sweep reconsiders it.
-      }
+      if (baseHadAudio) await _dropMerge(file.path);
       return const _FellBack(ContinuationFallback.deleted);
     }
-    var updated = fresh.withRecording(merged.name, merged.duration).withLanguageSpans(newSpans);
+    var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(newSpans);
     var additionUntranscribed = false;
+    var wordsLanded = false;
+    final now = _clock();
     final baseTranscript = fresh.transcript;
     if (baseTranscript == null) {
-      if (whole == null && salvage != null) {
-        // The live pass understood what the file pass could not: the take's
-        // words stand in, untimed, and the base's minutes wait for a re-hear.
-        updated = updated.withTranscript(salvage());
-      } else if (whole == null) {
+      final heard = whole ?? (salvage == null ? null : salvage());
+      if (heard == null) {
         additionUntranscribed = true;
-      } else {
-        updated = updated.withTranscript(whole);
+      } else if (baseHadAudio || fresh.revisions == null) {
+        // The whole file re-heard (or a take with nothing typed before it):
+        // the transcript is the pass, and any typed words it replaces go to
+        // history as a re-transcription's would.
+        updated = updated.withTranscript(heard);
         final history = _revisionsWithBase(fresh);
-        final heardNothing = whole.fullText.trim().isEmpty;
-        if (history.isNotEmpty && !heardNothing && !sameWords(history.last.text, whole.fullText)) {
-          updated = updated.withRevisions([...history, Revision.ofTranscript(whole)]);
+        final heardNothing = heard.fullText.trim().isEmpty;
+        wordsLanded = !heardNothing;
+        if (history.isNotEmpty && !heardNothing && !sameWords(history.last.text, heard.fullText)) {
+          updated = updated.withRevisions([...history, Revision.ofTranscript(heard)]);
         }
+      } else {
+        // Only the take was heard; the typed words stay and grow.
+        final marker = seamMarker(stored: fresh, tailLocaleId: heard.localeId);
+        updated = updated.withTranscript(heard);
+        wordsLanded = heard.fullText.trim().isNotEmpty;
+        final revisions = continuedRevisions(stored: fresh, tail: heard, marker: marker, now: now);
+        if (revisions != null) updated = updated.withRevisions(revisions);
       }
     } else if (tail == null || tailLocale == null) {
       additionUntranscribed = true;
     } else {
       final marker = seamMarker(stored: fresh, tailLocaleId: tailLocale);
-      final now = _clock();
-      updated = updated.withTranscript(
-        stitchTranscript(
-          base: baseTranscript,
-          tail: tail,
-          offset: offset,
-          marker: marker,
-          now: now,
-        ),
+      final stitched = stitchTranscript(
+        base: baseTranscript,
+        tail: tail,
+        offset: file.offset,
+        marker: marker,
+        now: now,
       );
+      // Old words whose audio is gone keep no timings; a blank base leaves the
+      // take alone, and the file is the take, so its timings hold.
+      final keepTimings = baseHadAudio || baseTranscript.fullText.trim().isEmpty;
+      updated = updated.withTranscript(
+        keepTimings ? stitched : untimed(stitched, localeId: tailLocale),
+      );
+      wordsLanded = tail.fullText.trim().isNotEmpty;
       final revisions = continuedRevisions(stored: fresh, tail: tail, marker: marker, now: now);
       if (revisions != null) updated = updated.withRevisions(revisions);
+    }
+    // A base without a file only lands when the take's words did: landing its
+    // audio alone would leave a retry that re-hears the take and replaces the
+    // old words. The take stays its own entry, with its own Transcribe.
+    if (!baseHadAudio && additionUntranscribed) {
+      return const _FellBack(ContinuationFallback.untranscribed);
     }
 
     try {
       await _store.save(updated);
     } catch (_) {
-      try {
-        await _deleteFile(File(mergedPath));
-      } catch (_) {
-        // Unreferenced; the sweep reconsiders it.
-      }
+      if (baseHadAudio) await _dropMerge(file.path);
       return const _FellBack(ContinuationFallback.saveFailed);
     }
     _lastContinuedId = updated.id;
-    await _deleteReplaced(basePath);
-    await _deleteReplaced(recording.path);
-    unawaited(_backfillPeaks(updated));
+    if (baseHadAudio) {
+      await _deleteReplaced(basePath);
+      await _deleteReplaced(recording.path);
+    }
+    // No merged history to protect here: a base that had no recording follows
+    // the fresh-take rule, and a salvaged text keeps its only way back.
+    final discard = !baseHadAudio && wordsLanded && !salvaged && !_keepAudio();
+    unawaited(
+      _backfillPeaks(updated).then((_) async {
+        if (discard) await _discardAudio(updated.id);
+      }),
+    );
     _notifyEntriesChanged();
     return _Landed(updated, additionUntranscribed: additionUntranscribed);
+  }
+
+  /// The file a landing grows onto: the merge of the base and the take, or
+  /// the take itself when the base has no file. Null when the directory or
+  /// the merge failed, with nothing written.
+  Future<({String name, Duration duration, Duration offset, String path})?> _mergeOrAdopt(
+    String? basePath,
+    Recording recording,
+  ) async {
+    try {
+      if (basePath == null) {
+        return (
+          name: recording.path,
+          duration: recording.duration,
+          offset: Duration.zero,
+          path: await _resolveAudioPath(recording.path),
+        );
+      }
+      // The directory first: a channel failure must land before anything is written.
+      await _resolveAudioPath(basePath);
+      final merged = await _composer.concatenate([baseName(basePath), baseName(recording.path)]);
+      return (
+        name: merged.name,
+        duration: merged.duration,
+        offset: merged.starts[1],
+        path: await _resolveAudioPath(merged.name),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _dropMerge(String path) async {
+    try {
+      await _deleteFile(File(path));
+    } catch (_) {
+      // Unreferenced; the sweep reconsiders it.
+    }
   }
 
   /// Removes a file a landing superseded, unless some record still names it
@@ -2167,7 +2227,7 @@ class TranscriptionService {
 }
 
 /// Why a continuation filed its take as a separate entry instead of landing.
-enum ContinuationFallback { deleted, mergeFailed, saveFailed }
+enum ContinuationFallback { deleted, mergeFailed, saveFailed, untranscribed }
 
 /// One continuation's ending; see [TranscriptionService.continuations].
 @immutable

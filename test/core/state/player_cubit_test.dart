@@ -435,4 +435,32 @@ void main() {
     await cubit.close();
     await service.dispose();
   });
+
+  test('a rebind after a discard leaves the player able to play the new file', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = LocalService();
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+    final service = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: FakeAudioRecorder(recordingsDir: '/tmp/recordings'),
+      engine: FakeBatchEngine(),
+      store: EntryStore(storage),
+    );
+    final player = FakeAudioPlayer();
+    final cubit = PlayerCubit(player: player, service: service);
+    final entry = Entry(
+      id: 'e1',
+      createdAt: DateTime.utc(2026, 7, 23),
+      audioPath: 'e1.m4a',
+      duration: const Duration(seconds: 30),
+    );
+
+    await cubit.rebind();
+    await cubit.rebind();
+    await cubit.toggle(entry);
+
+    expect(player.calls, contains('play'));
+    await cubit.close();
+    await service.dispose();
+  });
 }

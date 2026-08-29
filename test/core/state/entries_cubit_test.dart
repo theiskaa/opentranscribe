@@ -519,14 +519,19 @@ void main() {
     test('a refused start clears the mark and leaves no error', () async {
       final cubit = await seeded();
       final base = cubit.state.entries.single;
-      await service.deleteEntry(base);
+      final gate = Completer<void>();
+      final held = FakeBatchEngine(gate: gate.future);
+      service.useEngine(held);
+      final batching = service.retranscribe(base);
 
       cubit.markContinuing(base);
       await expectLater(
-        () => service.startRecording(continuing: base.withoutAudio()),
+        () => service.startRecording(continuing: base),
         throwsA(isA<ContinuationRefused>()),
       );
       await pumpEventQueue();
+      gate.complete();
+      await batching;
 
       expect(cubit.state.busyId, isNull);
       expect(cubit.state.error, isNull);

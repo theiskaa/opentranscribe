@@ -70,6 +70,16 @@ Transcript stitchTranscript({
   );
 }
 
+/// [t] with its timings dropped, for words whose audio no longer exists, and
+/// stamped [localeId], the language of the file that remains.
+Transcript untimed(Transcript t, {required String localeId}) => Transcript(
+  fullText: t.fullText,
+  segments: const [],
+  localeId: localeId,
+  engineId: t.engineId,
+  createdAt: t.createdAt,
+);
+
 TranscriptSegment _shift(TranscriptSegment s, Duration by) =>
     TranscriptSegment(text: s.text, start: s.start + by, end: s.end + by, confidence: s.confidence);
 
