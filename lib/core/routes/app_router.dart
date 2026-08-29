@@ -126,8 +126,12 @@ class AppRouter {
       GoRoute(
         path: Routes.record,
         name: Routes.recordName,
-        pageBuilder: (context, state) =>
-            SlideUpPage<void>(key: state.pageKey, child: const RecorderScreen()),
+        pageBuilder: (context, state) => SlideUpPage<void>(
+          key: state.pageKey,
+          child: RecorderScreen(
+            continueEntryId: state.uri.queryParameters[Routes.recordEntryQuery],
+          ),
+        ),
       ),
     ],
   );
@@ -149,7 +153,7 @@ class AppRouter {
 bool canOpenRecorder({required List<String> stack, required bool onboardingDone}) {
   if (!onboardingDone) return false;
   if (stack.isEmpty) return false;
-  return !stack.contains(Routes.record);
+  return !stack.any((location) => Uri.parse(location).path == Routes.record);
 }
 
 /// First-run users land in onboarding; finished users can never re-enter it.

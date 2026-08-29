@@ -665,7 +665,9 @@ String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
-  EntriesError.generic => l10n.transcribeErrorLabelGeneric,
+  EntriesError.generic ||
+  EntriesError.additionUntranscribed ||
+  EntriesError.savedSeparately => l10n.transcribeErrorLabelGeneric,
 };
 
 /// The reeed-style inline rename: the title IS a borderless text field in the

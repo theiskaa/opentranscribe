@@ -36,7 +36,10 @@ const double _columnInset = AppSpacing.xxxl + AppSpacing.sm;
 /// first. A denied microphone renders as a persistent in-screen state, not a
 /// dialog.
 class RecorderScreen extends StatefulWidget {
-  const RecorderScreen({super.key});
+  const RecorderScreen({super.key, this.continueEntryId});
+
+  /// The entry this take extends, from the route's query; null for a fresh take.
+  final String? continueEntryId;
 
   @override
   State<RecorderScreen> createState() => _RecorderScreenState();
