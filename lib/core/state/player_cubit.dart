@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,6 +29,21 @@ int? activeSegmentIndex(List<TranscriptSegment> segments, Duration position) {
   return latestBegun;
 }
 
+/// Lays [old] over the first [keep] (0..1) of the same bucket count, flat
+/// after; each kept bucket takes the loudest of the old ones it covers. Pure.
+List<double> prefixedPeaks(List<double> old, double keep) {
+  if (old.isEmpty) return const [];
+  final n = old.length;
+  final kept = (n * keep.clamp(0.0, 1.0)).round();
+  return [
+    for (var i = 0; i < n; i++)
+      if (i < kept)
+        old.sublist((i * n) ~/ kept, ((i + 1) * n) ~/ kept).fold(0.0, math.max)
+      else
+        0.0,
+  ];
+}
+
 /// What the player bar renders.
 @immutable
 final class PlayerState {
@@ -36,6 +52,7 @@ final class PlayerState {
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.peaks = const [],
+    this.provisional = false,
     this.rate = 1,
     this.failed = false,
   });
@@ -48,6 +65,10 @@ final class PlayerState {
   /// until it arrives, and empty for good if the file could not be read: the
   /// wave draws itself flat rather than inventing a shape.
   final List<double> peaks;
+
+  /// [peaks] stand in for a file not yet read: the old recording's shape over
+  /// the part of the new file it became, flat after. Replaced by the read.
+  final bool provisional;
 
   /// Playback speed, one of [playbackRates].
   final double rate;
@@ -70,16 +91,18 @@ final class PlayerState {
       other.duration == duration &&
       other.rate == rate &&
       other.failed == failed &&
+      other.provisional == provisional &&
       identical(other.peaks, peaks);
 
   @override
-  int get hashCode => Object.hash(status, position, duration, rate, failed, peaks);
+  int get hashCode => Object.hash(status, position, duration, rate, failed, provisional, peaks);
 
   PlayerState copyWith({
     PlaybackStatus? status,
     Duration? position,
     Duration? duration,
     List<double>? peaks,
+    bool? provisional,
     double? rate,
     bool? failed,
   }) => PlayerState(
@@ -87,6 +110,7 @@ final class PlayerState {
     position: position ?? this.position,
     duration: duration ?? this.duration,
     peaks: peaks ?? this.peaks,
+    provisional: provisional ?? this.provisional,
     rate: rate ?? this.rate,
     failed: failed ?? this.failed,
   );
@@ -99,10 +123,14 @@ final class PlayerState {
 // The fields are private (a cubit owns its collaborators) and the constructor
 // must call super(state), so initializing formals do not apply.
 class PlayerCubit extends Cubit<PlayerState> {
-  PlayerCubit({required AudioPlayer player, required TranscriptionService service})
-    : _player = player,
-      _service = service,
-      super(const PlayerState()) {
+  PlayerCubit({
+    required AudioPlayer player,
+    required TranscriptionService service,
+    Duration provisionalGrace = const Duration(seconds: 2),
+  }) : _player = player,
+       _service = service,
+       _provisionalGrace = provisionalGrace,
+       super(const PlayerState()) {
     _sub = _player.state.listen((snapshot) {
       if (isClosed) return;
       emit(
@@ -120,6 +148,7 @@ class PlayerCubit extends Cubit<PlayerState> {
 
   final AudioPlayer _player;
   final TranscriptionService _service;
+  final Duration _provisionalGrace;
   late final StreamSubscription<PlaybackState> _sub;
   bool _detached = false;
 
@@ -133,17 +162,25 @@ class PlayerCubit extends Cubit<PlayerState> {
   /// A failure is quiet: the wave stays flat and playback is unaffected,
   /// since reading a file and playing it are independent of each other.
   Future<void> loadPeaks(Entry entry, {int buckets = _peakBuckets}) async {
-    if (state.peaks.isNotEmpty) return;
+    if (state.peaks.isNotEmpty && !state.provisional) return;
     final stored = entry.peaks;
     if (stored != null && stored.isNotEmpty) {
-      emit(state.copyWith(peaks: [for (final v in stored) v / 255]));
+      emit(state.copyWith(peaks: [for (final v in stored) v / 255], provisional: false));
       return;
+    }
+    // A stand-in shape means a landing just replaced the file and the service
+    // is reading it already; its write reaches the entry and this runs again.
+    // Past the grace it reads for itself, so a lost write never leaves the
+    // wave half flat.
+    if (state.provisional) {
+      await Future<void>.delayed(_provisionalGrace);
+      if (isClosed || _detached || !state.provisional) return;
     }
     try {
       final path = await _service.resolveAudioPath(entry);
       final peaks = await _player.peaks(path, buckets: buckets);
       if (isClosed || _detached) return;
-      emit(state.copyWith(peaks: peaks));
+      emit(state.copyWith(peaks: peaks, provisional: false));
       // Backfill the record so the next open skips the decode entirely.
       unawaited(_service.saveEntryPeaks(entry, peaks));
     } catch (_) {
@@ -241,13 +278,16 @@ class PlayerCubit extends Cubit<PlayerState> {
     }
   }
 
-  /// Silences playback and forgets the loaded shape: the entry's file was
-  /// replaced under the screen (a continuation landing), and the wave reads
-  /// the new one on its next mount. Safe to call with nothing playing.
-  Future<void> rebind() async {
-    // Forgotten first: a wave remounting in this same frame must find no
-    // shape to skip loading over.
-    emit(PlayerState(rate: _rate));
+  /// Silences playback and rebinds to a replaced file (a continuation
+  /// landing). With [keep], the fraction of the new file the old one became,
+  /// the old shape stays over that part and the rest lies flat until the wave
+  /// reads the new file; without it the shape is forgotten outright. Safe to
+  /// call with nothing playing.
+  Future<void> rebind({double? keep}) async {
+    // First, before the await: a wave remounting in this same frame must find
+    // nothing final to skip loading over.
+    final held = keep == null ? const <double>[] : prefixedPeaks(state.peaks, keep);
+    emit(PlayerState(rate: _rate, peaks: held, provisional: held.isNotEmpty));
     await silence();
   }
 

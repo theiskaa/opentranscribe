@@ -74,6 +74,15 @@ class _WavePlayerState extends State<WavePlayer> {
     });
   }
 
+  @override
+  void didUpdateWidget(WavePlayer old) {
+    super.didUpdateWidget(old);
+    // The service's backfill landed the shape this wave was waiting for.
+    if (old.entry.peaks == null && widget.entry.peaks != null) {
+      context.read<PlayerCubit>().loadPeaks(widget.entry);
+    }
+  }
+
   double _fractionOf(Duration position, Duration duration) {
     if (duration == Duration.zero) return 0;
     return (position.inMicroseconds / duration.inMicroseconds).clamp(0.0, 1.0);
