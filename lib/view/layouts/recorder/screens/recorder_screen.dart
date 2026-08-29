@@ -49,6 +49,17 @@ class RecorderScreen extends StatefulWidget {
 
 class _RecorderScreenState extends State<RecorderScreen> {
   Animation<double>? _entrance;
+  EntriesCubit? _entries;
+
+  /// Whether this sheet reached the cubit. Closed before the rise settles,
+  /// it never did, and the mark the detail set has no outcome coming.
+  bool _asked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _entries = context.read<EntriesCubit>();
+  }
 
   @override
   void initState() {
@@ -89,6 +100,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     // isBusy here refused to start on exactly the states it knows how to heal,
     // and the screen sat dead with the last take's clock and text on it.
     final cubit = context.read<RecorderCubit>();
+    _asked = true;
     final id = widget.continueEntryId;
     if (id == null) {
       cubit.start();
@@ -137,6 +149,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
   @override
   void dispose() {
     _entrance?.removeStatusListener(_onEntrance);
+    final id = widget.continueEntryId;
+    if (!_asked && id != null) _entries?.clearContinuing(id);
     super.dispose();
   }
 
