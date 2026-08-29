@@ -194,6 +194,15 @@ class TranscriptionService {
   /// and the base was never this take's to discard.
   String? _lastContinuedId;
 
+  /// Bases whose landings are in flight. A second ask for one is refused
+  /// without a discard: that outcome would clear the mark the landing owns.
+  final Set<String> _landingIds = {};
+
+  /// A base whose take is being restarted: the claim and the mark survive
+  /// the cancel, and the restarted start re-enters the claim instead of
+  /// being refused by it.
+  String? _restartingId;
+
   final StreamController<ContinuationOutcome> _continuations =
       StreamController<ContinuationOutcome>.broadcast();
 
@@ -500,10 +509,13 @@ class TranscriptionService {
         _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
         throw ContinuationRefused('entry ${continuing.id} is transcript-only');
       }
-      if (!_retranscribing.add(continuing.id)) {
-        _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
+      if (!_retranscribing.add(continuing.id) && continuing.id != _restartingId) {
+        if (!_landingIds.contains(continuing.id)) {
+          _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
+        }
         throw ContinuationRefused('entry ${continuing.id} is busy');
       }
+      _restartingId = null;
     }
     // Claimed before the first await: without this, two concurrent starts would
     // both pass the _recording check, double-subscribe, and double-start capture.
@@ -763,6 +775,7 @@ class TranscriptionService {
     final continuation = _continuation;
     _continuation = null;
     _lastContinuedId = null;
+    if (continuation != null) _landingIds.add(continuation.id);
     // Every continuation ends in exactly one outcome; a throw before any
     // landed or fell back is a discard.
     var settled = continuation == null;
@@ -798,11 +811,14 @@ class TranscriptionService {
       // the file, but persist the reference verbatim so it survives a backup/restore.
       Transcript? transcript;
       var salvaged = false;
-      // A base never transcribed gets one pass over the whole merged file at
-      // the landing; a tail pass now would only be thrown away.
-      final baseStored = continuation == null ? null : _store.read(continuation.id);
-      final baseUnheard = baseStored != null && baseStored.transcript == null;
-      if (transcribe && !baseUnheard) {
+      Transcript salvage() => Transcript(
+        fullText: liveText,
+        segments: const [],
+        localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
+        engineId: _engine.id,
+        createdAt: _clock(),
+      );
+      Future<void> batchTail() async {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
           transcript = spans.length > 1
@@ -821,15 +837,15 @@ class TranscriptionService {
         // regardless of the preference so a better pass can replace this one.
         if (liveText.isNotEmpty && (transcript?.fullText.trim().isEmpty ?? true)) {
           salvaged = true;
-          transcript = Transcript(
-            fullText: liveText,
-            segments: const [],
-            localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
-            engineId: _engine.id,
-            createdAt: _clock(),
-          );
+          transcript = salvage();
         }
       }
+
+      // A base never transcribed gets one pass over the whole merged file at
+      // the landing; a tail pass now would only be thrown away.
+      final baseStored = continuation == null ? null : _store.read(continuation.id);
+      final baseUnheard = baseStored != null && baseStored.transcript == null;
+      if (transcribe && !baseUnheard) await batchTail();
 
       ContinuationFallback? fallback;
       if (continuation != null) {
@@ -840,6 +856,7 @@ class TranscriptionService {
           spans: spans,
           sessionLocale: sessionLocale,
           transcribe: transcribe,
+          salvage: liveText.isEmpty ? null : salvage,
         );
         switch (landing) {
           case _Landed(:final entry, :final additionUntranscribed):
@@ -849,8 +866,10 @@ class TranscriptionService {
             );
             return entry;
           case _FellBack(:final reason):
-            // Nothing lost: the tail becomes its own entry through the path below.
+            // Nothing lost: the tail becomes its own entry through the path
+            // below, with the pass it was owed.
             fallback = reason;
+            if (transcribe && baseUnheard) await batchTail();
         }
       }
 
@@ -897,8 +916,8 @@ class TranscriptionService {
       // An empty landing keeps the audio: it is the only path back to the words.
       // So does a salvaged one: its text is the live stream's approximation, and
       // the audio is the only way a real batch can ever replace it.
-      final discard =
-          !salvaged && transcript != null && transcript.fullText.trim().isNotEmpty && !_keepAudio();
+      final settledText = transcript?.fullText.trim() ?? '';
+      final discard = !salvaged && settledText.isNotEmpty && !_keepAudio();
       unawaited(
         _backfillPeaks(entry).then((_) async {
           if (discard) await _discardAudio(entry.id);
@@ -916,6 +935,7 @@ class TranscriptionService {
       _finalizingCaptures--;
       if (continuation != null) {
         _retranscribing.remove(continuation.id);
+        _landingIds.remove(continuation.id);
         if (!settled) _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
       }
     }
@@ -939,6 +959,7 @@ class TranscriptionService {
     required List<({int startMs, String tag})> spans,
     required String? sessionLocale,
     required bool transcribe,
+    required Transcript Function()? salvage,
   }) async {
     final stored = _store.read(base.id);
     final basePath = stored?.audioPath;
@@ -995,7 +1016,11 @@ class TranscriptionService {
     var additionUntranscribed = false;
     final baseTranscript = fresh.transcript;
     if (baseTranscript == null) {
-      if (whole == null) {
+      if (whole == null && salvage != null) {
+        // The live pass understood what the file pass could not: the take's
+        // words stand in, untimed, and the base's minutes wait for a re-hear.
+        updated = updated.withTranscript(salvage());
+      } else if (whole == null) {
         additionUntranscribed = true;
       } else {
         updated = updated.withTranscript(whole);
@@ -1103,8 +1128,9 @@ class TranscriptionService {
   /// a caller who already received the entry has, by construction, taken it out
   /// of this branch's reach; this completed-save branch can only ever discard
   /// the still-undelivered auto-save of the take on screen. Throws [StateError]
-  /// during an in-flight start, which cannot be safely undone from here.
-  Future<void> cancelRecording() async {
+  /// during an in-flight start, which cannot be safely undone from here. With
+  /// [forRestart] a continuation keeps its claim for the start that follows.
+  Future<void> cancelRecording({bool forRestart = false}) async {
     if (_starting) throw StateError('start in flight');
     if (!_recording) {
       // The capture this cancel meant to discard may just have been claimed by
@@ -1181,7 +1207,10 @@ class TranscriptionService {
     _sessionLiveCurrent = '';
     final continuation = _continuation;
     _continuation = null;
-    if (continuation != null) {
+    if (continuation != null && forRestart) {
+      // The claim and the mark outlive the cancel: the restart re-enters them.
+      _restartingId = continuation.id;
+    } else if (continuation != null) {
       _retranscribing.remove(continuation.id);
       _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
     }

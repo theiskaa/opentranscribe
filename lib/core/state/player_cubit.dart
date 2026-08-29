@@ -235,12 +235,14 @@ class PlayerCubit extends Cubit<PlayerState> {
   /// replaced under the screen (a continuation landing), and the wave reads
   /// the new one on its next mount. Safe to call with nothing playing.
   Future<void> rebind() async {
+    // Forgotten first: a wave remounting in this same frame must find no
+    // shape to skip loading over.
+    emit(PlayerState(rate: _rate));
     try {
       await _player.stop();
     } on PlaybackException {
       // Already silent.
     }
-    if (!isClosed) emit(PlayerState(rate: _rate));
   }
 
   /// Silences playback for screen exit. Safe to call with nothing playing.

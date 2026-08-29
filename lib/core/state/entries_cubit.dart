@@ -158,7 +158,13 @@ class EntriesCubit extends Cubit<EntriesState> {
           ).copyWith(entries: entries, clearBusy: clearBusy),
         );
       case ContinuationLanded():
-        emit(state.copyWith(entries: entries, clearBusy: clearBusy, clearError: true));
+        emit(
+          state.copyWith(
+            entries: entries,
+            clearBusy: clearBusy,
+            clearError: state.error?.entryId == outcome.baseId,
+          ),
+        );
       case ContinuationDiscarded():
         emit(state.copyWith(entries: entries, clearBusy: clearBusy));
       case ContinuationFellBack(:final entry):

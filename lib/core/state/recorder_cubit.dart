@@ -384,7 +384,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     // Publish the teardown like cancel() does, so a concurrent start()/cancel()
     // waits it out instead of racing _teardown(). Cleared before start() below,
     // so start()'s own _discardInFlight await sees null (no self-deadlock).
-    final ending = _cancelSession();
+    final continuing = state.continuing;
+    final ending = _cancelSession(forRestart: continuing != null);
     _discardInFlight = ending;
     try {
       await ending;
@@ -393,7 +394,6 @@ class RecorderCubit extends Cubit<RecorderState> {
     }
     // The take id carries through the reset: dropping it to zero here would
     // remount every view keyed on it twice for one restart.
-    final continuing = state.continuing;
     emit(RecorderState(takeId: state.takeId));
     await start(continuing: continuing);
   }
@@ -487,7 +487,7 @@ class RecorderCubit extends Cubit<RecorderState> {
 
   void clearInterrupted() => emit(state.copyWith(interrupted: false));
 
-  Future<void> _cancelSession() async {
+  Future<void> _cancelSession({bool forRestart = false}) async {
     final starting = _startInFlight;
     if (starting != null) {
       try {
@@ -497,7 +497,7 @@ class RecorderCubit extends Cubit<RecorderState> {
       }
     }
     try {
-      await _service.cancelRecording();
+      await _service.cancelRecording(forRestart: forRestart);
     } catch (_) {
       // Cancel is a discard; a session that already ended is a success here.
     }

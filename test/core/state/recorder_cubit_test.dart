@@ -848,13 +848,17 @@ void main() {
       await service.dispose();
     });
 
-    test('a restart keeps the continuation', () async {
+    test('a restart keeps the continuation and never discards it', () async {
       final (cubit, service) = build();
       final base = await seed(service);
+      final outcomes = <ContinuationOutcome>[];
+      service.continuations.listen(outcomes.add);
 
       await cubit.start(continuing: base);
       await cubit.restart();
+      await pumpEventQueue();
 
+      expect(outcomes, isEmpty);
       expect(cubit.state.isRecording, isTrue);
       expect(cubit.state.continuing?.id, base.id);
       expect(service.continuingEntryId, base.id);

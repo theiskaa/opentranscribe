@@ -715,6 +715,209 @@ void main() {
 
     await svc.dispose();
   });
+
+  test('a second ask for a base mid-landing is refused without clearing its mark', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    await expectLater(
+      () => svc.startRecording(continuing: store.read('base')),
+      throwsA(isA<ContinuationRefused>()),
+    );
+    await pumpEventQueue();
+    expect(outcomes, isEmpty);
+    gate.complete();
+    final landed = await stopping;
+    await pumpEventQueue();
+
+    expect(outcomes.single, ContinuationLanded(entry: landed));
+    expect(store.read('base')?.audioPath, 'merged.m4a');
+
+    await svc.dispose();
+  });
+
+  test('an engine switch during a landing is refused', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    expect(svc.useEngine(FakeBatchEngine(cannedText: 'other')), isFalse);
+    gate.complete();
+    await stopping;
+
+    expect(svc.useEngine(FakeBatchEngine(cannedText: 'other')), isTrue);
+
+    await svc.dispose();
+  });
+
+  test('the dangling-audio heal during a landing leaves the base intact', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    baseFile.deleteSync();
+    expect(await svc.healDanglingAudio(), 0);
+    expect(store.read('base')?.audioPath, 'base.m4a');
+    gate.complete();
+    await stopping;
+
+    expect(store.read('base')?.audioPath, 'merged.m4a');
+
+    await svc.dispose();
+  });
+
+  test('audio usage after a landing counts the one merged file', () async {
+    await seedBase(transcript: heard('a'));
+    File('${dir.path}/merged.m4a').writeAsStringSync('merged-bytes');
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.stopRecording();
+    final usage = await svc.audioUsage();
+
+    expect(usage.totalCount, 1);
+    expect(usage.totalBytes, 'merged-bytes'.length);
+    expect(usage.reclaimableCount, 1);
+
+    await svc.dispose();
+  });
+
+  test('a cancel during a landing is a no-op', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    await svc.cancelRecording();
+    gate.complete();
+    final landed = await stopping;
+    await pumpEventQueue();
+
+    expect(recorder.cancelled, isFalse);
+    expect(outcomes.single, ContinuationLanded(entry: landed));
+    expect(store.read('base')?.audioPath, 'merged.m4a');
+
+    await svc.dispose();
+  });
+
+  test('an interruption during a landing changes nothing', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+    final auto = <Entry>[];
+    svc.autoFinalized.listen(auto.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    recorder.interrupt();
+    await pumpEventQueue();
+    gate.complete();
+    final landed = await stopping;
+    await pumpEventQueue();
+
+    expect(auto, isEmpty);
+    expect(outcomes.single, ContinuationLanded(entry: landed));
+
+    await svc.dispose();
+  });
+
+  test('a purge during a landing leaves the base and the merge alone', () async {
+    await seedBase(transcript: heard('a'));
+    final gate = Completer<void>();
+    composer.gate = gate.future;
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+
+    await svc.startRecording(continuing: store.read('base'));
+    final stopping = svc.stopRecording();
+    await pumpEventQueue();
+    expect(await svc.purgeTranscribedAudio(), 0);
+    expect(store.read('base')?.audioPath, 'base.m4a');
+    gate.complete();
+    await stopping;
+
+    expect(store.read('base')?.audioPath, 'merged.m4a');
+
+    await svc.dispose();
+  });
+
+  test('a restart keeps the claim and the mark of the base it extends', () async {
+    await seedBase(transcript: heard('a'));
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.cancelRecording(forRestart: true);
+    await pumpEventQueue();
+    expect(outcomes, isEmpty);
+    await expectLater(svc.retranscribe(store.read('base')!), throwsStateError);
+    await svc.startRecording(continuing: store.read('base'));
+    final landed = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(outcomes.single, ContinuationLanded(entry: landed));
+    expect(landed.transcript?.fullText, 'a b');
+
+    await svc.dispose();
+  });
+
+  test('an unheard base whose landing fell back still gets its take transcribed', () async {
+    await seedBase();
+    composer = FakeAudioComposer(throwOnConcatenate: true);
+    final engine = FakeBatchEngine(cannedText: 'tail words');
+    final svc = build(engine);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final saved = await svc.stopRecording();
+
+    expect(saved.id, 'id-0');
+    expect(saved.transcript?.fullText, 'tail words');
+    expect(engine.batchCalls, hasLength(1));
+    expect(store.read('base')?.transcript, isNull);
+
+    await svc.dispose();
+  });
+
+  test('an unheard base whose whole-file pass fails keeps the words the live pass heard', () async {
+    await seedBase();
+    final svc = build(
+      FakeStreamingEngine(cannedText: 'live words', failBatch: true, stopSignal: recorder.stopped),
+    );
+
+    await svc.startRecording(continuing: store.read('base'));
+    await pumpEventQueue();
+    final landed = await svc.stopRecording();
+
+    expect(landed.audioPath, 'merged.m4a');
+    expect(landed.transcript?.fullText, 'live words');
+    expect(landed.transcript?.segments, isEmpty);
+
+    await svc.dispose();
+  });
 }
 
 /// A store that refuses to save one id, so a landing's update (or a fallback's
