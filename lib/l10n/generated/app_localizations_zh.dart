@@ -932,7 +932,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String continuingEntry(String title) {
-    return '继续 $title';
+    return '继续$title';
   }
 
   @override

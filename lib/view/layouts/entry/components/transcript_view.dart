@@ -293,30 +293,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
       layoutBuilder: meltStack,
       child: loading
-          ? Align(
-              key: const ValueKey('loading'),
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                // The ink dots, so the loader reads as the page's own, not a chip.
-                child: AppSpinner(size: 30, color: theme.player.segmentColor),
-              ),
-            )
+          ? const _QuietWait(key: ValueKey('loading'))
           : KeyedSubtree(key: const ValueKey('content'), child: _content(context)),
     );
     if (!widget.appending) return body;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        body,
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: AppSpinner(size: 30, color: theme.player.segmentColor),
-          ),
-        ),
-      ],
+      children: [body, const _QuietWait()],
     );
   }
 
@@ -376,6 +359,24 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The ink dots at the page's left edge, so a wait reads as the page's own,
+/// not a chip.
+class _QuietWait extends StatelessWidget {
+  const _QuietWait({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: AppSpinner(size: 30, color: theme.player.segmentColor),
       ),
     );
   }

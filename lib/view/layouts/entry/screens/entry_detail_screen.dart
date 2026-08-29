@@ -251,9 +251,8 @@ class _DetailViewState extends State<_DetailView> {
     AppLocalizations l10n,
     List<String> transcribeTags,
     String preselected, {
-    required bool busy,
-    required bool continuing,
     required bool anyAction,
+    required bool canContinue,
     required bool editing,
   }) => [
     AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
@@ -261,7 +260,7 @@ class _DetailViewState extends State<_DetailView> {
     // (its action is the bottom CTA), and a run in flight would land words
     // the open field could then silently shadow. While the field is up the
     // row is gone too: re-entering would re-seed the field and eat the words.
-    if (entry.readableText != null && !busy && !continuing && !editing)
+    if (entry.readableText != null && !anyAction && !editing)
       AppMenuItem(id: _actEdit, label: l10n.editTranscript, icon: AppIcons.pencil),
     // History stands whenever the entry reads as any words, empty history
     // included: the sheet then shows the original transcription alone. A
@@ -269,10 +268,10 @@ class _DetailViewState extends State<_DetailView> {
     // nothing to stand in. Mid-edit it hides (a restore under the open field
     // would be shadowed by its commit), and mid-run too: a landing would
     // date the open sheet.
-    if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy && !continuing)
+    if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !anyAction)
       AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
     AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
-    if (continueRowVisible(editing: editing, busy: anyAction))
+    if (continueRowVisible(editing: editing, busy: !canContinue))
       AppMenuItem(id: _actContinue, label: l10n.continueRecording, icon: AppIcons.mic),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
     // run starts under the field instead of before it).
@@ -299,7 +298,8 @@ class _DetailViewState extends State<_DetailView> {
         ],
       ),
     ],
-    AppMenuItem(id: _actDelete, label: l10n.delete, icon: AppIcons.trash, destructive: true),
+    if (!anyAction)
+      AppMenuItem(id: _actDelete, label: l10n.delete, icon: AppIcons.trash, destructive: true),
   ];
 
   /// Handles every id answer: the action rows and the language leaves.
@@ -450,9 +450,8 @@ class _DetailViewState extends State<_DetailView> {
           l10n,
           transcribeTags,
           preselected,
-          busy: busy,
-          continuing: continuing,
           anyAction: state.busyId == entry.id,
+          canContinue: context.read<EntriesCubit>().canContinue(entry),
           editing: _editing,
         );
         // The bottom CTA exists for a never-transcribed entry; a run in flight
@@ -631,7 +630,7 @@ class _DetailViewState extends State<_DetailView> {
                   errorTick: state.errorTick,
                   relatedId: state.error?.relatedId,
                   showCta: showCta,
-                  busy: busy,
+                  busy: state.busyId == entry.id,
                   onOpenRelated: (id) =>
                       context.pushNamed(Routes.entryName, pathParameters: {'id': id}),
                   // Through the screen's one door, so a dock action gets the
@@ -679,14 +678,20 @@ class _BottomDock extends StatelessWidget {
 
   Future<void> _openDetails(BuildContext context, EntriesError kind) async {
     final related = relatedId;
-    final exists =
-        related != null && context.read<EntriesCubit>().state.entries.any((e) => e.id == related);
+    final entries = context.read<EntriesCubit>();
+    final exists = related != null && entries.state.entries.any((e) => e.id == related);
     if (kind == EntriesError.savedSeparately && exists) {
+      entries.dismissFailure(entry.id);
       onOpenRelated(related);
       return;
     }
     final retry = await showTranscribeErrorSheet(context, kind);
-    if (retry) onTranscribe();
+    if (retry) {
+      onTranscribe();
+      return;
+    }
+    // Acknowledged, with no retry to clear it later.
+    if (kind == EntriesError.savedSeparately) entries.dismissFailure(entry.id);
   }
 
   @override

@@ -178,7 +178,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
             previous.error != current.error ||
             previous.live != current.live ||
             previous.interrupted != current.interrupted ||
-            previous.localeId != current.localeId,
+            previous.localeId != current.localeId ||
+            (previous.continuing == null) != (current.continuing == null),
         builder: (context, state) {
           final saving = state.status == RecorderStatus.saving;
           final restarting = state.status == RecorderStatus.restarting;
@@ -225,15 +226,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
               else ...[
                 // Mathematical centre reads low; the block settles just above it.
                 const Spacer(flex: 45),
-                // From the route, not the state: the take starts after the
-                // rise, and the line must not drop in under a settled wave.
-                if (widget.continueEntryId != null) ...[
+                // From the route, so it rises with the sheet; gone once a
+                // restart after an interruption made this a fresh take.
+                if (widget.continueEntryId != null && (state.continuing != null || !state.isBusy))
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: _columnInset),
                     child: ContinuingLine(entryId: widget.continueEntryId!),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _columnInset),
                   child: Waveform(
