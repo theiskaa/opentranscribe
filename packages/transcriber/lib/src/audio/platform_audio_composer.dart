@@ -36,7 +36,8 @@ class PlatformAudioComposer implements AudioComposer {
       });
       final name = result?['name'] as String?;
       final durationMs = result?['durationMs'] as int?;
-      final startsMs = (result?['startsMs'] as List<dynamic>?)?.cast<int>();
+      final rawStarts = result?['startsMs'] as List<dynamic>?;
+      final startsMs = rawStarts == null ? null : List<int>.from(rawStarts);
       // A defaulted reply would be an entry pointing at nothing; refuse it.
       if (name == null ||
           name.isEmpty ||
@@ -55,6 +56,8 @@ class PlatformAudioComposer implements AudioComposer {
       throw AudioComposeFailed(e.message, e.code);
     } on MissingPluginException catch (e) {
       throw AudioComposeFailed(e.message);
+    } on TypeError {
+      throw const AudioComposeFailed('malformed reply', 'compose_failed');
     }
   }
 }

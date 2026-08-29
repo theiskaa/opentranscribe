@@ -686,6 +686,9 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     events.setStreamHandler(instance)
     levels.setStreamHandler(instance.levelHandler)
     registrar.addMethodCallDelegate(instance, channel: methods)
+    // A merge a kill cut short leaves its partial under compose/; clear it now
+    // rather than at the next merge.
+    AudioCompose.queue.async { _ = try? AudioCompose.stagingDirectory() }
     instance.session.onStatus = { [weak instance] status in
       DispatchQueue.main.async {
         instance?.statusSink?(status)
