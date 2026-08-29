@@ -7,6 +7,7 @@ All notable changes to opentranscribe are documented here. Each release section 
 The whole journal re-heard by a better engine.
 
 - Re-transcribe all: a bulk runner over the whole journal, seated under the engine picker on the transcription screen, that lets the engine you switched to re-hear the entire history. Live animated progress with cancel, and resume is free: a run skips whatever the current engine already transcribed, so stopping loses nothing. It waits for a live recording and pauses while the device runs hot. (#8)
+- Continue an entry: record more onto a saved entry from its own screen. The audio merges into the kept recording and the transcript grows to match, edits kept; a take in another language gets the language marker. A take that cannot be merged is saved as its own entry. (#6)
 - Formatted exports and re-transcribe all are free for everyone. The club no longer gates any feature; what it unlocks from here on is looks: theme families today, app icons next.
 - Club themes: every family beyond Default is a club look. Gruvbox and Sepia stay, and five join them: Midnight, Dracula, Nord, Catppuccin, and Tokyo Night. Solarized is retired. A pick is kept whether or not the club covers it, so it snaps on the moment a membership lands.
 
