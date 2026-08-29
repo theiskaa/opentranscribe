@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
+import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -87,7 +88,7 @@ class _DetailViewState extends State<_DetailView> {
   bool _stoppedForDiscard = false;
 
   /// The file the player is bound to; a landing replaces it under the screen.
-  String? _boundPath;
+  ({String path, Duration duration})? _bound;
 
   @override
   void initState() {
@@ -426,10 +427,17 @@ class _DetailViewState extends State<_DetailView> {
         // silence playback again.
         if (entry.hasAudio) _stoppedForDiscard = false;
         // A landing replaced the file; the keyed wave below reads the new one.
-        if (_boundPath != null && entry.hasAudio && entry.audioPath != _boundPath) {
-          unawaited(_player?.rebind());
+        final bound = _bound;
+        final path = entry.audioPath;
+        if (bound != null && path != null && path != bound.path) {
+          final grown = entry.duration > bound.duration && bound.duration > Duration.zero;
+          unawaited(
+            _player?.rebind(
+              keep: grown ? bound.duration.inMicroseconds / entry.duration.inMicroseconds : null,
+            ),
+          );
         }
-        _boundPath = entry.audioPath;
+        _bound = path == null ? null : (path: path, duration: entry.duration);
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
@@ -576,7 +584,18 @@ class _DetailViewState extends State<_DetailView> {
                             ),
                           )
                         else
-                          TranscriptView(entry: entry, busy: busy, appending: continuing),
+                          // The take's live words stay on the recorder cubit
+                          // until its stop settles; only the transcript
+                          // follows them.
+                          BlocSelector<RecorderCubit, RecorderState, String>(
+                            selector: (recorder) => continuing ? recorder.liveText : '',
+                            builder: (context, pending) => TranscriptView(
+                              entry: entry,
+                              busy: busy,
+                              appending: continuing,
+                              pendingText: pending,
+                            ),
+                          ),
                       ],
                     ),
                   ),
