@@ -732,6 +732,13 @@ void main() {
     await svc.saveEntryPeaks(entry, [1.0]);
     expect(store.read('p1')?.peaks, [128]);
 
+    // Repointed meanwhile: a shape decoded from the old file never lands.
+    await store.save(entry.withRecording('/tmp/q.m4a', Duration.zero));
+    await svc.saveEntryPeaks(entry, [0.5]);
+    expect(store.read('p1')?.peaks, isNull);
+    await svc.saveEntryPeaks(entry.withRecording('/tmp/q.m4a', Duration.zero), [0.5]);
+    expect(store.read('p1')?.peaks, [128]);
+
     // Deleted meanwhile: never resurrected. Empty input: never stored.
     await store.delete('p1');
     await svc.saveEntryPeaks(entry, [0.5]);
