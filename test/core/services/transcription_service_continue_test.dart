@@ -1031,7 +1031,7 @@ void main() {
     await svc.dispose();
   });
 
-  test('an idle cancel or teardown after a restart releases the restarted base', () async {
+  test('an idle cancel after a restart releases the restarted base', () async {
     await seedBase(transcript: heard('a'));
     final svc = build(FakeBatchEngine(cannedText: 'b'));
     final outcomes = <ContinuationOutcome>[];
@@ -1122,6 +1122,53 @@ void main() {
       await svc.dispose();
     },
   );
+
+  test('a silent take on a base without a recording stays its own entry', () async {
+    await seedBase(transcript: heard('old'));
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(cannedText: ''));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    final saved = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(saved.id, 'id-0');
+    final base = store.read('base')!;
+    expect(base.audioPath, isNull);
+    expect(base.transcript?.fullText, 'old');
+    expect(base.transcript?.engineId, 'fake');
+    expect(
+      outcomes.single,
+      ContinuationFellBack(
+        baseId: 'base',
+        reason: ContinuationFallback.untranscribed,
+        entry: saved,
+      ),
+    );
+
+    await svc.dispose();
+  });
+
+  test('an idle cancel asked for a restart keeps the restarted base claimed', () async {
+    await seedBase(transcript: heard('a'));
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.cancelRecording(forRestart: true);
+    await svc.cancelRecording(forRestart: true);
+    await expectLater(svc.retranscribe(store.read('base')!), throwsStateError);
+    await svc.startRecording(continuing: store.read('base'));
+    final landed = await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(outcomes.single, ContinuationLanded(entry: landed));
+
+    await svc.dispose();
+  });
 }
 
 /// A store that refuses to save one id, so a landing's update (or a fallback's

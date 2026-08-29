@@ -106,9 +106,10 @@ final class Entry {
     this.title,
     this.recordedLocaleId,
     this.peaks,
-    this.languageSpans,
+    List<LanguageSpan>? languageSpans,
     List<Revision>? revisions,
   }) : createdAt = createdAt.toUtc(),
+       languageSpans = languageSpans == null || languageSpans.isEmpty ? null : languageSpans,
        revisions = revisions == null || revisions.isEmpty ? null : List.unmodifiable(revisions);
 
   final String id;

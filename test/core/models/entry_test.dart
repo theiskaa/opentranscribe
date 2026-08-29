@@ -381,6 +381,11 @@ void main() {
     expect(entry.revisions, full.revisions);
   });
 
+  test('an empty language mix normalizes to null, one spelling everywhere', () {
+    expect(baseEntry().withLanguageSpans(const []).languageSpans, isNull);
+    expect(Entry.fromJson({...baseEntry().toJson(), 'languageSpans': []}).languageSpans, isNull);
+  });
+
   test('withLanguageSpans swaps the mix and null flattens it', () {
     const spans = [
       LanguageSpan(startMs: 0, localeId: 'en-US'),

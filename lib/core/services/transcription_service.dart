@@ -854,6 +854,7 @@ class TranscriptionService {
           spans: spans,
           sessionLocale: sessionLocale,
           transcribe: transcribe,
+          salvaged: salvaged,
           salvage: transcribe && liveText.isNotEmpty ? salvage : null,
         );
         switch (landing) {
@@ -865,9 +866,10 @@ class TranscriptionService {
             return entry;
           case _FellBack(:final reason):
             // Nothing lost: the tail becomes its own entry through the path
-            // below, with the pass it was owed.
+            // below, with the pass it was owed (a base without a file already
+            // gave the take its pass).
             fallback = reason;
-            if (transcribe && baseUnheard) await batchTail();
+            if (transcribe && baseUnheard && baseStored.audioPath != null) await batchTail();
         }
       }
 
@@ -965,6 +967,7 @@ class TranscriptionService {
     required List<({int startMs, String tag})> spans,
     required String? sessionLocale,
     required bool transcribe,
+    required bool salvaged,
     required Transcript Function()? salvage,
   }) async {
     if (stored == null) return const _FellBack(ContinuationFallback.deleted);
@@ -1016,7 +1019,7 @@ class TranscriptionService {
     var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(newSpans);
     var additionUntranscribed = false;
     var wordsLanded = false;
-    var usedSalvage = false;
+    var usedSalvage = salvaged;
     final now = _clock();
     final baseTranscript = fresh.transcript;
     if (baseTranscript == null) {
@@ -1068,7 +1071,6 @@ class TranscriptionService {
       updated = updated.withTranscript(
         keepTimings ? stitched : untimed(stitched, localeId: tailLocale, engineId: tail.engineId),
       );
-      usedSalvage = tail.segments.isEmpty;
       wordsLanded = tail.fullText.trim().isNotEmpty;
       final revisions = continuedRevisions(stored: fresh, tail: tail, marker: marker, now: now);
       if (revisions != null) updated = updated.withRevisions(revisions);
@@ -1076,7 +1078,7 @@ class TranscriptionService {
     // A base without a file only lands when the take's words did: landing its
     // audio alone would leave a retry that re-hears the take and replaces the
     // old words. The take stays its own entry, with its own Transcribe.
-    if (!baseHadAudio && additionUntranscribed) {
+    if (!baseHadAudio && !wordsLanded) {
       return const _FellBack(ContinuationFallback.untranscribed);
     }
 
@@ -1205,7 +1207,7 @@ class TranscriptionService {
   Future<void> cancelRecording({bool forRestart = false}) async {
     if (_starting) throw StateError('start in flight');
     if (!_recording) {
-      _releaseStaleRestart();
+      if (!forRestart) _releaseStaleRestart();
       // The capture this cancel meant to discard may just have been claimed by
       // an interruption's auto-finalize. The save is real, but the user's
       // intent is discard: wait it out and take the entry back. A user-stop's
@@ -1736,8 +1738,9 @@ class TranscriptionService {
   /// entry first transcribed in the WRONG locale keeps that locale on re-runs
   /// until a caller passes [localeId] explicitly.) The landing is a change
   /// like any other: the words it replaces stay in the entry's history.
-  /// One batch per entry: a second ask while one is in flight (this path or
-  /// the bulk runner's) throws [StateError] instead of running the file twice.
+  /// One batch per entry: a second ask while one is in flight (this path, the
+  /// bulk runner's, or a continuation) throws [StateError] instead of running
+  /// the file twice.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     _userBatches++;
     try {
@@ -2288,16 +2291,6 @@ final class ContinuationDiscarded extends ContinuationOutcome {
   int get hashCode => baseId.hashCode;
 }
 
-/// A continuation could not begin: the base is mid-batch or mid-continuation.
-final class ContinuationRefused implements Exception {
-  const ContinuationRefused(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'ContinuationRefused: $message';
-}
-
 /// The take became its own [entry] (null when that save failed too and
 /// [EntrySaveFailed] carries it instead).
 final class ContinuationFellBack extends ContinuationOutcome {
@@ -2317,6 +2310,16 @@ final class ContinuationFellBack extends ContinuationOutcome {
 
   @override
   int get hashCode => Object.hash(baseId, reason, entry);
+}
+
+/// A continuation could not begin: the base is mid-batch or mid-continuation.
+final class ContinuationRefused implements Exception {
+  const ContinuationRefused(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'ContinuationRefused: $message';
 }
 
 typedef _GrownFile = ({String name, Duration duration, Duration offset, String path});
