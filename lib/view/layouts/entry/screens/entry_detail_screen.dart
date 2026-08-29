@@ -51,10 +51,10 @@ class EntryDetailScreen extends StatelessWidget {
   }
 }
 
-/// Whether the entry offers to be continued: it needs its audio, no live edit
-/// (the landing would shadow the field), and no run already on it.
-bool continueRowVisible({required bool hasAudio, required bool editing, required bool busy}) =>
-    hasAudio && !editing && !busy;
+/// Whether the entry offers to be continued: no live edit (the landing would
+/// shadow the field) and no run already on it. An entry without a recording
+/// qualifies; the take becomes its file.
+bool continueRowVisible({required bool editing, required bool busy}) => !editing && !busy;
 
 class _DetailView extends StatefulWidget {
   const _DetailView({required this.entryId});
@@ -275,7 +275,7 @@ class _DetailViewState extends State<_DetailView> {
     if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy && !continuing)
       AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
     AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
-    if (continueRowVisible(hasAudio: entry.hasAudio, editing: editing, busy: busy || continuing))
+    if (continueRowVisible(editing: editing, busy: busy || continuing))
       AppMenuItem(id: _actContinue, label: l10n.continueRecording, icon: AppIcons.mic),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
     // run starts under the field instead of before it).
@@ -335,7 +335,7 @@ class _DetailViewState extends State<_DetailView> {
       case _actExport:
         unawaited(showEntryExportSheet(context, entry));
       case _actContinue:
-        if (entry.hasAudio) _startContinuation(entry);
+        _startContinuation(entry);
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.
@@ -423,8 +423,11 @@ class _DetailViewState extends State<_DetailView> {
         // it, not keep sounding from a deleted file with no controls left.
         if (!entry.hasAudio && !_stoppedForDiscard) {
           _stoppedForDiscard = true;
-          unawaited(_player?.stopAndDetach());
+          unawaited(_player?.rebind());
         }
+        // A continuation can give it a recording back; the next discard must
+        // silence playback again.
+        if (entry.hasAudio) _stoppedForDiscard = false;
         // A landing replaced the file: the player forgets the old one, and
         // the keyed wave below reads the new one.
         if (_boundPath != null && entry.hasAudio && entry.audioPath != _boundPath) {
@@ -462,7 +465,12 @@ class _DetailViewState extends State<_DetailView> {
         final showCta = entry.transcript == null && entry.hasAudio;
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.
-        final error = entry.hasAudio ? state.errorFor(entry.id) : null;
+        // Transcribing needs the audio, so its failures hide without it; a
+        // continuation's own endings show either way.
+        final kind = state.errorFor(entry.id);
+        final continuationEnding =
+            kind == EntriesError.savedSeparately || kind == EntriesError.additionUntranscribed;
+        final error = entry.hasAudio || continuationEnding ? kind : null;
         final bottomInset = MediaQuery.paddingOf(context).bottom;
         // The keyboard's height while the edit field is up, so the caret can
         // always scroll clear of it; zero the rest of the time.
