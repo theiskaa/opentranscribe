@@ -409,4 +409,143 @@ void main() {
     await cubit.close();
     await svc.dispose();
   });
+
+  group('continuation', () {
+    test('markContinuing sets busy and the outcome of a landing clears it', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.markContinuing(base);
+      expect(cubit.state.busyId, base.id);
+      expect(cubit.state.busyAction, EntriesAction.continueRecording);
+
+      await service.startRecording(continuing: base);
+      await service.stopRecording();
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+      expect(cubit.state.error, isNull);
+      expect(cubit.state.entries.single.duration, const Duration(seconds: 4));
+
+      await cubit.close();
+    });
+
+    test('an untranscribed addition pins its error to the base', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+      engine.failBatch = true;
+
+      cubit.markContinuing(base);
+      await service.startRecording(continuing: base);
+      await service.stopRecording();
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+      expect(cubit.state.errorFor(base.id), EntriesError.additionUntranscribed);
+
+      await cubit.close();
+    });
+
+    test('a take saved separately pins the new entry to the base', () async {
+      final storage = LocalService();
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final failing = TranscriptionService(
+        composer: FakeAudioComposer(throwOnConcatenate: true),
+        recorder: FakeAudioRecorder(),
+        engine: FakeBatchEngine(),
+        store: EntryStore(storage),
+      );
+      await failing.startRecording();
+      final base = await failing.stopRecording();
+      final cubit = EntriesCubit(service: failing);
+
+      cubit.markContinuing(base);
+      await failing.startRecording(continuing: base);
+      final saved = await failing.stopRecording();
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+      expect(
+        cubit.state.error,
+        EntriesFailure(entryId: base.id, kind: EntriesError.savedSeparately, relatedId: saved.id),
+      );
+      expect(cubit.state.entries, hasLength(2));
+
+      await cubit.close();
+      await failing.dispose();
+    });
+
+    test('clearContinuing clears only its own continuation', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.clearContinuing(base.id);
+      expect(cubit.state.busyId, isNull);
+      cubit.markContinuing(base);
+      cubit.clearContinuing('other');
+      expect(cubit.state.busyId, base.id);
+      cubit.clearContinuing(base.id);
+      expect(cubit.state.busyId, isNull);
+
+      await cubit.close();
+    });
+
+    test('delete is refused while the entry is being continued', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.markContinuing(base);
+      await cubit.delete(base);
+
+      expect(cubit.state.entries, hasLength(1));
+      expect(cubit.state.busyAction, EntriesAction.continueRecording);
+
+      await cubit.close();
+    });
+
+    test('a refused start clears the mark and leaves no error', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+      await service.deleteEntry(base);
+
+      cubit.markContinuing(base);
+      await expectLater(
+        () => service.startRecording(continuing: base.withoutAudio()),
+        throwsA(isA<ContinuationRefused>()),
+      );
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+      expect(cubit.state.error, isNull);
+
+      await cubit.close();
+    });
+
+    test('a cancelled take clears the mark', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.markContinuing(base);
+      await service.startRecording(continuing: base);
+      await service.cancelRecording();
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+
+      await cubit.close();
+    });
+
+    test('retranscribe is refused while the entry is being continued', () async {
+      final cubit = await seeded();
+      final base = cubit.state.entries.single;
+
+      cubit.markContinuing(base);
+      await cubit.retranscribe(base);
+
+      expect(engine.batchCalls, hasLength(1));
+      expect(cubit.state.busyAction, EntriesAction.continueRecording);
+
+      await cubit.close();
+    });
+  });
 }

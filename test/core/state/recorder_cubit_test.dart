@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -773,5 +774,153 @@ void main() {
     await cubit.stop();
     await cubit.close();
     await service.dispose();
+  });
+
+  group('continuation', () {
+    Future<Entry> seed(TranscriptionService service) async {
+      await service.startRecording();
+      return service.stopRecording();
+    }
+
+    test('a continuation start hands the entry to the service and the state carries it', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+
+      expect(cubit.state.continuing?.id, base.id);
+      expect(cubit.state.isRecording, isTrue);
+      expect(service.continuingEntryId, base.id);
+      final landed = await cubit.stop();
+      expect(landed?.id, base.id);
+      expect(cubit.state.continuing, isNull);
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a continuation opens in the entry\'s language when it is ready', () async {
+      final rec = FakeAudioRecorder();
+      final engine = FakeBatchEngine(supportedLocaleTags: const ['en-US', 'fr-FR']);
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: engine,
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      service.localeId = 'fr-FR';
+      final base = await seed(service);
+      service.localeId = 'en-US';
+
+      await cubit.start(continuing: base);
+      expect(cubit.state.localeId, 'fr-FR');
+      await cubit.stop();
+
+      expect(engine.batchCalls.last.localeId, 'fr-FR');
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a continuation keeps the default when the entry\'s language is not ready', () async {
+      final rec = FakeAudioRecorder();
+      final engine = FakeBatchEngine(supportedLocaleTags: ['en-US', 'de-DE']);
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: engine,
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      service.localeId = 'de-DE';
+      final base = await seed(service);
+      service.localeId = 'en-US';
+      engine.supportedLocaleTags.remove('de-DE');
+
+      await cubit.start(continuing: base);
+      expect(cubit.state.localeId, 'en-US');
+      await cubit.stop();
+
+      expect(engine.batchCalls.last.localeId, 'en-US');
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a restart keeps the continuation', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      await cubit.restart();
+
+      expect(cubit.state.isRecording, isTrue);
+      expect(cubit.state.continuing?.id, base.id);
+      expect(service.continuingEntryId, base.id);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a base mid-batch lands as entryBusy', () async {
+      final gate = Completer<void>();
+      final rec = FakeAudioRecorder();
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: FakeBatchEngine(gate: gate.future),
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      await service.startRecording();
+      final stopping = service.stopRecording();
+      gate.complete();
+      final base = await stopping;
+      final batching = service.retranscribe(base);
+
+      await cubit.start(continuing: base);
+
+      expect(cubit.state.isBusy, isFalse);
+      expect(cubit.state.error, RecorderError.entryBusy);
+      expect(cubit.state.continuing, isNull);
+      await batching;
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('prepareTake after a dead continuation opens with no entry', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      await service.cancelRecording();
+      cubit.prepareTake();
+
+      expect(cubit.state.continuing, isNull);
+      expect(cubit.state.isBusy, isFalse);
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a fresh take after a cancelled continuation carries no entry', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      await cubit.cancel();
+      expect(cubit.state.continuing, isNull);
+      await cubit.start();
+
+      expect(cubit.state.continuing, isNull);
+      expect(service.continuingEntryId, isNull);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
   });
 }

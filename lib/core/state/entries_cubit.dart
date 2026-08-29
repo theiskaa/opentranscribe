@@ -18,6 +18,12 @@ enum EntriesError {
   onDeviceUnavailable,
   modelInstallFailed,
   reservationCap,
+
+  /// A continuation merged its audio but the new part's words did not land.
+  additionUntranscribed,
+
+  /// A continuation could not land and the take became its own entry.
+  savedSeparately,
   generic,
 }
 
@@ -26,22 +32,30 @@ enum EntriesError {
 /// another entry's screen.
 @immutable
 final class EntriesFailure {
-  const EntriesFailure({required this.entryId, required this.kind});
+  const EntriesFailure({required this.entryId, required this.kind, this.relatedId});
 
   final String entryId;
   final EntriesError kind;
 
-  @override
-  bool operator ==(Object other) =>
-      other is EntriesFailure && other.entryId == entryId && other.kind == kind;
+  /// Another entry the failure points at: for [EntriesError.savedSeparately],
+  /// the one the take became.
+  final String? relatedId;
 
   @override
-  int get hashCode => Object.hash(entryId, kind);
+  bool operator ==(Object other) =>
+      other is EntriesFailure &&
+      other.entryId == entryId &&
+      other.kind == kind &&
+      other.relatedId == relatedId;
+
+  @override
+  int get hashCode => Object.hash(entryId, kind, relatedId);
 }
 
 /// The in-flight action's kind. The transcript view dissolves into its shimmer
-/// only for a transcribe; a delete must not run it on the way out.
-enum EntriesAction { transcribe, delete }
+/// only for a transcribe; a delete must not run it on the way out, and a
+/// continuation must not dissolve the words either.
+enum EntriesAction { transcribe, delete, continueRecording }
 
 /// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesState {
@@ -101,10 +115,55 @@ class EntriesCubit extends Cubit<EntriesState> {
     // scenes; without this, an open detail screen keeps offering the player
     // and re-transcribe for a file that no longer exists.
     _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
+    _continuationsSub = _service.continuations.listen(_onContinuation, onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   late final StreamSubscription<void> _changesSub;
+  late final StreamSubscription<ContinuationOutcome> _continuationsSub;
+
+  /// Marks [entry] busy before its recorder sheet is pushed, so the detail
+  /// behind it already shows the take in flight. The service's outcome clears
+  /// it, whatever the take's ending; [clearContinuing] is for a sheet that
+  /// never asked the service at all.
+  void markContinuing(Entry entry) {
+    emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.continueRecording));
+  }
+
+  void clearContinuing(String entryId) {
+    if (state.busyId != entryId || state.busyAction != EntriesAction.continueRecording) return;
+    emit(state.copyWith(clearBusy: true));
+  }
+
+  void _onContinuation(ContinuationOutcome outcome) {
+    if (isClosed) return;
+    // Only this continuation's own mark: a refused start's outcome must not
+    // clear the re-transcription that refused it.
+    final clearBusy =
+        state.busyId == outcome.baseId && state.busyAction == EntriesAction.continueRecording;
+    final entries = _service.entries();
+    switch (outcome) {
+      case ContinuationLanded(additionUntranscribed: true):
+        emit(
+          _failure(
+            outcome.baseId,
+            EntriesError.additionUntranscribed,
+          ).copyWith(entries: entries, clearBusy: clearBusy),
+        );
+      case ContinuationLanded():
+        emit(state.copyWith(entries: entries, clearBusy: clearBusy, clearError: true));
+      case ContinuationDiscarded():
+        emit(state.copyWith(entries: entries, clearBusy: clearBusy));
+      case ContinuationFellBack(:final entry):
+        emit(
+          _failure(
+            outcome.baseId,
+            EntriesError.savedSeparately,
+            relatedId: entry?.id,
+          ).copyWith(entries: entries, clearBusy: clearBusy),
+        );
+    }
+  }
 
   void load() {
     if (isClosed) return;
@@ -167,6 +226,9 @@ class EntriesCubit extends Cubit<EntriesState> {
   }
 
   Future<void> delete(Entry entry) async {
+    // A take is extending this entry: the landing needs its file, and the
+    // delete would wipe the take's busy mark.
+    if (state.busyId == entry.id) return;
     emit(state.copyWith(busyId: entry.id, busyAction: EntriesAction.delete));
     try {
       await _service.deleteEntry(entry);
@@ -212,10 +274,12 @@ class EntriesCubit extends Cubit<EntriesState> {
     );
   }
 
+  EntriesState _withFailure(Entry entry, Object e) => _failure(entry.id, _kind(e));
+
   /// One failure landing: the error pinned to its entry plus the tick bump
   /// that lets a surface re-announce a repeat of the same failure.
-  EntriesState _withFailure(Entry entry, Object e) => state.copyWith(
-    error: EntriesFailure(entryId: entry.id, kind: _kind(e)),
+  EntriesState _failure(String entryId, EntriesError kind, {String? relatedId}) => state.copyWith(
+    error: EntriesFailure(entryId: entryId, kind: kind, relatedId: relatedId),
     errorTick: state.errorTick + 1,
   );
 
@@ -236,6 +300,7 @@ class EntriesCubit extends Cubit<EntriesState> {
   @override
   Future<void> close() async {
     await _changesSub.cancel();
+    await _continuationsSub.cancel();
     return super.close();
   }
 }

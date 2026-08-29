@@ -17,7 +17,7 @@ enum RecorderStatus { idle, recording, paused, saving, restarting }
 /// Typed failure kinds, so the UI renders localized copy instead of raw
 /// exception text. Permission is its own kind because it has its own surface
 /// (a persistent in-screen state, not a dialog).
-enum RecorderError { permissionDenied, generic }
+enum RecorderError { permissionDenied, entryBusy, generic }
 
 class RecorderState {
   const RecorderState({
@@ -31,6 +31,7 @@ class RecorderState {
     this.live = false,
     this.error,
     this.interrupted = false,
+    this.continuing,
   });
 
   final RecorderStatus status;
@@ -72,6 +73,11 @@ class RecorderState {
   /// user dismisses it explicitly.
   final bool interrupted;
 
+  /// The entry this take extends, null for a fresh take; a snapshot for the
+  /// service, so read the live entry by id for anything shown. Every fresh
+  /// state drops it.
+  final Entry? continuing;
+
   bool get isRecording => status == RecorderStatus.recording;
   bool get isPaused => status == RecorderStatus.paused;
   bool get isBusy => status != RecorderStatus.idle;
@@ -88,6 +94,7 @@ class RecorderState {
     RecorderError? error,
     bool clearError = false,
     bool? interrupted,
+    Entry? continuing,
   }) => RecorderState(
     status: status ?? this.status,
     elapsed: elapsed ?? this.elapsed,
@@ -99,6 +106,7 @@ class RecorderState {
     live: live ?? this.live,
     error: clearError ? null : (error ?? this.error),
     interrupted: interrupted ?? this.interrupted,
+    continuing: continuing ?? this.continuing,
   );
 }
 
@@ -142,6 +150,11 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// 0.2, and any spoken word peaks well above this. Set to clear the room floor
   /// without ever missing speech - discarding a real take is the failure to avoid.
   static const double _kHeardThreshold = 0.3;
+
+  /// How long a continuation waits to learn whether its entry's language is
+  /// ready before opening in the default; a hung probe must not hold the
+  /// microphone closed.
+  static const Duration _kLocaleProbeTimeout = Duration(seconds: 2);
 
   /// Recorded time banked by earlier runs of this take (before pauses and
   /// interruptions); the live remainder is measured from [_runStart].
@@ -204,7 +217,10 @@ class RecorderCubit extends Cubit<RecorderState> {
     emit(RecorderState(takeId: ++_takes));
   }
 
-  Future<void> start() async {
+  /// Begins a take; with [continuing], one that extends that entry (see
+  /// [TranscriptionService.startRecording]). A continuation opens in the
+  /// entry's own language when the engine has it ready, else the default.
+  Future<void> start({Entry? continuing}) async {
     // Nothing to wait for on the common path, so the busy check below still
     // runs synchronously and two rapid starts cannot both pass it.
     final ending = _discardInFlight;
@@ -229,6 +245,7 @@ class RecorderCubit extends Cubit<RecorderState> {
         // The session opens in the app default; the service snapshots the
         // same value, so the chip and the batch agree from the first frame.
         localeId: _service.localeId,
+        continuing: continuing,
       ),
     );
     _liveSub = _service.liveEvents.listen(
@@ -252,7 +269,7 @@ class RecorderCubit extends Cubit<RecorderState> {
         emit(state.copyWith(heardSound: true));
       }
     });
-    final starting = _service.startRecording();
+    final starting = _startTake(continuing);
     _startInFlight = starting;
     try {
       await starting;
@@ -265,6 +282,29 @@ class RecorderCubit extends Cubit<RecorderState> {
       emit(RecorderState(error: _kind(e)));
     } finally {
       if (identical(_startInFlight, starting)) _startInFlight = null;
+    }
+  }
+
+  Future<void> _startTake(Entry? continuing) async {
+    final take = _takes;
+    final tag = await _openingLocale(continuing);
+    // A chip tapped during the probe wins: its own switch lands after start.
+    final untouched = take == _takes && state.localeId == _service.localeId;
+    final opening = untouched ? tag : null;
+    if (opening != null && !isClosed) emit(state.copyWith(localeId: opening));
+    await _service.startRecording(continuing: continuing, localeId: opening);
+  }
+
+  /// The entry's language when it differs from the default and is ready now;
+  /// null keeps the default.
+  Future<String?> _openingLocale(Entry? continuing) async {
+    final tag = continuing?.effectiveLocaleId;
+    if (tag == null || tag == _service.localeId) return null;
+    try {
+      final status = await _service.localeStatus(tag).timeout(_kLocaleProbeTimeout);
+      return status.isReady ? tag : null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -353,8 +393,9 @@ class RecorderCubit extends Cubit<RecorderState> {
     }
     // The take id carries through the reset: dropping it to zero here would
     // remount every view keyed on it twice for one restart.
+    final continuing = state.continuing;
     emit(RecorderState(takeId: state.takeId));
-    await start();
+    await start(continuing: continuing);
   }
 
   /// Discards the current take: no entry, no kept audio.
@@ -555,7 +596,11 @@ class RecorderCubit extends Cubit<RecorderState> {
     // be swallowed here, and a capture failure is the hardest kind to guess at
     // after the fact.
     if (kDebugMode) debugPrint('recorder: $error');
-    return error is PermissionDenied ? RecorderError.permissionDenied : RecorderError.generic;
+    return switch (error) {
+      PermissionDenied() => RecorderError.permissionDenied,
+      ContinuationRefused() => RecorderError.entryBusy,
+      _ => RecorderError.generic,
+    };
   }
 
   @override
