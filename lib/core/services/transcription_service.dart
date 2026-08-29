@@ -869,6 +869,7 @@ class TranscriptionService {
             // below, with the pass it was owed (a base without a file already
             // gave the take its pass).
             fallback = reason;
+            if (kDebugMode) debugPrint('continuation fell back: ${reason.name}');
             if (transcribe && baseUnheard && baseStored.audioPath != null) await batchTail();
         }
       }
@@ -1127,7 +1128,8 @@ class TranscriptionService {
         offset: merged.starts[1],
         path: await _resolveAudioPath(merged.name),
       );
-    } catch (_) {
+    } catch (error) {
+      if (kDebugMode) debugPrint('continuation merge failed: $error');
       return null;
     }
   }
