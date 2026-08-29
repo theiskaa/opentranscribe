@@ -397,6 +397,7 @@ class ThemeFamilyCard extends StatefulWidget {
     this.foreground,
     this.child,
     this.aspectRatio = 92 / 108,
+    this.radius = 16,
     this.marked = false,
     super.key,
   });
@@ -414,6 +415,7 @@ class ThemeFamilyCard extends StatefulWidget {
   /// A ready preview (an app icon) in place of the drawn palette mock.
   final Widget? child;
   final double aspectRatio;
+  final double radius;
 
   /// Wears the club's heart in the badge seat: a look the viewer cannot wear yet.
   final bool marked;
@@ -423,8 +425,6 @@ class ThemeFamilyCard extends StatefulWidget {
 }
 
 class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProviderStateMixin {
-  static const _radius = 16.0;
-
   late final AnimationController _sel = AnimationController(
     vsync: this,
     value: widget.selected ? 1 : 0,
@@ -485,7 +485,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                     if (widget.child != null)
                       Positioned.fill(
                         child: ClipPath(
-                          clipper: const ShapeBorderClipper(shape: Superellipse(radius: _radius)),
+                          clipper: ShapeBorderClipper(shape: Superellipse(radius: widget.radius)),
                           child: widget.child,
                         ),
                       )
@@ -493,7 +493,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                       Positioned.fill(
                         child: DecoratedBox(
                           decoration: SuperellipseDecoration(
-                            borderRadius: _radius,
+                            borderRadius: widget.radius,
                             color: widget.background,
                             // The theme's own faint edge, so the card reads as a
                             // real surface in that palette, not a flat swatch.
@@ -525,7 +525,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                             opacity: t,
                             child: DecoratedBox(
                               decoration: SuperellipseDecoration(
-                                borderRadius: _radius,
+                                borderRadius: widget.radius,
                                 border: BorderSide(color: widget.accent, width: 2),
                               ),
                             ),

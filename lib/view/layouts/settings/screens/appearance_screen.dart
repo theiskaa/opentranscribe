@@ -57,10 +57,10 @@ class _AppearanceView extends StatelessWidget {
       child: SettingsList(
         children: [
           const SizedBox(height: 10),
-          SectionLabel(l10n.settingsTheme),
-          _FamilyGroup(families: AppThemeFamily.all),
           SectionLabel(l10n.appearanceIconSection),
           const _IconGroup(),
+          SectionLabel(l10n.settingsTheme),
+          _FamilyGroup(families: AppThemeFamily.all),
           const SizedBox(height: AppSpacing.md),
           SectionInfoLink(
             text: l10n.themeRequestInfo,
@@ -222,13 +222,13 @@ class _IconGroup extends StatelessWidget {
     return SettingsCard(
       children: [
         _FamilyGrid(
+          columns: 5,
           cards: [
             for (final option in state.options)
               _IconCard(
                 label: option.name(l10n),
                 preview: option.preview,
                 selected: option.id == state.currentId,
-                locked: option.club && !state.member,
                 onTap: () => _pick(context, option),
               ),
           ],
@@ -238,34 +238,37 @@ class _IconGroup extends StatelessWidget {
   }
 }
 
-/// Square, unlike the family cards: a home screen icon is.
+/// Square, unlike the family cards, and rounded the way the home screen
+/// rounds an icon: the corner scales with the tile.
 class _IconCard extends StatelessWidget {
+  static const _cornerFraction = 0.2237;
+
   const _IconCard({
     required this.label,
     required this.preview,
     required this.selected,
-    required this.locked,
     required this.onTap,
   });
 
   final String label;
   final String preview;
   final bool selected;
-  final bool locked;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return ThemeFamilyCard(
-      label: label,
-      selected: selected,
-      marked: locked,
-      onTap: onTap,
-      accent: theme.accent,
-      onAccent: theme.onAccent,
-      aspectRatio: 1,
-      child: Image.asset(preview, fit: BoxFit.cover),
+    return LayoutBuilder(
+      builder: (context, constraints) => ThemeFamilyCard(
+        label: label,
+        selected: selected,
+        onTap: onTap,
+        accent: theme.accent,
+        onAccent: theme.onAccent,
+        aspectRatio: 1,
+        radius: constraints.maxWidth * _cornerFraction,
+        child: Image.asset(preview, fit: BoxFit.cover),
+      ),
     );
   }
 }
@@ -273,9 +276,10 @@ class _IconCard extends StatelessWidget {
 /// Lays the cards out in four equal columns that fill the row, so they scale
 /// with the device width and every row, full or not, shares one card size.
 class _FamilyGrid extends StatelessWidget {
-  const _FamilyGrid({required this.cards});
+  const _FamilyGrid({required this.cards, this.columns = 4});
 
   final List<Widget> cards;
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +288,6 @@ class _FamilyGrid extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const columns = 4;
           final itemWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
           return Wrap(
             spacing: spacing,
