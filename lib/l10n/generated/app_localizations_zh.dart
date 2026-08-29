@@ -926,4 +926,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。购买遵循 Apple 的标准$terms。';
   }
+
+  @override
+  String get continueRecording => '继续录制';
+
+  @override
+  String continuingEntry(String title) {
+    return '继续 $title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '新增部分未转写';
+
+  @override
+  String get continueUntranscribedTitle => '新增部分未被转写';
+
+  @override
+  String get continueUntranscribedBody => '录音已加长，但刚添加的话没有转写。重新转写即可听到全部内容。';
+
+  @override
+  String get continueSavedSeparatelyLabel => '已保存为新条目';
+
+  @override
+  String get continueSavedSeparatelyBody => '新录音无法合并到此条目，因此已单独保存。';
+
+  @override
+  String get continueEntryBusy => '此条目仍在转写中。';
 }

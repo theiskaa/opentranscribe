@@ -1261,5 +1261,42 @@
         "type": "String"
       }
     }
+  },
+  "continueRecording": "Continue recording",
+  "@continueRecording": {
+    "description": "Entry menu row that records more onto this entry"
+  },
+  "continuingEntry": "Continuing {title}",
+  "@continuingEntry": {
+    "description": "Recorder line naming the entry the take extends",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "continueUntranscribedLabel": "New part not transcribed",
+  "@continueUntranscribedLabel": {
+    "description": "Pill label when a continuation merged its audio but its words did not land"
+  },
+  "continueUntranscribedTitle": "The new part wasn't transcribed",
+  "@continueUntranscribedTitle": {
+    "description": "Sheet title for the untranscribed addition"
+  },
+  "continueUntranscribedBody": "The recording grew, but the words you just added didn't land. Re-transcribe to hear all of it.",
+  "@continueUntranscribedBody": {
+    "description": "Sheet body for the untranscribed addition"
+  },
+  "continueSavedSeparatelyLabel": "Saved as a new entry",
+  "@continueSavedSeparatelyLabel": {
+    "description": "Pill label and sheet title when a continuation could not land and the take became its own entry; the pill opens it"
+  },
+  "continueSavedSeparatelyBody": "The new take couldn't be joined onto this entry, so it was saved on its own.",
+  "@continueSavedSeparatelyBody": {
+    "description": "Sheet body for a take saved separately"
+  },
+  "continueEntryBusy": "This entry is still being transcribed.",
+  "@continueEntryBusy": {
+    "description": "Recorder notice when the entry to continue is mid-transcription"
   }
 }

@@ -284,5 +284,13 @@
   "supportUnlocksSection": "Clubmitglieder erhalten",
   "supportMemberUnlocks": "Was du bekommst",
   "supporterTag": "Club",
-  "supportFooter": "Unterstützen ändert nichts an der Privatsphäre. Das Journal verlässt das Telefon nie, siehe {privacy}. Der Kauf läuft zu Apples üblichen {terms}."
+  "supportFooter": "Unterstützen ändert nichts an der Privatsphäre. Das Journal verlässt das Telefon nie, siehe {privacy}. Der Kauf läuft zu Apples üblichen {terms}.",
+  "continueRecording": "Aufnahme fortsetzen",
+  "continuingEntry": "Fortsetzung von {title}",
+  "continueUntranscribedLabel": "Neuer Teil nicht transkribiert",
+  "continueUntranscribedTitle": "Der neue Teil wurde nicht transkribiert",
+  "continueUntranscribedBody": "Die Aufnahme ist gewachsen, aber die neuen Worte sind nicht angekommen. Erneut transkribieren, um alles zu hören.",
+  "continueSavedSeparatelyLabel": "Als neuer Eintrag gespeichert",
+  "continueSavedSeparatelyBody": "Die neue Aufnahme konnte nicht an diesen Eintrag angehängt werden und wurde daher eigenständig gespeichert.",
+  "continueEntryBusy": "Dieser Eintrag wird noch transkribiert."
 }

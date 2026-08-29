@@ -284,5 +284,13 @@
   "supportUnlocksSection": "Per i membri del club",
   "supportMemberUnlocks": "Cosa ottieni",
   "supporterTag": "Club",
-  "supportFooter": "Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono, come indicato nella {privacy}, e l'acquisto segue le {terms} standard di Apple."
+  "supportFooter": "Sostenere non cambia nulla per la privacy. Il diario non lascia mai il telefono, come indicato nella {privacy}, e l'acquisto segue le {terms} standard di Apple.",
+  "continueRecording": "Continua la registrazione",
+  "continuingEntry": "Continuazione di {title}",
+  "continueUntranscribedLabel": "Nuova parte non trascritta",
+  "continueUntranscribedTitle": "La nuova parte non è stata trascritta",
+  "continueUntranscribedBody": "La registrazione è cresciuta, ma le parole aggiunte non sono state trascritte. Ritrascrivi per sentirla tutta.",
+  "continueSavedSeparatelyLabel": "Salvato come nuova voce",
+  "continueSavedSeparatelyBody": "La nuova registrazione non si è potuta unire a questa voce, quindi è stata salvata a parte.",
+  "continueEntryBusy": "Questa voce è ancora in trascrizione."
 }

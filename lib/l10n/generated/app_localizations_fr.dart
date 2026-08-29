@@ -1001,4 +1001,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'Soutenir ne change rien à la confidentialité. Le journal ne quitte jamais le téléphone, comme le dit la $privacy, et l\'achat suit les $terms standard d\'Apple.';
   }
+
+  @override
+  String get continueRecording => 'Continuer l\'enregistrement';
+
+  @override
+  String continuingEntry(String title) {
+    return 'Suite de $title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => 'Nouvelle partie non transcrite';
+
+  @override
+  String get continueUntranscribedTitle => 'La nouvelle partie n\'a pas été transcrite';
+
+  @override
+  String get continueUntranscribedBody =>
+      'L\'enregistrement s\'est allongé, mais les mots ajoutés n\'ont pas été transcrits. Retranscrire pour tout entendre.';
+
+  @override
+  String get continueSavedSeparatelyLabel => 'Enregistré comme nouvelle entrée';
+
+  @override
+  String get continueSavedSeparatelyBody =>
+      'La nouvelle prise n\'a pas pu être jointe à cette entrée, elle a donc été enregistrée à part.';
+
+  @override
+  String get continueEntryBusy => 'Cette entrée est encore en cours de transcription.';
 }
