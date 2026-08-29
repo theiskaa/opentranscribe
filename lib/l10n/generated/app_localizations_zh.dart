@@ -235,7 +235,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appearanceIconSection => '应用图标';
 
   @override
-  String get appIconNamePaper => 'Paper';
+  String get appIconNameSignal => 'Signal';
 
   @override
   String get appIconFailedTitle => '图标未更改';

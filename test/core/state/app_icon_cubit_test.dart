@@ -11,10 +11,10 @@ void main() {
   final options = [
     AppIconDescriptor(id: 'default', iconName: null, preview: 'd.png', name: (_) => 'Default'),
     AppIconDescriptor(
-      id: 'ember',
-      iconName: 'AppIcon-Ember',
-      preview: 'e.png',
-      name: (_) => 'Ember',
+      id: 'signal',
+      iconName: 'AppIcon-Signal',
+      preview: 's.png',
+      name: (_) => 'Signal',
       club: true,
     ),
   ];
@@ -42,12 +42,12 @@ void main() {
   }
 
   test('opens on the primary icon and reads what the OS shows on load', () async {
-    store.currentAnswer = 'AppIcon-Ember';
+    store.currentAnswer = 'AppIcon-Signal';
     final cubit = build();
     expect(cubit.state.currentId, 'default');
 
     await cubit.load();
-    expect(cubit.state.currentId, 'ember');
+    expect(cubit.state.currentId, 'signal');
   });
 
   test('an icon name the build does not ship reads as the primary icon', () async {
@@ -59,24 +59,24 @@ void main() {
 
   test('a non-member cannot pick a club icon and the OS is never asked', () async {
     final cubit = build();
-    expect(await cubit.pick('ember'), AppIconPickOutcome.locked);
+    expect(await cubit.pick('signal'), AppIconPickOutcome.locked);
     expect(store.sets, isEmpty);
   });
 
   test('a member picks a club icon and the primary icon resets to null', () async {
     member = true;
     final cubit = build();
-    expect(await cubit.pick('ember'), AppIconPickOutcome.switched);
-    expect(cubit.state.currentId, 'ember');
+    expect(await cubit.pick('signal'), AppIconPickOutcome.switched);
+    expect(cubit.state.currentId, 'signal');
     expect(await cubit.pick('default'), AppIconPickOutcome.switched);
-    expect(store.sets, ['AppIcon-Ember', null]);
+    expect(store.sets, ['AppIcon-Signal', null]);
   });
 
   test('a refused change answers failed and keeps the current icon', () async {
     member = true;
     store.setError = const AppIconStoreException('no');
     final cubit = build();
-    expect(await cubit.pick('ember'), AppIconPickOutcome.failed);
+    expect(await cubit.pick('signal'), AppIconPickOutcome.failed);
     expect(cubit.state.currentId, 'default');
     expect(cubit.state.busy, isFalse);
   });
@@ -86,11 +86,11 @@ void main() {
     final gate = Completer<void>();
     store.setGate = gate.future;
     final cubit = build();
-    final first = cubit.pick('ember');
+    final first = cubit.pick('signal');
     expect(await cubit.pick('default'), AppIconPickOutcome.unchanged);
     gate.complete();
     expect(await first, AppIconPickOutcome.switched);
-    expect(store.sets, ['AppIcon-Ember']);
+    expect(store.sets, ['AppIcon-Signal']);
   });
 
   test('a store that cannot read the icon leaves the primary marked', () async {
@@ -103,13 +103,13 @@ void main() {
   test('a lapsed membership leaves a club icon where it is', () async {
     member = true;
     final cubit = build();
-    await cubit.pick('ember');
+    await cubit.pick('signal');
     member = false;
     tier.add(null);
     await Future<void>.delayed(Duration.zero);
     expect(cubit.state.member, isFalse);
-    expect(cubit.state.currentId, 'ember');
-    expect(await cubit.pick('ember'), AppIconPickOutcome.locked);
+    expect(cubit.state.currentId, 'signal');
+    expect(await cubit.pick('signal'), AppIconPickOutcome.locked);
   });
 
   test('picking the current icon changes nothing', () async {

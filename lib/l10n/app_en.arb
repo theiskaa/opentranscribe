@@ -309,9 +309,9 @@
   "@appearanceIconSection": {
     "description": "Section label above the app icon picker on the appearance screen"
   },
-  "appIconNamePaper": "Paper",
-  "@appIconNamePaper": {
-    "description": "Name of the Paper club app icon (the wave on a light ground); a proper noun, not translated"
+  "appIconNameSignal": "Signal",
+  "@appIconNameSignal": {
+    "description": "Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated"
   },
   "appIconFailedTitle": "The icon did not change",
   "@appIconFailedTitle": {

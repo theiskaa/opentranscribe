@@ -249,7 +249,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appearanceIconSection => 'App-Symbol';
 
   @override
-  String get appIconNamePaper => 'Paper';
+  String get appIconNameSignal => 'Signal';
 
   @override
   String get appIconFailedTitle => 'Das Symbol wurde nicht geändert';

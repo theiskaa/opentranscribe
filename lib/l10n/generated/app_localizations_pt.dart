@@ -249,7 +249,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appearanceIconSection => 'Ícone da app';
 
   @override
-  String get appIconNamePaper => 'Paper';
+  String get appIconNameSignal => 'Signal';
 
   @override
   String get appIconFailedTitle => 'O ícone não mudou';

@@ -237,7 +237,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appearanceIconSection => 'アプリアイコン';
 
   @override
-  String get appIconNamePaper => 'Paper';
+  String get appIconNameSignal => 'Signal';
 
   @override
   String get appIconFailedTitle => 'アイコンを変更できませんでした';

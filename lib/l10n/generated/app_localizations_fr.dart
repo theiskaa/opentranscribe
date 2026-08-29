@@ -250,7 +250,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appearanceIconSection => 'Icône de l\'app';
 
   @override
-  String get appIconNamePaper => 'Paper';
+  String get appIconNameSignal => 'Signal';
 
   @override
   String get appIconFailedTitle => 'L\'icône n\'a pas changé';

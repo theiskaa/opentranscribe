@@ -552,11 +552,11 @@ abstract class AppLocalizations {
   /// **'App icon'**
   String get appearanceIconSection;
 
-  /// Name of the Paper club app icon (the wave on a light ground); a proper noun, not translated
+  /// Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated
   ///
   /// In en, this message translates to:
-  /// **'Paper'**
-  String get appIconNamePaper;
+  /// **'Signal'**
+  String get appIconNameSignal;
 
   /// Sheet title when iOS refused an icon change
   ///

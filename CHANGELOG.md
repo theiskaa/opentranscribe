@@ -10,7 +10,7 @@ The whole journal re-heard by a better engine.
 - Continue an entry: record more onto a saved entry from its own screen. The audio merges into the kept recording and the transcript grows to match, edits kept; a take in another language gets the language marker. An entry with no recording can be continued too; the take becomes its recording. A take that cannot be merged is saved as its own entry. (#6)
 - Formatted exports and re-transcribe all are free for everyone. The club no longer gates any feature; what it unlocks from here on is looks: theme families and app icons.
 - Club themes: every family beyond Default is a club look. Gruvbox and Sepia stay, and five join them: Midnight, Dracula, Nord, Catppuccin, and Tokyo Night. Solarized is retired. A pick is kept whether or not the club covers it, so it snaps on the moment a membership lands.
-- Club app icons: the wave on Midnight and Town grounds, picked on the appearance screen.
+- App icons: a second home screen icon, Signal, picked on the appearance screen above the themes.
 
 ## 0.2.0 - 2026-08-25
 
