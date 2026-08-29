@@ -868,6 +868,32 @@ void main() {
       await service.dispose();
     });
 
+    test('a restart after an interruption records a fresh take', () async {
+      final rec = FakeAudioRecorder();
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: FakeBatchEngine(),
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      rec.interrupt();
+      await pumpEventQueue();
+      expect(cubit.state.interrupted, isTrue);
+      await cubit.restart();
+
+      expect(cubit.state.isRecording, isTrue);
+      expect(cubit.state.continuing, isNull);
+      expect(service.continuingEntryId, isNull);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
+
     test('a base mid-batch lands as entryBusy', () async {
       final gate = Completer<void>();
       final rec = FakeAudioRecorder();

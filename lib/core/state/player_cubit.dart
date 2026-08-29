@@ -231,6 +231,16 @@ class PlayerCubit extends Cubit<PlayerState> {
     }
   }
 
+  /// Silences playback and keeps the shape: for a sheet rising over the
+  /// player. Safe to call with nothing playing.
+  Future<void> silence() async {
+    try {
+      await _player.stop();
+    } on PlaybackException {
+      // Already silent.
+    }
+  }
+
   /// Silences playback and forgets the loaded shape: the entry's file was
   /// replaced under the screen (a continuation landing), and the wave reads
   /// the new one on its next mount. Safe to call with nothing playing.

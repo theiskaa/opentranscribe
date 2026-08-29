@@ -475,6 +475,33 @@ void main() {
       await failing.dispose();
     });
 
+    test('a take whose own save failed clears the mark and pins nothing', () async {
+      final storage = LocalService();
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final refusing = _RefusingSecondSaveStore(storage);
+      final failing = TranscriptionService(
+        composer: FakeAudioComposer(throwOnConcatenate: true),
+        recorder: FakeAudioRecorder(),
+        engine: FakeBatchEngine(),
+        store: refusing,
+      );
+      await failing.startRecording();
+      final base = await failing.stopRecording();
+      final cubit = EntriesCubit(service: failing);
+      refusing.refuse = true;
+
+      cubit.markContinuing(base);
+      await failing.startRecording(continuing: base);
+      await expectLater(failing.stopRecording(), throwsA(isA<EntrySaveFailed>()));
+      await pumpEventQueue();
+
+      expect(cubit.state.busyId, isNull);
+      expect(cubit.state.error, isNull);
+
+      await cubit.close();
+      await failing.dispose();
+    });
+
     test('clearContinuing clears only its own continuation', () async {
       final cubit = await seeded();
       final base = cubit.state.entries.single;
@@ -566,4 +593,16 @@ void main() {
       await cubit.close();
     });
   });
+}
+
+class _RefusingSecondSaveStore extends EntryStore {
+  _RefusingSecondSaveStore(super.storage);
+
+  bool refuse = false;
+
+  @override
+  Future<void> save(Entry entry) async {
+    if (refuse) throw Exception('save refused');
+    return super.save(entry);
+  }
 }

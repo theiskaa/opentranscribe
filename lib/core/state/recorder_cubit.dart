@@ -384,7 +384,9 @@ class RecorderCubit extends Cubit<RecorderState> {
     // Publish the teardown like cancel() does, so a concurrent start()/cancel()
     // waits it out instead of racing _teardown(). Cleared before start() below,
     // so start()'s own _discardInFlight await sees null (no self-deadlock).
-    final continuing = state.continuing;
+    // An interrupted continuation has already landed; a restart after it is
+    // a fresh take, not a second continuation nobody marked.
+    final continuing = state.interrupted ? null : state.continuing;
     final ending = _cancelSession(forRestart: continuing != null);
     _discardInFlight = ending;
     try {
