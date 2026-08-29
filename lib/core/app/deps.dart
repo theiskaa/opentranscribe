@@ -316,6 +316,7 @@ class Deps {
       recorder: recorder,
       engine: engineSettings.resolveActive(engineRegistry).engine,
       store: entryStore,
+      composer: PlatformAudioComposer(),
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
       thermalPressure: () => thermalMonitor.underPressure,
