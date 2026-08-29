@@ -72,22 +72,18 @@ export const CLUB = {
   priceNote: "Once. No subscription.",
   priceRegion: "In US dollars; the price follows your App Store region.",
   pitch: [
-    "OpenTranscribe is free and private, and supporting it keeps it that way. The club is an optional one-time purchase, made directly through the App Store with no purchase SDK, no account, and no server behind it.",
+    "Everything that makes OpenTranscribe useful is free for everyone, and stays that way. The club is how the app is supported: an optional one-time purchase, with a few looks as thanks. It is made directly through the App Store, with no purchase SDK, no account, and no server behind it.",
     "Membership is verified on the device from Apple's own record, so it works in airplane mode, like everything else.",
   ],
   perksHead: "Club members get",
   perks: [
     {
-      title: "Formatted exports",
-      note: "The whole journal as Markdown, as Obsidian notes, or as a website that opens with a player in any browser.",
+      title: "Club themes",
+      note: "Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night and more, each in light and dark.",
     },
     {
-      title: "Re-transcribe all",
-      note: "The whole journal, heard again by a newer engine, without opening entries one by one.",
-    },
-    {
-      title: "Future club features",
-      note: "Whatever joins the club later, included.",
+      title: "App icons",
+      note: "Alternate home screen icons, on the way.",
     },
   ],
 } as const;
