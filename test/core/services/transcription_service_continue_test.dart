@@ -429,6 +429,7 @@ void main() {
 
     expect(landed.transcript?.fullText, 'old [fr] nouveau');
     expect(landed.effectiveLocaleId, 'fr-FR');
+    expect(landed.transcript?.engineId, engine.id);
     final again = await svc.retranscribe(landed);
     expect(engine.batchCalls.last.localeId, 'fr-FR');
     expect(again.transcript?.localeId, 'fr-FR');
@@ -1011,22 +1012,116 @@ void main() {
     await svc.dispose();
   });
 
-  test('an unheard base whose whole-file pass fails keeps the words the live pass heard', () async {
-    await seedBase();
+  test('a fresh take after a restart releases the restarted base', () async {
+    await seedBase(transcript: heard('a'));
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.cancelRecording(forRestart: true);
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(outcomes.single, const ContinuationDiscarded(baseId: 'base'));
+    final again = await svc.retranscribe(store.read('base')!);
+    expect(again.transcript?.fullText, 'b');
+
+    await svc.dispose();
+  });
+
+  test('an idle cancel or teardown after a restart releases the restarted base', () async {
+    await seedBase(transcript: heard('a'));
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await svc.cancelRecording(forRestart: true);
+    await svc.cancelRecording();
+    await pumpEventQueue();
+
+    expect(outcomes.single, const ContinuationDiscarded(baseId: 'base'));
+    expect(
+      svc.retranscribeAll.runnable(store.read('base')!.withTranscript(heard('a', engineId: 'x'))),
+      isTrue,
+    );
+
+    await svc.dispose();
+  });
+
+  test('a salvaged landing on a base without a recording keeps the take under keep-off', () async {
+    await seedBase(
+      revisions: [Revision(text: 'typed', at: fixedClock)],
+    );
+    await store.save(store.read('base')!.withoutAudio());
     final svc = build(
       FakeStreamingEngine(cannedText: 'live words', failBatch: true, stopSignal: recorder.stopped),
+      keepAudio: () => false,
     );
 
     await svc.startRecording(continuing: store.read('base'));
     await pumpEventQueue();
     final landed = await svc.stopRecording();
+    await pumpEventQueue();
 
-    expect(landed.audioPath, 'merged.m4a');
     expect(landed.transcript?.fullText, 'live words');
-    expect(landed.transcript?.segments, isEmpty);
+    expect(store.read('base')?.audioPath, 'tail.m4a');
+    expect(tailFile.existsSync(), isTrue);
 
     await svc.dispose();
   });
+
+  test(
+    'an unheard base whose whole-file pass fails lands untranscribed, not with live words',
+    () async {
+      await seedBase();
+      final svc = build(
+        FakeStreamingEngine(
+          cannedText: 'live words',
+          failBatch: true,
+          stopSignal: recorder.stopped,
+        ),
+      );
+      final outcomes = <ContinuationOutcome>[];
+      svc.continuations.listen(outcomes.add);
+
+      await svc.startRecording(continuing: store.read('base'));
+      await pumpEventQueue();
+      final landed = await svc.stopRecording();
+      await pumpEventQueue();
+
+      expect(landed.audioPath, 'merged.m4a');
+      expect(landed.transcript, isNull);
+      expect(outcomes.single, ContinuationLanded(entry: landed, additionUntranscribed: true));
+      expect(svc.retranscribeAll.runnable(landed), isTrue);
+
+      await svc.dispose();
+    },
+  );
+
+  test(
+    'a whole-file pass that settles blank on a base without a recording keeps the live words',
+    () async {
+      await seedBase(
+        revisions: [Revision(text: 'typed', at: fixedClock)],
+      );
+      await store.save(store.read('base')!.withoutAudio());
+      final svc = build(
+        FakeStreamingEngine(cannedText: 'live words', batchText: '', stopSignal: recorder.stopped),
+      );
+
+      await svc.startRecording(continuing: store.read('base'));
+      await pumpEventQueue();
+      final landed = await svc.stopRecording();
+
+      expect(landed.transcript?.fullText, 'live words');
+      expect(landed.readableText, 'typed live words');
+
+      await svc.dispose();
+    },
+  );
 }
 
 /// A store that refuses to save one id, so a landing's update (or a fallback's
