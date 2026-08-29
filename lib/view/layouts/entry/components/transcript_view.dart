@@ -30,10 +30,19 @@ import 'package:transcriber/transcriber.dart';
 /// recording's length and envelope, resolving into the real text when the run
 /// lands. Reduce motion (or a failed capture) falls back to the dots loader.
 class TranscriptView extends StatefulWidget {
-  const TranscriptView({required this.entry, required this.busy, super.key});
+  const TranscriptView({
+    required this.entry,
+    required this.busy,
+    this.appending = false,
+    super.key,
+  });
 
   final Entry entry;
   final bool busy;
+
+  /// A take is being added to this entry: the words stay readable and a
+  /// quiet wait sits under them until the landing.
+  final bool appending;
 
   @override
   State<TranscriptView> createState() => _TranscriptViewState();
@@ -280,7 +289,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     }
 
     final loading = _phase == _Phase.loading;
-    return AnimatedSwitcher(
+    final body = AnimatedSwitcher(
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
       layoutBuilder: meltStack,
       child: loading
@@ -294,6 +303,20 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
               ),
             )
           : KeyedSubtree(key: const ValueKey('content'), child: _content(context)),
+    );
+    if (!widget.appending) return body;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        body,
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: AppSpinner(size: 30, color: theme.player.segmentColor),
+          ),
+        ),
+      ],
     );
   }
 

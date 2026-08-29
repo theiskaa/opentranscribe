@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
@@ -50,6 +51,11 @@ class EntryDetailScreen extends StatelessWidget {
   }
 }
 
+/// Whether the entry offers to be continued: it needs its audio, no live edit
+/// (the landing would shadow the field), and no run already on it.
+bool continueRowVisible({required bool hasAudio, required bool editing, required bool busy}) =>
+    hasAudio && !editing && !busy;
+
 class _DetailView extends StatefulWidget {
   const _DetailView({required this.entryId});
 
@@ -81,6 +87,9 @@ class _DetailViewState extends State<_DetailView> {
   /// Set once the entry loses its audio while this screen is open, so the
   /// stop below fires exactly once.
   bool _stoppedForDiscard = false;
+
+  /// The file the player is bound to; a landing replaces it under the screen.
+  String? _boundPath;
 
   @override
   void initState() {
@@ -143,12 +152,17 @@ class _DetailViewState extends State<_DetailView> {
   /// tap time because a toolbar can outlive the state it was built over.
   void _editFromSelection(Entry entry, String? selectedText) {
     final entriesState = context.read<EntriesCubit>().state;
-    final transcribing =
-        entriesState.busyId == entry.id && entriesState.busyAction == EntriesAction.transcribe;
-    if (entry.readableText != null && !transcribing && !_editing) {
+    if (entry.readableText != null && !_runOn(entry, entriesState) && !_editing) {
       _startEditing(entry, selectedText: selectedText);
     }
   }
+
+  /// A run whose landing will rewrite the words: a re-transcribe or a
+  /// continuation. Either one shadows an edit opened under it.
+  static bool _runOn(Entry entry, EntriesState state) =>
+      state.busyId == entry.id &&
+      (state.busyAction == EntriesAction.transcribe ||
+          state.busyAction == EntriesAction.continueRecording);
 
   void _onBodyFocusChange() {
     if (!_bodyFocus.hasFocus) _commitEdit();
@@ -200,6 +214,7 @@ class _DetailViewState extends State<_DetailView> {
   static const _actEdit = 'act:edit';
   static const _actHistory = 'act:history';
   static const _actExport = 'act:export';
+  static const _actContinue = 'act:continue';
   static const _actRetranscribe = 'act:retranscribe';
   static const _actDelete = 'act:delete';
   static const _actionIds = {
@@ -207,9 +222,23 @@ class _DetailViewState extends State<_DetailView> {
     _actEdit,
     _actHistory,
     _actExport,
+    _actContinue,
     _actRetranscribe,
     _actDelete,
   };
+
+  /// Marks the entry busy and raises the recorder over this screen; the sheet
+  /// pops back here, and the service's outcome clears the mark whatever the
+  /// take's ending.
+  void _startContinuation(Entry entry) {
+    if (_editing) return;
+    final entries = context.read<EntriesCubit>();
+    if (!entries.markContinuing(entry)) return;
+    _selectionFocus.unfocus();
+    // The old file must not keep sounding into the sheet.
+    unawaited(_player?.rebind());
+    context.pushNamed(Routes.recordName, queryParameters: {Routes.recordEntryQuery: entry.id});
+  }
 
   /// The history flow: the history sheet shows every revision with its change
   /// inline, and a tapped one comes back as the head. The service resolves
@@ -227,6 +256,7 @@ class _DetailViewState extends State<_DetailView> {
     List<String> transcribeTags,
     String preselected, {
     required bool busy,
+    required bool continuing,
     required bool editing,
   }) => [
     AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
@@ -234,7 +264,7 @@ class _DetailViewState extends State<_DetailView> {
     // (its action is the bottom CTA), and a run in flight would land words
     // the open field could then silently shadow. While the field is up the
     // row is gone too: re-entering would re-seed the field and eat the words.
-    if (entry.readableText != null && !busy && !editing)
+    if (entry.readableText != null && !busy && !continuing && !editing)
       AppMenuItem(id: _actEdit, label: l10n.editTranscript, icon: AppIcons.pencil),
     // History stands whenever the entry reads as any words, empty history
     // included: the sheet then shows the original transcription alone. A
@@ -242,9 +272,11 @@ class _DetailViewState extends State<_DetailView> {
     // nothing to stand in. Mid-edit it hides (a restore under the open field
     // would be shadowed by its commit), and mid-run too: a landing would
     // date the open sheet.
-    if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy)
+    if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy && !continuing)
       AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
     AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
+    if (continueRowVisible(hasAudio: entry.hasAudio, editing: editing, busy: busy || continuing))
+      AppMenuItem(id: _actContinue, label: l10n.continueRecording, icon: AppIcons.mic),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
     // run starts under the field instead of before it).
     if (entry.hasAudio && !editing) ...[
@@ -288,20 +320,22 @@ class _DetailViewState extends State<_DetailView> {
         // Re-checked like the audio actions: the menu may have outlived the
         // state it offered to edit (a transcript gone, a run since started).
         final entriesState = context.read<EntriesCubit>().state;
-        final transcribing =
-            entriesState.busyId == entry.id && entriesState.busyAction == EntriesAction.transcribe;
-        if (entry.readableText != null && !transcribing && !_editing) _startEditing(entry);
+        if (entry.readableText != null && !_runOn(entry, entriesState) && !_editing) {
+          _startEditing(entry);
+        }
       case _actHistory:
         // Same stale-menu rule: only an entry with a text state has anything
         // to show, and never under a live edit or an in-flight run.
         final historyState = context.read<EntriesCubit>().state;
-        final historyBusy =
-            historyState.busyId == entry.id && historyState.busyAction == EntriesAction.transcribe;
-        if ((entry.readableText?.trim().isNotEmpty ?? false) && !_editing && !historyBusy) {
+        if ((entry.readableText?.trim().isNotEmpty ?? false) &&
+            !_editing &&
+            !_runOn(entry, historyState)) {
           unawaited(_openHistory(entry));
         }
       case _actExport:
         unawaited(showEntryExportSheet(context, entry));
+      case _actContinue:
+        if (entry.hasAudio) _startContinuation(entry);
       case _actRetranscribe:
         // Runs in the entry's OWN language (the service resolves it); the
         // language leaves below are the explicit override.
@@ -391,9 +425,19 @@ class _DetailViewState extends State<_DetailView> {
           _stoppedForDiscard = true;
           unawaited(_player?.stopAndDetach());
         }
+        // A landing replaced the file: the player forgets the old one, and
+        // the keyed wave below reads the new one.
+        if (_boundPath != null && entry.hasAudio && entry.audioPath != _boundPath) {
+          unawaited(_player?.rebind());
+        }
+        _boundPath = entry.audioPath;
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
+        // A take extending this entry, live or landing: the words stay and a
+        // quiet wait sits under them.
+        final continuing =
+            state.busyId == entry.id && state.busyAction == EntriesAction.continueRecording;
         // The entry's own language, once known: the quiet answer to "what
         // will Re-transcribe run in".
         final language = entry.effectiveLocaleId;
@@ -408,6 +452,7 @@ class _DetailViewState extends State<_DetailView> {
           transcribeTags,
           preselected,
           busy: busy,
+          continuing: continuing,
           editing: _editing,
         );
         // The bottom CTA exists for a never-transcribed entry; a run in flight
@@ -502,7 +547,7 @@ class _DetailViewState extends State<_DetailView> {
                                 : Column(
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
-                                      WavePlayer(entry: entry),
+                                      WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
                                       const SizedBox(height: AppSpacing.xxl),
                                     ],
                                   ),
@@ -527,7 +572,7 @@ class _DetailViewState extends State<_DetailView> {
                             ),
                           )
                         else
-                          TranscriptView(entry: entry, busy: busy),
+                          TranscriptView(entry: entry, busy: busy, appending: continuing),
                       ],
                     ),
                   ),
@@ -579,8 +624,11 @@ class _DetailViewState extends State<_DetailView> {
                   entry: entry,
                   error: error,
                   errorTick: state.errorTick,
+                  relatedId: state.error?.relatedId,
                   showCta: showCta,
                   busy: busy,
+                  onOpenRelated: (id) =>
+                      context.pushNamed(Routes.entryName, pathParameters: {'id': id}),
                   // Through the screen's one door, so a dock action gets the
                   // same selection drop and live-edit guard as the menu rows.
                   onTranscribe: () => _startRetranscribe(context.read<EntriesCubit>(), entry),
@@ -602,16 +650,22 @@ class _BottomDock extends StatelessWidget {
     required this.entry,
     required this.error,
     required this.errorTick,
+    required this.relatedId,
     required this.showCta,
     required this.busy,
     required this.onTranscribe,
+    required this.onOpenRelated,
   });
 
   final Entry entry;
   final EntriesError? error;
   final int errorTick;
+
+  /// The entry a take became when it could not land here; the pill opens it.
+  final String? relatedId;
   final bool showCta;
   final bool busy;
+  final ValueChanged<String> onOpenRelated;
 
   /// Both the retry and the CTA run through the screen's one re-transcribe
   /// door rather than reaching the cubit themselves, so a dock action gets
@@ -619,6 +673,11 @@ class _BottomDock extends StatelessWidget {
   final VoidCallback onTranscribe;
 
   Future<void> _openDetails(BuildContext context, EntriesError kind) async {
+    final related = relatedId;
+    if (kind == EntriesError.savedSeparately && related != null) {
+      onOpenRelated(related);
+      return;
+    }
     final retry = await showTranscribeErrorSheet(context, kind);
     if (retry) onTranscribe();
   }
@@ -665,9 +724,9 @@ String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
-  EntriesError.generic ||
-  EntriesError.additionUntranscribed ||
-  EntriesError.savedSeparately => l10n.transcribeErrorLabelGeneric,
+  EntriesError.additionUntranscribed => l10n.continueUntranscribedLabel,
+  EntriesError.savedSeparately => l10n.continueSavedSeparatelyLabel,
+  EntriesError.generic => l10n.transcribeErrorLabelGeneric,
 };
 
 /// The reeed-style inline rename: the title IS a borderless text field in the

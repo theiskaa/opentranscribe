@@ -39,7 +39,17 @@ Future<bool> showTranscribeErrorSheet(BuildContext context, EntriesError kind) a
     l10n.transcribeErrorTitleCapReached,
     l10n.transcribeErrorCapReached,
   ),
-  EntriesError.generic || EntriesError.additionUntranscribed || EntriesError.savedSeparately => (
+  EntriesError.additionUntranscribed => (
+    AppIcons.waveform,
+    l10n.continueUntranscribedTitle,
+    l10n.continueUntranscribedBody,
+  ),
+  EntriesError.savedSeparately => (
+    AppIcons.docOnDoc,
+    l10n.continueSavedSeparatelyLabel,
+    l10n.continueSavedSeparatelyBody,
+  ),
+  EntriesError.generic => (
     AppIcons.waveform,
     l10n.transcribeErrorTitleGeneric,
     l10n.transcribeErrorGeneric,
