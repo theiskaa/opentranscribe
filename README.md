@@ -20,7 +20,7 @@ Transcription and reflection sit behind swappable contracts, `TranscriptionEngin
 
 ## At rest
 
-Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
+Recordings are AAC in the app's own directory, written with iOS data protection and excluded from iCloud and device backups by default. An entry can be continued: a later take merges into its recording on the device and is transcribed onto the end of the transcript. Entries are encrypted JSON in the local key-value store, AES-256-GCM with a fresh nonce per record. The encryption key is a random 32-byte value generated on first launch and held in the Keychain, one per device; no key ships in the repository. See [SECURITY.md](SECURITY.md) for the trust model.
 
 ## Build
 

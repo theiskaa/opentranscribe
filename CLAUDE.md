@@ -52,7 +52,7 @@ Corollaries that shape the code:
 - Transcription runs on-device, behind one contract: `TranscriptionEngine` in `packages/transcriber`. Two engines ship, user-switchable on the transcription screen: `AppleSpeechEngine` (the iOS 26 SpeechAnalyzer, with managed model downloads) and `AppleDictationEngine` (the classic recognizer behind iOS dictation); whisper.cpp lands later as one more registry entry. Streaming and downloadable-model behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`.
 - `TranscriptionEngine.onDeviceOnly` is a hard gate. The app refuses an engine that answers false, so nothing can quietly route audio off the phone.
 - Nothing in `view/`, `core/services/`, or `core/state/` names a concrete engine. `Deps.init()` is the only place allowed to, plus the engine registry it builds (`EngineEntry` list in `core/app/engine_registry.dart`) for every surface that lists engines: registry order is preference order, auto mode runs the first available entry, and the stored choice lives in `EngineSettings`.
-- Audio capture is recorder-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
+- Audio capture is recorder-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Continuing an entry records a normal take and merges it onto the kept file natively through `AudioComposer`; the merged file replaces the old one only after the entry is saved, and the new words are stitched onto what the entry reads as (a base never transcribed gets one pass over the merged file instead). Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
 - The supporter purchase is direct StoreKit 2 (`SupportStore.swift` under `ios/Runner/`, wrapped by `core/support/`), no third-party purchase SDK and no server. The OS talks to the App Store; no journal content is in that conversation, entitlements are verified on-device from StoreKit's own record, and only the act of buying needs a connection. The club gates looks only; no function is ever gated, and `test/core/no_club_gate_test.dart` keeps it that way: nothing under `core/services/` or `core/state/` may ask for the tier except the support and theme holders.
 
 ## Architecture
@@ -65,7 +65,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 - `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
 - `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
-- `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, keeping recorder, engine and store private inside it), `entry_store.dart`, `support_service.dart` (the one owner of the supporter answer), and the settings holders.
+- `core/services/`: `transcription_service.dart` (the one owner of the entry lifecycle, capture through continuation landings, keeping recorder, composer, engine and store private inside it), `transcript_stitch.dart` (the pure stitch of a continued transcript), `entry_store.dart`, `support_service.dart` (the one owner of the supporter answer), and the settings holders.
 - `core/support/`: the supporter entitlement's vocabulary and channel boundary: `SupporterTier`, `StoreProduct`, and the `SupportStore` wrapper over `opentranscribe/support`.
 - `core/state/`: one cubit per concern.
 - `core/theming/`: `AppTheme` and its tokens, `AppIcons`, motion, shapes, type scale.
@@ -112,14 +112,14 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 Capture, speech, playback, and reflection Swift lives in the plugin packages and registers through `GeneratedPluginRegistrant`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for streams:
 
-- `AudioCapture.swift` (`packages/transcriber`): `transcriber/audio`, `/audio/status`, `/audio/level`
+- `AudioCapture.swift` and `AudioCompose.swift` (`packages/transcriber`): `transcriber/audio` (capture and `concatenate`), `/audio/status`, `/audio/level`
 - `SpeechEngine.swift` (`packages/transcriber`): `transcriber/speech`, `/speech/events`, `/speech/model`
 - `AudioPlayer.swift` (`packages/transcriber`): `transcriber/player`, `/player/state`
 - `ReflectionEngine.swift` (`packages/reflections`): `reflections/reflect`
 
 App-only Swift stays under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`: notifications, the storage key, share export, the splash hand-off, intent actions, the StoreKit support store (`opentranscribe/support` plus its event channel), and the thermal monitor (`opentranscribe/thermal` plus its event channel, wrapped by `core/utils/thermal.dart`). The Live Activity is `ios/Runner/RecordingLiveActivity.swift` driving the widget extension in `ios/RecorderActivity/`, over the attributes shared in `ios/Shared/`; it is fed capture status through `TranscriberPlugin.recordingStatusObserver`, set in `AppDelegate`.
 
-Channels are only ever touched from a wrapper (`PlatformAudioRecorder`, `PlatformAudioPlayer`, `AppleSpeechEngine`, and the app-level `SupportStore`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes.
+Channels are only ever touched from a wrapper (`PlatformAudioRecorder`, `PlatformAudioComposer`, `PlatformAudioPlayer`, `AppleSpeechEngine`, and the app-level `SupportStore`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes.
 
 ## Commands
 
