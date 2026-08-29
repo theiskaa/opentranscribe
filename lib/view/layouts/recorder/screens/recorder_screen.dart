@@ -263,7 +263,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
                       state.error != null ? cubit.clearError() : cubit.clearInterrupted();
                       // Nothing to record on a refused base: the sheet leaves
                       // with its notice.
-                      if (state.error == RecorderError.entryBusy && context.canPop()) {
+                      final route = ModalRoute.of(context);
+                      if (state.error == RecorderError.entryBusy &&
+                          route != null &&
+                          route.isCurrent &&
+                          context.canPop()) {
                         context.pop();
                       }
                     },

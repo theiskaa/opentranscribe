@@ -1264,7 +1264,7 @@
   },
   "continueRecording": "Record more",
   "@continueRecording": {
-    "description": "Entry menu row that records more onto this entry (one short verb phrase, like its neighbours)"
+    "description": "Entry menu row that records more onto this entry"
   },
   "continuingEntry": "Continuing {title}",
   "@continuingEntry": {

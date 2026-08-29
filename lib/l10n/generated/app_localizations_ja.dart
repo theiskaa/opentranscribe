@@ -940,7 +940,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String continuingEntry(String title) {
-    return '$title の続き';
+    return '$titleの続き';
   }
 
   @override

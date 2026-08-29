@@ -1818,7 +1818,7 @@ abstract class AppLocalizations {
   /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
   String supportFooter(String privacy, String terms);
 
-  /// Entry menu row that records more onto this entry (one short verb phrase, like its neighbours)
+  /// Entry menu row that records more onto this entry
   ///
   /// In en, this message translates to:
   /// **'Record more'**

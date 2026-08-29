@@ -943,7 +943,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String continuingEntry(String title) {
-    return '$title 이어서';
+    return '$title에 이어서';
   }
 
   @override

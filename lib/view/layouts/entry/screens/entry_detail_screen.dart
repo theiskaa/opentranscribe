@@ -51,9 +51,7 @@ class EntryDetailScreen extends StatelessWidget {
   }
 }
 
-/// Whether the entry offers to be continued: no live edit (the landing would
-/// shadow the field) and no run already on it. An entry without a recording
-/// qualifies; the take becomes its file.
+/// Whether the entry offers to be continued: no live edit and no action on it.
 bool continueRowVisible({required bool editing, required bool busy}) => !editing && !busy;
 
 class _DetailView extends StatefulWidget {
@@ -227,16 +225,14 @@ class _DetailViewState extends State<_DetailView> {
     _actDelete,
   };
 
-  /// Marks the entry busy and raises the recorder over this screen; the sheet
-  /// pops back here, and the service's outcome clears the mark whatever the
-  /// take's ending.
+  /// Marks the entry busy and raises the recorder over this screen; the
+  /// service's outcome clears the mark whatever the take's ending.
   void _startContinuation(Entry entry) {
     if (_editing) return;
     final entries = context.read<EntriesCubit>();
     if (!entries.markContinuing(entry)) return;
     _selectionFocus.unfocus();
-    // The old file must not keep sounding into the sheet.
-    unawaited(_player?.rebind());
+    unawaited(_player?.silence());
     context.pushNamed(Routes.recordName, queryParameters: {Routes.recordEntryQuery: entry.id});
   }
 
@@ -257,6 +253,7 @@ class _DetailViewState extends State<_DetailView> {
     String preselected, {
     required bool busy,
     required bool continuing,
+    required bool anyAction,
     required bool editing,
   }) => [
     AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
@@ -275,7 +272,7 @@ class _DetailViewState extends State<_DetailView> {
     if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !busy && !continuing)
       AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
     AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
-    if (continueRowVisible(editing: editing, busy: busy || continuing))
+    if (continueRowVisible(editing: editing, busy: anyAction))
       AppMenuItem(id: _actContinue, label: l10n.continueRecording, icon: AppIcons.mic),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
     // run starts under the field instead of before it).
@@ -428,8 +425,7 @@ class _DetailViewState extends State<_DetailView> {
         // A continuation can give it a recording back; the next discard must
         // silence playback again.
         if (entry.hasAudio) _stoppedForDiscard = false;
-        // A landing replaced the file: the player forgets the old one, and
-        // the keyed wave below reads the new one.
+        // A landing replaced the file; the keyed wave below reads the new one.
         if (_boundPath != null && entry.hasAudio && entry.audioPath != _boundPath) {
           unawaited(_player?.rebind());
         }
@@ -456,6 +452,7 @@ class _DetailViewState extends State<_DetailView> {
           preselected,
           busy: busy,
           continuing: continuing,
+          anyAction: state.busyId == entry.id,
           editing: _editing,
         );
         // The bottom CTA exists for a never-transcribed entry; a run in flight
@@ -682,7 +679,9 @@ class _BottomDock extends StatelessWidget {
 
   Future<void> _openDetails(BuildContext context, EntriesError kind) async {
     final related = relatedId;
-    if (kind == EntriesError.savedSeparately && related != null) {
+    final exists =
+        related != null && context.read<EntriesCubit>().state.entries.any((e) => e.id == related);
+    if (kind == EntriesError.savedSeparately && exists) {
       onOpenRelated(related);
       return;
     }
