@@ -367,7 +367,7 @@ void main() {
     final pending = svc.retranscribe(store.read('base')!);
     await expectLater(
       () => svc.startRecording(continuing: store.read('base')),
-      throwsA(isA<StateError>().having((e) => e.message, 'message', contains('busy'))),
+      throwsA(isA<ContinuationRefused>()),
     );
     expect(svc.isRecording, isFalse);
     gate.complete();
@@ -381,7 +381,10 @@ void main() {
     await store.save(store.read('base')!.withoutAudio());
     final svc = build(FakeBatchEngine(cannedText: 'b'));
 
-    await expectLater(() => svc.startRecording(continuing: store.read('base')), throwsStateError);
+    await expectLater(
+      () => svc.startRecording(continuing: store.read('base')),
+      throwsA(isA<ContinuationRefused>()),
+    );
     expect(svc.isRecording, isFalse);
 
     await svc.dispose();
@@ -414,10 +417,14 @@ void main() {
   test('a cancelled continuation discards the tail and releases the base', () async {
     final base = await seedBase(transcript: heard('a'));
     final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
 
     await svc.startRecording(continuing: base);
     await svc.cancelRecording();
+    await pumpEventQueue();
 
+    expect(outcomes.single, const ContinuationDiscarded(baseId: 'base'));
     expect(recorder.cancelled, isTrue);
     expect(store.read('base'), base);
     expect(composer.calls, isEmpty);
@@ -659,6 +666,52 @@ void main() {
     await pumpEventQueue();
 
     expect(store.read('base')?.audioPath, 'merged.m4a');
+
+    await svc.dispose();
+  });
+
+  test('a refused or failed start ends the continuation with a discard', () async {
+    await seedBase(transcript: heard('a'));
+    await store.save(store.read('base')!.withoutAudio());
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await expectLater(
+      () => svc.startRecording(continuing: store.read('base')),
+      throwsA(isA<ContinuationRefused>()),
+    );
+    await store.save(store.read('base')!.withAudioPath('base.m4a'));
+    recorder.throwOnStart = true;
+    await expectLater(
+      () => svc.startRecording(continuing: store.read('base')),
+      throwsA(isA<CaptureFailed>()),
+    );
+    await pumpEventQueue();
+
+    expect(outcomes, hasLength(2));
+    expect(outcomes, everyElement(const ContinuationDiscarded(baseId: 'base')));
+    final again = await svc.retranscribe(store.read('base')!);
+    expect(again.transcript?.fullText, 'b');
+
+    await svc.dispose();
+  });
+
+  test('a capture that produced nothing ends the continuation with a discard', () async {
+    await seedBase(transcript: heard('a'));
+    recorder = FakeAudioRecorder(recordingsDir: dir.path, path: 'tail.m4a', throwOnStop: true);
+    final svc = build(FakeBatchEngine(cannedText: 'b'));
+    final outcomes = <ContinuationOutcome>[];
+    svc.continuations.listen(outcomes.add);
+
+    await svc.startRecording(continuing: store.read('base'));
+    await expectLater(svc.stopRecording(), throwsA(isA<CaptureFailed>()));
+    await pumpEventQueue();
+
+    expect(outcomes.single, const ContinuationDiscarded(baseId: 'base'));
+    expect(store.read('base')?.audioPath, 'base.m4a');
+    final again = await svc.retranscribe(store.read('base')!);
+    expect(again.transcript?.fullText, 'b');
 
     await svc.dispose();
   });

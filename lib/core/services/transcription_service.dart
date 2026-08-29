@@ -317,9 +317,10 @@ class TranscriptionService {
   /// dedupe by [Entry.id]. Save failures surface here as stream errors.
   Stream<Entry> get autoFinalized => _autoFinalized.stream;
 
-  /// What became of each continuation, once, at its landing or its fallback:
-  /// the interruption path lands here too, so a detail screen that outlived
-  /// the sheet learns what happened.
+  /// What became of each continuation asked for, exactly once: landed, fell
+  /// back, or discarded (a refused or failed start, a cancel, a capture that
+  /// produced nothing). The interruption path lands here too, so a detail
+  /// screen that outlived the sheet learns what happened.
   Stream<ContinuationOutcome> get continuations => _continuations.stream;
 
   /// The entry the live take is extending, null for a fresh take or none.
@@ -487,8 +488,8 @@ class TranscriptionService {
   /// With [continuing], the take extends that entry instead of becoming one:
   /// its stop merges the new audio onto the entry's kept file and grows the
   /// transcript (see [continuations]). The entry must have audio and must not
-  /// be mid-batch, else [StateError]; it is claimed against re-transcription
-  /// from here until the landing. [localeId] opens the session in that
+  /// be mid-batch, else [ContinuationRefused]; it is claimed against
+  /// re-transcription from here until the landing. [localeId] opens the session in that
   /// language instead of the service default.
   Future<void> startRecording({Entry? continuing, String? localeId}) async {
     if (_recording || _starting) {
@@ -496,10 +497,12 @@ class TranscriptionService {
     }
     if (continuing != null) {
       if (!continuing.hasAudio) {
-        throw StateError('entry ${continuing.id} is transcript-only and cannot be continued');
+        _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
+        throw ContinuationRefused('entry ${continuing.id} is transcript-only');
       }
       if (!_retranscribing.add(continuing.id)) {
-        throw StateError('entry ${continuing.id} is busy');
+        _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
+        throw ContinuationRefused('entry ${continuing.id} is busy');
       }
     }
     // Claimed before the first await: without this, two concurrent starts would
@@ -575,9 +578,12 @@ class TranscriptionService {
         _liveSub = _subscribeLive(engine, _sessionLocaleId ?? sessionTag);
       }
     } catch (_) {
-      // A start that never captured releases the base; a live take keeps the
-      // claim for its finalize to release.
-      if (continuing != null && !_recording) _retranscribing.remove(continuing.id);
+      // A start that never captured releases the base and ends the
+      // continuation; a live take keeps the claim for its finalize to release.
+      if (continuing != null && !_recording) {
+        _retranscribing.remove(continuing.id);
+        _emitOutcome(ContinuationDiscarded(baseId: continuing.id));
+      }
       rethrow;
     } finally {
       _starting = false;
@@ -757,6 +763,9 @@ class TranscriptionService {
     final continuation = _continuation;
     _continuation = null;
     _lastContinuedId = null;
+    // Every continuation ends in exactly one outcome; a throw before any
+    // landed or fell back is a discard.
+    var settled = continuation == null;
     // The live text is NOT claimed here: the recognizer's end-of-audio flush
     // lands during the recorder stop below, and reading now would drop the last
     // words the user watched arrive. The generation is the claim instead: a
@@ -834,6 +843,7 @@ class TranscriptionService {
         );
         switch (landing) {
           case _Landed(:final entry, :final additionUntranscribed):
+            settled = true;
             _emitOutcome(
               ContinuationLanded(entry: entry, additionUntranscribed: additionUntranscribed),
             );
@@ -864,6 +874,7 @@ class TranscriptionService {
         await _store.save(entry);
       } catch (error) {
         if (fallback != null) {
+          settled = true;
           _emitOutcome(ContinuationFellBack(baseId: continuation!.id, reason: fallback));
         }
         // A failed save is the one real hole in "audio never orphaned": the file is
@@ -872,6 +883,7 @@ class TranscriptionService {
         throw EntrySaveFailed(entry, error);
       }
       if (fallback != null) {
+        settled = true;
         _emitOutcome(
           ContinuationFellBack(baseId: continuation!.id, reason: fallback, entry: entry),
         );
@@ -902,7 +914,10 @@ class TranscriptionService {
       // After the cancel, not before: that cancel is a native recognizer
       // teardown, and the file would otherwise be unguarded for its duration.
       _finalizingCaptures--;
-      if (continuation != null) _retranscribing.remove(continuation.id);
+      if (continuation != null) {
+        _retranscribing.remove(continuation.id);
+        if (!settled) _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
+      }
     }
   }
 
@@ -1166,7 +1181,10 @@ class TranscriptionService {
     _sessionLiveCurrent = '';
     final continuation = _continuation;
     _continuation = null;
-    if (continuation != null) _retranscribing.remove(continuation.id);
+    if (continuation != null) {
+      _retranscribing.remove(continuation.id);
+      _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
+    }
     await statusSub?.cancel();
     try {
       await _recorder.cancel();
@@ -2150,6 +2168,31 @@ final class ContinuationLanded extends ContinuationOutcome {
 
   @override
   int get hashCode => Object.hash(entry, additionUntranscribed);
+}
+
+/// The continuation ended with nothing to land: a refused or failed start, a
+/// cancel, or a capture that produced nothing. The base is as it was.
+final class ContinuationDiscarded extends ContinuationOutcome {
+  const ContinuationDiscarded({required this.baseId});
+
+  @override
+  final String baseId;
+
+  @override
+  bool operator ==(Object other) => other is ContinuationDiscarded && other.baseId == baseId;
+
+  @override
+  int get hashCode => baseId.hashCode;
+}
+
+/// A continuation could not begin: the base is transcript-only or mid-batch.
+final class ContinuationRefused implements Exception {
+  const ContinuationRefused(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'ContinuationRefused: $message';
 }
 
 /// The take became its own [entry] (null when that save failed too and

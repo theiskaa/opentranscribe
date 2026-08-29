@@ -13,6 +13,7 @@ class FakeAudioRecorder implements AudioRecorder {
     this.throwOnSetBackup = false,
     this.throwOnEnsurePermission = false,
     this.throwOnStart = false,
+    this.throwOnStop = false,
     this.throwOnPause = false,
     this.throwOnResume = false,
     this.resumeRouteChanged = false,
@@ -43,6 +44,10 @@ class FakeAudioRecorder implements AudioRecorder {
 
   /// Answers [probeRecording] per name; null (the default) probes nothing readable.
   final Duration? Function(String name)? probe;
+
+  /// When true, [stop] throws after ending the capture, modeling a take that
+  /// produced no audio.
+  final bool throwOnStop;
 
   /// When true, [pause] / [resume] throw, to exercise failure paths.
   final bool throwOnPause;
@@ -174,6 +179,7 @@ class FakeAudioRecorder implements AudioRecorder {
     paused = false;
     _status.add(CaptureStatus.stopped);
     if (!_stopped.isCompleted) _stopped.complete();
+    if (throwOnStop) throw const CaptureFailed('no audio captured', 'capture_failed');
     return Recording(path: path, duration: duration);
   }
 
