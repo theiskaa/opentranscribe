@@ -894,7 +894,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportPerkIcons => '应用图标';
 
   @override
-  String get supportPerkIconsNote => '主屏幕备选图标，即将推出。';
+  String get supportPerkIconsNote => 'Signal、Lines、Dots 以及默认之外的所有图标。';
 
   @override
   String get supportThanks => '你已永久加入俱乐部。谢谢。';
@@ -908,7 +908,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportRestore => '恢复购买';
 
   @override
-  String get supportUnreachable => '无法连接 App Store。重新打开此页面即可重试。';
+  String get supportUnreachable => '无法连接 App Store。关闭后重新打开即可重试。';
 
   @override
   String get supportPending => '等待批准。批准后购买即完成。';
@@ -932,10 +932,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportTerms => '使用条款';
 
   @override
-  String get supportUnlocksSection => '俱乐部权益';
-
-  @override
-  String get supportMemberUnlocks => '你的权益';
+  String get supportUnlocksSection => '你会得到';
 
   @override
   String get supporterTag => '俱乐部';

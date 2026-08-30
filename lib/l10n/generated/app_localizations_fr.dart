@@ -967,7 +967,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get supportPerkIcons => 'Icônes de l\'app';
 
   @override
-  String get supportPerkIconsNote => 'D\'autres icônes pour l\'écran d\'accueil, bientôt.';
+  String get supportPerkIconsNote =>
+      'Signal, Lines, Dots et toutes les autres, hors icône par défaut.';
 
   @override
   String get supportThanks => 'Vous faites partie du club pour de bon. Merci.';
@@ -982,7 +983,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get supportUnreachable =>
-      'L\'App Store est injoignable. Rouvrez cet écran pour réessayer.';
+      'L\'App Store est injoignable. Fermez ceci et rouvrez pour réessayer.';
 
   @override
   String get supportPending => 'En attente d\'approbation. L\'achat se termine une fois approuvé.';
@@ -1007,10 +1008,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get supportTerms => 'conditions d\'utilisation';
 
   @override
-  String get supportUnlocksSection => 'Pour les membres du club';
-
-  @override
-  String get supportMemberUnlocks => 'Ce que vous avez';
+  String get supportUnlocksSection => 'Ce que vous obtenez';
 
   @override
   String get supporterTag => 'Club';

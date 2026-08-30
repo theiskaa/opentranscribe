@@ -902,7 +902,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportPerkIcons => 'アプリアイコン';
 
   @override
-  String get supportPerkIconsNote => 'ホーム画面用の別アイコン、近日公開。';
+  String get supportPerkIconsNote => 'Signal、Lines、Dots、デフォルト以外のすべてのアイコン。';
 
   @override
   String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';
@@ -916,7 +916,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportRestore => '購入を復元';
 
   @override
-  String get supportUnreachable => 'App Storeに接続できません。この画面を開き直すと再試行します。';
+  String get supportUnreachable => 'App Storeに接続できません。閉じてから開き直すと再試行します。';
 
   @override
   String get supportPending => '承認待ちです。承認されると購入が完了します。';
@@ -940,10 +940,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportTerms => '利用規約';
 
   @override
-  String get supportUnlocksSection => 'クラブ特典';
-
-  @override
-  String get supportMemberUnlocks => '利用できる特典';
+  String get supportUnlocksSection => '受け取れるもの';
 
   @override
   String get supporterTag => 'クラブ';

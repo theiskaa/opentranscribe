@@ -954,7 +954,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportPerkIcons => 'App icons';
 
   @override
-  String get supportPerkIconsNote => 'Alternate home screen icons, on the way.';
+  String get supportPerkIconsNote => 'Signal, Lines, Dots, and every icon beyond Default.';
 
   @override
   String get supportThanks => 'You\'re in the club for good. Thank you.';
@@ -969,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportUnreachable =>
-      'The App Store could not be reached. Reopen this screen to try again.';
+      'The App Store could not be reached. Close this and open it again to try again.';
 
   @override
   String get supportPending => 'Waiting for approval. The purchase finishes once it is approved.';
@@ -993,10 +993,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportTerms => 'terms of use';
 
   @override
-  String get supportUnlocksSection => 'Club members get';
-
-  @override
-  String get supportMemberUnlocks => 'What you get';
+  String get supportUnlocksSection => 'What you get';
 
   @override
   String get supporterTag => 'Club';

@@ -905,7 +905,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportPerkIcons => '앱 아이콘';
 
   @override
-  String get supportPerkIconsNote => '홈 화면용 대체 아이콘, 준비 중.';
+  String get supportPerkIconsNote => 'Signal, Lines, Dots 등 기본 아이콘을 제외한 모든 아이콘.';
 
   @override
   String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';
@@ -919,7 +919,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportRestore => '구입 항목 복원';
 
   @override
-  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 이 화면을 다시 열면 다시 시도합니다.';
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 닫았다가 다시 열면 다시 시도합니다.';
 
   @override
   String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
@@ -943,10 +943,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportTerms => '이용 약관';
 
   @override
-  String get supportUnlocksSection => '클럽 혜택';
-
-  @override
-  String get supportMemberUnlocks => '이용 가능한 혜택';
+  String get supportUnlocksSection => '받게 되는 것';
 
   @override
   String get supporterTag => '클럽';
