@@ -12,6 +12,7 @@ import 'package:opentranscribe/core/state/app_language_cubit.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/support/components/support_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
@@ -156,7 +157,7 @@ class _HomeMenuState extends State<HomeMenu> {
           case 'act:notifications':
             context.pushNamed(Routes.settingsNotificationsName);
           case 'act:support':
-            context.pushNamed(Routes.settingsSupportName);
+            unawaited(showSupportSheet(context));
           case 'act:source':
             unawaited(openLink(kRepoUrl));
         }

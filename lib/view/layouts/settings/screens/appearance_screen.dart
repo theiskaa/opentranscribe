@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/app_icon_descriptor.dart';
-import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/app_icon_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -16,6 +15,7 @@ import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/support/components/support_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
@@ -152,7 +152,7 @@ class _FamilyGroup extends StatelessWidget {
 }
 
 /// A locked card (a club look a non-member cannot wear yet) opens the club
-/// instead of switching.
+/// instead of switching, and hands it the pick so joining lands the look.
 class _FamilyCard extends StatelessWidget {
   const _FamilyCard({
     required this.family,
@@ -176,7 +176,7 @@ class _FamilyCard extends StatelessWidget {
       label: label,
       selected: selected,
       marked: locked,
-      onTap: locked ? () => context.pushNamed(Routes.settingsSupportName) : onPick,
+      onTap: locked ? () => unawaited(showSupportSheet(context, blockedAction: onPick)) : onPick,
       background: variant.background,
       foreground: variant.text,
       accent: variant.accent,
