@@ -1,13 +1,10 @@
 import Flutter
 import UIKit
 
-// The home screen icon, the one look the OS holds rather than the app. Reads
-// and sets the alternate icon name; nothing else, nothing leaves the device.
-// Dart drives it through core/app/app_icon.dart.
+// Channel name and payloads must match core/app/app_icon.dart.
 
 final class AppIconPlugin: NSObject, FlutterPlugin {
   static func register(with registrar: FlutterPluginRegistrar) {
-    // Channel name + payload shapes: must match app_icon.dart.
     let methods = FlutterMethodChannel(
       name: "opentranscribe/icon", binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(AppIconPlugin(), channel: methods)
