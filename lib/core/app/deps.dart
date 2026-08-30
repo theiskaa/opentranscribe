@@ -454,18 +454,21 @@ class Deps {
           iconName: 'AppIcon-Signal',
           preview: 'assets/icons/app/signal.png',
           name: (l10n) => l10n.appIconNameSignal,
+          club: true,
         ),
         AppIconDescriptor(
           id: 'lines',
           iconName: 'AppIcon-Lines',
           preview: 'assets/icons/app/lines.png',
           name: (l10n) => l10n.appIconNameLines,
+          club: true,
         ),
         AppIconDescriptor(
           id: 'dots',
           iconName: 'AppIcon-Dots',
           preview: 'assets/icons/app/dots.png',
           name: (l10n) => l10n.appIconNameDots,
+          club: true,
         ),
       ],
       exporterDescriptors: [

@@ -17,11 +17,36 @@ void main() {
       name: (_) => 'Signal',
     ),
   ];
+  final clubOptions = [
+    AppIconDescriptor(id: 'default', iconName: null, preview: 'd.png', name: (_) => 'Default'),
+    AppIconDescriptor(
+      id: 'signal',
+      iconName: 'AppIcon-Signal',
+      preview: 's.png',
+      name: (_) => 'Signal',
+      club: true,
+    ),
+  ];
   late FakeAppIconStore store;
+  late StreamController<void> tier;
+  var member = false;
 
-  setUp(() => store = FakeAppIconStore());
+  setUp(() {
+    store = FakeAppIconStore();
+    tier = StreamController<void>.broadcast();
+    member = false;
+  });
+
+  tearDown(() => tier.close());
 
   AppIconCubit cubit() => AppIconCubit(store: store, options: options);
+
+  AppIconCubit clubCubit() => AppIconCubit(
+    store: store,
+    options: clubOptions,
+    isSupporter: () => member,
+    tierChanges: tier.stream,
+  );
 
   test('the icon is unknown until the OS answers, then marked as it reads', () async {
     store.currentAnswer = 'AppIcon-Signal';
@@ -106,5 +131,45 @@ void main() {
     gate.complete();
     expect(await pending, AppIconPickOutcome.switched);
     expect(c.state.busy, isTrue);
+  });
+
+  test('a club icon is refused without a membership, and nothing reaches the OS', () async {
+    final c = clubCubit();
+    await c.load();
+    expect(await c.pick('signal'), AppIconPickOutcome.locked);
+    expect(store.sets, isEmpty);
+    expect(c.state.currentId, 'default');
+  });
+
+  test('the primary icon is never gated', () async {
+    store.currentAnswer = 'AppIcon-Signal';
+    final c = clubCubit();
+    await c.load();
+    expect(await c.pick('default'), AppIconPickOutcome.switched);
+    expect(store.sets, [null]);
+  });
+
+  test('a membership landing on the tier stream opens the club icons', () async {
+    final c = clubCubit();
+    await c.load();
+    expect(await c.pick('signal'), AppIconPickOutcome.locked);
+    member = true;
+    tier.add(null);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.state.member, isTrue);
+    expect(await c.pick('signal'), AppIconPickOutcome.switched);
+    expect(store.sets, ['AppIcon-Signal']);
+  });
+
+  test('a lapsed membership leaves the club icon the OS already wears', () async {
+    store.currentAnswer = 'AppIcon-Signal';
+    member = true;
+    final c = clubCubit();
+    await c.load();
+    member = false;
+    tier.add(null);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.state.currentId, 'signal');
+    expect(store.sets, isEmpty);
   });
 }
