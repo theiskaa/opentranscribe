@@ -144,31 +144,20 @@ class SelectableRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedDefaultTextStyle(
-                    duration: duration,
-                    curve: curve,
-                    style: AppType.subhead.copyWith(
-                      color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                    // One line: a wrapped row would break showAppDropdown's
-                    // fixed row estimate and misplace the popup.
-                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: _LabelAndNote(
+                note: note,
+                // One line each: a wrapped row would break showAppDropdown's
+                // fixed row estimate and misplace the popup.
+                oneLine: true,
+                label: AnimatedDefaultTextStyle(
+                  duration: duration,
+                  curve: curve,
+                  style: AppType.subhead.copyWith(
+                    color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   ),
-                  if (note != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      note!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
-                    ),
-                  ],
-                ],
+                  child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
               ),
             ),
             // The checkmark keeps its zero-opacity residency, so the label
@@ -248,23 +237,72 @@ class SettingsToggleRow extends StatelessWidget {
   }
 }
 
-/// A tappable settings row that performs an action: a leading tile + glyph, a
-/// label, and an optional trailing accent word followed by a chevron. [tint]
-/// colours the tile and glyph for a row that must read as a warning rather than
-/// neutral (a denied-permission prompt).
+/// A row's name over its quiet second line, the one stack every settings row
+/// puts in its middle column.
+class _LabelAndNote extends StatelessWidget {
+  const _LabelAndNote({required this.label, required this.note, this.oneLine = false});
+
+  final Widget label;
+  final String? note;
+
+  /// Clips the note to one line, for a row inside a popup measured by a fixed
+  /// row height.
+  final bool oneLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        label,
+        if (note != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            note!,
+            maxLines: oneLine ? 1 : null,
+            overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
+            style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.3),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// A tappable settings row that performs an action: a leading tile holding a
+/// glyph ([icon]) or a drawn mark ([leading]), exactly one of the two; the
+/// label, an optional wrapping [note] under it, and an optional trailing accent
+/// word before the chevron. [tint] colours the tile and glyph for a row that
+/// must read as a warning rather than neutral (a denied-permission prompt).
 class SettingsActionRow extends StatelessWidget {
   const SettingsActionRow({
-    required this.icon,
     required this.label,
     required this.onTap,
+    this.icon,
+    this.leading,
+    this.note,
     this.trailing,
     this.tint,
     super.key,
-  });
+  }) : assert(
+         (icon == null) != (leading == null),
+         'the tile takes exactly one of a glyph or a mark',
+       );
 
-  final IconData icon;
+  /// The tile's glyph, or null when [leading] draws the mark instead.
+  final IconData? icon;
+
+  /// A drawn mark for the tile in place of a glyph (the club's swatches).
+  final Widget? leading;
+
   final String label;
   final VoidCallback onTap;
+
+  /// A second line saying what the row leads to. Wraps: unlike [SelectableRow]
+  /// this row never sits in a popup sized by a fixed row height.
+  final String? note;
+
   final String? trailing;
   final Color? tint;
 
@@ -288,11 +326,14 @@ class SettingsActionRow extends StatelessWidget {
                 borderRadius: tokens.iconTileRadius,
                 color: tint == null ? tokens.iconTileBackground : tint!.withValues(alpha: 0.14),
               ),
-              child: AppIcon(icon, size: 16, color: accent),
+              child: leading ?? AppIcon(icon!, size: 16, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+              child: _LabelAndNote(
+                note: note,
+                label: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+              ),
             ),
             if (trailing != null) ...[
               Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
