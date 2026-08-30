@@ -12,7 +12,6 @@ final class AppIconDescriptor {
     required this.iconName,
     required this.preview,
     required this.name,
-    this.club = false,
   });
 
   final String id;
@@ -25,7 +24,4 @@ final class AppIconDescriptor {
 
   /// A function because descriptors are built before any locale is current.
   final String Function(AppLocalizations) name;
-
-  /// A club look: pickable only while the supporter tier says member.
-  final bool club;
 }

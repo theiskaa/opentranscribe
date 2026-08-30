@@ -313,6 +313,14 @@
   "@appIconNameSignal": {
     "description": "Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated"
   },
+  "appIconNameLines": "Lines",
+  "@appIconNameLines": {
+    "description": "Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated"
+  },
+  "appIconNameDots": "Dots",
+  "@appIconNameDots": {
+    "description": "Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated"
+  },
   "appIconFailedTitle": "The icon did not change",
   "@appIconFailedTitle": {
     "description": "Sheet title when iOS refused an icon change"

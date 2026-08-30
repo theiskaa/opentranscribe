@@ -240,6 +240,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appIconNameSignal => 'Signal';
 
   @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
   String get appIconFailedTitle => '아이콘이 변경되지 않았습니다';
 
   @override

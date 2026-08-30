@@ -253,6 +253,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appIconNameSignal => 'Signal';
 
   @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
   String get appIconFailedTitle => 'L\'icône n\'a pas changé';
 
   @override

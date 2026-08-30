@@ -75,6 +75,8 @@
   "themeNameTokyoNight": "Tokyo Night",
   "appearanceIconSection": "Icône de l'app",
   "appIconNameSignal": "Signal",
+  "appIconNameLines": "Lines",
+  "appIconNameDots": "Dots",
   "appIconFailedTitle": "L'icône n'a pas changé",
   "appIconFailedBody": "iOS a refusé le changement. Réessayez.",
   "settingsAppLanguage": "Langue",

@@ -240,6 +240,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appIconNameSignal => 'Signal';
 
   @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
   String get appIconFailedTitle => 'アイコンを変更できませんでした';
 
   @override

@@ -396,11 +396,14 @@ class ThemeFamilyCard extends StatefulWidget {
     this.background,
     this.foreground,
     this.child,
-    this.aspectRatio = 92 / 108,
-    this.radius = 16,
+    this.aspectRatio = defaultAspectRatio,
+    this.radius = defaultRadius,
     this.marked = false,
     super.key,
   });
+
+  static const defaultAspectRatio = 92 / 108;
+  static const defaultRadius = 16.0;
 
   final String label;
   final bool selected;

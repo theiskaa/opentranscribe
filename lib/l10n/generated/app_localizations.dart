@@ -558,6 +558,18 @@ abstract class AppLocalizations {
   /// **'Signal'**
   String get appIconNameSignal;
 
+  /// Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Lines'**
+  String get appIconNameLines;
+
+  /// Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get appIconNameDots;
+
   /// Sheet title when iOS refused an icon change
   ///
   /// In en, this message translates to:

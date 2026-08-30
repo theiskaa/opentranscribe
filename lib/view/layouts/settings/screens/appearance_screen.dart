@@ -32,12 +32,8 @@ class AppearanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AppIconCubit(
-        store: Deps.i.appIconStore,
-        options: Deps.i.appIconDescriptors,
-        isSupporter: () => Deps.i.supportService.tier.isSupporter,
-        tierChanges: Deps.i.supportService.changes,
-      )..load(),
+      create: (_) =>
+          AppIconCubit(store: Deps.i.appIconStore, options: Deps.i.appIconDescriptors)..load(),
       child: const _AppearanceView(),
     );
   }
@@ -190,7 +186,7 @@ class _FamilyCard extends StatelessWidget {
 }
 
 /// The home screen icons, in the family grid's columns so the two pickers
-/// read as one. A locked icon opens the club like a locked family does.
+/// read as one.
 class _IconGroup extends StatelessWidget {
   const _IconGroup();
 
@@ -198,8 +194,6 @@ class _IconGroup extends StatelessWidget {
     final outcome = await context.read<AppIconCubit>().pick(option.id);
     if (!context.mounted) return;
     switch (outcome) {
-      case AppIconPickOutcome.locked:
-        unawaited(context.pushNamed(Routes.settingsSupportName));
       case AppIconPickOutcome.failed:
         final l10n = AppLocalizations.of(context)!;
         await showAppSheet<void>(
@@ -222,7 +216,6 @@ class _IconGroup extends StatelessWidget {
     return SettingsCard(
       children: [
         _FamilyGrid(
-          columns: 5,
           cards: [
             for (final option in state.options)
               _IconCard(
@@ -241,7 +234,7 @@ class _IconGroup extends StatelessWidget {
 /// Square, unlike the family cards, and rounded the way the home screen
 /// rounds an icon: the corner scales with the tile.
 class _IconCard extends StatelessWidget {
-  static const _cornerFraction = 0.2237;
+  static const _cornerFraction = 0.27;
 
   const _IconCard({
     required this.label,
@@ -276,10 +269,9 @@ class _IconCard extends StatelessWidget {
 /// Lays the cards out in four equal columns that fill the row, so they scale
 /// with the device width and every row, full or not, shares one card size.
 class _FamilyGrid extends StatelessWidget {
-  const _FamilyGrid({required this.cards, this.columns = 4});
+  const _FamilyGrid({required this.cards});
 
   final List<Widget> cards;
-  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -288,6 +280,7 @@ class _FamilyGrid extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          const columns = 4;
           final itemWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
           return Wrap(
             spacing: spacing,
