@@ -133,7 +133,9 @@ class SupportCubit extends Cubit<SupportState> {
     emit(state.copyWith(purchasing: true));
     try {
       final outcome = await _service.purchase();
-      if (outcome == PurchaseOutcome.pending) emit(state.copyWith(pendingApproval: true));
+      if (outcome == PurchaseOutcome.pending && !isClosed) {
+        emit(state.copyWith(pendingApproval: true));
+      }
       return switch (outcome) {
         PurchaseOutcome.purchased => SupportPurchaseResult.purchased,
         PurchaseOutcome.cancelled => SupportPurchaseResult.cancelled,

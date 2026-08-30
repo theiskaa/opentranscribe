@@ -305,6 +305,30 @@
   "@themeNameTokyoNight": {
     "description": "Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated"
   },
+  "appearanceIconSection": "App icon",
+  "@appearanceIconSection": {
+    "description": "Section label above the app icon picker on the appearance screen"
+  },
+  "appIconNameSignal": "Signal",
+  "@appIconNameSignal": {
+    "description": "Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated"
+  },
+  "appIconNameLines": "Lines",
+  "@appIconNameLines": {
+    "description": "Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated"
+  },
+  "appIconNameDots": "Dots",
+  "@appIconNameDots": {
+    "description": "Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated"
+  },
+  "appIconFailedTitle": "The icon did not change",
+  "@appIconFailedTitle": {
+    "description": "Sheet title when iOS refused an icon change"
+  },
+  "appIconFailedBody": "iOS refused the change. Try again.",
+  "@appIconFailedBody": {
+    "description": "Sheet body when iOS refused an icon change"
+  },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
     "description": "Home menu row that picks the interface (UI) language"
@@ -1163,15 +1187,15 @@
   },
   "settingsSupport": "Support",
   "@settingsSupport": {
-    "description": "Home menu row opening the support screen"
+    "description": "Home menu row opening the club sheet"
   },
   "supportPitch": "The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.",
   "@supportPitch": {
-    "description": "Support screen pitch, second paragraph: what membership is"
+    "description": "Club sheet pitch, second paragraph: what membership is"
   },
   "supportPitchFree": "Everything that makes OpenTranscribe useful is free for everyone, and stays that way.",
   "@supportPitchFree": {
-    "description": "Support screen pitch, first paragraph: everything useful is free; names no feature"
+    "description": "Club sheet pitch, first paragraph: everything useful is free; names no feature"
   },
   "supportPerkThemes": "Club themes",
   "@supportPerkThemes": {
@@ -1179,19 +1203,19 @@
   },
   "supportPerkThemesNote": "Gruvbox, Dracula, Nord, and every family beyond Default.",
   "@supportPerkThemesNote": {
-    "description": "Perk row note naming a few club themes; one line"
+    "description": "Note under the club themes perk on the club sheet, naming the families"
   },
   "supportPerkIcons": "App icons",
   "@supportPerkIcons": {
-    "description": "Perk row label: alternate app icons, not shipped yet"
+    "description": "Name of the app icons perk on the club sheet"
   },
-  "supportPerkIconsNote": "Alternate home screen icons, on the way.",
+  "supportPerkIconsNote": "Signal, Lines, Dots, and every icon beyond Default.",
   "@supportPerkIconsNote": {
-    "description": "Perk row note saying the icons are on the way; one line"
+    "description": "Note under the app icons perk on the club sheet, naming the alternates"
   },
   "supportThanks": "You're in the club for good. Thank you.",
   "@supportThanks": {
-    "description": "Support screen intro for a club member"
+    "description": "Club sheet intro for a member"
   },
   "supportJoin": "Join the club for {price}",
   "@supportJoin": {
@@ -1206,9 +1230,9 @@
   "@supportRestore": {
     "description": "Link that restores purchases via the store sync"
   },
-  "supportUnreachable": "The App Store could not be reached. Reopen this screen to try again.",
+  "supportUnreachable": "The App Store could not be reached. Close this and open it again to try again.",
   "@supportUnreachable": {
-    "description": "Line shown when the price fetch failed"
+    "description": "Quiet line on the club sheet when the App Store price fetch failed"
   },
   "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
   "@supportPending": {
@@ -1238,17 +1262,13 @@
   "@supportTerms": {
     "description": "Terms of use link label"
   },
-  "supportUnlocksSection": "Club members get",
+  "supportUnlocksSection": "What you get",
   "@supportUnlocksSection": {
-    "description": "Section label above the list of features supporting unlocks"
-  },
-  "supportMemberUnlocks": "What you get",
-  "@supportMemberUnlocks": {
-    "description": "Section label above the perks on a member's confirmation screen, framed as what the member already has"
+    "description": "Section label above the club perks on the club sheet"
   },
   "supporterTag": "Club",
   "@supporterTag": {
-    "description": "Eyebrow under the app name on the support screen header"
+    "description": "Eyebrow under the app name on the club sheet header"
   },
   "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple's standard {terms}.",
   "@supportFooter": {

@@ -12,10 +12,19 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 /// drag and its settle read as one motion; Reduce Motion swaps the travel for
 /// a scrim fade. Resolves to whatever the content pops with, or null when
 /// dismissed by the scrim or a downward drag.
+///
+/// [backdrop] paints inside the panel's clip, behind the grabber and the
+/// content, ignoring pointers and holding still while the content scrolls.
+/// [footer] sits below the scroll view, so what the sheet is for stays
+/// reachable however tall its content grows. [tall] raises the panel's cap for
+/// a sheet with more to say than a message.
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   double inset = AppSpacing.xxl,
+  Widget? backdrop,
+  WidgetBuilder? footer,
+  bool tall = false,
 }) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
@@ -30,7 +39,7 @@ Future<T?> showAppSheet<T>(
     // sheet joins the fade instead of travelling.
     transitionDuration: motion.sheetScrim,
     pageBuilder: (context, animation, secondaryAnimation) =>
-        _SheetBody(builder: builder, inset: inset),
+        _SheetBody(builder: builder, inset: inset, backdrop: backdrop, footer: footer, tall: tall),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
         reduce ? FadeTransition(opacity: animation, child: child) : child,
   );
@@ -42,9 +51,20 @@ Future<T?> showAppSheet<T>(
 const double _exitTarget = 1.1;
 
 class _SheetBody extends StatefulWidget {
-  const _SheetBody({required this.builder, required this.inset});
+  const _SheetBody({
+    required this.builder,
+    required this.inset,
+    this.backdrop,
+    this.footer,
+    this.tall = false,
+  });
 
   final WidgetBuilder builder;
+
+  final Widget? backdrop;
+
+  final WidgetBuilder? footer;
+  final bool tall;
 
   /// Horizontal breathing room around the content. Message sheets read best
   /// at the default; a sheet of full-width cards tightens it so the cards
@@ -164,41 +184,70 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
               // fill then covers the gap the IME's animation curve would
               // otherwise open under it. The visible part above the
               // keyboard is still capped at the fraction.
-              maxHeight: math.min(screenHeight, screenHeight * sheet.maxHeightFraction + keyboard),
+              maxHeight: math.min(
+                screenHeight,
+                screenHeight *
+                        (widget.tall ? sheet.tallMaxHeightFraction : sheet.maxHeightFraction) +
+                    keyboard,
+              ),
             ),
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
               child: ClipRRect(
                 borderRadius: radius,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                // Passthrough, so the column still takes the panel's tight
+                // width: a stack's own loose constraints would shrink-wrap it.
+                child: Stack(
+                  fit: StackFit.passthrough,
                   children: [
-                    // The grabber, the one affordance that says this drags down.
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-                      child: Container(
-                        width: sheet.grabberWidth,
-                        height: sheet.grabberHeight,
-                        decoration: BoxDecoration(
-                          color: sheet.grabberColor,
-                          borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
+                    if (widget.backdrop != null)
+                      Positioned.fill(child: IgnorePointer(child: widget.backdrop)),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // The grabber, the one affordance that says this drags down.
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+                          child: Container(
+                            width: sheet.grabberWidth,
+                            height: sheet.grabberHeight,
+                            decoration: BoxDecoration(
+                              color: sheet.grabberColor,
+                              borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(
-                          widget.inset,
-                          AppSpacing.xxl,
-                          widget.inset,
-                          // Under a keyboard the framework already zeroes
-                          // padding.bottom, so this clears the IME; without
-                          // one it clears the home indicator.
-                          keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                        Flexible(
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.fromLTRB(
+                              widget.inset,
+                              AppSpacing.xxl,
+                              widget.inset,
+                              // Under a keyboard the framework already zeroes
+                              // padding.bottom, so this clears the IME; without
+                              // one it clears the home indicator. A footer
+                              // takes that job when the sheet has one.
+                              widget.footer != null
+                                  ? AppSpacing.lg
+                                  : keyboard +
+                                        MediaQuery.paddingOf(context).bottom +
+                                        AppSpacing.xxl,
+                            ),
+                            child: widget.builder(context),
+                          ),
                         ),
-                        child: widget.builder(context),
-                      ),
+                        if (widget.footer != null)
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              widget.inset,
+                              0,
+                              widget.inset,
+                              keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.lg,
+                            ),
+                            child: widget.footer!(context),
+                          ),
+                      ],
                     ),
                   ],
                 ),

@@ -144,31 +144,20 @@ class SelectableRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedDefaultTextStyle(
-                    duration: duration,
-                    curve: curve,
-                    style: AppType.subhead.copyWith(
-                      color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                    // One line: a wrapped row would break showAppDropdown's
-                    // fixed row estimate and misplace the popup.
-                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: _LabelAndNote(
+                note: note,
+                // One line each: a wrapped row would break showAppDropdown's
+                // fixed row estimate and misplace the popup.
+                oneLine: true,
+                label: AnimatedDefaultTextStyle(
+                  duration: duration,
+                  curve: curve,
+                  style: AppType.subhead.copyWith(
+                    color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   ),
-                  if (note != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      note!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
-                    ),
-                  ],
-                ],
+                  child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
               ),
             ),
             // The checkmark keeps its zero-opacity residency, so the label
@@ -248,23 +237,72 @@ class SettingsToggleRow extends StatelessWidget {
   }
 }
 
-/// A tappable settings row that performs an action: a leading tile + glyph, a
-/// label, and an optional trailing accent word followed by a chevron. [tint]
-/// colours the tile and glyph for a row that must read as a warning rather than
-/// neutral (a denied-permission prompt).
+/// A row's name over its quiet second line, the one stack every settings row
+/// puts in its middle column.
+class _LabelAndNote extends StatelessWidget {
+  const _LabelAndNote({required this.label, required this.note, this.oneLine = false});
+
+  final Widget label;
+  final String? note;
+
+  /// Clips the note to one line, for a row inside a popup measured by a fixed
+  /// row height.
+  final bool oneLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        label,
+        if (note != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            note!,
+            maxLines: oneLine ? 1 : null,
+            overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
+            style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.3),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// A tappable settings row that performs an action: a leading tile holding a
+/// glyph ([icon]) or a drawn mark ([leading]), exactly one of the two; the
+/// label, an optional wrapping [note] under it, and an optional trailing accent
+/// word before the chevron. [tint] colours the tile and glyph for a row that
+/// must read as a warning rather than neutral (a denied-permission prompt).
 class SettingsActionRow extends StatelessWidget {
   const SettingsActionRow({
-    required this.icon,
     required this.label,
     required this.onTap,
+    this.icon,
+    this.leading,
+    this.note,
     this.trailing,
     this.tint,
     super.key,
-  });
+  }) : assert(
+         (icon == null) != (leading == null),
+         'the tile takes exactly one of a glyph or a mark',
+       );
 
-  final IconData icon;
+  /// The tile's glyph, or null when [leading] draws the mark instead.
+  final IconData? icon;
+
+  /// A drawn mark for the tile in place of a glyph (the club's swatches).
+  final Widget? leading;
+
   final String label;
   final VoidCallback onTap;
+
+  /// A second line saying what the row leads to. Wraps: unlike [SelectableRow]
+  /// this row never sits in a popup sized by a fixed row height.
+  final String? note;
+
   final String? trailing;
   final Color? tint;
 
@@ -288,11 +326,14 @@ class SettingsActionRow extends StatelessWidget {
                 borderRadius: tokens.iconTileRadius,
                 color: tint == null ? tokens.iconTileBackground : tint!.withValues(alpha: 0.14),
               ),
-              child: AppIcon(icon, size: 16, color: accent),
+              child: leading ?? AppIcon(icon!, size: 16, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+              child: _LabelAndNote(
+                note: note,
+                label: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
+              ),
             ),
             if (trailing != null) ...[
               Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
@@ -391,21 +432,34 @@ class ThemeFamilyCard extends StatefulWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    required this.background,
-    required this.foreground,
     required this.accent,
     required this.onAccent,
+    this.background,
+    this.foreground,
+    this.child,
+    this.aspectRatio = defaultAspectRatio,
+    this.radius = defaultRadius,
     this.marked = false,
     super.key,
   });
 
+  static const defaultAspectRatio = 92 / 108;
+  static const defaultRadius = 16.0;
+
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final Color background;
-  final Color foreground;
   final Color accent;
   final Color onAccent;
+
+  /// The palette the drawn mock previews; unused when [child] fills the tile.
+  final Color? background;
+  final Color? foreground;
+
+  /// A ready preview (an app icon) in place of the drawn palette mock.
+  final Widget? child;
+  final double aspectRatio;
+  final double radius;
 
   /// Wears the club's heart in the badge seat: a look the viewer cannot wear yet.
   final bool marked;
@@ -415,8 +469,6 @@ class ThemeFamilyCard extends StatefulWidget {
 }
 
 class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProviderStateMixin {
-  static const _radius = 16.0;
-
   late final AnimationController _sel = AnimationController(
     vsync: this,
     value: widget.selected ? 1 : 0,
@@ -453,7 +505,8 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
   Widget build(BuildContext context) {
     final theme = context.theme;
     final popCurve = theme.motion.swipePopCurve;
-    final faded = widget.foreground.withValues(alpha: 0.4);
+    final foreground = widget.foreground ?? theme.text;
+    final faded = foreground.withValues(alpha: 0.4);
 
     return Touchable(
       onTap: () {
@@ -465,7 +518,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
         mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: 92 / 108,
+            aspectRatio: widget.aspectRatio,
             child: AnimatedBuilder(
               animation: _sel,
               builder: (context, _) {
@@ -473,33 +526,41 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                 final pop = popCurve.transform(t.clamp(0.0, 1.0));
                 return Stack(
                   children: [
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: SuperellipseDecoration(
-                          borderRadius: _radius,
-                          color: widget.background,
-                          // The theme's own faint edge, so the card reads as a
-                          // real surface in that palette, not a flat swatch.
-                          border: BorderSide(color: widget.foreground.withValues(alpha: 0.12)),
+                    if (widget.child != null)
+                      Positioned.fill(
+                        child: ClipPath(
+                          clipper: ShapeBorderClipper(shape: Superellipse(radius: widget.radius)),
+                          child: widget.child,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title in the ACCENT: the theme's defining hue
-                              // reads as content, no stray chip to look odd.
-                              _bar(0.62, 6, widget.accent),
-                              const SizedBox(height: 9),
-                              _bar(0.95, 3, faded),
-                              const SizedBox(height: 5),
-                              _bar(0.7, 3, faded),
-                            ],
+                      )
+                    else
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: SuperellipseDecoration(
+                            borderRadius: widget.radius,
+                            color: widget.background,
+                            // The theme's own faint edge, so the card reads as a
+                            // real surface in that palette, not a flat swatch.
+                            border: BorderSide(color: foreground.withValues(alpha: 0.12)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title in the ACCENT: the theme's defining hue
+                                // reads as content, no stray chip to look odd.
+                                _bar(0.62, 6, widget.accent),
+                                const SizedBox(height: 9),
+                                _bar(0.95, 3, faded),
+                                const SizedBox(height: 5),
+                                _bar(0.7, 3, faded),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     // Accent ring on the edge, faded in (no layout shift).
                     if (t > 0)
                       Positioned.fill(
@@ -508,7 +569,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                             opacity: t,
                             child: DecoratedBox(
                               decoration: SuperellipseDecoration(
-                                borderRadius: _radius,
+                                borderRadius: widget.radius,
                                 border: BorderSide(color: widget.accent, width: 2),
                               ),
                             ),

@@ -546,6 +546,42 @@ abstract class AppLocalizations {
   /// **'Tokyo Night'**
   String get themeNameTokyoNight;
 
+  /// Section label above the app icon picker on the appearance screen
+  ///
+  /// In en, this message translates to:
+  /// **'App icon'**
+  String get appearanceIconSection;
+
+  /// Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Signal'**
+  String get appIconNameSignal;
+
+  /// Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Lines'**
+  String get appIconNameLines;
+
+  /// Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get appIconNameDots;
+
+  /// Sheet title when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'The icon did not change'**
+  String get appIconFailedTitle;
+
+  /// Sheet body when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'iOS refused the change. Try again.'**
+  String get appIconFailedBody;
+
   /// Home menu row that picks the interface (UI) language
   ///
   /// In en, this message translates to:
@@ -1686,19 +1722,19 @@ abstract class AppLocalizations {
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
 
-  /// Home menu row opening the support screen
+  /// Home menu row opening the club sheet
   ///
   /// In en, this message translates to:
   /// **'Support'**
   String get settingsSupport;
 
-  /// Support screen pitch, second paragraph: what membership is
+  /// Club sheet pitch, second paragraph: what membership is
   ///
   /// In en, this message translates to:
   /// **'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.'**
   String get supportPitch;
 
-  /// Support screen pitch, first paragraph: everything useful is free; names no feature
+  /// Club sheet pitch, first paragraph: everything useful is free; names no feature
   ///
   /// In en, this message translates to:
   /// **'Everything that makes OpenTranscribe useful is free for everyone, and stays that way.'**
@@ -1710,25 +1746,25 @@ abstract class AppLocalizations {
   /// **'Club themes'**
   String get supportPerkThemes;
 
-  /// Perk row note naming a few club themes; one line
+  /// Note under the club themes perk on the club sheet, naming the families
   ///
   /// In en, this message translates to:
   /// **'Gruvbox, Dracula, Nord, and every family beyond Default.'**
   String get supportPerkThemesNote;
 
-  /// Perk row label: alternate app icons, not shipped yet
+  /// Name of the app icons perk on the club sheet
   ///
   /// In en, this message translates to:
   /// **'App icons'**
   String get supportPerkIcons;
 
-  /// Perk row note saying the icons are on the way; one line
+  /// Note under the app icons perk on the club sheet, naming the alternates
   ///
   /// In en, this message translates to:
-  /// **'Alternate home screen icons, on the way.'**
+  /// **'Signal, Lines, Dots, and every icon beyond Default.'**
   String get supportPerkIconsNote;
 
-  /// Support screen intro for a club member
+  /// Club sheet intro for a member
   ///
   /// In en, this message translates to:
   /// **'You\'re in the club for good. Thank you.'**
@@ -1746,10 +1782,10 @@ abstract class AppLocalizations {
   /// **'Restore purchases'**
   String get supportRestore;
 
-  /// Line shown when the price fetch failed
+  /// Quiet line on the club sheet when the App Store price fetch failed
   ///
   /// In en, this message translates to:
-  /// **'The App Store could not be reached. Reopen this screen to try again.'**
+  /// **'The App Store could not be reached. Close this and open it again to try again.'**
   String get supportUnreachable;
 
   /// Line shown after an Ask to Buy purchase answered pending
@@ -1794,19 +1830,13 @@ abstract class AppLocalizations {
   /// **'terms of use'**
   String get supportTerms;
 
-  /// Section label above the list of features supporting unlocks
-  ///
-  /// In en, this message translates to:
-  /// **'Club members get'**
-  String get supportUnlocksSection;
-
-  /// Section label above the perks on a member's confirmation screen, framed as what the member already has
+  /// Section label above the club perks on the club sheet
   ///
   /// In en, this message translates to:
   /// **'What you get'**
-  String get supportMemberUnlocks;
+  String get supportUnlocksSection;
 
-  /// Eyebrow under the app name on the support screen header
+  /// Eyebrow under the app name on the club sheet header
   ///
   /// In en, this message translates to:
   /// **'Club'**

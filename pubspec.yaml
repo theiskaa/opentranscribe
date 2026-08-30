@@ -51,6 +51,7 @@ flutter:
 
   assets:
     - assets/brand/
+    - assets/icons/app/
 
   fonts:
     - family: sficons

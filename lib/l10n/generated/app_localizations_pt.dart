@@ -246,6 +246,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeNameTokyoNight => 'Tokyo Night';
 
   @override
+  String get appearanceIconSection => 'Ícone da app';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => 'O ícone não mudou';
+
+  @override
+  String get appIconFailedBody => 'O iOS recusou a alteração. Tente novamente.';
+
+  @override
   String get settingsAppLanguage => 'Idioma';
 
   @override
@@ -947,7 +965,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportPerkIcons => 'Ícones da app';
 
   @override
-  String get supportPerkIconsNote => 'Ícones alternativos para o ecrã principal, a caminho.';
+  String get supportPerkIconsNote => 'Signal, Lines, Dots e todos os ícones além do predefinido.';
 
   @override
   String get supportThanks => 'Está no clube para sempre. Obrigado.';
@@ -962,7 +980,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportUnreachable =>
-      'Não foi possível contactar a App Store. Volte a abrir este ecrã para tentar de novo.';
+      'Não foi possível contactar a App Store. Feche e volte a abrir para tentar de novo.';
 
   @override
   String get supportPending => 'A aguardar aprovação. A compra termina assim que for aprovada.';
@@ -986,10 +1004,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportTerms => 'termos de utilização';
 
   @override
-  String get supportUnlocksSection => 'Para membros do clube';
-
-  @override
-  String get supportMemberUnlocks => 'O que você tem';
+  String get supportUnlocksSection => 'O que recebe';
 
   @override
   String get supporterTag => 'Clube';

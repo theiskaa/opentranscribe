@@ -4,7 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/models/app_icon_descriptor.dart';
+import 'package:opentranscribe/core/state/app_icon_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
@@ -13,9 +15,12 @@ import 'package:opentranscribe/core/theming/app_theme_family.dart';
 import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/support/components/support_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
 /// Appearance: two independent axes. The bar's menu picks HOW the appearance
 /// is decided (System / Light / Dark); the theme grid picks WHICH family. They
@@ -23,6 +28,23 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 /// platform. Each family card previews in the currently resolved appearance.
 class AppearanceScreen extends StatelessWidget {
   const AppearanceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AppIconCubit(
+        store: Deps.i.appIconStore,
+        options: Deps.i.appIconDescriptors,
+        isSupporter: () => Deps.i.supportService.tier.isSupporter,
+        tierChanges: Deps.i.supportService.changes,
+      )..load(),
+      child: const _AppearanceView(),
+    );
+  }
+}
+
+class _AppearanceView extends StatelessWidget {
+  const _AppearanceView();
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +57,8 @@ class AppearanceScreen extends StatelessWidget {
       child: SettingsList(
         children: [
           const SizedBox(height: 10),
+          SectionLabel(l10n.appearanceIconSection),
+          const _IconGroup(),
           SectionLabel(l10n.settingsTheme),
           _FamilyGroup(families: AppThemeFamily.all),
           const SizedBox(height: AppSpacing.md),
@@ -132,7 +156,7 @@ class _FamilyGroup extends StatelessWidget {
 }
 
 /// A locked card (a club look a non-member cannot wear yet) opens the club
-/// instead of switching.
+/// instead of switching, and hands it the pick so joining lands the look.
 class _FamilyCard extends StatelessWidget {
   const _FamilyCard({
     required this.family,
@@ -156,11 +180,102 @@ class _FamilyCard extends StatelessWidget {
       label: label,
       selected: selected,
       marked: locked,
-      onTap: locked ? () => context.pushNamed(Routes.settingsSupportName) : onPick,
+      onTap: locked ? () => unawaited(showSupportSheet(context, blockedAction: onPick)) : onPick,
       background: variant.background,
       foreground: variant.text,
       accent: variant.accent,
       onAccent: variant.onAccent,
+    );
+  }
+}
+
+/// The home screen icons, in the family grid's columns so the two pickers
+/// read as one.
+class _IconGroup extends StatelessWidget {
+  const _IconGroup();
+
+  Future<void> _pick(BuildContext context, AppIconDescriptor option) async {
+    final cubit = context.read<AppIconCubit>();
+    final outcome = await cubit.pick(option.id);
+    if (!context.mounted) return;
+    switch (outcome) {
+      case AppIconPickOutcome.locked:
+        // Joining wears the icon that was tapped, like a locked family.
+        await showSupportSheet(context, blockedAction: () => unawaited(cubit.pick(option.id)));
+      case AppIconPickOutcome.failed:
+        final l10n = AppLocalizations.of(context)!;
+        await showAppSheet<void>(
+          context,
+          builder: (context) => SheetMessage(
+            icon: AppIcons.xmark,
+            title: l10n.appIconFailedTitle,
+            body: l10n.appIconFailedBody,
+          ),
+        );
+      case AppIconPickOutcome.switched || AppIconPickOutcome.unchanged:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = context.watch<AppIconCubit>().state;
+    return SettingsCard(
+      children: [
+        _FamilyGrid(
+          cards: [
+            for (final option in state.options)
+              _IconCard(
+                label: option.name(l10n),
+                preview: option.preview,
+                selected: option.id == state.currentId,
+                locked: option.club && !state.member,
+                onTap: () => _pick(context, option),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Square, unlike the family cards, and rounded the way the home screen
+/// rounds an icon: the corner scales with the tile.
+class _IconCard extends StatelessWidget {
+  static const _cornerFraction = 0.27;
+
+  const _IconCard({
+    required this.label,
+    required this.preview,
+    required this.selected,
+    required this.locked,
+    required this.onTap,
+  });
+
+  final String label;
+  final String preview;
+  final bool selected;
+
+  /// A club icon the viewer cannot wear yet: marked, and its tap opens the club.
+  final bool locked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return LayoutBuilder(
+      builder: (context, constraints) => ThemeFamilyCard(
+        label: label,
+        selected: selected,
+        marked: locked,
+        onTap: onTap,
+        accent: theme.accent,
+        onAccent: theme.onAccent,
+        aspectRatio: 1,
+        radius: constraints.maxWidth * _cornerFraction,
+        child: Image.asset(preview, fit: BoxFit.cover),
+      ),
     );
   }
 }
