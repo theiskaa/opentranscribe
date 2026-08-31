@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -20,7 +21,7 @@ void main() {
   });
 
   ThemeCubit build({Brightness brightness = Brightness.light}) =>
-      ThemeCubit(storage: storage, platformBrightness: brightness);
+      ThemeCubit(storage: storage, platformBrightness: brightness, isSupporter: () => true);
 
   test('resolution matrix: mode wins, system follows brightness', () {
     final cubit = build();
@@ -97,8 +98,81 @@ void main() {
     expect(fresh.state.resolved, same(AppThemeFamily.byId(AppThemeFamily.gruvboxId).dark));
   });
 
+  group('club families', () {
+    late StreamController<void> tier;
+    var member = false;
+
+    setUp(() {
+      tier = StreamController<void>.broadcast();
+      member = false;
+    });
+
+    tearDown(() => tier.close());
+
+    ThemeCubit club() {
+      final cubit = ThemeCubit(
+        storage: storage,
+        platformBrightness: Brightness.light,
+        isSupporter: () => member,
+        tierChanges: tier.stream,
+      );
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    test('a non-member keeps a club pick stored but wears the default', () async {
+      final cubit = club();
+      await cubit.setFamily(AppThemeFamily.midnightId);
+
+      expect(cubit.state.familyId, AppThemeFamily.midnightId);
+      expect(cubit.state.wornFamily.id, AppThemeFamily.defaultId);
+      expect(cubit.state.resolved, same(AppTheme.defaultLight));
+    });
+
+    test('a member wears the club pick', () async {
+      member = true;
+      final cubit = club();
+      await cubit.setFamily(AppThemeFamily.midnightId);
+
+      expect(cubit.state.wornFamily.id, AppThemeFamily.midnightId);
+      expect(cubit.state.resolved, isNot(same(AppTheme.defaultLight)));
+    });
+
+    test('a tier change re-resolves the stored pick without touching it', () async {
+      final cubit = club();
+      await cubit.setFamily(AppThemeFamily.draculaId);
+      expect(cubit.state.wornFamily.id, AppThemeFamily.defaultId);
+
+      member = true;
+      tier.add(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.wornFamily.id, AppThemeFamily.draculaId);
+
+      member = false;
+      tier.add(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.wornFamily.id, AppThemeFamily.defaultId);
+      expect(cubit.state.familyId, AppThemeFamily.draculaId);
+    });
+
+    test('a stored club pick survives a restart for a non-member', () async {
+      await club().setFamily(AppThemeFamily.midnightId);
+      final fresh = club();
+
+      expect(fresh.state.familyId, AppThemeFamily.midnightId);
+      expect(fresh.state.wornFamily.id, AppThemeFamily.defaultId);
+    });
+
+    test('a pick made before the club existed is worn only by a member', () async {
+      await storage.write(ThemeCubit.familyKey, AppThemeFamily.gruvboxId);
+      expect(club().state.wornFamily.id, AppThemeFamily.defaultId);
+      member = true;
+      expect(club().state.wornFamily.id, AppThemeFamily.gruvboxId);
+    });
+  });
+
   test('an unknown stored family falls back to the default family', () async {
-    await storage.write(ThemeCubit.familyKey, 'dracula');
+    await storage.write(ThemeCubit.familyKey, 'solarized');
     expect(build().state.familyId, AppThemeFamily.defaultId);
   });
 
@@ -110,6 +184,7 @@ void main() {
       storage: storage,
       backdrop: LaunchBackdrop(),
       platformBrightness: Brightness.light,
+      isSupporter: () => true,
     );
 
     test('writes the packed palettes at construction', () async {
@@ -137,6 +212,40 @@ void main() {
         launchBackdropOf(
           family: AppThemeFamily.byId(AppThemeFamily.gruvboxId),
           mode: AppThemeMode.dark,
+        ),
+      );
+    });
+
+    test('a tier change that changes the worn family rewrites the splash', () async {
+      final tier = StreamController<void>.broadcast();
+      addTearDown(tier.close);
+      var member = false;
+      final cubit = ThemeCubit(
+        storage: storage,
+        backdrop: LaunchBackdrop(),
+        platformBrightness: Brightness.light,
+        isSupporter: () => member,
+        tierChanges: tier.stream,
+      );
+      addTearDown(cubit.close);
+      await cubit.setFamily(AppThemeFamily.draculaId);
+      await pumpEventQueue();
+      expect(
+        await mirrored(),
+        launchBackdropOf(
+          family: AppThemeFamily.byId(AppThemeFamily.defaultId),
+          mode: AppThemeMode.system,
+        ),
+      );
+
+      member = true;
+      tier.add(null);
+      await pumpEventQueue();
+      expect(
+        await mirrored(),
+        launchBackdropOf(
+          family: AppThemeFamily.byId(AppThemeFamily.draculaId),
+          mode: AppThemeMode.system,
         ),
       );
     });

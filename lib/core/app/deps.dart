@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:opentranscribe/core/app/app_icon.dart';
 import 'package:opentranscribe/core/app/app_language.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/launch_backdrop.dart';
@@ -17,6 +18,7 @@ import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/intents/intent_action_service.dart';
 import 'package:opentranscribe/core/intents/intent_actions.dart';
+import 'package:opentranscribe/core/models/app_icon_descriptor.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
@@ -38,6 +40,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/support/support_store.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/utils/thermal.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reflections/reflections.dart';
 import 'package:transcriber/transcriber.dart';
@@ -94,6 +97,8 @@ class Deps {
     required this.splashHandoff,
     required this.launchBackdrop,
     required this.supportService,
+    required this.appIconStore,
+    required this.appIconDescriptors,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -188,6 +193,12 @@ class Deps {
   /// cached tier synchronously at construction; no store channel is awaited
   /// on the launch path, and [launchMaintenance] refreshes it off-frame.
   final SupportService supportService;
+
+  final AppIconStore appIconStore;
+
+  /// The icons this build ships, in picker order: the primary first, then the
+  /// club's. Named here and nowhere else, like [exporterDescriptors].
+  final List<AppIconDescriptor> appIconDescriptors;
 
   /// How long any ONE platform-channel round trip below may take before
   /// startup gives up on it.
@@ -308,12 +319,17 @@ class Deps {
     // Hoisted so both the transcription lifecycle and the reflection lifecycle
     // read the same entries; the store is stateless, so sharing one is safe.
     final entryStore = EntryStore(localService);
+    // Costs the launch a channel listen; the bulk re-transcribe queue reads
+    // the cached answer between entries.
+    final thermalMonitor = ThermalMonitor()..start();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engineSettings.resolveActive(engineRegistry).engine,
       store: entryStore,
+      composer: PlatformAudioComposer(),
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       keepAudio: () => audioStorageSettings.keepAudio,
+      thermalPressure: () => thermalMonitor.underPressure,
     );
     final transcriptionSettings = TranscriptionSettings(
       storage: localService,
@@ -386,7 +402,6 @@ class Deps {
       share: shareExport,
       appVersion: () async => appVersion ??= (await PackageInfo.fromPlatform()).version,
       staging: stagingRegistry,
-      isSupporter: () => supportService.tier.isSupporter,
     );
     final importService = ImportService(
       transcription: transcriptionService,
@@ -426,6 +441,36 @@ class Deps {
       splashHandoff: SplashHandoff(),
       launchBackdrop: LaunchBackdrop(),
       supportService: supportService,
+      appIconStore: AppIconStore(),
+      appIconDescriptors: [
+        AppIconDescriptor(
+          id: 'default',
+          iconName: null,
+          preview: 'assets/icons/app/default.png',
+          name: (l10n) => l10n.themeNameDefault,
+        ),
+        AppIconDescriptor(
+          id: 'signal',
+          iconName: 'AppIcon-Signal',
+          preview: 'assets/icons/app/signal.png',
+          name: (l10n) => l10n.appIconNameSignal,
+          club: true,
+        ),
+        AppIconDescriptor(
+          id: 'lines',
+          iconName: 'AppIcon-Lines',
+          preview: 'assets/icons/app/lines.png',
+          name: (l10n) => l10n.appIconNameLines,
+          club: true,
+        ),
+        AppIconDescriptor(
+          id: 'dots',
+          iconName: 'AppIcon-Dots',
+          preview: 'assets/icons/app/dots.png',
+          name: (l10n) => l10n.appIconNameDots,
+          club: true,
+        ),
+      ],
       exporterDescriptors: [
         ExporterDescriptor(
           exporterId: defaultExporter.id,
@@ -479,8 +524,8 @@ class Deps {
   static Future<void> _maintain() async {
     unawaited(_quietly('reflection catch-up', () => i.reflectionService.catchUp()));
     unawaited(_quietly('notification sync', () => i.reflectionNotifier.sync()));
-    // Fire-and-forget: entitlement staleness costs a locked format at worst,
-    // and the cached tier already answered the launch.
+    // Fire-and-forget: entitlement staleness costs a stale look at worst, and
+    // the cached tier already answered the launch.
     unawaited(_quietly('supporter refresh', () => i.supportService.refresh()));
     // Warm the price so the support screen's join button renders at once
     // instead of waiting on StoreKit when the user opens it.

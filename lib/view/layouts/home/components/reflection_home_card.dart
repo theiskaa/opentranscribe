@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -62,6 +63,57 @@ Map<int, List<Reflection>> reflectionCardsForSections({
   // ReflectionPeriod being declared narrow to broad (daily, weekly, monthly).
   for (final cards in result.values) {
     cards.sort((a, b) => b.period.index.compareTo(a.period.index));
+  }
+  return result;
+}
+
+/// Cards whose section's rows are all dying and whose period covers no living
+/// section's day: they fold WITH the exit instead of re-seating at the emit.
+Set<ReflectionCardKey> unseatingCards({
+  required Map<int, List<Reflection>> cards,
+  required List<DateTime> sectionDays,
+  required List<List<String>> sectionIds,
+  required Set<String> dying,
+}) {
+  final living = [
+    for (var i = 0; i < sectionDays.length; i++)
+      if (!allDying(sectionIds[i], dying)) dateOnly(sectionDays[i]),
+  ];
+  final result = <ReflectionCardKey>{};
+  for (final MapEntry(key: s, value: seated) in cards.entries) {
+    if (!allDying(sectionIds[s], dying)) continue;
+    for (final r in seated) {
+      if (!living.any((day) => periodContains(r.periodStart, r.period, day))) {
+        result.add(cardKeyOf(r));
+      }
+    }
+  }
+  return result;
+}
+
+/// A seated card and the day of the section it sits above.
+typedef CardSeat = ({Reflection reflection, DateTime day});
+
+/// Every seated card by key, in timeline order.
+Map<ReflectionCardKey, CardSeat> cardSeats(
+  Map<int, List<Reflection>> cards,
+  List<DateTime> sectionDays,
+) => {
+  for (var i = 0; i < sectionDays.length; i++)
+    for (final r in cards[i] ?? const <Reflection>[])
+      cardKeyOf(r): (reflection: r, day: sectionDays[i]),
+};
+
+/// Cards seated last build with no seat now, by the day they sat above. A
+/// card that merely re-seated is not departed.
+Map<DateTime, List<Reflection>> departedCards(
+  Map<ReflectionCardKey, CardSeat> previous,
+  Map<ReflectionCardKey, CardSeat> current,
+) {
+  final result = <DateTime, List<Reflection>>{};
+  for (final MapEntry(key: id, value: (:reflection, :day)) in previous.entries) {
+    if (current.containsKey(id)) continue;
+    (result[day] ??= []).add(reflection);
   }
   return result;
 }

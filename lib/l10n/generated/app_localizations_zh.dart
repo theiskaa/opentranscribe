@@ -36,6 +36,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranscribe => '重新转写';
 
   @override
+  String get retranscribeAllTitle => '全部重新转写';
+
+  @override
+  String get retranscribeRowQueued => '待重新转写';
+
+  @override
+  String get retranscribeRowCurrent => '已是最新';
+
+  @override
+  String get retranscribeRowLanded => '已重新转写';
+
+  @override
+  String get retranscribeRowFailed => '失败';
+
+  @override
+  String get retranscribeHistoryNote => '被替换的文字会保留在条目的历史中。';
+
+  @override
+  String get retranscribeFailedNote => '失败的条目会在下次运行时重试。';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '保留的录音均已由 $engine 转写。';
+  }
+
+  @override
+  String get retranscribeStart => '开始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '录音结束前暂停';
+
+  @override
+  String get retranscribeWaitingThermal => '设备降温前暂停';
+
+  @override
+  String get retranscribeCancel => '取消';
+
+  @override
+  String get retranscribeCancelledNote => '已提前停止。再次运行会从中断处继续。';
+
+  @override
   String get delete => '删除';
 
   @override
@@ -168,10 +214,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
+  String get themeNameSepia => 'Sepia';
 
   @override
-  String get themeNameSepia => 'Sepia';
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameDracula => 'Dracula';
+
+  @override
+  String get themeNameNord => 'Nord';
+
+  @override
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
+
+  @override
+  String get appearanceIconSection => '应用图标';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => '图标未更改';
+
+  @override
+  String get appIconFailedBody => 'iOS 拒绝了更改。请重试。';
 
   @override
   String get settingsAppLanguage => '语言';
@@ -304,6 +380,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get engineBusyBody => '请先停止当前录音，再切换引擎。';
+
+  @override
+  String get engineRetranscribingTitle => '正在重新转写';
+
+  @override
+  String get engineRetranscribingBody => '请等待完成或取消后，再切换引擎。';
 
   @override
   String get engineNotSavedTitle => '无法保存选择';
@@ -628,7 +710,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有提醒可发送。';
 
   @override
-  String get themeRequestInfo => '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。';
+  String get themeRequestInfo =>
+      '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。新增的主题仅面向 OpenTranscribe Club 会员。';
 
   @override
   String get themeRequestLink => '在 GitHub 上申请主题';
@@ -793,28 +876,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
-  String get supportGateBody => '格式化导出是俱乐部会员功能。备份对所有人保持免费。';
-
-  @override
   String get settingsSupport => '支持';
 
   @override
-  String get supportGateAction => '成为俱乐部会员';
+  String get supportPitch => '俱乐部是支持 OpenTranscribe 的方式：付费一次，永久有效，并以几款外观作为答谢。';
 
   @override
-  String get supportPitch => 'OpenTranscribe 免费且私密，你的支持让它保持这样。加入俱乐部只需付费一次，永久有效。';
+  String get supportPitchFree => '让 OpenTranscribe 好用的一切都对所有人免费，并将一直如此。';
 
   @override
-  String get supportPerkExports => '格式化导出';
+  String get supportPerkThemes => '俱乐部主题';
 
   @override
-  String get supportPerkExportsNote => 'Markdown、Obsidian 或网站。';
+  String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord 以及默认之外的所有主题。';
 
   @override
-  String get supportPerkFuture => '未来的俱乐部功能';
+  String get supportPerkIcons => '应用图标';
 
   @override
-  String get supportPerkFutureNote => '之后加入俱乐部的功能也包含在内。';
+  String get supportPerkIconsNote => 'Signal、Lines、Dots 以及默认之外的所有图标。';
 
   @override
   String get supportThanks => '你已永久加入俱乐部。谢谢。';
@@ -828,7 +908,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportRestore => '恢复购买';
 
   @override
-  String get supportUnreachable => '无法连接 App Store。重新打开此页面即可重试。';
+  String get supportUnreachable => '无法连接 App Store。关闭后重新打开即可重试。';
 
   @override
   String get supportPending => '等待批准。批准后购买即完成。';
@@ -852,10 +932,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportTerms => '使用条款';
 
   @override
-  String get supportUnlocksSection => '俱乐部权益';
-
-  @override
-  String get supportMemberUnlocks => '你的权益';
+  String get supportUnlocksSection => '你会得到';
 
   @override
   String get supporterTag => '俱乐部';
@@ -864,4 +941,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return '支持不会改变任何隐私设定，日记永远不会离开手机（见$privacy）。购买遵循 Apple 的标准$terms。';
   }
+
+  @override
+  String get continueRecording => '继续录音';
+
+  @override
+  String continuingEntry(String title) {
+    return '继续$title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '新增部分未转写';
+
+  @override
+  String get continueUntranscribedTitle => '新增部分未被转写';
+
+  @override
+  String get continueUntranscribedBody => '录音已加长，但刚添加的话没有转写。重新转写即可听到全部内容。';
+
+  @override
+  String get continueSavedSeparatelyLabel => '已保存为新条目';
+
+  @override
+  String get continueSavedSeparatelyBody => '新录音无法合并到此条目，因此已单独保存。';
+
+  @override
+  String get continueEntryBusy => '此条目仍在转写中。';
 }

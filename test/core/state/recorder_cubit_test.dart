@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -39,7 +40,12 @@ void main() {
 
   (RecorderCubit, TranscriptionService) build({FakeAudioRecorder? recorder}) {
     final rec = recorder ?? FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     return (RecorderCubit(service: service), service);
   }
 
@@ -49,6 +55,7 @@ void main() {
     // whole take in the old language under a chip claiming the new one.
     final rec = FakeAudioRecorder(startDelay: const Duration(milliseconds: 20));
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(supportedLocaleTags: const ['en-US', 'fr-FR']),
       store: store,
@@ -113,6 +120,7 @@ void main() {
   test('a language switch keeps the live text and marks the new span', () async {
     final rec = FakeAudioRecorder();
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(
         cannedText: 'hello world',
@@ -542,7 +550,12 @@ void main() {
     // pause/resume/interruption bank exactly.
     var now = DateTime(2026, 1, 1, 12);
     final rec = FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service, now: () => now);
 
     await cubit.start();
@@ -574,7 +587,12 @@ void main() {
   test('a backward wall-clock adjustment never shrinks elapsed', () async {
     var now = DateTime(2026, 1, 1, 12);
     final rec = FakeAudioRecorder();
-    final service = TranscriptionService(recorder: rec, engine: FakeBatchEngine(), store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: FakeBatchEngine(),
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service, now: () => now);
 
     await cubit.start();
@@ -631,7 +649,12 @@ void main() {
     // recorder round trip). The service's live gate must drop it.
     final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
     final engine = _ScriptedLiveEngine();
-    final service = TranscriptionService(recorder: rec, engine: engine, store: store);
+    final service = TranscriptionService(
+      recorder: rec,
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(),
+    );
     final cubit = RecorderCubit(service: service);
 
     await cubit.start();
@@ -686,6 +709,7 @@ void main() {
   test('prepareTake clears a finishing take, and is quiet mid-take', () async {
     final rec = FakeAudioRecorder(stopDelay: const Duration(milliseconds: 40));
     final service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: rec,
       engine: FakeStreamingEngine(cannedText: 'hello world', stopSignal: rec.stopped),
       store: store,
@@ -750,5 +774,183 @@ void main() {
     await cubit.stop();
     await cubit.close();
     await service.dispose();
+  });
+
+  group('continuation', () {
+    Future<Entry> seed(TranscriptionService service) async {
+      await service.startRecording();
+      return service.stopRecording();
+    }
+
+    test('a continuation start hands the entry to the service and the state carries it', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+
+      expect(cubit.state.continuing?.id, base.id);
+      expect(cubit.state.isRecording, isTrue);
+      expect(service.continuingEntryId, base.id);
+      final landed = await cubit.stop();
+      expect(landed?.id, base.id);
+      expect(cubit.state.continuing, isNull);
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a continuation opens in the entry\'s language when it is ready', () async {
+      final rec = FakeAudioRecorder();
+      final engine = FakeBatchEngine(supportedLocaleTags: const ['en-US', 'fr-FR']);
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: engine,
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      service.localeId = 'fr-FR';
+      final base = await seed(service);
+      service.localeId = 'en-US';
+
+      await cubit.start(continuing: base);
+      expect(cubit.state.localeId, 'fr-FR');
+      await cubit.stop();
+
+      expect(engine.batchCalls.last.localeId, 'fr-FR');
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a continuation keeps the default when the entry\'s language is not ready', () async {
+      final rec = FakeAudioRecorder();
+      final engine = FakeBatchEngine(supportedLocaleTags: ['en-US', 'de-DE']);
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: engine,
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      service.localeId = 'de-DE';
+      final base = await seed(service);
+      service.localeId = 'en-US';
+      engine.supportedLocaleTags.remove('de-DE');
+
+      await cubit.start(continuing: base);
+      expect(cubit.state.localeId, 'en-US');
+      await cubit.stop();
+
+      expect(engine.batchCalls.last.localeId, 'en-US');
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a restart keeps the continuation and never discards it', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+      final outcomes = <ContinuationOutcome>[];
+      service.continuations.listen(outcomes.add);
+
+      await cubit.start(continuing: base);
+      await cubit.restart();
+      await pumpEventQueue();
+
+      expect(outcomes, isEmpty);
+      expect(cubit.state.isRecording, isTrue);
+      expect(cubit.state.continuing?.id, base.id);
+      expect(service.continuingEntryId, base.id);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a restart after an interruption records a fresh take', () async {
+      final rec = FakeAudioRecorder();
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: FakeBatchEngine(),
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      rec.interrupt();
+      await pumpEventQueue();
+      expect(cubit.state.interrupted, isTrue);
+      await cubit.restart();
+
+      expect(cubit.state.isRecording, isTrue);
+      expect(cubit.state.continuing, isNull);
+      expect(service.continuingEntryId, isNull);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a base mid-batch lands as entryBusy', () async {
+      final gate = Completer<void>();
+      final rec = FakeAudioRecorder();
+      final service = TranscriptionService(
+        recorder: rec,
+        engine: FakeBatchEngine(gate: gate.future),
+        store: store,
+        composer: FakeAudioComposer(),
+      );
+      final cubit = RecorderCubit(service: service);
+      await service.startRecording();
+      final stopping = service.stopRecording();
+      gate.complete();
+      final base = await stopping;
+      final batching = service.retranscribe(base);
+
+      await cubit.start(continuing: base);
+
+      expect(cubit.state.isBusy, isFalse);
+      expect(cubit.state.error, RecorderError.entryBusy);
+      expect(cubit.state.continuing, isNull);
+      await batching;
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('prepareTake after a dead continuation opens with no entry', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      await service.cancelRecording();
+      cubit.prepareTake();
+
+      expect(cubit.state.continuing, isNull);
+      expect(cubit.state.isBusy, isFalse);
+
+      await cubit.close();
+      await service.dispose();
+    });
+
+    test('a fresh take after a cancelled continuation carries no entry', () async {
+      final (cubit, service) = build();
+      final base = await seed(service);
+
+      await cubit.start(continuing: base);
+      await cubit.cancel();
+      expect(cubit.state.continuing, isNull);
+      await cubit.start();
+
+      expect(cubit.state.continuing, isNull);
+      expect(service.continuingEntryId, isNull);
+
+      await cubit.cancel();
+      await cubit.close();
+      await service.dispose();
+    });
   });
 }

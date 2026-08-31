@@ -39,6 +39,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retranscribe => 'Re-transcribe';
 
   @override
+  String get retranscribeAllTitle => 'Re-transcribe all';
+
+  @override
+  String get retranscribeRowQueued => 'To re-transcribe';
+
+  @override
+  String get retranscribeRowCurrent => 'Already current';
+
+  @override
+  String get retranscribeRowLanded => 'Re-transcribed';
+
+  @override
+  String get retranscribeRowFailed => 'Failed';
+
+  @override
+  String get retranscribeHistoryNote => 'Replaced words stay in each entry\'s history.';
+
+  @override
+  String get retranscribeFailedNote => 'Failed entries stay queued for the next run.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Every kept recording is already transcribed by $engine.';
+  }
+
+  @override
+  String get retranscribeStart => 'Start';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Paused while a recording finishes';
+
+  @override
+  String get retranscribeWaitingThermal => 'Paused while the device cools down';
+
+  @override
+  String get retranscribeCancel => 'Cancel';
+
+  @override
+  String get retranscribeCancelledNote =>
+      'Stopped early. Running again picks up where it left off.';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -180,10 +227,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
+  String get themeNameSepia => 'Sepia';
 
   @override
-  String get themeNameSepia => 'Sepia';
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameDracula => 'Dracula';
+
+  @override
+  String get themeNameNord => 'Nord';
+
+  @override
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
+
+  @override
+  String get appearanceIconSection => 'App icon';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => 'The icon did not change';
+
+  @override
+  String get appIconFailedBody => 'iOS refused the change. Try again.';
 
   @override
   String get settingsAppLanguage => 'Language';
@@ -320,6 +397,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Stop the current recording, then switch engines.';
+
+  @override
+  String get engineRetranscribingTitle => 'Re-transcribing';
+
+  @override
+  String get engineRetranscribingBody =>
+      'Wait for the run to finish, or cancel it, then switch engines.';
 
   @override
   String get engineNotSavedTitle => 'Couldn\'t save the choice';
@@ -668,7 +752,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.';
+      'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release. Added themes are for OpenTranscribe Club members.';
 
   @override
   String get themeRequestLink => 'Request a theme on GitHub';
@@ -850,30 +934,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'The restore stopped partway. Everything restored so far is kept; restore again to finish.';
 
   @override
-  String get supportGateBody =>
-      'Formatted exports are for club members. The backup stays free for everyone.';
-
-  @override
   String get settingsSupport => 'Support';
 
   @override
-  String get supportGateAction => 'Become a club member';
-
-  @override
   String get supportPitch =>
-      'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.';
+      'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.';
 
   @override
-  String get supportPerkExports => 'Formatted exports';
+  String get supportPitchFree =>
+      'Everything that makes OpenTranscribe useful is free for everyone, and stays that way.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian, or a website.';
+  String get supportPerkThemes => 'Club themes';
 
   @override
-  String get supportPerkFuture => 'Future club features';
+  String get supportPerkThemesNote => 'Gruvbox, Dracula, Nord, and every family beyond Default.';
 
   @override
-  String get supportPerkFutureNote => 'Whatever joins the club later, included.';
+  String get supportPerkIcons => 'App icons';
+
+  @override
+  String get supportPerkIconsNote => 'Signal, Lines, Dots, and every icon beyond Default.';
 
   @override
   String get supportThanks => 'You\'re in the club for good. Thank you.';
@@ -888,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportUnreachable =>
-      'The App Store could not be reached. Reopen this screen to try again.';
+      'The App Store could not be reached. Close this and open it again to try again.';
 
   @override
   String get supportPending => 'Waiting for approval. The purchase finishes once it is approved.';
@@ -912,10 +993,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportTerms => 'terms of use';
 
   @override
-  String get supportUnlocksSection => 'Club members get';
-
-  @override
-  String get supportMemberUnlocks => 'What you get';
+  String get supportUnlocksSection => 'What you get';
 
   @override
   String get supporterTag => 'Club';
@@ -924,4 +1002,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'Supporting changes nothing about privacy. The journal never leaves the phone, as the $privacy says, and the purchase runs on Apple\'s standard $terms.';
   }
+
+  @override
+  String get continueRecording => 'Record more';
+
+  @override
+  String continuingEntry(String title) {
+    return 'Continuing $title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => 'New part not transcribed';
+
+  @override
+  String get continueUntranscribedTitle => 'The new part wasn\'t transcribed';
+
+  @override
+  String get continueUntranscribedBody =>
+      'The recording grew, but the words you just added didn\'t land. Re-transcribe to hear all of it.';
+
+  @override
+  String get continueSavedSeparatelyLabel => 'Saved as a new entry';
+
+  @override
+  String get continueSavedSeparatelyBody =>
+      'The new take couldn\'t be joined onto this entry, so it was saved on its own.';
+
+  @override
+  String get continueEntryBusy => 'This entry is still being transcribed.';
 }

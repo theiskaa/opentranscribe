@@ -37,6 +37,52 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retranscribe => '再文字起こし';
 
   @override
+  String get retranscribeAllTitle => 'すべて再文字起こし';
+
+  @override
+  String get retranscribeRowQueued => '再文字起こし対象';
+
+  @override
+  String get retranscribeRowCurrent => 'すでに最新';
+
+  @override
+  String get retranscribeRowLanded => '再文字起こし済み';
+
+  @override
+  String get retranscribeRowFailed => '失敗';
+
+  @override
+  String get retranscribeHistoryNote => '置き換えられた言葉は各エントリーの履歴に残ります。';
+
+  @override
+  String get retranscribeFailedNote => '失敗したエントリーは次回の実行で再度処理されます。';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '保存済みの録音はすべて$engineで文字起こし済みです。';
+  }
+
+  @override
+  String get retranscribeStart => '開始';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total件中$done件';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '録音が終わるまで一時停止中';
+
+  @override
+  String get retranscribeWaitingThermal => '本体の温度が下がるまで一時停止中';
+
+  @override
+  String get retranscribeCancel => 'キャンセル';
+
+  @override
+  String get retranscribeCancelledNote => '途中で停止しました。再実行すると続きから再開します。';
+
+  @override
   String get delete => '削除';
 
   @override
@@ -170,10 +216,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
+  String get themeNameSepia => 'セピア';
 
   @override
-  String get themeNameSepia => 'セピア';
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameDracula => 'Dracula';
+
+  @override
+  String get themeNameNord => 'Nord';
+
+  @override
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
+
+  @override
+  String get appearanceIconSection => 'アプリアイコン';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => 'アイコンを変更できませんでした';
+
+  @override
+  String get appIconFailedBody => 'iOSが変更を拒否しました。もう一度お試しください。';
 
   @override
   String get settingsAppLanguage => '言語';
@@ -306,6 +382,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get engineBusyBody => '録音を停止してからエンジンを切り替えてください。';
+
+  @override
+  String get engineRetranscribingTitle => '再文字起こし中';
+
+  @override
+  String get engineRetranscribingBody => '処理が終わるのを待つか中止してから、エンジンを切り替えてください。';
 
   @override
   String get engineNotSavedTitle => '選択を保存できませんでした';
@@ -632,7 +714,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。';
+      'ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。追加されたテーマは OpenTranscribe Club のメンバー向けです。';
 
   @override
   String get themeRequestLink => 'GitHub でテーマをリクエスト';
@@ -802,29 +884,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
-  String get supportGateBody => '形式を選べる書き出しはクラブメンバー向けです。バックアップは誰でも無料のままです。';
-
-  @override
   String get settingsSupport => 'サポート';
 
   @override
-  String get supportGateAction => 'クラブメンバーになる';
+  String get supportPitch => 'クラブはOpenTranscribeを支える方法です。一度の支払いでずっと有効、お礼にいくつかのルックが付きます。';
 
   @override
-  String get supportPitch =>
-      'OpenTranscribeは無料でプライベートなアプリです。サポートすることでそれが続きます。クラブへの参加は一度の支払いだけ、ずっと有効です。';
+  String get supportPitchFree => 'OpenTranscribeを便利にしているものはすべて誰でも無料で、これからも変わりません。';
 
   @override
-  String get supportPerkExports => '形式を選べる書き出し';
+  String get supportPerkThemes => 'クラブのテーマ';
 
   @override
-  String get supportPerkExportsNote => 'Markdown、Obsidian、またはウェブサイト。';
+  String get supportPerkThemesNote => 'Gruvbox、Dracula、Nord、デフォルト以外のすべてのテーマ。';
 
   @override
-  String get supportPerkFuture => '今後のクラブ機能';
+  String get supportPerkIcons => 'アプリアイコン';
 
   @override
-  String get supportPerkFutureNote => '後から加わるクラブ機能も含まれます。';
+  String get supportPerkIconsNote => 'Signal、Lines、Dots、デフォルト以外のすべてのアイコン。';
 
   @override
   String get supportThanks => 'ずっとクラブの一員です。ありがとうございます。';
@@ -838,7 +916,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportRestore => '購入を復元';
 
   @override
-  String get supportUnreachable => 'App Storeに接続できません。この画面を開き直すと再試行します。';
+  String get supportUnreachable => 'App Storeに接続できません。閉じてから開き直すと再試行します。';
 
   @override
   String get supportPending => '承認待ちです。承認されると購入が完了します。';
@@ -862,10 +940,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get supportTerms => '利用規約';
 
   @override
-  String get supportUnlocksSection => 'クラブ特典';
-
-  @override
-  String get supportMemberUnlocks => '利用できる特典';
+  String get supportUnlocksSection => '受け取れるもの';
 
   @override
   String get supporterTag => 'クラブ';
@@ -874,4 +949,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'サポートしてもプライバシーは何も変わりません。ジャーナルが端末の外に出ることはありません（$privacy）。購入はAppleの標準$termsに従います。';
   }
+
+  @override
+  String get continueRecording => '追加で録音';
+
+  @override
+  String continuingEntry(String title) {
+    return '$titleの続き';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '追加部分の文字起こしなし';
+
+  @override
+  String get continueUntranscribedTitle => '追加部分は文字起こしされませんでした';
+
+  @override
+  String get continueUntranscribedBody => '録音は追加されましたが、追加した言葉は文字起こしされませんでした。再文字起こしですべてを聞き取れます。';
+
+  @override
+  String get continueSavedSeparatelyLabel => '新しいエントリとして保存';
+
+  @override
+  String get continueSavedSeparatelyBody => '新しい録音はこのエントリに結合できなかったため、単独で保存しました。';
+
+  @override
+  String get continueEntryBusy => 'このエントリはまだ文字起こし中です。';
 }

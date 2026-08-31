@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show StreamSubscription, unawaited;
 import 'dart:ui' show Brightness, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart' show immutable;
@@ -17,49 +17,83 @@ import 'package:opentranscribe/core/theming/app_theme_mode.dart';
 /// between them (following the platform for system).
 @immutable
 final class ThemeState {
-  const ThemeState({required this.mode, required this.familyId, required this.platformBrightness});
+  const ThemeState({
+    required this.mode,
+    required this.familyId,
+    required this.platformBrightness,
+    this.member = false,
+  });
 
   final AppThemeMode mode;
   final String familyId;
   final Brightness platformBrightness;
 
+  /// Whether the supporter tier says member, which is what a club family
+  /// needs to be worn.
+  final bool member;
+
+  /// The stored pick, worn or not.
   AppThemeFamily get family => AppThemeFamily.byId(familyId);
+
+  /// The pick, unless it is a club family the tier does not cover; the pick
+  /// stays stored so a lapsed or unrestored entitlement loses nothing.
+  AppThemeFamily get wornFamily =>
+      family.club && !member ? AppThemeFamily.byId(AppThemeFamily.defaultId) : family;
 
   bool get wantDark =>
       mode == AppThemeMode.dark ||
       (mode == AppThemeMode.system && platformBrightness == Brightness.dark);
 
   /// The theme widgets actually render.
-  AppTheme get resolved => family.resolve(wantDark: wantDark);
+  AppTheme get resolved => wornFamily.resolve(wantDark: wantDark);
 
-  ThemeState copyWith({AppThemeMode? mode, String? familyId, Brightness? platformBrightness}) =>
-      ThemeState(
-        mode: mode ?? this.mode,
-        familyId: familyId ?? this.familyId,
-        platformBrightness: platformBrightness ?? this.platformBrightness,
-      );
+  ThemeState copyWith({
+    AppThemeMode? mode,
+    String? familyId,
+    Brightness? platformBrightness,
+    bool? member,
+  }) => ThemeState(
+    mode: mode ?? this.mode,
+    familyId: familyId ?? this.familyId,
+    platformBrightness: platformBrightness ?? this.platformBrightness,
+    member: member ?? this.member,
+  );
 }
 
 /// Owns theme resolution and mode persistence. The root widget pushes platform
 /// brightness changes in; everything else reads `context.theme`.
 class ThemeCubit extends Cubit<ThemeState> {
-  ThemeCubit({required LocalService storage, this._backdrop, Brightness? platformBrightness})
-    : _storage = storage,
-      super(
-        ThemeState(
-          mode: _storedMode(storage),
-          familyId: _storedFamily(storage),
-          platformBrightness: platformBrightness ?? PlatformDispatcher.instance.platformBrightness,
-        ),
-      ) {
+  ThemeCubit({
+    required LocalService storage,
+    this._backdrop,
+    Brightness? platformBrightness,
+    bool Function() isSupporter = _never,
+    Stream<void>? tierChanges,
+  }) : _storage = storage,
+       _isSupporter = isSupporter,
+       super(
+         ThemeState(
+           mode: _storedMode(storage),
+           familyId: _storedFamily(storage),
+           platformBrightness: platformBrightness ?? PlatformDispatcher.instance.platformBrightness,
+           member: isSupporter(),
+         ),
+       ) {
     _mirror(state);
+    _tierSub = tierChanges?.listen((_) {
+      if (!isClosed) emit(state.copyWith(member: _isSupporter()));
+    }, onError: (Object _) {});
   }
+
+  static bool _never() => false;
 
   static const key = 'theme.mode';
   static const familyKey = 'theme.family';
 
   final LocalService _storage;
   final LaunchBackdrop? _backdrop;
+  final bool Function() _isSupporter;
+  StreamSubscription<void>? _tierSub;
 
   /// Keeps the native splash's colours current. At construction and on any
   /// family or mode change; a platform brightness flip re-emits the same
@@ -67,13 +101,13 @@ class ThemeCubit extends Cubit<ThemeState> {
   void _mirror(ThemeState state) {
     final backdrop = _backdrop;
     if (backdrop == null) return;
-    unawaited(backdrop.write(family: state.family, mode: state.mode));
+    unawaited(backdrop.write(family: state.wornFamily, mode: state.mode));
   }
 
   @override
   void onChange(Change<ThemeState> change) {
     super.onChange(change);
-    if (change.currentState.familyId == change.nextState.familyId &&
+    if (change.currentState.wornFamily.id == change.nextState.wornFamily.id &&
         change.currentState.mode == change.nextState.mode) {
       return;
     }
@@ -124,6 +158,12 @@ class ThemeCubit extends Cubit<ThemeState> {
   /// OS appearance changed; only system mode visibly re-resolves.
   void updatePlatformBrightness(Brightness brightness) =>
       emit(state.copyWith(platformBrightness: brightness));
+
+  @override
+  Future<void> close() async {
+    await _tierSub?.cancel();
+    return super.close();
+  }
 }
 
 /// The one way widgets read tokens. Rebuilds the caller only when the resolved

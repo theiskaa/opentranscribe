@@ -485,6 +485,7 @@ final class SheetTheme {
     this.dismissDrag = 120.0,
     this.flingVelocity = 700.0,
     this.maxHeightFraction = 0.7,
+    this.tallMaxHeightFraction = 0.88,
   });
 
   final Color background;
@@ -501,6 +502,10 @@ final class SheetTheme {
 
   /// The screen fraction a sheet may grow to before its content scrolls.
   final double maxHeightFraction;
+
+  /// The same for a sheet that has more to say than a message: a pitch, its
+  /// perks, and a pinned action.
+  final double tallMaxHeightFraction;
 }
 
 /// The onboarding pages.

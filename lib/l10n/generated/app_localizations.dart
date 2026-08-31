@@ -162,6 +162,90 @@ abstract class AppLocalizations {
   /// **'Re-transcribe'**
   String get retranscribe;
 
+  /// Transcription screen row, club perk, and sheet title for the bulk re-transcription over every kept recording
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribe all'**
+  String get retranscribeAllTitle;
+
+  /// Fact row label: entries a run would re-transcribe; the count sits right of it
+  ///
+  /// In en, this message translates to:
+  /// **'To re-transcribe'**
+  String get retranscribeRowQueued;
+
+  /// Fact row label: entries the active engine already produced
+  ///
+  /// In en, this message translates to:
+  /// **'Already current'**
+  String get retranscribeRowCurrent;
+
+  /// Fact row label on the finished face: entries that landed this run
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribed'**
+  String get retranscribeRowLanded;
+
+  /// Fact row label on the finished face: entries that failed this run
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get retranscribeRowFailed;
+
+  /// Footnote under the idle rows
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced words stay in each entry\'s history.'**
+  String get retranscribeHistoryNote;
+
+  /// Footnote under the finished rows when some entries failed; they stay queued
+  ///
+  /// In en, this message translates to:
+  /// **'Failed entries stay queued for the next run.'**
+  String get retranscribeFailedNote;
+
+  /// Idle sheet body when a run would have nothing to do
+  ///
+  /// In en, this message translates to:
+  /// **'Every kept recording is already transcribed by {engine}.'**
+  String retranscribeAllCurrentBody(String engine);
+
+  /// Button starting the bulk re-transcription run
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get retranscribeStart;
+
+  /// Progress counter while the run works through its queue
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String retranscribeProgressOf(int done, int total);
+
+  /// Progress line while the queue waits for a live recording to end
+  ///
+  /// In en, this message translates to:
+  /// **'Paused while a recording finishes'**
+  String get retranscribeWaitingRecording;
+
+  /// Progress line while the queue waits out thermal pressure
+  ///
+  /// In en, this message translates to:
+  /// **'Paused while the device cools down'**
+  String get retranscribeWaitingThermal;
+
+  /// Button stopping the bulk run; what already landed is kept
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get retranscribeCancel;
+
+  /// Finished sheet footnote after a cancel; a new run resumes where it stopped
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped early. Running again picks up where it left off.'**
+  String get retranscribeCancelledNote;
+
   /// Button to delete an entry
   ///
   /// In en, this message translates to:
@@ -426,17 +510,77 @@ abstract class AppLocalizations {
   /// **'Gruvbox'**
   String get themeNameGruvbox;
 
-  /// Name of the Solarized theme family (a proper noun; not translated)
-  ///
-  /// In en, this message translates to:
-  /// **'Solarized'**
-  String get themeNameSolarized;
-
   /// Name of the Sepia theme family (a warm reading mode)
   ///
   /// In en, this message translates to:
   /// **'Sepia'**
   String get themeNameSepia;
+
+  /// Name of the Midnight club theme family (a deep blue night look); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Midnight'**
+  String get themeNameMidnight;
+
+  /// Name of the Dracula club theme family (the palette of that name, MIT); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Dracula'**
+  String get themeNameDracula;
+
+  /// Name of the Nord club theme family (the palette of that name, MIT); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Nord'**
+  String get themeNameNord;
+
+  /// Name of the Catppuccin club theme family (the palette of that name, MIT); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Catppuccin'**
+  String get themeNameCatppuccin;
+
+  /// Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Tokyo Night'**
+  String get themeNameTokyoNight;
+
+  /// Section label above the app icon picker on the appearance screen
+  ///
+  /// In en, this message translates to:
+  /// **'App icon'**
+  String get appearanceIconSection;
+
+  /// Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Signal'**
+  String get appIconNameSignal;
+
+  /// Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Lines'**
+  String get appIconNameLines;
+
+  /// Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get appIconNameDots;
+
+  /// Sheet title when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'The icon did not change'**
+  String get appIconFailedTitle;
+
+  /// Sheet body when iOS refused an icon change
+  ///
+  /// In en, this message translates to:
+  /// **'iOS refused the change. Try again.'**
+  String get appIconFailedBody;
 
   /// Home menu row that picks the interface (UI) language
   ///
@@ -665,6 +809,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop the current recording, then switch engines.'**
   String get engineBusyBody;
+
+  /// Sheet title when an engine switch is refused during a bulk re-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Re-transcribing'**
+  String get engineRetranscribingTitle;
+
+  /// Sheet body when an engine switch is refused during a bulk re-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the run to finish, or cancel it, then switch engines.'**
+  String get engineRetranscribingBody;
 
   /// Sheet title when the engine choice failed to persist
   ///
@@ -1281,7 +1437,7 @@ abstract class AppLocalizations {
   /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link
   ///
   /// In en, this message translates to:
-  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release.'**
+  /// **'Want OpenTranscribe in a theme that isn\'t here? Open an issue on GitHub and we\'ll add it in an upcoming release. Added themes are for OpenTranscribe Club members.'**
   String get themeRequestInfo;
 
   /// Bold inline link after themeRequestInfo; opens a new GitHub issue in the browser
@@ -1566,55 +1722,49 @@ abstract class AppLocalizations {
   /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
   String get importFailedMidway;
 
-  /// Body of the gate sheet: what supporting unlocks, and that the backup stays free
-  ///
-  /// In en, this message translates to:
-  /// **'Formatted exports are for club members. The backup stays free for everyone.'**
-  String get supportGateBody;
-
-  /// Home menu row opening the support screen
+  /// Home menu row opening the club sheet
   ///
   /// In en, this message translates to:
   /// **'Support'**
   String get settingsSupport;
 
-  /// Gate sheet action that opens the support screen
+  /// Club sheet pitch, second paragraph: what membership is
   ///
   /// In en, this message translates to:
-  /// **'Become a club member'**
-  String get supportGateAction;
-
-  /// Support screen intro for a non-supporter
-  ///
-  /// In en, this message translates to:
-  /// **'OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.'**
+  /// **'The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.'**
   String get supportPitch;
 
-  /// Perk row label: the formatted exports
+  /// Club sheet pitch, first paragraph: everything useful is free; names no feature
   ///
   /// In en, this message translates to:
-  /// **'Formatted exports'**
-  String get supportPerkExports;
+  /// **'Everything that makes OpenTranscribe useful is free for everyone, and stays that way.'**
+  String get supportPitchFree;
 
-  /// Perk row note naming the formats; one line
+  /// Perk row label: the club theme families
   ///
   /// In en, this message translates to:
-  /// **'Markdown, Obsidian, or a website.'**
-  String get supportPerkExportsNote;
+  /// **'Club themes'**
+  String get supportPerkThemes;
 
-  /// Perk row label: later club-only features are included
+  /// Note under the club themes perk on the club sheet, naming the families
   ///
   /// In en, this message translates to:
-  /// **'Future club features'**
-  String get supportPerkFuture;
+  /// **'Gruvbox, Dracula, Nord, and every family beyond Default.'**
+  String get supportPerkThemesNote;
 
-  /// Perk row note for future club features; one line
+  /// Name of the app icons perk on the club sheet
   ///
   /// In en, this message translates to:
-  /// **'Whatever joins the club later, included.'**
-  String get supportPerkFutureNote;
+  /// **'App icons'**
+  String get supportPerkIcons;
 
-  /// Support screen intro for a club member
+  /// Note under the app icons perk on the club sheet, naming the alternates
+  ///
+  /// In en, this message translates to:
+  /// **'Signal, Lines, Dots, and every icon beyond Default.'**
+  String get supportPerkIconsNote;
+
+  /// Club sheet intro for a member
   ///
   /// In en, this message translates to:
   /// **'You\'re in the club for good. Thank you.'**
@@ -1632,10 +1782,10 @@ abstract class AppLocalizations {
   /// **'Restore purchases'**
   String get supportRestore;
 
-  /// Line shown when the price fetch failed
+  /// Quiet line on the club sheet when the App Store price fetch failed
   ///
   /// In en, this message translates to:
-  /// **'The App Store could not be reached. Reopen this screen to try again.'**
+  /// **'The App Store could not be reached. Close this and open it again to try again.'**
   String get supportUnreachable;
 
   /// Line shown after an Ask to Buy purchase answered pending
@@ -1680,19 +1830,13 @@ abstract class AppLocalizations {
   /// **'terms of use'**
   String get supportTerms;
 
-  /// Section label above the list of features supporting unlocks
-  ///
-  /// In en, this message translates to:
-  /// **'Club members get'**
-  String get supportUnlocksSection;
-
-  /// Section label above the perks on a member's confirmation screen, framed as what the member already has
+  /// Section label above the club perks on the club sheet
   ///
   /// In en, this message translates to:
   /// **'What you get'**
-  String get supportMemberUnlocks;
+  String get supportUnlocksSection;
 
-  /// Eyebrow under the app name on the support screen header
+  /// Eyebrow under the app name on the club sheet header
   ///
   /// In en, this message translates to:
   /// **'Club'**
@@ -1703,6 +1847,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple\'s standard {terms}.'**
   String supportFooter(String privacy, String terms);
+
+  /// Entry menu row that records more onto this entry
+  ///
+  /// In en, this message translates to:
+  /// **'Record more'**
+  String get continueRecording;
+
+  /// Recorder line naming the entry the take extends
+  ///
+  /// In en, this message translates to:
+  /// **'Continuing {title}'**
+  String continuingEntry(String title);
+
+  /// Pill label when a continuation merged its audio but its words did not land
+  ///
+  /// In en, this message translates to:
+  /// **'New part not transcribed'**
+  String get continueUntranscribedLabel;
+
+  /// Sheet title for the untranscribed addition
+  ///
+  /// In en, this message translates to:
+  /// **'The new part wasn\'t transcribed'**
+  String get continueUntranscribedTitle;
+
+  /// Sheet body for the untranscribed addition
+  ///
+  /// In en, this message translates to:
+  /// **'The recording grew, but the words you just added didn\'t land. Re-transcribe to hear all of it.'**
+  String get continueUntranscribedBody;
+
+  /// Pill label and sheet title when a continuation could not land and the take became its own entry; the pill opens it
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new entry'**
+  String get continueSavedSeparatelyLabel;
+
+  /// Sheet body for a take saved separately
+  ///
+  /// In en, this message translates to:
+  /// **'The new take couldn\'t be joined onto this entry, so it was saved on its own.'**
+  String get continueSavedSeparatelyBody;
+
+  /// Recorder notice when the entry to continue is mid-transcription
+  ///
+  /// In en, this message translates to:
+  /// **'This entry is still being transcribed.'**
+  String get continueEntryBusy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +24,7 @@ void main() {
   });
 
   TranscriptionService build(TranscriptionEngine engine) => TranscriptionService(
+    composer: FakeAudioComposer(),
     recorder: recorder,
     engine: engine,
     store: EntryStore(storage),
@@ -55,6 +59,40 @@ void main() {
 
     await svc.dispose();
   });
+
+  test(
+    'useEngine refuses while a bulk re-transcribe runs and allows again after it lands',
+    () async {
+      final gate = Completer<void>();
+      final store = EntryStore(storage);
+      await store.save(
+        Entry(
+          id: 'kept',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: '/audio/kept.m4a',
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: recorder,
+        engine: FakeBatchEngine(gate: gate.future),
+        store: store,
+        fileDeleter: (file) async {},
+      );
+      final run = svc.retranscribeAll.start();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(svc.useEngine(FakeDictationEngine()), isFalse);
+      expect(svc.engineId, 'fake.batch');
+
+      gate.complete();
+      await run;
+      expect(svc.useEngine(FakeDictationEngine()), isTrue);
+
+      await svc.dispose();
+    },
+  );
 
   test('useEngine refuses while a stop is still finalizing', () async {
     final svc = build(

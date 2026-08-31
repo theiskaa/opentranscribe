@@ -14,6 +14,13 @@ void main() {
       expect(canOpenRecorder(stack: [Routes.home, Routes.record], onboardingDone: true), isFalse);
     });
 
+    test('the recorder carrying an entry query is still the recorder', () {
+      expect(
+        canOpenRecorder(stack: [Routes.home, '${Routes.record}?entry=x'], onboardingDone: true),
+        isFalse,
+      );
+    });
+
     test('the recorder under another page is still open', () {
       expect(
         canOpenRecorder(

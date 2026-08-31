@@ -36,6 +36,75 @@
   "@retranscribe": {
     "description": "Button to transcribe a kept recording again"
   },
+  "retranscribeAllTitle": "Re-transcribe all",
+  "@retranscribeAllTitle": {
+    "description": "Transcription screen row, club perk, and sheet title for the bulk re-transcription over every kept recording"
+  },
+  "retranscribeRowQueued": "To re-transcribe",
+  "@retranscribeRowQueued": {
+    "description": "Fact row label: entries a run would re-transcribe; the count sits right of it"
+  },
+  "retranscribeRowCurrent": "Already current",
+  "@retranscribeRowCurrent": {
+    "description": "Fact row label: entries the active engine already produced"
+  },
+  "retranscribeRowLanded": "Re-transcribed",
+  "@retranscribeRowLanded": {
+    "description": "Fact row label on the finished face: entries that landed this run"
+  },
+  "retranscribeRowFailed": "Failed",
+  "@retranscribeRowFailed": {
+    "description": "Fact row label on the finished face: entries that failed this run"
+  },
+  "retranscribeHistoryNote": "Replaced words stay in each entry's history.",
+  "@retranscribeHistoryNote": {
+    "description": "Footnote under the idle rows"
+  },
+  "retranscribeFailedNote": "Failed entries stay queued for the next run.",
+  "@retranscribeFailedNote": {
+    "description": "Footnote under the finished rows when some entries failed; they stay queued"
+  },
+  "retranscribeAllCurrentBody": "Every kept recording is already transcribed by {engine}.",
+  "@retranscribeAllCurrentBody": {
+    "description": "Idle sheet body when a run would have nothing to do",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "retranscribeStart": "Start",
+  "@retranscribeStart": {
+    "description": "Button starting the bulk re-transcription run"
+  },
+  "retranscribeProgressOf": "{done} of {total}",
+  "@retranscribeProgressOf": {
+    "description": "Progress counter while the run works through its queue",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "retranscribeWaitingRecording": "Paused while a recording finishes",
+  "@retranscribeWaitingRecording": {
+    "description": "Progress line while the queue waits for a live recording to end"
+  },
+  "retranscribeWaitingThermal": "Paused while the device cools down",
+  "@retranscribeWaitingThermal": {
+    "description": "Progress line while the queue waits out thermal pressure"
+  },
+  "retranscribeCancel": "Cancel",
+  "@retranscribeCancel": {
+    "description": "Button stopping the bulk run; what already landed is kept"
+  },
+  "retranscribeCancelledNote": "Stopped early. Running again picks up where it left off.",
+  "@retranscribeCancelledNote": {
+    "description": "Finished sheet footnote after a cancel; a new run resumes where it stopped"
+  },
   "delete": "Delete",
   "@delete": {
     "description": "Button to delete an entry"
@@ -212,13 +281,53 @@
   "@themeNameGruvbox": {
     "description": "Name of the Gruvbox theme family (a proper noun; not translated)"
   },
-  "themeNameSolarized": "Solarized",
-  "@themeNameSolarized": {
-    "description": "Name of the Solarized theme family (a proper noun; not translated)"
-  },
   "themeNameSepia": "Sepia",
   "@themeNameSepia": {
     "description": "Name of the Sepia theme family (a warm reading mode)"
+  },
+  "themeNameMidnight": "Midnight",
+  "@themeNameMidnight": {
+    "description": "Name of the Midnight club theme family (a deep blue night look); a proper noun, not translated"
+  },
+  "themeNameDracula": "Dracula",
+  "@themeNameDracula": {
+    "description": "Name of the Dracula club theme family (the palette of that name, MIT); a proper noun, not translated"
+  },
+  "themeNameNord": "Nord",
+  "@themeNameNord": {
+    "description": "Name of the Nord club theme family (the palette of that name, MIT); a proper noun, not translated"
+  },
+  "themeNameCatppuccin": "Catppuccin",
+  "@themeNameCatppuccin": {
+    "description": "Name of the Catppuccin club theme family (the palette of that name, MIT); a proper noun, not translated"
+  },
+  "themeNameTokyoNight": "Tokyo Night",
+  "@themeNameTokyoNight": {
+    "description": "Name of the Tokyo Night club theme family (the palette of that name, MIT); a proper noun, not translated"
+  },
+  "appearanceIconSection": "App icon",
+  "@appearanceIconSection": {
+    "description": "Section label above the app icon picker on the appearance screen"
+  },
+  "appIconNameSignal": "Signal",
+  "@appIconNameSignal": {
+    "description": "Name of the Signal app icon (the wave with one bar lit); a proper noun, not translated"
+  },
+  "appIconNameLines": "Lines",
+  "@appIconNameLines": {
+    "description": "Name of the Lines app icon (the wave drawn as outlines); a proper noun, not translated"
+  },
+  "appIconNameDots": "Dots",
+  "@appIconNameDots": {
+    "description": "Name of the Dots app icon (the wave as columns of dots); a proper noun, not translated"
+  },
+  "appIconFailedTitle": "The icon did not change",
+  "@appIconFailedTitle": {
+    "description": "Sheet title when iOS refused an icon change"
+  },
+  "appIconFailedBody": "iOS refused the change. Try again.",
+  "@appIconFailedBody": {
+    "description": "Sheet body when iOS refused an icon change"
   },
   "settingsAppLanguage": "Language",
   "@settingsAppLanguage": {
@@ -419,6 +528,14 @@
   "engineBusyBody": "Stop the current recording, then switch engines.",
   "@engineBusyBody": {
     "description": "Sheet body when an engine switch is refused mid-take"
+  },
+  "engineRetranscribingTitle": "Re-transcribing",
+  "@engineRetranscribingTitle": {
+    "description": "Sheet title when an engine switch is refused during a bulk re-transcription"
+  },
+  "engineRetranscribingBody": "Wait for the run to finish, or cancel it, then switch engines.",
+  "@engineRetranscribingBody": {
+    "description": "Sheet body when an engine switch is refused during a bulk re-transcription"
   },
   "engineNotSavedTitle": "Couldn't save the choice",
   "@engineNotSavedTitle": {
@@ -856,7 +973,7 @@
   "@notifyReflectionsUnavailable": {
     "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
   },
-  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release.",
+  "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release. Added themes are for OpenTranscribe Club members.",
   "@themeRequestInfo": {
     "description": "Footer under the theme grid on the appearance screen; precedes the request-a-theme link"
   },
@@ -1068,41 +1185,37 @@
   "@importFailedMidway": {
     "description": "Failure body when adoption already wrote; restored entries are kept"
   },
-  "supportGateBody": "Formatted exports are for club members. The backup stays free for everyone.",
-  "@supportGateBody": {
-    "description": "Body of the gate sheet: what supporting unlocks, and that the backup stays free"
-  },
   "settingsSupport": "Support",
   "@settingsSupport": {
-    "description": "Home menu row opening the support screen"
+    "description": "Home menu row opening the club sheet"
   },
-  "supportGateAction": "Become a club member",
-  "@supportGateAction": {
-    "description": "Gate sheet action that opens the support screen"
-  },
-  "supportPitch": "OpenTranscribe is free and private, and supporting it keeps it that way. Joining the club is one payment, in for good.",
+  "supportPitch": "The club is how OpenTranscribe is supported: one payment, in for good, and a few looks as thanks.",
   "@supportPitch": {
-    "description": "Support screen intro for a non-supporter"
+    "description": "Club sheet pitch, second paragraph: what membership is"
   },
-  "supportPerkExports": "Formatted exports",
-  "@supportPerkExports": {
-    "description": "Perk row label: the formatted exports"
+  "supportPitchFree": "Everything that makes OpenTranscribe useful is free for everyone, and stays that way.",
+  "@supportPitchFree": {
+    "description": "Club sheet pitch, first paragraph: everything useful is free; names no feature"
   },
-  "supportPerkExportsNote": "Markdown, Obsidian, or a website.",
-  "@supportPerkExportsNote": {
-    "description": "Perk row note naming the formats; one line"
+  "supportPerkThemes": "Club themes",
+  "@supportPerkThemes": {
+    "description": "Perk row label: the club theme families"
   },
-  "supportPerkFuture": "Future club features",
-  "@supportPerkFuture": {
-    "description": "Perk row label: later club-only features are included"
+  "supportPerkThemesNote": "Gruvbox, Dracula, Nord, and every family beyond Default.",
+  "@supportPerkThemesNote": {
+    "description": "Note under the club themes perk on the club sheet, naming the families"
   },
-  "supportPerkFutureNote": "Whatever joins the club later, included.",
-  "@supportPerkFutureNote": {
-    "description": "Perk row note for future club features; one line"
+  "supportPerkIcons": "App icons",
+  "@supportPerkIcons": {
+    "description": "Name of the app icons perk on the club sheet"
+  },
+  "supportPerkIconsNote": "Signal, Lines, Dots, and every icon beyond Default.",
+  "@supportPerkIconsNote": {
+    "description": "Note under the app icons perk on the club sheet, naming the alternates"
   },
   "supportThanks": "You're in the club for good. Thank you.",
   "@supportThanks": {
-    "description": "Support screen intro for a club member"
+    "description": "Club sheet intro for a member"
   },
   "supportJoin": "Join the club for {price}",
   "@supportJoin": {
@@ -1117,9 +1230,9 @@
   "@supportRestore": {
     "description": "Link that restores purchases via the store sync"
   },
-  "supportUnreachable": "The App Store could not be reached. Reopen this screen to try again.",
+  "supportUnreachable": "The App Store could not be reached. Close this and open it again to try again.",
   "@supportUnreachable": {
-    "description": "Line shown when the price fetch failed"
+    "description": "Quiet line on the club sheet when the App Store price fetch failed"
   },
   "supportPending": "Waiting for approval. The purchase finishes once it is approved.",
   "@supportPending": {
@@ -1149,17 +1262,13 @@
   "@supportTerms": {
     "description": "Terms of use link label"
   },
-  "supportUnlocksSection": "Club members get",
+  "supportUnlocksSection": "What you get",
   "@supportUnlocksSection": {
-    "description": "Section label above the list of features supporting unlocks"
-  },
-  "supportMemberUnlocks": "What you get",
-  "@supportMemberUnlocks": {
-    "description": "Section label above the perks on a member's confirmation screen, framed as what the member already has"
+    "description": "Section label above the club perks on the club sheet"
   },
   "supporterTag": "Club",
   "@supporterTag": {
-    "description": "Eyebrow under the app name on the support screen header"
+    "description": "Eyebrow under the app name on the club sheet header"
   },
   "supportFooter": "Supporting changes nothing about privacy. The journal never leaves the phone, as the {privacy} says, and the purchase runs on Apple's standard {terms}.",
   "@supportFooter": {
@@ -1172,5 +1281,42 @@
         "type": "String"
       }
     }
+  },
+  "continueRecording": "Record more",
+  "@continueRecording": {
+    "description": "Entry menu row that records more onto this entry"
+  },
+  "continuingEntry": "Continuing {title}",
+  "@continuingEntry": {
+    "description": "Recorder line naming the entry the take extends",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "continueUntranscribedLabel": "New part not transcribed",
+  "@continueUntranscribedLabel": {
+    "description": "Pill label when a continuation merged its audio but its words did not land"
+  },
+  "continueUntranscribedTitle": "The new part wasn't transcribed",
+  "@continueUntranscribedTitle": {
+    "description": "Sheet title for the untranscribed addition"
+  },
+  "continueUntranscribedBody": "The recording grew, but the words you just added didn't land. Re-transcribe to hear all of it.",
+  "@continueUntranscribedBody": {
+    "description": "Sheet body for the untranscribed addition"
+  },
+  "continueSavedSeparatelyLabel": "Saved as a new entry",
+  "@continueSavedSeparatelyLabel": {
+    "description": "Pill label and sheet title when a continuation could not land and the take became its own entry; the pill opens it"
+  },
+  "continueSavedSeparatelyBody": "The new take couldn't be joined onto this entry, so it was saved on its own.",
+  "@continueSavedSeparatelyBody": {
+    "description": "Sheet body for a take saved separately"
+  },
+  "continueEntryBusy": "This entry is still being transcribed.",
+  "@continueEntryBusy": {
+    "description": "Recorder notice when the entry to continue is mid-transcription"
   }
 }

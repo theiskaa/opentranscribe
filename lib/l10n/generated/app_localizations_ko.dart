@@ -37,6 +37,52 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranscribe => '다시 전사';
 
   @override
+  String get retranscribeAllTitle => '모두 다시 전사';
+
+  @override
+  String get retranscribeRowQueued => '다시 전사할 항목';
+
+  @override
+  String get retranscribeRowCurrent => '이미 최신';
+
+  @override
+  String get retranscribeRowLanded => '다시 전사됨';
+
+  @override
+  String get retranscribeRowFailed => '실패';
+
+  @override
+  String get retranscribeHistoryNote => '대체된 문구는 각 항목의 기록에 남습니다.';
+
+  @override
+  String get retranscribeFailedNote => '실패한 항목은 다음 실행 때 다시 처리됩니다.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return '보관된 모든 녹음이 이미 $engine 엔진으로 전사되어 있습니다.';
+  }
+
+  @override
+  String get retranscribeStart => '시작';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$total개 중 $done개';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => '녹음이 끝날 때까지 일시 정지';
+
+  @override
+  String get retranscribeWaitingThermal => '기기 온도가 내려갈 때까지 일시 정지';
+
+  @override
+  String get retranscribeCancel => '취소';
+
+  @override
+  String get retranscribeCancelledNote => '도중에 중지되었습니다. 다시 실행하면 이어서 진행됩니다.';
+
+  @override
   String get delete => '삭제';
 
   @override
@@ -170,10 +216,40 @@ class AppLocalizationsKo extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
+  String get themeNameSepia => '세피아';
 
   @override
-  String get themeNameSepia => '세피아';
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameDracula => 'Dracula';
+
+  @override
+  String get themeNameNord => 'Nord';
+
+  @override
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
+
+  @override
+  String get appearanceIconSection => '앱 아이콘';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => '아이콘이 변경되지 않았습니다';
+
+  @override
+  String get appIconFailedBody => 'iOS가 변경을 거부했습니다. 다시 시도하세요.';
 
   @override
   String get settingsAppLanguage => '언어';
@@ -307,6 +383,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get engineBusyBody => '녹음을 중지한 다음 엔진을 전환하세요.';
+
+  @override
+  String get engineRetranscribingTitle => '다시 전사 진행 중';
+
+  @override
+  String get engineRetranscribingBody => '작업이 끝날 때까지 기다리거나 취소한 다음 엔진을 전환하세요.';
 
   @override
   String get engineNotSavedTitle => '선택을 저장하지 못함';
@@ -634,7 +716,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다.';
+      '여기에 없는 테마로 OpenTranscribe를 사용하고 싶나요? GitHub에 이슈를 남겨 주시면 다음 릴리스에서 추가하겠습니다. 추가된 테마는 OpenTranscribe Club 멤버를 위한 것입니다.';
 
   @override
   String get themeRequestLink => 'GitHub에서 테마 요청하기';
@@ -804,29 +886,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
-  String get supportGateBody => '서식 있는 내보내기는 클럽 멤버를 위한 기능입니다. 백업은 누구나 계속 무료입니다.';
-
-  @override
   String get settingsSupport => '후원';
 
   @override
-  String get supportGateAction => '클럽 멤버 되기';
-
-  @override
   String get supportPitch =>
-      'OpenTranscribe는 무료이고 프라이빗합니다. 후원은 그것을 지켜줍니다. 클럽 가입은 한 번의 결제로 평생 유지됩니다.';
+      '클럽은 OpenTranscribe를 후원하는 방법입니다. 한 번의 결제로 평생 유지되며, 감사의 뜻으로 몇 가지 룩이 제공됩니다.';
 
   @override
-  String get supportPerkExports => '서식 있는 내보내기';
+  String get supportPitchFree => 'OpenTranscribe를 유용하게 만드는 모든 것은 누구에게나 무료이며, 앞으로도 그렇습니다.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian 또는 웹사이트로.';
+  String get supportPerkThemes => '클럽 테마';
 
   @override
-  String get supportPerkFuture => '앞으로의 클럽 기능';
+  String get supportPerkThemesNote => 'Gruvbox, Dracula, Nord 등 기본 테마를 제외한 모든 테마.';
 
   @override
-  String get supportPerkFutureNote => '나중에 추가되는 클럽 기능도 포함됩니다.';
+  String get supportPerkIcons => '앱 아이콘';
+
+  @override
+  String get supportPerkIconsNote => 'Signal, Lines, Dots 등 기본 아이콘을 제외한 모든 아이콘.';
 
   @override
   String get supportThanks => '평생 클럽의 일원입니다. 감사합니다.';
@@ -840,7 +919,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportRestore => '구입 항목 복원';
 
   @override
-  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 이 화면을 다시 열면 다시 시도합니다.';
+  String get supportUnreachable => 'App Store에 연결할 수 없습니다. 닫았다가 다시 열면 다시 시도합니다.';
 
   @override
   String get supportPending => '승인 대기 중입니다. 승인되면 구입이 완료됩니다.';
@@ -864,10 +943,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get supportTerms => '이용 약관';
 
   @override
-  String get supportUnlocksSection => '클럽 혜택';
-
-  @override
-  String get supportMemberUnlocks => '이용 가능한 혜택';
+  String get supportUnlocksSection => '받게 되는 것';
 
   @override
   String get supporterTag => '클럽';
@@ -876,4 +952,30 @@ class AppLocalizationsKo extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return '후원해도 프라이버시는 달라지지 않습니다. 저널은 절대 기기를 떠나지 않습니다($privacy). 구매는 Apple 표준 $terms을 따릅니다.';
   }
+
+  @override
+  String get continueRecording => '추가 녹음';
+
+  @override
+  String continuingEntry(String title) {
+    return '$title에 이어서';
+  }
+
+  @override
+  String get continueUntranscribedLabel => '새 부분 전사 안 됨';
+
+  @override
+  String get continueUntranscribedTitle => '새 부분이 전사되지 않았습니다';
+
+  @override
+  String get continueUntranscribedBody => '녹음은 이어졌지만 방금 추가한 말은 전사되지 않았습니다. 다시 전사하면 전체를 들을 수 있습니다.';
+
+  @override
+  String get continueSavedSeparatelyLabel => '새 항목으로 저장됨';
+
+  @override
+  String get continueSavedSeparatelyBody => '새 녹음을 이 항목에 합칠 수 없어 따로 저장했습니다.';
+
+  @override
+  String get continueEntryBusy => '이 항목은 아직 전사 중입니다.';
 }

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
@@ -56,6 +57,7 @@ void main() {
     speech = FakeStreamingEngine(stopSignal: recorder.stopped);
     dictation = FakeDictationEngine();
     service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: recorder,
       engine: speech,
       store: EntryStore(storage),
@@ -178,6 +180,32 @@ void main() {
     expect(engineSettings.engineId, isNull);
 
     await service.stopRecording();
+  });
+
+  test('a pick during a bulk re-transcribe answers retranscribing and stores nothing', () async {
+    final engineSettings = EngineSettings(storage: storage);
+    final cubit = build(engineSettings: engineSettings);
+    final gate = Completer<void>();
+    expect(service.useEngine(FakeBatchEngine(gate: gate.future)), isTrue);
+    await service.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'kept',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: '/audio/kept.m4a',
+          duration: const Duration(seconds: 3),
+        ),
+      ),
+    ]);
+    final run = service.retranscribeAll.start();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await cubit.pick('fake.dictation'), EnginePickOutcome.retranscribing);
+    expect(service.engineId, 'fake.batch');
+    expect(engineSettings.engineId, isNull);
+
+    gate.complete();
+    await run;
   });
 
   test('a failed persist reverts the switch and rethrows', () async {

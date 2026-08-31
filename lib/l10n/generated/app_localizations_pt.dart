@@ -39,6 +39,54 @@ class AppLocalizationsPt extends AppLocalizations {
   String get retranscribe => 'Retranscrever';
 
   @override
+  String get retranscribeAllTitle => 'Retranscrever tudo';
+
+  @override
+  String get retranscribeRowQueued => 'Para retranscrever';
+
+  @override
+  String get retranscribeRowCurrent => 'Entradas já atualizadas';
+
+  @override
+  String get retranscribeRowLanded => 'Entradas retranscritas';
+
+  @override
+  String get retranscribeRowFailed => 'Com falha';
+
+  @override
+  String get retranscribeHistoryNote =>
+      'As palavras substituídas ficam no histórico de cada entrada.';
+
+  @override
+  String get retranscribeFailedNote =>
+      'As entradas falhadas ficam em fila para a próxima execução.';
+
+  @override
+  String retranscribeAllCurrentBody(String engine) {
+    return 'Cada gravação guardada já foi transcrita por $engine.';
+  }
+
+  @override
+  String get retranscribeStart => 'Começar';
+
+  @override
+  String retranscribeProgressOf(int done, int total) {
+    return '$done de $total';
+  }
+
+  @override
+  String get retranscribeWaitingRecording => 'Em pausa enquanto uma gravação termina';
+
+  @override
+  String get retranscribeWaitingThermal => 'Em pausa enquanto o dispositivo arrefece';
+
+  @override
+  String get retranscribeCancel => 'Cancelar';
+
+  @override
+  String get retranscribeCancelledNote => 'Parado a meio. Voltar a executar retoma onde ficou.';
+
+  @override
   String get delete => 'Eliminar';
 
   @override
@@ -180,10 +228,40 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeNameGruvbox => 'Gruvbox';
 
   @override
-  String get themeNameSolarized => 'Solarized';
+  String get themeNameSepia => 'Sépia';
 
   @override
-  String get themeNameSepia => 'Sépia';
+  String get themeNameMidnight => 'Midnight';
+
+  @override
+  String get themeNameDracula => 'Dracula';
+
+  @override
+  String get themeNameNord => 'Nord';
+
+  @override
+  String get themeNameCatppuccin => 'Catppuccin';
+
+  @override
+  String get themeNameTokyoNight => 'Tokyo Night';
+
+  @override
+  String get appearanceIconSection => 'Ícone da app';
+
+  @override
+  String get appIconNameSignal => 'Signal';
+
+  @override
+  String get appIconNameLines => 'Lines';
+
+  @override
+  String get appIconNameDots => 'Dots';
+
+  @override
+  String get appIconFailedTitle => 'O ícone não mudou';
+
+  @override
+  String get appIconFailedBody => 'O iOS recusou a alteração. Tente novamente.';
 
   @override
   String get settingsAppLanguage => 'Idioma';
@@ -323,6 +401,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get engineBusyBody => 'Pare a gravação atual e depois mude de motor.';
+
+  @override
+  String get engineRetranscribingTitle => 'Retranscrição em curso';
+
+  @override
+  String get engineRetranscribingBody => 'Espere que termine, ou cancele, e depois mude de motor.';
 
   @override
   String get engineNotSavedTitle => 'Não foi possível guardar a escolha';
@@ -674,7 +758,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeRequestInfo =>
-      'Quer o OpenTranscribe num tema que não está aqui? Abra uma issue no GitHub e vamos adicioná-lo numa versão futura.';
+      'Quer o OpenTranscribe num tema que não está aqui? Abra uma issue no GitHub e vamos adicioná-lo numa versão futura. Os temas adicionados são para membros do OpenTranscribe Club.';
 
   @override
   String get themeRequestLink => 'Pedir um tema no GitHub';
@@ -860,30 +944,28 @@ class AppLocalizationsPt extends AppLocalizations {
       'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 
   @override
-  String get supportGateBody =>
-      'As exportações formatadas são para membros do clube. A cópia de segurança continua gratuita para todos.';
-
-  @override
   String get settingsSupport => 'Apoiar';
 
   @override
-  String get supportGateAction => 'Tornar-se membro do clube';
-
-  @override
   String get supportPitch =>
-      'O OpenTranscribe é gratuito e privado, e apoiá-lo mantém-no assim. Entrar no clube é um único pagamento, para sempre.';
+      'O clube é a forma de apoiar o OpenTranscribe: um único pagamento, para sempre, e alguns visuais como agradecimento.';
 
   @override
-  String get supportPerkExports => 'Exportações formatadas';
+  String get supportPitchFree =>
+      'Tudo o que torna o OpenTranscribe útil é gratuito para todos, e assim continua.';
 
   @override
-  String get supportPerkExportsNote => 'Markdown, Obsidian ou um site.';
+  String get supportPerkThemes => 'Temas do clube';
 
   @override
-  String get supportPerkFuture => 'Futuras funções do clube';
+  String get supportPerkThemesNote =>
+      'Gruvbox, Dracula, Nord e todos os temas além do predefinido.';
 
   @override
-  String get supportPerkFutureNote => 'O que chegar ao clube depois, incluído.';
+  String get supportPerkIcons => 'Ícones da app';
+
+  @override
+  String get supportPerkIconsNote => 'Signal, Lines, Dots e todos os ícones além do predefinido.';
 
   @override
   String get supportThanks => 'Está no clube para sempre. Obrigado.';
@@ -898,7 +980,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get supportUnreachable =>
-      'Não foi possível contactar a App Store. Volte a abrir este ecrã para tentar de novo.';
+      'Não foi possível contactar a App Store. Feche e volte a abrir para tentar de novo.';
 
   @override
   String get supportPending => 'A aguardar aprovação. A compra termina assim que for aprovada.';
@@ -922,10 +1004,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportTerms => 'termos de utilização';
 
   @override
-  String get supportUnlocksSection => 'Para membros do clube';
-
-  @override
-  String get supportMemberUnlocks => 'O que você tem';
+  String get supportUnlocksSection => 'O que recebe';
 
   @override
   String get supporterTag => 'Clube';
@@ -934,4 +1013,32 @@ class AppLocalizationsPt extends AppLocalizations {
   String supportFooter(String privacy, String terms) {
     return 'Apoiar não muda nada na privacidade. O diário nunca sai do telemóvel, como diz a $privacy, e a compra segue os $terms padrão da Apple.';
   }
+
+  @override
+  String get continueRecording => 'Gravar mais';
+
+  @override
+  String continuingEntry(String title) {
+    return 'A continuar $title';
+  }
+
+  @override
+  String get continueUntranscribedLabel => 'Parte nova não transcrita';
+
+  @override
+  String get continueUntranscribedTitle => 'A parte nova não foi transcrita';
+
+  @override
+  String get continueUntranscribedBody =>
+      'A gravação cresceu, mas as palavras que acabou de acrescentar não foram transcritas. Retranscreva para ouvir tudo.';
+
+  @override
+  String get continueSavedSeparatelyLabel => 'Guardado como nova entrada';
+
+  @override
+  String get continueSavedSeparatelyBody =>
+      'A nova gravação não pôde ser junta a esta entrada, por isso foi guardada à parte.';
+
+  @override
+  String get continueEntryBusy => 'Esta entrada ainda está a ser transcrita.';
 }

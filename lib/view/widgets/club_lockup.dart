@@ -8,11 +8,10 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/wave_glyph.dart';
 
 /// The club's identity lockup: the app's wave beside its name over the CLUB
-/// eyebrow. One widget for every surface that fronts the club (the support
-/// screen's header, the gate sheet), so the brand is drawn once and cannot
-/// drift. The wave is [WaveGlyph], the same mark the empty home draws, never
-/// a bitmap. A [member] lockup wears a filled heart beside the eyebrow, which
-/// beats in the first time it is shown.
+/// eyebrow. One widget for every surface that fronts the club, so the brand
+/// is drawn once and cannot drift. The wave is [WaveGlyph], the same mark the
+/// empty home draws, never a bitmap. A [member] lockup wears a filled heart
+/// beside the eyebrow, which beats in the first time it is shown.
 class ClubLockup extends StatelessWidget {
   const ClubLockup({this.member = false, super.key});
 

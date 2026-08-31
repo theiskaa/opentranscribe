@@ -64,6 +64,7 @@ export default function Home() {
                   </div>
                   <p className="t-display mt-8 leading-none">{CLUB.price}</p>
                   <p className="t-subhead mt-3">{CLUB.priceNote}</p>
+                  <p className="t-footnote mt-2">{CLUB.priceRegion}</p>
 
                   <div className="my-8 h-px bg-line" />
 

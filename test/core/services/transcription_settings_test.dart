@@ -50,6 +50,7 @@ void main() {
     storage = LocalService();
     await storage.init(legacyKey: key);
     service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(supportedLocaleTags: ['en-US', 'de-DE', 'tr-TR']),
       store: EntryStore(storage),
@@ -103,6 +104,7 @@ void main() {
 
   test('without English the fallback is the engine\'s first language', () async {
     final bare = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(supportedLocaleTags: ['de-DE']),
       store: EntryStore(storage),
@@ -121,6 +123,7 @@ void main() {
 
   test('an engine that answers no languages resolves nothing, keeping the raw tag', () async {
     final mute = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: FakeBatchEngine(supportedLocaleTags: []),
       store: EntryStore(storage),
@@ -195,6 +198,7 @@ void main() {
       Future.value(['de-DE']),
     ]);
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: EntryStore(storage),

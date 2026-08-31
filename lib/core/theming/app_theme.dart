@@ -327,7 +327,7 @@ final class AppTheme {
     text: const Color(0xFF111111),
     // Neutral (drops the cool blue cast) and a touch darker, so secondary text
     // reads cleanly instead of washed-out grey.
-    textSecondary: const Color(0xFF79797B),
+    textSecondary: const Color(0xFF707072),
     hairline: const Color(0xFFDEDEDE),
     accent: const Color(0xFF111111),
     accentPressed: const Color(0xFF000000),

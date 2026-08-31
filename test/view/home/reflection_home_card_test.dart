@@ -138,4 +138,88 @@ void main() {
       });
     });
   });
+
+  group('unseatingCards', () {
+    final dayCard = reflection(DateTime(2026, 7, 22), period: ReflectionPeriod.daily, text: 'day');
+    final weekCard = reflection(DateTime(2026, 7, 20), text: 'week');
+
+    test('a day card unseats with its dying last row, a week card re-seats on a living day', () {
+      final days = [DateTime(2026, 7, 22), DateTime(2026, 7, 21)];
+      final unseating = unseatingCards(
+        cards: reflectionCardsForSections(
+          sectionDays: days,
+          reflections: [dayCard, weekCard],
+          today: today,
+        ),
+        sectionDays: days,
+        sectionIds: [
+          ['a'],
+          ['b'],
+        ],
+        dying: {'a'},
+      );
+      expect(unseating, {cardKeyOf(dayCard)});
+    });
+
+    test('every card unseats when the dying rows empty the whole period', () {
+      final days = [DateTime(2026, 7, 22)];
+      final unseating = unseatingCards(
+        cards: reflectionCardsForSections(
+          sectionDays: days,
+          reflections: [dayCard, weekCard],
+          today: today,
+        ),
+        sectionDays: days,
+        sectionIds: [
+          ['a', 'b'],
+        ],
+        dying: {'a', 'b'},
+      );
+      expect(unseating, {cardKeyOf(dayCard), cardKeyOf(weekCard)});
+    });
+
+    test('nothing unseats while a living row remains in the section', () {
+      final days = [DateTime(2026, 7, 22)];
+      final unseating = unseatingCards(
+        cards: reflectionCardsForSections(sectionDays: days, reflections: [dayCard], today: today),
+        sectionDays: days,
+        sectionIds: [
+          ['a', 'b'],
+        ],
+        dying: {'a'},
+      );
+      expect(unseating, isEmpty);
+    });
+  });
+
+  group('departedCards', () {
+    final dayCard = reflection(DateTime(2026, 7, 22), period: ReflectionPeriod.daily, text: 'day');
+    final weekCard = reflection(DateTime(2026, 7, 20), text: 'week');
+
+    Map<ReflectionCardKey, CardSeat> seats(List<DateTime> days, List<Reflection> reflections) =>
+        cardSeats(
+          reflectionCardsForSections(sectionDays: days, reflections: reflections, today: today),
+          days,
+        );
+
+    test('a departed day hands its stack to the ledger, a re-seated card stays out', () {
+      final departed = departedCards(
+        seats([DateTime(2026, 7, 22), DateTime(2026, 7, 21)], [weekCard, dayCard]),
+        seats([DateTime(2026, 7, 21)], [weekCard, dayCard]),
+      );
+      expect(departed.keys, [DateTime(2026, 7, 22)]);
+      expect(departed[DateTime(2026, 7, 22)]!.map((r) => r.text), ['day']);
+    });
+
+    test('a day departing with no stack, or a first build, departs nothing', () {
+      expect(
+        departedCards(
+          seats([DateTime(2026, 7, 22), DateTime(2026, 7, 21)], [weekCard]),
+          seats([DateTime(2026, 7, 21)], [weekCard]),
+        ),
+        isEmpty,
+      );
+      expect(departedCards(const {}, seats([DateTime(2026, 7, 21)], [weekCard])), isEmpty);
+    });
+  });
 }

@@ -37,6 +37,7 @@ void main() {
     store = EntryStore(storage);
     dir = await Directory.systemTemp.createTemp('otr-cache');
     service = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
       engine: FakeBatchEngine(),
       store: store,
@@ -159,6 +160,7 @@ void main() {
     final failing = _ToggleFailStore(storage);
     File('${dir.path}/done.m4a').writeAsStringSync('audio');
     final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(recordingsDir: dir.path),
       engine: FakeBatchEngine(),
       store: failing,

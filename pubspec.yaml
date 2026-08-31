@@ -2,7 +2,7 @@ name: opentranscribe
 description: "A private, offline voice journal. Nothing leaves your phone."
 publish_to: "none"
 
-version: 0.2.0+1
+version: 0.3.0+1
 
 environment:
   sdk: ^3.12.2
@@ -51,6 +51,7 @@ flutter:
 
   assets:
     - assets/brand/
+    - assets/icons/app/
 
   fonts:
     - family: sficons

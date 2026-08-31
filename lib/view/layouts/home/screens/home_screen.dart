@@ -79,6 +79,14 @@ class _HomeScreenState extends State<HomeScreen> {
   /// at once - the live splitter takes over.
   final Set<DateTime> _departingDays = {};
 
+  /// The reflection stacks those days carried, folding as ghosts beside the
+  /// ghost splitters; dropped with the day.
+  final Map<DateTime, List<Reflection>> _departingCards = {};
+
+  /// Seats as of the last build, so a departing day's stack can be told from
+  /// a re-seat.
+  Map<ReflectionCardKey, CardSeat>? _seenSeats;
+
   /// Rows whose delete has committed and whose exit is playing, id to the
   /// row's section day. While a row dies, the list treats it as already gone
   /// for LAYOUT decisions - the neighbor's last-gap and an emptying day's
@@ -290,6 +298,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 _seenReflections = reflections;
               }
 
+              final sectionDays = [for (final section in state.sections) section.day];
+              final cards = reflectionCardsForSections(
+                sectionDays: sectionDays,
+                reflections: reflections,
+                today: DateTime.now(),
+              );
+              final seats = cardSeats(cards, sectionDays);
+              // Only stacks a departing day carried; any other leaving card is
+              // a change of contents, not a fold.
+              if (!context.reduceMotion && _seenSeats != null) {
+                final departed = departedCards(_seenSeats!, seats);
+                for (final MapEntry(key: day, value: gone) in departed.entries) {
+                  if (_departingDays.contains(day)) _departingCards.putIfAbsent(day, () => gone);
+                }
+              }
+              _departingCards.removeWhere((day, _) => !_departingDays.contains(day));
+              _seenSeats = seats;
+
               final body = state.entries.isEmpty
                   // A scrollable, not a Center: it overscrolls so the pull-to-record
                   // gesture works with nothing recorded yet, the one way in from here.
@@ -304,7 +330,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   : _RecordsList(
                       key: _sections.listKey,
                       state: state,
-                      reflections: reflections,
+                      cards: cards,
+                      departingCards: _departingCards,
                       enteredCards: _enteredCards,
                       enteredEntries: _enteredEntries,
                       enteredDays: _enteredDays,
@@ -517,7 +544,7 @@ const double _listBottomInset = 42;
 /// the reflections pager landed on its period and start, entering with the
 /// app's rise only when it arrived while home was up.
 class _ReflectionCardSlot extends StatelessWidget {
-  const _ReflectionCardSlot({required this.reflection, required this.entrance, super.key});
+  const _ReflectionCardSlot({required this.reflection, required this.entrance});
 
   final Reflection reflection;
   final bool entrance;
@@ -539,18 +566,24 @@ class _ReflectionCardSlot extends StatelessWidget {
 /// A section's reflection cards as ONE block, month over week over day, so the
 /// stack reads outer to inner down to the day's own records. The gap above the
 /// block is the group's break from the day before it and moves with the
-/// timeline's other seams; the spacing INSIDE it is fixed, because a card
-/// joining or leaving the stack (a period toggled off, a reflection deleted)
-/// re-seats its siblings at once - that is a change of contents, not a fold.
+/// timeline's other seams; the spacing INSIDE it is fixed except for a card
+/// unseated by its day's delete, which folds with the exit. Any other card
+/// joining or leaving re-seats its siblings at once, a change of contents,
+/// not a fold.
 class _ReflectionCardGroup extends StatelessWidget {
   const _ReflectionCardGroup({
     required this.reflections,
     required this.entered,
     required this.gapless,
+    this.folding = const {},
     super.key,
   });
 
   final List<Reflection> reflections;
+
+  /// Cards losing their seat with the rows now exiting; they fold on the
+  /// exit's clock.
+  final Set<ReflectionCardKey> folding;
 
   /// Cards that arrived while home was up; only these enter with motion.
   final Set<ReflectionCardKey> entered;
@@ -560,25 +593,38 @@ class _ReflectionCardGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SeamPadding(
-      closing: gapless,
-      padding: EdgeInsets.only(top: gapless ? 0 : AppSpacing.xxl, bottom: AppSpacing.sm),
-      // Stretch: the cards size to the list's width in the timeline, and a
-      // Column would otherwise hand them their intrinsic one.
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (c, reflection) in reflections.indexed) ...[
-            if (c > 0) const SizedBox(height: AppSpacing.sm),
-            // Keyed so a card joining or leaving the stack cannot re-inflate
-            // the slot at its shifted index and replay the entrance.
-            _ReflectionCardSlot(
-              key: ValueKey(cardKeyOf(reflection)),
-              reflection: reflection,
-              entrance: entered.contains(cardKeyOf(reflection)),
-            ),
+    // The block also folds once every card does, so its break closes with
+    // them; the cards keep their own folds so a flip mid-flight never reverses one.
+    final all = reflections.every((r) => folding.contains(cardKeyOf(r)));
+    return _FoldAway(
+      folded: all,
+      child: SeamPadding(
+        closing: gapless,
+        padding: EdgeInsets.only(top: gapless ? 0 : AppSpacing.xxl, bottom: AppSpacing.sm),
+        // Stretch: the cards size to the list's width in the timeline, and a
+        // Column would otherwise hand them their intrinsic one.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (c, reflection) in reflections.indexed)
+              // Keyed so a card joining or leaving the stack cannot re-inflate
+              // the slot at its shifted index and replay the entrance.
+              _FoldAway(
+                key: ValueKey(cardKeyOf(reflection)),
+                folded: folding.contains(cardKeyOf(reflection)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (c > 0) const SizedBox(height: AppSpacing.sm),
+                    _ReflectionCardSlot(
+                      reflection: reflection,
+                      entrance: entered.contains(cardKeyOf(reflection)),
+                    ),
+                  ],
+                ),
+              ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -680,7 +726,8 @@ class _SplitterLabel extends StatelessWidget {
 class _RecordsList extends StatelessWidget {
   const _RecordsList({
     required this.state,
-    required this.reflections,
+    required this.cards,
+    required this.departingCards,
     required this.enteredCards,
     required this.enteredEntries,
     required this.enteredDays,
@@ -699,8 +746,12 @@ class _RecordsList extends StatelessWidget {
 
   final HomeState state;
 
-  /// The reflection history, placed as cards at the top of each finished period.
-  final List<Reflection> reflections;
+  /// The reflection cards by section index, each stack at the top of the first
+  /// section its period covers.
+  final Map<int, List<Reflection>> cards;
+
+  /// Stacks departed days carried, folding as ghosts beside the ghost splitters.
+  final Map<DateTime, List<Reflection>> departingCards;
 
   /// Cards that arrived while home was up; only these enter with motion.
   final Set<ReflectionCardKey> enteredCards;
@@ -753,12 +804,11 @@ class _RecordsList extends StatelessWidget {
     ];
     final dyingIds = dying.keys.toSet();
 
-    // A card sits above the first section of each finished period; a section can
-    // stack a month, a week, and a day card.
-    final cards = reflectionCardsForSections(
+    final unseating = unseatingCards(
+      cards: cards,
       sectionDays: sectionDays,
-      reflections: reflections,
-      today: DateTime.now(),
+      sectionIds: sectionIds,
+      dying: dyingIds,
     );
     final ghosts = departingSplitterSlots(sectionDays: sectionDays, departing: departingDays);
     // Dying counts as gone, so a lead's seams close with the exits above them
@@ -776,13 +826,20 @@ class _RecordsList extends StatelessWidget {
       padding: EdgeInsets.only(top: topPadding, bottom: clearance + AppSpacing.lg + tail),
       children: [
         for (final (s, section) in sections.indexed) ...[
-          for (final (g, day) in ghosts[s].indexed)
+          for (final (g, day) in ghosts[s].indexed) ...[
+            if (departingCards[day] != null)
+              _DepartingCardGroup(
+                key: ValueKey('departing-cards-${day.toIso8601String()}'),
+                reflections: departingCards[day]!,
+                gapless: s == 0 && g == 0,
+              ),
             _DepartingSplitter(
               key: ValueKey('departing-${day.toIso8601String()}'),
               day: day,
-              first: s == 0 && g == 0,
+              gapless: (s == 0 && g == 0) || departingCards[day] != null,
               onEnd: () => onDepartureEnd(day),
             ),
+          ],
           if (cards[s] != null)
             // Keyed on the day, not the index: an insert or delete above must
             // not hand this group's gap to another section's mid-flight.
@@ -791,6 +848,7 @@ class _RecordsList extends StatelessWidget {
               reflections: cards[s]!,
               entered: enteredCards,
               gapless: leads(s),
+              folding: unseating,
             ),
           // Keyed (like the rows) so an insert or delete above cannot
           // re-inflate the slot at its shifted index and replay the entrance.
@@ -836,13 +894,20 @@ class _RecordsList extends StatelessWidget {
               ),
             ),
         ],
-        for (final (g, day) in ghosts[sections.length].indexed)
+        for (final (g, day) in ghosts[sections.length].indexed) ...[
+          if (departingCards[day] != null)
+            _DepartingCardGroup(
+              key: ValueKey('departing-cards-${day.toIso8601String()}'),
+              reflections: departingCards[day]!,
+              gapless: sections.isEmpty && g == 0,
+            ),
           _DepartingSplitter(
             key: ValueKey('departing-${day.toIso8601String()}'),
             day: day,
-            first: sections.isEmpty && g == 0,
+            gapless: (sections.isEmpty && g == 0) || departingCards[day] != null,
             onEnd: () => onDepartureEnd(day),
           ),
+        ],
         const SizedBox(height: _listBottomInset),
       ],
     );
@@ -856,7 +921,7 @@ class _RecordsList extends StatelessWidget {
 /// ([AppMotion.swipeExit]) so the two collapses read as one, and the emit
 /// lands on a seam already closed.
 class _FoldAway extends StatelessWidget {
-  const _FoldAway({required this.folded, required this.child});
+  const _FoldAway({required this.folded, required this.child, super.key});
 
   final bool folded;
   final Widget child;
@@ -883,16 +948,16 @@ class _FoldAway extends StatelessWidget {
 class _DepartingSplitter extends StatelessWidget {
   const _DepartingSplitter({
     required this.day,
-    required this.first,
+    required this.gapless,
     required this.onEnd,
     super.key,
   });
 
   final DateTime day;
 
-  /// Whether the ghost holds the list's very first position, where the live
-  /// splitter it replaces carried no top gap.
-  final bool first;
+  /// Whether the ghost carries no top gap: it leads the list, or its day's
+  /// ghost stack above it supplies the break.
+  final bool gapless;
   final VoidCallback onEnd;
 
   @override
@@ -903,7 +968,27 @@ class _DepartingSplitter extends StatelessWidget {
       curve: AppMotion.swipeExitHeightCurve,
       onEnd: onEnd,
       builder: (context, t, child) => _Fold(t: t, child: child!),
-      child: _SplitterLabel(day: day, gapless: first),
+      child: _SplitterLabel(day: day, gapless: gapless),
+    );
+  }
+}
+
+/// A departed day's reflection stack, folding out beside its ghost splitter
+/// on the same clock; the splitter's [onEnd] drops both from the ledger.
+class _DepartingCardGroup extends StatelessWidget {
+  const _DepartingCardGroup({required this.reflections, required this.gapless, super.key});
+
+  final List<Reflection> reflections;
+  final bool gapless;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: 0),
+      duration: context.theme.motion.swipeExit,
+      curve: AppMotion.swipeExitHeightCurve,
+      builder: (context, t, child) => _Fold(t: t, child: child!),
+      child: _ReflectionCardGroup(reflections: reflections, entered: const {}, gapless: gapless),
     );
   }
 }

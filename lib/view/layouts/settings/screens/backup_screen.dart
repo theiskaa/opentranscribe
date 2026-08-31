@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/state/backup_cubit.dart';
-import 'package:opentranscribe/core/state/support_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -26,7 +25,6 @@ import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
-import 'package:opentranscribe/view/widgets/support_gate_sheet.dart';
 
 /// Backup: the whole journal out through the share sheet (a chosen format, or
 /// the native archive, sealed on request) and a native archive back in. Owns
@@ -36,19 +34,14 @@ class BackupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => BackupCubit(
-            service: Deps.i.transcriptionService,
-            export: Deps.i.exportService,
-            import: Deps.i.importService,
-            settings: Deps.i.backupSettings,
-            descriptors: Deps.i.exporterDescriptors,
-          )..load(),
-        ),
-        BlocProvider(create: (_) => SupportCubit(service: Deps.i.supportService)),
-      ],
+    return BlocProvider(
+      create: (_) => BackupCubit(
+        service: Deps.i.transcriptionService,
+        export: Deps.i.exportService,
+        import: Deps.i.importService,
+        settings: Deps.i.backupSettings,
+        descriptors: Deps.i.exporterDescriptors,
+      )..load(),
       child: const _BackupView(),
     );
   }
@@ -62,9 +55,6 @@ class _BackupView extends StatelessWidget {
     final strings = exportStringsOf(AppLocalizations.of(context)!);
     final result = await cubit.exportJournal(strings);
     if (!context.mounted) return;
-    // The locked answer covers the race where the entitlement lapsed between
-    // the gate check at the tap and the service's own guard.
-    if (result == BackupActionResult.locked) return unawaited(showSupportGateSheet(context));
     if (result == BackupActionResult.failed) unawaited(_failSheet(context, export: true));
   }
 
@@ -227,7 +217,6 @@ class _BackupView extends StatelessWidget {
     final locale = localeTag(context);
     final cubit = context.read<BackupCubit>();
     final state = context.watch<BackupCubit>().state;
-    final supporter = context.watch<SupportCubit>().state.tier.isSupporter;
     final idle = !state.isBusy;
 
     // Import is the one operation with no system UI covering the screen; a
@@ -278,23 +267,16 @@ class _BackupView extends StatelessWidget {
                       ExportFormatRow(
                         descriptor: descriptor,
                         selected: descriptor.exporterId == state.formatId,
-                        locked: !supporter,
-                        onTap: !idle
-                            ? null
-                            : supporter
+                        onTap: idle
                             ? () => unawaited(cubit.setFormat(descriptor.exporterId))
-                            : () => unawaited(showSupportGateSheet(context)),
+                            : null,
                       ),
                     const SettingsDivider(),
                     SettingsBusyRow(
                       icon: AppIcons.squareAndArrowUp,
                       label: l10n.backupExportJournal,
                       busy: state.busy == BackupBusy.exporting,
-                      onTap: !idle
-                          ? null
-                          : supporter
-                          ? () => unawaited(_exportJournal(context))
-                          : () => unawaited(showSupportGateSheet(context)),
+                      onTap: idle ? () => unawaited(_exportJournal(context)) : null,
                     ),
                   ],
                 ),

@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/view/layouts/entry/components/append_ink.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -30,10 +31,25 @@ import 'package:transcriber/transcriber.dart';
 /// recording's length and envelope, resolving into the real text when the run
 /// lands. Reduce motion (or a failed capture) falls back to the dots loader.
 class TranscriptView extends StatefulWidget {
-  const TranscriptView({required this.entry, required this.busy, super.key});
+  const TranscriptView({
+    required this.entry,
+    required this.busy,
+    this.appending = false,
+    this.pendingText = '',
+    super.key,
+  });
 
   final Entry entry;
   final bool busy;
+
+  /// A take is being added to this entry: the words stay readable and ink
+  /// shaped like [pendingText] shimmers under them until the landing, when
+  /// it resolves into the words that arrived.
+  final bool appending;
+
+  /// What the take's live pass heard, so the ink under the words is as many
+  /// lines as the words about to land.
+  final String pendingText;
 
   @override
   State<TranscriptView> createState() => _TranscriptViewState();
@@ -65,10 +81,32 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     _reveal = AnimationController(vsync: this, value: 1);
     _hide = ReverseAnimation(_reveal);
     _clock = AnimationController(vsync: this);
+    _append = AnimationController(vsync: this, value: 1);
+    _appendEase = CurvedAnimation(parent: _append, curve: Curves.easeInOut);
   }
 
   late _Phase _phase = widget.busy ? _Phase.loading : _Phase.content;
   ui.Image? _inkImage;
+
+  /// The ink of a continuation: 0 shows the ink over the words about to land,
+  /// 1 the landed words.
+  late final AnimationController _append;
+  late final Animation<double> _appendEase;
+  Float32List? _appendPoints;
+  Size? _appendSize;
+  double _appendTop = 0;
+  _AppendKey? _appendFor;
+  _AppendKey? _appendWanted;
+  bool _appendPainting = false;
+  int _appendJob = 0;
+
+  /// A landing whose ink is being reshaped before it dissolves.
+  bool _landing = false;
+
+  /// Where the landed words begin, while they fade in: the old text's length
+  /// for a plain paragraph, the old segment count for a timed one.
+  int? _tailStart;
+  int? _tailIndex;
 
   /// Synthetic ink for a first transcribe, where there is no text to capture.
   Float32List? _inkPoints;
@@ -87,6 +125,20 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   @override
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
+
+    if (!old.appending && widget.appending) {
+      // A take starting inside the last landing's fade: setting the value
+      // cancels that ticker without its whenComplete, so clear here.
+      _tailStart = null;
+      _tailIndex = null;
+      _releaseAppendInk();
+      if (!context.reduceMotion) {
+        _append.value = 0;
+        _runClock();
+      }
+    } else if (old.appending && !widget.appending) {
+      _landAppend(old.entry);
+    }
 
     if (!old.busy && widget.busy) {
       // A run started. Dissolve the words if there are any; a first transcribe
@@ -118,6 +170,141 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     }
   }
 
+  /// The words a [entry] lays out as: its segments joined the way the timed
+  /// paragraph draws them, else what it reads as. One source, so the ink and
+  /// the paragraph under it never disagree on where a line breaks.
+  static String _paragraphText(Entry entry) {
+    final segments = entry.transcript?.segments ?? const <TranscriptSegment>[];
+    if (segments.isEmpty || !entry.readsAsTranscript) return entry.readableText?.trim() ?? '';
+    return segments.map((s) => s.text).join(' ');
+  }
+
+  /// The take landed: its words fade in where the ink was, and the ink shrinks
+  /// away. Nothing new (a silent take, a fallback) just drops the ink.
+  void _landAppend(Entry old) {
+    final before = _paragraphText(old);
+    final after = _paragraphText(widget.entry);
+    // Only words added after the old ones fade in as a tail; a landing that
+    // replaced the text (a whole-file pass) just swaps.
+    final grew = after.length > before.length && after.startsWith(before);
+    final layout = _appendFor;
+    if (!grew || _append.value != 0 || _appendPoints == null || layout == null) {
+      _swapAppend();
+      return;
+    }
+    _tailStart = before.length;
+    _tailIndex = old.transcript?.segments.length ?? 0;
+    _landing = true;
+    // The words that landed may differ from the live ones the ink was shaped
+    // by: reshape first, then dissolve, so the ink never blinks mid-fade.
+    final landed = after.substring(before.length).trim();
+    if (landed == layout.pending.trim()) {
+      _dissolveAppend();
+      return;
+    }
+    final key = (base: before, pending: landed, width: layout.width, scaler: layout.scaler);
+    _appendWanted = null;
+    unawaited(_paintAppendInk(key).then((ready) => ready ? _dissolveAppend() : _swapAppend()));
+  }
+
+  /// No dissolve to run: the words show at once and the ink goes.
+  void _swapAppend() {
+    if (!mounted) return;
+    setState(() {
+      _append.value = 1;
+      _tailStart = null;
+      _tailIndex = null;
+      _landing = false;
+      _releaseAppendInk();
+    });
+  }
+
+  void _dissolveAppend() {
+    if (!mounted) return;
+    _landing = false;
+    _append.duration = context.motionNow.inkResolve;
+    _append.forward(from: 0).whenComplete(() {
+      if (!mounted) return;
+      setState(() {
+        _tailStart = null;
+        _tailIndex = null;
+        _releaseAppendInk();
+      });
+    });
+  }
+
+  void _runClock() {
+    if (_clock.isAnimating) return;
+    _clock
+      ..duration = context.motionNow.inkLoop
+      ..repeat();
+  }
+
+  void _releaseAppendInk() {
+    _appendJob++;
+    _appendPoints = null;
+    _appendSize = null;
+    _appendFor = null;
+    _appendWanted = null;
+    _appendPainting = false;
+    if (_phase != _Phase.shimmer) _clock.stop();
+  }
+
+  /// Ink that is [pendingText] laid out after the words on screen; one paint
+  /// in flight at a time, the newest ask painted when it lands.
+  void _ensureAppendInk(double width, TextScaler scaler) {
+    final key = (
+      base: _paragraphText(widget.entry),
+      pending: widget.pendingText,
+      width: width,
+      scaler: scaler,
+    );
+    if (_appendFor == key || _appendWanted == key) return;
+    if (_appendPainting) {
+      _appendWanted = key;
+      return;
+    }
+    unawaited(_paintAppendInk(key));
+  }
+
+  /// Paints the words and samples their ink; a newer request or a release in
+  /// flight drops the result. Answers whether the ink landed.
+  Future<bool> _paintAppendInk(_AppendKey key) async {
+    final job = ++_appendJob;
+    _appendPainting = true;
+    _appendFor = key;
+    final bold = MediaQuery.boldTextOf(context);
+    ({Float32List points, Size size, double top})? ink;
+    try {
+      ink = await appendedInkPoints(
+        base: key.base,
+        addition: key.pending,
+        width: key.width,
+        style: bold ? AppType.body.copyWith(fontWeight: FontWeight.bold) : AppType.body,
+        textScaler: key.scaler,
+        pixelRatio: MediaQuery.devicePixelRatioOf(context),
+        color: context.themeNow.player.segmentColor,
+        locale: Localizations.maybeLocaleOf(context),
+      );
+    } catch (_) {
+      ink = null;
+    }
+    if (!mounted || job != _appendJob) return false;
+    _appendPainting = false;
+    final wanted = _appendWanted;
+    if (wanted != null && wanted != key) {
+      _appendWanted = null;
+      unawaited(_paintAppendInk(wanted));
+    }
+    if (ink == null) return false;
+    setState(() {
+      _appendPoints = ink!.points;
+      _appendSize = ink.size;
+      _appendTop = ink.top;
+    });
+    return true;
+  }
+
   /// Text -> ink, then hold. The reveal is gated on this finishing, so it never
   /// races a fast re-transcribe.
   void _startHide() {
@@ -125,9 +312,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     _inkSettled = false;
     _newReady = false;
     _phase = _Phase.shimmer;
-    _clock
-      ..duration = context.motionNow.inkLoop
-      ..repeat();
+    _runClock();
     _reveal.duration = context.motionNow.inkDissolve;
     _reveal.reverse().whenComplete(() {
       Future<void>.delayed(_minHold, () {
@@ -214,7 +399,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   }
 
   void _stopShimmer() {
-    _clock.stop();
+    if (_appendPoints == null) _clock.stop();
     _releaseInk();
   }
 
@@ -228,6 +413,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   @override
   void dispose() {
     _reveal.dispose();
+    _append.dispose();
     _clock.dispose();
     _releaseInk();
     super.dispose();
@@ -280,20 +466,67 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     }
 
     final loading = _phase == _Phase.loading;
-    return AnimatedSwitcher(
+    final body = AnimatedSwitcher(
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
       layoutBuilder: meltStack,
       child: loading
-          ? Align(
-              key: const ValueKey('loading'),
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                // The ink dots, so the loader reads as the page's own, not a chip.
-                child: AppSpinner(size: 30, color: theme.player.segmentColor),
-              ),
-            )
+          ? const _QuietWait(key: ValueKey('loading'))
           : KeyedSubtree(key: const ValueKey('content'), child: _content(context)),
+    );
+    final trailing = widget.appending || _append.isAnimating || _landing;
+    if (!trailing) return body;
+    if (context.reduceMotion) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [body, const _QuietWait()],
+      );
+    }
+    // The ink sits over the paragraph where the words will land: the
+    // paragraph below reserves their room with the pending text invisible.
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (widget.appending && constraints.hasBoundedWidth && constraints.maxWidth > 0) {
+          _ensureAppendInk(constraints.maxWidth, scaler);
+        }
+        final points = _appendPoints;
+        final size = _appendSize;
+        final inked = points != null && size != null && points.isNotEmpty;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                // Words still arriving are not for selecting, and a selection
+                // begun over a paragraph that rebuilds each frame trips the
+                // scroll view's selection delegate.
+                SelectionContainer.disabled(child: body),
+                if (inked)
+                  Positioned(
+                    top: _appendTop,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: FadeTransition(
+                        opacity: ReverseAnimation(_appendEase),
+                        child: RepaintBoundary(
+                          child: InvisibleInk.points(
+                            points: points,
+                            size: size,
+                            color: theme.player.segmentColor,
+                            clock: _clock,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Nothing heard yet, or the words not painted yet: a quiet wait.
+            if (widget.appending && !inked) const _QuietWait(),
+          ],
+        );
+      },
     );
   }
 
@@ -301,7 +534,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final theme = context.theme;
     final transcript = widget.entry.transcript;
     final text = widget.entry.readableText?.trim() ?? '';
-    if (text.isEmpty) {
+    final inking =
+        widget.appending && widget.pendingText.trim().isNotEmpty && !context.reduceMotion;
+    if (text.isEmpty && !inking) {
       // Two different silences: never transcribed (the action lives in the
       // screen's bottom CTA) versus transcribed and empty (no speech, no action).
       return _TranscriptEmpty(untranscribed: transcript == null);
@@ -312,10 +547,53 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final segments = transcript?.segments ?? const <TranscriptSegment>[];
     // An entry not reading as its transcript renders plain: the timings name
     // the engine's words, and the mark would light text the audio never said.
-    if (segments.isEmpty || !widget.entry.readsAsTranscript) {
+    final tailStart = _tailStart;
+    final pending = widget.pendingText.trim();
+    if (inking) {
+      // The words about to land hold their room, unseen, so the ink over
+      // them sits exactly where they will.
+      final style = AppType.body.copyWith(color: theme.text);
+      final shown = _paragraphText(widget.entry);
       return RepaintBoundary(
         key: _textKey,
-        child: Text(text, style: AppType.body.copyWith(color: theme.text)),
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: shown, style: style),
+              TextSpan(
+                text: shown.isEmpty ? pending : ' $pending',
+                style: style.copyWith(color: theme.text.withValues(alpha: 0)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (segments.isEmpty || !widget.entry.readsAsTranscript) {
+      if (tailStart == null || tailStart >= text.length) {
+        return RepaintBoundary(
+          key: _textKey,
+          child: Text(text, style: AppType.body.copyWith(color: theme.text)),
+        );
+      }
+      // The landed words fade in after the old ones, in one paragraph.
+      final style = AppType.body.copyWith(color: theme.text);
+      return RepaintBoundary(
+        key: _textKey,
+        child: AnimatedBuilder(
+          animation: _appendEase,
+          builder: (context, _) => Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: text.substring(0, tailStart), style: style),
+                TextSpan(
+                  text: text.substring(tailStart),
+                  style: style.copyWith(color: theme.text.withValues(alpha: _appendEase.value)),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -330,29 +608,54 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             ? null
             : activeSegmentIndex(segments, player.position),
         builder: (context, active) {
-          return Text.rich(
-            TextSpan(
-              children: [
-                for (final (i, segment) in segments.indexed)
-                  TextSpan(
-                    text: i == segments.length - 1 ? segment.text : '${segment.text} ',
-                    style: AppType.body.copyWith(
-                      color: theme.player.segmentColor,
-                      // The rest of the transcript is NOT dimmed. Reading is the
-                      // point of this screen, and dimming everything you are not
-                      // hearing makes the page worse at it; the lit segment
-                      // carries a mark instead, so following the audio costs the
-                      // rest of the text nothing.
-                      // backgroundColor, not a background Paint: a Paint counts
-                      // as a layout change and would rebuild the selectables each
-                      // tick, dropping any active selection mid-playback.
-                      backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
+          final tailIndex = _tailIndex;
+          return AnimatedBuilder(
+            animation: _appendEase,
+            builder: (context, _) => Text.rich(
+              TextSpan(
+                children: [
+                  for (final (i, segment) in segments.indexed)
+                    TextSpan(
+                      text: i == segments.length - 1 ? segment.text : '${segment.text} ',
+                      style: AppType.body.copyWith(
+                        // The landed words fade in where the ink stood.
+                        color: tailIndex != null && i >= tailIndex
+                            ? theme.player.segmentColor.withValues(alpha: _appendEase.value)
+                            : theme.player.segmentColor,
+                        // The rest of the transcript is NOT dimmed. Reading is the
+                        // point of this screen, and dimming everything you are not
+                        // hearing makes the page worse at it; the lit segment
+                        // carries a mark instead, so following the audio costs the
+                        // rest of the text nothing.
+                        // backgroundColor, not a background Paint: a Paint counts
+                        // as a layout change and would rebuild the selectables each
+                        // tick, dropping any active selection mid-playback.
+                        backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The ink dots at the page's left edge, so a wait reads as the page's own,
+/// not a chip.
+class _QuietWait extends StatelessWidget {
+  const _QuietWait({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: AppSpinner(size: 30, color: theme.player.segmentColor),
       ),
     );
   }
@@ -388,3 +691,5 @@ class _TranscriptEmpty extends StatelessWidget {
     );
   }
 }
+
+typedef _AppendKey = ({String base, String pending, double width, TextScaler scaler});

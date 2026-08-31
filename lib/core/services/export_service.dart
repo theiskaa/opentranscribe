@@ -18,12 +18,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 /// to journal state; every output is built under a fresh temp staging
 /// directory that is deleted after the share resolves, completed or not.
 /// Returns whether the user completed an activity; cancel is false, never an
-/// exception.
-///
-/// The formatted paths are supporter-only and refuse with
-/// [ExportLockedException] before anything stages. The archive save takes no
-/// gate at all: backup stays free, so the free path visibly has nothing to
-/// mis-wire.
+/// exception. Every path is free: no export asks for the supporter tier.
 class ExportService {
   ExportService({
     required this._transcription,
@@ -32,7 +27,6 @@ class ExportService {
     required this._share,
     required this._appVersion,
     required this._staging,
-    required this._isSupporter,
     DateTime Function()? clock,
   }) : _exporters = Map.unmodifiable(exporters),
        _clock = clock ?? DateTime.now;
@@ -43,7 +37,6 @@ class ExportService {
   final ShareExport _share;
   final Future<String> Function() _appVersion;
   final StagingRegistry _staging;
-  final bool Function() _isSupporter;
   final DateTime Function() _clock;
 
   /// Shares one entry in [exporterId]'s format. A single output file with no
@@ -56,7 +49,6 @@ class ExportService {
     required bool includeAudio,
     required ExportStrings strings,
   }) async {
-    if (!_isSupporter()) throw const ExportLockedException();
     final entry = _transcription.entries().firstWhere(
       (e) => e.id == entryId,
       orElse: () => throw ArgumentError.value(entryId, 'entryId', 'unknown entry'),
@@ -98,7 +90,6 @@ class ExportService {
   /// Shares the whole journal in [exporterId]'s format as one zip: every
   /// entry, kept audio included, and the stored reflections.
   Future<bool> shareJournal({required String exporterId, required ExportStrings strings}) async {
-    if (!_isSupporter()) throw const ExportLockedException();
     final exporter = _exporter(exporterId);
     final entries = _transcription.entries();
     final audioNames = await _uniqueAudioNames(entries);
@@ -280,11 +271,4 @@ class ExportService {
     final day = now.day.toString().padLeft(2, '0');
     return '${now.year}-$month-$day';
   }
-}
-
-/// A formatted export asked for without the supporter entitlement. Thrown
-/// before anything stages, so nothing needs cleanup and nothing was shared;
-/// the surface answers it with the support gate, not a failure.
-class ExportLockedException implements Exception {
-  const ExportLockedException();
 }

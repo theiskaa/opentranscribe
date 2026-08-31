@@ -15,15 +15,11 @@ class ExportFormatRow extends StatelessWidget {
     required this.descriptor,
     required this.selected,
     required this.onTap,
-    this.locked = false,
     super.key,
   });
 
   final ExporterDescriptor descriptor;
   final bool selected;
-
-  /// Supporter-gated: the row wears the quiet lock instead of a selection.
-  final bool locked;
   final VoidCallback? onTap;
 
   @override
@@ -34,7 +30,6 @@ class ExportFormatRow extends StatelessWidget {
       note: copy.note,
       leading: ExporterLogo(descriptor),
       selected: selected,
-      locked: locked,
       onTap: onTap,
     );
   }

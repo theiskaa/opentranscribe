@@ -16,7 +16,6 @@ import 'package:opentranscribe/view/layouts/settings/screens/backup_screen.dart'
 import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
-import 'package:opentranscribe/view/layouts/settings/screens/support_screen.dart';
 
 /// Owns the app's [GoRouter] instance.
 ///
@@ -118,16 +117,14 @@ class AppRouter {
             SlidePage<void>(key: state.pageKey, child: const NotificationsScreen()),
       ),
       GoRoute(
-        path: Routes.settingsSupport,
-        name: Routes.settingsSupportName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const SupportScreen()),
-      ),
-      GoRoute(
         path: Routes.record,
         name: Routes.recordName,
-        pageBuilder: (context, state) =>
-            SlideUpPage<void>(key: state.pageKey, child: const RecorderScreen()),
+        pageBuilder: (context, state) => SlideUpPage<void>(
+          key: state.pageKey,
+          child: RecorderScreen(
+            continueEntryId: state.uri.queryParameters[Routes.recordEntryQuery],
+          ),
+        ),
       ),
     ],
   );
@@ -149,7 +146,7 @@ class AppRouter {
 bool canOpenRecorder({required List<String> stack, required bool onboardingDone}) {
   if (!onboardingDone) return false;
   if (stack.isEmpty) return false;
-  return !stack.contains(Routes.record);
+  return !stack.any((location) => Uri.parse(location).path == Routes.record);
 }
 
 /// First-run users land in onboarding; finished users can never re-enter it.

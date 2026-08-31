@@ -39,5 +39,11 @@ import transcriber
     if let registrar = registry.registrar(forPlugin: "SupportStorePlugin") {
       SupportStorePlugin.register(with: registrar)
     }
+    if let registrar = registry.registrar(forPlugin: "ThermalMonitorPlugin") {
+      ThermalMonitorPlugin.register(with: registrar)
+    }
+    if let registrar = registry.registrar(forPlugin: "AppIconPlugin") {
+      AppIconPlugin.register(with: registrar)
+    }
   }
 }
