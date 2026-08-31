@@ -2,15 +2,17 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
-## 0.3.0 - Unreleased
+## 0.3.0 - 2026-08-31
 
-The whole journal re-heard by a better engine.
+Say more into an entry you already saved, re-hear the whole journal with a better engine, and dress the app in a look of your own.
 
+- Continue an entry: record more onto a saved entry from its own screen. The audio merges into the kept recording and the transcript grows to match, edits kept, and the new words shimmer into place where they land. A take in another language gets the language marker. An entry with no recording can be continued too; the take becomes its recording. A take that cannot be merged is saved as its own entry, never lost. (#6)
 - Re-transcribe all: a bulk runner over the whole journal, seated under the engine picker on the transcription screen, that lets the engine you switched to re-hear the entire history. Live animated progress with cancel, and resume is free: a run skips whatever the current engine already transcribed, so stopping loses nothing. It waits for a live recording and pauses while the device runs hot. (#8)
-- Continue an entry: record more onto a saved entry from its own screen. The audio merges into the kept recording and the transcript grows to match, edits kept; a take in another language gets the language marker. An entry with no recording can be continued too; the take becomes its recording. A take that cannot be merged is saved as its own entry. (#6)
-- Formatted exports and re-transcribe all are free for everyone. The club no longer gates any feature; what it unlocks from here on is looks: theme families and app icons.
+- Every feature is free, including the formatted exports the club used to gate. What the OpenTranscribe Club unlocks from here on is looks, and nothing else.
 - Club themes: every family beyond Default is a club look. Gruvbox and Sepia stay, and five join them: Midnight, Dracula, Nord, Catppuccin, and Tokyo Night. Solarized is retired. A pick is kept whether or not the club covers it, so it snaps on the moment a membership lands.
-- Club app icons: three alternate home screen icons, Signal, Lines, and Dots, picked on the appearance screen above the themes. A club look, like the theme families.
+- Club app icons: three alternate home screen icons, Signal, Lines, and Dots, picked on the appearance screen above the themes. A club look, like the families.
+- The appearance screen holds both pickers now: the app icons over one grid of every theme, with light, dark, and system moved into the bar's own menu. Tapping a club look you have not joined for opens the club, and joining wears the look you tapped.
+- The club opens as a sheet over whatever you were doing, rather than taking you to a screen of its own.
 
 ## 0.2.0 - 2026-08-25
 
