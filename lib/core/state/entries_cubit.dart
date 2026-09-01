@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/utils/identical_elements.dart';
 import 'package:transcriber/transcriber.dart';
 
 /// What went wrong with an entry action, as a kind the UI can word for the
@@ -58,7 +59,8 @@ final class EntriesFailure {
 enum EntriesAction { transcribe, delete, continueRecording }
 
 /// The journal list: loads entries, deletes them, and re-transcribes kept audio.
-class EntriesState {
+@immutable
+final class EntriesState {
   const EntriesState({
     this.entries = const [],
     this.busyId,
@@ -103,6 +105,22 @@ class EntriesState {
     error: clearError ? null : (error ?? this.error),
     errorTick: errorTick ?? this.errorTick,
   );
+
+  // Entries compare by identity: the store keeps unchanged entries' object
+  // identity, so a refresh that changed nothing costs no deep pass.
+  @override
+  bool operator ==(Object other) =>
+      other is EntriesState &&
+      other.busyId == busyId &&
+      other.busyAction == busyAction &&
+      other.error == error &&
+      other.errorTick == errorTick &&
+      identicalElements(other.entries, entries);
+
+  // Length only: hashing entries would deep-hash every transcript, and == is
+  // identity anyway.
+  @override
+  int get hashCode => Object.hash(busyId, busyAction, error, errorTick, entries.length);
 }
 
 class EntriesCubit extends Cubit<EntriesState> {

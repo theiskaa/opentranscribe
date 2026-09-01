@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/utils/identical_elements.dart';
 
 /// One calendar day's entries, newest first.
 typedef DaySection = ({DateTime day, List<Entry> entries});
@@ -64,6 +65,16 @@ final class HomeState {
   final List<DaySection> sections;
   final Set<DateTime> entryDays;
   final DateTime? firstEntryDay;
+
+  // Entries compare by identity (the derived fields follow from them): the
+  // store keeps unchanged entries' identity, so a no-op refresh compares equal.
+  @override
+  bool operator ==(Object other) => other is HomeState && identicalElements(other.entries, entries);
+
+  // Length only: hashing entries would deep-hash every transcript, and == is
+  // identity anyway.
+  @override
+  int get hashCode => entries.length.hashCode;
 }
 
 /// Feeds the home screen: the entry list and the day filter. Auto-finalized
@@ -91,7 +102,11 @@ class HomeCubit extends Cubit<HomeState> {
     // Also reached from detached continuations (a recorder sheet's exit); the
     // guard keeps those safe even though this cubit is app-scoped today.
     if (isClosed) return;
-    emit(HomeState(entries: _visible()));
+    final visible = _visible();
+    // Constructing a HomeState re-derives the day grouping; an unchanged
+    // journal should not pay for it.
+    if (identicalElements(visible, state.entries)) return;
+    emit(HomeState(entries: visible));
   }
 
   List<Entry> _visible() =>
@@ -103,7 +118,7 @@ class HomeCubit extends Cubit<HomeState> {
   /// second fire for the same entry (a fast double-tap) is ignored.
   Future<void> delete(Entry entry) async {
     if (!_pendingDeletes.add(entry.id)) return;
-    emit(HomeState(entries: _visible()));
+    load();
     try {
       await _service.deleteEntry(entry);
     } catch (e) {
@@ -113,7 +128,7 @@ class HomeCubit extends Cubit<HomeState> {
       if (kDebugMode) debugPrint('home: delete failed: $e');
     } finally {
       _pendingDeletes.remove(entry.id);
-      if (!isClosed) emit(HomeState(entries: _visible()));
+      load();
     }
   }
 

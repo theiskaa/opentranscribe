@@ -43,6 +43,39 @@ void main() {
     await cubit.close();
   });
 
+  test('a refresh that changed nothing emits no state', () async {
+    final cubit = await seeded();
+    await pumpEventQueue();
+    cubit.load();
+    final before = cubit.state;
+    var emits = 0;
+    final sub = cubit.stream.listen((_) => emits++);
+
+    cubit.load();
+    await pumpEventQueue();
+
+    expect(emits, 0);
+    expect(identical(cubit.state, before), isTrue);
+    await sub.cancel();
+    await cubit.close();
+  });
+
+  test('a refresh after a change still emits', () async {
+    final cubit = await seeded();
+    var emits = 0;
+    final sub = cubit.stream.listen((_) => emits++);
+
+    await service.startRecording();
+    await service.stopRecording();
+    cubit.load();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.entries, hasLength(2));
+    expect(emits, greaterThan(0));
+    await sub.cancel();
+    await cubit.close();
+  });
+
   test('rename updates the list and clears busy', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;

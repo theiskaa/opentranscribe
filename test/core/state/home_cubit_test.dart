@@ -124,6 +124,24 @@ void main() {
       await cubit.close();
     });
 
+    test('a refresh that changed nothing emits no state', () async {
+      final cubit = HomeCubit(service: service);
+      await service.startRecording();
+      await service.stopRecording();
+      cubit.load();
+      final before = cubit.state;
+      var emits = 0;
+      final sub = cubit.stream.listen((_) => emits++);
+
+      cubit.load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emits, 0);
+      expect(identical(cubit.state, before), isTrue);
+      await sub.cancel();
+      await cubit.close();
+    });
+
     test('an auto-finalized entry refreshes the list', () async {
       final rec = FakeAudioRecorder();
       SharedPreferences.setMockInitialValues({});
