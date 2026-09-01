@@ -118,7 +118,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
               ExportFormatRow(
                 descriptor: descriptor,
                 selected: descriptor.exporterId == _formatId,
-                onTap: _busy ? null : () => setState(() => _formatId = descriptor.exporterId),
+                onTap: () => setState(() => _formatId = descriptor.exporterId),
               ),
           ],
         ),
@@ -129,9 +129,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
               icon: AppIcons.micFill,
               label: l10n.exportIncludeAudio,
               value: _includeAudio,
-              onChanged: widget.entry.hasAudio && !_busy
-                  ? (v) => setState(() => _includeAudio = v)
-                  : null,
+              onChanged: widget.entry.hasAudio ? (v) => setState(() => _includeAudio = v) : null,
             ),
           ],
         ),

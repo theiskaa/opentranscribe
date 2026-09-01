@@ -104,6 +104,7 @@ class _BackupViewState extends State<_BackupView> {
 
   Future<void> _saveArchive(BuildContext context) async {
     final cubit = context.read<BackupCubit>();
+    if (cubit.state.isBusy) return;
     final l10n = AppLocalizations.of(context)!;
     String? passphrase;
     if (cubit.state.seal) {
@@ -131,6 +132,7 @@ class _BackupViewState extends State<_BackupView> {
   /// Each decision is a sheet; the cubit holds the busy gate and the outcomes.
   Future<void> _import(BuildContext context) async {
     final cubit = context.read<BackupCubit>();
+    if (cubit.state.isBusy) return;
     final path = await cubit.pickArchive();
     if (path == null || !context.mounted) return;
     try {
@@ -280,8 +282,9 @@ class _BackupViewState extends State<_BackupView> {
     final locale = localeTag(context);
     final cubit = context.read<BackupCubit>();
     final state = context.watch<BackupCubit>().state;
-    final idle = !state.isBusy;
 
+    // Busy never greys this screen: the running row wears the spinner and
+    // every handler refuses re-entry itself, so nothing flashes half-faded.
     // An empty journal has nothing to save or export; restore stays open,
     // because filling an empty journal is exactly what it is for. Unknown
     // reads as non-empty so the rows never flash disabled while measuring.
@@ -309,14 +312,14 @@ class _BackupViewState extends State<_BackupView> {
                       icon: AppIcons.lock,
                       label: l10n.backupSeal,
                       value: state.seal,
-                      onChanged: idle ? (seal) => unawaited(cubit.setSeal(seal)) : null,
+                      onChanged: (seal) => unawaited(cubit.setSeal(seal)),
                     ),
                     SettingsBusyRow(
                       icon: AppIcons.squareAndArrowUp,
                       label: l10n.backupSave,
                       detail: _saveDetail(l10n, locale, state),
                       busy: state.busy == BackupBusy.archiving,
-                      onTap: idle && hasEntries ? () => unawaited(_saveArchive(context)) : null,
+                      onTap: hasEntries ? () => unawaited(_saveArchive(context)) : null,
                     ),
                     if (state.busy == BackupBusy.archiving && state.progress != null)
                       SettingsBusyRow(
@@ -336,9 +339,7 @@ class _BackupViewState extends State<_BackupView> {
                       icon: AppIcons.micFill,
                       label: l10n.exportIncludeAudio,
                       value: (_includeAudio ?? hasRecordings) && hasRecordings,
-                      onChanged: idle && hasRecordings
-                          ? (v) => setState(() => _includeAudio = v)
-                          : null,
+                      onChanged: hasRecordings ? (v) => setState(() => _includeAudio = v) : null,
                     ),
                     for (final descriptor in cubit.descriptors)
                       ExportFormatRow(
@@ -348,7 +349,7 @@ class _BackupViewState extends State<_BackupView> {
                         busy:
                             state.busy == BackupBusy.exporting &&
                             _exportingId == descriptor.exporterId,
-                        onTap: idle && hasEntries
+                        onTap: hasEntries
                             ? () => unawaited(_exportJournal(context, descriptor))
                             : null,
                       ),
@@ -374,7 +375,7 @@ class _BackupViewState extends State<_BackupView> {
               bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
               child: _RestoreFab(
                 busy: state.busy == BackupBusy.importing,
-                onTap: idle ? () => unawaited(_import(context)) : null,
+                onTap: () => unawaited(_import(context)),
               ),
             ),
           ],
