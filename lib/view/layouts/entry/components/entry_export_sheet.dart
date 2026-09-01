@@ -104,14 +104,6 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
     }
   }
 
-  String _failureLine(AppLocalizations l10n) => switch (_failure!) {
-    BackupActionResult.failedTooLarge => l10n.exportTooLargeBody,
-    BackupActionResult.failedNoSpace => l10n.exportNoSpaceBody,
-    BackupActionResult.shared ||
-    BackupActionResult.cancelled ||
-    BackupActionResult.failed => l10n.exportFailedBody,
-  };
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -145,7 +137,10 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
         ),
         if (_failure != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(_failureLine(l10n), style: AppType.footnote.copyWith(color: theme.danger)),
+          Text(
+            shareFailureLine(l10n, _failure!),
+            style: AppType.footnote.copyWith(color: theme.danger),
+          ),
         ],
       ],
       action: AppButton(label: l10n.exportEntry, isLoading: _busy, onPressed: _export),

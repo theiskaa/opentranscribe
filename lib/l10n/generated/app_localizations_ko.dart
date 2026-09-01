@@ -831,6 +831,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String backupInfoMeasured(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담기며 약 $size입니다. 암호화하면 암호구가 유일한 열쇠입니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupExportSection => '내보내기';
 
   @override
@@ -838,13 +848,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
+      '모든 항목을 내보낼 때 선택한 형식으로 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
 
   @override
   String get backupSeal => '암호구로 암호화';
 
   @override
-  String get backupSave => '백업 저장';
+  String get backupSave => '백업 내보내기';
 
   @override
   String backupLastBackup(String date) {
@@ -868,6 +878,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passphraseMismatch => '암호구가 일치하지 않습니다';
+
+  @override
+  String get passphraseShow => '표시';
+
+  @override
+  String get passphraseHide => '숨기기';
 
   @override
   String get importUnlockTitle => '암호화된 백업';
@@ -923,6 +939,24 @@ class AppLocalizationsKo extends AppLocalizations {
       other: '$count개는 이미 저널에 있었습니다.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개를 복원했습니다.');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '항목 $count개');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '녹음 $audio개',
+      zero: '녹음 없음',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

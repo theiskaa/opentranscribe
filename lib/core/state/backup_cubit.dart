@@ -216,11 +216,28 @@ class BackupCubit extends Cubit<BackupState> {
     required ExportStrings strings,
     required String exporterId,
     required bool includeAudio,
-  }) => _run(
-    BackupBusy.exporting,
-    () =>
-        _export.shareJournal(exporterId: exporterId, includeAudio: includeAudio, strings: strings),
-  );
+  }) => _run(BackupBusy.exporting, () async {
+    final shared = await _export.shareJournal(
+      exporterId: exporterId,
+      includeAudio: includeAudio,
+      strings: strings,
+    );
+    // Reached only when the attempt RAN (shared or dismissed), past every
+    // never-presented escape: a refused attempt leaves no trace.
+    await _rememberFormat(exporterId);
+    return shared;
+  });
+
+  /// Best-effort and safe after close: the format memory is a convenience
+  /// no export outcome may trip over.
+  Future<void> _rememberFormat(String id) async {
+    try {
+      if (!isClosed) emit(state.copyWith(formatId: id));
+      await _settings.setFormatId(id);
+    } catch (e) {
+      if (kDebugMode) debugPrint('BackupCubit.rememberFormat failed: $e');
+    }
+  }
 
   Future<BackupActionResult> exportArchive({String? passphrase}) =>
       _run(BackupBusy.archiving, () async {

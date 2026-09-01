@@ -1446,7 +1446,7 @@ abstract class AppLocalizations {
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
 
-  /// Menu row and button label for exporting one entry
+  /// Export action button, shared by the entry and journal export sheets
   ///
   /// In en, this message translates to:
   /// **'Export'**
@@ -1644,6 +1644,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
   String backupInfoCount(int count);
 
+  /// Backup intro once measured: entry count and approximate size, then the encryption line
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.'**
+  String backupInfoMeasured(int count, String size);
+
   /// Section label over the format picker and export row
   ///
   /// In en, this message translates to:
@@ -1659,7 +1665,7 @@ abstract class AppLocalizations {
   /// Help paragraph under the export card
   ///
   /// In en, this message translates to:
-  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
+  /// **'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
   String get backupExportInfo;
 
   /// Toggle for sealing archives with a passphrase
@@ -1668,10 +1674,10 @@ abstract class AppLocalizations {
   /// **'Encrypt with passphrase'**
   String get backupSeal;
 
-  /// The Backup section row that saves a backup file
+  /// Backup card row exporting the restorable archive, and the seal sheet action
   ///
   /// In en, this message translates to:
-  /// **'Save backup'**
+  /// **'Export backup'**
   String get backupSave;
 
   /// Detail under Save backup showing when the last backup was handed off
@@ -1715,6 +1721,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passphrases do not match'**
   String get passphraseMismatch;
+
+  /// Passphrase field toggle revealing the typed secret
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get passphraseShow;
+
+  /// Passphrase field toggle hiding the typed secret again
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get passphraseHide;
 
   /// Unlock sheet title for a sealed archive
   ///
@@ -1781,6 +1799,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
   String importSummarySkipped(int count);
+
+  /// Summary line for recordings the restore put back, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording restored.} other {{count} recordings restored.}}'**
+  String importSummaryAudio(int count);
+
+  /// Restore confirm fact line: what a plain archive's manifest says it holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}'**
+  String importConfirmCounts(int count, int audio);
 
   /// Import failure sheet title
   ///

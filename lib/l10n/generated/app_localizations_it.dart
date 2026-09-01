@@ -882,6 +882,18 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String backupInfoMeasured(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Un backup contiene tutte le $count voci con il loro audio e le riflessioni, circa $size.',
+      one: 'Un backup contiene la tua unica voce con il suo audio e le riflessioni, circa $size.',
+    );
+    return '$_temp0 Se lo cifri, la passphrase è l\'unica chiave.';
+  }
+
+  @override
   String get backupExportSection => 'Export';
 
   @override
@@ -889,13 +901,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Scrive ogni voce nel formato scelto, audio incluso, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
+      'Scrive ogni voce in un formato scelto al momento dell\'esportazione, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
 
   @override
   String get backupSeal => 'Cifra con passphrase';
 
   @override
-  String get backupSave => 'Salva backup';
+  String get backupSave => 'Esporta backup';
 
   @override
   String backupLastBackup(String date) {
@@ -920,6 +932,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get passphraseMismatch => 'Le passphrase non coincidono';
+
+  @override
+  String get passphraseShow => 'Mostra';
+
+  @override
+  String get passphraseHide => 'Nascondi';
 
   @override
   String get importUnlockTitle => 'Backup cifrato';
@@ -979,6 +997,35 @@ class AppLocalizationsIt extends AppLocalizations {
       one: '1 voce era già nel diario.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registrazioni ripristinate.',
+      one: '1 registrazione ripristinata.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci',
+      one: '1 voce',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio registrazioni',
+      one: '1 registrazione',
+      zero: 'nessuna registrazione',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

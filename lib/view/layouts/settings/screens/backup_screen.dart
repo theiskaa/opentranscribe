@@ -7,28 +7,28 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
+import 'package:opentranscribe/core/services/export_service.dart';
 import 'package:opentranscribe/core/state/backup_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/journal_export_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
-import 'package:opentranscribe/view/widgets/export_format_row.dart';
-import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
-/// Backup: the whole journal out through the share sheet (a chosen format, or
-/// the native archive, sealed on request) and a native archive back in. Owns
-/// a [BackupCubit] so the entry count is measured on every open.
+/// Backup: the restorable native archive out and back in, and the one-way
+/// formatted export decided in its own sheet at export time. Owns a
+/// [BackupCubit] so the journal is measured on every open.
 class BackupScreen extends StatelessWidget {
   const BackupScreen({super.key});
 
@@ -49,18 +49,6 @@ class BackupScreen extends StatelessWidget {
 
 class _BackupView extends StatelessWidget {
   const _BackupView();
-
-  Future<void> _exportJournal(BuildContext context) async {
-    final cubit = context.read<BackupCubit>();
-    final strings = exportStringsOf(AppLocalizations.of(context)!);
-    final result = await cubit.exportJournal(
-      strings: strings,
-      exporterId: cubit.state.formatId,
-      includeAudio: true,
-    );
-    if (!context.mounted) return;
-    unawaited(_shareFailSheet(context, result));
-  }
 
   /// Nothing for the quiet outcomes; each failure names its cause where the
   /// cubit could tell it apart.
@@ -97,6 +85,8 @@ class _BackupView extends StatelessWidget {
           actionLabel: l10n.backupSave,
           tooShort: l10n.passphraseTooShort,
           mismatch: l10n.passphraseMismatch,
+          show: l10n.passphraseShow,
+          hide: l10n.passphraseHide,
         ),
       );
       if (passphrase == null || !context.mounted) return;
@@ -141,6 +131,14 @@ class _BackupView extends StatelessWidget {
         body: l10n.importConfirmBody,
         rows: [
           _ArchiveFactRow(label: probe.fileName, detail: formatBytes(probe.sizeBytes, locale)),
+          if (probe.counts != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                l10n.importConfirmCounts(probe.counts!.entries, probe.counts!.audio),
+                style: AppType.subhead.copyWith(color: context.theme.textSecondary, height: 1.5),
+              ),
+            ),
         ],
         action: AppButton(
           label: l10n.importConfirm,
@@ -165,6 +163,8 @@ class _BackupView extends StatelessWidget {
             body: l10n.importUnlockBody,
             placeholder: l10n.passphrasePlaceholder,
             actionLabel: l10n.importUnlock,
+            show: l10n.passphraseShow,
+            hide: l10n.passphraseHide,
           ),
           errorText: wrongPassphrase,
         );
@@ -202,6 +202,7 @@ class _BackupView extends StatelessWidget {
     final summary = outcome.summary!;
     final replaced = summary.entriesUpdated;
     final skipped = summary.entriesUnchanged;
+    final audio = summary.audioRestored;
     return showAppSheet<void>(
       context,
       builder: (context) {
@@ -214,6 +215,7 @@ class _BackupView extends StatelessWidget {
           title: l10n.importSummaryTitle,
           body: l10n.importSummaryAdded(summary.entriesAdded),
           rows: [
+            if (audio > 0) Text(l10n.importSummaryAudio(audio), style: detail),
             if (replaced > 0) Text(l10n.importSummaryReplaced(replaced), style: detail),
             if (skipped > 0) Text(l10n.importSummarySkipped(skipped), style: detail),
           ],
@@ -248,6 +250,11 @@ class _BackupView extends StatelessWidget {
     final state = context.watch<BackupCubit>().state;
     final idle = !state.isBusy;
 
+    // An empty journal has nothing to save or export; restore stays open,
+    // because filling an empty journal is exactly what it is for. Unknown
+    // reads as non-empty so the rows never flash disabled while measuring.
+    final hasEntries = (state.measure?.entries ?? 1) > 0;
+
     // Import is the one operation with no system UI covering the screen; a
     // pop mid-adopt would orphan the summary and unseat the busy gate.
     // PopScope covers the edge swipe the hidden back button cannot.
@@ -262,11 +269,7 @@ class _BackupView extends StatelessWidget {
             SettingsList(
               children: [
                 const SizedBox(height: 10),
-                SectionInfo(
-                  state.measure == null
-                      ? l10n.backupInfo
-                      : l10n.backupInfoCount(state.measure!.entries),
-                ),
+                SectionInfo(_intro(l10n, locale, state.measure)),
                 SettingsCard(
                   children: [
                     SettingsToggleRow(
@@ -284,7 +287,7 @@ class _BackupView extends StatelessWidget {
                               DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
                             ),
                       busy: state.busy == BackupBusy.archiving,
-                      onTap: idle ? () => unawaited(_saveArchive(context)) : null,
+                      onTap: idle && hasEntries ? () => unawaited(_saveArchive(context)) : null,
                     ),
                   ],
                 ),
@@ -292,20 +295,13 @@ class _BackupView extends StatelessWidget {
                 SectionLabel(l10n.backupExportSection),
                 SettingsCard(
                   children: [
-                    for (final descriptor in cubit.descriptors)
-                      ExportFormatRow(
-                        descriptor: descriptor,
-                        selected: descriptor.exporterId == state.formatId,
-                        onTap: idle
-                            ? () => unawaited(cubit.setFormat(descriptor.exporterId))
-                            : null,
-                      ),
-                    const SettingsDivider(),
                     SettingsBusyRow(
                       icon: AppIcons.squareAndArrowUp,
                       label: l10n.backupExportJournal,
                       busy: state.busy == BackupBusy.exporting,
-                      onTap: idle ? () => unawaited(_exportJournal(context)) : null,
+                      onTap: idle && hasEntries
+                          ? () => unawaited(showJournalExportSheet(context, cubit))
+                          : null,
                     ),
                   ],
                 ),
@@ -314,7 +310,7 @@ class _BackupView extends StatelessWidget {
               ],
             ),
             // Restore floats like every entry point that reaches outside the
-            // app now does; it is the one action here that picks a file from
+            // app does; it is the one action here that picks a file from
             // beyond the journal.
             Positioned(
               right: AppSpacing.xl,
@@ -328,6 +324,14 @@ class _BackupView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Generic until the first measure lands, "nothing yet" for an empty
+  /// journal, and the counted-and-weighed line once there is something.
+  String _intro(AppLocalizations l10n, String locale, JournalMeasure? measure) {
+    if (measure == null) return l10n.backupInfo;
+    if (measure.entries == 0) return l10n.backupInfoCount(0);
+    return l10n.backupInfoMeasured(measure.entries, formatBytes(measure.approxBytes, locale));
   }
 }
 

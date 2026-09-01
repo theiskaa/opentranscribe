@@ -826,19 +826,29 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String backupInfoMeasured(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '备份包含 $count 条记录、音频和回顾，约 $size。如果加密，口令就是唯一的钥匙。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupExportSection => '导出';
 
   @override
   String get backupExportJournal => '导出日记';
 
   @override
-  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
+  String get backupExportInfo => '以导出时选择的格式写出每条记录，打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
 
   @override
   String get backupSeal => '用口令加密';
 
   @override
-  String get backupSave => '保存备份';
+  String get backupSave => '导出备份';
 
   @override
   String backupLastBackup(String date) {
@@ -862,6 +872,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get passphraseMismatch => '两次口令不一致';
+
+  @override
+  String get passphraseShow => '显示';
+
+  @override
+  String get passphraseHide => '隐藏';
 
   @override
   String get importUnlockTitle => '已加密的备份';
@@ -912,6 +928,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String importSummarySkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已恢复 $count 段录音。');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio 段录音',
+      zero: '无录音',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

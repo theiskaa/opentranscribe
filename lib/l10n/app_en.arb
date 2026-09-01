@@ -983,7 +983,7 @@
   },
   "exportEntry": "Export",
   "@exportEntry": {
-    "description": "Menu row and button label for exporting one entry"
+    "description": "Export action button, shared by the entry and journal export sheets"
   },
   "exportEntryTitle": "Export entry",
   "@exportEntryTitle": {
@@ -1123,6 +1123,18 @@
       }
     }
   },
+  "backupInfoMeasured": "{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.",
+  "@backupInfoMeasured": {
+    "description": "Backup intro once measured: entry count and approximate size, then the encryption line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "backupExportSection": "Export",
   "@backupExportSection": {
     "description": "Section label over the format picker and export row"
@@ -1131,7 +1143,7 @@
   "@backupExportJournal": {
     "description": "Action row exporting the whole journal in the chosen format"
   },
-  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
+  "backupExportInfo": "Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
   "@backupExportInfo": {
     "description": "Help paragraph under the export card"
   },
@@ -1139,9 +1151,9 @@
   "@backupSeal": {
     "description": "Toggle for sealing archives with a passphrase"
   },
-  "backupSave": "Save backup",
+  "backupSave": "Export backup",
   "@backupSave": {
-    "description": "The Backup section row that saves a backup file"
+    "description": "Backup card row exporting the restorable archive, and the seal sheet action"
   },
   "backupLastBackup": "Last backup {date}",
   "@backupLastBackup": {
@@ -1175,6 +1187,14 @@
   "passphraseMismatch": "Passphrases do not match",
   "@passphraseMismatch": {
     "description": "Footnote while the two passphrase fields differ"
+  },
+  "passphraseShow": "Show",
+  "@passphraseShow": {
+    "description": "Passphrase field toggle revealing the typed secret"
+  },
+  "passphraseHide": "Hide",
+  "@passphraseHide": {
+    "description": "Passphrase field toggle hiding the typed secret again"
   },
   "importUnlockTitle": "Encrypted backup",
   "@importUnlockTitle": {
@@ -1231,6 +1251,27 @@
     "description": "Summary line for entries already present, shown only when some were",
     "placeholders": {
       "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSummaryAudio": "{count, plural, one {1 recording restored.} other {{count} recordings restored.}}",
+  "@importSummaryAudio": {
+    "description": "Summary line for recordings the restore put back, shown only when some were",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importConfirmCounts": "{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}",
+  "@importConfirmCounts": {
+    "description": "Restore confirm fact line: what a plain archive's manifest says it holds",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "audio": {
         "type": "int"
       }
     }

@@ -872,6 +872,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String backupInfoMeasured(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'A backup holds all $count entries with their audio and reflections, about $size.',
+      one: 'A backup holds your 1 entry with its audio and reflections, about $size.',
+    );
+    return '$_temp0 Encrypt it and your passphrase is the only key.';
+  }
+
+  @override
   String get backupExportSection => 'Export';
 
   @override
@@ -879,13 +890,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupExportInfo =>
-      'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
+      'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
 
   @override
   String get backupSeal => 'Encrypt with passphrase';
 
   @override
-  String get backupSave => 'Save backup';
+  String get backupSave => 'Export backup';
 
   @override
   String backupLastBackup(String date) {
@@ -910,6 +921,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passphraseMismatch => 'Passphrases do not match';
+
+  @override
+  String get passphraseShow => 'Show';
+
+  @override
+  String get passphraseHide => 'Hide';
 
   @override
   String get importUnlockTitle => 'Encrypted backup';
@@ -968,6 +985,35 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 entry was already in the journal.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recordings restored.',
+      one: '1 recording restored.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio recordings',
+      one: '1 recording',
+      zero: 'no recordings',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

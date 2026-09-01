@@ -1,5 +1,6 @@
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
+import 'package:opentranscribe/core/state/backup_cubit.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:reflections/reflections.dart';
 
@@ -46,4 +47,14 @@ ExportStrings exportStringsOf(AppLocalizations l10n) => ExportStrings(
   ExportFormat.markdown => (name: l10n.exportFormatMarkdown, note: l10n.exportFormatMarkdownNote),
   ExportFormat.obsidian => (name: l10n.exportFormatObsidian, note: l10n.exportFormatObsidianNote),
   ExportFormat.web => (name: l10n.exportFormatWeb, note: l10n.exportFormatWebNote),
+};
+
+/// The failure footnote both export sheets show: the two named causes keep
+/// their copy, everything else reads generic.
+String shareFailureLine(AppLocalizations l10n, BackupActionResult result) => switch (result) {
+  BackupActionResult.failedTooLarge => l10n.exportTooLargeBody,
+  BackupActionResult.failedNoSpace => l10n.exportNoSpaceBody,
+  BackupActionResult.shared ||
+  BackupActionResult.cancelled ||
+  BackupActionResult.failed => l10n.exportFailedBody,
 };
