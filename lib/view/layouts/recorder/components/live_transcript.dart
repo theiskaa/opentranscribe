@@ -56,7 +56,7 @@ int firstDivergence(List<String> a, List<String> b) {
 
 /// [lines]' packing continued after the words from [from] on changed: lines
 /// whose break the change cannot move are kept, and packing re-runs from the
-/// first line whose break it could. Assumes [words] below [from] matches the
+/// first line whose break it could. Assumes [words] before [from] matches the
 /// packing [lines] came from; then this equals [packLines] over all of
 /// [words], at the cost of the changed tail alone.
 List<List<int>> repackFrom(

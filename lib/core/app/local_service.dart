@@ -339,7 +339,6 @@ class LocalService {
       if (!value.startsWith(_formatPrefix)) return null;
       sealed.add(value);
     }
-    // An isolate costs more than it saves on a journal this small.
     if (sealed.isEmpty) return <T>[];
     return Isolate.run(() {
       final out = <T>[];

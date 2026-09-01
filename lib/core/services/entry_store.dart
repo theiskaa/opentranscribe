@@ -37,9 +37,9 @@ class EntryStore {
     return byTime != 0 ? byTime : a.id.compareTo(b.id);
   }
 
-  /// Applied before the write is awaited, in lockstep with the backing
-  /// store's own in-memory copy, so overlapping writes stay correct in
-  /// whatever order the disk acknowledges them.
+  /// Applied, when a cache exists, before the write is awaited and in
+  /// lockstep with the backing store's own in-memory copy, so overlapping
+  /// writes stay correct in whatever order the disk acknowledges them.
   void _put(Entry entry) {
     final cached = _cache;
     if (cached == null) return;
@@ -73,7 +73,8 @@ class EntryStore {
   /// Builds the cache on a worker isolate, so the first [all] pays no
   /// whole-journal decrypt on the frames the user is watching. Anything
   /// landing meanwhile wins: a write, or a cache a synchronous [all] already
-  /// built, discards the warmed list.
+  /// built, discards the warmed list. A journal the backing store cannot
+  /// read off the main isolate leaves the cache cold for [all] to build.
   Future<void> warm() async {
     if (_cache != null) return;
     final generation = _generation;

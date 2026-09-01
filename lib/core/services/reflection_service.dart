@@ -219,8 +219,8 @@ class ReflectionService {
     final journaled = journaledStartsByPeriod();
     for (final period in ReflectionPeriod.values) {
       if (!_settings.enabledFor(period)) continue;
-      // A linear scan here is starts x stored per period, and hasBacklog runs
-      // on every derive.
+      // hasBacklog runs on every derive, and starts x stored per period is
+      // the scan it would otherwise pay.
       final covered = _StartIndex(period, [
         for (final r in stored)
           if (r.period == period) r.periodStart,

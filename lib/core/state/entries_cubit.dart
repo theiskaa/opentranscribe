@@ -58,7 +58,7 @@ final class EntriesFailure {
 /// continuation must not dissolve the words either.
 enum EntriesAction { transcribe, delete, continueRecording }
 
-/// The journal list: loads entries, deletes them, and re-transcribes kept audio.
+/// The journal list and its in-flight action, error, and busy marks.
 @immutable
 final class EntriesState {
   const EntriesState({
@@ -117,12 +117,13 @@ final class EntriesState {
       other.errorTick == errorTick &&
       identicalElements(other.entries, entries);
 
-  // Length only: hashing entries would deep-hash every transcript, and == is
-  // identity anyway.
+  // Length only: == holds across distinct lists with the same elements, so
+  // the list's own identity hash would break equal-implies-same-hash.
   @override
   int get hashCode => Object.hash(busyId, busyAction, error, errorTick, entries.length);
 }
 
+/// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesCubit extends Cubit<EntriesState> {
   // Seeded from the service, not empty: the detail screen looks its entry up
   // here the moment it opens, and an empty seed would read as "deleted".

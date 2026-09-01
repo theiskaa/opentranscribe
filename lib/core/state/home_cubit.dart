@@ -71,8 +71,8 @@ final class HomeState {
   @override
   bool operator ==(Object other) => other is HomeState && identicalElements(other.entries, entries);
 
-  // Length only: hashing entries would deep-hash every transcript, and == is
-  // identity anyway.
+  // Length only: == holds across distinct lists with the same elements, so
+  // the list's own identity hash would break equal-implies-same-hash.
   @override
   int get hashCode => entries.length.hashCode;
 }
@@ -104,7 +104,8 @@ class HomeCubit extends Cubit<HomeState> {
     if (isClosed) return;
     final visible = _visible();
     // Constructing a HomeState re-derives the day grouping; an unchanged
-    // journal should not pay for it.
+    // journal should not pay for it. HomeState's own == covers comparers;
+    // this return covers the derive cost.
     if (identicalElements(visible, state.entries)) return;
     emit(HomeState(entries: visible));
   }

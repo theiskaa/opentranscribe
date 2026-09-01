@@ -25,8 +25,8 @@ final class CacheState {
 /// action against it. Screen-scoped; a fresh screen re-measures on open, and
 /// store changes landing WHILE it is open (a detached discard, a delete
 /// elsewhere) re-measure through [TranscriptionService.entriesChanged],
-/// coalesced to one trailing sweep per burst, so the numbers the destructive
-/// confirm quotes stay honest.
+/// coalesced to one trailing sweep once the signals quiet, so the numbers the
+/// destructive confirm quotes converge on the stored truth.
 class CacheCubit extends Cubit<CacheState> {
   CacheCubit({required this._service, this._remeasureQuiet = const Duration(milliseconds: 300)})
     : super(const CacheState()) {
