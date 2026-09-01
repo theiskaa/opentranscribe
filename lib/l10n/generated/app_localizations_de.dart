@@ -778,13 +778,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'Eine Notiz je Eintrag, plus maschinenlesbares JSON.';
+  String get exportFormatMarkdownNote => 'Eine Notiz je Eintrag, plus JSON.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'Notizen mit Eigenschaften, Aufnahmen eingebettet.';
+  String get exportFormatObsidianNote => 'Notizen mit Eigenschaften und Audio.';
 
   @override
   String get exportFormatWeb => 'Webseite';

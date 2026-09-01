@@ -770,7 +770,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'One note per entry, plus machine-readable JSON.';
+  String get exportFormatMarkdownNote => 'A note per entry, plus JSON for machines.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';

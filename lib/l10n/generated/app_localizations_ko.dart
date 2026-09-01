@@ -734,7 +734,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '항목마다 노트 하나, 기계가 읽는 JSON 포함.';
+  String get exportFormatMarkdownNote => '항목마다 노트 하나, JSON 포함.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';

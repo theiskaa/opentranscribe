@@ -1473,7 +1473,7 @@ abstract class AppLocalizations {
   /// One line under the Markdown format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'One note per entry, plus machine-readable JSON.'**
+  /// **'A note per entry, plus JSON for machines.'**
   String get exportFormatMarkdownNote;
 
   /// Name of the Obsidian export format. A product name: keep it verbatim

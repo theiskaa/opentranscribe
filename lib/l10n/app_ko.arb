@@ -227,7 +227,7 @@
   "exportEntryTitle": "항목 내보내기",
   "exportIncludeAudio": "오디오 포함",
   "exportFormatMarkdown": "Markdown",
-  "exportFormatMarkdownNote": "항목마다 노트 하나, 기계가 읽는 JSON 포함.",
+  "exportFormatMarkdownNote": "항목마다 노트 하나, JSON 포함.",
   "exportFormatObsidian": "Obsidian Vault",
   "exportFormatObsidianNote": "속성 있는 노트, 녹음 삽입.",
   "exportFormatWeb": "웹사이트",

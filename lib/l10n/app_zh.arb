@@ -227,7 +227,7 @@
   "exportEntryTitle": "导出条目",
   "exportIncludeAudio": "包含音频",
   "exportFormatMarkdown": "Markdown",
-  "exportFormatMarkdownNote": "每条记录一个笔记，附机器可读的 JSON。",
+  "exportFormatMarkdownNote": "每条记录一个笔记，附 JSON。",
   "exportFormatObsidian": "Obsidian Vault",
   "exportFormatObsidianNote": "带属性的笔记，内嵌录音。",
   "exportFormatWeb": "网站",

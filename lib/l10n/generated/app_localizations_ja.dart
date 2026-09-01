@@ -732,7 +732,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'エントリーごとのノートと機械可読のJSON。';
+  String get exportFormatMarkdownNote => 'エントリーごとのノートとJSON。';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';
@@ -744,7 +744,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatWeb => 'Webサイト';
 
   @override
-  String get exportFormatWebNote => '検索とプレイヤー付き、どのブラウザでも。';
+  String get exportFormatWebNote => '検索とプレイヤー、どのブラウザでも。';
 
   @override
   String get exportFailedTitle => '書き出しに失敗しました';

@@ -729,7 +729,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '每条记录一个笔记，附机器可读的 JSON。';
+  String get exportFormatMarkdownNote => '每条记录一个笔记，附 JSON。';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';

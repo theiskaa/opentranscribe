@@ -778,13 +778,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'Una nota per voce, più JSON leggibile da macchina.';
+  String get exportFormatMarkdownNote => 'Una nota per voce, più JSON.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'Note con proprietà, registrazioni incorporate.';
+  String get exportFormatObsidianNote => 'Note con proprietà, audio incorporato.';
 
   @override
   String get exportFormatWeb => 'Sito web';
