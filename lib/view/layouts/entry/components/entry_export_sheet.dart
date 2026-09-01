@@ -79,7 +79,11 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
       );
       // Remembered only once the export actually ran: a refused or broken
       // attempt must leave no trace, not even the format memory.
-      await widget.settings.setFormatId(_formatId);
+      try {
+        await widget.settings.setFormatId(_formatId);
+      } catch (_) {
+        // The share already ran; a lost memory is not a failed export.
+      }
       if (!mounted) return;
       // A cancelled share stays put: the user may only be changing the
       // format or the audio toggle.
@@ -103,7 +107,9 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
   String _failureLine(AppLocalizations l10n) => switch (_failure!) {
     BackupActionResult.failedTooLarge => l10n.exportTooLargeBody,
     BackupActionResult.failedNoSpace => l10n.exportNoSpaceBody,
-    _ => l10n.exportFailedBody,
+    BackupActionResult.shared ||
+    BackupActionResult.cancelled ||
+    BackupActionResult.failed => l10n.exportFailedBody,
   };
 
   @override

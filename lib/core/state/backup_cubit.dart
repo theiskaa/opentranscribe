@@ -203,8 +203,14 @@ class BackupCubit extends Cubit<BackupState> {
           // Persisted even after close: the share sheet outlives the screen,
           // and a backup that finished is a backup that happened.
           final now = _clock();
-          await _settings.setLastArchiveAt(now);
-          if (!isClosed) emit(state.copyWith(lastArchiveAt: now));
+          try {
+            await _settings.setLastArchiveAt(now);
+            if (!isClosed) emit(state.copyWith(lastArchiveAt: now));
+          } catch (e) {
+            // The share DID happen: losing the bookkeeping must not be
+            // reported as an export that failed.
+            if (kDebugMode) debugPrint('BackupCubit.archive date: $e');
+          }
         }
         return shared;
       });

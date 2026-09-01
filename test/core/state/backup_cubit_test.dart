@@ -53,7 +53,7 @@ void main() {
   });
 
   Future<({BackupCubit cubit, FakeShareExport share, BackupSettings settings, EntryStore store})>
-  build() async {
+  build({BackupSettings Function(BackupSettings)? wrapSettings}) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
@@ -79,7 +79,8 @@ void main() {
     );
     final share = FakeShareExport(captureTo: temp);
     final staging = StagingRegistry();
-    final settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
+    var settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
+    if (wrapSettings != null) settings = wrapSettings(settings);
     final export = ExportService(
       transcription: transcription,
       reflections: reflections,
@@ -359,4 +360,40 @@ void main() {
     expect(outcome!.resolution, ImportResolution.failed);
     expect(world.store.all(), isEmpty);
   });
+
+  test('a bookkeeping failure after a completed share still answers shared', () async {
+    final world = await build(wrapSettings: _DateRefusingSettings.new);
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+}
+
+class _DateRefusingSettings implements BackupSettings {
+  _DateRefusingSettings(this._inner);
+
+  final BackupSettings _inner;
+
+  @override
+  String get fallbackFormatId => _inner.fallbackFormatId;
+
+  @override
+  String get formatId => _inner.formatId;
+
+  @override
+  bool get seal => _inner.seal;
+
+  @override
+  DateTime? get lastArchiveAt => _inner.lastArchiveAt;
+
+  @override
+  Future<void> setFormatId(String id) => _inner.setFormatId(id);
+
+  @override
+  Future<void> setSeal(bool seal) => _inner.setSeal(seal);
+
+  @override
+  Future<void> setLastArchiveAt(DateTime at) =>
+      throw const FileSystemException('write failed', 'k', OSError('no space', 28));
 }
