@@ -21,6 +21,12 @@ DateTime? viewedDayAt(
   DateTime? current, {
   double deadband = titleDeadband,
 }) {
+  assert(() {
+    for (var i = 1; i < starts.length; i++) {
+      if (starts[i].$1 < starts[i - 1].$1) return false;
+    }
+    return true;
+  }(), 'starts must be sorted ascending');
   // Runs on every scroll event, so [starts] is searched, not scanned.
   DateTime? pick(double at) {
     var lo = 0;
@@ -69,7 +75,7 @@ class SectionTracker {
   /// [_starts] as a list sorted ascending by start, rebuilt whenever [_starts]
   /// changes, so the per-scroll lookup allocates nothing.
   List<(double, DateTime)> _sorted = const [];
-  bool _seedPending = false;
+  bool _afterLayoutPending = false;
 
   void _resort() =>
       _sorted = [for (final e in _starts.entries) (e.value, e.key)]
@@ -116,11 +122,11 @@ class SectionTracker {
   }
 
   /// Runs [body] once after this frame's layout, deduped per frame.
-  void seedAfterLayout(VoidCallback body) {
-    if (_seedPending) return;
-    _seedPending = true;
+  void afterLayout(VoidCallback body) {
+    if (_afterLayoutPending) return;
+    _afterLayoutPending = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _seedPending = false;
+      _afterLayoutPending = false;
       body();
     });
   }

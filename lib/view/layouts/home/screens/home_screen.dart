@@ -246,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
           _seenEntryIds = {for (final e in state.entries) e.id};
           _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
-          // Departures before the reseed, against the same previous set; under
+          // Departures before the re-measure, against the same previous set; under
           // Reduce Motion emptied days simply leave, no ghost, and a flip
           // drops any ghost still mid-fold. A day whose title pre-folded with
           // its dying rows needs no ghost either - the seam is already closed
@@ -285,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // splitter positions move when entries are added or renamed and
               // when reflection cards arrive, not only when the set of days
               // does.
-              _sections.seedAfterLayout(() {
+              _sections.afterLayout(() {
                 if (!mounted) return;
                 // A glide owns the cursor; only the geometry refreshes
                 // mid-flight.
