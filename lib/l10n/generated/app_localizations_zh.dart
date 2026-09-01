@@ -729,19 +729,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '每条记录一个文本文件，外加 .json。';
+  String get exportFormatMarkdownNote => '每条记录一个 Markdown 笔记，附上回顾，以及机器可读的 JSON 副本。到哪都能打开的普通文件。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
+  String get exportFormatObsidianNote => '可直接在 Obsidian 中打开的 Vault：带属性的笔记、内嵌的录音、链接到对应记录的回顾。';
 
   @override
   String get exportFormatWeb => '网站';
 
   @override
-  String get exportFormatWebNote => '任何浏览器都能打开，带播放器。';
+  String get exportFormatWebNote => '一个自成一体的网站：完整的日记，带搜索和每段录音的播放器。任何浏览器都能打开，离线也行。';
 
   @override
   String get exportFailedTitle => '导出失败';

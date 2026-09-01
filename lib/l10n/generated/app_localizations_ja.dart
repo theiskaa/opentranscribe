@@ -732,19 +732,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+  String get exportFormatMarkdownNote => 'エントリーごとのMarkdownノートと振り返り、機械が読めるJSONの写し。どこでも開ける素朴なファイルです。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+  String get exportFormatObsidianNote =>
+      'Obsidianでそのまま開けるVault。プロパティ付きノート、埋め込みの録音、期間のエントリーへリンクする振り返り。';
 
   @override
   String get exportFormatWeb => 'Webサイト';
 
   @override
-  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
+  String get exportFormatWebNote => '自己完結したウェブサイト。検索と録音ごとのプレイヤーを備えたジャーナル全体で、どのブラウザでもオフラインでも開けます。';
 
   @override
   String get exportFailedTitle => '書き出しに失敗しました';

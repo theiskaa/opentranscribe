@@ -997,15 +997,15 @@
   "@exportFormatMarkdown": {
     "description": "Name of the Markdown export format. A format is named by its makers: keep it verbatim"
   },
-  "exportFormatMarkdownNote": "One text file per entry, plus a .json.",
+  "exportFormatMarkdownNote": "A Markdown note per entry with your reflections, plus JSON copies a machine can read. Plain files that open anywhere.",
   "@exportFormatMarkdownNote": {
     "description": "One line under the Markdown format row saying what it writes"
   },
-  "exportFormatObsidian": "Obsidian",
+  "exportFormatObsidian": "Obsidian Vault",
   "@exportFormatObsidian": {
     "description": "Name of the Obsidian export format. A product name: keep it verbatim"
   },
-  "exportFormatObsidianNote": "Notes with properties, audio embedded.",
+  "exportFormatObsidianNote": "A vault ready to open in Obsidian: notes with properties, recordings embedded, reflections linking their period's entries.",
   "@exportFormatObsidianNote": {
     "description": "One line under the Obsidian format row saying what it writes"
   },
@@ -1013,7 +1013,7 @@
   "@exportFormatWeb": {
     "description": "The app's own name for the HTML export format; a plain noun, so it translates"
   },
-  "exportFormatWebNote": "Opens in any browser, with a player.",
+  "exportFormatWebNote": "One self-contained website: your whole journal with search and a player for every recording. Opens in any browser, offline.",
   "@exportFormatWebNote": {
     "description": "One line under the web page format row saying what it writes"
   },
