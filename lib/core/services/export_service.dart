@@ -94,8 +94,9 @@ class ExportService {
             ? null
             : (written, total) {
                 // A fileless pack is byte adds alone, over in a blink: no
-                // fraction is honest and none is reported.
-                if (total > 0) onProgress(written / total);
+                // fraction is honest and none is reported. Clamped because a
+                // source growing mid-pack would otherwise pass 100%.
+                if (total > 0) onProgress((written / total).clamp(0.0, 1.0));
               },
       );
     } finally {

@@ -13,8 +13,9 @@ final class ZipPackAborted implements Exception {
 
 /// Builds one stored zip on its own isolate, so a journal of gigabytes never
 /// runs its checksum loop under the UI. Byte entries land first, then the
-/// files, streamed; [onProgress] reports file bytes written against their
-/// total (per file landed, so one huge file moves it in one step), and
+/// files, streamed; [onProgress] opens at zero the moment a pack with file
+/// weight starts, then reports bytes written against their total per file
+/// landed (one huge file moves it in one step), and
 /// [abort] kills the build, leaving the partial target to the caller's
 /// staging cleanup. One run per instance.
 ///
@@ -46,6 +47,7 @@ final class ZipPack {
         // Vanished before the build: the packer skips it too.
       }
     }
+    if (total > 0) onProgress?.call(0, total);
     final port = ReceivePort();
     port.listen((Object? message) {
       if (_done.isCompleted) return;

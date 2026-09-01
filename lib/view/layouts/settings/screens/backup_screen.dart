@@ -283,11 +283,10 @@ class _BackupViewState extends State<_BackupView> {
     final cubit = context.read<BackupCubit>();
     final state = context.watch<BackupCubit>().state;
 
-    // Busy never greys this screen: the running row wears the spinner and
-    // every handler refuses re-entry itself, so nothing flashes half-faded.
-    // An empty journal has nothing to save or export; restore stays open,
-    // because filling an empty journal is exactly what it is for. Unknown
-    // reads as non-empty so the rows never flash disabled while measuring.
+    // Busy never greys this screen: handlers refuse re-entry themselves and
+    // the running row wears the spinner, so nothing flashes half-faded.
+    // An empty journal disables saving and exporting, never restore; unknown
+    // reads as non-empty so nothing flashes disabled while measuring.
     final hasEntries = (state.measure?.entries ?? 1) > 0;
     final hasRecordings = _hasRecordings(state);
 
@@ -318,7 +317,9 @@ class _BackupViewState extends State<_BackupView> {
                       icon: AppIcons.squareAndArrowUp,
                       label: l10n.backupSave,
                       detail: _saveDetail(l10n, locale, state),
-                      busy: state.busy == BackupBusy.archiving,
+                      // The spinner yields to the percent once ticks arrive:
+                      // the row renders one or the other, never both.
+                      busy: state.busy == BackupBusy.archiving && state.progress == null,
                       onTap: hasEntries ? () => unawaited(_saveArchive(context)) : null,
                     ),
                     if (state.busy == BackupBusy.archiving && state.progress != null)
@@ -345,6 +346,7 @@ class _BackupViewState extends State<_BackupView> {
                       ExportFormatRow(
                         descriptor: descriptor,
                         selected: false,
+                        dimmed: !hasEntries,
                         label: l10n.backupExportAs(exportFormatCopy(l10n, descriptor.format).name),
                         busy:
                             state.busy == BackupBusy.exporting &&
@@ -357,6 +359,7 @@ class _BackupViewState extends State<_BackupView> {
                       SettingsBusyRow(
                         icon: AppIcons.xmark,
                         label: l10n.exportCancel,
+                        detail: NumberFormat.percentPattern(locale).format(state.progress),
                         busy: false,
                         tint: theme.danger,
                         onTap: cubit.cancelShare,
@@ -400,7 +403,7 @@ class _BackupViewState extends State<_BackupView> {
   /// journal, and the counted-and-weighed line once there is something.
   String _intro(AppLocalizations l10n, String locale, JournalMeasure? measure) {
     if (measure == null) return l10n.backupInfo;
-    if (measure.entries == 0) return l10n.backupInfoCount(0);
+    if (measure.entries == 0) return l10n.backupInfoEmpty;
     return l10n.backupInfoMeasured(measure.entries, formatBytes(measure.approxBytes, locale));
   }
 }

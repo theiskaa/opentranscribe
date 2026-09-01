@@ -18,6 +18,7 @@ class ExportFormatRow extends StatelessWidget {
     required this.onTap,
     this.label,
     this.busy = false,
+    this.dimmed = false,
     super.key,
   });
 
@@ -32,6 +33,10 @@ class ExportFormatRow extends StatelessWidget {
   /// Swaps the mark for a spinner while this row's export runs.
   final bool busy;
 
+  /// Greys the row where it is disabled for a lasting reason (an empty
+  /// journal), so a dead action never looks tappable.
+  final bool dimmed;
+
   @override
   Widget build(BuildContext context) {
     final copy = exportFormatCopy(AppLocalizations.of(context)!, descriptor.format);
@@ -42,6 +47,7 @@ class ExportFormatRow extends StatelessWidget {
           ? AppSpinner(size: ExporterLogo._size, color: context.theme.textSecondary)
           : ExporterLogo(descriptor),
       selected: selected,
+      dimmed: dimmed,
       onTap: onTap,
     );
   }

@@ -50,14 +50,21 @@ void main() {
       bytes: const [],
       files: [('a', a.path), ('b', b.path)],
     ).run(onProgress: (written, total) => ticks.add((written, total)));
-    expect(ticks, [(3000, 8000), (8000, 8000)]);
+    expect(ticks, [(0, 8000), (3000, 8000), (8000, 8000)]);
   });
 
   test('an abort mid-pack throws and leaves no readable zip', () async {
     final files = [for (var i = 0; i < 8; i++) ('f$i', (await source('f$i.bin', 1 << 16)).path)];
     final target = '${temp.path}/out.zip';
     final pack = ZipPack(target: target, bytes: const [], files: files);
-    await expectLater(pack.run(onProgress: (_, _) => pack.abort()), throwsA(isA<ZipPackAborted>()));
+    await expectLater(
+      pack.run(
+        onProgress: (written, _) {
+          if (written > 0) pack.abort();
+        },
+      ),
+      throwsA(isA<ZipPackAborted>()),
+    );
     await expectLater(StoredZipReader.open(File(target)), throwsA(isA<StoredZipException>()));
   });
 
