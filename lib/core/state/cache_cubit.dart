@@ -24,16 +24,27 @@ final class CacheState {
 /// Drives the Cache screen: what the kept recordings occupy and the one bulk
 /// action against it. Screen-scoped; a fresh screen re-measures on open, and
 /// store changes landing WHILE it is open (a detached discard, a delete
-/// elsewhere) re-measure through [TranscriptionService.entriesChanged], so the
-/// numbers the destructive confirm quotes stay honest.
+/// elsewhere) re-measure through [TranscriptionService.entriesChanged],
+/// coalesced to one trailing sweep per burst, so the numbers the destructive
+/// confirm quotes stay honest.
 class CacheCubit extends Cubit<CacheState> {
-  CacheCubit({required this._service}) : super(const CacheState()) {
-    _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
+  CacheCubit({required this._service, this._remeasureQuiet = const Duration(milliseconds: 300)})
+    : super(const CacheState()) {
+    _changesSub = _service.entriesChanged.listen((_) {
+      // Change signals arrive in bursts (each bulk re-transcribe landing, an
+      // import's adoptions); one trailing sweep stats the files per burst.
+      _remeasureTimer?.cancel();
+      _remeasureTimer = Timer(_remeasureQuiet, () => unawaited(load()));
+    }, onError: (Object _) {});
     unawaited(load());
   }
 
   final TranscriptionService _service;
+
+  /// The quiet a burst of change signals must hold before the sweep runs.
+  final Duration _remeasureQuiet;
   late final StreamSubscription<void> _changesSub;
+  Timer? _remeasureTimer;
 
   /// Bumped by every measure, so a slow sweep started earlier can never land
   /// its stale numbers over a fresher emit (the post-clear zero especially).
@@ -77,6 +88,7 @@ class CacheCubit extends Cubit<CacheState> {
 
   @override
   Future<void> close() async {
+    _remeasureTimer?.cancel();
     await _changesSub.cancel();
     return super.close();
   }

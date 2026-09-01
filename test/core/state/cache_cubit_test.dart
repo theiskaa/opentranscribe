@@ -137,6 +137,41 @@ void main() {
     expect(cubit.state.usage, isNull);
   });
 
+  test('a burst of store changes lands one trailing re-measure', () async {
+    await seed();
+    final cubit = CacheCubit(service: service, remeasureQuiet: const Duration(milliseconds: 200));
+    await pumpEventQueue();
+    var measures = 0;
+    final sub = cubit.stream.listen((_) => measures++);
+
+    await service.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'burst',
+          createdAt: fixedClock,
+          audioPath: null,
+          duration: const Duration(seconds: 1),
+        ),
+      ),
+    ]);
+    await service.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'burst',
+          createdAt: fixedClock,
+          audioPath: null,
+          duration: const Duration(seconds: 1),
+          title: 'renamed',
+        ),
+      ),
+    ]);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    expect(measures, 1);
+    await sub.cancel();
+    await cubit.close();
+  });
+
   test('a store change while the screen is open re-measures the numbers', () async {
     await seed();
     final cubit = CacheCubit(service: service);
