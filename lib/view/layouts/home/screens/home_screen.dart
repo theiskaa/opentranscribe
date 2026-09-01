@@ -257,19 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
           // whatever day is recorded next.
           if (state.entries.isEmpty) _departingDays.clear();
           _seenDays = state.entryDays;
-          // After EVERY build: splitter positions move when entries are
-          // added or renamed (card heights change), not only when the set
-          // of days does.
-          _sections.seedAfterLayout(() {
-            if (!mounted) return;
-            // A glide owns the cursor; only the geometry refreshes mid-flight.
-            if (_gliding) {
-              _sections.reseed(_scroll);
-            } else {
-              _sections.track(_scroll, line: _contentTop);
-            }
-            _fitTail();
-          });
 
           // A separate, value-gated subscription: cards are driven by the
           // reflection history, so this must still rebuild when a period is
@@ -287,6 +274,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 previous.loaded != current.loaded ||
                 !listEquals(previous.homeReflections, current.homeReflections),
             builder: (context, reflectionsState) {
+              // After EVERY build of the list, whichever builder fired:
+              // splitter positions move when entries are added or renamed and
+              // when reflection cards arrive, not only when the set of days
+              // does.
+              _sections.seedAfterLayout(() {
+                if (!mounted) return;
+                // A glide owns the cursor; only the geometry refreshes
+                // mid-flight.
+                if (_gliding) {
+                  _sections.reseed(_scroll);
+                } else {
+                  _sections.track(_scroll, line: _contentTop);
+                }
+                _fitTail();
+              });
+
               final reflections = reflectionsState.homeReflections;
               // Only a card that ARRIVES while home is up gets an entrance; the
               // first LOADED build seeds the ledger settled. Diffing before the
