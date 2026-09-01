@@ -45,15 +45,38 @@ class ImportService {
   Future<String?> pickArchive() => _share.pickArchive();
 
   /// What the picked file is before any import work: the kind its first bytes
-  /// claim, so the UI knows whether to ask for a passphrase, plus the name and
-  /// size the confirm sheet shows.
+  /// claim, so the UI knows whether to ask for a passphrase, plus the name,
+  /// size, and (for a plain archive) the manifest counts the confirm shows.
   Future<ImportProbe> probe(String path) async {
     final file = File(path);
+    final kind = await sniffArchive(file);
     return ImportProbe(
-      kind: await sniffArchive(file),
+      kind: kind,
       fileName: baseName(path),
       sizeBytes: await file.length(),
+      counts: kind == ArchiveKind.plainZip ? await _peekCounts(file) : null,
     );
+  }
+
+  /// Real manifests are a few hundred bytes; a crafted zip may declare one
+  /// spanning the whole file, and a probe must stay cheap.
+  static const _maxPeekedManifestBytes = 1 << 20;
+
+  /// Best-effort: null when no readable manifest can be peeked cheaply; a
+  /// damaged archive fails later with its own copy.
+  Future<ArchiveCounts?> _peekCounts(File file) async {
+    try {
+      final zip = await StoredZipReader.open(file);
+      try {
+        if (!zip.paths.contains('manifest.json')) return null;
+        if (zip.sizeOf('manifest.json') > _maxPeekedManifestBytes) return null;
+        return ArchiveManifest.fromJson(_decodeJson(await zip.readBytes('manifest.json'))).counts;
+      } finally {
+        await zip.close();
+      }
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Best-effort delete of a picked archive copy once its flow has resolved.
@@ -265,14 +288,23 @@ final class _ParsedPayload {
 }
 
 /// What the picked file looks like before any import work: its kind for the
-/// passphrase decision, and name and size for the confirm sheet.
+/// passphrase decision, and name, size, and counts for the confirm sheet.
 @immutable
 final class ImportProbe {
-  const ImportProbe({required this.kind, required this.fileName, required this.sizeBytes});
+  const ImportProbe({
+    required this.kind,
+    required this.fileName,
+    required this.sizeBytes,
+    this.counts,
+  });
 
   final ArchiveKind kind;
   final String fileName;
   final int sizeBytes;
+
+  /// Null for a sealed archive (unreadable before its passphrase) and for a
+  /// zip whose manifest could not be peeked.
+  final ArchiveCounts? counts;
 }
 
 /// What an import actually did. The summary sheet shows the entry counts;
