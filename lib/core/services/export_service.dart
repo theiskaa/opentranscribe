@@ -10,6 +10,7 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
@@ -66,6 +67,54 @@ class ExportService {
   final Future<String> Function() _appVersion;
   final StagingRegistry _staging;
   final DateTime Function() _clock;
+
+  /// The pack a running whole-journal share is building, while it builds.
+  ZipPack? _activePack;
+
+  /// Calls off the pack phase of a running share, if any: the awaiting call
+  /// throws [ZipPackAborted] and cleans its staging like any failure. Once
+  /// the share sheet is up there is nothing left to cancel.
+  void cancelShare() => _activePack?.abort();
+
+  /// Runs [ZipPack] as the one active pack, reporting fractional progress
+  /// and, once the pack lands, [onPackDone], so a cancel affordance can
+  /// leave the moment there is nothing left to cancel.
+  Future<void> _packInto(
+    String target,
+    List<(String, Uint8List)> bytes,
+    List<(String, String)> files,
+    void Function(double fraction)? onProgress,
+    void Function()? onPackDone,
+  ) async {
+    final pack = ZipPack(target: target, bytes: bytes, files: files);
+    _activePack = pack;
+    try {
+      await pack.run(
+        onProgress: onProgress == null
+            ? null
+            : (written, total) {
+                // A fileless pack is byte adds alone, over in a blink: no
+                // fraction is honest and none is reported.
+                if (total > 0) onProgress(written / total);
+              },
+      );
+    } finally {
+      if (identical(_activePack, pack)) _activePack = null;
+    }
+    onPackDone?.call();
+  }
+
+  /// The audio files a journal share stages, as zip path to source path.
+  Future<List<(String, String)>> _audioFileEntries(
+    List<Entry> entries,
+    Map<String, String> audioNames,
+  ) async {
+    return [
+      for (final entry in entries)
+        if (audioNames[entry.id] != null)
+          ('audio/${audioNames[entry.id]}', await _transcription.resolveAudioPath(entry)),
+    ];
+  }
 
   /// Shares one entry in [exporterId]'s format. A single output file with no
   /// audio shares bare (a lone .md shares better than a zip of one); anything
@@ -146,6 +195,8 @@ class ExportService {
     required String exporterId,
     required bool includeAudio,
     required ExportStrings strings,
+    void Function(double fraction)? onProgress,
+    void Function()? onPackDone,
   }) async {
     final exporter = _exporter(exporterId);
     final entries = _transcription.entries();
@@ -165,23 +216,20 @@ class ExportService {
       reflections: _reflections.archiveSnapshot().rows,
     );
     final files = exporter.exportJournal(snapshot, await _context(strings));
+    final audioFiles = await _audioFileEntries(entries, audioNames);
     return _stage((staging) async {
       // The format is in the name: a folder of these is otherwise unreadable
       // once two formats of the same day sit side by side. Sanitized because
       // the id comes from whatever exporter the build registered.
       final slug = sanitizeFileName(exporter.id, fallback: 'export');
       final zip = File('${staging.path}/opentranscribe-export-$slug-${_dateStamp()}.zip');
-      final writer = await StoredZipWriter.create(zip);
-      try {
-        for (final file in files) {
-          await writer.addBytes(file.path, file.bytes);
-        }
-        await _addAudio(writer, entries, audioNames);
-        await writer.close();
-      } catch (_) {
-        await writer.abort();
-        rethrow;
-      }
+      await _packInto(
+        zip.path,
+        [for (final file in files) (file.path, file.bytes)],
+        audioFiles,
+        onProgress,
+        onPackDone,
+      );
       return [zip.path];
     });
   }
@@ -189,12 +237,16 @@ class ExportService {
   /// Shares the native whole-journal archive: the canonical payload zip
   /// (manifest, entry records verbatim, kept audio, reflections), plain when
   /// [passphrase] is null, else sealed into the opaque container.
-  Future<bool> shareArchive({String? passphrase}) async {
+  Future<bool> shareArchive({
+    String? passphrase,
+    void Function(double fraction)? onProgress,
+    void Function()? onPackDone,
+  }) async {
     final entries = _transcription.entries();
     final reflectionArchive = _reflections.archiveSnapshot();
     return _stage((staging) async {
       final payload = File('${staging.path}/payload.zip');
-      await _writeArchivePayload(payload, entries, reflectionArchive);
+      await _writeArchivePayload(payload, entries, reflectionArchive, onProgress, onPackDone);
       if (passphrase == null) {
         final plain = File('${staging.path}/opentranscribe-backup-${_dateStamp()}.zip');
         await payload.rename(plain.path);
@@ -211,6 +263,8 @@ class ExportService {
     File target,
     List<Entry> entries,
     ReflectionArchive reflections,
+    void Function(double fraction)? onProgress,
+    void Function()? onPackDone,
   ) async {
     final audioNames = await _uniqueAudioNames(entries);
     final manifest = ArchiveManifest(
@@ -225,35 +279,36 @@ class ExportService {
       tombstones: reflections.tombstones,
       floors: reflections.floors,
     );
-    final writer = await StoredZipWriter.create(target);
-    try {
-      await writer.addBytes('manifest.json', utf8.encode(jsonEncode(manifest.toJson())));
-      for (final entry in entries) {
-        // The record travels verbatim except audioPath, rewritten to the
-        // archived basename so import resolves inside the archive, not
-        // against whatever this device's recordings directory held.
-        var record = entry;
-        final audioName = audioNames[entry.id];
-        if (audioName != null && entry.audioPath != audioName) {
-          record = entry.withAudioPath(audioName);
-        }
-        if (audioName == null && entry.audioPath != null) {
-          record = entry.withoutAudio();
-        }
-        await writer.addBytes('entries/${entry.id}.json', utf8.encode(jsonEncode(record.toJson())));
+    final bytes = <(String, Uint8List)>[
+      ('manifest.json', utf8.encode(jsonEncode(manifest.toJson()))),
+    ];
+    for (final entry in entries) {
+      // The record travels verbatim except audioPath, rewritten to the
+      // archived basename so import resolves inside the archive, not
+      // against whatever this device's recordings directory held.
+      var record = entry;
+      final audioName = audioNames[entry.id];
+      if (audioName != null && entry.audioPath != audioName) {
+        record = entry.withAudioPath(audioName);
       }
-      await _addAudio(writer, entries, audioNames);
-      for (final reflection in reflections.rows) {
-        await writer.addBytes(
-          'reflections/${reflection.period.wire}-${reflection.periodKey}.json',
-          utf8.encode(jsonEncode(reflection.toJson())),
-        );
+      if (audioName == null && entry.audioPath != null) {
+        record = entry.withoutAudio();
       }
-      await writer.close();
-    } catch (_) {
-      await writer.abort();
-      rethrow;
+      bytes.add(('entries/${entry.id}.json', utf8.encode(jsonEncode(record.toJson()))));
     }
+    for (final reflection in reflections.rows) {
+      bytes.add((
+        'reflections/${reflection.period.wire}-${reflection.periodKey}.json',
+        utf8.encode(jsonEncode(reflection.toJson())),
+      ));
+    }
+    await _packInto(
+      target.path,
+      bytes,
+      await _audioFileEntries(entries, audioNames),
+      onProgress,
+      onPackDone,
+    );
   }
 
   /// Bare audio names by entry id, uniqued: basenames are UUID-based and
@@ -272,20 +327,6 @@ class ExportService {
       names[entry.id] = name;
     }
     return names;
-  }
-
-  Future<void> _addAudio(
-    StoredZipWriter writer,
-    List<Entry> entries,
-    Map<String, String> audioNames,
-  ) async {
-    for (final entry in entries) {
-      final name = audioNames[entry.id];
-      if (name == null) continue;
-      final source = File(await _transcription.resolveAudioPath(entry));
-      if (!source.existsSync()) continue;
-      await writer.addFile('audio/$name', source);
-    }
   }
 
   Future<bool> _stage(Future<List<String>> Function(Directory staging) build) async {

@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
@@ -138,6 +139,7 @@ void main() {
       shareFailureResult(const StoredZipException(StoredZipError.unsupported, 'zip64')),
       BackupActionResult.failed,
     );
+    expect(shareFailureResult(const ZipPackAborted()), BackupActionResult.cancelled);
     expect(shareFailureResult(const ShareExportException('broke')), BackupActionResult.failed);
     expect(
       shareFailureResult(const FileSystemException('write failed', 'f', OSError('denied', 13))),
@@ -376,6 +378,54 @@ void main() {
     final outcome = await world.cubit.importArchive(noise.path);
     expect(outcome!.resolution, ImportResolution.failed);
     expect(world.store.all(), isEmpty);
+  });
+
+  test('settling keeps everything but busy and progress', () {
+    const measured = JournalMeasure(entries: 2, recordings: 1, approxBytes: 9000);
+    final state = BackupState(
+      measure: measured,
+      formatId: 'markdown',
+      seal: false,
+      lastArchiveAt: fixedClock,
+      busy: BackupBusy.archiving,
+      progress: 0.4,
+    ).settled();
+    expect(state.busy, BackupBusy.none);
+    expect(state.progress, isNull);
+    expect(state.measure, measured);
+    expect(state.formatId, 'markdown');
+    expect(state.seal, isFalse);
+    expect(state.lastArchiveAt, fixedClock);
+  });
+
+  test('a finished pack drops progress but keeps the operation busy', () {
+    final state = const BackupState(busy: BackupBusy.archiving, progress: 0.9).packDone();
+    expect(state.busy, BackupBusy.archiving);
+    expect(state.progress, isNull);
+  });
+
+  test('a backup reports pack progress and settles clean', () async {
+    final world = await build();
+    final recordings = Directory('${temp.path}/recordings');
+    await File(
+      '${recordings.path}/otr-1.m4a',
+    ).writeAsBytes(List<int>.generate(4096, (i) => i % 200));
+    await world.store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'otr-1.m4a',
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    await world.cubit.load();
+    final seen = <double?>[];
+    final sub = world.cubit.stream.listen((s) => seen.add(s.progress));
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    await sub.cancel();
+    expect(seen.whereType<double>(), isNotEmpty);
+    expect(world.cubit.state.progress, isNull);
+    expect(world.cubit.state.busy, BackupBusy.none);
   });
 
   test('a bookkeeping failure after a completed share still answers shared', () async {

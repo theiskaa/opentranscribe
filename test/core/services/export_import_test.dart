@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -706,6 +707,28 @@ void main() {
       final measure = await a.export.measure();
       expect(measure.entries, 2);
       expect(measure.recordings, 0);
+    });
+
+    test('a cancelled pack surfaces as aborted and cleans its staging', () async {
+      final a = await world('a');
+      for (var i = 0; i < 6; i++) {
+        await writeAudio(a, 'otr-$i.m4a', List<int>.generate(1 << 15, (b) => b % 200));
+        await a.store.save(entry('e$i', audioPath: 'otr-$i.m4a'));
+      }
+      await expectLater(
+        a.export.shareJournal(
+          exporterId: 'markdown',
+          includeAudio: true,
+          strings: strings,
+          onProgress: (_) => a.export.cancelShare(),
+        ),
+        throwsA(isA<ZipPackAborted>()),
+      );
+      final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
+        (d) => d.path.split('/').last.startsWith('export-'),
+      );
+      expect(leftovers, isEmpty);
+      expect(a.share.captured, isEmpty);
     });
 
     test('a plain archive probes with its manifest counts, a sealed one with none', () async {

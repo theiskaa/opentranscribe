@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
@@ -35,6 +36,7 @@ BackupActionResult shareFailureResult(Object error) {
       (error.code == ShareExportException.busy || error.code == ShareExportException.unavailable)) {
     return BackupActionResult.cancelled;
   }
+  if (error is ZipPackAborted) return BackupActionResult.cancelled;
   if (error is StoredZipException && error.error == StoredZipError.tooLarge) {
     return BackupActionResult.failedTooLarge;
   }
@@ -94,6 +96,7 @@ final class BackupState {
     this.seal = true,
     this.lastArchiveAt,
     this.busy = BackupBusy.none,
+    this.progress,
   });
 
   /// Null until the first measure lands; the intro reads generic until then.
@@ -103,6 +106,10 @@ final class BackupState {
   final DateTime? lastArchiveAt;
   final BackupBusy busy;
 
+  /// How far the running share's pack phase has come, 0..1; null outside the
+  /// pack phase, which is also when there is nothing left to cancel.
+  final double? progress;
+
   bool get isBusy => busy != BackupBusy.none;
 
   BackupState copyWith({
@@ -111,12 +118,28 @@ final class BackupState {
     bool? seal,
     DateTime? lastArchiveAt,
     BackupBusy? busy,
+    double? progress,
   }) => BackupState(
     measure: measure ?? this.measure,
     formatId: formatId ?? this.formatId,
     seal: seal ?? this.seal,
     lastArchiveAt: lastArchiveAt ?? this.lastArchiveAt,
     busy: busy ?? this.busy,
+    progress: progress ?? this.progress,
+  );
+
+  /// Back to rest: busy released and progress dropped, everything else kept.
+  BackupState settled() =>
+      BackupState(measure: measure, formatId: formatId, seal: seal, lastArchiveAt: lastArchiveAt);
+
+  /// The pack finished but the operation runs on (sealing, the share
+  /// sheet): progress leaves, and the cancel affordance with it.
+  BackupState packDone() => BackupState(
+    measure: measure,
+    formatId: formatId,
+    seal: seal,
+    lastArchiveAt: lastArchiveAt,
+    busy: busy,
   );
 
   @override
@@ -126,10 +149,11 @@ final class BackupState {
       other.formatId == formatId &&
       other.seal == seal &&
       other.lastArchiveAt == lastArchiveAt &&
-      other.busy == busy;
+      other.busy == busy &&
+      other.progress == progress;
 
   @override
-  int get hashCode => Object.hash(measure, formatId, seal, lastArchiveAt, busy);
+  int get hashCode => Object.hash(measure, formatId, seal, lastArchiveAt, busy, progress);
 }
 
 /// Drives the Backup screen: measures the entry count, holds the persisted
@@ -221,12 +245,32 @@ class BackupCubit extends Cubit<BackupState> {
       exporterId: exporterId,
       includeAudio: includeAudio,
       strings: strings,
+      onProgress: _onProgress,
+      onPackDone: _onPackDone,
     );
     // Reached only when the attempt RAN (shared or dismissed), past every
     // never-presented escape: a refused attempt leaves no trace.
     await _rememberFormat(exporterId);
     return shared;
   });
+
+  /// Calls off the pack phase of the running backup or export; once the
+  /// share sheet is up there is nothing left to cancel and this is quiet.
+  void cancelShare() => _export.cancelShare();
+
+  void _onPackDone() {
+    if (isClosed) return;
+    emit(state.packDone());
+  }
+
+  /// Whole percents only: a per-file signal on a big journal would otherwise
+  /// emit a rebuild per landed recording.
+  void _onProgress(double fraction) {
+    if (isClosed) return;
+    final previous = state.progress;
+    if (previous != null && (previous * 100).truncate() == (fraction * 100).truncate()) return;
+    emit(state.copyWith(progress: fraction));
+  }
 
   /// Best-effort and safe after close: the format memory is a convenience
   /// no export outcome may trip over.
@@ -241,7 +285,11 @@ class BackupCubit extends Cubit<BackupState> {
 
   Future<BackupActionResult> exportArchive({String? passphrase}) =>
       _run(BackupBusy.archiving, () async {
-        final shared = await _export.shareArchive(passphrase: passphrase);
+        final shared = await _export.shareArchive(
+          passphrase: passphrase,
+          onProgress: _onProgress,
+          onPackDone: _onPackDone,
+        );
         if (shared) {
           // Persisted even after close: the share sheet outlives the screen,
           // and a backup that finished is a backup that happened.
@@ -300,7 +348,7 @@ class BackupCubit extends Cubit<BackupState> {
       if (kDebugMode) debugPrint('BackupCubit.import failed: $e');
       return const ImportOutcome.midway();
     } finally {
-      if (!isClosed) emit(state.copyWith(busy: BackupBusy.none));
+      if (!isClosed) emit(state.settled());
     }
   }
 
@@ -316,7 +364,7 @@ class BackupCubit extends Cubit<BackupState> {
       }
       return result;
     } finally {
-      if (!isClosed) emit(state.copyWith(busy: BackupBusy.none));
+      if (!isClosed) emit(state.settled());
     }
   }
 
