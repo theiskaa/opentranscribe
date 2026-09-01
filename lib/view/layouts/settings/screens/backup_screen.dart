@@ -119,7 +119,13 @@ class _BackupView extends StatelessWidget {
     final locale = localeTag(context);
     final probe = await cubit.probeArchive(path);
     if (!context.mounted) return;
-    if (probe == null || probe.kind == ArchiveKind.unknown) {
+    // An unreadable file is not evidence about what it is: only a file whose
+    // bytes were read and rejected earns the "not a backup" verdict.
+    if (probe == null) {
+      await _failSheet(context, body: l10n.importFailedBody);
+      return;
+    }
+    if (probe.kind == ArchiveKind.unknown) {
       await _failSheet(context, body: l10n.importNotArchive);
       return;
     }
