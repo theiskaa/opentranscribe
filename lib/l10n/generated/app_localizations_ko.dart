@@ -734,22 +734,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote =>
-      '항목마다 하나의 Markdown 노트와 돌아보기, 그리고 기계가 읽을 수 있는 JSON 사본. 어디서나 열리는 단순한 파일입니다.';
+  String get exportFormatMarkdownNote => '항목마다 노트 하나, 기계가 읽는 JSON 포함.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote =>
-      'Obsidian에서 바로 열 수 있는 Vault. 속성이 있는 노트, 삽입된 녹음, 해당 기간의 항목으로 연결되는 돌아보기.';
+  String get exportFormatObsidianNote => '속성 있는 노트, 녹음 삽입.';
 
   @override
   String get exportFormatWeb => '웹사이트';
 
   @override
-  String get exportFormatWebNote =>
-      '하나로 완결된 웹사이트. 검색과 녹음마다 플레이어가 있는 저널 전체로, 어떤 브라우저에서도 오프라인으로도 열립니다.';
+  String get exportFormatWebNote => '검색과 플레이어, 어떤 브라우저에서도.';
 
   @override
   String get exportFailedTitle => '내보내기 실패';

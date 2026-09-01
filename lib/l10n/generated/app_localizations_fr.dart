@@ -778,22 +778,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote =>
-      'Une note Markdown par entrée avec vos réflexions, plus des copies JSON lisibles par une machine. Des fichiers simples qui s\'ouvrent partout.';
+  String get exportFormatMarkdownNote => 'Une note par entrée, plus du JSON lisible par machine.';
 
   @override
   String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote =>
-      'Un coffre prêt à ouvrir dans Obsidian : notes avec propriétés, enregistrements intégrés, réflexions liées à leurs entrées.';
+  String get exportFormatObsidianNote => 'Notes avec propriétés, enregistrements intégrés.';
 
   @override
   String get exportFormatWeb => 'Site web';
 
   @override
-  String get exportFormatWebNote =>
-      'Un site web autonome : tout votre journal avec recherche et un lecteur pour chaque enregistrement. S\'ouvre dans n\'importe quel navigateur, même hors ligne.';
+  String get exportFormatWebNote => 'Recherche et lecteur, dans tout navigateur.';
 
   @override
   String get exportFailedTitle => 'Échec de l\'export';

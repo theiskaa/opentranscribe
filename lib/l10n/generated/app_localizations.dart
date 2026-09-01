@@ -1473,7 +1473,7 @@ abstract class AppLocalizations {
   /// One line under the Markdown format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'A Markdown note per entry with your reflections, plus JSON copies a machine can read. Plain files that open anywhere.'**
+  /// **'One note per entry, plus machine-readable JSON.'**
   String get exportFormatMarkdownNote;
 
   /// Name of the Obsidian export format. A product name: keep it verbatim
@@ -1485,7 +1485,7 @@ abstract class AppLocalizations {
   /// One line under the Obsidian format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'A vault ready to open in Obsidian: notes with properties, recordings embedded, reflections linking their period\'s entries.'**
+  /// **'Notes with properties, recordings embedded.'**
   String get exportFormatObsidianNote;
 
   /// The app's own name for the HTML export format; a plain noun, so it translates
@@ -1497,7 +1497,7 @@ abstract class AppLocalizations {
   /// One line under the web page format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'One self-contained website: your whole journal with search and a player for every recording. Opens in any browser, offline.'**
+  /// **'Search and a player, in any browser.'**
   String get exportFormatWebNote;
 
   /// Export failure sheet title
