@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -131,7 +132,7 @@ class LocalService {
     return Uint8List.fromList([for (var i = 0; i < _nonceLength; i++) random.nextInt(256)]);
   }
 
-  GCMBlockCipher _gcm(bool forEncryption, Uint8List deviceKey, Uint8List nonce) {
+  static GCMBlockCipher _gcm(bool forEncryption, Uint8List deviceKey, Uint8List nonce) {
     return GCMBlockCipher(AESEngine())..init(
       forEncryption,
       AEADParameters(KeyParameter(deviceKey), _macSizeBits, nonce, Uint8List(0)),
@@ -155,6 +156,12 @@ class LocalService {
     if (deviceKey == null) {
       throw StateError('a v3 record was read but init() was not given a device key');
     }
+    return _decryptV3Record(deviceKey, encrypted);
+  }
+
+  /// The v3 decrypt core. Static so [readAllOnIsolate]'s isolate closure
+  /// captures no instance.
+  static String _decryptV3Record(Uint8List deviceKey, String encrypted) {
     final separator = encrypted.indexOf(':', _formatPrefix.length);
     if (separator < 0) throw const FormatException('malformed encrypted record');
     final nonce = base64.decode(encrypted.substring(_formatPrefix.length, separator));
@@ -309,5 +316,42 @@ class LocalService {
   /// Finds all keys that start with the given prefix.
   Set<String> findKeysWithPrefix(String prefix) {
     return _prefs.getKeys().where((key) => key.startsWith(prefix)).toSet();
+  }
+
+  /// Reads every JSON record under [prefix], decrypting and parsing on a
+  /// worker isolate, so a whole-journal read can run off the frames the user
+  /// is watching. Corrupt records are skipped, like the synchronous reads.
+  /// Returns null when the work cannot leave the main isolate (no device key
+  /// yet, or a record still in a legacy format): callers then fall back to
+  /// the synchronous path.
+  Future<List<T>?> readAllOnIsolate<T>(
+    String prefix,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
+    final deviceKey = _deviceKey;
+    if (deviceKey == null) return null;
+    final sealed = <String>[];
+    for (final key in findKeysWithPrefix(prefix)) {
+      // Raw read: getString throws on a non-String value, and a bad key must
+      // be skipped here exactly as the synchronous reads skip it.
+      final value = _prefs.get(key);
+      if (value is! String || value.isEmpty) continue;
+      if (!value.startsWith(_formatPrefix)) return null;
+      sealed.add(value);
+    }
+    // An isolate costs more than it saves on a journal this small.
+    if (sealed.isEmpty) return <T>[];
+    return Isolate.run(() {
+      final out = <T>[];
+      for (final record in sealed) {
+        try {
+          final decoded = jsonDecode(_decryptV3Record(deviceKey, record)) as Map<String, dynamic>;
+          out.add(fromJson(decoded));
+        } catch (_) {
+          continue;
+        }
+      }
+      return out;
+    });
   }
 }

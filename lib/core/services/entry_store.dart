@@ -25,6 +25,9 @@ class EntryStore {
 
   List<Entry>? _cache;
 
+  /// Bumped by every write, so [warm] can tell its snapshot went stale.
+  int _generation = 0;
+
   String _keyFor(String id) => '$_prefix$id';
 
   /// Newest first; ties on [Entry.createdAt] break by id so ordering is
@@ -48,6 +51,7 @@ class EntryStore {
   void _drop(String id) => _cache?.removeWhere((e) => e.id == id);
 
   Future<void> save(Entry entry) async {
+    _generation++;
     _put(entry);
     try {
       await _storage.writeJson(_keyFor(entry.id), entry.toJson());
@@ -64,6 +68,18 @@ class EntryStore {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Builds the cache on a worker isolate, so the first [all] pays no
+  /// whole-journal decrypt on the frames the user is watching. Anything
+  /// landing meanwhile wins: a write, or a cache a synchronous [all] already
+  /// built, discards the warmed list.
+  Future<void> warm() async {
+    if (_cache != null) return;
+    final generation = _generation;
+    final entries = await _storage.readAllOnIsolate(_prefix, Entry.fromJson);
+    if (entries == null || _cache != null || _generation != generation) return;
+    _cache = entries..sort(_byRecency);
   }
 
   /// All entries, newest first. Corrupt records are skipped. Cached, and a
@@ -89,6 +105,7 @@ class EntryStore {
   }
 
   Future<void> delete(String id) async {
+    _generation++;
     _drop(id);
     try {
       await _storage.delete(_keyFor(id));

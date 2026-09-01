@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
@@ -21,6 +22,30 @@ class _FailsWhenArmed extends LocalService {
   Future<bool> delete(String key) {
     if (failDeletes) throw StateError('no disk');
     return super.delete(key);
+  }
+}
+
+class _CountingReads extends LocalService {
+  int readJsonCalls = 0;
+
+  @override
+  T? readJson<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+    readJsonCalls++;
+    return super.readJson(key, fromJson);
+  }
+}
+
+class _GatedReads extends LocalService {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<List<T>?> readAllOnIsolate<T>(
+    String prefix,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
+    final result = await super.readAllOnIsolate(prefix, fromJson);
+    await gate.future;
+    return result;
   }
 }
 
@@ -220,6 +245,56 @@ void main() {
     store.all().clear();
 
     expect(store.all(), hasLength(1));
+  });
+
+  test('warm builds the cache off-thread so the first read decrypts nothing', () async {
+    final counting = _CountingReads();
+    await counting.init(legacyKey: key, deviceKey: Uint8List(32));
+    await EntryStore(counting).save(entry('one', DateTime.utc(2026, 3, 4)));
+    final cold = EntryStore(counting);
+
+    await cold.warm();
+    counting.readJsonCalls = 0;
+
+    expect(cold.all().map((e) => e.id).toList(), ['one']);
+    expect(counting.readJsonCalls, 0);
+  });
+
+  test('warm without a device key leaves the read on the synchronous path', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+    final cold = EntryStore(storage);
+
+    await cold.warm();
+
+    expect(cold.all().map((e) => e.id).toList(), ['one']);
+  });
+
+  test('a save landing mid-warm wins over the warmed snapshot', () async {
+    final gated = _GatedReads();
+    await gated.init(legacyKey: key, deviceKey: Uint8List(32));
+    await EntryStore(gated).save(entry('one', DateTime.utc(2026, 3, 4)));
+    final cold = EntryStore(gated);
+
+    final warming = cold.warm();
+    await cold.save(entry('two', DateTime.utc(2026, 3, 5)));
+    gated.gate.complete();
+    await warming;
+
+    expect(cold.all().map((e) => e.id).toSet(), {'one', 'two'});
+  });
+
+  test('warm never replaces a cache a read already built', () async {
+    final gated = _GatedReads();
+    await gated.init(legacyKey: key, deviceKey: Uint8List(32));
+    await EntryStore(gated).save(entry('one', DateTime.utc(2026, 3, 4)));
+    final cold = EntryStore(gated);
+
+    final warming = cold.warm();
+    final before = cold.all().single;
+    gated.gate.complete();
+    await warming;
+
+    expect(identical(cold.all().single, before), isTrue);
   });
 
   test('round-trips an entry carrying a multi-segment transcript', () async {
