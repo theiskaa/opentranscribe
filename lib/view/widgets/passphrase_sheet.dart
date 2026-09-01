@@ -193,13 +193,14 @@ class _RevealToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Padded inside the detector: the word alone is far under a comfortable
-    // tap target, and a miss would focus the field instead.
+    // Horizontal padding only: it widens the tap seat, while any vertical
+    // padding would make this the field's tallest child and grow it past
+    // the repeat field below.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         child: Text(label, style: AppType.footnote.copyWith(color: context.theme.textSecondary)),
       ),
     );
