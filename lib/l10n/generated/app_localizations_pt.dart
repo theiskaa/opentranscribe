@@ -797,6 +797,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportFailedBody => 'Não foi possível preparar os ficheiros. Nada foi partilhado.';
 
   @override
+  String get exportTooLargeBody =>
+      'A exportação excede os 4 GB que um único ficheiro pode conter. Nada foi partilhado.';
+
+  @override
+  String get exportNoSpaceBody =>
+      'Não há espaço livre suficiente para preparar os ficheiros. Nada foi partilhado.';
+
+  @override
   String get exportUntitled => 'Sem título';
 
   @override

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
@@ -17,8 +19,30 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 enum BackupBusy { none, exporting, archiving, importing }
 
 /// How an export action ended. Cancel is a quiet outcome (the user closed
-/// the share sheet, nothing to explain); only [failed] earns a failure sheet.
-enum BackupActionResult { shared, cancelled, failed }
+/// the share sheet, nothing to explain); the failed values earn a failure
+/// sheet, the specific two naming their cause.
+enum BackupActionResult { shared, cancelled, failed, failedTooLarge, failedNoSpace }
+
+/// POSIX ENOSPC; iOS is the only shipped platform.
+const _enospc = 28;
+
+/// The one reading of a share escape, for every export surface: a share that
+/// never presented (sheet busy, unavailable) is a quiet cancel, because a
+/// sheet claiming the export broke would be a lie; the two failures a user
+/// can act on keep their cause; anything else is the generic failure.
+BackupActionResult shareFailureResult(Object error) {
+  if (error is ShareExportException &&
+      (error.code == ShareExportException.busy || error.code == ShareExportException.unavailable)) {
+    return BackupActionResult.cancelled;
+  }
+  if (error is StoredZipException && error.error == StoredZipError.tooLarge) {
+    return BackupActionResult.failedTooLarge;
+  }
+  if (error is FileSystemException && error.osError?.errorCode == _enospc) {
+    return BackupActionResult.failedNoSpace;
+  }
+  return BackupActionResult.failed;
+}
 
 /// What a finished import attempt means for the flow: show the summary, ask
 /// for the passphrase again, or fail with which copy. The one mapping from
@@ -236,17 +260,12 @@ class BackupCubit extends Cubit<BackupState> {
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
-    } on ShareExportException catch (e) {
-      // Nothing was ever presented, so nothing failed: a sheet claiming the
-      // export broke would be a lie. Quiet, like a cancel.
-      if (e.code == ShareExportException.busy || e.code == ShareExportException.unavailable) {
-        return BackupActionResult.cancelled;
-      }
-      if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
-      return BackupActionResult.failed;
     } catch (e) {
-      if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
-      return BackupActionResult.failed;
+      final result = shareFailureResult(e);
+      if (kDebugMode && result != BackupActionResult.cancelled) {
+        debugPrint('BackupCubit.${busy.name} failed: $e');
+      }
+      return result;
     } finally {
       if (!isClosed) emit(state.copyWith(busy: BackupBusy.none));
     }

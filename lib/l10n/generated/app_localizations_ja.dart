@@ -753,6 +753,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
 
   @override
+  String get exportTooLargeBody => '書き出しが1ファイルに収まる4 GBを超えています。何も共有されていません。';
+
+  @override
+  String get exportNoSpaceBody => 'ファイルを準備するための空き容量が足りません。何も共有されていません。';
+
+  @override
   String get exportUntitled => '無題';
 
   @override

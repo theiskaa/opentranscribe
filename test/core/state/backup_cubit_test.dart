@@ -5,7 +5,9 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
+import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
+import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
@@ -109,6 +111,42 @@ void main() {
 
   Entry entry(String id) =>
       Entry(id: id, createdAt: fixedClock, audioPath: null, duration: const Duration(seconds: 5));
+
+  test('shareFailureResult reads a share that never presented as a quiet cancel', () {
+    expect(
+      shareFailureResult(const ShareExportException('sheet up', ShareExportException.busy)),
+      BackupActionResult.cancelled,
+    );
+    expect(
+      shareFailureResult(const ShareExportException('no scene', ShareExportException.unavailable)),
+      BackupActionResult.cancelled,
+    );
+  });
+
+  test('shareFailureResult names the size cap and the full disk, all else is generic', () {
+    expect(
+      shareFailureResult(const StoredZipException(StoredZipError.tooLarge, 'exceeds 4 GB')),
+      BackupActionResult.failedTooLarge,
+    );
+    expect(
+      shareFailureResult(const FileSystemException('write failed', 'f', OSError('no space', 28))),
+      BackupActionResult.failedNoSpace,
+    );
+    expect(
+      shareFailureResult(const StoredZipException(StoredZipError.unsupported, 'zip64')),
+      BackupActionResult.failed,
+    );
+    expect(shareFailureResult(const ShareExportException('broke')), BackupActionResult.failed);
+    expect(
+      shareFailureResult(const FileSystemException('write failed', 'f', OSError('denied', 13))),
+      BackupActionResult.failed,
+    );
+    expect(
+      shareFailureResult(const FileSystemException('write failed')),
+      BackupActionResult.failed,
+    );
+    expect(shareFailureResult(StateError('x')), BackupActionResult.failed);
+  });
 
   test('importResolutionOf maps every archive error to its next step', () {
     expect(importResolutionOf(ArchiveError.cannotDecrypt), ImportResolution.retryPassphrase);

@@ -55,7 +55,27 @@ class _BackupView extends StatelessWidget {
     final strings = exportStringsOf(AppLocalizations.of(context)!);
     final result = await cubit.exportJournal(strings);
     if (!context.mounted) return;
-    if (result == BackupActionResult.failed) unawaited(_failSheet(context, export: true));
+    unawaited(_shareFailSheet(context, result));
+  }
+
+  /// Nothing for the quiet outcomes; each failure names its cause where the
+  /// cubit could tell it apart.
+  Future<void> _shareFailSheet(BuildContext context, BackupActionResult result) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (result) {
+      BackupActionResult.shared || BackupActionResult.cancelled => Future<void>.value(),
+      BackupActionResult.failed => _failSheet(context, export: true),
+      BackupActionResult.failedTooLarge => _failSheet(
+        context,
+        export: true,
+        body: l10n.exportTooLargeBody,
+      ),
+      BackupActionResult.failedNoSpace => _failSheet(
+        context,
+        export: true,
+        body: l10n.exportNoSpaceBody,
+      ),
+    };
   }
 
   Future<void> _saveArchive(BuildContext context) async {
@@ -79,7 +99,7 @@ class _BackupView extends StatelessWidget {
     }
     final result = await cubit.exportArchive(passphrase: passphrase);
     if (!context.mounted) return;
-    if (result == BackupActionResult.failed) unawaited(_failSheet(context, export: true));
+    unawaited(_shareFailSheet(context, result));
   }
 
   /// Each decision is a sheet; the cubit holds the busy gate and the outcomes.

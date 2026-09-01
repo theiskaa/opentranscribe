@@ -791,6 +791,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportFailedBody => 'Could not prepare the files. Nothing was shared.';
 
   @override
+  String get exportTooLargeBody =>
+      'The export passes the 4 GB a single file can hold. Nothing was shared.';
+
+  @override
+  String get exportNoSpaceBody => 'Not enough free space to prepare the files. Nothing was shared.';
+
+  @override
   String get exportUntitled => 'Untitled';
 
   @override

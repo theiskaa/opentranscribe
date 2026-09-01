@@ -755,6 +755,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
 
   @override
+  String get exportTooLargeBody => '내보내기가 파일 하나에 담을 수 있는 4 GB를 넘습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportNoSpaceBody => '파일을 준비할 여유 공간이 부족합니다. 아무것도 공유되지 않았습니다.';
+
+  @override
   String get exportUntitled => '제목 없음';
 
   @override

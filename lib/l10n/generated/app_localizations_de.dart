@@ -800,6 +800,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Dateien konnten nicht vorbereitet werden. Nichts wurde geteilt.';
 
   @override
+  String get exportTooLargeBody =>
+      'Der Export übersteigt die 4 GB, die eine einzelne Datei fassen kann. Nichts wurde geteilt.';
+
+  @override
+  String get exportNoSpaceBody =>
+      'Nicht genug freier Speicher, um die Dateien vorzubereiten. Nichts wurde geteilt.';
+
+  @override
   String get exportUntitled => 'Ohne Titel';
 
   @override

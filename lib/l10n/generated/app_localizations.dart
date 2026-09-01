@@ -1512,6 +1512,18 @@ abstract class AppLocalizations {
   /// **'Could not prepare the files. Nothing was shared.'**
   String get exportFailedBody;
 
+  /// Export failure body when the archive overflowed the zip format's 4 GB cap
+  ///
+  /// In en, this message translates to:
+  /// **'The export passes the 4 GB a single file can hold. Nothing was shared.'**
+  String get exportTooLargeBody;
+
+  /// Export failure body when the device ran out of disk space
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space to prepare the files. Nothing was shared.'**
+  String get exportNoSpaceBody;
+
   /// File and heading fallback for an entry with no title
   ///
   /// In en, this message translates to:

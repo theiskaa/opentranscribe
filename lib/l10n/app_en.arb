@@ -1025,6 +1025,14 @@
   "@exportFailedBody": {
     "description": "Export failure explanation; nothing left the phone"
   },
+  "exportTooLargeBody": "The export exceeds the 4 GB a single file can hold. Nothing was shared.",
+  "@exportTooLargeBody": {
+    "description": "Export failure body when the archive overflowed the zip format's 4 GB cap"
+  },
+  "exportNoSpaceBody": "Not enough free space to prepare the files. Nothing was shared.",
+  "@exportNoSpaceBody": {
+    "description": "Export failure body when the device ran out of disk space"
+  },
   "exportUntitled": "Untitled",
   "@exportUntitled": {
     "description": "File and heading fallback for an entry with no title"

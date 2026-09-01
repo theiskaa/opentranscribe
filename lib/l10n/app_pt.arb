@@ -234,6 +234,8 @@
   "exportFormatWebNote": "Abre em qualquer navegador, com leitor.",
   "exportFailedTitle": "A exportação falhou",
   "exportFailedBody": "Não foi possível preparar os ficheiros. Nada foi partilhado.",
+  "exportTooLargeBody": "A exportação excede os 4 GB que um único ficheiro pode conter. Nada foi partilhado.",
+  "exportNoSpaceBody": "Não há espaço livre suficiente para preparar os ficheiros. Nada foi partilhado.",
   "exportUntitled": "Sem título",
   "exportTranscriptHeading": "Transcrição",
   "exportQuiet": "Um período calmo.",

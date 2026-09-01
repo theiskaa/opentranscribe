@@ -750,6 +750,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFailedBody => '无法准备文件。未共享任何内容。';
 
   @override
+  String get exportTooLargeBody => '导出超过了单个文件可容纳的 4 GB。未共享任何内容。';
+
+  @override
+  String get exportNoSpaceBody => '可用空间不足，无法准备文件。未共享任何内容。';
+
+  @override
   String get exportUntitled => '无标题';
 
   @override

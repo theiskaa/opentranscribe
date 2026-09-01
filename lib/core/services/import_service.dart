@@ -160,12 +160,10 @@ class ImportService {
     try {
       return await _readPayload(payload, staging);
     } on StoredZipException catch (e) {
-      throw ArchiveException(
-        e.error == StoredZipError.unsupported
-            ? ArchiveError.unsupportedZip
-            : ArchiveError.malformed,
-        e.message,
-      );
+      throw ArchiveException(switch (e.error) {
+        StoredZipError.unsupported => ArchiveError.unsupportedZip,
+        StoredZipError.malformed || StoredZipError.tooLarge => ArchiveError.malformed,
+      }, e.message);
     }
   }
 

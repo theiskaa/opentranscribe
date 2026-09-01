@@ -799,6 +799,14 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportFailedBody => 'Impossibile preparare i file. Non è stato condiviso nulla.';
 
   @override
+  String get exportTooLargeBody =>
+      'L\'esportazione supera i 4 GB che un singolo file può contenere. Non è stato condiviso nulla.';
+
+  @override
+  String get exportNoSpaceBody =>
+      'Spazio libero insufficiente per preparare i file. Non è stato condiviso nulla.';
+
+  @override
   String get exportUntitled => 'Senza titolo';
 
   @override
