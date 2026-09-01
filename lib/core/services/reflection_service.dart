@@ -216,13 +216,24 @@ class ReflectionService {
   bool hasBacklog() {
     final stored = _store.all();
     final deleted = _store.deletedRefs();
+    final journaled = journaledStartsByPeriod();
     for (final period in ReflectionPeriod.values) {
       if (!_settings.enabledFor(period)) continue;
+      // A linear scan here is starts x stored per period, and hasBacklog runs
+      // on every derive.
+      final covered = _StartIndex(period, [
+        for (final r in stored)
+          if (r.period == period) r.periodStart,
+      ]);
+      final erased = _StartIndex(period, [
+        for (final d in deleted)
+          if (d.period == period) d.start,
+      ]);
       final current = _currentStart(period);
-      for (final start in journaledStartsFor(period)) {
+      for (final start in journaled[period]!) {
         if (!start.isBefore(current)) continue;
-        if (_covered(period, start, stored)) continue;
-        if (_tombstoned(period, start, deleted)) continue;
+        if (covered.anyOverlapping(start)) continue;
+        if (erased.anyOverlapping(start)) continue;
         return true;
       }
     }
@@ -367,6 +378,20 @@ class ReflectionService {
     for (final e in _entries())
       if (_hasMaterial(e)) _startOfEntry(period, e),
   };
+
+  /// Every period's journaled starts from ONE journal pass, for the callers
+  /// that need all periods at once ([hasBacklog], the reflections derive);
+  /// [journaledStartsFor] stays the single-period read.
+  Map<ReflectionPeriod, Set<DateTime>> journaledStartsByPeriod() {
+    final byPeriod = {for (final p in ReflectionPeriod.values) p: <DateTime>{}};
+    for (final e in _entries()) {
+      if (!_hasMaterial(e)) continue;
+      for (final p in ReflectionPeriod.values) {
+        byPeriod[p]!.add(_startOfEntry(p, e));
+      }
+    }
+    return byPeriod;
+  }
 
   /// The open [period]'s start: the timeline's ceiling, resolved here so
   /// surfaces never re-derive the boundary.
@@ -610,4 +635,31 @@ final class ReflectionArchive {
   final List<Reflection> rows;
   final List<({ReflectionPeriod period, DateTime start})> tombstones;
   final Map<ReflectionPeriod, DateTime> floors;
+}
+
+/// One period's starts, sorted, answering "does anything overlap this start"
+/// with two neighbor probes. Sufficient because [nextPeriodStart] is
+/// monotone: among starts on either side of the candidate, the nearest one
+/// overlaps whenever any does.
+final class _StartIndex {
+  _StartIndex(this._period, Iterable<DateTime> starts) : _sorted = starts.toList()..sort();
+
+  final ReflectionPeriod _period;
+  final List<DateTime> _sorted;
+
+  bool anyOverlapping(DateTime start) {
+    var lo = 0;
+    var hi = _sorted.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (!_sorted[mid].isAfter(start)) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo > 0 && periodsOverlap(start, _sorted[lo - 1], _period)) return true;
+    if (lo < _sorted.length && periodsOverlap(start, _sorted[lo], _period)) return true;
+    return false;
+  }
 }

@@ -236,6 +236,7 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
   /// empty timeline while another period holds readable pages.
   ReflectionsState _deriveView(ReflectionsState s) {
     final histories = _service.historiesByPeriod();
+    final journaledByPeriod = _service.journaledStartsByPeriod();
     final enabledByPeriod = {for (final p in ReflectionPeriod.values) p: _settings.enabledFor(p)};
     final periods = [
       for (final p in ReflectionPeriod.values)
@@ -245,11 +246,11 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
         ? s.viewedPeriod
         : periods.first;
     if (!s.loaded && periods.isNotEmpty) period = periods.last;
-    var timeline = _timelineFor(period, histories[period]!);
+    var timeline = _timelineFor(period, histories[period]!, journaledByPeriod[period]!);
     if (timeline.isEmpty) {
       for (final p in periods.reversed) {
         if (p == period) continue;
-        final fallback = _timelineFor(p, histories[p]!);
+        final fallback = _timelineFor(p, histories[p]!, journaledByPeriod[p]!);
         if (fallback.isNotEmpty) {
           period = p;
           timeline = fallback;
@@ -276,20 +277,23 @@ class ReflectionsCubit extends Cubit<ReflectionsState> {
               if (r.periodStart.isBefore(_service.currentStartFor(p))) r.periodStart,
           },
       },
-      journaledDays: _service.journaledStartsFor(ReflectionPeriod.daily),
+      journaledDays: journaledByPeriod[ReflectionPeriod.daily]!,
       hasBacklog: _service.hasBacklog(),
     );
   }
 
-  List<ReflectionPage> _timelineFor(ReflectionPeriod period, List<Reflection> history) =>
-      reflectionTimeline(
-        period: period,
-        history: history,
-        journaledStarts: _service.journaledStartsFor(period),
-        deletedStarts: _service.deletedStartsFor(period),
-        floor: _settings.floorFor(period),
-        currentStart: _service.currentStartFor(period),
-      );
+  List<ReflectionPage> _timelineFor(
+    ReflectionPeriod period,
+    List<Reflection> history,
+    Set<DateTime> journaledStarts,
+  ) => reflectionTimeline(
+    period: period,
+    history: history,
+    journaledStarts: journaledStarts,
+    deletedStarts: _service.deletedStartsFor(period),
+    floor: _settings.floorFor(period),
+    currentStart: _service.currentStartFor(period),
+  );
 
   /// The disabled page's TURN ON: restores [ReflectionSettings.defaultEnabled]'s
   /// set - every period.

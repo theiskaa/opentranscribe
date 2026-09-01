@@ -858,6 +858,32 @@ void main() {
       expect(service.hasBacklog(), isFalse);
     });
 
+    test(
+      'hasBacklog stays quiet when a shifted week boundary already holds a reflection',
+      () async {
+        await settings.setEnabledFor(ReflectionPeriod.daily, false);
+        await settings.setEnabledFor(ReflectionPeriod.monthly, false);
+        final sundayWeek = DateTime(2026, 7, 19);
+        await store.save(Reflection(periodStart: sundayWeek, generatedAt: now, text: 'kept'));
+        entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+        final deService = build(language: 'de', weekOf: null);
+
+        expect(deService.hasBacklog(), isFalse);
+      },
+    );
+
+    test('hasBacklog stays quiet when a stored reflection starts later inside the week', () async {
+      await settings.setEnabledFor(ReflectionPeriod.daily, false);
+      await settings.setEnabledFor(ReflectionPeriod.monthly, false);
+      await store.save(
+        Reflection(periodStart: DateTime(2026, 7, 25), generatedAt: now, text: 'kept'),
+      );
+      entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
+      final deService = build(language: 'de', weekOf: null);
+
+      expect(deService.hasBacklog(), isFalse);
+    });
+
     test('a stored reflection below the floor is left as it is', () async {
       await store.save(Reflection(periodStart: mayWeek, generatedAt: now, text: 'kept by hand'));
       entries = [withText('old', DateTime(2026, 5, 27, 12), text: 'a may week')];
