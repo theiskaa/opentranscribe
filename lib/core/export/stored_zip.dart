@@ -161,10 +161,15 @@ final class StoredZipWriter {
 
   /// The failure exit: closes the underlying file without writing a
   /// directory. The file on disk is not a valid zip; the caller deletes it.
+  /// Never throws: it runs inside failure paths, and an escape here (a
+  /// double close after a failed [close]) would replace the cause being
+  /// rethrown with its own noise.
   Future<void> abort() async {
     if (_closed) return;
     _closed = true;
-    await _out.close();
+    try {
+      await _out.close();
+    } catch (_) {}
   }
 
   Future<T> _guard<T>(Future<T> Function() op) async {
