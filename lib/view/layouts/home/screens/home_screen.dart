@@ -131,6 +131,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
+    // Layout can shift without a home build (a row unfolding, a type-size
+    // change), so each gesture begins on a fresh measure; the per-event path
+    // below then walks no geometry.
+    if (notification is ScrollStartNotification) _sections.remeasure(_scroll);
     if (notification is ScrollUpdateNotification) {
       // Scrolling dismisses an open row's actions - the list moving under your
       // finger should not leave a Delete armed behind it.
@@ -174,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       // A later glide superseded this one: it owns the guard now.
       if (id != _glideId) return;
-      // Arrived (or the user grabbed it mid-flight): geometry rules again.
+      // Arrived (or the user grabbed it mid-flight): the cursor is ours again.
       _gliding = false;
       if (mounted) _sections.track(_scroll, line: _contentTop);
     });
@@ -184,6 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// reading line, clear of the chrome's fade, which is also the position that
   /// hands it the title and the cursor.
   void _scrollToDay(DateTime day) {
+    // A fresh measure first: the target must not inherit drift from a layout
+    // change that never rebuilt home (a row still unfolding, a type change).
+    _sections.remeasure(_scroll);
     final start = _sections.startOf(day);
     if (start == null) {
       // A day without records has no label to park; home IS today.
@@ -239,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
           _seenEntryIds = {for (final e in state.entries) e.id};
           _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
-          // Departures before the reseed, against the same previous set; under
+          // Departures before the re-measure, against the same previous set; under
           // Reduce Motion emptied days simply leave, no ghost, and a flip
           // drops any ghost still mid-fold. A day whose title pre-folded with
           // its dying rows needs no ghost either - the seam is already closed
@@ -257,19 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
           // whatever day is recorded next.
           if (state.entries.isEmpty) _departingDays.clear();
           _seenDays = state.entryDays;
-          // After EVERY build: splitter positions move when entries are
-          // added or renamed (card heights change), not only when the set
-          // of days does.
-          _sections.seedAfterLayout(() {
-            if (!mounted) return;
-            // A glide owns the cursor; only the geometry refreshes mid-flight.
-            if (_gliding) {
-              _sections.reseed(_scroll);
-            } else {
-              _sections.track(_scroll, line: _contentTop);
-            }
-            _fitTail();
-          });
 
           // A separate, value-gated subscription: cards are driven by the
           // reflection history, so this must still rebuild when a period is
@@ -287,6 +281,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 previous.loaded != current.loaded ||
                 !listEquals(previous.homeReflections, current.homeReflections),
             builder: (context, reflectionsState) {
+              // After EVERY build of the list, whichever builder fired:
+              // splitter positions move when entries are added or renamed and
+              // when reflection cards arrive, not only when the set of days
+              // does.
+              _sections.afterLayout(() {
+                if (!mounted) return;
+                // A glide owns the cursor; only the geometry refreshes
+                // mid-flight.
+                _sections.remeasure(_scroll, line: _gliding ? null : _contentTop);
+                _fitTail();
+              });
+
               final reflections = reflectionsState.homeReflections;
               // Only a card that ARRIVES while home is up gets an entrance; the
               // first LOADED build seeds the ledger settled. Diffing before the

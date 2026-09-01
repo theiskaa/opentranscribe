@@ -1,4 +1,5 @@
 import 'dart:math' show max;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/gestures.dart';
@@ -344,21 +345,22 @@ class _EdgeShadowPainter extends BoxPainter {
     final colors = _decoration.colors;
     if (colors == null) return;
     final size = configuration.size!;
-    // Spans 5% of the page width, drawn as 1px bands (cheaper than a shader).
+    // One shaded rect, not a band per pixel: this repaints every frame of
+    // every push and pop.
     final shadowWidth = 0.05 * size.width;
-    final bandWidth = shadowWidth / (colors.length - 1);
     final (double direction, double start) = switch (configuration.textDirection ??
         TextDirection.ltr) {
       TextDirection.rtl => (1, offset.dx + size.width),
       TextDirection.ltr => (-1, offset.dx),
     };
-    var band = 0;
-    for (var dx = 0; dx < shadowWidth; dx++) {
-      if (dx ~/ bandWidth != band) band++;
-      final paint = Paint()
-        ..color = Color.lerp(colors[band], colors[band + 1], (dx % bandWidth) / bandWidth)!;
-      final x = start + direction * dx;
-      canvas.drawRect(Rect.fromLTWH(x - 1, offset.dy, 1, size.height), paint);
-    }
+    final outer = start + direction * shadowWidth;
+    final paint = Paint()
+      ..shader = ui.Gradient.linear(Offset(start, offset.dy), Offset(outer, offset.dy), colors, [
+        for (var i = 0; i < colors.length; i++) i / (colors.length - 1),
+      ]);
+    canvas.drawRect(
+      Rect.fromPoints(Offset(start, offset.dy), Offset(outer, offset.dy + size.height)),
+      paint,
+    );
   }
 }

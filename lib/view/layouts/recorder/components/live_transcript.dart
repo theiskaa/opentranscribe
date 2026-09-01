@@ -12,17 +12,19 @@ const double _edgeFade = 0.7;
 /// Greedy line packing over [words], as absolute word indices per line.
 /// Packing runs forward from the first word so a line's breaks are settled once
 /// decided: a newly spoken word only ever extends the last line or starts a new
-/// one, and the block above it holds still.
+/// one, and the block above it holds still. [first] starts a fresh line at that
+/// word, for [repackFrom] to continue an earlier packing.
 List<List<int>> packLines(
   List<String> words,
   double Function(String) widthOf, {
   required double spaceWidth,
   required double maxWidth,
+  int first = 0,
 }) {
   final lines = <List<int>>[];
   var current = <int>[];
   var used = 0.0;
-  for (var i = 0; i < words.length; i++) {
+  for (var i = first; i < words.length; i++) {
     final width = widthOf(words[i]);
     final advance = current.isEmpty ? width : spaceWidth + width;
     // A word wider than the line still gets a line of its own, rather than
@@ -38,6 +40,63 @@ List<List<int>> packLines(
   }
   if (current.isNotEmpty) lines.add(current);
   return lines;
+}
+
+/// The first index where [a] and [b] disagree; their shared length when one
+/// is a prefix of the other. A live partial usually only appends, so this
+/// lands near the end.
+int firstDivergence(List<String> a, List<String> b) {
+  final shared = math.min(a.length, b.length);
+  var i = 0;
+  while (i < shared && a[i] == b[i]) {
+    i++;
+  }
+  return i;
+}
+
+/// [lines]' packing continued after the words from [from] on changed: lines
+/// whose break the change cannot move are kept, and packing re-runs from the
+/// first line whose break it could. Assumes [words] before [from] matches the
+/// packing [lines] came from; then this equals [packLines] over all of
+/// [words], at the cost of the changed tail alone.
+List<List<int>> repackFrom(
+  List<List<int>> lines,
+  int from,
+  List<String> words,
+  double Function(String) widthOf, {
+  required double spaceWidth,
+  required double maxWidth,
+}) {
+  var keep = 0;
+  // Line j's break was decided by the word AFTER it (index last + 1), so the
+  // line is settled only while that word is unchanged.
+  while (keep < lines.length && lines[keep].last < from - 1) {
+    keep++;
+  }
+  final first = keep == 0 ? 0 : lines[keep - 1].last + 1;
+  return lines.sublist(0, keep)
+    ..addAll(packLines(words, widthOf, spaceWidth: spaceWidth, maxWidth: maxWidth, first: first));
+}
+
+/// The packing for [words], continued from the previous partial's
+/// [previousWords] and [previous] packing at [previousMaxWidth]. Unchanged
+/// words keep the previous packing, identity included, so an idle rebuild
+/// re-lays nothing; a width change re-packs everything.
+List<List<int>> packIncrementally(
+  List<String> words,
+  double Function(String) widthOf, {
+  required double spaceWidth,
+  required double maxWidth,
+  required List<String> previousWords,
+  required List<List<int>> previous,
+  required double? previousMaxWidth,
+}) {
+  if (maxWidth != previousMaxWidth) {
+    return packLines(words, widthOf, spaceWidth: spaceWidth, maxWidth: maxWidth);
+  }
+  final from = firstDivergence(previousWords, words);
+  if (from == words.length && from == previousWords.length) return previous;
+  return repackFrom(previous, from, words, widthOf, spaceWidth: spaceWidth, maxWidth: maxWidth);
 }
 
 /// The live transcript: a four-line window on what is being said, anchored at
@@ -57,6 +116,19 @@ class LiveTranscript extends StatefulWidget {
 
 class _LiveTranscriptState extends State<LiveTranscript> {
   static const _lines = 4;
+  static final RegExp _whitespace = RegExp(r'\s+');
+
+  /// The last partial's words and their packing, so the next one re-packs
+  /// only its changed tail instead of the whole take.
+  List<String> _words = const [];
+  List<List<int>> _packed = const [];
+  double? _packedWidth;
+
+  void _dropPacking() {
+    _words = const [];
+    _packed = const [];
+    _packedWidth = null;
+  }
 
   /// Reversed: offset 0 is the NEWEST line, so the window stays on the latest
   /// speech for free and scrolling back is scrolling forward.
@@ -152,16 +224,18 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       _widths.clear();
       _measuredWith = style;
       _measuredAt = scaler;
+      _dropPacking();
     }
     final lineHeight = scaler.scale(style.fontSize!) * style.height!;
     final boxHeight = lineHeight * _lines;
 
-    final words = widget.text.split(RegExp(r'\s+'))..removeWhere((word) => word.isEmpty);
+    final words = widget.text.split(_whitespace)..removeWhere((word) => word.isEmpty);
     if (words.isEmpty) {
       // Only an emptied text is a fresh take; nothing has been shown under the
       // new numbering.
       _shownThrough = -1;
       _lineCount = 0;
+      _dropPacking();
       return SizedBox(height: boxHeight);
     }
     // A shortening revision ("recognise it" -> "recognized") must not make
@@ -179,21 +253,32 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final spaceWidth = _spaceWidth(style, scaler);
-          final lines = packLines(
+          final lines = packIncrementally(
             words,
             (word) => _widthOf(word, style, scaler),
             spaceWidth: spaceWidth,
             maxWidth: constraints.maxWidth,
+            previousWords: _words,
+            previous: _packed,
+            previousMaxWidth: _packedWidth,
           );
+          _words = words;
+          _packed = lines;
+          _packedWidth = constraints.maxWidth;
           _absorbNewLines(lines.length, lineHeight, theme.motion.lineShift);
 
           // Stagger runs over the words arriving in THIS frame, so a partial
           // that lands several at once reads as one cascade. Counted over the
           // packing, not the build, so a line scrolled out of the viewport
-          // cannot renumber the words that are actually appearing.
+          // cannot renumber the words that are actually appearing. Only the
+          // tail can hold arrivals.
+          var firstArriving = lines.length;
+          while (firstArriving > 0 && lines[firstArriving - 1].last > shownBefore) {
+            firstArriving--;
+          }
           final arrivalOrder = <int, int>{};
-          for (final line in lines) {
-            for (final index in line) {
+          for (var l = firstArriving; l < lines.length; l++) {
+            for (final index in lines[l]) {
               if (index > shownBefore) arrivalOrder[index] = arrivalOrder.length;
             }
           }
