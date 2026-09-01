@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
 
 void main() {
-  group('packLines', () {
-    // Every character is 10 wide, a space is 5: line widths are arithmetic.
-    double widthOf(String word) => word.length * 10;
+  // Every character is 10 wide, a space is 5: line widths are arithmetic.
+  double widthOf(String word) => word.length * 10;
 
+  group('packLines', () {
     List<List<int>> pack(String text, double maxWidth) =>
         packLines(text.split(' '), widthOf, spaceWidth: 5, maxWidth: maxWidth);
 
@@ -80,6 +80,131 @@ void main() {
       // last line or starts a new one.
       expect(pack('aa bb cc', 50).first, [0, 1]);
       expect(pack('aa bb cc dd', 50).first, [0, 1]);
+    });
+
+    test('packing from a later word yields that tail with absolute indices', () {
+      final words = 'aa bb cc dd'.split(' ');
+
+      expect(packLines(words, widthOf, spaceWidth: 5, maxWidth: 50, first: 2), [
+        [2, 3],
+      ]);
+    });
+  });
+
+  group('firstDivergence', () {
+    test('an appended tail diverges at the old length', () {
+      expect(firstDivergence(['a', 'b'], ['a', 'b', 'c']), 2);
+      expect(firstDivergence(<String>[], ['a']), 0);
+    });
+
+    test('a revised word diverges where it changed', () {
+      expect(firstDivergence(['a', 'b', 'c'], ['a', 'x', 'c']), 1);
+    });
+
+    test('identical lists report their shared length', () {
+      expect(firstDivergence(['a', 'b'], ['a', 'b']), 2);
+    });
+  });
+
+  group('repackFrom', () {
+    List<List<int>> scratch(List<String> words, double maxWidth) =>
+        packLines(words, widthOf, spaceWidth: 5, maxWidth: maxWidth);
+
+    List<List<int>> repacked(List<String> before, List<String> after, double maxWidth) =>
+        repackFrom(
+          scratch(before, maxWidth),
+          firstDivergence(before, after),
+          after,
+          widthOf,
+          spaceWidth: 5,
+          maxWidth: maxWidth,
+        );
+
+    test('an appended word packs the same as packing from scratch', () {
+      final before = 'aa bb cc'.split(' ');
+      final after = 'aa bb cc dd'.split(' ');
+
+      expect(repacked(before, after, 50), scratch(after, 50));
+    });
+
+    test('a revision mid-take packs the same as packing from scratch', () {
+      final before = 'aa bb cc dd ee'.split(' ');
+      final after = 'aa bb xxxx dd ee'.split(' ');
+
+      expect(repacked(before, after, 50), scratch(after, 50));
+    });
+
+    test('a narrowing revision rejoins the line its old width had split', () {
+      final before = 'aa bb cccc'.split(' ');
+      final after = 'aa bb c'.split(' ');
+
+      expect(repacked(before, after, 65), scratch(after, 65));
+      expect(repacked(before, after, 65), [
+        [0, 1, 2],
+      ]);
+    });
+
+    test('a shortened take packs the same as packing from scratch', () {
+      final before = 'aa bb cc dd ee'.split(' ');
+      final after = 'aa bb cc'.split(' ');
+
+      expect(repacked(before, after, 50), scratch(after, 50));
+    });
+
+    test('lines before the change keep their identity', () {
+      final before = 'aa bb cc dd'.split(' ');
+      final after = 'aa bb cc dd ee'.split(' ');
+      final packed = scratch(before, 50);
+
+      final result = repackFrom(packed, before.length, after, widthOf, spaceWidth: 5, maxWidth: 50);
+
+      expect(identical(result.first, packed.first), isTrue);
+    });
+  });
+
+  group('packIncrementally', () {
+    List<List<int>> incremental(
+      List<String> previousWords,
+      List<String> words,
+      double maxWidth, {
+      List<List<int>>? previous,
+      double? previousMaxWidth,
+    }) => packIncrementally(
+      words,
+      widthOf,
+      spaceWidth: 5,
+      maxWidth: maxWidth,
+      previousWords: previousWords,
+      previous: previous ?? packLines(previousWords, widthOf, spaceWidth: 5, maxWidth: maxWidth),
+      previousMaxWidth: previousMaxWidth ?? maxWidth,
+    );
+
+    test('unchanged words hand back the previous packing by identity', () {
+      final words = 'aa bb cc'.split(' ');
+      final previous = packLines(words, widthOf, spaceWidth: 5, maxWidth: 50);
+
+      final result = incremental(words, words, 50, previous: previous);
+
+      expect(identical(result, previous), isTrue);
+    });
+
+    test('a width change re-packs everything', () {
+      final words = 'aa bb cc dd'.split(' ');
+      final atOldWidth = packLines(words, widthOf, spaceWidth: 5, maxWidth: 50);
+
+      final result = incremental(words, words, 100, previous: atOldWidth, previousMaxWidth: 50);
+
+      expect(result, packLines(words, widthOf, spaceWidth: 5, maxWidth: 100));
+    });
+
+    test('a grown take packs the same as packing from scratch', () {
+      final before = 'aa bb cc'.split(' ');
+      final after = 'aa bb cc dd ee'.split(' ');
+
+      expect(
+        incremental(before, after, 50),
+        packLines(after, widthOf, spaceWidth: 5, maxWidth: 50),
+      );
     });
   });
 }
