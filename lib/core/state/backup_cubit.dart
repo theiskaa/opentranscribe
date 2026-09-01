@@ -175,10 +175,12 @@ class BackupCubit extends Cubit<BackupState> {
   Future<BackupActionResult> exportArchive({String? passphrase}) =>
       _run(BackupBusy.archiving, () async {
         final shared = await _export.shareArchive(passphrase: passphrase);
-        if (shared && !isClosed) {
+        if (shared) {
+          // Persisted even after close: the share sheet outlives the screen,
+          // and a backup that finished is a backup that happened.
           final now = _clock();
           await _settings.setLastArchiveAt(now);
-          emit(state.copyWith(lastArchiveAt: now));
+          if (!isClosed) emit(state.copyWith(lastArchiveAt: now));
         }
         return shared;
       });

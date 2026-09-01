@@ -238,6 +238,17 @@ void main() {
     expect(world.cubit.state.lastArchiveAt, fixedClock);
   });
 
+  test('a backup finishing after the screen closes still records its time', () async {
+    final world = await build();
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    world.share.shareDelay = const Duration(milliseconds: 50);
+    final sharing = world.cubit.exportArchive();
+    await world.cubit.close();
+    expect(await sharing, BackupActionResult.shared);
+    expect(world.settings.lastArchiveAt, fixedClock);
+  });
+
   test('a second action while one runs answers cancelled', () async {
     final world = await build();
     await world.cubit.load();
