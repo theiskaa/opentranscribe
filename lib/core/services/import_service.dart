@@ -298,8 +298,6 @@ final class ImportSummary {
   /// Rows, tombstones and floors together; not only reflection texts.
   final int reflectionChanges;
 
-  int get entriesImported => entriesAdded + entriesUpdated;
-
   @override
   bool operator ==(Object other) =>
       other is ImportSummary &&

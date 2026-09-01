@@ -888,7 +888,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
+      'Fügt seine Einträge deinem Journal hinzu. Ein bereits vorhandener Eintrag übernimmt die Version aus dem Backup; spätere Bearbeitungen gehen verloren. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
 
   @override
   String get importConfirm => 'Wiederherstellen';
@@ -897,13 +897,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importSummaryTitle => 'Wiederherstellung abgeschlossen';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Einträge wiederhergestellt.',
-      one: '1 Eintrag wiederhergestellt.',
-      zero: 'Nichts Neues wiederherzustellen.',
+      other: '$count Einträge hinzugefügt.',
+      one: '1 Eintrag hinzugefügt.',
+      zero: 'Nichts Neues hinzuzufügen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge wurden durch die Backup-Version ersetzt.',
+      one: '1 Eintrag wurde durch die Backup-Version ersetzt.',
     );
     return '$_temp0';
   }

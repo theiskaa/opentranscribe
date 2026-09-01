@@ -888,7 +888,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Ajoute ses entrées à votre journal. Restaurer deux fois la même sauvegarde ne duplique jamais.';
+      'Ajoute ses entrées à votre journal. Une entrée déjà présente reprend la version de la sauvegarde, annulant les modifications faites depuis. Restaurer deux fois la même sauvegarde ne duplique jamais.';
 
   @override
   String get importConfirm => 'Restaurer';
@@ -897,13 +897,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importSummaryTitle => 'Restauration terminée';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entrées restaurées.',
-      one: '1 entrée restaurée.',
-      zero: 'Rien de nouveau à restaurer.',
+      other: '$count entrées ajoutées.',
+      one: '1 entrée ajoutée.',
+      zero: 'Rien de nouveau à ajouter.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées ont été remplacées par la version de la sauvegarde.',
+      one: '1 entrée a été remplacée par la version de la sauvegarde.',
     );
     return '$_temp0';
   }

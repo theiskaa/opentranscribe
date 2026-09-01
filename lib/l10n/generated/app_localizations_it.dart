@@ -887,7 +887,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Aggiunge le sue voci al tuo diario. Ripristinare due volte lo stesso backup non duplica mai.';
+      'Aggiunge le sue voci al tuo diario. Una voce già presente assume la versione del backup, annullando le modifiche fatte da allora. Ripristinare due volte lo stesso backup non duplica mai.';
 
   @override
   String get importConfirm => 'Ripristina';
@@ -896,13 +896,24 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importSummaryTitle => 'Ripristino completato';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count voci ripristinate.',
-      one: '1 voce ripristinata.',
-      zero: 'Niente di nuovo da ripristinare.',
+      other: '$count voci aggiunte.',
+      one: '1 voce aggiunta.',
+      zero: 'Niente di nuovo da aggiungere.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci sono state sostituite con la versione del backup.',
+      one: '1 voce è stata sostituita con la versione del backup.',
     );
     return '$_temp0';
   }

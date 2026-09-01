@@ -170,23 +170,22 @@ class _BackupView extends StatelessWidget {
   Future<void> _summarySheet(BuildContext context, ImportOutcome outcome) {
     final l10n = AppLocalizations.of(context)!;
     final summary = outcome.summary!;
+    final replaced = summary.entriesUpdated;
     final skipped = summary.entriesUnchanged;
     return showAppSheet<void>(
       context,
       builder: (context) {
         final theme = context.theme;
-        // The skipped line stands alone rather than being space-joined onto
+        final detail = AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5);
+        // The detail lines stand alone rather than being space-joined onto
         // the body: ja and zh sentences take no separator.
         return SheetMessage(
           icon: AppIcons.checkmark,
           title: l10n.importSummaryTitle,
-          body: l10n.importSummaryImported(summary.entriesImported),
+          body: l10n.importSummaryAdded(summary.entriesAdded),
           rows: [
-            if (skipped > 0)
-              Text(
-                l10n.importSummarySkipped(skipped),
-                style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
-              ),
+            if (replaced > 0) Text(l10n.importSummaryReplaced(replaced), style: detail),
+            if (skipped > 0) Text(l10n.importSummarySkipped(skipped), style: detail),
           ],
           action: AppButton(
             label: l10n.done,

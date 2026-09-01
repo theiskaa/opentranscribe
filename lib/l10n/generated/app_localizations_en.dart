@@ -877,7 +877,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Adds its entries to your journal. Restoring the same backup twice never duplicates.';
+      'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.';
 
   @override
   String get importConfirm => 'Restore';
@@ -886,13 +886,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importSummaryTitle => 'Restore complete';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Restored $count entries.',
-      one: 'Restored 1 entry.',
-      zero: 'Nothing new to restore.',
+      other: 'Added $count entries.',
+      one: 'Added 1 entry.',
+      zero: 'Nothing new to add.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries were replaced with the backup\'s version.',
+      one: '1 entry was replaced with the backup\'s version.',
     );
     return '$_temp0';
   }

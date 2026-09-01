@@ -833,7 +833,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importConfirmTitle => 'このバックアップを復元しますか？';
 
   @override
-  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
+  String get importConfirmBody =>
+      'そのエントリーをジャーナルに追加します。既にあるエントリーはバックアップの内容に置き換わり、その後の編集は失われます。同じバックアップを二度復元しても重複しません。';
 
   @override
   String get importConfirm => '復元';
@@ -842,12 +843,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importSummaryTitle => '復元完了';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のエントリーを復元しました。',
-      zero: '新しく復元するものはありません。',
+      other: '$count件のエントリーを追加しました。',
+      zero: '新しく追加するものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件はバックアップの内容に置き換わりました。',
     );
     return '$_temp0';
   }

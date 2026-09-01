@@ -1650,10 +1650,10 @@ abstract class AppLocalizations {
   /// **'Restore this backup?'**
   String get importConfirmTitle;
 
-  /// Import confirmation body: additive, nothing touched
+  /// Import confirmation body: additive, but an existing entry is overwritten by the backup's copy
   ///
   /// In en, this message translates to:
-  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
+  /// **'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.'**
   String get importConfirmBody;
 
   /// Import confirmation action button
@@ -1668,11 +1668,17 @@ abstract class AppLocalizations {
   /// **'Restore complete'**
   String get importSummaryTitle;
 
-  /// Summary line for how many entries were imported
+  /// Summary line for entries the restore newly added
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
-  String importSummaryImported(int count);
+  /// **'{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}'**
+  String importSummaryAdded(int count);
+
+  /// Summary line for existing entries the restore overwrote, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was replaced with the backup\'s version.} other {{count} entries were replaced with the backup\'s version.}}'**
+  String importSummaryReplaced(int count);
 
   /// Summary line for entries already present, shown only when some were
   ///

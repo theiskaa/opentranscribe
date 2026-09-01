@@ -886,7 +886,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Acrescenta as entradas da cópia ao seu diário. Restaurar a mesma cópia duas vezes nunca duplica.';
+      'Acrescenta as entradas da cópia ao seu diário. Uma entrada que já existe passa a ter a versão da cópia, desfazendo as edições feitas desde então. Restaurar a mesma cópia duas vezes nunca duplica.';
 
   @override
   String get importConfirm => 'Restaurar';
@@ -895,13 +895,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get importSummaryTitle => 'Restauro concluído';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count entradas restauradas.',
-      one: '1 entrada restaurada.',
-      zero: 'Nada de novo para restaurar.',
+      other: '$count entradas acrescentadas.',
+      one: '1 entrada acrescentada.',
+      zero: 'Nada de novo para acrescentar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas foram substituídas pela versão da cópia.',
+      one: '1 entrada foi substituída pela versão da cópia.',
     );
     return '$_temp0';
   }

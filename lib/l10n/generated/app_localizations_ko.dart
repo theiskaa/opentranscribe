@@ -835,7 +835,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importConfirmTitle => '이 백업을 복원할까요?';
 
   @override
-  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
+  String get importConfirmBody =>
+      '그 항목을 저널에 추가합니다. 이미 있는 항목은 백업의 버전으로 교체되어 그 이후의 편집이 사라집니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
 
   @override
   String get importConfirm => '복원';
@@ -844,12 +845,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importSummaryTitle => '복원 완료';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '항목 $count개를 복원했습니다.',
-      zero: '새로 복원할 것이 없습니다.',
+      other: '항목 $count개를 추가했습니다.',
+      zero: '새로 추가할 것이 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 백업의 버전으로 교체되었습니다.',
     );
     return '$_temp0';
   }

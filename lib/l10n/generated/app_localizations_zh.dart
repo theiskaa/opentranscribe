@@ -829,7 +829,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importConfirmTitle => '恢复这份备份？';
 
   @override
-  String get importConfirmBody => '把其中的记录加入你的日记。同一份备份恢复两次也不会重复。';
+  String get importConfirmBody => '把其中的记录加入你的日记。已有的记录会被备份中的版本替换，之后的编辑将丢失。同一份备份恢复两次也不会重复。';
 
   @override
   String get importConfirm => '恢复';
@@ -838,12 +838,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importSummaryTitle => '恢复完成';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '已恢复 $count 条记录。',
-      zero: '没有新内容可恢复。',
+      other: '已添加 $count 条记录。',
+      zero: '没有新内容可添加。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条记录已替换为备份中的版本。',
     );
     return '$_temp0';
   }
