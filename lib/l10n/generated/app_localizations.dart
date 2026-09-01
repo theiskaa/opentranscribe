@@ -1446,7 +1446,7 @@ abstract class AppLocalizations {
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
 
-  /// Export action button, shared by the entry and journal export sheets
+  /// Export entry sheet action button
   ///
   /// In en, this message translates to:
   /// **'Export'**
@@ -1523,6 +1523,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not enough free space to prepare the files. Nothing was shared.'**
   String get exportNoSpaceBody;
+
+  /// Row calling off the pack phase of a running backup or export; nothing is shared
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get exportCancel;
 
   /// File and heading fallback for an entry with no title
   ///
@@ -1656,11 +1662,11 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get backupExportSection;
 
-  /// Action row exporting the whole journal in the chosen format
+  /// Export card action row, one per format; format is the localized format name
   ///
   /// In en, this message translates to:
-  /// **'Export journal'**
-  String get backupExportJournal;
+  /// **'Export as {format}'**
+  String backupExportAs(String format);
 
   /// Help paragraph under the export card
   ///

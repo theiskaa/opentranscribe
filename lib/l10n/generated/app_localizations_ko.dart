@@ -761,6 +761,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportNoSpaceBody => '파일을 준비할 여유 공간이 부족합니다. 아무것도 공유되지 않았습니다.';
 
   @override
+  String get exportCancel => '취소';
+
+  @override
   String get exportUntitled => '제목 없음';
 
   @override
@@ -844,7 +847,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupExportSection => '내보내기';
 
   @override
-  String get backupExportJournal => '저널 내보내기';
+  String backupExportAs(String format) {
+    return '$format 형식으로 내보내기';
+  }
 
   @override
   String get backupExportInfo =>

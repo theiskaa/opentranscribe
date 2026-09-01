@@ -759,6 +759,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportNoSpaceBody => 'ファイルを準備するための空き容量が足りません。何も共有されていません。';
 
   @override
+  String get exportCancel => 'キャンセル';
+
+  @override
   String get exportUntitled => '無題';
 
   @override
@@ -842,7 +845,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupExportSection => '書き出し';
 
   @override
-  String get backupExportJournal => 'ジャーナルを書き出す';
+  String backupExportAs(String format) {
+    return '$formatとして書き出す';
+  }
 
   @override
   String get backupExportInfo =>

@@ -756,6 +756,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportNoSpaceBody => '可用空间不足，无法准备文件。未共享任何内容。';
 
   @override
+  String get exportCancel => '取消';
+
+  @override
   String get exportUntitled => '无标题';
 
   @override
@@ -839,7 +842,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupExportSection => '导出';
 
   @override
-  String get backupExportJournal => '导出日记';
+  String backupExportAs(String format) {
+    return '导出为 $format';
+  }
 
   @override
   String get backupExportInfo => '以导出时选择的格式写出每条记录，打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';

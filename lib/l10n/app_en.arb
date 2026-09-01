@@ -983,7 +983,7 @@
   },
   "exportEntry": "Export",
   "@exportEntry": {
-    "description": "Export action button, shared by the entry and journal export sheets"
+    "description": "Export entry sheet action button"
   },
   "exportEntryTitle": "Export entry",
   "@exportEntryTitle": {
@@ -1032,6 +1032,10 @@
   "exportNoSpaceBody": "Not enough free space to prepare the files. Nothing was shared.",
   "@exportNoSpaceBody": {
     "description": "Export failure body when the device ran out of disk space"
+  },
+  "exportCancel": "Cancel",
+  "@exportCancel": {
+    "description": "Row calling off the pack phase of a running backup or export; nothing is shared"
   },
   "exportUntitled": "Untitled",
   "@exportUntitled": {
@@ -1139,9 +1143,14 @@
   "@backupExportSection": {
     "description": "Section label over the format picker and export row"
   },
-  "backupExportJournal": "Export journal",
-  "@backupExportJournal": {
-    "description": "Action row exporting the whole journal in the chosen format"
+  "backupExportAs": "Export as {format}",
+  "@backupExportAs": {
+    "description": "Export card action row, one per format; format is the localized format name",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
   },
   "backupExportInfo": "Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
   "@backupExportInfo": {

@@ -808,6 +808,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht genug freier Speicher, um die Dateien vorzubereiten. Nichts wurde geteilt.';
 
   @override
+  String get exportCancel => 'Abbrechen';
+
+  @override
   String get exportUntitled => 'Ohne Titel';
 
   @override
@@ -896,7 +899,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupExportSection => 'Export';
 
   @override
-  String get backupExportJournal => 'Journal exportieren';
+  String backupExportAs(String format) {
+    return 'Als $format exportieren';
+  }
 
   @override
   String get backupExportInfo =>

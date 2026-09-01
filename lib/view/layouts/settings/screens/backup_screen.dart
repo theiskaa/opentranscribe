@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
+import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
 import 'package:opentranscribe/core/state/backup_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -14,12 +15,13 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/journal_export_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/export_format_row.dart';
+import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/passphrase_sheet.dart';
@@ -27,8 +29,8 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
 /// Backup: the restorable native archive out and back in, and the one-way
-/// formatted export decided in its own sheet at export time. Owns a
-/// [BackupCubit] so the journal is measured on every open.
+/// formatted exports, one action row per format. Owns a [BackupCubit] so the
+/// journal is measured on every open.
 class BackupScreen extends StatelessWidget {
   const BackupScreen({super.key});
 
@@ -47,8 +49,38 @@ class BackupScreen extends StatelessWidget {
   }
 }
 
-class _BackupView extends StatelessWidget {
+class _BackupView extends StatefulWidget {
   const _BackupView();
+
+  @override
+  State<_BackupView> createState() => _BackupViewState();
+}
+
+class _BackupViewState extends State<_BackupView> {
+  /// Null until the user decides; the default follows the measure whenever
+  /// it lands, and an unmeasured journal reads as having audio, because a
+  /// silent all-audio omission is the worse wrong default.
+  bool? _includeAudio;
+
+  /// The format row whose export is running, so only it wears the spinner.
+  String? _exportingId;
+
+  bool _hasRecordings(BackupState state) => (state.measure?.recordings ?? 1) > 0;
+
+  Future<void> _exportJournal(BuildContext context, ExporterDescriptor descriptor) async {
+    final cubit = context.read<BackupCubit>();
+    if (cubit.state.isBusy) return;
+    final strings = exportStringsOf(AppLocalizations.of(context)!);
+    setState(() => _exportingId = descriptor.exporterId);
+    final result = await cubit.exportJournal(
+      strings: strings,
+      exporterId: descriptor.exporterId,
+      includeAudio: _includeAudio ?? _hasRecordings(cubit.state),
+    );
+    if (mounted) setState(() => _exportingId = null);
+    if (!context.mounted) return;
+    unawaited(_shareFailSheet(context, result));
+  }
 
   /// Nothing for the quiet outcomes; each failure names its cause where the
   /// cubit could tell it apart.
@@ -254,6 +286,7 @@ class _BackupView extends StatelessWidget {
     // because filling an empty journal is exactly what it is for. Unknown
     // reads as non-empty so the rows never flash disabled while measuring.
     final hasEntries = (state.measure?.entries ?? 1) > 0;
+    final hasRecordings = _hasRecordings(state);
 
     // Import is the one operation with no system UI covering the screen; a
     // pop mid-adopt would orphan the summary and unseat the busy gate.
@@ -281,28 +314,52 @@ class _BackupView extends StatelessWidget {
                     SettingsBusyRow(
                       icon: AppIcons.squareAndArrowUp,
                       label: l10n.backupSave,
-                      detail: state.lastArchiveAt == null
-                          ? null
-                          : l10n.backupLastBackup(
-                              DateFormat.yMMMd(locale).format(state.lastArchiveAt!.toLocal()),
-                            ),
+                      detail: _saveDetail(l10n, locale, state),
                       busy: state.busy == BackupBusy.archiving,
                       onTap: idle && hasEntries ? () => unawaited(_saveArchive(context)) : null,
                     ),
+                    if (state.busy == BackupBusy.archiving && state.progress != null)
+                      SettingsBusyRow(
+                        icon: AppIcons.xmark,
+                        label: l10n.exportCancel,
+                        busy: false,
+                        tint: theme.danger,
+                        onTap: cubit.cancelShare,
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
                 SectionLabel(l10n.backupExportSection),
                 SettingsCard(
                   children: [
-                    SettingsBusyRow(
-                      icon: AppIcons.squareAndArrowUp,
-                      label: l10n.backupExportJournal,
-                      busy: state.busy == BackupBusy.exporting,
-                      onTap: idle && hasEntries
-                          ? () => unawaited(showJournalExportSheet(context, cubit))
+                    SettingsToggleRow(
+                      icon: AppIcons.micFill,
+                      label: l10n.exportIncludeAudio,
+                      value: (_includeAudio ?? hasRecordings) && hasRecordings,
+                      onChanged: idle && hasRecordings
+                          ? (v) => setState(() => _includeAudio = v)
                           : null,
                     ),
+                    for (final descriptor in cubit.descriptors)
+                      ExportFormatRow(
+                        descriptor: descriptor,
+                        selected: false,
+                        label: l10n.backupExportAs(exportFormatCopy(l10n, descriptor.format).name),
+                        busy:
+                            state.busy == BackupBusy.exporting &&
+                            _exportingId == descriptor.exporterId,
+                        onTap: idle && hasEntries
+                            ? () => unawaited(_exportJournal(context, descriptor))
+                            : null,
+                      ),
+                    if (state.busy == BackupBusy.exporting && state.progress != null)
+                      SettingsBusyRow(
+                        icon: AppIcons.xmark,
+                        label: l10n.exportCancel,
+                        busy: false,
+                        tint: theme.danger,
+                        onTap: cubit.cancelShare,
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -324,6 +381,18 @@ class _BackupView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The percent takes the detail while the pack runs; the date is
+  /// yesterday's news next to a backup being written.
+  String? _saveDetail(AppLocalizations l10n, String locale, BackupState state) {
+    if (state.busy == BackupBusy.archiving) {
+      final progress = state.progress;
+      return progress == null ? null : NumberFormat.percentPattern(locale).format(progress);
+    }
+    final at = state.lastArchiveAt;
+    if (at == null) return null;
+    return l10n.backupLastBackup(DateFormat.yMMMd(locale).format(at.toLocal()));
   }
 
   /// Generic until the first measure lands, "nothing yet" for an empty
