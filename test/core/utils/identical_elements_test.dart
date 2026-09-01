@@ -29,10 +29,8 @@ void main() {
   });
 
   test('equal but distinct objects are not the same element', () {
-    var seconds = 0;
-    seconds += 1;
-    const a = Duration(seconds: 1);
-    final b = Duration(seconds: seconds);
+    final a = DateTime(2026, 3, 4);
+    final b = DateTime(2026, 3, 4);
 
     expect(a == b, isTrue);
     expect(identicalElements([a], [b]), isFalse);
