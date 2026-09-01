@@ -868,19 +868,8 @@ class AppLocalizationsPt extends AppLocalizations {
       'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other:
-          'Uma cópia de segurança guarda as suas $count entradas com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
-      one:
-          'Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.',
-      zero:
-          'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty =>
+      'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.';
 
   @override
   String backupInfoMeasured(int count, String size) {

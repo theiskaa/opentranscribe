@@ -1118,14 +1118,9 @@
   "@backupInfo": {
     "description": "Backup screen intro: what a backup holds and what encryption does"
   },
-  "backupInfoCount": "{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}",
-  "@backupInfoCount": {
-    "description": "The Backup screen intro once the entry count is measured",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+  "backupInfoEmpty": "Nothing to back up yet. A backup holds every entry with its audio and reflections.",
+  "@backupInfoEmpty": {
+    "description": "Backup intro when the measured journal is empty"
   },
   "backupInfoMeasured": "{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.",
   "@backupInfoMeasured": {
@@ -1141,7 +1136,7 @@
   },
   "backupExportSection": "Export",
   "@backupExportSection": {
-    "description": "Section label over the format picker and export row"
+    "description": "Section label over the audio toggle and the per-format export action rows"
   },
   "backupExportAs": "Export as {format}",
   "@backupExportAs": {

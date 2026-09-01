@@ -1644,11 +1644,11 @@ abstract class AppLocalizations {
   /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
   String get backupInfo;
 
-  /// The Backup screen intro once the entry count is measured
+  /// Backup intro when the measured journal is empty
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
-  String backupInfoCount(int count);
+  /// **'Nothing to back up yet. A backup holds every entry with its audio and reflections.'**
+  String get backupInfoEmpty;
 
   /// Backup intro once measured: entry count and approximate size, then the encryption line
   ///
@@ -1656,7 +1656,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.'**
   String backupInfoMeasured(int count, String size);
 
-  /// Section label over the format picker and export row
+  /// Section label over the audio toggle and the per-format export action rows
   ///
   /// In en, this message translates to:
   /// **'Export'**

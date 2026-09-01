@@ -870,19 +870,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other:
-          'Une sauvegarde contient vos $count entrées avec leur audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
-      one:
-          'Une sauvegarde contient votre unique entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.',
-      zero:
-          'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty =>
+      'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.';
 
   @override
   String backupInfoMeasured(int count, String size) {

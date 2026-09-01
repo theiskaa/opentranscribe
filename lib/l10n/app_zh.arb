@@ -256,7 +256,7 @@
   "exportHtmlSeek": "进度",
   "settingsBackup": "备份",
   "backupInfo": "备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。",
-  "backupInfoCount": "{count, plural, =0 {暂时没有可备份的内容。备份包含记录、音频和回顾。} other {备份包含 {count} 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。}}",
+  "backupInfoEmpty": "暂时没有可备份的内容。备份包含记录、音频和回顾。",
   "backupInfoMeasured": "{count, plural, other {备份包含 {count} 条记录、音频和回顾，约 {size}。如果加密，口令就是唯一的钥匙。}}",
   "backupExportSection": "导出",
   "backupExportAs": "导出为 {format}",

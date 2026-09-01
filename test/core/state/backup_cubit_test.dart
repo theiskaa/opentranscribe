@@ -166,20 +166,27 @@ void main() {
     final world = await build();
     await world.store.save(entry('e1'));
     await world.cubit.load();
-    expect(world.cubit.state.formatId, 'markdown');
     expect(world.cubit.state.seal, isTrue);
     expect(world.cubit.state.measure?.entries, 1);
   });
 
-  test('format and seal choices persist through the settings', () async {
+  test('the seal choice persists through the settings', () async {
     final world = await build();
     await world.cubit.load();
-    await world.cubit.setFormat('obsidian');
     await world.cubit.setSeal(false);
-    expect(world.settings.formatId, 'obsidian');
     expect(world.settings.seal, isFalse);
-    expect(world.cubit.state.formatId, 'obsidian');
     expect(world.cubit.state.seal, isFalse);
+  });
+
+  test('an export that ran remembers its format for the entry sheet', () async {
+    final world = await build();
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.shared,
+    );
+    expect(world.settings.formatId, 'markdown');
   });
 
   test('a completed journal export answers shared', () async {
@@ -212,17 +219,6 @@ void main() {
       BackupActionResult.cancelled,
     );
     expect(world.cubit.state.busy, BackupBusy.none);
-  });
-
-  test('a stale stored format resolves at load and still exports', () async {
-    final world = await build();
-    await world.settings.setFormatId('gone');
-    await world.cubit.load();
-    expect(world.cubit.state.formatId, 'markdown');
-    expect(
-      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
-      BackupActionResult.shared,
-    );
   });
 
   test('a saved archive stamps the last archive time; a cancelled one does not', () async {
@@ -384,7 +380,6 @@ void main() {
     const measured = JournalMeasure(entries: 2, recordings: 1, approxBytes: 9000);
     final state = BackupState(
       measure: measured,
-      formatId: 'markdown',
       seal: false,
       lastArchiveAt: fixedClock,
       busy: BackupBusy.archiving,
@@ -393,7 +388,6 @@ void main() {
     expect(state.busy, BackupBusy.none);
     expect(state.progress, isNull);
     expect(state.measure, measured);
-    expect(state.formatId, 'markdown');
     expect(state.seal, isFalse);
     expect(state.lastArchiveAt, fixedClock);
   });

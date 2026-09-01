@@ -821,15 +821,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
-      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty => 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。';
 
   @override
   String backupInfoMeasured(int count, String size) {

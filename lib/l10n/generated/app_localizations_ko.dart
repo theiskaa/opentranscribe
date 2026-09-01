@@ -823,15 +823,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
-      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty => '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.';
 
   @override
   String backupInfoMeasured(int count, String size) {

@@ -256,7 +256,7 @@
   "exportHtmlSeek": "Position",
   "settingsBackup": "Sauvegarde",
   "backupInfo": "Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.",
-  "backupInfoCount": "{count, plural, =0 {Rien à sauvegarder pour l'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.} one {Une sauvegarde contient votre unique entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.} other {Une sauvegarde contient vos {count} entrées avec leur audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.}}",
+  "backupInfoEmpty": "Rien à sauvegarder pour l'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.",
   "backupInfoMeasured": "{count, plural, one {Une sauvegarde contient votre unique entrée avec son audio et vos réflexions, environ {size}.} other {Une sauvegarde contient vos {count} entrées avec leur audio et vos réflexions, environ {size}.}} Si vous la chiffrez, la phrase secrète est la seule clé.",
   "backupExportSection": "Export",
   "backupExportAs": "Exporter en {format}",

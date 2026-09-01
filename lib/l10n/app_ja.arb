@@ -256,7 +256,7 @@
   "exportHtmlSeek": "シーク",
   "settingsBackup": "バックアップ",
   "backupInfo": "バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。",
-  "backupInfoCount": "{count, plural, =0 {まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。} other {バックアップには{count}件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。}}",
+  "backupInfoEmpty": "まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。",
   "backupInfoMeasured": "{count, plural, other {バックアップには{count}件のエントリーと音声、振り返りが入り、約{size}です。暗号化すれば、パスフレーズが唯一の鍵です。}}",
   "backupExportSection": "書き出し",
   "backupExportAs": "{format}として書き出す",

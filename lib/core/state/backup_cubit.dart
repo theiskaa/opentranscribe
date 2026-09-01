@@ -92,7 +92,6 @@ final class ImportOutcome {
 final class BackupState {
   const BackupState({
     this.measure,
-    this.formatId = '',
     this.seal = true,
     this.lastArchiveAt,
     this.busy = BackupBusy.none,
@@ -101,7 +100,6 @@ final class BackupState {
 
   /// Null until the first measure lands; the intro reads generic until then.
   final JournalMeasure? measure;
-  final String formatId;
   final bool seal;
   final DateTime? lastArchiveAt;
   final BackupBusy busy;
@@ -114,14 +112,12 @@ final class BackupState {
 
   BackupState copyWith({
     JournalMeasure? measure,
-    String? formatId,
     bool? seal,
     DateTime? lastArchiveAt,
     BackupBusy? busy,
     double? progress,
   }) => BackupState(
     measure: measure ?? this.measure,
-    formatId: formatId ?? this.formatId,
     seal: seal ?? this.seal,
     lastArchiveAt: lastArchiveAt ?? this.lastArchiveAt,
     busy: busy ?? this.busy,
@@ -129,31 +125,24 @@ final class BackupState {
   );
 
   /// Back to rest: busy released and progress dropped, everything else kept.
-  BackupState settled() =>
-      BackupState(measure: measure, formatId: formatId, seal: seal, lastArchiveAt: lastArchiveAt);
+  BackupState settled() => BackupState(measure: measure, seal: seal, lastArchiveAt: lastArchiveAt);
 
   /// The pack finished but the operation runs on (sealing, the share
   /// sheet): progress leaves, and the cancel affordance with it.
-  BackupState packDone() => BackupState(
-    measure: measure,
-    formatId: formatId,
-    seal: seal,
-    lastArchiveAt: lastArchiveAt,
-    busy: busy,
-  );
+  BackupState packDone() =>
+      BackupState(measure: measure, seal: seal, lastArchiveAt: lastArchiveAt, busy: busy);
 
   @override
   bool operator ==(Object other) =>
       other is BackupState &&
       other.measure == measure &&
-      other.formatId == formatId &&
       other.seal == seal &&
       other.lastArchiveAt == lastArchiveAt &&
       other.busy == busy &&
       other.progress == progress;
 
   @override
-  int get hashCode => Object.hash(measure, formatId, seal, lastArchiveAt, busy, progress);
+  int get hashCode => Object.hash(measure, seal, lastArchiveAt, busy, progress);
 }
 
 /// Drives the Backup screen: measures the entry count, holds the persisted
@@ -197,20 +186,12 @@ class BackupCubit extends Cubit<BackupState> {
   /// land its stale numbers over a fresher emit.
   int _measureGeneration = 0;
 
-  /// The formats this build ships, in the order the picker lists them.
+  /// The formats this build ships, in the order every export surface lists
+  /// them.
   List<ExporterDescriptor> get descriptors => _descriptors;
 
-  /// The stored format id is resolved against the shipped descriptors HERE,
-  /// so a stale id from a build that dropped its exporter can never leak
-  /// into an export call.
   Future<void> load() async {
-    emit(
-      state.copyWith(
-        formatId: resolveFormatId(_settings.formatId, _descriptors),
-        seal: _settings.seal,
-        lastArchiveAt: _settings.lastArchiveAt,
-      ),
-    );
+    emit(state.copyWith(seal: _settings.seal, lastArchiveAt: _settings.lastArchiveAt));
     await _measure();
   }
 
@@ -224,11 +205,6 @@ class BackupCubit extends Cubit<BackupState> {
       // Best effort: the intro reads generic; a later change signal retries.
       if (kDebugMode) debugPrint('BackupCubit.measure failed: $e');
     }
-  }
-
-  Future<void> setFormat(String id) async {
-    emit(state.copyWith(formatId: id));
-    await _settings.setFormatId(id);
   }
 
   Future<void> setSeal(bool seal) async {
@@ -272,11 +248,10 @@ class BackupCubit extends Cubit<BackupState> {
     emit(state.copyWith(progress: fraction));
   }
 
-  /// Best-effort and safe after close: the format memory is a convenience
-  /// no export outcome may trip over.
+  /// Best-effort and safe after close: the format memory only seeds the
+  /// entry sheet's default, and no export outcome may trip over it.
   Future<void> _rememberFormat(String id) async {
     try {
-      if (!isClosed) emit(state.copyWith(formatId: id));
       await _settings.setFormatId(id);
     } catch (e) {
       if (kDebugMode) debugPrint('BackupCubit.rememberFormat failed: $e');

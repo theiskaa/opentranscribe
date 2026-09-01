@@ -256,7 +256,7 @@
   "exportHtmlSeek": "Posição",
   "settingsBackup": "Cópia de segurança",
   "backupInfo": "Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.",
-  "backupInfoCount": "{count, plural, =0 {Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.} one {Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.} other {Uma cópia de segurança guarda as suas {count} entradas com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.}}",
+  "backupInfoEmpty": "Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.",
   "backupInfoMeasured": "{count, plural, one {Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões, cerca de {size}.} other {Uma cópia de segurança guarda as suas {count} entradas com o áudio e as reflexões, cerca de {size}.}} Se a encriptar, a frase-passe é a única chave.",
   "backupExportSection": "Exportação",
   "backupExportAs": "Exportar como {format}",

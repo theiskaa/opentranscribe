@@ -818,15 +818,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '备份包含 $count 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。',
-      zero: '暂时没有可备份的内容。备份包含记录、音频和回顾。',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty => '暂时没有可备份的内容。备份包含记录、音频和回顾。';
 
   @override
   String backupInfoMeasured(int count, String size) {

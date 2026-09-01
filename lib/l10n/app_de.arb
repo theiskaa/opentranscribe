@@ -256,7 +256,7 @@
   "exportHtmlSeek": "Position",
   "settingsBackup": "Backup",
   "backupInfo": "Ein Backup enthält jeden Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.",
-  "backupInfoCount": "{count, plural, =0 {Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.} one {Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.} other {Ein Backup enthält alle {count} Einträge mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.}}",
+  "backupInfoEmpty": "Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.",
   "backupInfoMeasured": "{count, plural, one {Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken, etwa {size}.} other {Ein Backup enthält alle {count} Einträge mit Audio und Rückblicken, etwa {size}.}} Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.",
   "backupExportSection": "Export",
   "backupExportAs": "Als {format} exportieren",

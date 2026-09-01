@@ -256,7 +256,7 @@
   "exportHtmlSeek": "Posizione",
   "settingsBackup": "Backup",
   "backupInfo": "Un backup contiene ogni voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l'unica chiave.",
-  "backupInfoCount": "{count, plural, =0 {Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.} one {Un backup contiene la tua unica voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l'unica chiave.} other {Un backup contiene tutte le {count} voci con il loro audio e le riflessioni. Se lo cifri, la passphrase è l'unica chiave.}}",
+  "backupInfoEmpty": "Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.",
   "backupInfoMeasured": "{count, plural, one {Un backup contiene la tua unica voce con il suo audio e le riflessioni, circa {size}.} other {Un backup contiene tutte le {count} voci con il loro audio e le riflessioni, circa {size}.}} Se lo cifri, la passphrase è l'unica chiave.",
   "backupExportSection": "Export",
   "backupExportAs": "Esporta come {format}",

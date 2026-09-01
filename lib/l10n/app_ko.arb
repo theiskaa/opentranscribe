@@ -256,7 +256,7 @@
   "exportHtmlSeek": "탐색",
   "settingsBackup": "백업",
   "backupInfo": "백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.",
-  "backupInfoCount": "{count, plural, =0 {아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.} other {백업에는 항목 {count}개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.}}",
+  "backupInfoEmpty": "아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.",
   "backupInfoMeasured": "{count, plural, other {백업에는 항목 {count}개와 오디오, 돌아보기가 담기며 약 {size}입니다. 암호화하면 암호구가 유일한 열쇠입니다.}}",
   "backupExportSection": "내보내기",
   "backupExportAs": "{format} 형식으로 내보내기",

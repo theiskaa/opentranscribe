@@ -861,18 +861,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.';
 
   @override
-  String backupInfoCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other:
-          'A backup holds all $count entries with their audio and reflections. Encrypt it and your passphrase is the only key.',
-      one:
-          'A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.',
-      zero: 'Nothing to back up yet. A backup holds every entry with its audio and reflections.',
-    );
-    return '$_temp0';
-  }
+  String get backupInfoEmpty =>
+      'Nothing to back up yet. A backup holds every entry with its audio and reflections.';
 
   @override
   String backupInfoMeasured(int count, String size) {
