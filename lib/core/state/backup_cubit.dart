@@ -54,6 +54,10 @@ final class ImportOutcome {
 
   const ImportOutcome.midway() : resolution = ImportResolution.failedMidway, summary = null;
 
+  /// An import that broke before adoption wrote anything: the plain failure
+  /// resolution, never the midway one.
+  const ImportOutcome.aborted() : resolution = ImportResolution.failed, summary = null;
+
   final ImportResolution resolution;
   final ImportSummary? summary;
 }
@@ -211,8 +215,13 @@ class BackupCubit extends Cubit<BackupState> {
       return ImportOutcome.failure(e.error);
     } on ArgumentError {
       return ImportOutcome.failure(ArchiveError.malformed);
+    } on ImportAbortedException catch (e) {
+      // Broke before adoption wrote anything: a plain failure, whose copy
+      // rightly says the journal was not touched.
+      if (kDebugMode) debugPrint('BackupCubit.import aborted: $e');
+      return const ImportOutcome.aborted();
     } catch (e) {
-      // Anything else escaped past validation, i.e. adoption was writing.
+      // Anything else escaped past staging, i.e. adoption was writing.
       if (kDebugMode) debugPrint('BackupCubit.import failed: $e');
       return const ImportOutcome.midway();
     } finally {

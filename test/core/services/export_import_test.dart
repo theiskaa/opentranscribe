@@ -349,6 +349,24 @@ void main() {
       expect(b.store.all(), isEmpty);
     });
 
+    test('an unreadable source aborts as nothing-changed, not as a raw error', () async {
+      final b = await world('b');
+      await b.store.save(entry('kept'));
+      await expectLater(
+        b.import.importArchive('${temp.path}/missing.zip'),
+        throwsA(isA<ImportAbortedException>()),
+      );
+      expect(b.store.all().map((e) => e.id), ['kept']);
+    });
+
+    test('a failure once adoption is writing escapes raw, never as aborted', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await b.recordings.delete(recursive: true);
+      await expectLater(b.import.importArchive(archive), throwsA(isA<FileSystemException>()));
+    });
+
     test('a compressed zip is refused as re-zipped, not corrupt', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);

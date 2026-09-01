@@ -272,6 +272,35 @@ void main() {
     expect(outcome!.resolution, ImportResolution.success);
   });
 
+  test('an unreadable source fails plainly, never as stopped partway', () async {
+    final world = await build();
+    await world.cubit.load();
+    final outcome = await world.cubit.importArchive('${temp.path}/vanished.zip');
+    expect(outcome!.resolution, ImportResolution.failed);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
+  test('a failure once adoption is writing resolves stopped partway', () async {
+    final world = await build();
+    final recordings = Directory('${temp.path}/recordings');
+    await File('${recordings.path}/otr-1.m4a').writeAsBytes(List<int>.generate(64, (i) => i));
+    await world.store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'otr-1.m4a',
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    await world.cubit.load();
+    await world.cubit.exportArchive();
+    final archive = world.share.captured.last;
+    await recordings.delete(recursive: true);
+    final outcome = await world.cubit.importArchive(archive);
+    expect(outcome!.resolution, ImportResolution.failedMidway);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
   test('a garbage file fails without touching the journal', () async {
     final world = await build();
     await world.cubit.load();
