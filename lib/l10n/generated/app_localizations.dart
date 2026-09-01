@@ -1515,7 +1515,7 @@ abstract class AppLocalizations {
   /// Export failure body when the archive overflowed the zip format's 4 GB cap
   ///
   /// In en, this message translates to:
-  /// **'The export passes the 4 GB a single file can hold. Nothing was shared.'**
+  /// **'The export exceeds the 4 GB a single file can hold. Nothing was shared.'**
   String get exportTooLargeBody;
 
   /// Export failure body when the device ran out of disk space
