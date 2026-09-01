@@ -1,9 +1,40 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/transcriber.dart';
+
+class _FailsWhenArmed extends LocalService {
+  bool failWrites = false;
+  bool failDeletes = false;
+
+  @override
+  Future<void> writeJson(String key, Object value) {
+    if (failWrites) throw StateError('no disk');
+    return super.writeJson(key, value);
+  }
+
+  @override
+  Future<bool> delete(String key) {
+    if (failDeletes) throw StateError('no disk');
+    return super.delete(key);
+  }
+}
+
+class _SlowAcks extends LocalService {
+  final List<Completer<void>> acks = [];
+
+  @override
+  Future<void> writeJson(String key, Object value) async {
+    await super.writeJson(key, value);
+    final ack = Completer<void>();
+    acks.add(ack);
+    await ack.future;
+  }
+}
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -84,26 +115,103 @@ void main() {
     expect(store.all().map((e) => e.id).toList(), ['a', 'b']);
   });
 
-  test('all serves the cache until a save invalidates it', () async {
+  test('a save lands in the cache without a rescan of the backing store', () async {
     await store.save(entry('one', DateTime.utc(2026, 3, 4)));
     await store.save(entry('two', DateTime.utc(2026, 3, 5)));
     expect(store.all(), hasLength(2));
 
     await storage.writeJson('entry:three', entry('three', DateTime.utc(2026, 3, 6)).toJson());
-    expect(store.all(), hasLength(2));
-
     await store.save(entry('four', DateTime.utc(2026, 3, 7)));
-    expect(store.all(), hasLength(4));
+
+    expect(store.all().map((e) => e.id).toList(), ['four', 'two', 'one']);
   });
 
-  test('a delete invalidates the cache', () async {
+  test('a save lands at its sorted position among the existing entries', () async {
+    await store.save(entry('old', DateTime.utc(2026, 2, 2)));
+    await store.save(entry('new', DateTime.utc(2026, 8, 9)));
+    expect(store.all(), hasLength(2));
+
+    await store.save(entry('mid', DateTime.utc(2026, 5, 6)));
+
+    expect(store.all().map((e) => e.id).toList(), ['new', 'mid', 'old']);
+  });
+
+  test('saving an existing id replaces it without duplicating', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+    await store.save(entry('two', DateTime.utc(2026, 3, 5)));
+    expect(store.all(), hasLength(2));
+
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)).withTitle('renamed'));
+
+    final all = store.all();
+    expect(all.map((e) => e.id).toList(), ['two', 'one']);
+    expect(all.last.title, 'renamed');
+  });
+
+  test('unchanged entries keep their identity across reads and saves', () async {
+    await store.save(entry('one', DateTime.utc(2026, 3, 4)));
+    final before = store.all().single;
+
+    await store.save(entry('two', DateTime.utc(2026, 3, 5)));
+
+    expect(identical(store.all().last, before), isTrue);
+  });
+
+  test('a delete removes the entry from the list', () async {
     await store.save(entry('one', DateTime.utc(2026, 3, 4)));
     await store.save(entry('two', DateTime.utc(2026, 3, 5)));
     expect(store.all(), hasLength(2));
 
     await store.delete('one');
 
-    expect(store.all(), hasLength(1));
+    expect(store.all().map((e) => e.id).toList(), ['two']);
+  });
+
+  test('a failed write falls back to re-reading the backing store', () async {
+    final failing = _FailsWhenArmed();
+    await failing.init(legacyKey: key);
+    final failingStore = EntryStore(failing);
+    await failingStore.save(entry('one', DateTime.utc(2026, 3, 4)));
+    expect(failingStore.all(), hasLength(1));
+
+    failing.failWrites = true;
+    await expectLater(failingStore.save(entry('two', DateTime.utc(2026, 3, 5))), throwsStateError);
+
+    expect(failingStore.all().map((e) => e.id).toList(), ['one']);
+  });
+
+  test('a failed delete falls back to re-reading the backing store', () async {
+    final failing = _FailsWhenArmed();
+    await failing.init(legacyKey: key);
+    final failingStore = EntryStore(failing);
+    await failingStore.save(entry('one', DateTime.utc(2026, 3, 4)));
+    expect(failingStore.all(), hasLength(1));
+
+    failing.failDeletes = true;
+    await expectLater(failingStore.delete('one'), throwsStateError);
+
+    expect(failingStore.all().map((e) => e.id).toList(), ['one']);
+  });
+
+  test('overlapping saves of one entry keep the later, whatever order the disk answers', () async {
+    final slow = _SlowAcks();
+    await slow.init(legacyKey: key);
+    final slowStore = EntryStore(slow);
+    final seed = slowStore.save(entry('one', DateTime.utc(2026, 3, 4)));
+    await Future<void>.delayed(Duration.zero);
+    slow.acks.single.complete();
+    await seed;
+    slow.acks.clear();
+
+    final first = slowStore.save(entry('one', DateTime.utc(2026, 3, 4)).withTitle('first'));
+    final second = slowStore.save(entry('one', DateTime.utc(2026, 3, 4)).withTitle('second'));
+    await Future<void>.delayed(Duration.zero);
+    slow.acks[1].complete();
+    slow.acks[0].complete();
+    await first;
+    await second;
+
+    expect(slowStore.all().single.title, 'second');
   });
 
   test('callers cannot mutate the cached list', () async {

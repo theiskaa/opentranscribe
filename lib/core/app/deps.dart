@@ -317,7 +317,8 @@ class Deps {
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
     // Hoisted so both the transcription lifecycle and the reflection lifecycle
-    // read the same entries; the store is stateless, so sharing one is safe.
+    // read the same entries. Sharing matters: the store caches the decrypted
+    // journal, and a second instance would go stale on the first's writes.
     final entryStore = EntryStore(localService);
     // Costs the launch a channel listen; the bulk re-transcribe queue reads
     // the cached answer between entries.
