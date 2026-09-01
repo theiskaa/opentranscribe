@@ -762,6 +762,50 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportQuiet => '静かなひととき。';
 
   @override
+  String get exportHtmlSearch => '検索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自動';
+
+  @override
+  String get exportHtmlSchemeLight => 'ライト';
+
+  @override
+  String get exportHtmlSchemeDark => 'ダーク';
+
+  @override
+  String get exportHtmlEmptyTitle => 'まだ何もありません';
+
+  @override
+  String get exportHtmlEmptyBody => 'このジャーナルにはエントリーがありません。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '見つかりませんでした';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '「$term」に一致するエントリーはありません';
+  }
+
+  @override
+  String get exportHtmlPlay => '再生';
+
+  @override
+  String get exportHtmlPause => '一時停止';
+
+  @override
+  String get exportHtmlBack => '15秒戻る';
+
+  @override
+  String get exportHtmlSpeed => '再生速度';
+
+  @override
+  String get exportHtmlSeek => 'シーク';
+
+  @override
   String get settingsBackup => 'バックアップ';
 
   @override

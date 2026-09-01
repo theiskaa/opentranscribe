@@ -764,6 +764,50 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportQuiet => '조용한 시간.';
 
   @override
+  String get exportHtmlSearch => '검색';
+
+  @override
+  String get exportHtmlSchemeLabel => '색상 테마';
+
+  @override
+  String get exportHtmlSchemeAuto => '자동';
+
+  @override
+  String get exportHtmlSchemeLight => '라이트';
+
+  @override
+  String get exportHtmlSchemeDark => '다크';
+
+  @override
+  String get exportHtmlEmptyTitle => '아직 아무것도 없습니다';
+
+  @override
+  String get exportHtmlEmptyBody => '이 저널에는 항목이 없습니다.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '찾을 수 없습니다';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '다음과 일치하는 항목이 없습니다: “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => '재생';
+
+  @override
+  String get exportHtmlPause => '일시정지';
+
+  @override
+  String get exportHtmlBack => '15초 뒤로';
+
+  @override
+  String get exportHtmlSpeed => '재생 속도';
+
+  @override
+  String get exportHtmlSeek => '탐색';
+
+  @override
   String get settingsBackup => '백업';
 
   @override

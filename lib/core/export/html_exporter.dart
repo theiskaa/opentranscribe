@@ -53,9 +53,10 @@ final class HtmlExporter implements JournalExporter {
       ...months.keys,
       for (final reflection in snapshot.reflections) _monthKey(reflection.periodStart),
     }.toList()..sort((a, b) => b.compareTo(a));
+    final chrome = context.strings.html;
     final body = StringBuffer()
       ..write(_header(snapshot))
-      ..write(_tools(searchable: snapshot.entries.isNotEmpty))
+      ..write(_tools(searchable: snapshot.entries.isNotEmpty, chrome: chrome))
       ..write(_nav(monthKeys))
       ..writeln('<main>');
     for (final month in monthKeys) {
@@ -71,12 +72,14 @@ final class HtmlExporter implements JournalExporter {
       body.writeln('</section>');
     }
     if (monthKeys.isEmpty) {
-      body.write(_emptyState(title: 'Nothing here yet', message: 'This journal has no entries.'));
+      body.write(_emptyState(title: _text(chrome.emptyTitle), message: _text(chrome.emptyBody)));
     } else if (snapshot.entries.isNotEmpty) {
       body.write(
         _emptyState(
-          title: 'Nothing found',
-          message: 'No entry matches <span class="term"></span>',
+          title: _text(chrome.noMatchesTitle),
+          message: _text(
+            chrome.noMatches,
+          ).replaceAll(HtmlChromeStrings.termSlot, '<span class="term"></span>'),
           hidden: true,
         ),
       );
@@ -87,7 +90,7 @@ final class HtmlExporter implements JournalExporter {
         'index.html',
         _document(
           title: _pageTitle,
-          lang: null,
+          lang: chrome.languageTag,
           style: '<link rel="stylesheet" href="style.css">',
           script: '<script src="script.js"></script>',
           body: body.toString(),
@@ -118,18 +121,25 @@ final class HtmlExporter implements JournalExporter {
   /// switch that cannot switch are worse than neither. Only the field depends
   /// on [searchable], because a journal of nothing but reflections still has a
   /// scheme worth choosing.
-  String _tools({required bool searchable}) {
+  String _tools({required bool searchable, required HtmlChromeStrings chrome}) {
     final buffer = StringBuffer()..writeln('<div class="tools" hidden>');
     if (searchable) {
+      final search = _attr(chrome.search);
       buffer.writeln(
-        '<input class="search" type="search" placeholder="Search" aria-label="Search">',
+        '<input class="search" type="search" placeholder="$search" aria-label="$search">',
       );
     }
     return (buffer
-          ..writeln('<div class="scheme" role="group" aria-label="Colour scheme">')
-          ..writeln('<button data-scheme="" aria-pressed="true">Auto</button>')
-          ..writeln('<button data-scheme="light" aria-pressed="false">Light</button>')
-          ..writeln('<button data-scheme="dark" aria-pressed="false">Dark</button>')
+          ..writeln('<div class="scheme" role="group" aria-label="${_attr(chrome.schemeLabel)}">')
+          ..writeln(
+            '<button data-scheme="" aria-pressed="true">${_text(chrome.schemeAuto)}</button>',
+          )
+          ..writeln(
+            '<button data-scheme="light" aria-pressed="false">${_text(chrome.schemeLight)}</button>',
+          )
+          ..writeln(
+            '<button data-scheme="dark" aria-pressed="false">${_text(chrome.schemeDark)}</button>',
+          )
           ..writeln('</div>')
           ..writeln('</div>'))
         .toString();
@@ -263,9 +273,24 @@ final class HtmlExporter implements JournalExporter {
       '$body'
       '<footer>${_text(_appName)} ${_text(context.appVersion)} '
       '&middot; ${context.generatedAt.toUtc().toIso8601String()}</footer>\n'
+      '${_labels(context.strings.html)}\n'
       '$script\n'
       '</body>\n'
       '</html>\n';
+
+  /// The player's spoken labels, carried on the page because `script.js` is
+  /// the same static file in every export. `<` is escaped so no translation
+  /// could ever close the block early.
+  String _labels(HtmlChromeStrings chrome) {
+    final json = jsonEncode({
+      'play': chrome.play,
+      'pause': chrome.pause,
+      'back': chrome.back,
+      'speed': chrome.speed,
+      'seek': chrome.seek,
+    }).replaceAll('<', r'\u003c');
+    return '<script type="application/json" id="l10n">$json</script>';
+  }
 
   /// `2026-08-07T01:00:00.000+04:00`: the local wall clock with the offset
   /// that pins it, so the attribute names the same day its own text does.
@@ -313,6 +338,18 @@ final class HtmlExporter implements JournalExporter {
 (function () {
   var root = document.documentElement;
 
+  // The page carries its own labels (the #l10n block); these defaults only
+  // cover a page without one.
+  var L = { play: 'Play', pause: 'Pause', back: 'Back 15 seconds',
+    speed: 'Playback speed', seek: 'Seek' };
+  var carried = document.getElementById('l10n');
+  if (carried) {
+    try {
+      var labels = JSON.parse(carried.textContent);
+      for (var key in L) if (typeof labels[key] === 'string') L[key] = labels[key];
+    } catch (e) {}
+  }
+
   function clock(seconds) {
     if (!isFinite(seconds) || seconds < 0) seconds = 0;
     var s = Math.floor(seconds % 60);
@@ -337,10 +374,10 @@ final class HtmlExporter implements JournalExporter {
 
     var back = document.createElement('button');
     back.innerHTML = BACK;
-    back.setAttribute('aria-label', 'Back 15 seconds');
+    back.setAttribute('aria-label', L.back);
     var play = document.createElement('button');
     play.innerHTML = PLAY;
-    play.setAttribute('aria-label', 'Play');
+    play.setAttribute('aria-label', L.play);
     var seek = document.createElement('input');
     seek.type = 'range';
     seek.className = 'seek';
@@ -348,14 +385,14 @@ final class HtmlExporter implements JournalExporter {
     seek.step = 'any';
     seek.max = String(total || 1);
     seek.value = '0';
-    seek.setAttribute('aria-label', 'Seek');
+    seek.setAttribute('aria-label', L.seek);
     var time = document.createElement('span');
     time.className = 'time';
     time.textContent = '0:00 / ' + clock(total);
     var rate = document.createElement('button');
     rate.className = 'rate';
     rate.textContent = '1x';
-    rate.setAttribute('aria-label', 'Playback speed');
+    rate.setAttribute('aria-label', L.speed);
 
     box.appendChild(play);
     box.appendChild(back);
@@ -397,12 +434,12 @@ final class HtmlExporter implements JournalExporter {
     audio.addEventListener('play', function () {
       playing = audio;
       play.innerHTML = PAUSE;
-      play.setAttribute('aria-label', 'Pause');
+      play.setAttribute('aria-label', L.pause);
     });
     audio.addEventListener('pause', function () {
       if (playing === audio) playing = null;
       play.innerHTML = PLAY;
-      play.setAttribute('aria-label', 'Play');
+      play.setAttribute('aria-label', L.play);
     });
     audio.addEventListener('timeupdate', paint);
     audio.addEventListener('loadedmetadata', paint);
@@ -477,8 +514,9 @@ final class HtmlExporter implements JournalExporter {
       // leaving them up offers a reader links that go nowhere.
       if (nav) nav.hidden = !!needle;
       if (empty) empty.hidden = !needle || hits > 0;
-      // textContent, never innerHTML: whatever was typed is not markup.
-      if (term) term.textContent = '\u201c' + typed + '\u201d';
+      // textContent, never innerHTML: whatever was typed is not markup. The
+      // quotes around it belong to the translation, not to this script.
+      if (term) term.textContent = typed;
       spy();
     });
   }

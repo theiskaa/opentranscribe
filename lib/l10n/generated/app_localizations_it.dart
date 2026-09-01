@@ -808,6 +808,50 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportQuiet => 'Un periodo tranquillo.';
 
   @override
+  String get exportHtmlSearch => 'Cerca';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Schema colori';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Chiaro';
+
+  @override
+  String get exportHtmlSchemeDark => 'Scuro';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Ancora niente qui';
+
+  @override
+  String get exportHtmlEmptyBody => 'Questo diario non ha voci.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Nessun risultato';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'Nessuna voce corrisponde a “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Riproduci';
+
+  @override
+  String get exportHtmlPause => 'Pausa';
+
+  @override
+  String get exportHtmlBack => 'Indietro di 15 secondi';
+
+  @override
+  String get exportHtmlSpeed => 'Velocità di riproduzione';
+
+  @override
+  String get exportHtmlSeek => 'Posizione';
+
+  @override
   String get settingsBackup => 'Backup';
 
   @override

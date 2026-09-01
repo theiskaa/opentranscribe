@@ -759,6 +759,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportQuiet => '一段安静的时光。';
 
   @override
+  String get exportHtmlSearch => '搜索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自动';
+
+  @override
+  String get exportHtmlSchemeLight => '浅色';
+
+  @override
+  String get exportHtmlSchemeDark => '深色';
+
+  @override
+  String get exportHtmlEmptyTitle => '这里还没有内容';
+
+  @override
+  String get exportHtmlEmptyBody => '这本日记还没有记录。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '未找到结果';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '没有与“$term”匹配的记录';
+  }
+
+  @override
+  String get exportHtmlPlay => '播放';
+
+  @override
+  String get exportHtmlPause => '暂停';
+
+  @override
+  String get exportHtmlBack => '后退 15 秒';
+
+  @override
+  String get exportHtmlSpeed => '播放速度';
+
+  @override
+  String get exportHtmlSeek => '进度';
+
+  @override
   String get settingsBackup => '备份';
 
   @override

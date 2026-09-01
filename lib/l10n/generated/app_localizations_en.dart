@@ -800,6 +800,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportQuiet => 'A quiet stretch.';
 
   @override
+  String get exportHtmlSearch => 'Search';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Color scheme';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Light';
+
+  @override
+  String get exportHtmlSchemeDark => 'Dark';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Nothing here yet';
+
+  @override
+  String get exportHtmlEmptyBody => 'This journal has no entries.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Nothing found';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'No entry matches “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Play';
+
+  @override
+  String get exportHtmlPause => 'Pause';
+
+  @override
+  String get exportHtmlBack => 'Back 15 seconds';
+
+  @override
+  String get exportHtmlSpeed => 'Playback speed';
+
+  @override
+  String get exportHtmlSeek => 'Seek';
+
+  @override
   String get settingsBackup => 'Backup';
 
   @override

@@ -1530,6 +1530,90 @@ abstract class AppLocalizations {
   /// **'A quiet stretch.'**
   String get exportQuiet;
 
+  /// Website export: search field placeholder and label
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get exportHtmlSearch;
+
+  /// Website export: spoken label of the scheme switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Color scheme'**
+  String get exportHtmlSchemeLabel;
+
+  /// Website export: scheme button following the machine
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get exportHtmlSchemeAuto;
+
+  /// Website export: light scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get exportHtmlSchemeLight;
+
+  /// Website export: dark scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get exportHtmlSchemeDark;
+
+  /// Website export: empty journal title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get exportHtmlEmptyTitle;
+
+  /// Website export: empty journal message
+  ///
+  /// In en, this message translates to:
+  /// **'This journal has no entries.'**
+  String get exportHtmlEmptyBody;
+
+  /// Website export: empty search result title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get exportHtmlNoMatchesTitle;
+
+  /// Website export: empty search result message; term is the searched phrase, quoted by the translation
+  ///
+  /// In en, this message translates to:
+  /// **'No entry matches “{term}”'**
+  String exportHtmlNoMatches(String term);
+
+  /// Website export: spoken label of the play button
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get exportHtmlPlay;
+
+  /// Website export: spoken label of the pause button
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get exportHtmlPause;
+
+  /// Website export: spoken label of the skip-back button
+  ///
+  /// In en, this message translates to:
+  /// **'Back 15 seconds'**
+  String get exportHtmlBack;
+
+  /// Website export: spoken label of the rate button
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get exportHtmlSpeed;
+
+  /// Website export: spoken label of the position slider
+  ///
+  /// In en, this message translates to:
+  /// **'Seek'**
+  String get exportHtmlSeek;
+
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:

@@ -1037,6 +1037,67 @@
   "@exportQuiet": {
     "description": "How a silent reflection reads in an export"
   },
+  "exportHtmlSearch": "Search",
+  "@exportHtmlSearch": {
+    "description": "Website export: search field placeholder and label"
+  },
+  "exportHtmlSchemeLabel": "Color scheme",
+  "@exportHtmlSchemeLabel": {
+    "description": "Website export: spoken label of the scheme switcher"
+  },
+  "exportHtmlSchemeAuto": "Auto",
+  "@exportHtmlSchemeAuto": {
+    "description": "Website export: scheme button following the machine"
+  },
+  "exportHtmlSchemeLight": "Light",
+  "@exportHtmlSchemeLight": {
+    "description": "Website export: light scheme button"
+  },
+  "exportHtmlSchemeDark": "Dark",
+  "@exportHtmlSchemeDark": {
+    "description": "Website export: dark scheme button"
+  },
+  "exportHtmlEmptyTitle": "Nothing here yet",
+  "@exportHtmlEmptyTitle": {
+    "description": "Website export: empty journal title"
+  },
+  "exportHtmlEmptyBody": "This journal has no entries.",
+  "@exportHtmlEmptyBody": {
+    "description": "Website export: empty journal message"
+  },
+  "exportHtmlNoMatchesTitle": "Nothing found",
+  "@exportHtmlNoMatchesTitle": {
+    "description": "Website export: empty search result title"
+  },
+  "exportHtmlNoMatches": "No entry matches “{term}”",
+  "@exportHtmlNoMatches": {
+    "description": "Website export: empty search result message; term is the searched phrase, quoted by the translation",
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "exportHtmlPlay": "Play",
+  "@exportHtmlPlay": {
+    "description": "Website export: spoken label of the play button"
+  },
+  "exportHtmlPause": "Pause",
+  "@exportHtmlPause": {
+    "description": "Website export: spoken label of the pause button"
+  },
+  "exportHtmlBack": "Back 15 seconds",
+  "@exportHtmlBack": {
+    "description": "Website export: spoken label of the skip-back button"
+  },
+  "exportHtmlSpeed": "Playback speed",
+  "@exportHtmlSpeed": {
+    "description": "Website export: spoken label of the rate button"
+  },
+  "exportHtmlSeek": "Seek",
+  "@exportHtmlSeek": {
+    "description": "Website export: spoken label of the position slider"
+  },
   "settingsBackup": "Backup",
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"

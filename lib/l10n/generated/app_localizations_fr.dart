@@ -808,6 +808,50 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportQuiet => 'Une période calme.';
 
   @override
+  String get exportHtmlSearch => 'Rechercher';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Thème de couleurs';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Clair';
+
+  @override
+  String get exportHtmlSchemeDark => 'Sombre';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Rien ici pour l\'instant';
+
+  @override
+  String get exportHtmlEmptyBody => 'Ce journal n\'a aucune entrée.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Aucun résultat';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'Aucune entrée ne correspond à « $term »';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Lecture';
+
+  @override
+  String get exportHtmlPause => 'Pause';
+
+  @override
+  String get exportHtmlBack => 'Reculer de 15 secondes';
+
+  @override
+  String get exportHtmlSpeed => 'Vitesse de lecture';
+
+  @override
+  String get exportHtmlSeek => 'Position';
+
+  @override
   String get settingsBackup => 'Sauvegarde';
 
   @override
