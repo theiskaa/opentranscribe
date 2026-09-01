@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:opentranscribe/core/export/archive_crypto.dart';
 import 'package:opentranscribe/core/export/archive_manifest.dart';
 import 'package:opentranscribe/core/export/file_names.dart';
@@ -11,6 +13,32 @@ import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
+
+/// What the journal weighs for the Backup screen's intro and confirms.
+@immutable
+final class JournalMeasure {
+  const JournalMeasure({
+    required this.entries,
+    required this.recordings,
+    required this.approxBytes,
+  });
+
+  final int entries;
+  final int recordings;
+
+  /// Approximate on purpose; see [ExportService.measure].
+  final int approxBytes;
+
+  @override
+  bool operator ==(Object other) =>
+      other is JournalMeasure &&
+      other.entries == entries &&
+      other.recordings == recordings &&
+      other.approxBytes == approxBytes;
+
+  @override
+  int get hashCode => Object.hash(entries, recordings, approxBytes);
+}
 
 /// Stages export trees and hands them to the share sheet: one entry or the
 /// whole journal in a pluggable format, or the whole journal as the native
@@ -87,12 +115,43 @@ class ExportService {
     });
   }
 
+  /// What a backup or an audio-included export would hold right now: the
+  /// entry count, how many kept recordings would ride along, and roughly
+  /// what they weigh (audio file bytes plus transcript lengths; audio
+  /// dominates, so the number is honest under a "~" label and never exact).
+  Future<JournalMeasure> measure() async {
+    final entries = _transcription.entries();
+    var recordings = 0;
+    var approxBytes = 0;
+    for (final entry in entries) {
+      approxBytes += entry.readableText?.length ?? 0;
+      if (entry.audioPath == null) continue;
+      try {
+        approxBytes += await File(await _transcription.resolveAudioPath(entry)).length();
+        recordings++;
+      } catch (_) {
+        // A vanished file exports transcript-only; it weighs nothing here.
+      }
+    }
+    return JournalMeasure(
+      entries: entries.length,
+      recordings: recordings,
+      approxBytes: approxBytes,
+    );
+  }
+
   /// Shares the whole journal in [exporterId]'s format as one zip: every
-  /// entry, kept audio included, and the stored reflections.
-  Future<bool> shareJournal({required String exporterId, required ExportStrings strings}) async {
+  /// entry, the stored reflections, and the kept audio when [includeAudio].
+  Future<bool> shareJournal({
+    required String exporterId,
+    required bool includeAudio,
+    required ExportStrings strings,
+  }) async {
     final exporter = _exporter(exporterId);
     final entries = _transcription.entries();
-    final audioNames = await _uniqueAudioNames(entries);
+    // Left empty when audio is out: every downstream reference keys off this
+    // map, so the entries export transcript-only and nothing is staged.
+    final audioNames = includeAudio ? await _uniqueAudioNames(entries) : <String, String>{};
     final snapshot = ExportSnapshot(
       entries: [
         for (final entry in entries)

@@ -53,7 +53,11 @@ class _BackupView extends StatelessWidget {
   Future<void> _exportJournal(BuildContext context) async {
     final cubit = context.read<BackupCubit>();
     final strings = exportStringsOf(AppLocalizations.of(context)!);
-    final result = await cubit.exportJournal(strings);
+    final result = await cubit.exportJournal(
+      strings: strings,
+      exporterId: cubit.state.formatId,
+      includeAudio: true,
+    );
     if (!context.mounted) return;
     unawaited(_shareFailSheet(context, result));
   }
@@ -259,9 +263,9 @@ class _BackupView extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
                 SectionInfo(
-                  state.entryCount == null
+                  state.measure == null
                       ? l10n.backupInfo
-                      : l10n.backupInfoCount(state.entryCount!),
+                      : l10n.backupInfoCount(state.measure!.entries),
                 ),
                 SettingsCard(
                   children: [

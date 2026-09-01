@@ -89,7 +89,7 @@ final class ImportOutcome {
 @immutable
 final class BackupState {
   const BackupState({
-    this.entryCount,
+    this.measure,
     this.formatId = '',
     this.seal = true,
     this.lastArchiveAt,
@@ -97,7 +97,7 @@ final class BackupState {
   });
 
   /// Null until the first measure lands; the intro reads generic until then.
-  final int? entryCount;
+  final JournalMeasure? measure;
   final String formatId;
   final bool seal;
   final DateTime? lastArchiveAt;
@@ -106,13 +106,13 @@ final class BackupState {
   bool get isBusy => busy != BackupBusy.none;
 
   BackupState copyWith({
-    int? entryCount,
+    JournalMeasure? measure,
     String? formatId,
     bool? seal,
     DateTime? lastArchiveAt,
     BackupBusy? busy,
   }) => BackupState(
-    entryCount: entryCount ?? this.entryCount,
+    measure: measure ?? this.measure,
     formatId: formatId ?? this.formatId,
     seal: seal ?? this.seal,
     lastArchiveAt: lastArchiveAt ?? this.lastArchiveAt,
@@ -122,14 +122,14 @@ final class BackupState {
   @override
   bool operator ==(Object other) =>
       other is BackupState &&
-      other.entryCount == entryCount &&
+      other.measure == measure &&
       other.formatId == formatId &&
       other.seal == seal &&
       other.lastArchiveAt == lastArchiveAt &&
       other.busy == busy;
 
   @override
-  int get hashCode => Object.hash(entryCount, formatId, seal, lastArchiveAt, busy);
+  int get hashCode => Object.hash(measure, formatId, seal, lastArchiveAt, busy);
 }
 
 /// Drives the Backup screen: measures the entry count, holds the persisted
@@ -145,9 +145,15 @@ class BackupCubit extends Cubit<BackupState> {
     required this._settings,
     required this._descriptors,
     DateTime Function()? clock,
+    this._remeasureQuiet = const Duration(milliseconds: 300),
   }) : _clock = clock ?? DateTime.now,
        super(const BackupState()) {
-    _entriesSub = _service.entriesChanged.listen((_) => _measure());
+    _entriesSub = _service.entriesChanged.listen((_) {
+      // Change signals arrive in bursts (each bulk re-transcribe landing, an
+      // import's adoptions); one trailing walk stats the files per burst.
+      _remeasureTimer?.cancel();
+      _remeasureTimer = Timer(_remeasureQuiet, () => unawaited(_measure()));
+    });
   }
 
   final TranscriptionService _service;
@@ -158,6 +164,14 @@ class BackupCubit extends Cubit<BackupState> {
   final DateTime Function() _clock;
 
   late final StreamSubscription<void> _entriesSub;
+
+  /// The quiet a burst of change signals must hold before the walk runs.
+  final Duration _remeasureQuiet;
+  Timer? _remeasureTimer;
+
+  /// Bumped by every measure, so a slow file walk started earlier can never
+  /// land its stale numbers over a fresher emit.
+  int _measureGeneration = 0;
 
   /// The formats this build ships, in the order the picker lists them.
   List<ExporterDescriptor> get descriptors => _descriptors;
@@ -173,12 +187,19 @@ class BackupCubit extends Cubit<BackupState> {
         lastArchiveAt: _settings.lastArchiveAt,
       ),
     );
-    _measure();
+    await _measure();
   }
 
-  void _measure() {
-    if (isClosed) return;
-    emit(state.copyWith(entryCount: _service.entries().length));
+  Future<void> _measure() async {
+    final generation = ++_measureGeneration;
+    try {
+      final measure = await _export.measure();
+      if (isClosed || generation != _measureGeneration) return;
+      emit(state.copyWith(measure: measure));
+    } catch (e) {
+      // Best effort: the intro reads generic; a later change signal retries.
+      if (kDebugMode) debugPrint('BackupCubit.measure failed: $e');
+    }
   }
 
   Future<void> setFormat(String id) async {
@@ -191,9 +212,14 @@ class BackupCubit extends Cubit<BackupState> {
     await _settings.setSeal(seal);
   }
 
-  Future<BackupActionResult> exportJournal(ExportStrings strings) => _run(
+  Future<BackupActionResult> exportJournal({
+    required ExportStrings strings,
+    required String exporterId,
+    required bool includeAudio,
+  }) => _run(
     BackupBusy.exporting,
-    () => _export.shareJournal(exporterId: state.formatId, strings: strings),
+    () =>
+        _export.shareJournal(exporterId: exporterId, includeAudio: includeAudio, strings: strings),
   );
 
   Future<BackupActionResult> exportArchive({String? passphrase}) =>
@@ -279,6 +305,7 @@ class BackupCubit extends Cubit<BackupState> {
 
   @override
   Future<void> close() {
+    _remeasureTimer?.cancel();
     _entriesSub.cancel();
     return super.close();
   }

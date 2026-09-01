@@ -105,6 +105,7 @@ void main() {
         ExporterDescriptor(exporterId: 'markdown', format: ExportFormat.markdown, logo: 'm.svg'),
       ],
       clock: () => fixedClock,
+      remeasureQuiet: Duration.zero,
     );
     addTearDown(cubit.close);
     return (cubit: cubit, share: share, settings: settings, store: store);
@@ -165,7 +166,7 @@ void main() {
     await world.cubit.load();
     expect(world.cubit.state.formatId, 'markdown');
     expect(world.cubit.state.seal, isTrue);
-    expect(world.cubit.state.entryCount, 1);
+    expect(world.cubit.state.measure?.entries, 1);
   });
 
   test('format and seal choices persist through the settings', () async {
@@ -182,7 +183,10 @@ void main() {
   test('a completed journal export answers shared', () async {
     final world = await build();
     await world.cubit.load();
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.shared);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.shared,
+    );
     expect(world.share.calls, contains('shareFiles'));
     expect(world.cubit.state.busy, BackupBusy.none);
   });
@@ -191,14 +195,20 @@ void main() {
     final world = await build();
     await world.cubit.load();
     world.share.shareCompletes = false;
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.cancelled,
+    );
   });
 
   test('a share sheet that never presented answers cancelled, not failed', () async {
     final world = await build();
     await world.cubit.load();
     world.share.throwOnShare = true;
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.cancelled,
+    );
     expect(world.cubit.state.busy, BackupBusy.none);
   });
 
@@ -207,7 +217,10 @@ void main() {
     await world.settings.setFormatId('gone');
     await world.cubit.load();
     expect(world.cubit.state.formatId, 'markdown');
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.shared);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.shared,
+    );
   });
 
   test('a saved archive stamps the last archive time; a cancelled one does not', () async {
@@ -273,7 +286,7 @@ void main() {
     final world = await build();
     await world.cubit.load();
     await world.cubit.exportArchive();
-    await world.cubit.exportJournal(strings);
+    await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true);
     expect(world.cubit.state.lastArchiveAt, fixedClock);
   });
 
@@ -292,7 +305,11 @@ void main() {
     final world = await build();
     await world.cubit.load();
     world.share.shareDelay = const Duration(milliseconds: 50);
-    final first = world.cubit.exportJournal(strings);
+    final first = world.cubit.exportJournal(
+      strings: strings,
+      exporterId: 'markdown',
+      includeAudio: true,
+    );
     expect(await world.cubit.exportArchive(), BackupActionResult.cancelled);
     expect(await first, BackupActionResult.shared);
   });
@@ -305,10 +322,10 @@ void main() {
     final archive = world.share.captured.last;
     await world.store.delete('e1');
     await world.cubit.load();
-    expect(world.cubit.state.entryCount, 0);
+    expect(world.cubit.state.measure?.entries, 0);
     await world.cubit.importArchive(archive);
     await pumpEventQueue();
-    expect(world.cubit.state.entryCount, 1);
+    expect(world.cubit.state.measure?.entries, 1);
   });
 
   test('a sealed archive imports under its passphrase at the cubit level', () async {
