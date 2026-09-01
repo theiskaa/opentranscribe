@@ -35,8 +35,7 @@ class ExportFormatRow extends StatelessWidget {
   }
 }
 
-/// A format's mark at chip size, shared by every row that puts one in the
-/// settings tile (the format pickers, the support screen's exports perk).
+/// A format's mark at chip size, for any row that puts one in a settings tile.
 /// Each mark is normalized in its own asset, on a square canvas that pads it
 /// to equal ink against the others, so this stays one square box for every
 /// format instead of a table of per-mark sizes. A branded mark keeps its own
