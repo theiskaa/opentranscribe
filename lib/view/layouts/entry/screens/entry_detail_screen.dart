@@ -448,20 +448,6 @@ class _DetailViewState extends State<_DetailView> {
         // The entry's own language, once known: the quiet answer to "what
         // will Re-transcribe run in".
         final language = entry.effectiveLocaleId;
-        // For the Transcribe-in choices: a real submenu on the native menu,
-        // the anchored dropdown on the fallback (see _transcribeIn).
-        final settings = context.watch<SettingsCubit>().state;
-        final transcribeTags = _transcribeTags(entry, settings);
-        final preselected = entry.effectiveLocaleId ?? settings.localeId;
-        final menu = _menuItems(
-          entry,
-          l10n,
-          transcribeTags,
-          preselected,
-          anyAction: state.busyId == entry.id,
-          canContinue: context.read<EntriesCubit>().canContinue(entry),
-          editing: _editing,
-        );
         // The bottom CTA exists for a never-transcribed entry; a run in flight
         // disables it in place rather than unmounting it, so a failed run
         // never blinks the button away and back. Transcribing needs the audio,
@@ -607,20 +593,37 @@ class _DetailViewState extends State<_DetailView> {
                 right: 0,
                 child: AppTopBar(
                   actions: [
-                    AppMenuButton(
-                      key: _menuAnchor,
-                      icon: AppIcons.ellipsis,
-                      color: theme.topBar.iconColor,
-                      items: menu,
-                      // Only the Transcribe-in parent answers by position; a
-                      // stale index from a menu that outlived a rebuild is
-                      // dropped rather than landing on another row.
-                      onSelected: (index) {
-                        if (index < 0 || index >= menu.length) return;
-                        if (menu[index].children.isEmpty) return;
-                        unawaited(_transcribeIn(entry));
+                    // Settings feed only the menu, so a model install's
+                    // progress emits rebuild this button, not the document.
+                    BlocBuilder<SettingsCubit, SettingsState>(
+                      builder: (context, settings) {
+                        final transcribeTags = _transcribeTags(entry, settings);
+                        final preselected = language ?? settings.localeId;
+                        final menu = _menuItems(
+                          entry,
+                          l10n,
+                          transcribeTags,
+                          preselected,
+                          anyAction: state.busyId == entry.id,
+                          canContinue: context.read<EntriesCubit>().canContinue(entry),
+                          editing: _editing,
+                        );
+                        return AppMenuButton(
+                          key: _menuAnchor,
+                          icon: AppIcons.ellipsis,
+                          color: theme.topBar.iconColor,
+                          items: menu,
+                          // Only the Transcribe-in parent answers by position; a
+                          // stale index from a menu that outlived a rebuild is
+                          // dropped rather than landing on another row.
+                          onSelected: (index) {
+                            if (index < 0 || index >= menu.length) return;
+                            if (menu[index].children.isEmpty) return;
+                            unawaited(_transcribeIn(entry));
+                          },
+                          onSelectedId: (id) => _onMenuId(id, entry),
+                        );
                       },
-                      onSelectedId: (id) => _onMenuId(id, entry),
                     ),
                   ],
                 ),
