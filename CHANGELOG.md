@@ -2,6 +2,20 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
+## 0.4.0 - 2026-09-02
+
+A faster app throughout, and a backup screen that says what it is doing.
+
+- Speed, everywhere the journal is read: the app no longer re-decrypts your whole journal after every rename, edit, delete, or landed re-transcription, so a long journal stays as quick as a short one and a bulk run no longer slows down as it goes. The journal is also decrypted on a worker thread before the first read, so the list is there when the splash lifts.
+- Smoother in the hand: scrolling home reads measured positions instead of re-measuring every day while your finger is down, the live transcript re-packs only the words that changed instead of the whole take, and reflections stop rescanning the journal at launch and on every return to the app.
+- The backup screen redesigned: it opens by saying what a backup holds and roughly what it weighs, encrypting and saving sit together, and each format is its own action, Export as Markdown, Obsidian Vault, or Website, with one switch for whether recordings ride along.
+- Backups and exports are packed off the interface thread with a live percent and a cancel, so a big journal no longer freezes the screen and a long run can be called off.
+- Passphrase fields can be revealed while you type them, both at once, so an unrecoverable secret is not typed blind twice.
+- Restore is honest about overwriting: the confirm says an entry that already exists takes the backup's version, undoing edits made since, and it now shows what the backup holds before you commit. The summary afterwards splits what was added, what was replaced, what was already there, and how many recordings came back.
+- A restore that breaks before it touches anything now says the journal is unchanged instead of claiming it stopped partway, and a picked file that cannot be read is no longer called "not a backup".
+- A backup that finishes after you leave the screen still records its date, and the export failures name their cause: the 4 GB a single file can hold, or a device out of space.
+- The Website export speaks your language: the search field, the light and dark switch, the empty states, and the player's spoken labels all follow the app instead of shipping English to every locale.
+
 ## 0.3.0 - 2026-08-31
 
 Say more into an entry you already saved, re-hear the whole journal with a better engine, and dress the app in a look of your own.
