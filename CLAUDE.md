@@ -141,7 +141,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Testing
 
-- Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
+- Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. The one native suite is `packages/transcriber/ios/transcriber/Core`, a Flutter-free Swift package holding the transcript stitching rules so `swift test` can reach them. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
 - Fakes live in `test/support/`. Inject them through constructors; no test may reach a real platform channel or real storage.
 - Test names read as sentences about behavior, not about method names. Tests carry no comments; the name is the explanation, so put the reasoning there.
 
