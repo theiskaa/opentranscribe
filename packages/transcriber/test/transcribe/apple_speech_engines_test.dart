@@ -85,7 +85,7 @@ void main() {
       await expectCode('on_device_unavailable', isA<OnDeviceUnavailable>());
       await expectCode('model_install_failed', isA<ModelInstallFailed>());
       await expectCode('reservation_cap', isA<ReservationCapReached>());
-      await expectCode('file_missing', isA<TranscriptionFailed>());
+      await expectCode('file_missing', isA<RecordingMissing>());
       await expectCode('transcribe_error', isA<TranscriptionFailed>());
       await expectCode('bad_args', isA<TranscriptionFailed>());
     });

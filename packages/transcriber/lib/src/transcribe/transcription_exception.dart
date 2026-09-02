@@ -60,6 +60,12 @@ class TranscriptionFailed extends TranscriptionException {
   const TranscriptionFailed([super.message]);
 }
 
+/// The audio a transcription was asked for is not there. Its own type because
+/// no retry can fix it.
+class RecordingMissing extends TranscriptionException {
+  const RecordingMissing([super.message]);
+}
+
 /// An audio merge could not produce its file. [code] carries the native reason
 /// (a missing or unreadable input versus a write failure) for callers that
 /// branch; every case leaves the inputs untouched and nothing partial behind.
