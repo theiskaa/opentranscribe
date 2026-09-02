@@ -1446,7 +1446,7 @@ abstract class AppLocalizations {
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
 
-  /// Menu row and button label for exporting one entry
+  /// Export entry sheet action button
   ///
   /// In en, this message translates to:
   /// **'Export'**
@@ -1473,19 +1473,19 @@ abstract class AppLocalizations {
   /// One line under the Markdown format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'One text file per entry, plus a .json.'**
+  /// **'A note per entry, plus JSON for machines.'**
   String get exportFormatMarkdownNote;
 
   /// Name of the Obsidian export format. A product name: keep it verbatim
   ///
   /// In en, this message translates to:
-  /// **'Obsidian'**
+  /// **'Obsidian Vault'**
   String get exportFormatObsidian;
 
   /// One line under the Obsidian format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'Notes with properties, audio embedded.'**
+  /// **'Notes with properties, recordings embedded.'**
   String get exportFormatObsidianNote;
 
   /// The app's own name for the HTML export format; a plain noun, so it translates
@@ -1497,7 +1497,7 @@ abstract class AppLocalizations {
   /// One line under the web page format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'Opens in any browser, with a player.'**
+  /// **'Search and a player, in any browser.'**
   String get exportFormatWebNote;
 
   /// Export failure sheet title
@@ -1511,6 +1511,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not prepare the files. Nothing was shared.'**
   String get exportFailedBody;
+
+  /// Export failure body when the archive overflowed the zip format's 4 GB cap
+  ///
+  /// In en, this message translates to:
+  /// **'The export exceeds the 4 GB a single file can hold. Nothing was shared.'**
+  String get exportTooLargeBody;
+
+  /// Export failure body when the device ran out of disk space
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space to prepare the files. Nothing was shared.'**
+  String get exportNoSpaceBody;
+
+  /// Row calling off the pack phase of a running backup or export; nothing is shared
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get exportCancel;
 
   /// File and heading fallback for an entry with no title
   ///
@@ -1530,6 +1548,90 @@ abstract class AppLocalizations {
   /// **'A quiet stretch.'**
   String get exportQuiet;
 
+  /// Website export: search field placeholder and label
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get exportHtmlSearch;
+
+  /// Website export: spoken label of the scheme switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Color scheme'**
+  String get exportHtmlSchemeLabel;
+
+  /// Website export: scheme button following the machine
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get exportHtmlSchemeAuto;
+
+  /// Website export: light scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get exportHtmlSchemeLight;
+
+  /// Website export: dark scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get exportHtmlSchemeDark;
+
+  /// Website export: empty journal title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get exportHtmlEmptyTitle;
+
+  /// Website export: empty journal message
+  ///
+  /// In en, this message translates to:
+  /// **'This journal has no entries.'**
+  String get exportHtmlEmptyBody;
+
+  /// Website export: empty search result title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get exportHtmlNoMatchesTitle;
+
+  /// Website export: empty search result message; term is the searched phrase, quoted by the translation
+  ///
+  /// In en, this message translates to:
+  /// **'No entry matches “{term}”'**
+  String exportHtmlNoMatches(String term);
+
+  /// Website export: spoken label of the play button
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get exportHtmlPlay;
+
+  /// Website export: spoken label of the pause button
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get exportHtmlPause;
+
+  /// Website export: spoken label of the skip-back button
+  ///
+  /// In en, this message translates to:
+  /// **'Back 15 seconds'**
+  String get exportHtmlBack;
+
+  /// Website export: spoken label of the rate button
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get exportHtmlSpeed;
+
+  /// Website export: spoken label of the position slider
+  ///
+  /// In en, this message translates to:
+  /// **'Seek'**
+  String get exportHtmlSeek;
+
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:
@@ -1542,28 +1644,34 @@ abstract class AppLocalizations {
   /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
   String get backupInfo;
 
-  /// The Backup screen intro once the entry count is measured
+  /// Backup intro when the measured journal is empty
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
-  String backupInfoCount(int count);
+  /// **'Nothing to back up yet. A backup holds every entry with its audio and reflections.'**
+  String get backupInfoEmpty;
 
-  /// Section label over the format picker and export row
+  /// Backup intro once measured: entry count and approximate size, then the encryption line
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.'**
+  String backupInfoMeasured(int count, String size);
+
+  /// Section label over the audio toggle and the per-format export action rows
   ///
   /// In en, this message translates to:
   /// **'Export'**
   String get backupExportSection;
 
-  /// Action row exporting the whole journal in the chosen format
+  /// Export card action row, one per format; format is the localized format name
   ///
   /// In en, this message translates to:
-  /// **'Export journal'**
-  String get backupExportJournal;
+  /// **'Export as {format}'**
+  String backupExportAs(String format);
 
   /// Help paragraph under the export card
   ///
   /// In en, this message translates to:
-  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
+  /// **'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
   String get backupExportInfo;
 
   /// Toggle for sealing archives with a passphrase
@@ -1572,10 +1680,10 @@ abstract class AppLocalizations {
   /// **'Encrypt with passphrase'**
   String get backupSeal;
 
-  /// The Backup section row that saves a backup file
+  /// Backup card row exporting the restorable archive, and the seal sheet action
   ///
   /// In en, this message translates to:
-  /// **'Save backup'**
+  /// **'Export backup'**
   String get backupSave;
 
   /// Detail under Save backup showing when the last backup was handed off
@@ -1620,6 +1728,18 @@ abstract class AppLocalizations {
   /// **'Passphrases do not match'**
   String get passphraseMismatch;
 
+  /// Passphrase field toggle revealing the typed secret
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get passphraseShow;
+
+  /// Passphrase field toggle hiding the typed secret again
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get passphraseHide;
+
   /// Unlock sheet title for a sealed archive
   ///
   /// In en, this message translates to:
@@ -1650,10 +1770,10 @@ abstract class AppLocalizations {
   /// **'Restore this backup?'**
   String get importConfirmTitle;
 
-  /// Import confirmation body: additive, nothing touched
+  /// Import confirmation body: additive, but an existing entry is overwritten by the backup's copy
   ///
   /// In en, this message translates to:
-  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
+  /// **'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.'**
   String get importConfirmBody;
 
   /// Import confirmation action button
@@ -1668,17 +1788,35 @@ abstract class AppLocalizations {
   /// **'Restore complete'**
   String get importSummaryTitle;
 
-  /// Summary line for how many entries were imported
+  /// Summary line for entries the restore newly added
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
-  String importSummaryImported(int count);
+  /// **'{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}'**
+  String importSummaryAdded(int count);
+
+  /// Summary line for existing entries the restore overwrote, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was replaced with the backup\'s version.} other {{count} entries were replaced with the backup\'s version.}}'**
+  String importSummaryReplaced(int count);
 
   /// Summary line for entries already present, shown only when some were
   ///
   /// In en, this message translates to:
   /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
   String importSummarySkipped(int count);
+
+  /// Summary line for recordings the restore put back, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording restored.} other {{count} recordings restored.}}'**
+  String importSummaryAudio(int count);
+
+  /// Restore confirm fact line: what a plain archive's manifest says it holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}'**
+  String importConfirmCounts(int count, int audio);
 
   /// Import failure sheet title
   ///

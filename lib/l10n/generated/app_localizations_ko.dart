@@ -734,25 +734,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '항목마다 텍스트 파일 하나와 .json.';
+  String get exportFormatMarkdownNote => '항목마다 노트 하나, JSON 포함.';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
+  String get exportFormatObsidianNote => '속성 있는 노트, 녹음 삽입.';
 
   @override
   String get exportFormatWeb => '웹사이트';
 
   @override
-  String get exportFormatWebNote => '어떤 브라우저에서나 열립니다. 재생 지원.';
+  String get exportFormatWebNote => '검색과 플레이어, 어떤 브라우저에서도.';
 
   @override
   String get exportFailedTitle => '내보내기 실패';
 
   @override
   String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportTooLargeBody => '내보내기가 파일 하나에 담을 수 있는 4 GB를 넘습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportNoSpaceBody => '파일을 준비할 여유 공간이 부족합니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportCancel => '취소';
 
   @override
   String get exportUntitled => '제목 없음';
@@ -764,18 +773,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportQuiet => '조용한 시간.';
 
   @override
+  String get exportHtmlSearch => '검색';
+
+  @override
+  String get exportHtmlSchemeLabel => '색상 테마';
+
+  @override
+  String get exportHtmlSchemeAuto => '자동';
+
+  @override
+  String get exportHtmlSchemeLight => '라이트';
+
+  @override
+  String get exportHtmlSchemeDark => '다크';
+
+  @override
+  String get exportHtmlEmptyTitle => '아직 아무것도 없습니다';
+
+  @override
+  String get exportHtmlEmptyBody => '이 저널에는 항목이 없습니다.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '찾을 수 없습니다';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '다음과 일치하는 항목이 없습니다: “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => '재생';
+
+  @override
+  String get exportHtmlPause => '일시정지';
+
+  @override
+  String get exportHtmlBack => '15초 뒤로';
+
+  @override
+  String get exportHtmlSpeed => '재생 속도';
+
+  @override
+  String get exportHtmlSeek => '탐색';
+
+  @override
   String get settingsBackup => '백업';
 
   @override
   String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
-      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담기며 약 $size입니다. 암호화하면 암호구가 유일한 열쇠입니다.',
     );
     return '$_temp0';
   }
@@ -784,17 +839,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupExportSection => '내보내기';
 
   @override
-  String get backupExportJournal => '저널 내보내기';
+  String backupExportAs(String format) {
+    return '$format 형식으로 내보내기';
+  }
 
   @override
   String get backupExportInfo =>
-      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
+      '모든 항목을 내보낼 때 선택한 형식으로 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
 
   @override
   String get backupSeal => '암호구로 암호화';
 
   @override
-  String get backupSave => '백업 저장';
+  String get backupSave => '백업 내보내기';
 
   @override
   String backupLastBackup(String date) {
@@ -820,6 +877,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passphraseMismatch => '암호구가 일치하지 않습니다';
 
   @override
+  String get passphraseShow => '표시';
+
+  @override
+  String get passphraseHide => '숨기기';
+
+  @override
   String get importUnlockTitle => '암호화된 백업';
 
   @override
@@ -835,7 +898,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importConfirmTitle => '이 백업을 복원할까요?';
 
   @override
-  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
+  String get importConfirmBody =>
+      '그 항목을 저널에 추가합니다. 이미 있는 항목은 백업의 버전으로 교체되어 그 이후의 편집이 사라집니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
 
   @override
   String get importConfirm => '복원';
@@ -844,12 +908,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importSummaryTitle => '복원 완료';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '항목 $count개를 복원했습니다.',
-      zero: '새로 복원할 것이 없습니다.',
+      other: '항목 $count개를 추가했습니다.',
+      zero: '새로 추가할 것이 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 백업의 버전으로 교체되었습니다.',
     );
     return '$_temp0';
   }
@@ -862,6 +936,24 @@ class AppLocalizationsKo extends AppLocalizations {
       other: '$count개는 이미 저널에 있었습니다.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개를 복원했습니다.');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '항목 $count개');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '녹음 $audio개',
+      zero: '녹음 없음',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

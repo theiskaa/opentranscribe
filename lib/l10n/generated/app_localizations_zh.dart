@@ -729,25 +729,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '每条记录一个文本文件，外加 .json。';
+  String get exportFormatMarkdownNote => '每条记录一个笔记，附 JSON。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
+  String get exportFormatObsidianNote => '带属性的笔记，内嵌录音。';
 
   @override
   String get exportFormatWeb => '网站';
 
   @override
-  String get exportFormatWebNote => '任何浏览器都能打开，带播放器。';
+  String get exportFormatWebNote => '带搜索和播放器，任何浏览器可开。';
 
   @override
   String get exportFailedTitle => '导出失败';
 
   @override
   String get exportFailedBody => '无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportTooLargeBody => '导出超过了单个文件可容纳的 4 GB。未共享任何内容。';
+
+  @override
+  String get exportNoSpaceBody => '可用空间不足，无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportCancel => '取消';
 
   @override
   String get exportUntitled => '无标题';
@@ -759,18 +768,64 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportQuiet => '一段安静的时光。';
 
   @override
+  String get exportHtmlSearch => '搜索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自动';
+
+  @override
+  String get exportHtmlSchemeLight => '浅色';
+
+  @override
+  String get exportHtmlSchemeDark => '深色';
+
+  @override
+  String get exportHtmlEmptyTitle => '这里还没有内容';
+
+  @override
+  String get exportHtmlEmptyBody => '这本日记还没有记录。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '未找到结果';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '没有与“$term”匹配的记录';
+  }
+
+  @override
+  String get exportHtmlPlay => '播放';
+
+  @override
+  String get exportHtmlPause => '暂停';
+
+  @override
+  String get exportHtmlBack => '后退 15 秒';
+
+  @override
+  String get exportHtmlSpeed => '播放速度';
+
+  @override
+  String get exportHtmlSeek => '进度';
+
+  @override
   String get settingsBackup => '备份';
 
   @override
   String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => '暂时没有可备份的内容。备份包含记录、音频和回顾。';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '备份包含 $count 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。',
-      zero: '暂时没有可备份的内容。备份包含记录、音频和回顾。',
+      other: '备份包含 $count 条记录、音频和回顾，约 $size。如果加密，口令就是唯一的钥匙。',
     );
     return '$_temp0';
   }
@@ -779,16 +834,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupExportSection => '导出';
 
   @override
-  String get backupExportJournal => '导出日记';
+  String backupExportAs(String format) {
+    return '导出为 $format';
+  }
 
   @override
-  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
+  String get backupExportInfo => '以导出时选择的格式写出每条记录，打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
 
   @override
   String get backupSeal => '用口令加密';
 
   @override
-  String get backupSave => '保存备份';
+  String get backupSave => '导出备份';
 
   @override
   String backupLastBackup(String date) {
@@ -814,6 +871,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passphraseMismatch => '两次口令不一致';
 
   @override
+  String get passphraseShow => '显示';
+
+  @override
+  String get passphraseHide => '隐藏';
+
+  @override
   String get importUnlockTitle => '已加密的备份';
 
   @override
@@ -829,7 +892,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importConfirmTitle => '恢复这份备份？';
 
   @override
-  String get importConfirmBody => '把其中的记录加入你的日记。同一份备份恢复两次也不会重复。';
+  String get importConfirmBody => '把其中的记录加入你的日记。已有的记录会被备份中的版本替换，之后的编辑将丢失。同一份备份恢复两次也不会重复。';
 
   @override
   String get importConfirm => '恢复';
@@ -838,12 +901,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importSummaryTitle => '恢复完成';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '已恢复 $count 条记录。',
-      zero: '没有新内容可恢复。',
+      other: '已添加 $count 条记录。',
+      zero: '没有新内容可添加。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条记录已替换为备份中的版本。',
     );
     return '$_temp0';
   }
@@ -852,6 +925,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String importSummarySkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已恢复 $count 段录音。');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio 段录音',
+      zero: '无录音',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

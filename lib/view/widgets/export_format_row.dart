@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
@@ -15,6 +16,9 @@ class ExportFormatRow extends StatelessWidget {
     required this.descriptor,
     required this.selected,
     required this.onTap,
+    this.label,
+    this.busy = false,
+    this.dimmed = false,
     super.key,
   });
 
@@ -22,21 +26,34 @@ class ExportFormatRow extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
+  /// Overrides the format's plain name where the row is an action rather
+  /// than a choice ("Export as Obsidian").
+  final String? label;
+
+  /// Swaps the mark for a spinner while this row's export runs.
+  final bool busy;
+
+  /// Greys the row where it is disabled for a lasting reason (an empty
+  /// journal), so a dead action never looks tappable.
+  final bool dimmed;
+
   @override
   Widget build(BuildContext context) {
     final copy = exportFormatCopy(AppLocalizations.of(context)!, descriptor.format);
     return SelectableRow(
-      label: copy.name,
+      label: label ?? copy.name,
       note: copy.note,
-      leading: ExporterLogo(descriptor),
+      leading: busy
+          ? AppSpinner(size: ExporterLogo._size, color: context.theme.textSecondary)
+          : ExporterLogo(descriptor),
       selected: selected,
+      dimmed: dimmed,
       onTap: onTap,
     );
   }
 }
 
-/// A format's mark at chip size, shared by every row that puts one in the
-/// settings tile (the format pickers, the support screen's exports perk).
+/// A format's mark at chip size, for any row that puts one in a settings tile.
 /// Each mark is normalized in its own asset, on a square canvas that pads it
 /// to equal ink against the others, so this stays one square box for every
 /// format instead of a table of per-mark sizes. A branded mark keeps its own

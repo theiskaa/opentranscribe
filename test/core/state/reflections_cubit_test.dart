@@ -142,6 +142,8 @@ void main() {
   test('allDisabled only once every period is off', () async {
     final cubit = build();
     await cubit.load();
+    await cubit.setPeriodEnabled(ReflectionPeriod.daily, true);
+    await settle();
     expect(cubit.state.allDisabled, isFalse);
 
     await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
@@ -177,7 +179,7 @@ void main() {
     await cubit.close();
   });
 
-  test('enableDefaults restores every period', () async {
+  test('enableDefaults restores the periods that write out of the box', () async {
     final cubit = build();
     await cubit.load();
     await cubit.setPeriodEnabled(ReflectionPeriod.weekly, false);
@@ -187,7 +189,7 @@ void main() {
 
     await cubit.enableDefaults();
     await settle();
-    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isTrue);
+    expect(cubit.state.enabledByPeriod[ReflectionPeriod.daily], isFalse);
     expect(cubit.state.enabledByPeriod[ReflectionPeriod.weekly], isTrue);
     expect(cubit.state.enabledByPeriod[ReflectionPeriod.monthly], isTrue);
     await cubit.close();

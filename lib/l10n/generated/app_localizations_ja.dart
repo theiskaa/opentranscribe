@@ -732,25 +732,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+  String get exportFormatMarkdownNote => 'エントリーごとのノートとJSON。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+  String get exportFormatObsidianNote => 'プロパティ付きノート、録音を埋め込み。';
 
   @override
   String get exportFormatWeb => 'Webサイト';
 
   @override
-  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
+  String get exportFormatWebNote => '検索とプレイヤー、どのブラウザでも。';
 
   @override
   String get exportFailedTitle => '書き出しに失敗しました';
 
   @override
   String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
+
+  @override
+  String get exportTooLargeBody => '書き出しが1ファイルに収まる4 GBを超えています。何も共有されていません。';
+
+  @override
+  String get exportNoSpaceBody => 'ファイルを準備するための空き容量が足りません。何も共有されていません。';
+
+  @override
+  String get exportCancel => 'キャンセル';
 
   @override
   String get exportUntitled => '無題';
@@ -762,18 +771,64 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportQuiet => '静かなひととき。';
 
   @override
+  String get exportHtmlSearch => '検索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自動';
+
+  @override
+  String get exportHtmlSchemeLight => 'ライト';
+
+  @override
+  String get exportHtmlSchemeDark => 'ダーク';
+
+  @override
+  String get exportHtmlEmptyTitle => 'まだ何もありません';
+
+  @override
+  String get exportHtmlEmptyBody => 'このジャーナルにはエントリーがありません。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '見つかりませんでした';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '「$term」に一致するエントリーはありません';
+  }
+
+  @override
+  String get exportHtmlPlay => '再生';
+
+  @override
+  String get exportHtmlPause => '一時停止';
+
+  @override
+  String get exportHtmlBack => '15秒戻る';
+
+  @override
+  String get exportHtmlSpeed => '再生速度';
+
+  @override
+  String get exportHtmlSeek => 'シーク';
+
+  @override
   String get settingsBackup => 'バックアップ';
 
   @override
   String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
-      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
+      other: 'バックアップには$count件のエントリーと音声、振り返りが入り、約$sizeです。暗号化すれば、パスフレーズが唯一の鍵です。',
     );
     return '$_temp0';
   }
@@ -782,17 +837,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupExportSection => '書き出し';
 
   @override
-  String get backupExportJournal => 'ジャーナルを書き出す';
+  String backupExportAs(String format) {
+    return '$formatとして書き出す';
+  }
 
   @override
   String get backupExportInfo =>
-      'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
+      'すべてのエントリーを書き出し時に選んだ形式でzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
 
   @override
   String get backupSeal => 'パスフレーズで暗号化';
 
   @override
-  String get backupSave => 'バックアップを保存';
+  String get backupSave => 'バックアップを書き出す';
 
   @override
   String backupLastBackup(String date) {
@@ -818,6 +875,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get passphraseMismatch => 'パスフレーズが一致しません';
 
   @override
+  String get passphraseShow => '表示';
+
+  @override
+  String get passphraseHide => '非表示';
+
+  @override
   String get importUnlockTitle => '暗号化されたバックアップ';
 
   @override
@@ -833,7 +896,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importConfirmTitle => 'このバックアップを復元しますか？';
 
   @override
-  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
+  String get importConfirmBody =>
+      'そのエントリーをジャーナルに追加します。既にあるエントリーはバックアップの内容に置き換わり、その後の編集は失われます。同じバックアップを二度復元しても重複しません。';
 
   @override
   String get importConfirm => '復元';
@@ -842,12 +906,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importSummaryTitle => '復元完了';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のエントリーを復元しました。',
-      zero: '新しく復元するものはありません。',
+      other: '$count件のエントリーを追加しました。',
+      zero: '新しく追加するものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件はバックアップの内容に置き換わりました。',
     );
     return '$_temp0';
   }
@@ -860,6 +934,24 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件は既にジャーナルにありました。',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音を復元しました。');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'エントリー$count件');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '録音$audio件',
+      zero: '録音なし',
+    );
+    return '$_temp0・$_temp1';
   }
 
   @override

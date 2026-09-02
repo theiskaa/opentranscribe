@@ -770,25 +770,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'One text file per entry, plus a .json.';
+  String get exportFormatMarkdownNote => 'A note per entry, plus JSON for machines.';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'Notes with properties, audio embedded.';
+  String get exportFormatObsidianNote => 'Notes with properties, recordings embedded.';
 
   @override
   String get exportFormatWeb => 'Website';
 
   @override
-  String get exportFormatWebNote => 'Opens in any browser, with a player.';
+  String get exportFormatWebNote => 'Search and a player, in any browser.';
 
   @override
   String get exportFailedTitle => 'Export failed';
 
   @override
   String get exportFailedBody => 'Could not prepare the files. Nothing was shared.';
+
+  @override
+  String get exportTooLargeBody =>
+      'The export exceeds the 4 GB a single file can hold. Nothing was shared.';
+
+  @override
+  String get exportNoSpaceBody => 'Not enough free space to prepare the files. Nothing was shared.';
+
+  @override
+  String get exportCancel => 'Cancel';
 
   @override
   String get exportUntitled => 'Untitled';
@@ -800,6 +810,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportQuiet => 'A quiet stretch.';
 
   @override
+  String get exportHtmlSearch => 'Search';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Color scheme';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Light';
+
+  @override
+  String get exportHtmlSchemeDark => 'Dark';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Nothing here yet';
+
+  @override
+  String get exportHtmlEmptyBody => 'This journal has no entries.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Nothing found';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'No entry matches “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Play';
+
+  @override
+  String get exportHtmlPause => 'Pause';
+
+  @override
+  String get exportHtmlBack => 'Back 15 seconds';
+
+  @override
+  String get exportHtmlSpeed => 'Playback speed';
+
+  @override
+  String get exportHtmlSeek => 'Seek';
+
+  @override
   String get settingsBackup => 'Backup';
 
   @override
@@ -807,34 +861,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty =>
+      'Nothing to back up yet. A backup holds every entry with its audio and reflections.';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'A backup holds all $count entries with their audio and reflections. Encrypt it and your passphrase is the only key.',
-      one:
-          'A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.',
-      zero: 'Nothing to back up yet. A backup holds every entry with its audio and reflections.',
+      other: 'A backup holds all $count entries with their audio and reflections, about $size.',
+      one: 'A backup holds your 1 entry with its audio and reflections, about $size.',
     );
-    return '$_temp0';
+    return '$_temp0 Encrypt it and your passphrase is the only key.';
   }
 
   @override
   String get backupExportSection => 'Export';
 
   @override
-  String get backupExportJournal => 'Export journal';
+  String backupExportAs(String format) {
+    return 'Export as $format';
+  }
 
   @override
   String get backupExportInfo =>
-      'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
+      'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.';
 
   @override
   String get backupSeal => 'Encrypt with passphrase';
 
   @override
-  String get backupSave => 'Save backup';
+  String get backupSave => 'Export backup';
 
   @override
   String backupLastBackup(String date) {
@@ -861,6 +918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passphraseMismatch => 'Passphrases do not match';
 
   @override
+  String get passphraseShow => 'Show';
+
+  @override
+  String get passphraseHide => 'Hide';
+
+  @override
   String get importUnlockTitle => 'Encrypted backup';
 
   @override
@@ -877,7 +940,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Adds its entries to your journal. Restoring the same backup twice never duplicates.';
+      'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.';
 
   @override
   String get importConfirm => 'Restore';
@@ -886,13 +949,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importSummaryTitle => 'Restore complete';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Restored $count entries.',
-      one: 'Restored 1 entry.',
-      zero: 'Nothing new to restore.',
+      other: 'Added $count entries.',
+      one: 'Added 1 entry.',
+      zero: 'Nothing new to add.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries were replaced with the backup\'s version.',
+      one: '1 entry was replaced with the backup\'s version.',
     );
     return '$_temp0';
   }
@@ -906,6 +980,35 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 entry was already in the journal.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recordings restored.',
+      one: '1 recording restored.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio recordings',
+      one: '1 recording',
+      zero: 'no recordings',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

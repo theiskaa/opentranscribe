@@ -184,7 +184,9 @@ void main() {
       final scheduler = FakeNotificationScheduler(permission: permission);
       final s = await settings();
       await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), weeklyOn);
-      await s.reflect.setEnabledFor(ReflectionPeriod.weekly, reflectionsOn);
+      for (final period in ReflectionPeriod.values) {
+        await s.reflect.setEnabledFor(period, reflectionsOn);
+      }
       final notifier = await build(
         scheduler: scheduler,
         notify: s.notify,
@@ -291,6 +293,8 @@ void main() {
     test('a toggle-off that lands during the async probes cancels, never schedules', () async {
       final scheduler = FakeNotificationScheduler();
       final s = await settings();
+      await s.reflect.setEnabledFor(ReflectionPeriod.weekly, true);
+      await s.reflect.setEnabledFor(ReflectionPeriod.monthly, false);
       await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
       scheduler.onPermissionProbe = () => s.reflect.setEnabledFor(ReflectionPeriod.weekly, false);
       final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);

@@ -26,6 +26,8 @@ final class PassphraseSheetStrings {
     required this.actionLabel,
     required String this.tooShort,
     required String this.mismatch,
+    required this.show,
+    required this.hide,
   }) : confirm = true;
 
   const PassphraseSheetStrings.unlock({
@@ -33,6 +35,8 @@ final class PassphraseSheetStrings {
     required this.body,
     required this.placeholder,
     required this.actionLabel,
+    required this.show,
+    required this.hide,
   }) : confirm = false,
        repeatPlaceholder = null,
        tooShort = null,
@@ -46,6 +50,11 @@ final class PassphraseSheetStrings {
   final String? repeatPlaceholder;
   final String? tooShort;
   final String? mismatch;
+
+  /// The reveal toggle's two faces. Words, not a glyph: the icon subset
+  /// carries no eye, and a labeled toggle needs no decoding.
+  final String show;
+  final String hide;
 }
 
 /// Asks for a passphrase at action time, so a secret never sits on a settings
@@ -77,6 +86,9 @@ class _PassphraseSheetBody extends StatefulWidget {
 class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
   final _passphrase = TextEditingController();
   final _repeat = TextEditingController();
+
+  /// Both fields reveal together: half-hidden double entry helps nobody.
+  bool _reveal = false;
 
   bool get _confirm => widget.strings.confirm;
 
@@ -133,17 +145,23 @@ class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
           controller: _passphrase,
           placeholder: strings.placeholder,
           autofocus: true,
-          obscureText: true,
+          obscureText: !_reveal,
+          secret: true,
           onChanged: (_) => setState(() {}),
           textInputAction: _confirm ? TextInputAction.next : TextInputAction.done,
           onSubmitted: _confirm ? null : (_) => _submit(),
+          trailing: _RevealToggle(
+            label: _reveal ? strings.hide : strings.show,
+            onTap: () => setState(() => _reveal = !_reveal),
+          ),
         ),
         if (_confirm) ...[
           const SizedBox(height: AppSpacing.md),
           AppTextField(
             controller: _repeat,
             placeholder: strings.repeatPlaceholder!,
-            obscureText: true,
+            obscureText: !_reveal,
+            secret: true,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),
@@ -163,6 +181,28 @@ class _PassphraseSheetBodyState extends State<_PassphraseSheetBody> {
         ],
       ],
       action: AppButton(label: strings.actionLabel, onPressed: _submittable ? _submit : null),
+    );
+  }
+}
+
+class _RevealToggle extends StatelessWidget {
+  const _RevealToggle({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Horizontal padding only: it widens the tap seat, while any vertical
+    // padding would make this the field's tallest child and grow it past
+    // the repeat field below.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: Text(label, style: AppType.footnote.copyWith(color: context.theme.textSecondary)),
+      ),
     );
   }
 }

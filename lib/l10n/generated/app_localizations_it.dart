@@ -778,25 +778,36 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'Un file di testo per voce, più un .json.';
+  String get exportFormatMarkdownNote => 'Una nota per voce, più JSON.';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'Note con proprietà e audio incorporato.';
+  String get exportFormatObsidianNote => 'Note con proprietà, audio incorporato.';
 
   @override
   String get exportFormatWeb => 'Sito web';
 
   @override
-  String get exportFormatWebNote => 'Si apre in ogni browser, con player.';
+  String get exportFormatWebNote => 'Ricerca e lettore, in qualsiasi browser.';
 
   @override
   String get exportFailedTitle => 'Esportazione non riuscita';
 
   @override
   String get exportFailedBody => 'Impossibile preparare i file. Non è stato condiviso nulla.';
+
+  @override
+  String get exportTooLargeBody =>
+      'L\'esportazione supera i 4 GB che un singolo file può contenere. Non è stato condiviso nulla.';
+
+  @override
+  String get exportNoSpaceBody =>
+      'Spazio libero insufficiente per preparare i file. Non è stato condiviso nulla.';
+
+  @override
+  String get exportCancel => 'Annulla';
 
   @override
   String get exportUntitled => 'Senza titolo';
@@ -808,6 +819,50 @@ class AppLocalizationsIt extends AppLocalizations {
   String get exportQuiet => 'Un periodo tranquillo.';
 
   @override
+  String get exportHtmlSearch => 'Cerca';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Schema colori';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Chiaro';
+
+  @override
+  String get exportHtmlSchemeDark => 'Scuro';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Ancora niente qui';
+
+  @override
+  String get exportHtmlEmptyBody => 'Questo diario non ha voci.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Nessun risultato';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'Nessuna voce corrisponde a “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Riproduci';
+
+  @override
+  String get exportHtmlPause => 'Pausa';
+
+  @override
+  String get exportHtmlBack => 'Indietro di 15 secondi';
+
+  @override
+  String get exportHtmlSpeed => 'Velocità di riproduzione';
+
+  @override
+  String get exportHtmlSeek => 'Posizione';
+
+  @override
   String get settingsBackup => 'Backup';
 
   @override
@@ -815,35 +870,38 @@ class AppLocalizationsIt extends AppLocalizations {
       'Un backup contiene ogni voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty =>
+      'Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other:
-          'Un backup contiene tutte le $count voci con il loro audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
-      one:
-          'Un backup contiene la tua unica voce con il suo audio e le riflessioni. Se lo cifri, la passphrase è l\'unica chiave.',
-      zero:
-          'Ancora nulla da salvare. Un backup contiene ogni voce con il suo audio e le riflessioni.',
+          'Un backup contiene tutte le $count voci con il loro audio e le riflessioni, circa $size.',
+      one: 'Un backup contiene la tua unica voce con il suo audio e le riflessioni, circa $size.',
     );
-    return '$_temp0';
+    return '$_temp0 Se lo cifri, la passphrase è l\'unica chiave.';
   }
 
   @override
   String get backupExportSection => 'Export';
 
   @override
-  String get backupExportJournal => 'Esporta il diario';
+  String backupExportAs(String format) {
+    return 'Esporta come $format';
+  }
 
   @override
   String get backupExportInfo =>
-      'Scrive ogni voce nel formato scelto, audio incluso, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
+      'Scrive ogni voce in un formato scelto al momento dell\'esportazione, in uno zip per il foglio di condivisione. Una copia per altre app; per ripristinare serve un backup.';
 
   @override
   String get backupSeal => 'Cifra con passphrase';
 
   @override
-  String get backupSave => 'Salva backup';
+  String get backupSave => 'Esporta backup';
 
   @override
   String backupLastBackup(String date) {
@@ -870,6 +928,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get passphraseMismatch => 'Le passphrase non coincidono';
 
   @override
+  String get passphraseShow => 'Mostra';
+
+  @override
+  String get passphraseHide => 'Nascondi';
+
+  @override
   String get importUnlockTitle => 'Backup cifrato';
 
   @override
@@ -887,7 +951,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Aggiunge le sue voci al tuo diario. Ripristinare due volte lo stesso backup non duplica mai.';
+      'Aggiunge le sue voci al tuo diario. Una voce già presente assume la versione del backup, annullando le modifiche fatte da allora. Ripristinare due volte lo stesso backup non duplica mai.';
 
   @override
   String get importConfirm => 'Ripristina';
@@ -896,13 +960,24 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importSummaryTitle => 'Ripristino completato';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count voci ripristinate.',
-      one: '1 voce ripristinata.',
-      zero: 'Niente di nuovo da ripristinare.',
+      other: '$count voci aggiunte.',
+      one: '1 voce aggiunta.',
+      zero: 'Niente di nuovo da aggiungere.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci sono state sostituite con la versione del backup.',
+      one: '1 voce è stata sostituita con la versione del backup.',
     );
     return '$_temp0';
   }
@@ -916,6 +991,35 @@ class AppLocalizationsIt extends AppLocalizations {
       one: '1 voce era già nel diario.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registrazioni ripristinate.',
+      one: '1 registrazione ripristinata.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voci',
+      one: '1 voce',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio registrazioni',
+      one: '1 registrazione',
+      zero: 'nessuna registrazione',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override

@@ -983,7 +983,7 @@
   },
   "exportEntry": "Export",
   "@exportEntry": {
-    "description": "Menu row and button label for exporting one entry"
+    "description": "Export entry sheet action button"
   },
   "exportEntryTitle": "Export entry",
   "@exportEntryTitle": {
@@ -997,15 +997,15 @@
   "@exportFormatMarkdown": {
     "description": "Name of the Markdown export format. A format is named by its makers: keep it verbatim"
   },
-  "exportFormatMarkdownNote": "One text file per entry, plus a .json.",
+  "exportFormatMarkdownNote": "A note per entry, plus JSON for machines.",
   "@exportFormatMarkdownNote": {
     "description": "One line under the Markdown format row saying what it writes"
   },
-  "exportFormatObsidian": "Obsidian",
+  "exportFormatObsidian": "Obsidian Vault",
   "@exportFormatObsidian": {
     "description": "Name of the Obsidian export format. A product name: keep it verbatim"
   },
-  "exportFormatObsidianNote": "Notes with properties, audio embedded.",
+  "exportFormatObsidianNote": "Notes with properties, recordings embedded.",
   "@exportFormatObsidianNote": {
     "description": "One line under the Obsidian format row saying what it writes"
   },
@@ -1013,7 +1013,7 @@
   "@exportFormatWeb": {
     "description": "The app's own name for the HTML export format; a plain noun, so it translates"
   },
-  "exportFormatWebNote": "Opens in any browser, with a player.",
+  "exportFormatWebNote": "Search and a player, in any browser.",
   "@exportFormatWebNote": {
     "description": "One line under the web page format row saying what it writes"
   },
@@ -1024,6 +1024,18 @@
   "exportFailedBody": "Could not prepare the files. Nothing was shared.",
   "@exportFailedBody": {
     "description": "Export failure explanation; nothing left the phone"
+  },
+  "exportTooLargeBody": "The export exceeds the 4 GB a single file can hold. Nothing was shared.",
+  "@exportTooLargeBody": {
+    "description": "Export failure body when the archive overflowed the zip format's 4 GB cap"
+  },
+  "exportNoSpaceBody": "Not enough free space to prepare the files. Nothing was shared.",
+  "@exportNoSpaceBody": {
+    "description": "Export failure body when the device ran out of disk space"
+  },
+  "exportCancel": "Cancel",
+  "@exportCancel": {
+    "description": "Row calling off the pack phase of a running backup or export; nothing is shared"
   },
   "exportUntitled": "Untitled",
   "@exportUntitled": {
@@ -1037,6 +1049,67 @@
   "@exportQuiet": {
     "description": "How a silent reflection reads in an export"
   },
+  "exportHtmlSearch": "Search",
+  "@exportHtmlSearch": {
+    "description": "Website export: search field placeholder and label"
+  },
+  "exportHtmlSchemeLabel": "Color scheme",
+  "@exportHtmlSchemeLabel": {
+    "description": "Website export: spoken label of the scheme switcher"
+  },
+  "exportHtmlSchemeAuto": "Auto",
+  "@exportHtmlSchemeAuto": {
+    "description": "Website export: scheme button following the machine"
+  },
+  "exportHtmlSchemeLight": "Light",
+  "@exportHtmlSchemeLight": {
+    "description": "Website export: light scheme button"
+  },
+  "exportHtmlSchemeDark": "Dark",
+  "@exportHtmlSchemeDark": {
+    "description": "Website export: dark scheme button"
+  },
+  "exportHtmlEmptyTitle": "Nothing here yet",
+  "@exportHtmlEmptyTitle": {
+    "description": "Website export: empty journal title"
+  },
+  "exportHtmlEmptyBody": "This journal has no entries.",
+  "@exportHtmlEmptyBody": {
+    "description": "Website export: empty journal message"
+  },
+  "exportHtmlNoMatchesTitle": "Nothing found",
+  "@exportHtmlNoMatchesTitle": {
+    "description": "Website export: empty search result title"
+  },
+  "exportHtmlNoMatches": "No entry matches “{term}”",
+  "@exportHtmlNoMatches": {
+    "description": "Website export: empty search result message; term is the searched phrase, quoted by the translation",
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "exportHtmlPlay": "Play",
+  "@exportHtmlPlay": {
+    "description": "Website export: spoken label of the play button"
+  },
+  "exportHtmlPause": "Pause",
+  "@exportHtmlPause": {
+    "description": "Website export: spoken label of the pause button"
+  },
+  "exportHtmlBack": "Back 15 seconds",
+  "@exportHtmlBack": {
+    "description": "Website export: spoken label of the skip-back button"
+  },
+  "exportHtmlSpeed": "Playback speed",
+  "@exportHtmlSpeed": {
+    "description": "Website export: spoken label of the rate button"
+  },
+  "exportHtmlSeek": "Seek",
+  "@exportHtmlSeek": {
+    "description": "Website export: spoken label of the position slider"
+  },
   "settingsBackup": "Backup",
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"
@@ -1045,24 +1118,36 @@
   "@backupInfo": {
     "description": "Backup screen intro: what a backup holds and what encryption does"
   },
-  "backupInfoCount": "{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}",
-  "@backupInfoCount": {
-    "description": "The Backup screen intro once the entry count is measured",
+  "backupInfoEmpty": "Nothing to back up yet. A backup holds every entry with its audio and reflections.",
+  "@backupInfoEmpty": {
+    "description": "Backup intro when the measured journal is empty"
+  },
+  "backupInfoMeasured": "{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.",
+  "@backupInfoMeasured": {
+    "description": "Backup intro once measured: entry count and approximate size, then the encryption line",
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "size": {
+        "type": "String"
       }
     }
   },
   "backupExportSection": "Export",
   "@backupExportSection": {
-    "description": "Section label over the format picker and export row"
+    "description": "Section label over the audio toggle and the per-format export action rows"
   },
-  "backupExportJournal": "Export journal",
-  "@backupExportJournal": {
-    "description": "Action row exporting the whole journal in the chosen format"
+  "backupExportAs": "Export as {format}",
+  "@backupExportAs": {
+    "description": "Export card action row, one per format; format is the localized format name",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
   },
-  "backupExportInfo": "Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
+  "backupExportInfo": "Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
   "@backupExportInfo": {
     "description": "Help paragraph under the export card"
   },
@@ -1070,9 +1155,9 @@
   "@backupSeal": {
     "description": "Toggle for sealing archives with a passphrase"
   },
-  "backupSave": "Save backup",
+  "backupSave": "Export backup",
   "@backupSave": {
-    "description": "The Backup section row that saves a backup file"
+    "description": "Backup card row exporting the restorable archive, and the seal sheet action"
   },
   "backupLastBackup": "Last backup {date}",
   "@backupLastBackup": {
@@ -1107,6 +1192,14 @@
   "@passphraseMismatch": {
     "description": "Footnote while the two passphrase fields differ"
   },
+  "passphraseShow": "Show",
+  "@passphraseShow": {
+    "description": "Passphrase field toggle revealing the typed secret"
+  },
+  "passphraseHide": "Hide",
+  "@passphraseHide": {
+    "description": "Passphrase field toggle hiding the typed secret again"
+  },
   "importUnlockTitle": "Encrypted backup",
   "@importUnlockTitle": {
     "description": "Unlock sheet title for a sealed archive"
@@ -1127,9 +1220,9 @@
   "@importConfirmTitle": {
     "description": "Import confirmation sheet title"
   },
-  "importConfirmBody": "Adds its entries to your journal. Restoring the same backup twice never duplicates.",
+  "importConfirmBody": "Adds its entries to your journal. An entry that already exists takes the backup's version, undoing edits made since that backup. Restoring the same backup twice never duplicates.",
   "@importConfirmBody": {
-    "description": "Import confirmation body: additive, nothing touched"
+    "description": "Import confirmation body: additive, but an existing entry is overwritten by the backup's copy"
   },
   "importConfirm": "Restore",
   "@importConfirm": {
@@ -1139,9 +1232,18 @@
   "@importSummaryTitle": {
     "description": "Import summary sheet title"
   },
-  "importSummaryImported": "{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}",
-  "@importSummaryImported": {
-    "description": "Summary line for how many entries were imported",
+  "importSummaryAdded": "{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}",
+  "@importSummaryAdded": {
+    "description": "Summary line for entries the restore newly added",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSummaryReplaced": "{count, plural, one {1 entry was replaced with the backup's version.} other {{count} entries were replaced with the backup's version.}}",
+  "@importSummaryReplaced": {
+    "description": "Summary line for existing entries the restore overwrote, shown only when some were",
     "placeholders": {
       "count": {
         "type": "int"
@@ -1153,6 +1255,27 @@
     "description": "Summary line for entries already present, shown only when some were",
     "placeholders": {
       "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importSummaryAudio": "{count, plural, one {1 recording restored.} other {{count} recordings restored.}}",
+  "@importSummaryAudio": {
+    "description": "Summary line for recordings the restore put back, shown only when some were",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importConfirmCounts": "{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}",
+  "@importConfirmCounts": {
+    "description": "Restore confirm fact line: what a plain archive's manifest says it holds",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "audio": {
         "type": "int"
       }
     }

@@ -21,10 +21,13 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 /// nothing outside a temp staging directory is touched, so a failed decrypt
 /// or a malformed archive provably changes nothing on disk. Merge is by
 /// entry id and idempotent. Every archive failure surfaces as
-/// [ArchiveException]; two carve-outs are honest exceptions to that: a
+/// [ArchiveException]; three carve-outs are honest exceptions to that: a
 /// missing passphrase for a sealed archive is a caller error (ArgumentError;
-/// the UI probes first), and a disk failure once adoption is already writing
-/// surfaces as the underlying FileSystemException.
+/// the UI probes first), a disk failure once adoption is already writing
+/// surfaces as the underlying FileSystemException, and any other escape
+/// before adoption starts is wrapped as [ImportAbortedException], the
+/// provably-nothing-changed failure. That classification leans on adoption
+/// never throwing ArchiveException or ArgumentError itself.
 class ImportService {
   ImportService({
     required this._transcription,
@@ -42,15 +45,38 @@ class ImportService {
   Future<String?> pickArchive() => _share.pickArchive();
 
   /// What the picked file is before any import work: the kind its first bytes
-  /// claim, so the UI knows whether to ask for a passphrase, plus the name and
-  /// size the confirm sheet shows.
+  /// claim, so the UI knows whether to ask for a passphrase, plus the name,
+  /// size, and (for a plain archive) the manifest counts the confirm shows.
   Future<ImportProbe> probe(String path) async {
     final file = File(path);
+    final kind = await sniffArchive(file);
     return ImportProbe(
-      kind: await sniffArchive(file),
+      kind: kind,
       fileName: baseName(path),
       sizeBytes: await file.length(),
+      counts: kind == ArchiveKind.plainZip ? await _peekCounts(file) : null,
     );
+  }
+
+  /// Real manifests are a few hundred bytes; a crafted zip may declare one
+  /// spanning the whole file, and a probe must stay cheap.
+  static const _maxPeekedManifestBytes = 1 << 20;
+
+  /// Best-effort: null when no readable manifest can be peeked cheaply; a
+  /// damaged archive fails later with its own copy.
+  Future<ArchiveCounts?> _peekCounts(File file) async {
+    try {
+      final zip = await StoredZipReader.open(file);
+      try {
+        if (!zip.paths.contains('manifest.json')) return null;
+        if (zip.sizeOf('manifest.json') > _maxPeekedManifestBytes) return null;
+        return ArchiveManifest.fromJson(_decodeJson(await zip.readBytes('manifest.json'))).counts;
+      } finally {
+        await zip.close();
+      }
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Best-effort delete of a picked archive copy once its flow has resolved.
@@ -70,26 +96,10 @@ class ImportService {
   Future<ImportSummary> importArchive(String path, {String? passphrase}) async {
     _staging.begin();
     try {
-      final staging = await Directory.systemTemp.createTemp('import-');
+      final staging = await _aborting(() => Directory.systemTemp.createTemp('import-'));
       _staging.register(staging.path);
       try {
-        try {
-          await _share.protect(staging.path);
-        } catch (_) {
-          // Best-effort: a plaintext journal briefly staged here deserves the
-          // same protection class as a shared file, but a failure to apply it
-          // must not block an import the user already started.
-        }
-        final source = File(path);
-        final payload = switch (await sniffArchive(source)) {
-          ArchiveKind.plainZip => source,
-          ArchiveKind.sealed => await _unseal(source, passphrase, staging),
-          ArchiveKind.unknown => throw const ArchiveException(
-            ArchiveError.malformed,
-            'not an opentranscribe archive',
-          ),
-        };
-        final parsed = await _parsePayload(payload, staging);
+        final parsed = await _aborting(() => _stagePayload(path, passphrase, staging));
         final adopted = await _transcription.adoptImportedEntries(parsed.entries);
         final reflectionChanges = await _reflections.adoptImportedReflections(parsed.reflections);
         return ImportSummary(
@@ -110,6 +120,44 @@ class ImportService {
     } finally {
       _staging.end();
     }
+  }
+
+  /// Wraps a phase that runs before adoption: any escape that is not an
+  /// archive or caller error becomes [ImportAbortedException], because
+  /// nothing outside staging was written yet and the failure copy must be
+  /// able to say so.
+  Future<T> _aborting<T>(Future<T> Function() phase) async {
+    try {
+      return await phase();
+    } on ArchiveException {
+      rethrow;
+    } on ArgumentError {
+      rethrow;
+    } catch (e, st) {
+      Error.throwWithStackTrace(ImportAbortedException(e), st);
+    }
+  }
+
+  /// The pre-adoption half of an import: protect the staging dir, sniff, unseal
+  /// when sealed, parse and stage. Nothing here may write outside [staging].
+  Future<_ParsedPayload> _stagePayload(String path, String? passphrase, Directory staging) async {
+    try {
+      await _share.protect(staging.path);
+    } catch (_) {
+      // Best-effort: a plaintext journal briefly staged here deserves the
+      // same protection class as a shared file, but a failure to apply it
+      // must not block an import the user already started.
+    }
+    final source = File(path);
+    final payload = switch (await sniffArchive(source)) {
+      ArchiveKind.plainZip => source,
+      ArchiveKind.sealed => await _unseal(source, passphrase, staging),
+      ArchiveKind.unknown => throw const ArchiveException(
+        ArchiveError.malformed,
+        'not an opentranscribe archive',
+      ),
+    };
+    return _parsePayload(payload, staging);
   }
 
   Future<File> _unseal(File source, String? passphrase, Directory staging) async {
@@ -135,12 +183,10 @@ class ImportService {
     try {
       return await _readPayload(payload, staging);
     } on StoredZipException catch (e) {
-      throw ArchiveException(
-        e.error == StoredZipError.unsupported
-            ? ArchiveError.unsupportedZip
-            : ArchiveError.malformed,
-        e.message,
-      );
+      throw ArchiveException(switch (e.error) {
+        StoredZipError.unsupported => ArchiveError.unsupportedZip,
+        StoredZipError.malformed || StoredZipError.tooLarge => ArchiveError.malformed,
+      }, e.message);
     }
   }
 
@@ -223,6 +269,17 @@ class ImportService {
   }
 }
 
+/// An import that broke before adoption wrote anything: the journal provably
+/// did not change, and the copy this drives must not claim a partial restore.
+final class ImportAbortedException implements Exception {
+  const ImportAbortedException(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'ImportAbortedException($cause)';
+}
+
 final class _ParsedPayload {
   const _ParsedPayload({required this.entries, required this.reflections});
 
@@ -231,14 +288,23 @@ final class _ParsedPayload {
 }
 
 /// What the picked file looks like before any import work: its kind for the
-/// passphrase decision, and name and size for the confirm sheet.
+/// passphrase decision, and name, size, and counts for the confirm sheet.
 @immutable
 final class ImportProbe {
-  const ImportProbe({required this.kind, required this.fileName, required this.sizeBytes});
+  const ImportProbe({
+    required this.kind,
+    required this.fileName,
+    required this.sizeBytes,
+    this.counts,
+  });
 
   final ArchiveKind kind;
   final String fileName;
   final int sizeBytes;
+
+  /// Null for a sealed archive (unreadable before its passphrase) and for a
+  /// zip whose manifest could not be peeked.
+  final ArchiveCounts? counts;
 }
 
 /// What an import actually did. The summary sheet shows the entry counts;
@@ -261,8 +327,6 @@ final class ImportSummary {
 
   /// Rows, tombstones and floors together; not only reflection texts.
   final int reflectionChanges;
-
-  int get entriesImported => entriesAdded + entriesUpdated;
 
   @override
   bool operator ==(Object other) =>
