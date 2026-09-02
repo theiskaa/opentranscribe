@@ -17,6 +17,7 @@ import 'package:transcriber/transcriber.dart';
 enum EntriesError {
   permissionDenied,
   onDeviceUnavailable,
+  recordingMissing,
   modelInstallFailed,
   reservationCap,
 
@@ -333,6 +334,7 @@ class EntriesCubit extends Cubit<EntriesState> {
     return switch (error) {
       PermissionDenied() => EntriesError.permissionDenied,
       OnDeviceUnavailable() => EntriesError.onDeviceUnavailable,
+      RecordingMissing() => EntriesError.recordingMissing,
       ModelInstallFailed() => EntriesError.modelInstallFailed,
       // Its own kind: the fix is removing a language, not checking the network.
       ReservationCapReached() => EntriesError.reservationCap,

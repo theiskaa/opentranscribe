@@ -139,6 +139,26 @@ void main() {
     await svc.dispose();
   });
 
+  test('an entry whose recording is gone leaves the queue instead of failing', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (localeId, start, end) {
+        if (localeId == 'xx-XX') throw const RecordingMissing('fake');
+        return 'new words';
+      };
+    final svc = build(engine);
+    await store.save(entry('gone', localeId: 'xx-XX'));
+    await store.save(entry('good', minute: 1));
+
+    final result = await svc.retranscribeAll.start();
+
+    expect(result.phase, RetranscribePhase.done);
+    expect(result.landed, 1);
+    expect(result.failed, 0);
+    expect(result.total, 1);
+
+    await svc.dispose();
+  });
+
   test('every landing announces entriesChanged so list surfaces refresh', () async {
     final svc = build(FakeBatchEngine());
     await store.save(entry('a'));

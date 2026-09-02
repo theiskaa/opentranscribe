@@ -1742,7 +1742,8 @@ class TranscriptionService {
   /// like any other: the words it replaces stay in the entry's history.
   /// One batch per entry: a second ask while one is in flight (this path, the
   /// bulk runner's, or a continuation) throws [StateError] instead of running
-  /// the file twice.
+  /// the file twice. An entry with no recording throws [RecordingMissing]:
+  /// nothing to re-hear, and no retry can change that.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
     _userBatches++;
     try {
@@ -1782,7 +1783,7 @@ class TranscriptionService {
     }
     final path = entry.audioPath;
     if (path == null) {
-      throw StateError('entry ${entry.id} is transcript-only, nothing to retranscribe');
+      throw RecordingMissing('entry ${entry.id} is transcript-only');
     }
     final audioFile = File(await _resolveAudioPath(path));
     // A mixed-language take re-transcribes span by span, rebuilding the mix,

@@ -29,6 +29,11 @@ Future<bool> showTranscribeErrorSheet(BuildContext context, EntriesError kind) a
     l10n.transcribeErrorTitleUnavailable,
     l10n.transcribeErrorUnavailable,
   ),
+  EntriesError.recordingMissing => (
+    AppIcons.waveform,
+    l10n.transcribeErrorTitleRecordingMissing,
+    l10n.transcribeErrorRecordingMissing,
+  ),
   EntriesError.modelInstallFailed => (
     AppIcons.icloud,
     l10n.transcribeErrorTitleModelInstall,
@@ -67,10 +72,10 @@ class _ErrorContent extends StatelessWidget {
     final (icon, title, body) = _story(kind, l10n);
 
     // The action names the fix: a whole-file re-hear for a lost addition,
-    // nothing to retry for a take kept apart.
+    // nothing to retry for a take kept apart or a recording that is gone.
     final (label, retry) = switch (kind) {
       EntriesError.additionUntranscribed => (l10n.retranscribe, true),
-      EntriesError.savedSeparately => (l10n.done, false),
+      EntriesError.savedSeparately || EntriesError.recordingMissing => (l10n.done, false),
       _ => (l10n.retry, true),
     };
     return SheetMessage(
