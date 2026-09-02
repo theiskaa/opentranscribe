@@ -54,7 +54,10 @@ void main() {
   });
 
   Future<({BackupCubit cubit, FakeShareExport share, BackupSettings settings, EntryStore store})>
-  build({BackupSettings Function(BackupSettings)? wrapSettings}) async {
+  build({
+    BackupSettings Function(BackupSettings)? wrapSettings,
+    Duration progressGrace = Duration.zero,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
@@ -107,6 +110,7 @@ void main() {
       ],
       clock: () => fixedClock,
       remeasureQuiet: Duration.zero,
+      progressGrace: progressGrace,
     );
     addTearDown(cubit.close);
     return (cubit: cubit, share: share, settings: settings, store: store);
@@ -420,6 +424,17 @@ void main() {
     expect(seen.whereType<double>(), isNotEmpty);
     expect(world.cubit.state.progress, isNull);
     expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
+  test('a pack that finishes inside the grace never shows progress', () async {
+    final world = await build(progressGrace: const Duration(seconds: 30));
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    final seen = <double?>[];
+    final sub = world.cubit.stream.listen((s) => seen.add(s.progress));
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    await sub.cancel();
+    expect(seen.whereType<double>(), isEmpty);
   });
 
   test('a bookkeeping failure after a completed share still answers shared', () async {

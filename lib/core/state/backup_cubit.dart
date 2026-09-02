@@ -159,6 +159,7 @@ class BackupCubit extends Cubit<BackupState> {
     required this._descriptors,
     DateTime Function()? clock,
     this._remeasureQuiet = const Duration(milliseconds: 300),
+    this._progressGrace = const Duration(milliseconds: 600),
   }) : _clock = clock ?? DateTime.now,
        super(const BackupState()) {
     _entriesSub = _service.entriesChanged.listen((_) {
@@ -181,6 +182,14 @@ class BackupCubit extends Cubit<BackupState> {
   /// The quiet a burst of change signals must hold before the walk runs.
   final Duration _remeasureQuiet;
   Timer? _remeasureTimer;
+
+  /// How long a pack must run before its percent and cancel appear: an
+  /// export that finishes inside this never flashes a control nobody could
+  /// have used.
+  final Duration _progressGrace;
+  Timer? _graceTimer;
+  double? _latestProgress;
+  bool _showProgress = false;
 
   /// Bumped by every measure, so a slow file walk started earlier can never
   /// land its stale numbers over a fresher emit.
@@ -235,14 +244,32 @@ class BackupCubit extends Cubit<BackupState> {
   void cancelShare() => _export.cancelShare();
 
   void _onPackDone() {
+    _closeProgress();
     if (isClosed) return;
     emit(state.packDone());
+  }
+
+  /// The grace elapsed: what the pack has reported so far may now show.
+  void _openProgress() {
+    if (isClosed) return;
+    _showProgress = true;
+    final latest = _latestProgress;
+    if (latest != null) emit(state.copyWith(progress: latest));
+  }
+
+  void _closeProgress() {
+    _graceTimer?.cancel();
+    _graceTimer = null;
+    _latestProgress = null;
+    _showProgress = false;
   }
 
   /// Whole percents only: a per-file signal on a big journal would otherwise
   /// emit a rebuild per landed recording.
   void _onProgress(double fraction) {
     if (isClosed) return;
+    _latestProgress = fraction;
+    if (!_showProgress) return;
     final previous = state.progress;
     if (previous != null && (previous * 100).truncate() == (fraction * 100).truncate()) return;
     emit(state.copyWith(progress: fraction));
@@ -329,6 +356,8 @@ class BackupCubit extends Cubit<BackupState> {
 
   Future<BackupActionResult> _run(BackupBusy busy, Future<bool> Function() op) async {
     if (state.isBusy) return BackupActionResult.cancelled;
+    _closeProgress();
+    _graceTimer = Timer(_progressGrace, _openProgress);
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
@@ -339,12 +368,14 @@ class BackupCubit extends Cubit<BackupState> {
       }
       return result;
     } finally {
+      _closeProgress();
       if (!isClosed) emit(state.settled());
     }
   }
 
   @override
   Future<void> close() {
+    _graceTimer?.cancel();
     _remeasureTimer?.cancel();
     _entriesSub.cancel();
     return super.close();
