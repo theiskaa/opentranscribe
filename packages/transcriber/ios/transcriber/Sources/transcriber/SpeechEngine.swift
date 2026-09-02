@@ -247,9 +247,13 @@ private func segmentPayload(_ words: [TimedWord]) -> [[String: Any]] {
   }
 }
 
-/// The classic batch feeder's own failure: PCM buffer allocation refused, which
-/// only an absurd processing format produces.
-private enum SpeechFeedError: Error { case bufferAllocation }
+/// The classic batch feeder's own failures, both of them an absurd processing
+/// format: a rate that would make every fed length infinite, and a refused PCM
+/// buffer allocation.
+private enum SpeechFeedError: Error {
+  case badFormat
+  case bufferAllocation
+}
 
 /// Timed segments from a SpeechAnalyzer result. With `attributeOptions:
 /// [.audioTimeRange]`, each attributed run carries an `audioTimeRange`; map each to a
@@ -1528,17 +1532,18 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         request.endAudio()
       }
       // Decode and feed off the main thread; the recognizer transcribes as the
-      // buffers land, and endAudio() makes it finalize. Paced: decode outruns
-      // on-device recognition by orders of magnitude, and the request queues
-      // every appended buffer, so an unpaced feed holds a long take's whole
-      // decoded PCM in memory. Feeding holds while more than the window sits
-      // unrecognized, as long as progress still advances: silence advances
-      // nothing, so a stall lets the feed continue rather than deadlock.
+      // buffers land, and endAudio() makes it finalize. Paced by [feedHolds],
+      // because decode outruns on-device recognition by orders of magnitude and
+      // the request queues every appended buffer.
       DispatchQueue.global(qos: .userInitiated).async {
+        let clock = { ProcessInfo.processInfo.systemUptime }
         do {
           let file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
           let format = file.processingFormat
+          guard format.sampleRate > 0 else { throw SpeechFeedError.badFormat }
           var fedSeconds: TimeInterval = 0
+          var lastProgress: TimeInterval = 0
+          var progressMovedAt = clock()
           while !done() {
             guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32 * 1024)
             else { throw SpeechFeedError.bufferAllocation }
@@ -1546,17 +1551,22 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             if buffer.frameLength == 0 { break }
             request.append(buffer)
             fedSeconds += TimeInterval(buffer.frameLength) / format.sampleRate
-            var lastProgress = stitcher.progressSeconds
-            var stalledFor: TimeInterval = 0
-            while !done(), fedSeconds - stitcher.progressSeconds > 30, stalledFor < 2 {
-              usleep(100_000)
-              let progress = stitcher.progressSeconds
+            while !done() {
+              let now = clock()
+              // A position past what has been fed is a corrupt timestamp, not a
+              // position; reading it as one would let the feed run unpaced.
+              let reported = stitcher.progressSeconds
+              let progress = reported <= fedSeconds ? reported : 0
               if progress > lastProgress {
                 lastProgress = progress
-                stalledFor = 0
-              } else {
-                stalledFor += 0.1
+                progressMovedAt = now
               }
+              if !feedHolds(
+                fedSeconds: fedSeconds, progress: progress, progressAge: now - progressMovedAt)
+              {
+                break
+              }
+              usleep(100_000)
             }
           }
           endAudio()
