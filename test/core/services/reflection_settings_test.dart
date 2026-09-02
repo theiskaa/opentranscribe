@@ -73,8 +73,8 @@ void main() {
     expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
   });
 
-  test('by default every period is on', () {
-    expect(settings.enabledFor(ReflectionPeriod.daily), isTrue);
+  test('by default the week and the month write, the day does not', () {
+    expect(settings.enabledFor(ReflectionPeriod.daily), isFalse);
     expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);
     expect(settings.enabledFor(ReflectionPeriod.monthly), isTrue);
     expect(settings.anyEnabled, isTrue);
