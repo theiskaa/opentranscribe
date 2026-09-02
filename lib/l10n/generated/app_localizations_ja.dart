@@ -165,6 +165,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorCapReached => '言語の上限に達しました。設定で言語を削除してから、もう一度お試しください。';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'このエントリーの録音は端末に残っていないため、もう一度文字起こしはできません。すでにある文章がすべてです。';
+
+  @override
   String get transcribeErrorLabelPermission => '音声認識がオフです';
 
   @override
@@ -180,6 +184,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '文字起こしに失敗しました';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '録音なし';
+
+  @override
   String get transcribeErrorTitlePermission => '音声認識をオンにする';
 
   @override
@@ -193,6 +200,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '問題が発生しました';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '録音がありません';
 
   @override
   String get settingsAppearance => '外観';

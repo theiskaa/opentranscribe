@@ -163,6 +163,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorCapReached => '语言数量已达上限。请在“设置”中移除一种语言，然后重试。';
 
   @override
+  String get transcribeErrorRecordingMissing => '这条记录的录音已不在设备上，无法再次转写。现有的文字就是全部内容。';
+
+  @override
   String get transcribeErrorLabelPermission => '语音识别已关闭';
 
   @override
@@ -178,6 +181,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '转写失败';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '录音已不在';
+
+  @override
   String get transcribeErrorTitlePermission => '开启语音识别';
 
   @override
@@ -191,6 +197,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '出了点问题';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '录音已不在';
 
   @override
   String get settingsAppearance => '外观';

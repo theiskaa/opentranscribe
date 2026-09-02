@@ -177,6 +177,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Limite de idiomas atingido. Remova um idioma nas Definições e tente novamente.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'A gravação desta entrada já não está no dispositivo, por isso não pode ser transcrita de novo. O texto que já existe é tudo o que resta.';
+
+  @override
   String get transcribeErrorLabelPermission => 'Reconhecimento de fala desligado';
 
   @override
@@ -192,6 +196,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transcribeErrorLabelGeneric => 'Transcrição falhou';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => 'Gravação ausente';
+
+  @override
   String get transcribeErrorTitlePermission => 'Ativar o reconhecimento de fala';
 
   @override
@@ -205,6 +212,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => 'Algo correu mal';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => 'A gravação desapareceu';
 
   @override
   String get settingsAppearance => 'Aparência';

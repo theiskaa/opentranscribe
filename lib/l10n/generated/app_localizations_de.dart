@@ -177,6 +177,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sprachlimit erreicht. Entfernen Sie eine Sprache in den Einstellungen und versuchen Sie es erneut.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'Die Aufnahme dieses Eintrags liegt nicht mehr auf dem Gerät und kann nicht erneut transkribiert werden. Der vorhandene Text ist alles, was bleibt.';
+
+  @override
   String get transcribeErrorLabelPermission => 'Spracherkennung ist aus';
 
   @override
@@ -192,6 +196,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get transcribeErrorLabelGeneric => 'Transkription fehlgeschlagen';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => 'Aufnahme weg';
+
+  @override
   String get transcribeErrorTitlePermission => 'Spracherkennung aktivieren';
 
   @override
@@ -205,6 +212,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => 'Etwas ist schiefgelaufen';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => 'Die Aufnahme ist weg';
 
   @override
   String get settingsAppearance => 'Darstellung';

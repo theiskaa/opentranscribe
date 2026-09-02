@@ -213,6 +213,10 @@
   "@transcribeErrorCapReached": {
     "description": "Notice when transcribing needs a language slot and the per-app cap is full"
   },
+  "transcribeErrorRecordingMissing": "This entry's recording isn't on the device anymore, so it can't be transcribed again. What it already reads as is all there is.",
+  "@transcribeErrorRecordingMissing": {
+    "description": "Notice when the entry's audio is no longer on the device"
+  },
   "transcribeErrorLabelPermission": "Speech recognition is off",
   "@transcribeErrorLabelPermission": {
     "description": "Short label on the inline error indicator when permission is denied"
@@ -233,6 +237,10 @@
   "@transcribeErrorLabelGeneric": {
     "description": "Short label on the inline error indicator for a generic failure"
   },
+  "transcribeErrorLabelRecordingMissing": "Recording gone",
+  "@transcribeErrorLabelRecordingMissing": {
+    "description": "Pill label when the entry's audio is no longer on the device"
+  },
   "transcribeErrorTitlePermission": "Turn on speech recognition",
   "@transcribeErrorTitlePermission": {
     "description": "Details-sheet title when permission is denied"
@@ -252,6 +260,10 @@
   "transcribeErrorTitleGeneric": "Something went wrong",
   "@transcribeErrorTitleGeneric": {
     "description": "Details-sheet title for a generic failure"
+  },
+  "transcribeErrorTitleRecordingMissing": "The recording is gone",
+  "@transcribeErrorTitleRecordingMissing": {
+    "description": "Sheet title when the entry's audio is no longer on the device"
   },
   "settingsAppearance": "Appearance",
   "@settingsAppearance": {

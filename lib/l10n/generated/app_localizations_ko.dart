@@ -165,6 +165,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcribeErrorCapReached => '언어 한도에 도달했습니다. 설정에서 언어를 하나 삭제한 뒤 다시 시도하세요.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      '이 항목의 녹음이 기기에 남아 있지 않아 다시 받아쓸 수 없습니다. 이미 있는 글이 전부입니다.';
+
+  @override
   String get transcribeErrorLabelPermission => '음성 인식이 꺼져 있음';
 
   @override
@@ -180,6 +184,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '전사 실패';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '녹음 없음';
+
+  @override
   String get transcribeErrorTitlePermission => '음성 인식 켜기';
 
   @override
@@ -193,6 +200,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '문제가 발생함';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '녹음이 없습니다';
 
   @override
   String get settingsAppearance => '화면 표시';
