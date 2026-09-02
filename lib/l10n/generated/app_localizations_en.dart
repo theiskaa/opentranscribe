@@ -176,6 +176,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Language limit reached. Remove a language in Settings, then try again.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'This entry\'s recording isn\'t on the device anymore, so it can\'t be transcribed again. What it already reads as is all there is.';
+
+  @override
   String get transcribeErrorLabelPermission => 'Speech recognition is off';
 
   @override
@@ -191,6 +195,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcribeErrorLabelGeneric => 'Transcription failed';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => 'Recording gone';
+
+  @override
   String get transcribeErrorTitlePermission => 'Turn on speech recognition';
 
   @override
@@ -204,6 +211,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => 'Something went wrong';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => 'The recording is gone';
 
   @override
   String get settingsAppearance => 'Appearance';

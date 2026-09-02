@@ -408,6 +408,12 @@ abstract class AppLocalizations {
   /// **'Language limit reached. Remove a language in Settings, then try again.'**
   String get transcribeErrorCapReached;
 
+  /// Notice when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'This entry\'s recording isn\'t on the device anymore, so it can\'t be transcribed again. What it already reads as is all there is.'**
+  String get transcribeErrorRecordingMissing;
+
   /// Short label on the inline error indicator when permission is denied
   ///
   /// In en, this message translates to:
@@ -438,6 +444,12 @@ abstract class AppLocalizations {
   /// **'Transcription failed'**
   String get transcribeErrorLabelGeneric;
 
+  /// Pill label when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'Recording gone'**
+  String get transcribeErrorLabelRecordingMissing;
+
   /// Details-sheet title when permission is denied
   ///
   /// In en, this message translates to:
@@ -467,6 +479,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong'**
   String get transcribeErrorTitleGeneric;
+
+  /// Sheet title when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'The recording is gone'**
+  String get transcribeErrorTitleRecordingMissing;
 
   /// Section label of the appearance settings group
   ///

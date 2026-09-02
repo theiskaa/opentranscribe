@@ -178,6 +178,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Limite de langues atteinte. Retirez une langue dans les Réglages, puis réessayez.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'L\'enregistrement de cette entrée n\'est plus sur l\'appareil, il ne peut donc pas être retranscrit. Le texte déjà présent est tout ce qui reste.';
+
+  @override
   String get transcribeErrorLabelPermission => 'Reconnaissance vocale désactivée';
 
   @override
@@ -193,6 +197,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transcribeErrorLabelGeneric => 'Échec de la transcription';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => 'Enregistrement absent';
+
+  @override
   String get transcribeErrorTitlePermission => 'Activer la reconnaissance vocale';
 
   @override
@@ -206,6 +213,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => 'Une erreur s\'est produite';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => 'L\'enregistrement a disparu';
 
   @override
   String get settingsAppearance => 'Apparence';
