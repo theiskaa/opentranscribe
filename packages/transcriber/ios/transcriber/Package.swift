@@ -12,13 +12,15 @@ let package = Package(
         .library(name: "transcriber", targets: ["transcriber"])
     ],
     dependencies: [
-        .package(name: "FlutterFramework", path: "../FlutterFramework")
+        .package(name: "FlutterFramework", path: "../FlutterFramework"),
+        .package(name: "TranscriberCore", path: "Core")
     ],
     targets: [
         .target(
             name: "transcriber",
             dependencies: [
-                .product(name: "FlutterFramework", package: "FlutterFramework")
+                .product(name: "FlutterFramework", package: "FlutterFramework"),
+                .product(name: "TranscriberCore", package: "TranscriberCore")
             ]
         )
     ]
