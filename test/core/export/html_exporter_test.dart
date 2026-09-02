@@ -282,6 +282,58 @@ void main() {
     expect(html, contains('&middot; &lt;img src=x onerror=alert(1)&gt;'));
   });
 
+  test('a month reads day by day, cards over the entries they cover', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(
+        entries: [
+          ExportEntry(
+            entry: entry(id: 'later', createdAt: DateTime(2026, 8, 20, 9)),
+          ),
+          ExportEntry(
+            entry: entry(id: 'covered', createdAt: DateTime(2026, 8, 5, 9)),
+          ),
+        ],
+        reflections: [
+          Reflection(
+            periodStart: DateTime(2026, 8, 3),
+            generatedAt: DateTime.utc(2026, 8, 10),
+            text: 'A week of walking.',
+          ),
+        ],
+      ),
+      context,
+    );
+    final html = textOf(files, 'index.html');
+    expect(html.indexOf('id="e-later"'), lessThan(html.indexOf('class="reflection"')));
+    expect(html.indexOf('class="reflection"'), lessThan(html.indexOf('id="e-covered"')));
+  });
+
+  test('a card never sits under a month heading its own label contradicts', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(
+        entries: [
+          ExportEntry(
+            entry: entry(id: 'august', createdAt: DateTime(2026, 8, 1, 9)),
+          ),
+          ExportEntry(
+            entry: entry(id: 'july', createdAt: DateTime(2026, 7, 30, 9)),
+          ),
+        ],
+        reflections: [
+          Reflection(
+            periodStart: DateTime(2026, 7, 27),
+            generatedAt: DateTime.utc(2026, 8, 3),
+            text: 'A week of walking.',
+          ),
+        ],
+      ),
+      context,
+    );
+    final html = textOf(files, 'index.html');
+    expect(html.indexOf('id="m-2026-07"'), lessThan(html.indexOf('<h3>Week 2026-07-27</h3>')));
+    expect(html.indexOf('<h3>Week 2026-07-27</h3>'), lessThan(html.indexOf('id="e-july"')));
+  });
+
   test('a reflection whose month holds no entry is still written', () {
     final files = exporter.exportJournal(
       ExportSnapshot(

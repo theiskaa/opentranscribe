@@ -48,11 +48,12 @@ final class HtmlExporter implements JournalExporter {
 
   @override
   List<ExportFile> exportJournal(ExportSnapshot snapshot, ExportContext context) {
-    final months = _byMonth(snapshot.entries);
-    final monthKeys = <String>{
-      ...months.keys,
-      for (final reflection in snapshot.reflections) _monthKey(reflection.periodStart),
-    }.toList()..sort((a, b) => b.compareTo(a));
+    final timeline = journalTimeline(entries: snapshot.entries, reflections: snapshot.reflections);
+    final byMonth = <String, List<TimelineDay>>{};
+    for (final day in timeline) {
+      byMonth.putIfAbsent(_monthKey(day.day), () => []).add(day);
+    }
+    final monthKeys = byMonth.keys.toList()..sort((a, b) => b.compareTo(a));
     final chrome = context.strings.html;
     final body = StringBuffer()
       ..write(_header(snapshot))
@@ -63,11 +64,15 @@ final class HtmlExporter implements JournalExporter {
       body
         ..writeln('<section class="month" id="m-$month">')
         ..writeln('<h2>${_text(month)}</h2>');
-      for (final reflection in _reflectionsIn(month, snapshot.reflections)) {
-        body.write(_reflection(reflection, context));
-      }
-      for (final entry in months[month] ?? const <ExportEntry>[]) {
-        body.write(_article(entry, context, level: 3));
+      // Day by day, cards over the entries they cover: a document reads the
+      // journal in the order home does, not reflections then everything else.
+      for (final day in byMonth[month]!) {
+        for (final reflection in day.reflections) {
+          body.write(_reflection(reflection, context));
+        }
+        for (final entry in day.entries) {
+          body.write(_article(entry, context, level: 3));
+        }
       }
       body.writeln('</section>');
     }
@@ -161,22 +166,6 @@ final class HtmlExporter implements JournalExporter {
       '<p class="empty-title">$title</p>\n'
       '<p class="empty-message">$message</p>\n'
       '</div>\n';
-
-  /// Each month's entries newest first: a journal is read from the present
-  /// backwards.
-  Map<String, List<ExportEntry>> _byMonth(List<ExportEntry> entries) {
-    final sorted = [...entries]..sort((a, b) => b.entry.createdAt.compareTo(a.entry.createdAt));
-    final months = <String, List<ExportEntry>>{};
-    for (final entry in sorted) {
-      months.putIfAbsent(_monthKey(entry.entry.createdAt), () => []).add(entry);
-    }
-    return months;
-  }
-
-  List<Reflection> _reflectionsIn(String month, List<Reflection> reflections) => [
-    for (final reflection in reflections)
-      if (_monthKey(reflection.periodStart) == month) reflection,
-  ]..sort((a, b) => b.periodStart.compareTo(a.periodStart));
 
   String _monthKey(DateTime date) {
     final local = date.toLocal();
