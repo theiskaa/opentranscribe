@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/physics.dart';
@@ -50,6 +51,30 @@ Future<T?> showAppSheet<T>(
 /// the last sliver of travel before the overlay goes.
 const double _exitTarget = 1.1;
 
+/// How long a drop in the keyboard inset must last before the panel follows
+/// it down: longer than an input view teardown, shorter than a reader notices.
+const Duration _settleWindow = Duration(milliseconds: 300);
+
+/// The keyboard inset a sheet lays out for: the live [inset], except while it
+/// sits below the [held] one the panel already laid out for and the drop has
+/// not [settled]. iOS tears the input view down and back up when focus moves
+/// between fields and when a secure field is revealed, and a panel that
+/// followed that dip would twitch shut and open again under the hands typing
+/// into it. A drop that outlasts a teardown is the truth (a keyboard closed,
+/// resized, or gone with the app) and takes the panel with it.
+///
+/// Callers feed the previous result back as [held]; the result is a fixed
+/// point, so re-reading it every build never compounds.
+double heldKeyboardInset({required double inset, required double held, required bool settled}) =>
+    settled || inset >= held ? inset : held;
+
+/// Whether a drop below the [held] inset has stopped falling back and should
+/// start its settle. An inset above the [previous] one is the input view on
+/// its way back, so the window restarts rather than running out mid-recovery
+/// and taking the panel down with it.
+bool settleArmed({required double inset, required double held, required double previous}) =>
+    inset < held && inset <= previous;
+
 class _SheetBody extends StatefulWidget {
   const _SheetBody({
     required this.builder,
@@ -85,6 +110,13 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
   Animation<double>? _routeAnimation;
   bool _entered = false;
   bool _leaving = false;
+
+  /// The inset the panel last laid out for, and the timer that lets a lasting
+  /// drop below it through once it has outlasted an input view teardown.
+  double _heldKeyboard = 0;
+  double _lastInset = 0;
+  bool _insetSettled = false;
+  Timer? _settleDrop;
 
   @override
   void initState() {
@@ -151,8 +183,26 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
     }
   }
 
+  /// Arms the settle while the inset stays below what the panel holds, and
+  /// stands down the moment it climbs: only a drop that lasts is real.
+  void _watchDrop(double inset) {
+    final armed = settleArmed(inset: inset, held: _heldKeyboard, previous: _lastInset);
+    _lastInset = inset;
+    if (!armed) {
+      _settleDrop?.cancel();
+      _settleDrop = null;
+      _insetSettled = false;
+      return;
+    }
+    _settleDrop ??= Timer(_settleWindow, () {
+      _settleDrop = null;
+      if (mounted) setState(() => _insetSettled = true);
+    });
+  }
+
   @override
   void dispose() {
+    _settleDrop?.cancel();
     _routeAnimation?.removeStatusListener(_onRouteStatus);
     _frac.dispose();
     super.dispose();
@@ -165,7 +215,19 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
     final screenHeight = MediaQuery.sizeOf(context).height;
     // No framework scaffold insets for the IME here, so a sheet holding a
     // text field must clear the keyboard itself.
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
+    // A drop while the route itself moves is never a teardown: a sheet opening
+    // over a focused field takes that keyboard with it, and one on its way out
+    // has no height left worth protecting.
+    final route = _routeAnimation;
+    final moving = _leaving || (route != null && route.status != AnimationStatus.completed);
+    _heldKeyboard = heldKeyboardInset(
+      inset: inset,
+      held: _heldKeyboard,
+      settled: _insetSettled || moving,
+    );
+    _watchDrop(inset);
+    final keyboard = _heldKeyboard;
 
     return Align(
       alignment: Alignment.bottomCenter,
