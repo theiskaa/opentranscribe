@@ -456,11 +456,13 @@ class _DetailViewState extends State<_DetailView> {
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.
         // Transcribing needs the audio, so its failures hide without it; a
-        // continuation's own endings show either way.
+        // continuation's ending and a recording that is gone show either way.
         final kind = state.errorFor(entry.id);
-        final continuationEnding =
-            kind == EntriesError.savedSeparately || kind == EntriesError.additionUntranscribed;
-        final error = entry.hasAudio || continuationEnding ? kind : null;
+        final shownWithoutAudio =
+            kind == EntriesError.savedSeparately ||
+            kind == EntriesError.additionUntranscribed ||
+            kind == EntriesError.recordingMissing;
+        final error = entry.hasAudio || shownWithoutAudio ? kind : null;
         final bottomInset = MediaQuery.paddingOf(context).bottom;
         // The keyboard's height while the edit field is up, so the caret can
         // always scroll clear of it; zero the rest of the time.
@@ -713,7 +715,9 @@ class _BottomDock extends StatelessWidget {
       return;
     }
     // Acknowledged, with no retry to clear it later.
-    if (kind == EntriesError.savedSeparately) entries.dismissFailure(entry.id);
+    if (kind == EntriesError.savedSeparately || kind == EntriesError.recordingMissing) {
+      entries.dismissFailure(entry.id);
+    }
   }
 
   @override
@@ -756,6 +760,7 @@ class _BottomDock extends StatelessWidget {
 String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.permissionDenied => l10n.transcribeErrorLabelPermission,
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
+  EntriesError.recordingMissing => l10n.transcribeErrorLabelRecordingMissing,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
   EntriesError.additionUntranscribed => l10n.continueUntranscribedLabel,
