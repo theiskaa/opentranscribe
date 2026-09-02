@@ -1,6 +1,7 @@
 import AVFoundation
 import Flutter
 import Speech
+import TranscriberCore
 
 // Apple's speech engines behind the Dart TranscriptionEngine contract. Every
 // call names its engine ("analyzer" is the iOS 26 SpeechAnalyzer, "classic" the
@@ -217,96 +218,38 @@ private extension AttributedString {
   var plainText: String { String(characters) }
 }
 
-/// Timed segments from the classic SFTranscription. Carries per-segment
+/// One classic recognizer hypothesis in the stitcher's terms. Carries per-word
 /// confidence, which the SpeechAnalyzer path ([analyzerSegments]) cannot. Same
-/// defensive conversion as the analyzer path: a corrupt timestamp is skipped, never
+/// defensive conversion as that path: a corrupt timestamp is skipped, never
 /// allowed to trap the process.
-private func segments(from transcription: SFTranscription) -> [[String: Any]] {
-  transcription.segments.compactMap { segment in
+private func hypothesis(from transcription: SFTranscription) -> SpeechHypothesis {
+  let words = transcription.segments.compactMap { segment -> TimedWord? in
     let start = segment.timestamp
     let end = segment.timestamp + segment.duration
     guard start.isFinite, end.isFinite, start >= 0, end >= start,
       let startMs = Int(exactly: (start * 1000).rounded()),
       let endMs = Int(exactly: (end * 1000).rounded())
     else { return nil }
-    return [
-      "text": segment.substring,
-      "startMs": startMs,
-      "endMs": endMs,
-      "confidence": Double(segment.confidence),
-    ]
+    return TimedWord(
+      text: segment.substring, startMs: startMs, endMs: endMs,
+      confidence: Double(segment.confidence))
+  }
+  return SpeechHypothesis(text: transcription.formattedString, words: words)
+}
+
+/// The channel's shape for stitched words. Kept beside [analyzerSegments], whose
+/// dictionaries Dart parses with the same reader.
+private func segmentPayload(_ words: [TimedWord]) -> [[String: Any]] {
+  words.map { word in
+    var segment: [String: Any] = ["text": word.text, "startMs": word.startMs, "endMs": word.endMs]
+    if let confidence = word.confidence { segment["confidence"] = confidence }
+    return segment
   }
 }
 
 /// The classic batch feeder's own failure: PCM buffer allocation refused, which
 /// only an absurd processing format produces.
 private enum SpeechFeedError: Error { case bufferAllocation }
-
-/// Rebuilds a cumulative transcript from classic recognizer partials. In several
-/// locales the on-device recognizer holds only the current utterance: a pause (in
-/// weak locales, nearly every word) RESETS bestTranscription, so the latest
-/// partial alone loses everything before the reset. A reset is detected by the
-/// new partial starting at or after the current utterance's end; the finished
-/// utterance is committed and the transcript is the committed text plus the
-/// current utterance. A partial starting inside the current utterance, or
-/// reusing its start, is the recognizer's own rewrite and replaces it (the
-/// start test matters: a one-short-word utterance ends within the slack of its
-/// own start, and only the reused start tells its rewrite from the next
-/// utterance). When the recognizer carries the whole take in one transcription
-/// (en-US does), every partial reuses the first word's start and this reduces
-/// to plain replacement. Zero-timestamp results (a known on-device quirk) also
-/// reduce to replacement rather than misfiling rewrites as resets.
-private final class UtteranceStitcher {
-  private let lock = NSLock()
-  private var committedText: [String] = []
-  private var committedSegments: [[String: Any]] = []
-  private var currentText = ""
-  private var currentSegments: [[String: Any]] = []
-  private var currentStart: TimeInterval = -1
-  private var currentEnd: TimeInterval = 0
-
-  /// Timing slack between a rewrite and a reset: rewrites start inside the
-  /// current utterance, resets at or a hair before its end.
-  private static let resetSlack: TimeInterval = 0.15
-
-  func feed(_ transcription: SFTranscription) {
-    let text = transcription.formattedString
-    // An empty partial is the recognizer clearing at a boundary; absorbing it
-    // would erase the uncommitted utterance it just delivered.
-    if text.isEmpty, transcription.segments.isEmpty { return }
-    let start = transcription.segments.first?.timestamp ?? 0
-    let end = transcription.segments.last.map { $0.timestamp + $0.duration } ?? 0
-    lock.lock()
-    defer { lock.unlock() }
-    let resets =
-      !currentText.isEmpty && currentEnd > 0 && start > currentStart
-      && start >= currentEnd - Self.resetSlack
-    if resets {
-      committedText.append(currentText)
-      committedSegments.append(contentsOf: currentSegments)
-    }
-    if resets || currentStart < 0 { currentStart = start }
-    currentText = text
-    currentSegments = segments(from: transcription)
-    if end > 0 { currentEnd = end }
-  }
-
-  /// How far into the audio recognition has reached, for the batch feeder's
-  /// pacing. Advances only while the recognizer emits; silence moves nothing.
-  var progressSeconds: TimeInterval {
-    lock.lock()
-    defer { lock.unlock() }
-    return currentEnd
-  }
-
-  var whole: (text: String, segments: [[String: Any]]) {
-    lock.lock()
-    defer { lock.unlock() }
-    var parts = committedText
-    if !currentText.isEmpty { parts.append(currentText) }
-    return (parts.joined(separator: " "), committedSegments + currentSegments)
-  }
-}
 
 /// Timed segments from a SpeechAnalyzer result. With `attributeOptions:
 /// [.audioTimeRange]`, each attributed run carries an `audioTimeRange`; map each to a
@@ -1164,13 +1107,13 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     let task = recognizer.recognitionTask(with: request) { [weak self] result, error in
       guard let self = self else { return }
       if let result = result {
-        stitcher.feed(result.bestTranscription)
+        stitcher.feed(hypothesis(from: result.bestTranscription))
         let whole = stitcher.whole
         var payload: [String: Any] = [
           "text": whole.text,
           "isFinal": result.isFinal,
         ]
-        if result.isFinal { payload["segments"] = whole.segments }
+        if result.isFinal { payload["segments"] = segmentPayload(whole.words) }
         self.emitLive(payload, generation: generation)
       }
       if let error = error {
@@ -1550,10 +1493,10 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       // the audio tap thread. `replied` closes the store-vs-reply ordering instead.
       let task = recognizer.recognitionTask(with: request) { recognitionResult, error in
         if let recognitionResult = recognitionResult {
-          stitcher.feed(recognitionResult.bestTranscription)
+          stitcher.feed(hypothesis(from: recognitionResult.bestTranscription))
           if recognitionResult.isFinal {
             let whole = stitcher.whole
-            reply(["text": whole.text, "segments": whole.segments])
+            reply(["text": whole.text, "segments": segmentPayload(whole.words)])
           }
         }
         if let error = error {
@@ -1565,7 +1508,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
           if cancelled || !ended || whole.text.isEmpty {
             reply(SpeechErrorCode.transcribeError.error("\(error)"))
           } else {
-            reply(["text": whole.text, "segments": whole.segments])
+            reply(["text": whole.text, "segments": segmentPayload(whole.words)])
           }
         }
       }
