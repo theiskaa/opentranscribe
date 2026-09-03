@@ -132,7 +132,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // cubit whose constructor decrypts the journal (EntriesCubit, HomeCubit)
         // would pay for it in the frame the splash is waiting to commit, which
         // is the frame launch is measured by.
-        BlocProvider(create: (_) => AppLanguageCubit(storage: Deps.i.localService)),
+        BlocProvider(
+          create: (_) =>
+              AppLanguageCubit(storage: Deps.i.localService, notifier: Deps.i.reflectionNotifier),
+        ),
         BlocProvider(create: (_) => EntriesCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => RecorderCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so a bulk run outlives the sheet that started it.
