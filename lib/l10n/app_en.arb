@@ -125,6 +125,10 @@
   "@menuSourceCode": {
     "description": "Home menu row linking to the public source repository, followed by the app version"
   },
+  "menuHowItWorks": "How it works",
+  "@menuHowItWorks": {
+    "description": "Home menu row replaying onboarding"
+  },
   "recordStateRecording": "Recording",
   "@recordStateRecording": {
     "description": "State line under the recorder's timer while the microphone is open"
@@ -570,55 +574,103 @@
       }
     }
   },
-  "onboardingIntroBody": "You speak your mind, and it writes it down.",
-  "@onboardingIntroBody": {
-    "description": "Explanatory body on the first onboarding step"
+  "onboardingOpenSettings": "Enable in Settings",
+  "@onboardingOpenSettings": {
+    "description": "Shown when a permission was denied; opens the system Settings"
   },
-  "onboardingSpeakTitle": "Just talk",
-  "@onboardingSpeakTitle": {
-    "description": "Title of the intro row about recording"
-  },
-  "onboardingSpeakLine": "Tap record and say what is on your mind.",
-  "@onboardingSpeakLine": {
-    "description": "One-line explanation under the recording intro row"
-  },
-  "onboardingWriteTitle": "Read it back",
-  "@onboardingWriteTitle": {
-    "description": "Title of the intro row about transcription"
-  },
-  "onboardingWriteLine": "Every recording is written down as text.",
-  "@onboardingWriteLine": {
-    "description": "One-line explanation under the transcription intro row"
-  },
-  "onboardingPrivateTitle": "Nothing leaves the phone",
-  "@onboardingPrivateTitle": {
-    "description": "Title of the intro row about privacy"
-  },
-  "onboardingPrivateLine": "No account, no cloud. Airplane mode changes nothing.",
-  "@onboardingPrivateLine": {
-    "description": "One-line explanation under the privacy intro row"
-  },
-  "onboardingReflectTitle": "Reflections",
+  "onboardingReflectTitle": "Your week, read back",
   "@onboardingReflectTitle": {
-    "description": "Title of the intro row about reflections, eligible hardware only"
+    "description": "Headline of the reflections onboarding page"
   },
-  "onboardingReflectLine": "Your entries read back as a short note, all on device.",
-  "@onboardingReflectLine": {
-    "description": "One-line explanation under the reflections intro row"
+  "onboardingReflectBody": "Entries read back as a short reflection, by day, week, or month. Written on this device by Apple Intelligence, never sent anywhere.",
+  "@onboardingReflectBody": {
+    "description": "Body of the reflections onboarding page"
   },
-  "onboardingSource": "Open source",
-  "@onboardingSource": {
-    "description": "Title of the intro row that opens the open-source repository"
+  "onboardingReflectDay1": "Slept badly, but the morning run fixed most of it.",
+  "@onboardingReflectDay1": {
+    "description": "Scene: one day's entry excerpt"
   },
-  "onboardingSourceLine": "Every line of it is public. Read it on GitHub.",
-  "@onboardingSourceLine": {
-    "description": "One-line explanation under the open-source intro row"
+  "onboardingReflectDay2": "Dana, coffee, two hours about nothing and everything.",
+  "@onboardingReflectDay2": {
+    "description": "Scene: one day's entry excerpt"
+  },
+  "onboardingReflectDay3": "Said no to the extra project. Felt lighter all day.",
+  "@onboardingReflectDay3": {
+    "description": "Scene: one day's entry excerpt"
+  },
+  "onboardingReflectDay4": "Walked home the long way. The city was quiet for once.",
+  "@onboardingReflectDay4": {
+    "description": "Scene: one day's entry excerpt"
+  },
+  "onboardingReflectNote": "A week of saying no to more, and the long walks that came back once you did.",
+  "@onboardingReflectNote": {
+    "description": "Scene: the week's reflection"
+  },
+  "onboardingShapeTitle": "Yours, in any shape",
+  "@onboardingShapeTitle": {
+    "description": "Headline of the exports and backup onboarding page"
+  },
+  "onboardingShapeBody": "Take the whole journal as Markdown, an Obsidian vault, or a website. Back it up sealed with a passphrase only you know. Nothing syncs unless you carry it.",
+  "@onboardingShapeBody": {
+    "description": "Body of the exports and backup onboarding page"
+  },
+  "onboardingBackupLine": "Sealed with a passphrase, restores anywhere.",
+  "@onboardingBackupLine": {
+    "description": "Scene: the backup row's note"
+  },
+  "onboardingRecordTitle": "You speak your mind, and it writes it down.",
+  "@onboardingRecordTitle": {
+    "description": "Headline of the first onboarding page (a take running)"
+  },
+  "onboardingRecordBody": "Every word stays on this phone. No account, no cloud. Airplane mode changes nothing.",
+  "@onboardingRecordBody": {
+    "description": "Body of the first onboarding page"
+  },
+  "onboardingRecordText1": "Met Lia for coffee and we ended up talking about the move for two hours.",
+  "@onboardingRecordText1": {
+    "description": "Scene: live transcript, first sentence"
+  },
+  "onboardingRecordText2": "I keep saying I want a smaller life and then filling every evening.",
+  "@onboardingRecordText2": {
+    "description": "Scene: live transcript, second sentence"
+  },
+  "onboardingRecordText3": "Walked home the long way. The city was quiet for once.",
+  "@onboardingRecordText3": {
+    "description": "Scene: live transcript, third sentence"
+  },
+  "onboardingRecordText4": "Then I sat on the steps for a while and did nothing, which felt like the point.",
+  "@onboardingRecordText4": {
+    "description": "Scene: live transcript, fourth sentence"
+  },
+  "onboardingRecordText5": "Work was fine. Nobody asked for anything I could not give.",
+  "@onboardingRecordText5": {
+    "description": "Scene: live transcript, fifth sentence"
+  },
+  "onboardingRecordText6": "Tomorrow I want to call Mum before it gets late.",
+  "@onboardingRecordText6": {
+    "description": "Scene: live transcript, sixth sentence"
+  },
+  "onboardingLanguageDownloads": "Downloads once, then works offline.",
+  "@onboardingLanguageDownloads": {
+    "description": "Set-up page, language row note when the engine downloads models"
+  },
+  "onboardingLanguageBuiltIn": "Built in. Nothing to download.",
+  "@onboardingLanguageBuiltIn": {
+    "description": "Set-up page, language row note when the engine has no downloadable model"
+  },
+  "onboardingLanguageReady": "Ready, on this device.",
+  "@onboardingLanguageReady": {
+    "description": "Set-up page, language row note once the language is ready"
+  },
+  "onboardingLanguageLoading": "Reading your language",
+  "@onboardingLanguageLoading": {
+    "description": "Set-up page, language row while the language list loads"
   },
   "onboardingPermissionsTitle": "Allow access",
   "@onboardingPermissionsTitle": {
     "description": "Headline on the permissions onboarding step"
   },
-  "onboardingPermissionsBody": "Everything here works entirely on your device.",
+  "onboardingPermissionsBody": "Everything here works entirely on your device. Get started asks for the microphone and speech recognition; either can be changed later in Settings.",
   "@onboardingPermissionsBody": {
     "description": "Subtitle reassuring that the requested permissions stay on-device"
   },
@@ -638,29 +690,42 @@
   "@onboardingSpeechReason": {
     "description": "One-line reason the app needs speech recognition"
   },
-  "onboardingOpenSettings": "Enable in Settings",
-  "@onboardingOpenSettings": {
-    "description": "Shown when a permission was denied; opens the system Settings"
+  "onboardingReflectWeek": "Week {number}",
+  "@onboardingReflectWeek": {
+    "description": "Eyebrow on the onboarding reflection card; shown uppercase",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
-  "onboardingModelsTitle": "Set up transcription",
-  "@onboardingModelsTitle": {
-    "description": "Headline on the transcription-setup onboarding step"
+  "onboardingShapeObsidianName": "Obsidian",
+  "@onboardingShapeObsidianName": {
+    "description": "Export tile name for Obsidian; the tile has no room for Vault"
   },
-  "onboardingModelsBody": "It runs offline once your language is on the device. You can add more anytime from the menu.",
-  "@onboardingModelsBody": {
-    "description": "Body on the transcription-setup onboarding step"
+  "onboardingShapeMarkdownNote": "One file each",
+  "@onboardingShapeMarkdownNote": {
+    "description": "Export tile note, Markdown"
   },
-  "onboardingReflectionsOn": "Your entries read back as a short reflection, entirely on this device.",
+  "onboardingShapeObsidianNote": "Linked vault",
+  "@onboardingShapeObsidianNote": {
+    "description": "Export tile note, Obsidian"
+  },
+  "onboardingShapeWebNote": "Any browser",
+  "@onboardingShapeWebNote": {
+    "description": "Export tile note, Website"
+  },
+  "onboardingReflectionsOn": "Apple Intelligence is on.",
   "@onboardingReflectionsOn": {
-    "description": "Onboarding model step, Apple Intelligence available: what reflections do"
+    "description": "Set-up page, reflections row when Apple Intelligence runs"
   },
-  "onboardingReflectionsPreparing": "Starts once Apple Intelligence finishes preparing on this device.",
+  "onboardingReflectionsPreparing": "Apple Intelligence is still preparing on this device.",
   "@onboardingReflectionsPreparing": {
-    "description": "Onboarding model step: Apple Intelligence enabled but the model still downloading"
+    "description": "Set-up page, reflections row while Apple Intelligence prepares"
   },
-  "onboardingReflectionsOff": "Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.",
+  "onboardingReflectionsOff": "Turn on Apple Intelligence in Settings to get them.",
   "@onboardingReflectionsOff": {
-    "description": "Onboarding model step: eligible hardware with Apple Intelligence off; instructions only"
+    "description": "Set-up page, reflections row when Apple Intelligence is off; instructions only"
   },
   "onboardingNext": "Next",
   "@onboardingNext": {
@@ -669,6 +734,14 @@
   "onboardingStart": "Get started",
   "@onboardingStart": {
     "description": "Button finishing onboarding and entering the app"
+  },
+  "onboardingDone": "Done",
+  "@onboardingDone": {
+    "description": "Button closing a replayed onboarding"
+  },
+  "hintEntryMenu": "Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.",
+  "@hintEntryMenu": {
+    "description": "One-shot callout under the entry menu button, shown on the first entry opened"
   },
   "settingsCache": "Cache",
   "@settingsCache": {

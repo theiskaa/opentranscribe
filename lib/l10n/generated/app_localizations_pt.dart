@@ -103,6 +103,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get menuSourceCode => 'Código-fonte';
 
   @override
+  String get menuHowItWorks => 'Como funciona';
+
+  @override
   String get recordStateRecording => 'A gravar';
 
   @override
@@ -434,44 +437,90 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => 'Diz o que pensa, e fica escrito.';
+  String get onboardingOpenSettings => 'Ativar nas Definições';
 
   @override
-  String get onboardingSpeakTitle => 'Basta falar';
+  String get onboardingReflectTitle => 'A sua semana, relida';
 
   @override
-  String get onboardingSpeakLine => 'Toque em gravar e diga o que lhe vai na mente.';
+  String get onboardingReflectBody =>
+      'As entradas releem-se como uma breve reflexão, por dia, semana ou mês. Escrita neste dispositivo pela Apple Intelligence, nunca enviada para lado nenhum.';
 
   @override
-  String get onboardingWriteTitle => 'Releia depois';
+  String get onboardingReflectDay1 => 'Dormi mal, mas a corrida da manhã resolveu quase tudo.';
 
   @override
-  String get onboardingWriteLine => 'Cada gravação fica escrita em texto.';
+  String get onboardingReflectDay2 => 'Dana, café, duas horas sobre nada e sobre tudo.';
 
   @override
-  String get onboardingPrivateTitle => 'Nada sai do telemóvel';
+  String get onboardingReflectDay3 => 'Disse não ao projeto extra. Senti-me mais leve o dia todo.';
 
   @override
-  String get onboardingPrivateLine => 'Sem conta, sem nuvem. O modo de voo não muda nada.';
+  String get onboardingReflectDay4 =>
+      'Voltei a casa pelo caminho longo. A cidade estava sossegada, por uma vez.';
 
   @override
-  String get onboardingReflectTitle => 'Reflexões';
+  String get onboardingReflectNote =>
+      'Uma semana a dizer não a mais, e as longas caminhadas que voltaram com isso.';
 
   @override
-  String get onboardingReflectLine =>
-      'As suas entradas voltam como uma nota breve, tudo no dispositivo.';
+  String get onboardingShapeTitle => 'Seu, em qualquer forma';
 
   @override
-  String get onboardingSource => 'Código aberto';
+  String get onboardingShapeBody =>
+      'Leve o diário inteiro como Markdown, como Obsidian Vault ou como site web. Faça uma cópia de segurança selada com uma frase-passe que só você conhece. Nada é sincronizado, a menos que o leve consigo.';
 
   @override
-  String get onboardingSourceLine => 'Cada linha é pública. Leia no GitHub.';
+  String get onboardingBackupLine => 'Selada com frase-passe, restaura-se em qualquer lado.';
+
+  @override
+  String get onboardingRecordTitle => 'Diz o que pensa, e fica escrito.';
+
+  @override
+  String get onboardingRecordBody =>
+      'Cada palavra fica neste telemóvel. Sem conta, sem nuvem. O modo de voo não muda nada.';
+
+  @override
+  String get onboardingRecordText1 =>
+      'Café com a Lia, e acabámos a falar da mudança durante duas horas.';
+
+  @override
+  String get onboardingRecordText2 =>
+      'Digo sempre que quero uma vida mais pequena, e depois preencho todas as noites.';
+
+  @override
+  String get onboardingRecordText3 =>
+      'Voltei a casa pelo caminho longo. A cidade estava sossegada, por uma vez.';
+
+  @override
+  String get onboardingRecordText4 =>
+      'Depois fiquei sentado nos degraus um bocado sem fazer nada, e acho que era esse o ponto.';
+
+  @override
+  String get onboardingRecordText5 =>
+      'O trabalho correu bem. Ninguém pediu nada que eu não pudesse dar.';
+
+  @override
+  String get onboardingRecordText6 => 'Amanhã quero ligar à mãe antes que fique tarde.';
+
+  @override
+  String get onboardingLanguageDownloads => 'Transfere-se uma vez e depois funciona offline.';
+
+  @override
+  String get onboardingLanguageBuiltIn => 'Incluído. Nada a transferir.';
+
+  @override
+  String get onboardingLanguageReady => 'Pronto, neste dispositivo.';
+
+  @override
+  String get onboardingLanguageLoading => 'A ler o seu idioma';
 
   @override
   String get onboardingPermissionsTitle => 'Conceder acesso';
 
   @override
-  String get onboardingPermissionsBody => 'Tudo isto funciona inteiramente no seu dispositivo.';
+  String get onboardingPermissionsBody =>
+      'Tudo aqui funciona inteiramente no seu dispositivo. Começar pede o microfone e o reconhecimento de voz; ambos podem ser alterados mais tarde nas Definições.';
 
   @override
   String get onboardingMicName => 'Microfone';
@@ -487,32 +536,44 @@ class AppLocalizationsPt extends AppLocalizations {
       'Para transformar as suas gravações em texto, no dispositivo.';
 
   @override
-  String get onboardingOpenSettings => 'Ativar nas Definições';
+  String onboardingReflectWeek(int number) {
+    return 'Semana $number';
+  }
 
   @override
-  String get onboardingModelsTitle => 'Configurar a transcrição';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody =>
-      'Corre offline assim que o seu idioma estiver no dispositivo. Pode adicionar mais a qualquer momento a partir do menu.';
+  String get onboardingShapeMarkdownNote => 'Um por cada';
 
   @override
-  String get onboardingReflectionsOn =>
-      'As suas entradas tornam-se uma breve reflexão, inteiramente neste dispositivo.';
+  String get onboardingShapeObsidianNote => 'Cofre ligado';
+
+  @override
+  String get onboardingShapeWebNote => 'No browser';
+
+  @override
+  String get onboardingReflectionsOn => 'A Apple Intelligence está ativa.';
 
   @override
   String get onboardingReflectionsPreparing =>
-      'Começa assim que o Apple Intelligence estiver pronto neste dispositivo.';
+      'A Apple Intelligence ainda está a preparar-se neste dispositivo.';
 
   @override
-  String get onboardingReflectionsOff =>
-      'Ative o Apple Intelligence nas Definições, em Apple Intelligence e Siri, para as receber.';
+  String get onboardingReflectionsOff => 'Ative a Apple Intelligence nas Definições para as ter.';
 
   @override
   String get onboardingNext => 'Seguinte';
 
   @override
   String get onboardingStart => 'Começar';
+
+  @override
+  String get onboardingDone => 'Concluído';
+
+  @override
+  String get hintEntryMenu =>
+      'Tudo o que esta entrada pode fazer está no menu aqui em cima: editar o texto, exportá-la, gravar mais.';
 
   @override
   String get settingsCache => 'Cache';
