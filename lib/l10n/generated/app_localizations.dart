@@ -864,71 +864,143 @@ abstract class AppLocalizations {
   /// **'Your phone\'s language isn\'t supported for on-device transcription yet, so {fallback} is the default.'**
   String transcriptionDeviceLanguageFallback(String fallback);
 
-  /// Explanatory body on the first onboarding step
+  /// Shown when a permission was denied; opens the system Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Enable in Settings'**
+  String get onboardingOpenSettings;
+
+  /// Headline of the reflections onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Your week, read back'**
+  String get onboardingReflectTitle;
+
+  /// Body of the reflections onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Entries read back as a short reflection, by day, week, or month. Written on this device by Apple Intelligence, never sent anywhere.'**
+  String get onboardingReflectBody;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Slept badly, but the morning run fixed most of it.'**
+  String get onboardingReflectDay1;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Dana, coffee, two hours about nothing and everything.'**
+  String get onboardingReflectDay2;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Said no to the extra project. Felt lighter all day.'**
+  String get onboardingReflectDay3;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Walked home the long way. The city was quiet for once.'**
+  String get onboardingReflectDay4;
+
+  /// Scene: the week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'A week of saying no to more, and the long walks that came back once you did.'**
+  String get onboardingReflectNote;
+
+  /// Headline of the exports and backup onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Yours, in any shape'**
+  String get onboardingShapeTitle;
+
+  /// Body of the exports and backup onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Take the whole journal as Markdown, an Obsidian vault, or a website. Back it up sealed with a passphrase only you know. Nothing syncs unless you carry it.'**
+  String get onboardingShapeBody;
+
+  /// Scene: the backup row's note
+  ///
+  /// In en, this message translates to:
+  /// **'Sealed with a passphrase, restores anywhere.'**
+  String get onboardingBackupLine;
+
+  /// Headline of the first onboarding page (a take running)
   ///
   /// In en, this message translates to:
   /// **'You speak your mind, and it writes it down.'**
-  String get onboardingIntroBody;
+  String get onboardingRecordTitle;
 
-  /// Title of the intro row about recording
+  /// Body of the first onboarding page
   ///
   /// In en, this message translates to:
-  /// **'Just talk'**
-  String get onboardingSpeakTitle;
+  /// **'Every word stays on this phone. No account, no cloud. Airplane mode changes nothing.'**
+  String get onboardingRecordBody;
 
-  /// One-line explanation under the recording intro row
+  /// Scene: live transcript, first sentence
   ///
   /// In en, this message translates to:
-  /// **'Tap record and say what is on your mind.'**
-  String get onboardingSpeakLine;
+  /// **'Met Lia for coffee and we ended up talking about the move for two hours.'**
+  String get onboardingRecordText1;
 
-  /// Title of the intro row about transcription
+  /// Scene: live transcript, second sentence
   ///
   /// In en, this message translates to:
-  /// **'Read it back'**
-  String get onboardingWriteTitle;
+  /// **'I keep saying I want a smaller life and then filling every evening.'**
+  String get onboardingRecordText2;
 
-  /// One-line explanation under the transcription intro row
+  /// Scene: live transcript, third sentence
   ///
   /// In en, this message translates to:
-  /// **'Every recording is written down as text.'**
-  String get onboardingWriteLine;
+  /// **'Walked home the long way. The city was quiet for once.'**
+  String get onboardingRecordText3;
 
-  /// Title of the intro row about privacy
+  /// Scene: live transcript, fourth sentence
   ///
   /// In en, this message translates to:
-  /// **'Nothing leaves the phone'**
-  String get onboardingPrivateTitle;
+  /// **'Then I sat on the steps for a while and did nothing, which felt like the point.'**
+  String get onboardingRecordText4;
 
-  /// One-line explanation under the privacy intro row
+  /// Scene: live transcript, fifth sentence
   ///
   /// In en, this message translates to:
-  /// **'No account, no cloud. Airplane mode changes nothing.'**
-  String get onboardingPrivateLine;
+  /// **'Work was fine. Nobody asked for anything I could not give.'**
+  String get onboardingRecordText5;
 
-  /// Title of the intro row about reflections, eligible hardware only
+  /// Scene: live transcript, sixth sentence
   ///
   /// In en, this message translates to:
-  /// **'Reflections'**
-  String get onboardingReflectTitle;
+  /// **'Tomorrow I want to call Mum before it gets late.'**
+  String get onboardingRecordText6;
 
-  /// One-line explanation under the reflections intro row
+  /// Set-up page, language row note when the engine downloads models
   ///
   /// In en, this message translates to:
-  /// **'Your entries read back as a short note, all on device.'**
-  String get onboardingReflectLine;
+  /// **'Downloads once, then works offline.'**
+  String get onboardingLanguageDownloads;
 
-  /// Title of the intro row that opens the open-source repository
+  /// Set-up page, language row note when the engine has no downloadable model
   ///
   /// In en, this message translates to:
-  /// **'Open source'**
-  String get onboardingSource;
+  /// **'Built in. Nothing to download.'**
+  String get onboardingLanguageBuiltIn;
 
-  /// One-line explanation under the open-source intro row
+  /// Set-up page, language row note once the language is ready
   ///
   /// In en, this message translates to:
-  /// **'Every line of it is public. Read it on GitHub.'**
-  String get onboardingSourceLine;
+  /// **'Ready, on this device.'**
+  String get onboardingLanguageReady;
+
+  /// Set-up page, language row while the language list loads
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your language'**
+  String get onboardingLanguageLoading;
 
   /// Headline on the permissions onboarding step
   ///
@@ -939,7 +1011,7 @@ abstract class AppLocalizations {
   /// Subtitle reassuring that the requested permissions stay on-device
   ///
   /// In en, this message translates to:
-  /// **'Everything here works entirely on your device.'**
+  /// **'Everything here works entirely on your device. Get started asks for the microphone and speech recognition; either can be changed later in Settings.'**
   String get onboardingPermissionsBody;
 
   /// Name of the microphone permission row
@@ -966,40 +1038,52 @@ abstract class AppLocalizations {
   /// **'To turn your recordings into text, on device.'**
   String get onboardingSpeechReason;
 
-  /// Shown when a permission was denied; opens the system Settings
+  /// Eyebrow on the onboarding reflection card; shown uppercase
   ///
   /// In en, this message translates to:
-  /// **'Enable in Settings'**
-  String get onboardingOpenSettings;
+  /// **'Week {number}'**
+  String onboardingReflectWeek(int number);
 
-  /// Headline on the transcription-setup onboarding step
+  /// Export tile name for Obsidian; the tile has no room for Vault
   ///
   /// In en, this message translates to:
-  /// **'Set up transcription'**
-  String get onboardingModelsTitle;
+  /// **'Obsidian'**
+  String get onboardingShapeObsidianName;
 
-  /// Body on the transcription-setup onboarding step
+  /// Export tile note, Markdown
   ///
   /// In en, this message translates to:
-  /// **'It runs offline once your language is on the device. You can add more anytime from the menu.'**
-  String get onboardingModelsBody;
+  /// **'One file each'**
+  String get onboardingShapeMarkdownNote;
 
-  /// Onboarding model step, Apple Intelligence available: what reflections do
+  /// Export tile note, Obsidian
   ///
   /// In en, this message translates to:
-  /// **'Your entries read back as a short reflection, entirely on this device.'**
+  /// **'Linked vault'**
+  String get onboardingShapeObsidianNote;
+
+  /// Export tile note, Website
+  ///
+  /// In en, this message translates to:
+  /// **'Any browser'**
+  String get onboardingShapeWebNote;
+
+  /// Set-up page, reflections row when Apple Intelligence runs
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is on.'**
   String get onboardingReflectionsOn;
 
-  /// Onboarding model step: Apple Intelligence enabled but the model still downloading
+  /// Set-up page, reflections row while Apple Intelligence prepares
   ///
   /// In en, this message translates to:
-  /// **'Starts once Apple Intelligence finishes preparing on this device.'**
+  /// **'Apple Intelligence is still preparing on this device.'**
   String get onboardingReflectionsPreparing;
 
-  /// Onboarding model step: eligible hardware with Apple Intelligence off; instructions only
+  /// Set-up page, reflections row when Apple Intelligence is off; instructions only
   ///
   /// In en, this message translates to:
-  /// **'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.'**
+  /// **'Turn on Apple Intelligence in Settings to get them.'**
   String get onboardingReflectionsOff;
 
   /// Button advancing to the next onboarding step
@@ -1013,6 +1097,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get onboardingStart;
+
+  /// Button closing a replayed onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get onboardingDone;
+
+  /// One-shot callout under the entry menu button, shown on the first entry opened
+  ///
+  /// In en, this message translates to:
+  /// **'Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.'**
+  String get hintEntryMenu;
 
   /// Menu row and section label of the cache screen (audio storage usage and cleanup)
   ///

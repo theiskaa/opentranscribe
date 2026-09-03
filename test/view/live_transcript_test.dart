@@ -89,6 +89,23 @@ void main() {
         [2, 3],
       ]);
     });
+
+    test('glued words pack without a space and still break across lines', () {
+      final words = ['あ', 'い', 'う', 'え', 'お'];
+      final glued = [false, true, true, true, true];
+      expect(packLines(words, widthOf, spaceWidth: 5, maxWidth: 22, glued: glued), [
+        [0, 1],
+        [2, 3],
+        [4],
+      ]);
+      expect(packLines(words, widthOf, spaceWidth: 5, maxWidth: 22), [
+        [0],
+        [1],
+        [2],
+        [3],
+        [4],
+      ]);
+    });
   });
 
   group('firstDivergence', () {
@@ -103,6 +120,18 @@ void main() {
 
     test('identical lists report their shared length', () {
       expect(firstDivergence(['a', 'b'], ['a', 'b']), 2);
+    });
+
+    test('a glue change alone diverges at the word whose glue changed', () {
+      expect(
+        firstDivergence(
+          ['a', 'b', 'c'],
+          ['a', 'b', 'c'],
+          aGlued: [false, true, true],
+          bGlued: [false, false, true],
+        ),
+        1,
+      );
     });
   });
 
@@ -160,6 +189,39 @@ void main() {
 
       expect(identical(result.first, packed.first), isTrue);
     });
+
+    test('a grown unspaced take re-packs its glued tail the same as from scratch', () {
+      final before = transcriptWords('リアとコーヒー');
+      final after = transcriptWords('リアとコーヒーを飲んだ。');
+      final packed = packLines(
+        before.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 35,
+        glued: before.glued,
+      );
+
+      final result = repackFrom(
+        packed,
+        firstDivergence(before.words, after.words),
+        after.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 35,
+        glued: after.glued,
+      );
+
+      expect(
+        result,
+        packLines(after.words, widthOf, spaceWidth: 5, maxWidth: 35, glued: after.glued),
+      );
+      expect(result, [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [9, 10],
+      ]);
+    });
   });
 
   group('packIncrementally', () {
@@ -205,6 +267,99 @@ void main() {
         incremental(before, after, 50),
         packLines(after, widthOf, spaceWidth: 5, maxWidth: 50),
       );
+    });
+
+    test('a space put between two characters re-packs like packing from scratch', () {
+      final before = transcriptWords('你好嗎我很');
+      final after = transcriptWords('你 好嗎我很');
+      final previous = packLines(
+        before.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 30,
+        glued: before.glued,
+      );
+
+      final result = packIncrementally(
+        after.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 30,
+        previousWords: before.words,
+        previous: previous,
+        previousMaxWidth: 30,
+        glued: after.glued,
+        previousGlued: before.glued,
+      );
+
+      expect(
+        result,
+        packLines(after.words, widthOf, spaceWidth: 5, maxWidth: 30, glued: after.glued),
+      );
+      expect(result, isNot(equals(previous)));
+    });
+
+    test('a grown unspaced take keeps its settled lines and glues the new ones', () {
+      final before = transcriptWords('リアとコー');
+      final after = transcriptWords('リアとコーヒー');
+      final previous = packLines(
+        before.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 35,
+        glued: before.glued,
+      );
+
+      final result = packIncrementally(
+        after.words,
+        widthOf,
+        spaceWidth: 5,
+        maxWidth: 35,
+        previousWords: before.words,
+        previous: previous,
+        previousMaxWidth: 35,
+        glued: after.glued,
+        previousGlued: before.glued,
+      );
+
+      expect(result, [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6],
+      ]);
+      expect(identical(result.first, previous.first), isTrue);
+    });
+  });
+
+  group('transcriptWords', () {
+    test('spaced text is one word per run, none glued to the last', () {
+      final (:words, :glued) = transcriptWords('Met  Lia for coffee.');
+      expect(words, ['Met', 'Lia', 'for', 'coffee.']);
+      expect(glued, everyElement(isFalse));
+    });
+
+    test('a script without spaces is one word per character, each glued to the last', () {
+      final (:words, :glued) = transcriptWords('リアとコーヒー');
+      expect(words, ['リ', 'ア', 'と', 'コ', 'ー', 'ヒ', 'ー']);
+      expect(glued, [false, true, true, true, true, true, true]);
+    });
+
+    test('closing punctuation rides with the character before it', () {
+      final (:words, :glued) = transcriptWords('喝了。然后、回家！');
+      expect(words, ['喝', '了。', '然', '后、', '回', '家！']);
+      expect(glued.first, isFalse);
+      expect(glued.skip(1), everyElement(isTrue));
+    });
+
+    test('a spaced run inside an unspaced sentence keeps the spaces around it', () {
+      final (:words, :glued) = transcriptWords('和 Lia 喝。');
+      expect(words, ['和', 'Lia', '喝。']);
+      expect(glued, [false, false, false]);
+    });
+
+    test('nothing but whitespace is no words', () {
+      expect(transcriptWords('').words, isEmpty);
+      expect(transcriptWords('  \n ').words, isEmpty);
     });
   });
 }

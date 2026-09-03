@@ -53,7 +53,8 @@ void main() {
       expect(theme.settings.toggleActive, const Color(0xFF34C759));
       expect(theme.recorder.waveformBar, theme.accent);
       expect(theme.topBar.background, theme.background);
-      expect(theme.onboarding.bodyColor, theme.textSecondary);
+      expect(theme.callout.background, theme.surface);
+      expect(theme.callout.text, theme.text);
     });
 
     test('an override replaces only its group', () {

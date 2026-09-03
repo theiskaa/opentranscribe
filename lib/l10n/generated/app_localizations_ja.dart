@@ -414,43 +414,82 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => '思ったことを話せば、書き留められます。';
+  String get onboardingOpenSettings => '設定で有効にする';
 
   @override
-  String get onboardingSpeakTitle => '話すだけ';
+  String get onboardingReflectTitle => 'あなたの一週間を読み返す';
 
   @override
-  String get onboardingSpeakLine => '録音をタップして、思っていることを話しましょう。';
+  String get onboardingReflectBody =>
+      'エントリーは、日、週、月ごとの短い振り返りとして読み返せます。この端末上で Apple Intelligence が書き、どこにも送られません。';
 
   @override
-  String get onboardingWriteTitle => '読み返す';
+  String get onboardingReflectDay1 => 'よく眠れなかったけれど、朝のランニングでほとんど立て直せた。';
 
   @override
-  String get onboardingWriteLine => '録音はすべてテキストとして書き留められます。';
+  String get onboardingReflectDay2 => 'ダナとコーヒー。なんでもないことと、すべてのことを二時間。';
 
   @override
-  String get onboardingPrivateTitle => '何も端末から出ません';
+  String get onboardingReflectDay3 => '追加の案件を断った。一日ずっと身軽だった。';
 
   @override
-  String get onboardingPrivateLine => 'アカウントもクラウドもありません。機内モードでも変わりなく使えます。';
+  String get onboardingReflectDay4 => '遠回りして歩いて帰った。街は珍しく静かだった。';
 
   @override
-  String get onboardingReflectTitle => '振り返り';
+  String get onboardingReflectNote => '「もっと」に断りを入れた一週間と、そうして戻ってきた長い散歩。';
 
   @override
-  String get onboardingReflectLine => '記録が短いノートとして返ってきます。すべてこの端末上で。';
+  String get onboardingShapeTitle => 'あなたのもの、どんな形でも';
 
   @override
-  String get onboardingSource => 'オープンソース';
+  String get onboardingShapeBody =>
+      'ジャーナル全体を Markdown、Obsidian Vault、またはWebサイトとして持ち出せます。あなただけが知るパスフレーズで封じてバックアップできます。あなたが運ばない限り、何も同期されません。';
 
   @override
-  String get onboardingSourceLine => 'すべてのコードが公開されています。GitHub でご覧いただけます。';
+  String get onboardingBackupLine => 'パスフレーズで封じ、どこでも復元できます。';
+
+  @override
+  String get onboardingRecordTitle => '思ったことを話せば、書き留められます。';
+
+  @override
+  String get onboardingRecordBody => 'すべての言葉はこの端末に残ります。アカウントもクラウドもありません。機内モードでも何も変わりません。';
+
+  @override
+  String get onboardingRecordText1 => 'リアとコーヒーを飲んで、結局二時間も引っ越しの話をした。';
+
+  @override
+  String get onboardingRecordText2 => 'もっと小さな暮らしがしたいと言いながら、毎晩予定を詰め込んでいる。';
+
+  @override
+  String get onboardingRecordText3 => '遠回りして歩いて帰った。街は珍しく静かだった。';
+
+  @override
+  String get onboardingRecordText4 => 'それから階段に座って、しばらく何もしなかった。たぶんそれが大事だったのだと思う。';
+
+  @override
+  String get onboardingRecordText5 => '仕事は問題なかった。できないことを求められることもなかった。';
+
+  @override
+  String get onboardingRecordText6 => '明日は遅くなる前に母に電話したい。';
+
+  @override
+  String get onboardingLanguageDownloads => '一度ダウンロードすれば、あとはオフラインで動作します。';
+
+  @override
+  String get onboardingLanguageBuiltIn => '内蔵済み。ダウンロードは不要です。';
+
+  @override
+  String get onboardingLanguageReady => 'この端末で準備できています。';
+
+  @override
+  String get onboardingLanguageLoading => '言語を確認しています';
 
   @override
   String get onboardingPermissionsTitle => 'アクセスを許可';
 
   @override
-  String get onboardingPermissionsBody => 'すべて完全に端末内で動作します。';
+  String get onboardingPermissionsBody =>
+      'ここにあるものはすべて、この端末上で動作します。「始める」でマイクと音声認識の許可を求めます。どちらも後から設定で変更できます。';
 
   @override
   String get onboardingMicName => 'マイク';
@@ -465,28 +504,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSpeechReason => '録音をテキストに変換するため。処理は端末内で行われます。';
 
   @override
-  String get onboardingOpenSettings => '設定で有効にする';
+  String onboardingReflectWeek(int number) {
+    return '第$number週';
+  }
 
   @override
-  String get onboardingModelsTitle => '文字起こしを設定';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody => 'お使いの言語が端末に入れば、オフラインで動作します。メニューからいつでも追加できます。';
+  String get onboardingShapeMarkdownNote => '1件1ファイル';
 
   @override
-  String get onboardingReflectionsOn => '記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
+  String get onboardingShapeObsidianNote => '相互リンク';
 
   @override
-  String get onboardingReflectionsPreparing => 'この端末で Apple Intelligence の準備が完了すると始まります。';
+  String get onboardingShapeWebNote => 'ブラウザで';
 
   @override
-  String get onboardingReflectionsOff => '「設定」の「Apple Intelligence と Siri」でオンにすると利用できます。';
+  String get onboardingReflectionsOn => 'Apple Intelligence はオンです。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'この端末では Apple Intelligence の準備がまだ進んでいます。';
+
+  @override
+  String get onboardingReflectionsOff => '設定で Apple Intelligence をオンにすると使えます。';
 
   @override
   String get onboardingNext => '次へ';
 
   @override
   String get onboardingStart => '始める';
+
+  @override
+  String get onboardingDone => '完了';
+
+  @override
+  String get hintEntryMenu => 'このエントリーでできることは、右上のメニューにあります。テキストの編集、書き出し、追加の録音。';
 
   @override
   String get settingsCache => 'キャッシュ';

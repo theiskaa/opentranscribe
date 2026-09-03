@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/app/hints.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
@@ -32,6 +33,7 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
+import 'package:opentranscribe/view/widgets/hint_callout.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
@@ -55,6 +57,11 @@ class EntryDetailScreen extends StatelessWidget {
 /// Whether the entry offers to be continued: no live edit and no action on it.
 bool continueRowVisible({required bool editing, required bool busy}) => !editing && !busy;
 
+/// Whether the first-entry hint may show: never once seen, and never while the
+/// menu it points at is hidden (editing) or thinned out (an action in flight).
+bool shouldShowEntryHint({required bool seen, required bool editing, required bool busy}) =>
+    !seen && !editing && !busy;
+
 class _DetailView extends StatefulWidget {
   const _DetailView({required this.entryId});
 
@@ -76,6 +83,18 @@ class _DetailViewState extends State<_DetailView> {
   final FocusNode _bodyFocus = FocusNode();
   final TextEditingController _bodyController = TextEditingController();
   bool _editing = false;
+
+  /// The one-shot pointer at the menu, armed only while the hint is unseen.
+  /// Marked seen the frame it first renders, not on dismiss, so a kill before
+  /// the tap does not bring it back forever.
+  bool _hintArmed = !Hints.isSeen(Deps.i.localService, Hints.entryMenu);
+  bool _hintMarked = false;
+
+  /// The tap on it, or a pick from the menu it points at: either way it has
+  /// been read.
+  void _dismissHint() {
+    if (_hintArmed) setState(() => _hintArmed = false);
+  }
 
   /// The bar's menu button, which the Transcribe-in dropdown anchors to (the
   /// menu that offered the action grew from the same spot).
@@ -441,6 +460,15 @@ class _DetailViewState extends State<_DetailView> {
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
+        final showHint = shouldShowEntryHint(
+          seen: !_hintArmed,
+          editing: _editing,
+          busy: state.busyId == entry.id,
+        );
+        if (showHint && !_hintMarked) {
+          _hintMarked = true;
+          unawaited(Hints.markSeen(Deps.i.localService, Hints.entryMenu).catchError((_) {}));
+        }
         // A take extending this entry, live or landing: the words stay and a
         // quiet wait sits under them.
         final continuing =
@@ -619,17 +647,33 @@ class _DetailViewState extends State<_DetailView> {
                           // stale index from a menu that outlived a rebuild is
                           // dropped rather than landing on another row.
                           onSelected: (index) {
+                            _dismissHint();
                             if (index < 0 || index >= menu.length) return;
                             if (menu[index].children.isEmpty) return;
                             unawaited(_transcribeIn(entry));
                           },
-                          onSelectedId: (id) => _onMenuId(id, entry),
+                          onSelectedId: (id) {
+                            _dismissHint();
+                            _onMenuId(id, entry);
+                          },
                         );
                       },
                     ),
                   ],
                 ),
               ),
+              // Above the bar, not under it: seated on the fade tail, the hint
+              // would otherwise be washed by the material. Mounted only once it
+              // has shown, so its fade-out can finish after the dismiss.
+              if (_hintMarked)
+                PositionedDirectional(
+                  top: AppTopBar.heightOf(context),
+                  end: AppSpacing.md,
+                  child: AnimatedSwitcher(
+                    duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                    child: showHint ? _EntryHint(onDismiss: _dismissHint) : const SizedBox.shrink(),
+                  ),
+                ),
               // The edit mode's save floats where home's record button does,
               // riding the keyboard; unfocusing commits through the blur
               // listener. The check runs well under the waveform's 26: its
@@ -665,6 +709,24 @@ class _DetailViewState extends State<_DetailView> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The first-entry hint, seated below the bar's row with its caret on the menu
+/// button (the bar's edge inset plus half an action).
+class _EntryHint extends StatelessWidget {
+  const _EntryHint({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return HintCallout(
+      message: AppLocalizations.of(context)!.hintEntryMenu,
+      onDismiss: onDismiss,
+      caretInset: theme.topBar.actionSize / 2,
     );
   }
 }

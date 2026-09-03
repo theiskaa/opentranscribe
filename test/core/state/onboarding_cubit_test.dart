@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -122,6 +124,22 @@ void main() {
     await cubit.requestPending();
     expect(recorder.ensurePermissionCalls, 1);
     expect(engine.checkAvailabilityCalls, 1);
+    await cubit.close();
+  });
+
+  test('a second requestPending while the mic prompt is up starts nothing over it', () async {
+    final cubit = build();
+    final prompt = recorder.permissionPrompt = Completer<void>();
+    final first = cubit.requestPending();
+    final second = cubit.requestPending();
+    await Future<void>.delayed(Duration.zero);
+    expect(engine.checkAvailabilityCalls, 0);
+    prompt.complete();
+    await Future.wait([first, second]);
+    expect(recorder.ensurePermissionCalls, 1);
+    expect(engine.checkAvailabilityCalls, 1);
+    expect(cubit.state.micGranted, isTrue);
+    expect(cubit.state.speechGranted, isTrue);
     await cubit.close();
   });
 

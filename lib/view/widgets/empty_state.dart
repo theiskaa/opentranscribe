@@ -6,13 +6,24 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// A quiet empty state: one card, a title, one line of explanation. The card
-/// usually holds a still [icon]; pass [visual] instead for something live (the
-/// home invitation's travelling wave), where a static glyph would undersell it.
+/// A quiet empty state: one card, a title, one line of explanation, and at
+/// most one way out ([actionLabel] with [onAction]) when the state has a
+/// recovery. The card usually holds a still [icon]; pass [visual] instead for
+/// something live (the home invitation's travelling wave), where a static glyph
+/// would undersell it.
 class EmptyState extends StatelessWidget {
-  const EmptyState({required this.title, this.icon, this.visual, this.message, super.key})
-    : assert(icon != null || visual != null, 'an empty state needs an icon or a visual');
+  const EmptyState({
+    required this.title,
+    this.icon,
+    this.visual,
+    this.message,
+    this.actionLabel,
+    this.onAction,
+    super.key,
+  }) : assert(icon != null || visual != null, 'an empty state needs an icon or a visual'),
+       assert((actionLabel == null) == (onAction == null), 'an action needs a label and a tap');
 
   final IconData? icon;
 
@@ -20,6 +31,8 @@ class EmptyState extends StatelessWidget {
   final Widget? visual;
   final String title;
   final String? message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +59,19 @@ class EmptyState extends StatelessWidget {
               message!,
               textAlign: TextAlign.center,
               style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
+            ),
+          ],
+          if (actionLabel != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Touchable(
+              onTap: onAction,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Text(actionLabel!, style: AppType.subhead.copyWith(color: theme.accent)),
+              ),
             ),
           ],
         ],

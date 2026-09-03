@@ -82,6 +82,16 @@ String formatClock(Duration d) {
   return '$minutes:$seconds';
 }
 
+/// A duration as the recorder's timer reads it: mm:ss, hours in front once a
+/// take has them (00:42, 1:05:09). Padded minutes so the digits never shift
+/// under a rolling display.
+String formatElapsed(Duration d) {
+  final hours = d.inHours;
+  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}
+
 /// A duration in spoken units (1m 34s, 58s, 1h 12m), the card-meta shape.
 String formatDurationCompact(Duration d) {
   if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes.remainder(60)}m';

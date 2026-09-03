@@ -125,7 +125,7 @@ class SelectableRow extends StatelessWidget {
       onTap: onTap,
       haptic: onTap != null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: tokens.rowPadding,
         child: Row(
           children: [
             if (flag != null || leading != null) ...[
@@ -212,7 +212,7 @@ class SettingsToggleRow extends StatelessWidget {
       onTap: enabled ? () => onChanged!(!value) : null,
       haptic: enabled,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: tokens.rowPadding,
         child: Row(
           children: [
             Container(
@@ -315,7 +315,7 @@ class SettingsActionRow extends StatelessWidget {
       onTap: onTap,
       haptic: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: tokens.rowPadding,
         child: Row(
           children: [
             Container(
@@ -384,7 +384,7 @@ class SettingsBusyRow extends StatelessWidget {
       onTap: onTap,
       haptic: enabled,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: tokens.rowPadding,
         child: Row(
           children: [
             Container(

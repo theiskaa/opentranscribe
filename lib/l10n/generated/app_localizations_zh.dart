@@ -411,43 +411,80 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => '你说出心中所想，它替你记录成文。';
+  String get onboardingOpenSettings => '在“设置”中启用';
 
   @override
-  String get onboardingSpeakTitle => '只管说';
+  String get onboardingReflectTitle => '回看你的一周';
 
   @override
-  String get onboardingSpeakLine => '点击录制，说出你的想法。';
+  String get onboardingReflectBody => '条目会按日、按周或按月，被写成一段简短的回顾。由 Apple Intelligence 在本机写成，从不发往任何地方。';
 
   @override
-  String get onboardingWriteTitle => '回看文字';
+  String get onboardingReflectDay1 => '睡得不好，但晨跑把大半修好了。';
 
   @override
-  String get onboardingWriteLine => '每段录音都会转写成文字。';
+  String get onboardingReflectDay2 => 'Dana，咖啡，两小时聊了无关紧要又无所不包的事。';
 
   @override
-  String get onboardingPrivateTitle => '一切都不离开手机';
+  String get onboardingReflectDay3 => '拒绝了额外的项目。一整天都轻松了。';
 
   @override
-  String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
+  String get onboardingReflectDay4 => '绕远路走回家。城市难得地安静。';
 
   @override
-  String get onboardingReflectTitle => '回顾';
+  String get onboardingReflectNote => '一个对“更多”说不的星期，以及随之回来的长长的散步。';
 
   @override
-  String get onboardingReflectLine => '你的记录会汇成一段简短的笔记，全部在设备上完成。';
+  String get onboardingShapeTitle => '属于你，任何形式';
 
   @override
-  String get onboardingSource => '开源';
+  String get onboardingShapeBody =>
+      '把整本日记带走：Markdown、Obsidian Vault，或一个网站。用只有你知道的口令封存备份。除非你亲自带走，否则什么都不会同步。';
 
   @override
-  String get onboardingSourceLine => '每一行代码都是公开的。可在 GitHub 上查看。';
+  String get onboardingBackupLine => '以口令封存，随处可恢复。';
+
+  @override
+  String get onboardingRecordTitle => '你说出心里话，它替你写下来。';
+
+  @override
+  String get onboardingRecordBody => '每个字都留在这台手机上。没有账户，没有云端。飞行模式下也一样。';
+
+  @override
+  String get onboardingRecordText1 => '和 Lia 喝咖啡，结果聊搬家的事聊了两个小时。';
+
+  @override
+  String get onboardingRecordText2 => '我总说想过更简单的生活，却把每个晚上都排满。';
+
+  @override
+  String get onboardingRecordText3 => '绕远路走回家。城市难得地安静。';
+
+  @override
+  String get onboardingRecordText4 => '然后我在台阶上坐了一会儿，什么也没做，大概这才是重点。';
+
+  @override
+  String get onboardingRecordText5 => '工作还好。没有人要求我给不出的东西。';
+
+  @override
+  String get onboardingRecordText6 => '明天想在太晚之前给妈妈打个电话。';
+
+  @override
+  String get onboardingLanguageDownloads => '下载一次，之后离线可用。';
+
+  @override
+  String get onboardingLanguageBuiltIn => '已内置，无需下载。';
+
+  @override
+  String get onboardingLanguageReady => '已就绪，在本机运行。';
+
+  @override
+  String get onboardingLanguageLoading => '正在读取你的语言';
 
   @override
   String get onboardingPermissionsTitle => '允许访问';
 
   @override
-  String get onboardingPermissionsBody => '这一切都完全在你的设备上运行。';
+  String get onboardingPermissionsBody => '这里的一切都完全在你的设备上运行。“开始使用”会请求麦克风与语音识别权限，两者稍后都可在“设置”中更改。';
 
   @override
   String get onboardingMicName => '麦克风';
@@ -462,28 +499,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
 
   @override
-  String get onboardingOpenSettings => '在“设置”中启用';
+  String onboardingReflectWeek(int number) {
+    return '第 $number 周';
+  }
 
   @override
-  String get onboardingModelsTitle => '设置转写';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody => '只要设备上有了你的语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+  String get onboardingShapeMarkdownNote => '每条一个文件';
 
   @override
-  String get onboardingReflectionsOn => '你的记录会汇成一段简短回顾，完全在此设备上完成。';
+  String get onboardingShapeObsidianNote => '互相链接';
 
   @override
-  String get onboardingReflectionsPreparing => 'Apple Intelligence 在此设备上准备完成后即会开始。';
+  String get onboardingShapeWebNote => '任何浏览器';
 
   @override
-  String get onboardingReflectionsOff => '在“设置”的“Apple Intelligence 与 Siri”中开启即可使用。';
+  String get onboardingReflectionsOn => 'Apple Intelligence 已开启。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'Apple Intelligence 仍在本机准备中。';
+
+  @override
+  String get onboardingReflectionsOff => '在“设置”中开启 Apple Intelligence 即可使用。';
 
   @override
   String get onboardingNext => '下一步';
 
   @override
   String get onboardingStart => '开始使用';
+
+  @override
+  String get onboardingDone => '完成';
+
+  @override
+  String get hintEntryMenu => '这个条目能做的一切都在上方菜单里：编辑文字、导出、继续录音。';
 
   @override
   String get settingsCache => '缓存';

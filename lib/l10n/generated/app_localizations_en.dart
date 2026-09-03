@@ -431,43 +431,87 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => 'You speak your mind, and it writes it down.';
+  String get onboardingOpenSettings => 'Enable in Settings';
 
   @override
-  String get onboardingSpeakTitle => 'Just talk';
+  String get onboardingReflectTitle => 'Your week, read back';
 
   @override
-  String get onboardingSpeakLine => 'Tap record and say what is on your mind.';
+  String get onboardingReflectBody =>
+      'Entries read back as a short reflection, by day, week, or month. Written on this device by Apple Intelligence, never sent anywhere.';
 
   @override
-  String get onboardingWriteTitle => 'Read it back';
+  String get onboardingReflectDay1 => 'Slept badly, but the morning run fixed most of it.';
 
   @override
-  String get onboardingWriteLine => 'Every recording is written down as text.';
+  String get onboardingReflectDay2 => 'Dana, coffee, two hours about nothing and everything.';
 
   @override
-  String get onboardingPrivateTitle => 'Nothing leaves the phone';
+  String get onboardingReflectDay3 => 'Said no to the extra project. Felt lighter all day.';
 
   @override
-  String get onboardingPrivateLine => 'No account, no cloud. Airplane mode changes nothing.';
+  String get onboardingReflectDay4 => 'Walked home the long way. The city was quiet for once.';
 
   @override
-  String get onboardingReflectTitle => 'Reflections';
+  String get onboardingReflectNote =>
+      'A week of saying no to more, and the long walks that came back once you did.';
 
   @override
-  String get onboardingReflectLine => 'Your entries read back as a short note, all on device.';
+  String get onboardingShapeTitle => 'Yours, in any shape';
 
   @override
-  String get onboardingSource => 'Open source';
+  String get onboardingShapeBody =>
+      'Take the whole journal as Markdown, an Obsidian vault, or a website. Back it up sealed with a passphrase only you know. Nothing syncs unless you carry it.';
 
   @override
-  String get onboardingSourceLine => 'Every line of it is public. Read it on GitHub.';
+  String get onboardingBackupLine => 'Sealed with a passphrase, restores anywhere.';
+
+  @override
+  String get onboardingRecordTitle => 'You speak your mind, and it writes it down.';
+
+  @override
+  String get onboardingRecordBody =>
+      'Every word stays on this phone. No account, no cloud. Airplane mode changes nothing.';
+
+  @override
+  String get onboardingRecordText1 =>
+      'Met Lia for coffee and we ended up talking about the move for two hours.';
+
+  @override
+  String get onboardingRecordText2 =>
+      'I keep saying I want a smaller life and then filling every evening.';
+
+  @override
+  String get onboardingRecordText3 => 'Walked home the long way. The city was quiet for once.';
+
+  @override
+  String get onboardingRecordText4 =>
+      'Then I sat on the steps for a while and did nothing, which felt like the point.';
+
+  @override
+  String get onboardingRecordText5 => 'Work was fine. Nobody asked for anything I could not give.';
+
+  @override
+  String get onboardingRecordText6 => 'Tomorrow I want to call Mum before it gets late.';
+
+  @override
+  String get onboardingLanguageDownloads => 'Downloads once, then works offline.';
+
+  @override
+  String get onboardingLanguageBuiltIn => 'Built in. Nothing to download.';
+
+  @override
+  String get onboardingLanguageReady => 'Ready, on this device.';
+
+  @override
+  String get onboardingLanguageLoading => 'Reading your language';
 
   @override
   String get onboardingPermissionsTitle => 'Allow access';
 
   @override
-  String get onboardingPermissionsBody => 'Everything here works entirely on your device.';
+  String get onboardingPermissionsBody =>
+      'Everything here works entirely on your device. Get started asks for the microphone and speech recognition; either can be changed later in Settings.';
 
   @override
   String get onboardingMicName => 'Microphone';
@@ -482,32 +526,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSpeechReason => 'To turn your recordings into text, on device.';
 
   @override
-  String get onboardingOpenSettings => 'Enable in Settings';
+  String onboardingReflectWeek(int number) {
+    return 'Week $number';
+  }
 
   @override
-  String get onboardingModelsTitle => 'Set up transcription';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody =>
-      'It runs offline once your language is on the device. You can add more anytime from the menu.';
+  String get onboardingShapeMarkdownNote => 'One file each';
 
   @override
-  String get onboardingReflectionsOn =>
-      'Your entries read back as a short reflection, entirely on this device.';
+  String get onboardingShapeObsidianNote => 'Linked vault';
+
+  @override
+  String get onboardingShapeWebNote => 'Any browser';
+
+  @override
+  String get onboardingReflectionsOn => 'Apple Intelligence is on.';
 
   @override
   String get onboardingReflectionsPreparing =>
-      'Starts once Apple Intelligence finishes preparing on this device.';
+      'Apple Intelligence is still preparing on this device.';
 
   @override
-  String get onboardingReflectionsOff =>
-      'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.';
+  String get onboardingReflectionsOff => 'Turn on Apple Intelligence in Settings to get them.';
 
   @override
   String get onboardingNext => 'Next';
 
   @override
   String get onboardingStart => 'Get started';
+
+  @override
+  String get onboardingDone => 'Done';
+
+  @override
+  String get hintEntryMenu =>
+      'Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.';
 
   @override
   String get settingsCache => 'Cache';
