@@ -59,6 +59,8 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   /// advancing: App Store 5.1.1(iv) requires a priming message to always lead
   /// to the actual permission request.
   Future<void> requestPending() async {
+    // A second pass while a prompt is up would start the next prompt over it.
+    if (state.requestingMic || state.requestingSpeech) return;
     if (state.mic == PermissionStatus.undetermined) await requestMic();
     if (state.speech == SpeechPermission.undetermined) await requestSpeech();
   }
