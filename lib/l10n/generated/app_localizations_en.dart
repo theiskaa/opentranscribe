@@ -1096,6 +1096,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'This backup was re-zipped by another tool. Save a fresh one and restore that.';
 
   @override
+  String get backButton => 'Back';
+
+  @override
+  String get menuButton => 'More';
+
+  @override
+  String get languageMenuButton => 'Language';
+
+  @override
+  String get recordButton => 'New entry';
+
+  @override
+  String get recordCloseButton => 'Cancel';
+
+  @override
+  String get recordRestartButton => 'Start over';
+
+  @override
+  String get recordPauseButton => 'Pause';
+
+  @override
+  String get recordResumeButton => 'Resume';
+
+  @override
+  String get recordCompleteButton => 'Save';
+
+  @override
+  String get restoreBackupButton => 'Restore backup';
+
+  @override
   String get done => 'Done';
 
   @override

@@ -1962,6 +1962,66 @@ abstract class AppLocalizations {
   /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
   String get importRezipped;
 
+  /// VoiceOver name of the bar back chevron
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get backButton;
+
+  /// VoiceOver name of a bar menu button
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get menuButton;
+
+  /// VoiceOver name of the globe bar button that picks the transcription language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageMenuButton;
+
+  /// VoiceOver name of the floating record disc on home
+  ///
+  /// In en, this message translates to:
+  /// **'New entry'**
+  String get recordButton;
+
+  /// VoiceOver name of the recorder control that leaves the take
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get recordCloseButton;
+
+  /// VoiceOver name of the recorder control that discards the take for a fresh one
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get recordRestartButton;
+
+  /// VoiceOver name of the recorder pause control
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get recordPauseButton;
+
+  /// VoiceOver name of the recorder pause control while paused
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get recordResumeButton;
+
+  /// VoiceOver name of the recorder control that ends and saves the take
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get recordCompleteButton;
+
+  /// VoiceOver name of the floating restore disc on the backup screen
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup'**
+  String get restoreBackupButton;
+
   /// Generic dismiss button
   ///
   /// In en, this message translates to:

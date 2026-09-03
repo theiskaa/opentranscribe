@@ -1110,6 +1110,36 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta cópia de segurança foi re-comprimida por outra ferramenta. Guarde uma nova e restaure essa.';
 
   @override
+  String get backButton => 'Voltar';
+
+  @override
+  String get menuButton => 'Mais';
+
+  @override
+  String get languageMenuButton => 'Idioma';
+
+  @override
+  String get recordButton => 'Nova entrada';
+
+  @override
+  String get recordCloseButton => 'Cancelar';
+
+  @override
+  String get recordRestartButton => 'Recomeçar';
+
+  @override
+  String get recordPauseButton => 'Pausar';
+
+  @override
+  String get recordResumeButton => 'Retomar';
+
+  @override
+  String get recordCompleteButton => 'Guardar';
+
+  @override
+  String get restoreBackupButton => 'Restaurar cópia de segurança';
+
+  @override
   String get done => 'Concluído';
 
   @override

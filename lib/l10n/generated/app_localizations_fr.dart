@@ -1113,6 +1113,36 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette sauvegarde a été re-zippée par un autre outil. Enregistrez-en une nouvelle et restaurez celle-là.';
 
   @override
+  String get backButton => 'Retour';
+
+  @override
+  String get menuButton => 'Plus';
+
+  @override
+  String get languageMenuButton => 'Langue';
+
+  @override
+  String get recordButton => 'Nouvelle entrée';
+
+  @override
+  String get recordCloseButton => 'Annuler';
+
+  @override
+  String get recordRestartButton => 'Recommencer';
+
+  @override
+  String get recordPauseButton => 'Pause';
+
+  @override
+  String get recordResumeButton => 'Reprendre';
+
+  @override
+  String get recordCompleteButton => 'Terminer';
+
+  @override
+  String get restoreBackupButton => 'Restaurer la sauvegarde';
+
+  @override
   String get done => 'OK';
 
   @override

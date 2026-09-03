@@ -1110,6 +1110,36 @@ class AppLocalizationsIt extends AppLocalizations {
       'Questo backup è stato ri-zippato da un altro strumento. Salvane uno nuovo e ripristina quello.';
 
   @override
+  String get backButton => 'Indietro';
+
+  @override
+  String get menuButton => 'Altro';
+
+  @override
+  String get languageMenuButton => 'Lingua';
+
+  @override
+  String get recordButton => 'Nuova voce';
+
+  @override
+  String get recordCloseButton => 'Annulla';
+
+  @override
+  String get recordRestartButton => 'Ricomincia';
+
+  @override
+  String get recordPauseButton => 'Pausa';
+
+  @override
+  String get recordResumeButton => 'Riprendi';
+
+  @override
+  String get recordCompleteButton => 'Salva';
+
+  @override
+  String get restoreBackupButton => 'Ripristina backup';
+
+  @override
   String get done => 'Fine';
 
   @override

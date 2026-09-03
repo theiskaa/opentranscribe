@@ -1035,6 +1035,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importRezipped => '이 백업은 다른 도구로 다시 압축되었습니다. 새로 저장한 것을 복원하세요.';
 
   @override
+  String get backButton => '뒤로';
+
+  @override
+  String get menuButton => '더 보기';
+
+  @override
+  String get languageMenuButton => '언어';
+
+  @override
+  String get recordButton => '새 항목';
+
+  @override
+  String get recordCloseButton => '취소';
+
+  @override
+  String get recordRestartButton => '다시 시작';
+
+  @override
+  String get recordPauseButton => '일시 정지';
+
+  @override
+  String get recordResumeButton => '재개';
+
+  @override
+  String get recordCompleteButton => '저장';
+
+  @override
+  String get restoreBackupButton => '백업 복원';
+
+  @override
   String get done => '완료';
 
   @override

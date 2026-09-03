@@ -1021,6 +1021,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importRezipped => '这份备份被其他工具重新压缩过。请重新保存一份再恢复。';
 
   @override
+  String get backButton => '返回';
+
+  @override
+  String get menuButton => '更多';
+
+  @override
+  String get languageMenuButton => '语言';
+
+  @override
+  String get recordButton => '新条目';
+
+  @override
+  String get recordCloseButton => '取消';
+
+  @override
+  String get recordRestartButton => '重新开始';
+
+  @override
+  String get recordPauseButton => '暂停';
+
+  @override
+  String get recordResumeButton => '继续';
+
+  @override
+  String get recordCompleteButton => '保存';
+
+  @override
+  String get restoreBackupButton => '恢复备份';
+
+  @override
   String get done => '完成';
 
   @override

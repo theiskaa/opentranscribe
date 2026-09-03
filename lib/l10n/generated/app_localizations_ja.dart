@@ -1033,6 +1033,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importRezipped => 'このバックアップは別のツールで再圧縮されています。新しく保存したものを復元してください。';
 
   @override
+  String get backButton => '戻る';
+
+  @override
+  String get menuButton => 'その他';
+
+  @override
+  String get languageMenuButton => '言語';
+
+  @override
+  String get recordButton => '新しいエントリー';
+
+  @override
+  String get recordCloseButton => 'キャンセル';
+
+  @override
+  String get recordRestartButton => 'やり直す';
+
+  @override
+  String get recordPauseButton => '一時停止';
+
+  @override
+  String get recordResumeButton => '再開';
+
+  @override
+  String get recordCompleteButton => '保存';
+
+  @override
+  String get restoreBackupButton => 'バックアップを復元';
+
+  @override
   String get done => '完了';
 
   @override

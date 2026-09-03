@@ -1112,6 +1112,36 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.';
 
   @override
+  String get backButton => 'Zurück';
+
+  @override
+  String get menuButton => 'Mehr';
+
+  @override
+  String get languageMenuButton => 'Sprache';
+
+  @override
+  String get recordButton => 'Neuer Eintrag';
+
+  @override
+  String get recordCloseButton => 'Abbrechen';
+
+  @override
+  String get recordRestartButton => 'Neu beginnen';
+
+  @override
+  String get recordPauseButton => 'Pause';
+
+  @override
+  String get recordResumeButton => 'Fortsetzen';
+
+  @override
+  String get recordCompleteButton => 'Speichern';
+
+  @override
+  String get restoreBackupButton => 'Backup wiederherstellen';
+
+  @override
   String get done => 'Fertig';
 
   @override

@@ -1381,6 +1381,46 @@
   "@importRezipped": {
     "description": "Failure body for an archive re-compressed by another tool"
   },
+  "backButton": "Back",
+  "@backButton": {
+    "description": "VoiceOver name of the bar back chevron"
+  },
+  "menuButton": "More",
+  "@menuButton": {
+    "description": "VoiceOver name of a bar menu button"
+  },
+  "languageMenuButton": "Language",
+  "@languageMenuButton": {
+    "description": "VoiceOver name of the globe bar button that picks the transcription language"
+  },
+  "recordButton": "New entry",
+  "@recordButton": {
+    "description": "VoiceOver name of the floating record disc on home"
+  },
+  "recordCloseButton": "Cancel",
+  "@recordCloseButton": {
+    "description": "VoiceOver name of the recorder control that leaves the take"
+  },
+  "recordRestartButton": "Start over",
+  "@recordRestartButton": {
+    "description": "VoiceOver name of the recorder control that discards the take for a fresh one"
+  },
+  "recordPauseButton": "Pause",
+  "@recordPauseButton": {
+    "description": "VoiceOver name of the recorder pause control"
+  },
+  "recordResumeButton": "Resume",
+  "@recordResumeButton": {
+    "description": "VoiceOver name of the recorder pause control while paused"
+  },
+  "recordCompleteButton": "Save",
+  "@recordCompleteButton": {
+    "description": "VoiceOver name of the recorder control that ends and saves the take"
+  },
+  "restoreBackupButton": "Restore backup",
+  "@restoreBackupButton": {
+    "description": "VoiceOver name of the floating restore disc on the backup screen"
+  },
   "done": "Done",
   "@done": {
     "description": "Generic dismiss button"
