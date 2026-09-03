@@ -365,7 +365,7 @@ class _LiveTranscriptState extends State<LiveTranscript> {
                       end: Alignment.bottomCenter,
                       colors: [
                         tokens.liveTextColor.withValues(alpha: 0),
-                        tokens.liveTextFadedColor,
+                        context.highContrast ? tokens.liveTextColor : tokens.liveTextFadedColor,
                         tokens.liveTextColor,
                         tokens.liveTextColor,
                         tokens.liveTextColor.withValues(alpha: 0),

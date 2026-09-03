@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
+import 'package:opentranscribe/core/theming/contrast.dart';
 import 'package:opentranscribe/core/theming/screen_colors.dart';
 
 /// The single source of visual truth: pure data (colors and doubles), no
@@ -140,7 +141,9 @@ final class AppTheme {
           CalendarTheme(
             weekdayLabelColor: textSecondary,
             dayNumberColor: text,
-            disabledDayColor: textSecondary.withValues(alpha: 0.6),
+            // Faded, but never under 3:1 over the page: an inert day is still
+            // read. fadedAtLeast lifts the alpha only where a family needs it.
+            disabledDayColor: fadedAtLeast(textSecondary, 0.6, background: background),
             // One quiet grammar: the dot says today, the soft border says
             // where you are, the chip's strength says whether the day holds
             // anything. Low-alpha white on black reads weaker than ink on
@@ -172,7 +175,7 @@ final class AppTheme {
             waveformBarIdle: accent.withValues(alpha: 0.25),
             waveformBaseline: text.withValues(alpha: 0.10),
             liveTextColor: textSecondary,
-            liveTextFadedColor: textSecondary.withValues(alpha: 0.45),
+            liveTextFadedColor: fadedAtLeast(textSecondary, 0.45, background: background),
           ),
       player:
           player ??

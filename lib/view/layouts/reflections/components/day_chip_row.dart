@@ -52,7 +52,8 @@ class _DayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.theme.calendar;
+    final theme = context.theme;
+    final tokens = theme.calendar;
     final solid = state == DayChipState.reflection;
     final fill = switch (state) {
       DayChipState.reflection => tokens.chipInk,
@@ -67,7 +68,7 @@ class _DayChip extends StatelessWidget {
     final numberColor = switch (state) {
       DayChipState.reflection => tokens.onChipInk,
       DayChipState.entries => tokens.dayNumberColor,
-      DayChipState.empty => tokens.disabledDayColor,
+      DayChipState.empty => context.highContrast ? theme.textSecondary : tokens.disabledDayColor,
     };
 
     return Touchable(
