@@ -28,7 +28,6 @@
   "homeEmptySubtitle": "말하는 모든 내용이 전사되어 이 기기에 저장됩니다. 아래로 당겨 첫 기록을 녹음해 보세요.",
   "homePullToRecord": "당겨서 녹음",
   "menuSourceCode": "소스 코드",
-  "menuHowItWorks": "사용 방법",
   "recordStateRecording": "녹음 중",
   "recordStatePaused": "일시 정지됨",
   "recordErrorMessage": "녹음 중 문제가 발생했습니다.",

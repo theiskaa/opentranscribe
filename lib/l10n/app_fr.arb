@@ -28,7 +28,6 @@
   "homeEmptySubtitle": "Tout ce que vous dites est transcrit et conservé sur cet appareil. Tirez vers le bas pour enregistrer votre première entrée.",
   "homePullToRecord": "Tirez pour enregistrer",
   "menuSourceCode": "Code source",
-  "menuHowItWorks": "Comment ça marche",
   "recordStateRecording": "Enregistrement",
   "recordStatePaused": "En pause",
   "recordErrorMessage": "Une erreur s'est produite pendant l'enregistrement.",

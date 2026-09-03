@@ -28,7 +28,6 @@
   "homeEmptySubtitle": "你说的每一句都会被转写，并保存在这台设备上。下拉即可录制第一条。",
   "homePullToRecord": "下拉录制",
   "menuSourceCode": "源代码",
-  "menuHowItWorks": "使用方法",
   "recordStateRecording": "录制中",
   "recordStatePaused": "已暂停",
   "recordErrorMessage": "录制时出了点问题。",

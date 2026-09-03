@@ -104,9 +104,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get menuSourceCode => 'Code source';
 
   @override
-  String get menuHowItWorks => 'Comment ça marche';
-
-  @override
   String get recordStateRecording => 'Enregistrement';
 
   @override

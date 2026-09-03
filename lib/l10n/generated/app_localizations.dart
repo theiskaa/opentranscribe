@@ -276,12 +276,6 @@ abstract class AppLocalizations {
   /// **'Source code'**
   String get menuSourceCode;
 
-  /// Home menu row replaying onboarding
-  ///
-  /// In en, this message translates to:
-  /// **'How it works'**
-  String get menuHowItWorks;
-
   /// State line under the recorder's timer while the microphone is open
   ///
   /// In en, this message translates to:

@@ -97,9 +97,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menuSourceCode => '源代码';
 
   @override
-  String get menuHowItWorks => '使用方法';
-
-  @override
   String get recordStateRecording => '录制中';
 
   @override
