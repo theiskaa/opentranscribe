@@ -96,6 +96,7 @@ final class PageIndicatorTheme {
     this.dashHeight = 3.0,
     this.gap = 8.0,
     this.activeBulge = 3.0,
+    this.hitHeight = 44.0,
   });
 
   final Color active;
@@ -106,6 +107,9 @@ final class PageIndicatorTheme {
 
   /// Extra width on the active dash, so position reads by shape too.
   final double activeBulge;
+
+  /// A tappable dash's hit area, finger-sized around a three-point dash.
+  final double hitHeight;
 }
 
 /// The home reflection card: a quiet panel on its own ground holding the
