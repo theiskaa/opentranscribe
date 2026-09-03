@@ -100,6 +100,7 @@ final class SettingsState {
     this.backupExcluded = true,
     this.keepAudio = true,
     this.deviceLanguageUnsupported = false,
+    this.loadFailed = false,
   });
 
   final String localeId;
@@ -118,6 +119,11 @@ final class SettingsState {
   /// the current default equals the derived fallback, so a surface can say why
   /// the default is not the phone's language.
   final bool deviceLanguageUnsupported;
+
+  /// The last load never reached the engine, so [languages] is whatever the
+  /// load before it left (nothing, on a first load). A surface waiting on a
+  /// row stops waiting; the next successful load clears this.
+  final bool loadFailed;
 
   /// The engine's raw tag list, kept beside the rows for callers that need
   /// plain membership (the rows add installed extras and the kept default).
@@ -175,6 +181,7 @@ final class SettingsState {
     bool? backupExcluded,
     bool? keepAudio,
     bool? deviceLanguageUnsupported,
+    bool? loadFailed,
   }) => SettingsState(
     localeId: localeId ?? this.localeId,
     engineId: engineId ?? this.engineId,
@@ -185,6 +192,7 @@ final class SettingsState {
     backupExcluded: backupExcluded ?? this.backupExcluded,
     keepAudio: keepAudio ?? this.keepAudio,
     deviceLanguageUnsupported: deviceLanguageUnsupported ?? this.deviceLanguageUnsupported,
+    loadFailed: loadFailed ?? this.loadFailed,
   );
 }
 
@@ -242,10 +250,22 @@ class SettingsCubit extends Cubit<SettingsState> {
     // one land last and revert the newer state.
     final generation = ++_loadGeneration;
     final localeId = _transcription.localeId;
-    final supported = await _service.supportedLocales();
-    final installed = await _service.installedLocales();
-    final reservations = await _service.reservationInfo();
-    final defaultStatus = localeId.isEmpty ? null : await _service.localeStatus(localeId);
+    final List<String> supported;
+    final List<String> installed;
+    final ReservationInfo reservations;
+    final LocaleModelStatus? defaultStatus;
+    try {
+      supported = await _service.supportedLocales();
+      installed = await _service.installedLocales();
+      reservations = await _service.reservationInfo();
+      defaultStatus = localeId.isEmpty ? null : await _service.localeStatus(localeId);
+    } catch (e) {
+      // A refusing channel is not an empty language list: the rows stay as
+      // they were, and load() never throws into an unawaited caller.
+      if (kDebugMode) debugPrint('settings load failed: $e');
+      if (!isClosed && generation == _loadGeneration) emit(state.copyWith(loadFailed: true));
+      return;
+    }
     if (isClosed || generation != _loadGeneration) return;
 
     final tags = <String>[...supported];
@@ -326,6 +346,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         keepAudio: _audioStorage.keepAudio,
         deviceLanguageUnsupported:
             _transcription.deviceLanguageUnsupported && localeId == _transcription.deviceLocaleId,
+        loadFailed: false,
       ),
     );
     // Where readiness is knowable per language without side effects (the
