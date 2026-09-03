@@ -37,9 +37,9 @@ final class AppTheme {
     required this.player,
     required this.diff,
     required this.settings,
-    required this.onboarding,
     required this.navigation,
     required this.errorPill,
+    required this.callout,
     required this.sheet,
     required this.reflectionCard,
     required this.scrubber,
@@ -76,9 +76,9 @@ final class AppTheme {
     PlayerTheme? player,
     DiffTheme? diff,
     SettingsTheme? settings,
-    OnboardingTheme? onboarding,
     NavigationTheme? navigation,
     ErrorPillTheme? errorPill,
+    CalloutTheme? callout,
     SheetTheme? sheet,
     ReflectionCardTheme? reflectionCard,
     ScrubberTheme? scrubber,
@@ -211,15 +211,6 @@ final class AppTheme {
                 ? const Color(0xFF30D158)
                 : const Color(0xFF34C759),
           ),
-      onboarding:
-          onboarding ??
-          OnboardingTheme(
-            logoTileBackground: surface,
-            logoTileBorder: surfaceBorder,
-            titleColor: text,
-            bodyColor: textSecondary,
-            handleColor: text,
-          ),
       navigation:
           navigation ??
           NavigationTheme(
@@ -239,6 +230,7 @@ final class AppTheme {
             text: text,
             chevron: textSecondary,
           ),
+      callout: callout ?? CalloutTheme(background: surface, border: surfaceBorder, text: text),
       sheet: sheet ?? SheetTheme(background: surface, grabberColor: hairline),
       reflectionCard:
           reflectionCard ??
@@ -308,9 +300,9 @@ final class AppTheme {
   final PlayerTheme player;
   final DiffTheme diff;
   final SettingsTheme settings;
-  final OnboardingTheme onboarding;
   final NavigationTheme navigation;
   final ErrorPillTheme errorPill;
+  final CalloutTheme callout;
   final SheetTheme sheet;
   final ReflectionCardTheme reflectionCard;
   final ScrubberTheme scrubber;

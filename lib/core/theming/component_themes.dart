@@ -480,6 +480,28 @@ final class ErrorPillTheme {
   final double shakeTravel;
 }
 
+/// The one-shot hint callout: a surface card with a caret at what it explains.
+@immutable
+final class CalloutTheme {
+  const CalloutTheme({
+    required this.background,
+    required this.border,
+    required this.text,
+    this.radius = AppRadius.card,
+    this.caretSize = 8.0,
+    this.maxWidth = 300.0,
+  });
+
+  final Color background;
+  final Color border;
+  final Color text;
+  final double radius;
+
+  /// The caret's height; its base is twice this.
+  final double caretSize;
+  final double maxWidth;
+}
+
 /// The bottom sheet: the panel every raised message shares. Content-sized, so
 /// the tokens here are its frame, not its height.
 @immutable
@@ -514,24 +536,6 @@ final class SheetTheme {
   /// The same for a sheet that has more to say than a message: a pitch, its
   /// perks, and a pinned action.
   final double tallMaxHeightFraction;
-}
-
-/// The onboarding pages.
-@immutable
-final class OnboardingTheme {
-  const OnboardingTheme({
-    required this.logoTileBackground,
-    required this.logoTileBorder,
-    required this.titleColor,
-    required this.bodyColor,
-    required this.handleColor,
-  });
-
-  final Color logoTileBackground;
-  final Color logoTileBorder;
-  final Color titleColor;
-  final Color bodyColor;
-  final Color handleColor;
 }
 
 /// Depth cues for a horizontal page push (the SlidePage transition): a dim over
