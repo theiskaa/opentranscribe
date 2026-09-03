@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 43-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 44-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -101,6 +101,9 @@ abstract final class AppIcons {
 
   /// SF Symbol `slider.horizontal.3`.
   static const IconData sliderHorizontal3 = IconData(0x100306, fontFamily: _family);
+
+  /// SF Symbol `questionmark.circle`.
+  static const IconData questionmarkCircle = IconData(0x10005C, fontFamily: _family);
 
   /// SF Symbol `sparkles`.
   static const IconData sparkles = IconData(0x1001BF, fontFamily: _family);
