@@ -515,7 +515,7 @@ final class SheetTheme {
     this.dismissDrag = 120.0,
     this.flingVelocity = 700.0,
     this.maxHeightFraction = 0.7,
-    this.tallMaxHeightFraction = 0.88,
+    this.tallMaxHeightFraction = 0.92,
   });
 
   final Color background;
@@ -534,7 +534,8 @@ final class SheetTheme {
   final double maxHeightFraction;
 
   /// The same for a sheet that has more to say than a message: a pitch, its
-  /// perks, and a pinned action.
+  /// perks, and a pinned action. Stops short of the top safe area, so the
+  /// grabber never sits under the Dynamic Island.
   final double tallMaxHeightFraction;
 }
 
