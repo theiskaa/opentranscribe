@@ -419,6 +419,7 @@ final class SettingsTheme {
     this.iconTileSize = 32.0,
     this.chevronSize = 12.0,
     this.dividerInset = 58.0,
+    this.rowPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   });
 
   final Color cardBackground;
@@ -438,6 +439,9 @@ final class SettingsTheme {
   final double iconTileSize;
   final double chevronSize;
   final double dividerInset;
+
+  /// Every row's inset, the kit's and any row built to sit among them.
+  final EdgeInsets rowPadding;
 }
 
 /// The inline error indicator: a quiet pill that pulses a danger dot and opens
