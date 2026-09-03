@@ -93,10 +93,15 @@ class FakeAudioRecorder implements AudioRecorder {
   /// skipped an already-answered prompt.
   int ensurePermissionCalls = 0;
 
+  /// When set, [ensurePermission] answers only once this completes: the system
+  /// prompt held open, so a test can race a second caller against it.
+  Completer<void>? permissionPrompt;
+
   @override
   Future<PermissionStatus> ensurePermission() async {
     ensurePermissionCalls++;
     if (throwOnEnsurePermission) throw const CaptureFailed('fake permission failure');
+    await permissionPrompt?.future;
     return permission;
   }
 
