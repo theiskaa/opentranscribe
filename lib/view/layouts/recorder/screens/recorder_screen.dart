@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/continuing_line.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
@@ -221,6 +222,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
                       icon: AppIcons.mic,
                       title: l10n.recordPermissionTitle,
                       message: l10n.recordPermissionMessage,
+                      actionLabel: l10n.onboardingOpenSettings,
+                      onAction: () => unawaited(openAppSettings()),
                     ),
                   ),
                 )
