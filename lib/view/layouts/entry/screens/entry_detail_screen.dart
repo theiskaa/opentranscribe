@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart' show TextInputAction;
+import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +29,7 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/error_pill.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
+import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
@@ -184,6 +185,16 @@ class _DetailViewState extends State<_DetailView> {
 
   void _onBodyFocusChange() {
     if (!_bodyFocus.hasFocus) _commitEdit();
+  }
+
+  /// Drops the keyboard on a scroll drag; the blur commits the edit and the
+  /// title. Only these two: the reading selection holds focus too and must
+  /// outlive a scroll.
+  bool _dismissKeyboardOnDrag(ScrollUpdateNotification notification) {
+    if (notification.dragDetails == null) return false;
+    if (_titleFocus.hasFocus) _titleFocus.unfocus();
+    if (_bodyFocus.hasFocus) _bodyFocus.unfocus();
+    return false;
   }
 
   /// Commits the typed text and leaves the mode; the pop path commits with
@@ -527,92 +538,103 @@ class _DetailViewState extends State<_DetailView> {
                   onEdit: entry.readableText == null
                       ? null
                       : (selected) => _editFromSelection(entry, selected),
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      // Past the bar AND its fade tail: the material is opaque
-                      // through the row and only melts across the tail, so
-                      // content starting inside it would sit under the wash.
-                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                      AppSpacing.xl,
-                      keyboard + restingBottom,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _TitleField(entry: entry, focusNode: _titleFocus),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
-                          ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
-                          ' \u00b7 ${formatClock(entry.duration)}'
-                          '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
-                          // Hand-written words are never passed off as heard.
-                          '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
-                          style: AppType.digits(
-                            AppType.footnote,
-                          ).copyWith(color: theme.textSecondary),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        // Discarded audio: the document flows from the metadata
-                        // straight into what it says. Animated, so a discard
-                        // landing mid-read collapses the player instead of
-                        // snapping ~80px of layout in one frame.
-                        AnimatedSize(
-                          duration: context.reduceMotion
-                              ? AppMotion.instant
-                              : context.motionNow.indicator,
-                          curve: context.motionNow.indicatorCurve,
-                          alignment: Alignment.topCenter,
-                          // The switcher fades the wave out while the size eases
-                          // the gap closed, so nothing hard-cuts mid-read.
-                          child: AnimatedSwitcher(
-                            duration: context.reduceMotion
-                                ? Duration.zero
-                                : context.motionNow.indicator,
-                            child: !entry.hasAudio
-                                ? const SizedBox(width: double.infinity)
-                                : Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
-                                      const SizedBox(height: AppSpacing.xxl),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        // The edit mode: the same body type in the same seat, so
-                        // entering it moves no text. The service judges the
-                        // commit; this widget only hands the words over. Fenced
-                        // out of the reading region, whose long-press must not
-                        // contest the field's own gestures.
-                        if (_editing)
+                  child: NotificationListener<ScrollUpdateNotification>(
+                    onNotification: _dismissKeyboardOnDrag,
+                    child: SingleChildScrollView(
+                      // A short entry fits its viewport even with the keyboard
+                      // pad; without this no drag exists for the dismiss to hear.
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        // Past the bar AND its fade tail: the material is opaque
+                        // through the row and only melts across the tail, so
+                        // content starting inside it would sit under the wash.
+                        AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                        AppSpacing.xl,
+                        keyboard + restingBottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Fenced out of the reading region like the body
+                          // editor: its long press must not contest the field's.
                           SelectionContainer.disabled(
-                            child: EditableText(
-                              controller: _bodyController,
-                              focusNode: _bodyFocus,
-                              style: AppType.body.copyWith(color: theme.text),
-                              cursorColor: theme.accent,
-                              backgroundCursorColor: theme.textSecondary,
-                              selectionColor: theme.accent.withValues(alpha: 0.25),
-                              keyboardAppearance: theme.brightness,
-                              maxLines: null,
-                            ),
-                          )
-                        else
-                          // The take's live words stay on the recorder cubit
-                          // until its stop settles; only the transcript
-                          // follows them.
-                          BlocSelector<RecorderCubit, RecorderState, String>(
-                            selector: (recorder) => continuing ? recorder.liveText : '',
-                            builder: (context, pending) => TranscriptView(
-                              entry: entry,
-                              busy: busy,
-                              appending: continuing,
-                              pendingText: pending,
+                            child: _TitleField(entry: entry, focusNode: _titleFocus),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
+                            ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
+                            ' \u00b7 ${formatClock(entry.duration)}'
+                            '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
+                            // Hand-written words are never passed off as heard.
+                            '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
+                            style: AppType.digits(
+                              AppType.footnote,
+                            ).copyWith(color: theme.textSecondary),
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          // Discarded audio: the document flows from the metadata
+                          // straight into what it says. Animated, so a discard
+                          // landing mid-read collapses the player instead of
+                          // snapping ~80px of layout in one frame.
+                          AnimatedSize(
+                            duration: context.reduceMotion
+                                ? AppMotion.instant
+                                : context.motionNow.indicator,
+                            curve: context.motionNow.indicatorCurve,
+                            alignment: Alignment.topCenter,
+                            // The switcher fades the wave out while the size eases
+                            // the gap closed, so nothing hard-cuts mid-read.
+                            child: AnimatedSwitcher(
+                              duration: context.reduceMotion
+                                  ? Duration.zero
+                                  : context.motionNow.indicator,
+                              child: !entry.hasAudio
+                                  ? const SizedBox(width: double.infinity)
+                                  : Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
+                                        const SizedBox(height: AppSpacing.xxl),
+                                      ],
+                                    ),
                             ),
                           ),
-                      ],
+                          // The edit mode: the same body type in the same seat, so
+                          // entering it moves no text. The service judges the
+                          // commit; this widget only hands the words over. Fenced
+                          // out of the reading region, whose long-press must not
+                          // contest the field's own gestures.
+                          if (_editing)
+                            SelectionContainer.disabled(
+                              child: EditableProse(
+                                controller: _bodyController,
+                                focusNode: _bodyFocus,
+                                style: AppType.body.copyWith(color: theme.text),
+                                cursorColor: theme.accent,
+                                backgroundCursorColor: theme.textSecondary,
+                                selectionColor: theme.accent.withValues(alpha: 0.25),
+                                keyboardAppearance: theme.brightness,
+                                capitalization: TextCapitalization.sentences,
+                                maxLines: null,
+                              ),
+                            )
+                          else
+                            // The take's live words stay on the recorder cubit
+                            // until its stop settles; only the transcript
+                            // follows them.
+                            BlocSelector<RecorderCubit, RecorderState, String>(
+                              selector: (recorder) => continuing ? recorder.liveText : '',
+                              builder: (context, pending) => TranscriptView(
+                                entry: entry,
+                                busy: busy,
+                                appending: continuing,
+                                pendingText: pending,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -908,7 +930,7 @@ class _TitleFieldState extends State<_TitleField> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return EditableText(
+    return EditableProse(
       controller: _controller,
       focusNode: widget.focusNode,
       style: AppType.display2.copyWith(color: theme.text),
@@ -916,6 +938,7 @@ class _TitleFieldState extends State<_TitleField> {
       backgroundCursorColor: theme.textSecondary,
       selectionColor: theme.accent.withValues(alpha: 0.25),
       keyboardAppearance: theme.brightness,
+      capitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.done,
       maxLines: null,
       onSubmitted: (_) => widget.focusNode.unfocus(),

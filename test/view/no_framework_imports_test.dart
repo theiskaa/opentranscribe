@@ -12,9 +12,11 @@ void main() {
     multiLine: true,
   );
 
-  // The one exempt file: native text selection (SelectionArea) lives in
-  // material.dart and cannot come from widgets.dart.
-  bool isExempt(String path) => path.endsWith('view/widgets/selectable_prose.dart');
+  // The two exempt files: native text selection (SelectionArea) and the
+  // editing handles, magnifier and menu live in material and cupertino and
+  // cannot come from widgets.dart.
+  const exempt = ['view/widgets/selectable_prose.dart', 'view/widgets/editable_prose.dart'];
+  bool isExempt(String path) => exempt.any(path.endsWith);
 
   // First-party code only: packages/liquid stays out because wrapping native
   // chrome is its whole point.

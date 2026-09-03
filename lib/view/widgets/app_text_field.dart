@@ -5,17 +5,13 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/widgets/editable_prose.dart';
 
-/// A minimal text input built directly on [EditableText]: typing, cursor, and
-/// tap-to-focus. Deliberately no selection handles or toolbar; the single-line
-/// inputs here do not need them. [obscureText] turns it into a secret field:
+/// A single-line text input: a framed [EditableProse] with a placeholder and
+/// an optional trailing control. [obscureText] turns it into a secret field:
 /// dots for glyphs, and autocorrect and suggestions forced off so a
-/// passphrase never reaches the keyboard's learning.
-///
-/// Autofill is off for every field. A secret offered to autofill is a secret
-/// offered to iCloud Keychain, which is off-device; and the accessory strip
-/// autofill hangs over the keyboard changes the inset as focus moves between
-/// fields, which walks a keyboard-sized sheet up and down the screen.
+/// passphrase never reaches the keyboard's learning. Autofill is off for
+/// every field, for the reasons [EditableProse] gives.
 class AppTextField extends StatefulWidget {
   const AppTextField({
     required this.controller,
@@ -55,7 +51,7 @@ class AppTextField extends StatefulWidget {
 }
 
 class _AppTextFieldState extends State<AppTextField> {
-  final GlobalKey<EditableTextState> _editableKey = GlobalKey<EditableTextState>();
+  final GlobalKey<EditableProseState> _proseKey = GlobalKey<EditableProseState>();
   FocusNode? _ownedNode;
 
   FocusNode get _focusNode => widget.focusNode ?? (_ownedNode ??= FocusNode());
@@ -73,9 +69,11 @@ class _AppTextFieldState extends State<AppTextField> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // A tap on the frame outside the text; the text's own taps place the
+      // caret through the field.
       onTap: () {
         _focusNode.requestFocus();
-        _editableKey.currentState?.requestKeyboard();
+        _proseKey.currentState?.requestKeyboard();
       },
       child: DecoratedBox(
         decoration: SuperellipseDecoration(
@@ -100,17 +98,13 @@ class _AppTextFieldState extends State<AppTextField> {
                               )
                             : const SizedBox.shrink(),
                       ),
-                    EditableText(
-                      key: _editableKey,
+                    EditableProse(
+                      key: _proseKey,
                       controller: widget.controller,
                       focusNode: _focusNode,
                       autofocus: widget.autofocus,
                       obscureText: widget.obscureText,
-                      autocorrect: !(widget.secret ?? widget.obscureText),
-                      enableSuggestions: !(widget.secret ?? widget.obscureText),
-                      // Null, not the empty-list default: an empty list still opts
-                      // the field into autofill and lets the platform guess.
-                      autofillHints: null,
+                      secret: widget.secret ?? widget.obscureText,
                       // No caret-into-view scroll. The default 20 makes every focus
                       // gain nudge the enclosing scrollable, so moving between two
                       // fields in one sheet ticks the content up and back down.
