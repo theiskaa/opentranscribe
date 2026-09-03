@@ -39,6 +39,7 @@ final class ExportStrings {
     required this.transcriptHeading,
     required this.quietReflection,
     required this.periodLabels,
+    this.html = const HtmlChromeStrings(),
   });
 
   final String untitledEntry;
@@ -49,9 +50,62 @@ final class ExportStrings {
 
   final Map<ReflectionPeriod, String> periodLabels;
 
+  /// The website export's page chrome; defaults so a caller without l10n
+  /// degrades to English, like [periodLabel] degrades to the wire word.
+  final HtmlChromeStrings html;
+
   /// Falls back to the period's wire word, so an under-filled map degrades to
   /// something legible instead of throwing; full coverage is on the caller.
   String periodLabel(ReflectionPeriod period) => periodLabels[period] ?? period.wire;
+}
+
+/// What the website export's chrome says: the search field, the scheme
+/// switcher, both empty states, and the player's spoken labels. Plain text
+/// throughout; the exporter does its own escaping.
+@immutable
+final class HtmlChromeStrings {
+  const HtmlChromeStrings({
+    this.languageTag = 'en',
+    this.search = 'Search',
+    this.schemeLabel = 'Color scheme',
+    this.schemeAuto = 'Auto',
+    this.schemeLight = 'Light',
+    this.schemeDark = 'Dark',
+    this.emptyTitle = 'Nothing here yet',
+    this.emptyBody = 'This journal has no entries.',
+    this.noMatchesTitle = 'Nothing found',
+    this.noMatches = 'No entry matches \u201c$termSlot\u201d',
+    this.play = 'Play',
+    this.pause = 'Pause',
+    this.back = 'Back 15 seconds',
+    this.speed = 'Playback speed',
+    this.seek = 'Seek',
+  });
+
+  /// Where the searched phrase lands inside [noMatches]: U+FFFC, which no
+  /// translation or escape touches, swapped for markup by the exporter.
+  static const termSlot = '￼';
+
+  /// BCP-47 tag of the language these strings are in, for the page's `lang`.
+  final String languageTag;
+
+  final String search;
+  final String schemeLabel;
+  final String schemeAuto;
+  final String schemeLight;
+  final String schemeDark;
+  final String emptyTitle;
+  final String emptyBody;
+  final String noMatchesTitle;
+
+  /// Must contain [termSlot] where the searched phrase belongs.
+  final String noMatches;
+
+  final String play;
+  final String pause;
+  final String back;
+  final String speed;
+  final String seek;
 }
 
 /// Facts every export shares: the strings, the moment it was made, and the app

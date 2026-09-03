@@ -5,6 +5,7 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
+import 'package:opentranscribe/core/state/backup_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
@@ -51,7 +52,9 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
   late String _formatId;
   late bool _includeAudio;
   bool _busy = false;
-  bool _failed = false;
+
+  /// Null while nothing failed; otherwise the failure the footnote names.
+  BackupActionResult? _failure;
 
   @override
   void initState() {
@@ -64,7 +67,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
     if (_busy) return;
     setState(() {
       _busy = true;
-      _failed = false;
+      _failure = null;
     });
     final strings = exportStringsOf(AppLocalizations.of(context)!);
     try {
@@ -76,7 +79,11 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
       );
       // Remembered only once the export actually ran: a refused or broken
       // attempt must leave no trace, not even the format memory.
-      await widget.settings.setFormatId(_formatId);
+      try {
+        await widget.settings.setFormatId(_formatId);
+      } catch (_) {
+        // The share already ran; a lost memory is not a failed export.
+      }
       if (!mounted) return;
       // A cancelled share stays put: the user may only be changing the
       // format or the audio toggle.
@@ -85,11 +92,14 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
       } else {
         setState(() => _busy = false);
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      // The cubit's triage, reused: a share that never presented is a quiet
+      // cancel here too, not a failure line.
+      final result = shareFailureResult(e);
       setState(() {
         _busy = false;
-        _failed = true;
+        _failure = result == BackupActionResult.cancelled ? null : result;
       });
     }
   }
@@ -108,7 +118,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
               ExportFormatRow(
                 descriptor: descriptor,
                 selected: descriptor.exporterId == _formatId,
-                onTap: _busy ? null : () => setState(() => _formatId = descriptor.exporterId),
+                onTap: () => setState(() => _formatId = descriptor.exporterId),
               ),
           ],
         ),
@@ -119,15 +129,16 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
               icon: AppIcons.micFill,
               label: l10n.exportIncludeAudio,
               value: _includeAudio,
-              onChanged: widget.entry.hasAudio && !_busy
-                  ? (v) => setState(() => _includeAudio = v)
-                  : null,
+              onChanged: widget.entry.hasAudio ? (v) => setState(() => _includeAudio = v) : null,
             ),
           ],
         ),
-        if (_failed) ...[
+        if (_failure != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(l10n.exportFailedBody, style: AppType.footnote.copyWith(color: theme.danger)),
+          Text(
+            shareFailureLine(l10n, _failure!),
+            style: AppType.footnote.copyWith(color: theme.danger),
+          ),
         ],
       ],
       action: AppButton(label: l10n.exportEntry, isLoading: _busy, onPressed: _export),

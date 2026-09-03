@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-/// Why a zip could not be read. [malformed] means the bytes are not a zip this
-/// codec wrote or they were damaged; [unsupported] means a real zip asking for
-/// a capability we deliberately do not have (compression, zip64), so the
-/// message can say "re-zipped elsewhere" instead of "corrupt".
-enum StoredZipError { malformed, unsupported }
+/// Why a zip could not be read or written. [malformed] means the bytes are not
+/// a zip this codec wrote or they were damaged; [unsupported] means a
+/// capability we deliberately do not have was asked for (compression, zip64
+/// on read, the entry-count cap on write), so the message can say "re-zipped
+/// elsewhere" instead of "corrupt"; [tooLarge] means a write overflowed the
+/// 4 GB this format can address, so the failure sheet can name the cap.
+enum StoredZipError { malformed, unsupported, tooLarge }
 
 final class StoredZipException implements Exception {
   const StoredZipException(this.error, this.message);
@@ -72,7 +74,7 @@ final class StoredZipWriter {
   Future<void> addBytes(String path, List<int> bytes) async {
     _checkPath(path);
     if (bytes.length > _maxUint32) {
-      throw const StoredZipException(StoredZipError.unsupported, 'file exceeds 4 GB');
+      throw const StoredZipException(StoredZipError.tooLarge, 'file exceeds 4 GB');
     }
     final crc = (_Crc32()..add(bytes)).value;
     await _guard(() async {
@@ -106,7 +108,7 @@ final class StoredZipWriter {
         await reader.close();
       }
       if (size > _maxUint32) {
-        throw const StoredZipException(StoredZipError.unsupported, 'file exceeds 4 GB');
+        throw const StoredZipException(StoredZipError.tooLarge, 'file exceeds 4 GB');
       }
       final patch = ByteData(12)
         ..setUint32(0, crc.value, Endian.little)
@@ -136,7 +138,7 @@ final class StoredZipWriter {
       }
       final directory = builder.takeBytes();
       if (directoryOffset + directory.length > _maxUint32) {
-        throw const StoredZipException(StoredZipError.unsupported, 'archive exceeds 4 GB');
+        throw const StoredZipException(StoredZipError.tooLarge, 'archive exceeds 4 GB');
       }
       final end = ByteData(_endRecordLength)
         ..setUint32(0, _endSignature, Endian.little)
@@ -159,10 +161,15 @@ final class StoredZipWriter {
 
   /// The failure exit: closes the underlying file without writing a
   /// directory. The file on disk is not a valid zip; the caller deletes it.
+  /// Never throws: it runs inside failure paths, and an escape here (a
+  /// double close after a failed [close]) would replace the cause being
+  /// rethrown with its own noise.
   Future<void> abort() async {
     if (_closed) return;
     _closed = true;
-    await _out.close();
+    try {
+      await _out.close();
+    } catch (_) {}
   }
 
   Future<T> _guard<T>(Future<T> Function() op) async {
@@ -190,7 +197,7 @@ final class StoredZipWriter {
 
   Future<int> _writeLocalHeader(String name, {required int crc, required int size}) async {
     if (_offset > _maxUint32) {
-      throw const StoredZipException(StoredZipError.unsupported, 'archive exceeds 4 GB');
+      throw const StoredZipException(StoredZipError.tooLarge, 'archive exceeds 4 GB');
     }
     final nameBytes = utf8.encode(name);
     final header = ByteData(_localHeaderLength)

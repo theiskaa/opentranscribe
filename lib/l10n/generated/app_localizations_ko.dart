@@ -165,6 +165,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcribeErrorCapReached => '언어 한도에 도달했습니다. 설정에서 언어를 하나 삭제한 뒤 다시 시도하세요.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      '이 항목의 녹음이 기기에 남아 있지 않아 다시 받아쓸 수 없습니다. 이미 있는 글이 전부입니다.';
+
+  @override
   String get transcribeErrorLabelPermission => '음성 인식이 꺼져 있음';
 
   @override
@@ -180,6 +184,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '전사 실패';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '녹음 없음';
+
+  @override
   String get transcribeErrorTitlePermission => '음성 인식 켜기';
 
   @override
@@ -193,6 +200,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '문제가 발생함';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '녹음이 없습니다';
 
   @override
   String get settingsAppearance => '화면 표시';
@@ -405,43 +415,70 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => '생각을 말하면, 글로 적어 줍니다.';
+  String get onboardingOpenSettings => '설정에서 사용 설정';
 
   @override
-  String get onboardingSpeakTitle => '그냥 말하세요';
+  String get onboardingReflectTitle => '지난 한 주, 다시 읽기';
 
   @override
-  String get onboardingSpeakLine => '녹음을 누르고 마음에 있는 것을 말하세요.';
+  String get onboardingReflectBody =>
+      '항목은 하루, 한 주, 한 달 단위의 짧은 돌아보기로 다시 읽힙니다. 이 기기에서 Apple Intelligence가 쓰며, 어디에도 보내지 않습니다.';
 
   @override
-  String get onboardingWriteTitle => '다시 읽어 보세요';
+  String get onboardingReflectDay1 => '잠을 잘 못 잤지만 아침 달리기로 대부분 회복했다.';
 
   @override
-  String get onboardingWriteLine => '모든 녹음이 텍스트로 기록됩니다.';
+  String get onboardingReflectDay2 => '다나, 커피, 아무것도 아니면서 모든 것인 이야기로 두 시간.';
 
   @override
-  String get onboardingPrivateTitle => '무엇도 기기를 떠나지 않음';
+  String get onboardingReflectDay3 => '추가 프로젝트를 거절했다. 하루 종일 가벼웠다.';
 
   @override
-  String get onboardingPrivateLine => '계정도, 클라우드도 없습니다. 비행기 모드에서도 그대로 동작합니다.';
+  String get onboardingReflectDay4 => '먼 길로 걸어서 집에 왔다. 도시는 모처럼 조용했다.';
 
   @override
-  String get onboardingReflectTitle => '돌아보기';
+  String get onboardingReflectNote => '더 많은 것에 거절을 말한 한 주, 그리고 그 덕에 돌아온 긴 산책들.';
 
   @override
-  String get onboardingReflectLine => '기록이 짧은 노트로 정리됩니다. 모두 이 기기에서.';
+  String get onboardingShapeTitle => '내 것, 어떤 모양으로든';
 
   @override
-  String get onboardingSource => '오픈 소스';
+  String get onboardingShapeBody =>
+      '저널 전체를 Markdown, Obsidian Vault, 또는 웹사이트로 가져가세요. 나만 아는 암호구로 봉인해 백업하세요. 직접 옮기지 않는 한 아무것도 동기화되지 않습니다.';
 
   @override
-  String get onboardingSourceLine => '모든 코드가 공개되어 있습니다. GitHub에서 확인하세요.';
+  String get onboardingBackupLine => '암호구로 봉인, 어디서든 복원.';
+
+  @override
+  String get onboardingRecordTitle => '생각을 말하면, 글로 적힙니다.';
+
+  @override
+  String get onboardingRecordBody => '모든 말은 이 기기에 남습니다. 계정도, 클라우드도 없습니다. 비행기 모드에서도 달라지는 것은 없습니다.';
+
+  @override
+  String get onboardingRecordText1 => '리아와 커피를 마시다가 결국 이사 이야기를 두 시간이나 했다.';
+
+  @override
+  String get onboardingRecordText2 => '더 작은 삶을 살고 싶다고 말하면서 매일 저녁을 꽉 채운다.';
+
+  @override
+  String get onboardingRecordText3 => '먼 길로 걸어서 집에 왔다. 도시는 모처럼 조용했다.';
+
+  @override
+  String get onboardingRecordText4 => '그다음 계단에 앉아 한동안 아무것도 하지 않았다. 그게 핵심이었던 것 같다.';
+
+  @override
+  String get onboardingRecordText5 => '일은 괜찮았다. 내가 줄 수 없는 것을 요구하는 사람은 없었다.';
+
+  @override
+  String get onboardingRecordText6 => '내일은 늦기 전에 엄마에게 전화하고 싶다.';
 
   @override
   String get onboardingPermissionsTitle => '접근 허용';
 
   @override
-  String get onboardingPermissionsBody => '모든 기능이 전적으로 기기에서 처리됩니다.';
+  String get onboardingPermissionsBody =>
+      '여기 있는 모든 것은 이 기기에서만 실행됩니다. 시작하기를 누르면 마이크, 음성 인식, 알림 권한을 요청하며, 모두 나중에 설정에서 바꿀 수 있습니다.';
 
   @override
   String get onboardingMicName => '마이크';
@@ -456,28 +493,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingSpeechReason => '녹음을 기기에서 텍스트로 바꾸기 위해서입니다.';
 
   @override
-  String get onboardingOpenSettings => '설정에서 사용 설정';
+  String onboardingReflectWeek(int number) {
+    return '$number주차';
+  }
 
   @override
-  String get onboardingModelsTitle => '전사 설정';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody => '사용하는 언어가 기기에 있으면 전사가 오프라인으로 실행됩니다. 메뉴에서 언제든 더 추가할 수 있습니다.';
+  String get onboardingShapeMarkdownNote => '항목별 파일';
 
   @override
-  String get onboardingReflectionsOn => '기록을 짧은 돌아보기로 정리합니다. 모두 이 기기에서 이루어집니다.';
+  String get onboardingShapeObsidianNote => '연결된 Vault';
 
   @override
-  String get onboardingReflectionsPreparing => '이 기기에서 Apple Intelligence 준비가 끝나면 시작됩니다.';
+  String get onboardingShapeWebNote => '어떤 브라우저든';
 
   @override
-  String get onboardingReflectionsOff => '\'설정\'의 \'Apple Intelligence 및 Siri\'에서 켜면 이용할 수 있습니다.';
+  String get onboardingRemindersName => '알림';
+
+  @override
+  String get onboardingRemindersReason => '돌아보기가 준비되면 알려드립니다.';
+
+  @override
+  String get onboardingReflectionsOn => 'Apple Intelligence가 켜져 있습니다.';
+
+  @override
+  String get onboardingReflectionsPreparing => '이 기기에서 Apple Intelligence가 아직 준비 중입니다.';
+
+  @override
+  String get onboardingReflectionsOff => '설정에서 Apple Intelligence를 켜면 사용할 수 있습니다.';
 
   @override
   String get onboardingNext => '다음';
 
   @override
   String get onboardingStart => '시작하기';
+
+  @override
+  String get onboardingDone => '완료';
+
+  @override
+  String get hintEntryMenu => '이 항목으로 할 수 있는 모든 것은 위의 메뉴에 있습니다. 텍스트 편집, 내보내기, 추가 녹음.';
 
   @override
   String get settingsCache => '캐시';
@@ -734,25 +791,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '항목마다 텍스트 파일 하나와 .json.';
+  String get exportFormatMarkdownNote => '항목마다 노트 하나, JSON 포함.';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => '속성과 오디오가 담긴 노트.';
+  String get exportFormatObsidianNote => '속성 있는 노트, 녹음 삽입.';
 
   @override
   String get exportFormatWeb => '웹사이트';
 
   @override
-  String get exportFormatWebNote => '어떤 브라우저에서나 열립니다. 재생 지원.';
+  String get exportFormatWebNote => '검색과 플레이어, 어떤 브라우저에서도.';
 
   @override
   String get exportFailedTitle => '내보내기 실패';
 
   @override
   String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportTooLargeBody => '내보내기가 파일 하나에 담을 수 있는 4 GB를 넘습니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportNoSpaceBody => '파일을 준비할 여유 공간이 부족합니다. 아무것도 공유되지 않았습니다.';
+
+  @override
+  String get exportCancel => '취소';
 
   @override
   String get exportUntitled => '제목 없음';
@@ -764,18 +830,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportQuiet => '조용한 시간.';
 
   @override
+  String get exportHtmlSearch => '검색';
+
+  @override
+  String get exportHtmlSchemeLabel => '색상 테마';
+
+  @override
+  String get exportHtmlSchemeAuto => '자동';
+
+  @override
+  String get exportHtmlSchemeLight => '라이트';
+
+  @override
+  String get exportHtmlSchemeDark => '다크';
+
+  @override
+  String get exportHtmlEmptyTitle => '아직 아무것도 없습니다';
+
+  @override
+  String get exportHtmlEmptyBody => '이 저널에는 항목이 없습니다.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '찾을 수 없습니다';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '다음과 일치하는 항목이 없습니다: “$term”';
+  }
+
+  @override
+  String get exportHtmlPlay => '재생';
+
+  @override
+  String get exportHtmlPause => '일시정지';
+
+  @override
+  String get exportHtmlBack => '15초 뒤로';
+
+  @override
+  String get exportHtmlSpeed => '재생 속도';
+
+  @override
+  String get exportHtmlSeek => '탐색';
+
+  @override
   String get settingsBackup => '백업';
 
   @override
   String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.',
-      zero: '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.',
+      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담기며 약 $size입니다. 암호화하면 암호구가 유일한 열쇠입니다.',
     );
     return '$_temp0';
   }
@@ -784,17 +896,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get backupExportSection => '내보내기';
 
   @override
-  String get backupExportJournal => '저널 내보내기';
+  String backupExportAs(String format) {
+    return '$format 형식으로 내보내기';
+  }
 
   @override
   String get backupExportInfo =>
-      '모든 항목을 선택한 형식으로, 오디오까지 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
+      '모든 항목을 내보낼 때 선택한 형식으로 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
 
   @override
   String get backupSeal => '암호구로 암호화';
 
   @override
-  String get backupSave => '백업 저장';
+  String get backupSave => '백업 내보내기';
 
   @override
   String backupLastBackup(String date) {
@@ -820,6 +934,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passphraseMismatch => '암호구가 일치하지 않습니다';
 
   @override
+  String get passphraseShow => '표시';
+
+  @override
+  String get passphraseHide => '숨기기';
+
+  @override
   String get importUnlockTitle => '암호화된 백업';
 
   @override
@@ -835,7 +955,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importConfirmTitle => '이 백업을 복원할까요?';
 
   @override
-  String get importConfirmBody => '그 항목을 저널에 추가합니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
+  String get importConfirmBody =>
+      '그 항목을 저널에 추가합니다. 이미 있는 항목은 백업의 버전으로 교체되어 그 이후의 편집이 사라집니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
 
   @override
   String get importConfirm => '복원';
@@ -844,12 +965,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importSummaryTitle => '복원 완료';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '항목 $count개를 복원했습니다.',
-      zero: '새로 복원할 것이 없습니다.',
+      other: '항목 $count개를 추가했습니다.',
+      zero: '새로 추가할 것이 없습니다.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개는 백업의 버전으로 교체되었습니다.',
     );
     return '$_temp0';
   }
@@ -862,6 +993,24 @@ class AppLocalizationsKo extends AppLocalizations {
       other: '$count개는 이미 저널에 있었습니다.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개를 복원했습니다.');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '항목 $count개');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '녹음 $audio개',
+      zero: '녹음 없음',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override
@@ -878,6 +1027,36 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get importRezipped => '이 백업은 다른 도구로 다시 압축되었습니다. 새로 저장한 것을 복원하세요.';
+
+  @override
+  String get backButton => '뒤로';
+
+  @override
+  String get menuButton => '더 보기';
+
+  @override
+  String get languageMenuButton => '언어';
+
+  @override
+  String get recordButton => '새 항목';
+
+  @override
+  String get recordCloseButton => '취소';
+
+  @override
+  String get recordRestartButton => '다시 시작';
+
+  @override
+  String get recordPauseButton => '일시 정지';
+
+  @override
+  String get recordResumeButton => '재개';
+
+  @override
+  String get recordCompleteButton => '저장';
+
+  @override
+  String get restoreBackupButton => '백업 복원';
 
   @override
   String get done => '완료';

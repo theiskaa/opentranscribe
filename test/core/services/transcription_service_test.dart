@@ -2782,7 +2782,7 @@ void main() {
     );
     await store.save(entry);
 
-    await expectLater(svc.retranscribe(entry), throwsStateError);
+    await expectLater(svc.retranscribe(entry), throwsA(isA<RecordingMissing>()));
     expect(engine.batchCalls, isEmpty);
 
     await svc.dispose();

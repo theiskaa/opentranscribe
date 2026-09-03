@@ -163,6 +163,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorCapReached => '语言数量已达上限。请在“设置”中移除一种语言，然后重试。';
 
   @override
+  String get transcribeErrorRecordingMissing => '这条记录的录音已不在设备上，无法再次转写。现有的文字就是全部内容。';
+
+  @override
   String get transcribeErrorLabelPermission => '语音识别已关闭';
 
   @override
@@ -178,6 +181,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '转写失败';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '录音已不在';
+
+  @override
   String get transcribeErrorTitlePermission => '开启语音识别';
 
   @override
@@ -191,6 +197,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '出了点问题';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '录音已不在';
 
   @override
   String get settingsAppearance => '外观';
@@ -402,43 +411,68 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => '你说出心中所想，它替你记录成文。';
+  String get onboardingOpenSettings => '在“设置”中启用';
 
   @override
-  String get onboardingSpeakTitle => '只管说';
+  String get onboardingReflectTitle => '回看你的一周';
 
   @override
-  String get onboardingSpeakLine => '点击录制，说出你的想法。';
+  String get onboardingReflectBody => '条目会按日、按周或按月，被写成一段简短的回顾。由 Apple Intelligence 在本机写成，从不发往任何地方。';
 
   @override
-  String get onboardingWriteTitle => '回看文字';
+  String get onboardingReflectDay1 => '睡得不好，但晨跑把大半修好了。';
 
   @override
-  String get onboardingWriteLine => '每段录音都会转写成文字。';
+  String get onboardingReflectDay2 => 'Dana，咖啡，两小时聊了无关紧要又无所不包的事。';
 
   @override
-  String get onboardingPrivateTitle => '一切都不离开手机';
+  String get onboardingReflectDay3 => '拒绝了额外的项目。一整天都轻松了。';
 
   @override
-  String get onboardingPrivateLine => '无账号、无云端。开启飞行模式也毫无影响。';
+  String get onboardingReflectDay4 => '绕远路走回家。城市难得地安静。';
 
   @override
-  String get onboardingReflectTitle => '回顾';
+  String get onboardingReflectNote => '一个对“更多”说不的星期，以及随之回来的长长的散步。';
 
   @override
-  String get onboardingReflectLine => '你的记录会汇成一段简短的笔记，全部在设备上完成。';
+  String get onboardingShapeTitle => '属于你，任何形式';
 
   @override
-  String get onboardingSource => '开源';
+  String get onboardingShapeBody =>
+      '把整本日记带走：Markdown、Obsidian Vault，或一个网站。用只有你知道的口令封存备份。除非你亲自带走，否则什么都不会同步。';
 
   @override
-  String get onboardingSourceLine => '每一行代码都是公开的。可在 GitHub 上查看。';
+  String get onboardingBackupLine => '以口令封存，随处可恢复。';
+
+  @override
+  String get onboardingRecordTitle => '你说出心里话，它替你写下来。';
+
+  @override
+  String get onboardingRecordBody => '每个字都留在这台手机上。没有账户，没有云端。飞行模式下也一样。';
+
+  @override
+  String get onboardingRecordText1 => '和 Lia 喝咖啡，结果聊搬家的事聊了两个小时。';
+
+  @override
+  String get onboardingRecordText2 => '我总说想过更简单的生活，却把每个晚上都排满。';
+
+  @override
+  String get onboardingRecordText3 => '绕远路走回家。城市难得地安静。';
+
+  @override
+  String get onboardingRecordText4 => '然后我在台阶上坐了一会儿，什么也没做，大概这才是重点。';
+
+  @override
+  String get onboardingRecordText5 => '工作还好。没有人要求我给不出的东西。';
+
+  @override
+  String get onboardingRecordText6 => '明天想在太晚之前给妈妈打个电话。';
 
   @override
   String get onboardingPermissionsTitle => '允许访问';
 
   @override
-  String get onboardingPermissionsBody => '这一切都完全在你的设备上运行。';
+  String get onboardingPermissionsBody => '这里的一切都完全在你的设备上运行。“开始使用”会请求麦克风、语音识别与提醒权限，稍后都可在“设置”中更改。';
 
   @override
   String get onboardingMicName => '麦克风';
@@ -453,28 +487,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSpeechReason => '用于在设备上把录音转成文字。';
 
   @override
-  String get onboardingOpenSettings => '在“设置”中启用';
+  String onboardingReflectWeek(int number) {
+    return '第 $number 周';
+  }
 
   @override
-  String get onboardingModelsTitle => '设置转写';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody => '只要设备上有了你的语言，转写就会离线进行。你随时可以从菜单中添加更多。';
+  String get onboardingShapeMarkdownNote => '每条一个文件';
 
   @override
-  String get onboardingReflectionsOn => '你的记录会汇成一段简短回顾，完全在此设备上完成。';
+  String get onboardingShapeObsidianNote => '互相链接';
 
   @override
-  String get onboardingReflectionsPreparing => 'Apple Intelligence 在此设备上准备完成后即会开始。';
+  String get onboardingShapeWebNote => '任何浏览器';
 
   @override
-  String get onboardingReflectionsOff => '在“设置”的“Apple Intelligence 与 Siri”中开启即可使用。';
+  String get onboardingRemindersName => '提醒';
+
+  @override
+  String get onboardingRemindersReason => '回顾准备好时提醒你。';
+
+  @override
+  String get onboardingReflectionsOn => 'Apple Intelligence 已开启。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'Apple Intelligence 仍在本机准备中。';
+
+  @override
+  String get onboardingReflectionsOff => '在“设置”中开启 Apple Intelligence 即可使用。';
 
   @override
   String get onboardingNext => '下一步';
 
   @override
   String get onboardingStart => '开始使用';
+
+  @override
+  String get onboardingDone => '完成';
+
+  @override
+  String get hintEntryMenu => '这个条目能做的一切都在上方菜单里：编辑文字、导出、继续录音。';
 
   @override
   String get settingsCache => '缓存';
@@ -729,25 +783,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => '每条记录一个文本文件，外加 .json。';
+  String get exportFormatMarkdownNote => '每条记录一个笔记，附 JSON。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => '带属性和内嵌音频的笔记。';
+  String get exportFormatObsidianNote => '带属性的笔记，内嵌录音。';
 
   @override
   String get exportFormatWeb => '网站';
 
   @override
-  String get exportFormatWebNote => '任何浏览器都能打开，带播放器。';
+  String get exportFormatWebNote => '带搜索和播放器，任何浏览器可开。';
 
   @override
   String get exportFailedTitle => '导出失败';
 
   @override
   String get exportFailedBody => '无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportTooLargeBody => '导出超过了单个文件可容纳的 4 GB。未共享任何内容。';
+
+  @override
+  String get exportNoSpaceBody => '可用空间不足，无法准备文件。未共享任何内容。';
+
+  @override
+  String get exportCancel => '取消';
 
   @override
   String get exportUntitled => '无标题';
@@ -759,18 +822,64 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportQuiet => '一段安静的时光。';
 
   @override
+  String get exportHtmlSearch => '搜索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自动';
+
+  @override
+  String get exportHtmlSchemeLight => '浅色';
+
+  @override
+  String get exportHtmlSchemeDark => '深色';
+
+  @override
+  String get exportHtmlEmptyTitle => '这里还没有内容';
+
+  @override
+  String get exportHtmlEmptyBody => '这本日记还没有记录。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '未找到结果';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '没有与“$term”匹配的记录';
+  }
+
+  @override
+  String get exportHtmlPlay => '播放';
+
+  @override
+  String get exportHtmlPause => '暂停';
+
+  @override
+  String get exportHtmlBack => '后退 15 秒';
+
+  @override
+  String get exportHtmlSpeed => '播放速度';
+
+  @override
+  String get exportHtmlSeek => '进度';
+
+  @override
   String get settingsBackup => '备份';
 
   @override
   String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => '暂时没有可备份的内容。备份包含记录、音频和回顾。';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '备份包含 $count 条记录、音频和回顾。如果加密，口令就是唯一的钥匙。',
-      zero: '暂时没有可备份的内容。备份包含记录、音频和回顾。',
+      other: '备份包含 $count 条记录、音频和回顾，约 $size。如果加密，口令就是唯一的钥匙。',
     );
     return '$_temp0';
   }
@@ -779,16 +888,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupExportSection => '导出';
 
   @override
-  String get backupExportJournal => '导出日记';
+  String backupExportAs(String format) {
+    return '导出为 $format';
+  }
 
   @override
-  String get backupExportInfo => '以所选格式写出每条记录，连同音频打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
+  String get backupExportInfo => '以导出时选择的格式写出每条记录，打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
 
   @override
   String get backupSeal => '用口令加密';
 
   @override
-  String get backupSave => '保存备份';
+  String get backupSave => '导出备份';
 
   @override
   String backupLastBackup(String date) {
@@ -814,6 +925,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passphraseMismatch => '两次口令不一致';
 
   @override
+  String get passphraseShow => '显示';
+
+  @override
+  String get passphraseHide => '隐藏';
+
+  @override
   String get importUnlockTitle => '已加密的备份';
 
   @override
@@ -829,7 +946,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importConfirmTitle => '恢复这份备份？';
 
   @override
-  String get importConfirmBody => '把其中的记录加入你的日记。同一份备份恢复两次也不会重复。';
+  String get importConfirmBody => '把其中的记录加入你的日记。已有的记录会被备份中的版本替换，之后的编辑将丢失。同一份备份恢复两次也不会重复。';
 
   @override
   String get importConfirm => '恢复';
@@ -838,12 +955,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importSummaryTitle => '恢复完成';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '已恢复 $count 条记录。',
-      zero: '没有新内容可恢复。',
+      other: '已添加 $count 条记录。',
+      zero: '没有新内容可添加。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条记录已替换为备份中的版本。',
     );
     return '$_temp0';
   }
@@ -852,6 +979,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String importSummarySkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已恢复 $count 段录音。');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio 段录音',
+      zero: '无录音',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override
@@ -868,6 +1013,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importRezipped => '这份备份被其他工具重新压缩过。请重新保存一份再恢复。';
+
+  @override
+  String get backButton => '返回';
+
+  @override
+  String get menuButton => '更多';
+
+  @override
+  String get languageMenuButton => '语言';
+
+  @override
+  String get recordButton => '新条目';
+
+  @override
+  String get recordCloseButton => '取消';
+
+  @override
+  String get recordRestartButton => '重新开始';
+
+  @override
+  String get recordPauseButton => '暂停';
+
+  @override
+  String get recordResumeButton => '继续';
+
+  @override
+  String get recordCompleteButton => '保存';
+
+  @override
+  String get restoreBackupButton => '恢复备份';
 
   @override
   String get done => '完成';

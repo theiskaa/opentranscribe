@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 
@@ -29,6 +30,7 @@ class LanguageMenuButton extends StatelessWidget {
     return AppMenuButton(
       icon: AppIcons.globe,
       color: color,
+      semanticLabel: AppLocalizations.of(context)!.languageMenuButton,
       items: [
         for (final tag in tags)
           AppMenuItem(

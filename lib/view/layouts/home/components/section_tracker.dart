@@ -5,8 +5,8 @@ import 'package:flutter/widgets.dart';
 const double titleDeadband = 12;
 
 /// The day owning the title at [offset], decided against the accumulated
-/// [starts] (scroll-space start per day splitter label, in any order). Null
-/// means today.
+/// [starts] (scroll-space start per day splitter label), which MUST be sorted
+/// ascending by start. Null means today.
 ///
 /// ONE rule, and it is the same line a calendar tap parks a day on: a day
 /// takes the title the moment its label ARRIVES at the reading [line], and
@@ -17,20 +17,29 @@ const double titleDeadband = 12;
 DateTime? viewedDayAt(
   double offset,
   double line,
-  Iterable<(double, DateTime)> starts,
+  List<(double, DateTime)> starts,
   DateTime? current, {
   double deadband = titleDeadband,
 }) {
+  assert(() {
+    for (var i = 1; i < starts.length; i++) {
+      if (starts[i].$1 < starts[i - 1].$1) return false;
+    }
+    return true;
+  }(), 'starts must be sorted ascending');
+  // Runs on every scroll event, so [starts] is searched, not scanned.
   DateTime? pick(double at) {
-    DateTime? day;
-    var best = double.negativeInfinity;
-    for (final (start, d) in starts) {
-      if (start <= at && start > best) {
-        best = start;
-        day = d;
+    var lo = 0;
+    var hi = starts.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (starts[mid].$1 <= at) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
       }
     }
-    return day;
+    return lo == 0 ? null : starts[lo - 1].$2;
   }
 
   // Home is today, and the boundary is held from BOTH sides: the first label
@@ -62,12 +71,22 @@ class SectionTracker {
   final GlobalKey listKey = GlobalKey();
 
   final Map<DateTime, double> _starts = {};
-  bool _seedPending = false;
+
+  /// [_starts] as a list sorted ascending by start, rebuilt whenever [_starts]
+  /// changes, so the per-scroll lookup allocates nothing.
+  List<(double, DateTime)> _sorted = const [];
+  bool _afterLayoutPending = false;
+
+  void _resort() =>
+      _sorted = [for (final e in _starts.entries) (e.value, e.key)]
+        ..sort((a, b) => a.$1.compareTo(b.$1));
 
   /// Drops bookkeeping for days that no longer exist.
   void prune(Set<DateTime> days) {
     splitterKeys.removeWhere((day, _) => !days.contains(day));
+    final before = _starts.length;
     _starts.removeWhere((day, _) => !days.contains(day));
+    if (_starts.length != before) _resort();
   }
 
   /// Re-anchors the title to today.
@@ -83,34 +102,32 @@ class SectionTracker {
 
   /// The deepest known label start, which the list must be able to bring up to
   /// the reading line for the oldest day to be reachable at all.
-  double? get lastStart => _starts.values.fold<double?>(
-    null,
-    (deepest, start) => deepest == null || start > deepest ? start : deepest,
-  );
+  double? get lastStart => _sorted.isEmpty ? null : _sorted.last.$1;
 
-  /// Recomputes [viewedDay] for the scroll's current offset.
+  /// Recomputes [viewedDay] for the scroll's current offset, against the
+  /// starts as of the last measure: the per-event scroll path walks no
+  /// geometry.
   void track(ScrollController scroll, {required double line}) {
     if (!scroll.hasClients) return;
-    _upsertStarts(scroll.offset);
-    viewedDay.value = viewedDayAt(scroll.offset, line, [
-      for (final entry in _starts.entries) (entry.value, entry.key),
-    ], viewedDay.value);
+    viewedDay.value = viewedDayAt(scroll.offset, line, _sorted, viewedDay.value);
   }
 
-  /// Refreshes the start table without touching [viewedDay], for moments the
-  /// cursor is spoken for (a glide in flight).
-  void reseed(ScrollController scroll) {
+  /// Re-measures the materialized splitters' starts; with [line], also
+  /// recomputes the cursor. Callers whose cursor is spoken for (a glide in
+  /// flight) pass no line.
+  void remeasure(ScrollController scroll, {double? line}) {
     if (!scroll.hasClients) return;
     _upsertStarts(scroll.offset);
+    if (line != null) track(scroll, line: line);
   }
 
-  /// Runs [track] once after the current frame's layout, deduped per frame.
-  void seedAfterLayout(VoidCallback track) {
-    if (_seedPending) return;
-    _seedPending = true;
+  /// Runs [body] once after this frame's layout, deduped per frame.
+  void afterLayout(VoidCallback body) {
+    if (_afterLayoutPending) return;
+    _afterLayoutPending = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _seedPending = false;
-      track();
+      _afterLayoutPending = false;
+      body();
     });
   }
 
@@ -125,6 +142,7 @@ class SectionTracker {
       if (box is! RenderBox || !box.attached) continue;
       _starts[day] = box.localToGlobal(Offset.zero, ancestor: area).dy + offset;
     }
+    _resort();
   }
 
   void dispose() => viewedDay.dispose();

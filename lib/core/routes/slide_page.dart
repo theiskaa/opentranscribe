@@ -1,4 +1,5 @@
 import 'dart:math' show max;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/gestures.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 
 /// A push that slides in from the trailing edge; popping mirrors it, so
 /// navigation keeps a sense of direction. It also carries the native iOS edge
@@ -22,12 +24,16 @@ class SlidePage<T> extends Page<T> {
 
   final Widget child;
 
+  // The route's duration getters have no context, so the motion is read here,
+  // where there is one, and captured for the route's life.
   @override
-  Route<T> createRoute(BuildContext context) => _SlidePageRoute<T>(this);
+  Route<T> createRoute(BuildContext context) => _SlidePageRoute<T>(this, context.motionNow);
 }
 
 class _SlidePageRoute<T> extends PageRoute<T> {
-  _SlidePageRoute(SlidePage<T> page) : super(settings: page);
+  _SlidePageRoute(SlidePage<T> page, this._motion) : super(settings: page);
+
+  final AppMotion _motion;
 
   static final Animatable<Offset> _offset = Tween<Offset>(
     begin: const Offset(1, 0),
@@ -35,17 +41,17 @@ class _SlidePageRoute<T> extends PageRoute<T> {
   );
   // The eased form for a tap/programmatic push. During a drag the raw animation
   // is used instead, so the page tracks the finger 1:1 (Cupertino's linear flag).
-  static final Animatable<Offset> _easedOffset = _offset.chain(
-    CurveTween(curve: Curves.fastEaseInToSlowEaseOut),
+  late final Animatable<Offset> _easedOffset = _offset.chain(
+    CurveTween(curve: _motion.routeSlideCurve),
   );
 
   Widget get _child => (settings as SlidePage<T>).child;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 300);
+  Duration get transitionDuration => _motion.routeSlide;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
+  Duration get reverseTransitionDuration => _motion.routeSlide;
 
   @override
   bool get opaque => true;
@@ -115,14 +121,16 @@ class _SlidePageRoute<T> extends PageRoute<T> {
       controller: controller!,
       getIsActive: () => isActive,
       getIsCurrent: () => isCurrent,
+      settle: _motion.routeSwipeSettle,
+      curve: _motion.routeSlideCurve,
     );
   }
 }
 
-// The left-edge grab area and the fling threshold, matching Cupertino's own.
+// The left-edge grab area and the fling threshold, matching Cupertino's own:
+// gesture geometry, not motion, so they stay off the theme.
 const double _kBackGestureWidth = 20;
 const double _kMinFlingVelocity = 1; // Screen widths per second.
-const Duration _kDroppedSwipeDuration = Duration(milliseconds: 350);
 
 /// A left-edge horizontal-drag detector that drives an interruptible pop.
 ///
@@ -233,6 +241,8 @@ class _BackGestureController<T> {
     required this.controller,
     required this.getIsActive,
     required this.getIsCurrent,
+    required this.settle,
+    required this.curve,
   }) {
     navigator.didStartUserGesture();
   }
@@ -242,10 +252,13 @@ class _BackGestureController<T> {
   final ValueGetter<bool> getIsActive;
   final ValueGetter<bool> getIsCurrent;
 
+  /// The full travel time of a released swipe, and its curve.
+  final Duration settle;
+  final Curve curve;
+
   void dragUpdate(double delta) => controller.value -= delta;
 
   void dragEnd(double velocity) {
-    const Curve curve = Curves.fastEaseInToSlowEaseOut;
     final bool isCurrent = getIsCurrent();
     final bool animateForward;
 
@@ -261,16 +274,16 @@ class _BackGestureController<T> {
 
     if (animateForward) {
       // Scale the drop by the distance left, not a fixed time: releasing near the
-      // edge finishes at once instead of crawling the last sliver over a full
-      // 350ms, and a long return still gets the whole duration. (Cupertino's own.)
+      // edge finishes at once instead of crawling the last sliver over the full
+      // settle, and a long return still gets the whole duration. (Cupertino's own.)
       final remaining = (1 - controller.value).clamp(0.0, 1.0);
-      controller.animateTo(1, duration: _kDroppedSwipeDuration * remaining, curve: curve);
+      controller.animateTo(1, duration: settle * remaining, curve: curve);
     } else {
       if (isCurrent) navigator.pop();
       // The pop may settle inline if already at the target.
       if (controller.isAnimating) {
         final remaining = controller.value.clamp(0.0, 1.0);
-        controller.animateBack(0, duration: _kDroppedSwipeDuration * remaining, curve: curve);
+        controller.animateBack(0, duration: settle * remaining, curve: curve);
       }
     }
 
@@ -344,21 +357,22 @@ class _EdgeShadowPainter extends BoxPainter {
     final colors = _decoration.colors;
     if (colors == null) return;
     final size = configuration.size!;
-    // Spans 5% of the page width, drawn as 1px bands (cheaper than a shader).
+    // One shaded rect, not a band per pixel: this repaints every frame of
+    // every push and pop.
     final shadowWidth = 0.05 * size.width;
-    final bandWidth = shadowWidth / (colors.length - 1);
     final (double direction, double start) = switch (configuration.textDirection ??
         TextDirection.ltr) {
       TextDirection.rtl => (1, offset.dx + size.width),
       TextDirection.ltr => (-1, offset.dx),
     };
-    var band = 0;
-    for (var dx = 0; dx < shadowWidth; dx++) {
-      if (dx ~/ bandWidth != band) band++;
-      final paint = Paint()
-        ..color = Color.lerp(colors[band], colors[band + 1], (dx % bandWidth) / bandWidth)!;
-      final x = start + direction * dx;
-      canvas.drawRect(Rect.fromLTWH(x - 1, offset.dy, 1, size.height), paint);
-    }
+    final outer = start + direction * shadowWidth;
+    final paint = Paint()
+      ..shader = ui.Gradient.linear(Offset(start, offset.dy), Offset(outer, offset.dy), colors, [
+        for (var i = 0; i < colors.length; i++) i / (colors.length - 1),
+      ]);
+    canvas.drawRect(
+      Rect.fromPoints(Offset(start, offset.dy), Offset(outer, offset.dy + size.height)),
+      paint,
+    );
   }
 }

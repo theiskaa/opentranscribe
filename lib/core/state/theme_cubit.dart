@@ -178,6 +178,10 @@ extension ThemeX on BuildContext {
   /// folds it into disableAnimations, so this read is truthful only below it.
   bool get reduceMotion => MediaQuery.disableAnimationsOf(this);
 
+  /// The system's Increase Contrast setting: faded derivations of the ink
+  /// give way to the plain secondary ink under it.
+  bool get highContrast => MediaQuery.highContrastOf(this);
+
   /// Motion tokens without a select, for callbacks and settle logic. In build,
   /// prefer `theme.motion` so the widget re-themes when the theme changes.
   AppMotion get motionNow => read<ThemeCubit>().state.resolved.motion;

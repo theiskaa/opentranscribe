@@ -5,6 +5,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
@@ -271,6 +272,7 @@ class AppBackButton extends StatelessWidget {
       icon: AppIcons.chevronBackward,
       iconSize: theme.topBar.backChevronSize,
       color: theme.topBar.iconColor,
+      semanticLabel: AppLocalizations.of(context)!.backButton,
       onTap: onBack ?? () => Navigator.of(context).maybePop(),
     );
   }

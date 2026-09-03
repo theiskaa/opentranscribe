@@ -263,7 +263,11 @@ class _DayTile extends StatelessWidget {
     // Days with records navigate, and today always does, records or not; only
     // the empty past and the future are inert.
     final enabled = hasEntries || isToday;
-    final numberColor = enabled ? tokens.dayNumberColor : tokens.disabledDayColor;
+    final numberColor = enabled
+        ? tokens.dayNumberColor
+        : context.highContrast
+        ? theme.textSecondary
+        : tokens.disabledDayColor;
     final letterColor = enabled ? tokens.weekdayLabelColor : tokens.disabledWeekdayLabelColor;
     final restingFill = enabled ? tokens.tileFill : tokens.tileFillMuted;
 

@@ -177,6 +177,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sprachlimit erreicht. Entfernen Sie eine Sprache in den Einstellungen und versuchen Sie es erneut.';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'Die Aufnahme dieses Eintrags liegt nicht mehr auf dem Gerät und kann nicht erneut transkribiert werden. Der vorhandene Text ist alles, was bleibt.';
+
+  @override
   String get transcribeErrorLabelPermission => 'Spracherkennung ist aus';
 
   @override
@@ -192,6 +196,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get transcribeErrorLabelGeneric => 'Transkription fehlgeschlagen';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => 'Aufnahme weg';
+
+  @override
   String get transcribeErrorTitlePermission => 'Spracherkennung aktivieren';
 
   @override
@@ -205,6 +212,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => 'Etwas ist schiefgelaufen';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => 'Die Aufnahme ist weg';
 
   @override
   String get settingsAppearance => 'Darstellung';
@@ -425,45 +435,80 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => 'Sie sagen, was Sie denken, und es wird notiert.';
+  String get onboardingOpenSettings => 'In Einstellungen aktivieren';
 
   @override
-  String get onboardingSpeakTitle => 'Einfach sprechen';
+  String get onboardingReflectTitle => 'Ihre Woche im Rückblick';
 
   @override
-  String get onboardingSpeakLine =>
-      'Tippen Sie auf Aufnehmen und sagen Sie, was Ihnen durch den Kopf geht.';
+  String get onboardingReflectBody =>
+      'Einträge lesen sich als kurzer Rückblick, nach Tag, Woche oder Monat. Geschrieben auf diesem Gerät von Apple Intelligence, nie irgendwohin gesendet.';
 
   @override
-  String get onboardingWriteTitle => 'Nachlesen';
+  String get onboardingReflectDay1 =>
+      'Schlecht geschlafen, aber der Morgenlauf hat das meiste wieder in Ordnung gebracht.';
 
   @override
-  String get onboardingWriteLine => 'Jede Aufnahme wird als Text notiert.';
+  String get onboardingReflectDay2 => 'Dana, Kaffee, zwei Stunden über nichts und alles.';
 
   @override
-  String get onboardingPrivateTitle => 'Nichts verlässt das Telefon';
+  String get onboardingReflectDay3 =>
+      'Nein zum Extraprojekt gesagt. Den ganzen Tag leichter gefühlt.';
 
   @override
-  String get onboardingPrivateLine => 'Kein Konto, keine Cloud. Der Flugmodus ändert nichts.';
+  String get onboardingReflectDay4 =>
+      'Den langen Weg nach Hause gegangen. Die Stadt war ausnahmsweise still.';
 
   @override
-  String get onboardingReflectTitle => 'Rückblicke';
+  String get onboardingReflectNote =>
+      'Eine Woche, in der Sie öfter Nein gesagt haben, und die langen Spaziergänge, die damit zurückkamen.';
 
   @override
-  String get onboardingReflectLine =>
-      'Ihre Einträge werden zu einer kurzen Notiz, ganz auf dem Gerät.';
+  String get onboardingShapeTitle => 'Ihres, in jeder Form';
 
   @override
-  String get onboardingSource => 'Open Source';
+  String get onboardingShapeBody =>
+      'Nehmen Sie das ganze Journal mit, als Markdown, als Obsidian Vault oder als Webseite. Sichern Sie es versiegelt mit einer Passphrase, die nur Sie kennen. Nichts wird synchronisiert, außer Sie tragen es selbst.';
 
   @override
-  String get onboardingSourceLine => 'Jede Zeile davon ist öffentlich. Lesen Sie sie auf GitHub.';
+  String get onboardingBackupLine => 'Mit Passphrase versiegelt, überall wiederherstellbar.';
+
+  @override
+  String get onboardingRecordTitle => 'Sie sprechen aus, was Sie denken, und es schreibt mit.';
+
+  @override
+  String get onboardingRecordBody =>
+      'Jedes Wort bleibt auf diesem Telefon. Kein Konto, keine Cloud. Der Flugmodus ändert nichts.';
+
+  @override
+  String get onboardingRecordText1 =>
+      'Mit Lia Kaffee getrunken, und am Ende haben wir zwei Stunden über den Umzug geredet.';
+
+  @override
+  String get onboardingRecordText2 =>
+      'Ich sage immer, ich will ein kleineres Leben, und fülle dann jeden Abend.';
+
+  @override
+  String get onboardingRecordText3 =>
+      'Den langen Weg nach Hause gegangen. Die Stadt war ausnahmsweise still.';
+
+  @override
+  String get onboardingRecordText4 =>
+      'Dann habe ich eine Weile auf den Stufen gesessen und nichts getan, und genau darum ging es wohl.';
+
+  @override
+  String get onboardingRecordText5 =>
+      'Die Arbeit war in Ordnung. Niemand wollte etwas, das ich nicht geben konnte.';
+
+  @override
+  String get onboardingRecordText6 => 'Morgen will ich Mama anrufen, bevor es spät wird.';
 
   @override
   String get onboardingPermissionsTitle => 'Zugriff erlauben';
 
   @override
-  String get onboardingPermissionsBody => 'Alles hier läuft vollständig auf Ihrem Gerät.';
+  String get onboardingPermissionsBody =>
+      'Alles hier läuft vollständig auf Ihrem Gerät. „Los geht\'s“ fragt nach Mikrofon, Spracherkennung und Erinnerungen; alles lässt sich später in den Einstellungen ändern.';
 
   @override
   String get onboardingMicName => 'Mikrofon';
@@ -478,32 +523,51 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingSpeechReason => 'Um Ihre Aufnahmen auf dem Gerät in Text umzuwandeln.';
 
   @override
-  String get onboardingOpenSettings => 'In Einstellungen aktivieren';
+  String onboardingReflectWeek(int number) {
+    return 'Woche $number';
+  }
 
   @override
-  String get onboardingModelsTitle => 'Transkription einrichten';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody =>
-      'Sie läuft offline, sobald Ihre Sprache auf dem Gerät ist. Weitere können Sie jederzeit über das Menü hinzufügen.';
+  String get onboardingShapeMarkdownNote => 'Je eine Datei';
 
   @override
-  String get onboardingReflectionsOn =>
-      'Ihre Einträge werden zu einem kurzen Rückblick, ganz auf diesem Gerät.';
+  String get onboardingShapeObsidianNote => 'Verlinkt';
+
+  @override
+  String get onboardingShapeWebNote => 'Im Browser';
+
+  @override
+  String get onboardingRemindersName => 'Erinnerungen';
+
+  @override
+  String get onboardingRemindersReason => 'Ein Hinweis, wenn ein Rückblick bereit ist.';
+
+  @override
+  String get onboardingReflectionsOn => 'Apple Intelligence ist an.';
 
   @override
   String get onboardingReflectionsPreparing =>
-      'Startet, sobald Apple Intelligence auf diesem Gerät bereit ist.';
+      'Apple Intelligence wird auf diesem Gerät noch vorbereitet.';
 
   @override
   String get onboardingReflectionsOff =>
-      'Schalten Sie Apple Intelligence in den Einstellungen unter Apple Intelligence und Siri ein, um sie zu erhalten.';
+      'Schalten Sie Apple Intelligence in den Einstellungen ein, um sie zu erhalten.';
 
   @override
   String get onboardingNext => 'Weiter';
 
   @override
   String get onboardingStart => 'Los geht’s';
+
+  @override
+  String get onboardingDone => 'Fertig';
+
+  @override
+  String get hintEntryMenu =>
+      'Alles, was dieser Eintrag kann, steckt im Menü hier oben: Text bearbeiten, exportieren, mehr aufnehmen.';
 
   @override
   String get settingsCache => 'Cache';
@@ -778,10 +842,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'Eine Textdatei pro Eintrag, plus .json.';
+  String get exportFormatMarkdownNote => 'Eine Notiz je Eintrag, plus JSON.';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
   String get exportFormatObsidianNote => 'Notizen mit Eigenschaften und Audio.';
@@ -790,7 +854,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportFormatWeb => 'Webseite';
 
   @override
-  String get exportFormatWebNote => 'Öffnet sich in jedem Browser, mit Player.';
+  String get exportFormatWebNote => 'Suche und Player, in jedem Browser.';
 
   @override
   String get exportFailedTitle => 'Export fehlgeschlagen';
@@ -798,6 +862,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportFailedBody =>
       'Die Dateien konnten nicht vorbereitet werden. Nichts wurde geteilt.';
+
+  @override
+  String get exportTooLargeBody =>
+      'Der Export übersteigt die 4 GB, die eine einzelne Datei fassen kann. Nichts wurde geteilt.';
+
+  @override
+  String get exportNoSpaceBody =>
+      'Nicht genug freier Speicher, um die Dateien vorzubereiten. Nichts wurde geteilt.';
+
+  @override
+  String get exportCancel => 'Abbrechen';
 
   @override
   String get exportUntitled => 'Ohne Titel';
@@ -809,6 +884,50 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportQuiet => 'Eine stille Zeit.';
 
   @override
+  String get exportHtmlSearch => 'Suchen';
+
+  @override
+  String get exportHtmlSchemeLabel => 'Farbschema';
+
+  @override
+  String get exportHtmlSchemeAuto => 'Auto';
+
+  @override
+  String get exportHtmlSchemeLight => 'Hell';
+
+  @override
+  String get exportHtmlSchemeDark => 'Dunkel';
+
+  @override
+  String get exportHtmlEmptyTitle => 'Noch nichts hier';
+
+  @override
+  String get exportHtmlEmptyBody => 'Dieses Journal hat keine Einträge.';
+
+  @override
+  String get exportHtmlNoMatchesTitle => 'Nichts gefunden';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return 'Kein Eintrag passt zu „$term“';
+  }
+
+  @override
+  String get exportHtmlPlay => 'Wiedergabe';
+
+  @override
+  String get exportHtmlPause => 'Pause';
+
+  @override
+  String get exportHtmlBack => '15 Sekunden zurück';
+
+  @override
+  String get exportHtmlSpeed => 'Wiedergabegeschwindigkeit';
+
+  @override
+  String get exportHtmlSeek => 'Position';
+
+  @override
   String get settingsBackup => 'Backup';
 
   @override
@@ -816,34 +935,37 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Backup enthält jeden Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty =>
+      'Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Ein Backup enthält alle $count Einträge mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
-      one:
-          'Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.',
-      zero: 'Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.',
+      other: 'Ein Backup enthält alle $count Einträge mit Audio und Rückblicken, etwa $size.',
+      one: 'Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken, etwa $size.',
     );
-    return '$_temp0';
+    return '$_temp0 Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
   }
 
   @override
   String get backupExportSection => 'Export';
 
   @override
-  String get backupExportJournal => 'Journal exportieren';
+  String backupExportAs(String format) {
+    return 'Als $format exportieren';
+  }
 
   @override
   String get backupExportInfo =>
-      'Schreibt jeden Eintrag im gewählten Format, Audio inklusive, als Zip für das Teilen-Menü. Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
+      'Schreibt jeden Eintrag in einem beim Export gewählten Format als Zip für das Teilen-Menü. Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
 
   @override
   String get backupSeal => 'Mit Passphrase verschlüsseln';
 
   @override
-  String get backupSave => 'Backup sichern';
+  String get backupSave => 'Backup exportieren';
 
   @override
   String backupLastBackup(String date) {
@@ -870,6 +992,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get passphraseMismatch => 'Passphrasen stimmen nicht überein';
 
   @override
+  String get passphraseShow => 'Einblenden';
+
+  @override
+  String get passphraseHide => 'Ausblenden';
+
+  @override
   String get importUnlockTitle => 'Verschlüsseltes Backup';
 
   @override
@@ -888,7 +1016,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importConfirmBody =>
-      'Fügt seine Einträge deinem Journal hinzu. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
+      'Fügt seine Einträge deinem Journal hinzu. Ein bereits vorhandener Eintrag übernimmt die Version aus dem Backup; spätere Bearbeitungen gehen verloren. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
 
   @override
   String get importConfirm => 'Wiederherstellen';
@@ -897,13 +1025,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importSummaryTitle => 'Wiederherstellung abgeschlossen';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Einträge wiederhergestellt.',
-      one: '1 Eintrag wiederhergestellt.',
-      zero: 'Nichts Neues wiederherzustellen.',
+      other: '$count Einträge hinzugefügt.',
+      one: '1 Eintrag hinzugefügt.',
+      zero: 'Nichts Neues hinzuzufügen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge wurden durch die Backup-Version ersetzt.',
+      one: '1 Eintrag wurde durch die Backup-Version ersetzt.',
     );
     return '$_temp0';
   }
@@ -917,6 +1056,35 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Eintrag war bereits im Journal.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufnahmen wiederhergestellt.',
+      one: '1 Aufnahme wiederhergestellt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '$audio Aufnahmen',
+      one: '1 Aufnahme',
+      zero: 'keine Aufnahmen',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override
@@ -936,6 +1104,36 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importRezipped =>
       'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.';
+
+  @override
+  String get backButton => 'Zurück';
+
+  @override
+  String get menuButton => 'Mehr';
+
+  @override
+  String get languageMenuButton => 'Sprache';
+
+  @override
+  String get recordButton => 'Neuer Eintrag';
+
+  @override
+  String get recordCloseButton => 'Abbrechen';
+
+  @override
+  String get recordRestartButton => 'Neu beginnen';
+
+  @override
+  String get recordPauseButton => 'Pause';
+
+  @override
+  String get recordResumeButton => 'Fortsetzen';
+
+  @override
+  String get recordCompleteButton => 'Speichern';
+
+  @override
+  String get restoreBackupButton => 'Backup wiederherstellen';
 
   @override
   String get done => 'Fertig';

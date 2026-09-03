@@ -96,6 +96,7 @@ final class PageIndicatorTheme {
     this.dashHeight = 3.0,
     this.gap = 8.0,
     this.activeBulge = 3.0,
+    this.hitHeight = 44.0,
   });
 
   final Color active;
@@ -106,6 +107,9 @@ final class PageIndicatorTheme {
 
   /// Extra width on the active dash, so position reads by shape too.
   final double activeBulge;
+
+  /// A tappable dash's hit area, finger-sized around a three-point dash.
+  final double hitHeight;
 }
 
 /// The home reflection card: a quiet panel on its own ground holding the
@@ -415,6 +419,7 @@ final class SettingsTheme {
     this.iconTileSize = 32.0,
     this.chevronSize = 12.0,
     this.dividerInset = 58.0,
+    this.rowPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   });
 
   final Color cardBackground;
@@ -434,6 +439,9 @@ final class SettingsTheme {
   final double iconTileSize;
   final double chevronSize;
   final double dividerInset;
+
+  /// Every row's inset, the kit's and any row built to sit among them.
+  final EdgeInsets rowPadding;
 }
 
 /// The inline error indicator: a quiet pill that pulses a danger dot and opens
@@ -472,6 +480,28 @@ final class ErrorPillTheme {
   final double shakeTravel;
 }
 
+/// The one-shot hint callout: a surface card with a caret at what it explains.
+@immutable
+final class CalloutTheme {
+  const CalloutTheme({
+    required this.background,
+    required this.border,
+    required this.text,
+    this.radius = AppRadius.card,
+    this.caretSize = 8.0,
+    this.maxWidth = 300.0,
+  });
+
+  final Color background;
+  final Color border;
+  final Color text;
+  final double radius;
+
+  /// The caret's height; its base is twice this.
+  final double caretSize;
+  final double maxWidth;
+}
+
 /// The bottom sheet: the panel every raised message shares. Content-sized, so
 /// the tokens here are its frame, not its height.
 @immutable
@@ -485,7 +515,7 @@ final class SheetTheme {
     this.dismissDrag = 120.0,
     this.flingVelocity = 700.0,
     this.maxHeightFraction = 0.7,
-    this.tallMaxHeightFraction = 0.88,
+    this.tallMaxHeightFraction = 0.92,
   });
 
   final Color background;
@@ -504,26 +534,9 @@ final class SheetTheme {
   final double maxHeightFraction;
 
   /// The same for a sheet that has more to say than a message: a pitch, its
-  /// perks, and a pinned action.
+  /// perks, and a pinned action. Stops short of the top safe area, so the
+  /// grabber never sits under the Dynamic Island.
   final double tallMaxHeightFraction;
-}
-
-/// The onboarding pages.
-@immutable
-final class OnboardingTheme {
-  const OnboardingTheme({
-    required this.logoTileBackground,
-    required this.logoTileBorder,
-    required this.titleColor,
-    required this.bodyColor,
-    required this.handleColor,
-  });
-
-  final Color logoTileBackground;
-  final Color logoTileBorder;
-  final Color titleColor;
-  final Color bodyColor;
-  final Color handleColor;
 }
 
 /// Depth cues for a horizontal page push (the SlidePage transition): a dim over

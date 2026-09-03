@@ -28,12 +28,21 @@ final class ArchiveCounts {
     'tombstones': tombstones,
   };
 
-  factory ArchiveCounts.fromJson(Map<String, dynamic> json) => ArchiveCounts(
-    entries: (json['entries'] as num?)?.toInt() ?? 0,
-    audio: (json['audio'] as num?)?.toInt() ?? 0,
-    reflections: (json['reflections'] as num?)?.toInt() ?? 0,
-    tombstones: (json['tombstones'] as num?)?.toInt() ?? 0,
-  );
+  /// Floored at zero: a plain zip's manifest is hand-editable, and these
+  /// numbers reach labels verbatim, so a hostile negative must not render.
+  factory ArchiveCounts.fromJson(Map<String, dynamic> json) {
+    int read(String key) {
+      final value = (json[key] as num?)?.toInt() ?? 0;
+      return value < 0 ? 0 : value;
+    }
+
+    return ArchiveCounts(
+      entries: read('entries'),
+      audio: read('audio'),
+      reflections: read('reflections'),
+      tombstones: read('tombstones'),
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

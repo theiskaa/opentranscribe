@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// Where a bulk run stands. [idle] before the first run; a terminal phase
 /// ([done], [cancelled]) keeps its counts until the next run resets them, so
@@ -208,14 +209,15 @@ class RetranscribeRunner {
         await _retranscribe(stored);
         _emit(_state.copyWith(landed: _state.landed + 1, clearCurrent: true));
         _notifyEntriesChanged();
-      } catch (_) {
+      } catch (error) {
         // Under a cancel the throw is likely the hard cancel's own doing;
         // the entry was not tried and found wanting, so it is not a failure.
-        // A delete landing DURING the batch is not one either: like the
-        // pre-batch re-check, the entry is simply no longer work.
+        // A delete landing DURING the batch is not one either, and neither is
+        // a recording that is gone: no later run can transcribe it, so
+        // counting it as a failure would queue it again forever.
         if (_cancelRequested) {
           _emit(_state.copyWith(clearCurrent: true));
-        } else if (_read(queued.id) == null) {
+        } else if (_read(queued.id) == null || error is RecordingMissing) {
           _emit(_state.copyWith(total: _state.total - 1, clearCurrent: true));
         } else {
           _emit(_state.copyWith(failed: _state.failed + 1, clearCurrent: true));

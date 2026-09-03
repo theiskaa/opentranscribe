@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/obsidian_exporter.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
@@ -349,6 +350,24 @@ void main() {
       expect(b.store.all(), isEmpty);
     });
 
+    test('an unreadable source aborts as nothing-changed, not as a raw error', () async {
+      final b = await world('b');
+      await b.store.save(entry('kept'));
+      await expectLater(
+        b.import.importArchive('${temp.path}/missing.zip'),
+        throwsA(isA<ImportAbortedException>()),
+      );
+      expect(b.store.all().map((e) => e.id), ['kept']);
+    });
+
+    test('a failure once adoption is writing escapes raw, never as aborted', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await b.recordings.delete(recursive: true);
+      await expectLater(b.import.importArchive(archive), throwsA(isA<FileSystemException>()));
+    });
+
     test('a compressed zip is refused as re-zipped, not corrupt', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
@@ -612,7 +631,7 @@ void main() {
 
     test('a journal export zips every entry, audio and reflections', () async {
       final a = await seededWorld();
-      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
+      await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings);
       final reader = await StoredZipReader.open(File(a.share.captured.last));
       expect(
         reader.paths,
@@ -630,9 +649,12 @@ void main() {
 
     test('staging is deleted after a completed and a cancelled share', () async {
       final a = await seededWorld();
-      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
+      await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings);
       a.share.shareCompletes = false;
-      expect(await a.export.shareJournal(exporterId: 'markdown', strings: strings), isFalse);
+      expect(
+        await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings),
+        isFalse,
+      );
       final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
         (d) => d.path.split('/').last.startsWith('export-'),
       );
@@ -642,15 +664,80 @@ void main() {
     test('an unknown exporter id is refused', () async {
       final a = await seededWorld();
       await expectLater(
-        a.export.shareJournal(exporterId: 'notion', strings: strings),
+        a.export.shareJournal(exporterId: 'notion', includeAudio: true, strings: strings),
         throwsArgumentError,
       );
     });
 
     test('a journal export protects its staging directory before sharing', () async {
       final a = await seededWorld();
-      await a.export.shareJournal(exporterId: 'markdown', strings: strings);
+      await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings);
       expect(a.share.protectedPaths, isNotEmpty);
+    });
+
+    test('a journal export without audio stages no recordings', () async {
+      final a = await seededWorld();
+      await a.export.shareJournal(exporterId: 'markdown', includeAudio: false, strings: strings);
+      final reader = await StoredZipReader.open(File(a.share.captured.last));
+      try {
+        expect(reader.paths.where((p) => p.startsWith('audio/')), isEmpty);
+        expect(reader.paths, isNotEmpty);
+        for (final path in reader.paths) {
+          expect(utf8.decode(await reader.readBytes(path)), isNot(contains('otr-1')));
+        }
+      } finally {
+        await reader.close();
+      }
+    });
+
+    test(
+      'the journal measure counts entries, kept recordings, and their approximate weight',
+      () async {
+        final a = await seededWorld();
+        final measure = await a.export.measure();
+        expect(measure.entries, 2);
+        expect(measure.recordings, 1);
+        expect(measure.approxBytes, greaterThanOrEqualTo(5000));
+      },
+    );
+
+    test('a vanished recording leaves the measure, not just the archive', () async {
+      final a = await seededWorld();
+      await File('${a.recordings.path}/otr-1.m4a').delete();
+      final measure = await a.export.measure();
+      expect(measure.entries, 2);
+      expect(measure.recordings, 0);
+    });
+
+    test('a cancelled pack surfaces as aborted and cleans its staging', () async {
+      final a = await world('a');
+      for (var i = 0; i < 6; i++) {
+        await writeAudio(a, 'otr-$i.m4a', List<int>.generate(1 << 15, (b) => b % 200));
+        await a.store.save(entry('e$i', audioPath: 'otr-$i.m4a'));
+      }
+      await expectLater(
+        a.export.shareJournal(
+          exporterId: 'markdown',
+          includeAudio: true,
+          strings: strings,
+          onProgress: (_) => a.export.cancelShare(),
+        ),
+        throwsA(isA<ZipPackAborted>()),
+      );
+      final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
+        (d) => d.path.split('/').last.startsWith('export-'),
+      );
+      expect(leftovers, isEmpty);
+      expect(a.share.captured, isEmpty);
+    });
+
+    test('a plain archive probes with its manifest counts, a sealed one with none', () async {
+      final a = await seededWorld();
+      final plainProbe = await a.import.probe(await archiveOf(a));
+      expect(plainProbe.counts?.entries, 2);
+      expect(plainProbe.counts?.audio, 1);
+      final sealedProbe = await a.import.probe(await archiveOf(a, passphrase: 'open sesame'));
+      expect(sealedProbe.counts, isNull);
     });
   });
 

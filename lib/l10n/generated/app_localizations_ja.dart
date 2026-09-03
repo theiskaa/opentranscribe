@@ -165,6 +165,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorCapReached => '言語の上限に達しました。設定で言語を削除してから、もう一度お試しください。';
 
   @override
+  String get transcribeErrorRecordingMissing =>
+      'このエントリーの録音は端末に残っていないため、もう一度文字起こしはできません。すでにある文章がすべてです。';
+
+  @override
   String get transcribeErrorLabelPermission => '音声認識がオフです';
 
   @override
@@ -180,6 +184,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorLabelGeneric => '文字起こしに失敗しました';
 
   @override
+  String get transcribeErrorLabelRecordingMissing => '録音なし';
+
+  @override
   String get transcribeErrorTitlePermission => '音声認識をオンにする';
 
   @override
@@ -193,6 +200,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleGeneric => '問題が発生しました';
+
+  @override
+  String get transcribeErrorTitleRecordingMissing => '録音がありません';
 
   @override
   String get settingsAppearance => '外観';
@@ -404,43 +414,70 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onboardingIntroBody => '思ったことを話せば、書き留められます。';
+  String get onboardingOpenSettings => '設定で有効にする';
 
   @override
-  String get onboardingSpeakTitle => '話すだけ';
+  String get onboardingReflectTitle => 'あなたの一週間を読み返す';
 
   @override
-  String get onboardingSpeakLine => '録音をタップして、思っていることを話しましょう。';
+  String get onboardingReflectBody =>
+      'エントリーは、日、週、月ごとの短い振り返りとして読み返せます。この端末上で Apple Intelligence が書き、どこにも送られません。';
 
   @override
-  String get onboardingWriteTitle => '読み返す';
+  String get onboardingReflectDay1 => 'よく眠れなかったけれど、朝のランニングでほとんど立て直せた。';
 
   @override
-  String get onboardingWriteLine => '録音はすべてテキストとして書き留められます。';
+  String get onboardingReflectDay2 => 'ダナとコーヒー。なんでもないことと、すべてのことを二時間。';
 
   @override
-  String get onboardingPrivateTitle => '何も端末から出ません';
+  String get onboardingReflectDay3 => '追加の案件を断った。一日ずっと身軽だった。';
 
   @override
-  String get onboardingPrivateLine => 'アカウントもクラウドもありません。機内モードでも変わりなく使えます。';
+  String get onboardingReflectDay4 => '遠回りして歩いて帰った。街は珍しく静かだった。';
 
   @override
-  String get onboardingReflectTitle => '振り返り';
+  String get onboardingReflectNote => '「もっと」に断りを入れた一週間と、そうして戻ってきた長い散歩。';
 
   @override
-  String get onboardingReflectLine => '記録が短いノートとして返ってきます。すべてこの端末上で。';
+  String get onboardingShapeTitle => 'あなたのもの、どんな形でも';
 
   @override
-  String get onboardingSource => 'オープンソース';
+  String get onboardingShapeBody =>
+      'ジャーナル全体を Markdown、Obsidian Vault、またはWebサイトとして持ち出せます。あなただけが知るパスフレーズで封じてバックアップできます。あなたが運ばない限り、何も同期されません。';
 
   @override
-  String get onboardingSourceLine => 'すべてのコードが公開されています。GitHub でご覧いただけます。';
+  String get onboardingBackupLine => 'パスフレーズで封じ、どこでも復元できます。';
+
+  @override
+  String get onboardingRecordTitle => '思ったことを話せば、書き留められます。';
+
+  @override
+  String get onboardingRecordBody => 'すべての言葉はこの端末に残ります。アカウントもクラウドもありません。機内モードでも何も変わりません。';
+
+  @override
+  String get onboardingRecordText1 => 'リアとコーヒーを飲んで、結局二時間も引っ越しの話をした。';
+
+  @override
+  String get onboardingRecordText2 => 'もっと小さな暮らしがしたいと言いながら、毎晩予定を詰め込んでいる。';
+
+  @override
+  String get onboardingRecordText3 => '遠回りして歩いて帰った。街は珍しく静かだった。';
+
+  @override
+  String get onboardingRecordText4 => 'それから階段に座って、しばらく何もしなかった。たぶんそれが大事だったのだと思う。';
+
+  @override
+  String get onboardingRecordText5 => '仕事は問題なかった。できないことを求められることもなかった。';
+
+  @override
+  String get onboardingRecordText6 => '明日は遅くなる前に母に電話したい。';
 
   @override
   String get onboardingPermissionsTitle => 'アクセスを許可';
 
   @override
-  String get onboardingPermissionsBody => 'すべて完全に端末内で動作します。';
+  String get onboardingPermissionsBody =>
+      'ここにあるものはすべて、この端末上で動作します。「始める」でマイク、音声認識、リマインダーの許可を求めます。いずれも後から設定で変更できます。';
 
   @override
   String get onboardingMicName => 'マイク';
@@ -455,28 +492,48 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSpeechReason => '録音をテキストに変換するため。処理は端末内で行われます。';
 
   @override
-  String get onboardingOpenSettings => '設定で有効にする';
+  String onboardingReflectWeek(int number) {
+    return '第$number週';
+  }
 
   @override
-  String get onboardingModelsTitle => '文字起こしを設定';
+  String get onboardingShapeObsidianName => 'Obsidian';
 
   @override
-  String get onboardingModelsBody => 'お使いの言語が端末に入れば、オフラインで動作します。メニューからいつでも追加できます。';
+  String get onboardingShapeMarkdownNote => '1件1ファイル';
 
   @override
-  String get onboardingReflectionsOn => '記録を短い振り返りとして読み返します。すべてこの端末上で行われます。';
+  String get onboardingShapeObsidianNote => '相互リンク';
 
   @override
-  String get onboardingReflectionsPreparing => 'この端末で Apple Intelligence の準備が完了すると始まります。';
+  String get onboardingShapeWebNote => 'ブラウザで';
 
   @override
-  String get onboardingReflectionsOff => '「設定」の「Apple Intelligence と Siri」でオンにすると利用できます。';
+  String get onboardingRemindersName => 'リマインダー';
+
+  @override
+  String get onboardingRemindersReason => '振り返りができたらお知らせします。';
+
+  @override
+  String get onboardingReflectionsOn => 'Apple Intelligence はオンです。';
+
+  @override
+  String get onboardingReflectionsPreparing => 'この端末では Apple Intelligence の準備がまだ進んでいます。';
+
+  @override
+  String get onboardingReflectionsOff => '設定で Apple Intelligence をオンにすると使えます。';
 
   @override
   String get onboardingNext => '次へ';
 
   @override
   String get onboardingStart => '始める';
+
+  @override
+  String get onboardingDone => '完了';
+
+  @override
+  String get hintEntryMenu => 'このエントリーでできることは、右上のメニューにあります。テキストの編集、書き出し、追加の録音。';
 
   @override
   String get settingsCache => 'キャッシュ';
@@ -732,25 +789,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportFormatMarkdown => 'Markdown';
 
   @override
-  String get exportFormatMarkdownNote => 'エントリーごとにテキスト1つと.json。';
+  String get exportFormatMarkdownNote => 'エントリーごとのノートとJSON。';
 
   @override
-  String get exportFormatObsidian => 'Obsidian';
+  String get exportFormatObsidian => 'Obsidian Vault';
 
   @override
-  String get exportFormatObsidianNote => 'プロパティと音声つきのノート。';
+  String get exportFormatObsidianNote => 'プロパティ付きノート、録音を埋め込み。';
 
   @override
   String get exportFormatWeb => 'Webサイト';
 
   @override
-  String get exportFormatWebNote => 'どのブラウザでも開けます。再生つき。';
+  String get exportFormatWebNote => '検索とプレイヤー、どのブラウザでも。';
 
   @override
   String get exportFailedTitle => '書き出しに失敗しました';
 
   @override
   String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
+
+  @override
+  String get exportTooLargeBody => '書き出しが1ファイルに収まる4 GBを超えています。何も共有されていません。';
+
+  @override
+  String get exportNoSpaceBody => 'ファイルを準備するための空き容量が足りません。何も共有されていません。';
+
+  @override
+  String get exportCancel => 'キャンセル';
 
   @override
   String get exportUntitled => '無題';
@@ -762,18 +828,64 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportQuiet => '静かなひととき。';
 
   @override
+  String get exportHtmlSearch => '検索';
+
+  @override
+  String get exportHtmlSchemeLabel => '配色';
+
+  @override
+  String get exportHtmlSchemeAuto => '自動';
+
+  @override
+  String get exportHtmlSchemeLight => 'ライト';
+
+  @override
+  String get exportHtmlSchemeDark => 'ダーク';
+
+  @override
+  String get exportHtmlEmptyTitle => 'まだ何もありません';
+
+  @override
+  String get exportHtmlEmptyBody => 'このジャーナルにはエントリーがありません。';
+
+  @override
+  String get exportHtmlNoMatchesTitle => '見つかりませんでした';
+
+  @override
+  String exportHtmlNoMatches(String term) {
+    return '「$term」に一致するエントリーはありません';
+  }
+
+  @override
+  String get exportHtmlPlay => '再生';
+
+  @override
+  String get exportHtmlPause => '一時停止';
+
+  @override
+  String get exportHtmlBack => '15秒戻る';
+
+  @override
+  String get exportHtmlSpeed => '再生速度';
+
+  @override
+  String get exportHtmlSeek => 'シーク';
+
+  @override
   String get settingsBackup => 'バックアップ';
 
   @override
   String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
 
   @override
-  String backupInfoCount(int count) {
+  String get backupInfoEmpty => 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。';
+
+  @override
+  String backupInfoMeasured(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'バックアップには$count件のエントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。',
-      zero: 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。',
+      other: 'バックアップには$count件のエントリーと音声、振り返りが入り、約$sizeです。暗号化すれば、パスフレーズが唯一の鍵です。',
     );
     return '$_temp0';
   }
@@ -782,17 +894,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupExportSection => '書き出し';
 
   @override
-  String get backupExportJournal => 'ジャーナルを書き出す';
+  String backupExportAs(String format) {
+    return '$formatとして書き出す';
+  }
 
   @override
   String get backupExportInfo =>
-      'すべてのエントリーを選んだ形式で書き出し、音声も含めてzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
+      'すべてのエントリーを書き出し時に選んだ形式でzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
 
   @override
   String get backupSeal => 'パスフレーズで暗号化';
 
   @override
-  String get backupSave => 'バックアップを保存';
+  String get backupSave => 'バックアップを書き出す';
 
   @override
   String backupLastBackup(String date) {
@@ -818,6 +932,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get passphraseMismatch => 'パスフレーズが一致しません';
 
   @override
+  String get passphraseShow => '表示';
+
+  @override
+  String get passphraseHide => '非表示';
+
+  @override
   String get importUnlockTitle => '暗号化されたバックアップ';
 
   @override
@@ -833,7 +953,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importConfirmTitle => 'このバックアップを復元しますか？';
 
   @override
-  String get importConfirmBody => 'そのエントリーをジャーナルに追加します。同じバックアップを二度復元しても重複しません。';
+  String get importConfirmBody =>
+      'そのエントリーをジャーナルに追加します。既にあるエントリーはバックアップの内容に置き換わり、その後の編集は失われます。同じバックアップを二度復元しても重複しません。';
 
   @override
   String get importConfirm => '復元';
@@ -842,12 +963,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importSummaryTitle => '復元完了';
 
   @override
-  String importSummaryImported(int count) {
+  String importSummaryAdded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のエントリーを復元しました。',
-      zero: '新しく復元するものはありません。',
+      other: '$count件のエントリーを追加しました。',
+      zero: '新しく追加するものはありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importSummaryReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件はバックアップの内容に置き換わりました。',
     );
     return '$_temp0';
   }
@@ -860,6 +991,24 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件は既にジャーナルにありました。',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importSummaryAudio(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音を復元しました。');
+    return '$_temp0';
+  }
+
+  @override
+  String importConfirmCounts(int count, int audio) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'エントリー$count件');
+    String _temp1 = intl.Intl.pluralLogic(
+      audio,
+      locale: localeName,
+      other: '録音$audio件',
+      zero: '録音なし',
+    );
+    return '$_temp0・$_temp1';
   }
 
   @override
@@ -876,6 +1025,36 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importRezipped => 'このバックアップは別のツールで再圧縮されています。新しく保存したものを復元してください。';
+
+  @override
+  String get backButton => '戻る';
+
+  @override
+  String get menuButton => 'その他';
+
+  @override
+  String get languageMenuButton => '言語';
+
+  @override
+  String get recordButton => '新しいエントリー';
+
+  @override
+  String get recordCloseButton => 'キャンセル';
+
+  @override
+  String get recordRestartButton => 'やり直す';
+
+  @override
+  String get recordPauseButton => '一時停止';
+
+  @override
+  String get recordResumeButton => '再開';
+
+  @override
+  String get recordCompleteButton => '保存';
+
+  @override
+  String get restoreBackupButton => 'バックアップを復元';
 
   @override
   String get done => '完了';

@@ -54,7 +54,12 @@ class AppSegmentedControl<T> extends StatelessWidget {
       child: LiquidSegmentedControl(
         segments: [for (final (_, label) in segments) label],
         selectedIndex: index < 0 ? 0 : index,
-        onSelected: (i) => onChanged(segments[i].$1),
+        // UISegmentedControl gives no haptic of its own; the drawn pill
+        // buzzes, so the glass one must too.
+        onSelected: (i) {
+          Haptics.selection();
+          onChanged(segments[i].$1);
+        },
         isDark: theme.brightness == Brightness.dark,
         selectedTintColor: theme.accent,
         labelColor: theme.textSecondary,
@@ -121,17 +126,21 @@ class _DrawnSegmentedControl<T> extends StatelessWidget {
                   children: [
                     for (final (value, label) in segments)
                       Expanded(
-                        child: Touchable(
-                          onTap: () {
-                            Haptics.selection();
-                            onChanged(value);
-                          },
-                          child: Center(
-                            child: Text(
-                              label,
-                              style: AppType.subhead.copyWith(
-                                color: value == selected ? theme.onAccent : theme.textSecondary,
-                                fontWeight: value == selected ? FontWeight.w600 : FontWeight.w500,
+                        child: Semantics(
+                          button: true,
+                          selected: value == selected,
+                          child: Touchable(
+                            onTap: () {
+                              Haptics.selection();
+                              onChanged(value);
+                            },
+                            child: Center(
+                              child: Text(
+                                label,
+                                style: AppType.subhead.copyWith(
+                                  color: value == selected ? theme.onAccent : theme.textSecondary,
+                                  fontWeight: value == selected ? FontWeight.w600 : FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),

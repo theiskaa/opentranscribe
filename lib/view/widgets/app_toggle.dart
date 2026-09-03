@@ -11,10 +11,13 @@ import 'package:opentranscribe/core/utils/platform_caps.dart';
 /// own footprint, and the app's drawn 51x31 switch everywhere else, same
 /// on-colour across the split.
 class AppToggle extends StatelessWidget {
-  const AppToggle({required this.value, required this.onChanged, super.key});
+  const AppToggle({required this.value, required this.onChanged, this.semanticLabel, super.key});
 
   final bool value;
   final ValueChanged<bool>? onChanged;
+
+  /// What VoiceOver calls the switch, on both faces: the row's own label.
+  final String? semanticLabel;
 
   /// The native box: the iOS 26 UISwitch's intrinsic width (its host centers
   /// the 61x28 switch and never lets it overflow) by the drawn switch's
@@ -24,10 +27,12 @@ class AppToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final drawn = _DrawnToggle(value: value, onChanged: onChanged);
+    final drawn = _DrawnToggle(value: value, onChanged: onChanged, semanticLabel: semanticLabel);
     if (!PlatformCaps.nativeGlass) return drawn;
 
     final theme = context.theme;
+    // No haptic around onChanged: UISwitch plays its own on flip, and a
+    // second one here would double it.
     return SizedBox(
       width: _nativeWidth,
       height: _nativeHeight,
@@ -35,6 +40,7 @@ class AppToggle extends StatelessWidget {
         value: value,
         enabled: onChanged != null,
         accentColor: theme.settings.toggleActive,
+        semanticLabel: semanticLabel,
         isDark: theme.brightness == Brightness.dark,
         onChanged: onChanged,
         placeholderBuilder: (_) => Center(child: drawn),
@@ -48,10 +54,11 @@ class AppToggle extends StatelessWidget {
 /// fallback below iOS 26, and the stand-in while a route covers the native
 /// switch.
 class _DrawnToggle extends StatefulWidget {
-  const _DrawnToggle({required this.value, required this.onChanged});
+  const _DrawnToggle({required this.value, required this.onChanged, required this.semanticLabel});
 
   final bool value;
   final ValueChanged<bool>? onChanged;
+  final String? semanticLabel;
 
   @override
   State<_DrawnToggle> createState() => _DrawnToggleState();
@@ -123,6 +130,14 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
     });
   }
 
+  // Guarded: the drag recognizer also cancels on a plain tap, whose spring
+  // must not be undone.
+  void _onDragCancel() {
+    if (!_dragging) return;
+    _dragging = false;
+    _spring(widget.value ? 1 : 0);
+  }
+
   void _onDragEnd(DragEndDetails details) {
     _dragging = false;
     final velocity = details.velocity.pixelsPerSecond.dx;
@@ -136,56 +151,64 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      // Flip from where the knob ACTUALLY is, not widget.value: the latter only
-      // reconciles a frame after a commit, so a fast double-tap read from it
-      // would resolve both taps to the same target.
-      onTap: _enabled ? () => _change(_pos.value <= 0.5, 0) : null,
-      onHorizontalDragStart: _enabled
-          ? (_) {
-              _pos.stop();
-              _dragging = true;
-            }
-          : null,
-      onHorizontalDragUpdate: _enabled
-          ? (details) =>
-                _pos.value = (_pos.value + details.delta.dx / (_width - _knob)).clamp(0.0, 1.0)
-          : null,
-      onHorizontalDragEnd: _enabled ? _onDragEnd : null,
-      child: Opacity(
-        opacity: _enabled ? 1 : 0.5,
-        child: AnimatedBuilder(
-          animation: _pos,
-          builder: (context, child) {
-            final fraction = _pos.value;
-            return Container(
-              width: _width,
-              height: _height,
-              decoration: BoxDecoration(
-                color: Color.lerp(theme.hairline, theme.settings.toggleActive, fraction)!,
-                borderRadius: BorderRadius.circular(_height / 2),
-              ),
-              child: Align(
-                alignment: Alignment.lerp(Alignment.centerLeft, Alignment.centerRight, fraction)!,
-                child: child,
-              ),
-            );
-          },
-          child: Container(
-            width: _knob,
-            height: _knob,
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: theme.shadow.withValues(alpha: 0.12),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+    return Semantics(
+      toggled: widget.value,
+      enabled: _enabled,
+      label: widget.semanticLabel,
+      onTap: _enabled ? () => _change(!widget.value, 0) : null,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Flip from where the knob ACTUALLY is, not widget.value: the latter only
+        // reconciles a frame after a commit, so a fast double-tap read from it
+        // would resolve both taps to the same target.
+        onTap: _enabled ? () => _change(_pos.value <= 0.5, 0) : null,
+        onHorizontalDragStart: _enabled
+            ? (_) {
+                _pos.stop();
+                _dragging = true;
+              }
+            : null,
+        onHorizontalDragUpdate: _enabled
+            ? (details) =>
+                  _pos.value = (_pos.value + details.delta.dx / (_width - _knob)).clamp(0.0, 1.0)
+            : null,
+        onHorizontalDragEnd: _enabled ? _onDragEnd : null,
+        onHorizontalDragCancel: _enabled ? _onDragCancel : null,
+        child: Opacity(
+          opacity: _enabled ? 1 : 0.5,
+          child: AnimatedBuilder(
+            animation: _pos,
+            builder: (context, child) {
+              final fraction = _pos.value;
+              return Container(
+                width: _width,
+                height: _height,
+                decoration: BoxDecoration(
+                  color: Color.lerp(theme.hairline, theme.settings.toggleActive, fraction)!,
+                  borderRadius: BorderRadius.circular(_height / 2),
                 ),
-              ],
+                child: Align(
+                  alignment: Alignment.lerp(Alignment.centerLeft, Alignment.centerRight, fraction)!,
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              width: _knob,
+              height: _knob,
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFFF),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.shadow.withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -162,6 +162,7 @@ class AppIconButton extends StatelessWidget {
     this.size = 52,
     this.iconSize = 20,
     this.foreground,
+    this.semanticLabel,
     super.key,
   });
 
@@ -171,26 +172,37 @@ class AppIconButton extends StatelessWidget {
   final double iconSize;
   final Color? foreground;
 
+  /// What VoiceOver calls the button. The glyph is a private-use codepoint,
+  /// so without a name the button reads as nothing.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return Touchable(
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: semanticLabel,
       onTap: onTap,
-      pressedScale: theme.motion.pressIconScale,
-      haptic: true,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: theme.button.secondaryBackground,
-          shape: BoxShape.circle,
-          // No shadow. A filled circle with a hairline is already a defined
-          // object; a cast under it only makes the page look lit, and the app
-          // is flat everywhere else.
-          border: Border.all(color: theme.button.secondaryBorder),
-        ),
-        child: Center(
-          child: AppIcon(icon, size: iconSize, color: foreground ?? theme.text),
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        pressedScale: theme.motion.pressIconScale,
+        haptic: true,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: theme.button.secondaryBackground,
+            shape: BoxShape.circle,
+            // No shadow. A filled circle with a hairline is already a defined
+            // object; a cast under it only makes the page look lit, and the app
+            // is flat everywhere else.
+            border: Border.all(color: theme.button.secondaryBorder),
+          ),
+          child: Center(
+            child: AppIcon(icon, size: iconSize, color: foreground ?? theme.text),
+          ),
         ),
       ),
     );

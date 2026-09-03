@@ -5,7 +5,10 @@ import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/default_exporter.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
+import 'package:opentranscribe/core/export/share_export.dart';
 import 'package:opentranscribe/core/export/staging_registry.dart';
+import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
@@ -51,7 +54,10 @@ void main() {
   });
 
   Future<({BackupCubit cubit, FakeShareExport share, BackupSettings settings, EntryStore store})>
-  build() async {
+  build({
+    BackupSettings Function(BackupSettings)? wrapSettings,
+    Duration progressGrace = Duration.zero,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
@@ -77,7 +83,8 @@ void main() {
     );
     final share = FakeShareExport(captureTo: temp);
     final staging = StagingRegistry();
-    final settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
+    var settings = BackupSettings(storage: storage, fallbackFormatId: 'markdown');
+    if (wrapSettings != null) settings = wrapSettings(settings);
     final export = ExportService(
       transcription: transcription,
       reflections: reflections,
@@ -102,6 +109,8 @@ void main() {
         ExporterDescriptor(exporterId: 'markdown', format: ExportFormat.markdown, logo: 'm.svg'),
       ],
       clock: () => fixedClock,
+      remeasureQuiet: Duration.zero,
+      progressGrace: progressGrace,
     );
     addTearDown(cubit.close);
     return (cubit: cubit, share: share, settings: settings, store: store);
@@ -109,6 +118,43 @@ void main() {
 
   Entry entry(String id) =>
       Entry(id: id, createdAt: fixedClock, audioPath: null, duration: const Duration(seconds: 5));
+
+  test('shareFailureResult reads a share that never presented as a quiet cancel', () {
+    expect(
+      shareFailureResult(const ShareExportException('sheet up', ShareExportException.busy)),
+      BackupActionResult.cancelled,
+    );
+    expect(
+      shareFailureResult(const ShareExportException('no scene', ShareExportException.unavailable)),
+      BackupActionResult.cancelled,
+    );
+  });
+
+  test('shareFailureResult names the size cap and the full disk, all else is generic', () {
+    expect(
+      shareFailureResult(const StoredZipException(StoredZipError.tooLarge, 'exceeds 4 GB')),
+      BackupActionResult.failedTooLarge,
+    );
+    expect(
+      shareFailureResult(const FileSystemException('write failed', 'f', OSError('no space', 28))),
+      BackupActionResult.failedNoSpace,
+    );
+    expect(
+      shareFailureResult(const StoredZipException(StoredZipError.unsupported, 'zip64')),
+      BackupActionResult.failed,
+    );
+    expect(shareFailureResult(const ZipPackAborted()), BackupActionResult.cancelled);
+    expect(shareFailureResult(const ShareExportException('broke')), BackupActionResult.failed);
+    expect(
+      shareFailureResult(const FileSystemException('write failed', 'f', OSError('denied', 13))),
+      BackupActionResult.failed,
+    );
+    expect(
+      shareFailureResult(const FileSystemException('write failed')),
+      BackupActionResult.failed,
+    );
+    expect(shareFailureResult(StateError('x')), BackupActionResult.failed);
+  });
 
   test('importResolutionOf maps every archive error to its next step', () {
     expect(importResolutionOf(ArchiveError.cannotDecrypt), ImportResolution.retryPassphrase);
@@ -124,26 +170,36 @@ void main() {
     final world = await build();
     await world.store.save(entry('e1'));
     await world.cubit.load();
-    expect(world.cubit.state.formatId, 'markdown');
     expect(world.cubit.state.seal, isTrue);
-    expect(world.cubit.state.entryCount, 1);
+    expect(world.cubit.state.measure?.entries, 1);
   });
 
-  test('format and seal choices persist through the settings', () async {
+  test('the seal choice persists through the settings', () async {
     final world = await build();
     await world.cubit.load();
-    await world.cubit.setFormat('obsidian');
     await world.cubit.setSeal(false);
-    expect(world.settings.formatId, 'obsidian');
     expect(world.settings.seal, isFalse);
-    expect(world.cubit.state.formatId, 'obsidian');
     expect(world.cubit.state.seal, isFalse);
+  });
+
+  test('an export that ran remembers its format for the entry sheet', () async {
+    final world = await build();
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.shared,
+    );
+    expect(world.settings.formatId, 'markdown');
   });
 
   test('a completed journal export answers shared', () async {
     final world = await build();
     await world.cubit.load();
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.shared);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.shared,
+    );
     expect(world.share.calls, contains('shareFiles'));
     expect(world.cubit.state.busy, BackupBusy.none);
   });
@@ -152,23 +208,21 @@ void main() {
     final world = await build();
     await world.cubit.load();
     world.share.shareCompletes = false;
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.cancelled,
+    );
   });
 
   test('a share sheet that never presented answers cancelled, not failed', () async {
     final world = await build();
     await world.cubit.load();
     world.share.throwOnShare = true;
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.cancelled);
+    expect(
+      await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true),
+      BackupActionResult.cancelled,
+    );
     expect(world.cubit.state.busy, BackupBusy.none);
-  });
-
-  test('a stale stored format resolves at load and still exports', () async {
-    final world = await build();
-    await world.settings.setFormatId('gone');
-    await world.cubit.load();
-    expect(world.cubit.state.formatId, 'markdown');
-    expect(await world.cubit.exportJournal(strings), BackupActionResult.shared);
   });
 
   test('a saved archive stamps the last archive time; a cancelled one does not', () async {
@@ -234,15 +288,30 @@ void main() {
     final world = await build();
     await world.cubit.load();
     await world.cubit.exportArchive();
-    await world.cubit.exportJournal(strings);
+    await world.cubit.exportJournal(strings: strings, exporterId: 'markdown', includeAudio: true);
     expect(world.cubit.state.lastArchiveAt, fixedClock);
+  });
+
+  test('a backup finishing after the screen closes still records its time', () async {
+    final world = await build();
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    world.share.shareDelay = const Duration(milliseconds: 50);
+    final sharing = world.cubit.exportArchive();
+    await world.cubit.close();
+    expect(await sharing, BackupActionResult.shared);
+    expect(world.settings.lastArchiveAt, fixedClock);
   });
 
   test('a second action while one runs answers cancelled', () async {
     final world = await build();
     await world.cubit.load();
     world.share.shareDelay = const Duration(milliseconds: 50);
-    final first = world.cubit.exportJournal(strings);
+    final first = world.cubit.exportJournal(
+      strings: strings,
+      exporterId: 'markdown',
+      includeAudio: true,
+    );
     expect(await world.cubit.exportArchive(), BackupActionResult.cancelled);
     expect(await first, BackupActionResult.shared);
   });
@@ -255,10 +324,10 @@ void main() {
     final archive = world.share.captured.last;
     await world.store.delete('e1');
     await world.cubit.load();
-    expect(world.cubit.state.entryCount, 0);
+    expect(world.cubit.state.measure?.entries, 0);
     await world.cubit.importArchive(archive);
     await pumpEventQueue();
-    expect(world.cubit.state.entryCount, 1);
+    expect(world.cubit.state.measure?.entries, 1);
   });
 
   test('a sealed archive imports under its passphrase at the cubit level', () async {
@@ -272,6 +341,35 @@ void main() {
     expect(outcome!.resolution, ImportResolution.success);
   });
 
+  test('an unreadable source fails plainly, never as stopped partway', () async {
+    final world = await build();
+    await world.cubit.load();
+    final outcome = await world.cubit.importArchive('${temp.path}/vanished.zip');
+    expect(outcome!.resolution, ImportResolution.failed);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
+  test('a failure once adoption is writing resolves stopped partway', () async {
+    final world = await build();
+    final recordings = Directory('${temp.path}/recordings');
+    await File('${recordings.path}/otr-1.m4a').writeAsBytes(List<int>.generate(64, (i) => i));
+    await world.store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'otr-1.m4a',
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    await world.cubit.load();
+    await world.cubit.exportArchive();
+    final archive = world.share.captured.last;
+    await recordings.delete(recursive: true);
+    final outcome = await world.cubit.importArchive(archive);
+    expect(outcome!.resolution, ImportResolution.failedMidway);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
   test('a garbage file fails without touching the journal', () async {
     final world = await build();
     await world.cubit.load();
@@ -281,4 +379,97 @@ void main() {
     expect(outcome!.resolution, ImportResolution.failed);
     expect(world.store.all(), isEmpty);
   });
+
+  test('settling keeps everything but busy and progress', () {
+    const measured = JournalMeasure(entries: 2, recordings: 1, approxBytes: 9000);
+    final state = BackupState(
+      measure: measured,
+      seal: false,
+      lastArchiveAt: fixedClock,
+      busy: BackupBusy.archiving,
+      progress: 0.4,
+    ).settled();
+    expect(state.busy, BackupBusy.none);
+    expect(state.progress, isNull);
+    expect(state.measure, measured);
+    expect(state.seal, isFalse);
+    expect(state.lastArchiveAt, fixedClock);
+  });
+
+  test('a finished pack drops progress but keeps the operation busy', () {
+    final state = const BackupState(busy: BackupBusy.archiving, progress: 0.9).packDone();
+    expect(state.busy, BackupBusy.archiving);
+    expect(state.progress, isNull);
+  });
+
+  test('a backup reports pack progress and settles clean', () async {
+    final world = await build();
+    final recordings = Directory('${temp.path}/recordings');
+    await File(
+      '${recordings.path}/otr-1.m4a',
+    ).writeAsBytes(List<int>.generate(4096, (i) => i % 200));
+    await world.store.save(
+      Entry(
+        id: 'e1',
+        createdAt: fixedClock,
+        audioPath: 'otr-1.m4a',
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    await world.cubit.load();
+    final seen = <double?>[];
+    final sub = world.cubit.stream.listen((s) => seen.add(s.progress));
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    await sub.cancel();
+    expect(seen.whereType<double>(), isNotEmpty);
+    expect(world.cubit.state.progress, isNull);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+
+  test('a pack that finishes inside the grace never shows progress', () async {
+    final world = await build(progressGrace: const Duration(seconds: 30));
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    final seen = <double?>[];
+    final sub = world.cubit.stream.listen((s) => seen.add(s.progress));
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    await sub.cancel();
+    expect(seen.whereType<double>(), isEmpty);
+  });
+
+  test('a bookkeeping failure after a completed share still answers shared', () async {
+    final world = await build(wrapSettings: _DateRefusingSettings.new);
+    await world.store.save(entry('e1'));
+    await world.cubit.load();
+    expect(await world.cubit.exportArchive(), BackupActionResult.shared);
+    expect(world.cubit.state.busy, BackupBusy.none);
+  });
+}
+
+class _DateRefusingSettings implements BackupSettings {
+  _DateRefusingSettings(this._inner);
+
+  final BackupSettings _inner;
+
+  @override
+  String get fallbackFormatId => _inner.fallbackFormatId;
+
+  @override
+  String get formatId => _inner.formatId;
+
+  @override
+  bool get seal => _inner.seal;
+
+  @override
+  DateTime? get lastArchiveAt => _inner.lastArchiveAt;
+
+  @override
+  Future<void> setFormatId(String id) => _inner.setFormatId(id);
+
+  @override
+  Future<void> setSeal(bool seal) => _inner.setSeal(seal);
+
+  @override
+  Future<void> setLastArchiveAt(DateTime at) =>
+      throw const FileSystemException('write failed', 'k', OSError('no space', 28));
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/export/archive_codec.dart';
 import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/export/share_export.dart';
+import 'package:opentranscribe/core/export/stored_zip.dart';
+import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/services/backup_settings.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
@@ -17,8 +20,31 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 enum BackupBusy { none, exporting, archiving, importing }
 
 /// How an export action ended. Cancel is a quiet outcome (the user closed
-/// the share sheet, nothing to explain); only [failed] earns a failure sheet.
-enum BackupActionResult { shared, cancelled, failed }
+/// the share sheet, nothing to explain); the failed values earn a failure
+/// sheet, the specific two naming their cause.
+enum BackupActionResult { shared, cancelled, failed, failedTooLarge, failedNoSpace }
+
+/// POSIX ENOSPC; iOS is the only shipped platform.
+const _enospc = 28;
+
+/// The one reading of a share escape, for every export surface: a share that
+/// never presented (sheet busy, unavailable) is a quiet cancel, because a
+/// sheet claiming the export broke would be a lie; the two failures a user
+/// can act on keep their cause; anything else is the generic failure.
+BackupActionResult shareFailureResult(Object error) {
+  if (error is ShareExportException &&
+      (error.code == ShareExportException.busy || error.code == ShareExportException.unavailable)) {
+    return BackupActionResult.cancelled;
+  }
+  if (error is ZipPackAborted) return BackupActionResult.cancelled;
+  if (error is StoredZipException && error.error == StoredZipError.tooLarge) {
+    return BackupActionResult.failedTooLarge;
+  }
+  if (error is FileSystemException && error.osError?.errorCode == _enospc) {
+    return BackupActionResult.failedNoSpace;
+  }
+  return BackupActionResult.failed;
+}
 
 /// What a finished import attempt means for the flow: show the summary, ask
 /// for the passphrase again, or fail with which copy. The one mapping from
@@ -54,6 +80,10 @@ final class ImportOutcome {
 
   const ImportOutcome.midway() : resolution = ImportResolution.failedMidway, summary = null;
 
+  /// An import that broke before adoption wrote anything: the plain failure
+  /// resolution, never the midway one.
+  const ImportOutcome.aborted() : resolution = ImportResolution.failed, summary = null;
+
   final ImportResolution resolution;
   final ImportSummary? summary;
 }
@@ -61,47 +91,58 @@ final class ImportOutcome {
 @immutable
 final class BackupState {
   const BackupState({
-    this.entryCount,
-    this.formatId = '',
+    this.measure,
     this.seal = true,
     this.lastArchiveAt,
     this.busy = BackupBusy.none,
+    this.progress,
   });
 
   /// Null until the first measure lands; the intro reads generic until then.
-  final int? entryCount;
-  final String formatId;
+  final JournalMeasure? measure;
   final bool seal;
   final DateTime? lastArchiveAt;
   final BackupBusy busy;
 
+  /// How far the running share's pack phase has come, 0..1; null outside the
+  /// pack phase, which is also when there is nothing left to cancel.
+  final double? progress;
+
   bool get isBusy => busy != BackupBusy.none;
 
   BackupState copyWith({
-    int? entryCount,
-    String? formatId,
+    JournalMeasure? measure,
     bool? seal,
     DateTime? lastArchiveAt,
     BackupBusy? busy,
+    double? progress,
   }) => BackupState(
-    entryCount: entryCount ?? this.entryCount,
-    formatId: formatId ?? this.formatId,
+    measure: measure ?? this.measure,
     seal: seal ?? this.seal,
     lastArchiveAt: lastArchiveAt ?? this.lastArchiveAt,
     busy: busy ?? this.busy,
+    progress: progress ?? this.progress,
   );
+
+  /// Back to rest: busy released and progress dropped, everything else kept.
+  BackupState settled() => BackupState(measure: measure, seal: seal, lastArchiveAt: lastArchiveAt);
+
+  /// The pack finished but the operation runs on (sealing, the share
+  /// sheet): progress leaves, and the cancel affordance with it.
+  BackupState packDone() =>
+      BackupState(measure: measure, seal: seal, lastArchiveAt: lastArchiveAt, busy: busy);
 
   @override
   bool operator ==(Object other) =>
       other is BackupState &&
-      other.entryCount == entryCount &&
-      other.formatId == formatId &&
+      other.measure == measure &&
       other.seal == seal &&
       other.lastArchiveAt == lastArchiveAt &&
-      other.busy == busy;
+      other.busy == busy &&
+      other.progress == progress;
 
   @override
-  int get hashCode => Object.hash(entryCount, formatId, seal, lastArchiveAt, busy);
+  int get hashCode => Object.hash(measure, seal, lastArchiveAt, busy, progress);
 }
 
 /// Drives the Backup screen: measures the entry count, holds the persisted
@@ -117,9 +158,16 @@ class BackupCubit extends Cubit<BackupState> {
     required this._settings,
     required this._descriptors,
     DateTime Function()? clock,
+    this._remeasureQuiet = const Duration(milliseconds: 300),
+    this._progressGrace = const Duration(milliseconds: 600),
   }) : _clock = clock ?? DateTime.now,
        super(const BackupState()) {
-    _entriesSub = _service.entriesChanged.listen((_) => _measure());
+    _entriesSub = _service.entriesChanged.listen((_) {
+      // Change signals arrive in bursts (each bulk re-transcribe landing, an
+      // import's adoptions); one trailing walk stats the files per burst.
+      _remeasureTimer?.cancel();
+      _remeasureTimer = Timer(_remeasureQuiet, () => unawaited(_measure()));
+    });
   }
 
   final TranscriptionService _service;
@@ -131,31 +179,41 @@ class BackupCubit extends Cubit<BackupState> {
 
   late final StreamSubscription<void> _entriesSub;
 
-  /// The formats this build ships, in the order the picker lists them.
+  /// The quiet a burst of change signals must hold before the walk runs.
+  final Duration _remeasureQuiet;
+  Timer? _remeasureTimer;
+
+  /// How long a pack must run before its percent and cancel appear: an
+  /// export that finishes inside this never flashes a control nobody could
+  /// have used.
+  final Duration _progressGrace;
+  Timer? _graceTimer;
+  double? _latestProgress;
+  bool _showProgress = false;
+
+  /// Bumped by every measure, so a slow file walk started earlier can never
+  /// land its stale numbers over a fresher emit.
+  int _measureGeneration = 0;
+
+  /// The formats this build ships, in the order every export surface lists
+  /// them.
   List<ExporterDescriptor> get descriptors => _descriptors;
 
-  /// The stored format id is resolved against the shipped descriptors HERE,
-  /// so a stale id from a build that dropped its exporter can never leak
-  /// into an export call.
   Future<void> load() async {
-    emit(
-      state.copyWith(
-        formatId: resolveFormatId(_settings.formatId, _descriptors),
-        seal: _settings.seal,
-        lastArchiveAt: _settings.lastArchiveAt,
-      ),
-    );
-    _measure();
+    emit(state.copyWith(seal: _settings.seal, lastArchiveAt: _settings.lastArchiveAt));
+    await _measure();
   }
 
-  void _measure() {
-    if (isClosed) return;
-    emit(state.copyWith(entryCount: _service.entries().length));
-  }
-
-  Future<void> setFormat(String id) async {
-    emit(state.copyWith(formatId: id));
-    await _settings.setFormatId(id);
+  Future<void> _measure() async {
+    final generation = ++_measureGeneration;
+    try {
+      final measure = await _export.measure();
+      if (isClosed || generation != _measureGeneration) return;
+      emit(state.copyWith(measure: measure));
+    } catch (e) {
+      // Best effort: the intro reads generic; a later change signal retries.
+      if (kDebugMode) debugPrint('BackupCubit.measure failed: $e');
+    }
   }
 
   Future<void> setSeal(bool seal) async {
@@ -163,18 +221,89 @@ class BackupCubit extends Cubit<BackupState> {
     await _settings.setSeal(seal);
   }
 
-  Future<BackupActionResult> exportJournal(ExportStrings strings) => _run(
-    BackupBusy.exporting,
-    () => _export.shareJournal(exporterId: state.formatId, strings: strings),
-  );
+  Future<BackupActionResult> exportJournal({
+    required ExportStrings strings,
+    required String exporterId,
+    required bool includeAudio,
+  }) => _run(BackupBusy.exporting, () async {
+    final shared = await _export.shareJournal(
+      exporterId: exporterId,
+      includeAudio: includeAudio,
+      strings: strings,
+      onProgress: _onProgress,
+      onPackDone: _onPackDone,
+    );
+    // Reached only when the attempt RAN (shared or dismissed), past every
+    // never-presented escape: a refused attempt leaves no trace.
+    await _rememberFormat(exporterId);
+    return shared;
+  });
+
+  /// Calls off the pack phase of the running backup or export; once the
+  /// share sheet is up there is nothing left to cancel and this is quiet.
+  void cancelShare() => _export.cancelShare();
+
+  void _onPackDone() {
+    _closeProgress();
+    if (isClosed) return;
+    emit(state.packDone());
+  }
+
+  /// The grace elapsed: what the pack has reported so far may now show.
+  void _openProgress() {
+    if (isClosed) return;
+    _showProgress = true;
+    final latest = _latestProgress;
+    if (latest != null) emit(state.copyWith(progress: latest));
+  }
+
+  void _closeProgress() {
+    _graceTimer?.cancel();
+    _graceTimer = null;
+    _latestProgress = null;
+    _showProgress = false;
+  }
+
+  /// Whole percents only: a per-file signal on a big journal would otherwise
+  /// emit a rebuild per landed recording.
+  void _onProgress(double fraction) {
+    if (isClosed) return;
+    _latestProgress = fraction;
+    if (!_showProgress) return;
+    final previous = state.progress;
+    if (previous != null && (previous * 100).truncate() == (fraction * 100).truncate()) return;
+    emit(state.copyWith(progress: fraction));
+  }
+
+  /// Best-effort and safe after close: the format memory only seeds the
+  /// entry sheet's default, and no export outcome may trip over it.
+  Future<void> _rememberFormat(String id) async {
+    try {
+      await _settings.setFormatId(id);
+    } catch (e) {
+      if (kDebugMode) debugPrint('BackupCubit.rememberFormat failed: $e');
+    }
+  }
 
   Future<BackupActionResult> exportArchive({String? passphrase}) =>
       _run(BackupBusy.archiving, () async {
-        final shared = await _export.shareArchive(passphrase: passphrase);
-        if (shared && !isClosed) {
+        final shared = await _export.shareArchive(
+          passphrase: passphrase,
+          onProgress: _onProgress,
+          onPackDone: _onPackDone,
+        );
+        if (shared) {
+          // Persisted even after close: the share sheet outlives the screen,
+          // and a backup that finished is a backup that happened.
           final now = _clock();
-          await _settings.setLastArchiveAt(now);
-          emit(state.copyWith(lastArchiveAt: now));
+          try {
+            await _settings.setLastArchiveAt(now);
+            if (!isClosed) emit(state.copyWith(lastArchiveAt: now));
+          } catch (e) {
+            // The share DID happen: losing the bookkeeping must not be
+            // reported as an export that failed.
+            if (kDebugMode) debugPrint('BackupCubit.archive date: $e');
+          }
         }
         return shared;
       });
@@ -211,38 +340,43 @@ class BackupCubit extends Cubit<BackupState> {
       return ImportOutcome.failure(e.error);
     } on ArgumentError {
       return ImportOutcome.failure(ArchiveError.malformed);
+    } on ImportAbortedException catch (e) {
+      // Broke before adoption wrote anything: a plain failure, whose copy
+      // rightly says the journal was not touched.
+      if (kDebugMode) debugPrint('BackupCubit.import aborted: $e');
+      return const ImportOutcome.aborted();
     } catch (e) {
-      // Anything else escaped past validation, i.e. adoption was writing.
+      // Anything else escaped past staging, i.e. adoption was writing.
       if (kDebugMode) debugPrint('BackupCubit.import failed: $e');
       return const ImportOutcome.midway();
     } finally {
-      if (!isClosed) emit(state.copyWith(busy: BackupBusy.none));
+      if (!isClosed) emit(state.settled());
     }
   }
 
   Future<BackupActionResult> _run(BackupBusy busy, Future<bool> Function() op) async {
     if (state.isBusy) return BackupActionResult.cancelled;
+    _closeProgress();
+    _graceTimer = Timer(_progressGrace, _openProgress);
     emit(state.copyWith(busy: busy));
     try {
       return await op() ? BackupActionResult.shared : BackupActionResult.cancelled;
-    } on ShareExportException catch (e) {
-      // Nothing was ever presented, so nothing failed: a sheet claiming the
-      // export broke would be a lie. Quiet, like a cancel.
-      if (e.code == ShareExportException.busy || e.code == ShareExportException.unavailable) {
-        return BackupActionResult.cancelled;
-      }
-      if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
-      return BackupActionResult.failed;
     } catch (e) {
-      if (kDebugMode) debugPrint('BackupCubit.${busy.name} failed: $e');
-      return BackupActionResult.failed;
+      final result = shareFailureResult(e);
+      if (kDebugMode && result != BackupActionResult.cancelled) {
+        debugPrint('BackupCubit.${busy.name} failed: $e');
+      }
+      return result;
     } finally {
-      if (!isClosed) emit(state.copyWith(busy: BackupBusy.none));
+      _closeProgress();
+      if (!isClosed) emit(state.settled());
     }
   }
 
   @override
   Future<void> close() {
+    _graceTimer?.cancel();
+    _remeasureTimer?.cancel();
     _entriesSub.cancel();
     return super.close();
   }

@@ -408,6 +408,12 @@ abstract class AppLocalizations {
   /// **'Language limit reached. Remove a language in Settings, then try again.'**
   String get transcribeErrorCapReached;
 
+  /// Notice when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'This entry\'s recording isn\'t on the device anymore, so it can\'t be transcribed again. What it already reads as is all there is.'**
+  String get transcribeErrorRecordingMissing;
+
   /// Short label on the inline error indicator when permission is denied
   ///
   /// In en, this message translates to:
@@ -438,6 +444,12 @@ abstract class AppLocalizations {
   /// **'Transcription failed'**
   String get transcribeErrorLabelGeneric;
 
+  /// Pill label when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'Recording gone'**
+  String get transcribeErrorLabelRecordingMissing;
+
   /// Details-sheet title when permission is denied
   ///
   /// In en, this message translates to:
@@ -467,6 +479,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong'**
   String get transcribeErrorTitleGeneric;
+
+  /// Sheet title when the entry's audio is no longer on the device
+  ///
+  /// In en, this message translates to:
+  /// **'The recording is gone'**
+  String get transcribeErrorTitleRecordingMissing;
 
   /// Section label of the appearance settings group
   ///
@@ -846,71 +864,119 @@ abstract class AppLocalizations {
   /// **'Your phone\'s language isn\'t supported for on-device transcription yet, so {fallback} is the default.'**
   String transcriptionDeviceLanguageFallback(String fallback);
 
-  /// Explanatory body on the first onboarding step
+  /// Shown when a permission was denied; opens the system Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Enable in Settings'**
+  String get onboardingOpenSettings;
+
+  /// Headline of the reflections onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Your week, read back'**
+  String get onboardingReflectTitle;
+
+  /// Body of the reflections onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Entries read back as a short reflection, by day, week, or month. Written on this device by Apple Intelligence, never sent anywhere.'**
+  String get onboardingReflectBody;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Slept badly, but the morning run fixed most of it.'**
+  String get onboardingReflectDay1;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Dana, coffee, two hours about nothing and everything.'**
+  String get onboardingReflectDay2;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Said no to the extra project. Felt lighter all day.'**
+  String get onboardingReflectDay3;
+
+  /// Scene: one day's entry excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'Walked home the long way. The city was quiet for once.'**
+  String get onboardingReflectDay4;
+
+  /// Scene: the week's reflection
+  ///
+  /// In en, this message translates to:
+  /// **'A week of saying no to more, and the long walks that came back once you did.'**
+  String get onboardingReflectNote;
+
+  /// Headline of the exports and backup onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Yours, in any shape'**
+  String get onboardingShapeTitle;
+
+  /// Body of the exports and backup onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Take the whole journal as Markdown, an Obsidian vault, or a website. Back it up sealed with a passphrase only you know. Nothing syncs unless you carry it.'**
+  String get onboardingShapeBody;
+
+  /// Scene: the backup row's note
+  ///
+  /// In en, this message translates to:
+  /// **'Sealed with a passphrase, restores anywhere.'**
+  String get onboardingBackupLine;
+
+  /// Headline of the first onboarding page (a take running)
   ///
   /// In en, this message translates to:
   /// **'You speak your mind, and it writes it down.'**
-  String get onboardingIntroBody;
+  String get onboardingRecordTitle;
 
-  /// Title of the intro row about recording
+  /// Body of the first onboarding page
   ///
   /// In en, this message translates to:
-  /// **'Just talk'**
-  String get onboardingSpeakTitle;
+  /// **'Every word stays on this phone. No account, no cloud. Airplane mode changes nothing.'**
+  String get onboardingRecordBody;
 
-  /// One-line explanation under the recording intro row
+  /// Scene: live transcript, first sentence
   ///
   /// In en, this message translates to:
-  /// **'Tap record and say what is on your mind.'**
-  String get onboardingSpeakLine;
+  /// **'Met Lia for coffee and we ended up talking about the move for two hours.'**
+  String get onboardingRecordText1;
 
-  /// Title of the intro row about transcription
+  /// Scene: live transcript, second sentence
   ///
   /// In en, this message translates to:
-  /// **'Read it back'**
-  String get onboardingWriteTitle;
+  /// **'I keep saying I want a smaller life and then filling every evening.'**
+  String get onboardingRecordText2;
 
-  /// One-line explanation under the transcription intro row
+  /// Scene: live transcript, third sentence
   ///
   /// In en, this message translates to:
-  /// **'Every recording is written down as text.'**
-  String get onboardingWriteLine;
+  /// **'Walked home the long way. The city was quiet for once.'**
+  String get onboardingRecordText3;
 
-  /// Title of the intro row about privacy
+  /// Scene: live transcript, fourth sentence
   ///
   /// In en, this message translates to:
-  /// **'Nothing leaves the phone'**
-  String get onboardingPrivateTitle;
+  /// **'Then I sat on the steps for a while and did nothing, which felt like the point.'**
+  String get onboardingRecordText4;
 
-  /// One-line explanation under the privacy intro row
+  /// Scene: live transcript, fifth sentence
   ///
   /// In en, this message translates to:
-  /// **'No account, no cloud. Airplane mode changes nothing.'**
-  String get onboardingPrivateLine;
+  /// **'Work was fine. Nobody asked for anything I could not give.'**
+  String get onboardingRecordText5;
 
-  /// Title of the intro row about reflections, eligible hardware only
+  /// Scene: live transcript, sixth sentence
   ///
   /// In en, this message translates to:
-  /// **'Reflections'**
-  String get onboardingReflectTitle;
-
-  /// One-line explanation under the reflections intro row
-  ///
-  /// In en, this message translates to:
-  /// **'Your entries read back as a short note, all on device.'**
-  String get onboardingReflectLine;
-
-  /// Title of the intro row that opens the open-source repository
-  ///
-  /// In en, this message translates to:
-  /// **'Open source'**
-  String get onboardingSource;
-
-  /// One-line explanation under the open-source intro row
-  ///
-  /// In en, this message translates to:
-  /// **'Every line of it is public. Read it on GitHub.'**
-  String get onboardingSourceLine;
+  /// **'Tomorrow I want to call Mum before it gets late.'**
+  String get onboardingRecordText6;
 
   /// Headline on the permissions onboarding step
   ///
@@ -921,7 +987,7 @@ abstract class AppLocalizations {
   /// Subtitle reassuring that the requested permissions stay on-device
   ///
   /// In en, this message translates to:
-  /// **'Everything here works entirely on your device.'**
+  /// **'Everything here works entirely on your device. Get started asks for the microphone, speech recognition, and reminders; each can be changed later in Settings.'**
   String get onboardingPermissionsBody;
 
   /// Name of the microphone permission row
@@ -948,40 +1014,64 @@ abstract class AppLocalizations {
   /// **'To turn your recordings into text, on device.'**
   String get onboardingSpeechReason;
 
-  /// Shown when a permission was denied; opens the system Settings
+  /// Eyebrow on the onboarding reflection card; shown uppercase
   ///
   /// In en, this message translates to:
-  /// **'Enable in Settings'**
-  String get onboardingOpenSettings;
+  /// **'Week {number}'**
+  String onboardingReflectWeek(int number);
 
-  /// Headline on the transcription-setup onboarding step
+  /// Export tile name for Obsidian; the tile has no room for Vault
   ///
   /// In en, this message translates to:
-  /// **'Set up transcription'**
-  String get onboardingModelsTitle;
+  /// **'Obsidian'**
+  String get onboardingShapeObsidianName;
 
-  /// Body on the transcription-setup onboarding step
+  /// Export tile note, Markdown
   ///
   /// In en, this message translates to:
-  /// **'It runs offline once your language is on the device. You can add more anytime from the menu.'**
-  String get onboardingModelsBody;
+  /// **'One file each'**
+  String get onboardingShapeMarkdownNote;
 
-  /// Onboarding model step, Apple Intelligence available: what reflections do
+  /// Export tile note, Obsidian
   ///
   /// In en, this message translates to:
-  /// **'Your entries read back as a short reflection, entirely on this device.'**
+  /// **'Linked vault'**
+  String get onboardingShapeObsidianNote;
+
+  /// Export tile note, Website
+  ///
+  /// In en, this message translates to:
+  /// **'Any browser'**
+  String get onboardingShapeWebNote;
+
+  /// Set-up page row asking notification permission for reflection reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get onboardingRemindersName;
+
+  /// Note under the reminders row
+  ///
+  /// In en, this message translates to:
+  /// **'A nudge when a reflection is ready.'**
+  String get onboardingRemindersReason;
+
+  /// Set-up page, reflections row when Apple Intelligence runs
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Intelligence is on.'**
   String get onboardingReflectionsOn;
 
-  /// Onboarding model step: Apple Intelligence enabled but the model still downloading
+  /// Set-up page, reflections row while Apple Intelligence prepares
   ///
   /// In en, this message translates to:
-  /// **'Starts once Apple Intelligence finishes preparing on this device.'**
+  /// **'Apple Intelligence is still preparing on this device.'**
   String get onboardingReflectionsPreparing;
 
-  /// Onboarding model step: eligible hardware with Apple Intelligence off; instructions only
+  /// Set-up page, reflections row when Apple Intelligence is off; instructions only
   ///
   /// In en, this message translates to:
-  /// **'Turn on Apple Intelligence in Settings, under Apple Intelligence and Siri, to get them.'**
+  /// **'Turn on Apple Intelligence in Settings to get them.'**
   String get onboardingReflectionsOff;
 
   /// Button advancing to the next onboarding step
@@ -995,6 +1085,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get onboardingStart;
+
+  /// Button closing a replayed onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get onboardingDone;
+
+  /// One-shot callout under the entry menu button, shown on the first entry opened
+  ///
+  /// In en, this message translates to:
+  /// **'Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.'**
+  String get hintEntryMenu;
 
   /// Menu row and section label of the cache screen (audio storage usage and cleanup)
   ///
@@ -1446,7 +1548,7 @@ abstract class AppLocalizations {
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
 
-  /// Menu row and button label for exporting one entry
+  /// Export entry sheet action button
   ///
   /// In en, this message translates to:
   /// **'Export'**
@@ -1473,19 +1575,19 @@ abstract class AppLocalizations {
   /// One line under the Markdown format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'One text file per entry, plus a .json.'**
+  /// **'A note per entry, plus JSON for machines.'**
   String get exportFormatMarkdownNote;
 
   /// Name of the Obsidian export format. A product name: keep it verbatim
   ///
   /// In en, this message translates to:
-  /// **'Obsidian'**
+  /// **'Obsidian Vault'**
   String get exportFormatObsidian;
 
   /// One line under the Obsidian format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'Notes with properties, audio embedded.'**
+  /// **'Notes with properties, recordings embedded.'**
   String get exportFormatObsidianNote;
 
   /// The app's own name for the HTML export format; a plain noun, so it translates
@@ -1497,7 +1599,7 @@ abstract class AppLocalizations {
   /// One line under the web page format row saying what it writes
   ///
   /// In en, this message translates to:
-  /// **'Opens in any browser, with a player.'**
+  /// **'Search and a player, in any browser.'**
   String get exportFormatWebNote;
 
   /// Export failure sheet title
@@ -1511,6 +1613,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not prepare the files. Nothing was shared.'**
   String get exportFailedBody;
+
+  /// Export failure body when the archive overflowed the zip format's 4 GB cap
+  ///
+  /// In en, this message translates to:
+  /// **'The export exceeds the 4 GB a single file can hold. Nothing was shared.'**
+  String get exportTooLargeBody;
+
+  /// Export failure body when the device ran out of disk space
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space to prepare the files. Nothing was shared.'**
+  String get exportNoSpaceBody;
+
+  /// Row calling off the pack phase of a running backup or export; nothing is shared
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get exportCancel;
 
   /// File and heading fallback for an entry with no title
   ///
@@ -1530,6 +1650,90 @@ abstract class AppLocalizations {
   /// **'A quiet stretch.'**
   String get exportQuiet;
 
+  /// Website export: search field placeholder and label
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get exportHtmlSearch;
+
+  /// Website export: spoken label of the scheme switcher
+  ///
+  /// In en, this message translates to:
+  /// **'Color scheme'**
+  String get exportHtmlSchemeLabel;
+
+  /// Website export: scheme button following the machine
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get exportHtmlSchemeAuto;
+
+  /// Website export: light scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get exportHtmlSchemeLight;
+
+  /// Website export: dark scheme button
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get exportHtmlSchemeDark;
+
+  /// Website export: empty journal title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get exportHtmlEmptyTitle;
+
+  /// Website export: empty journal message
+  ///
+  /// In en, this message translates to:
+  /// **'This journal has no entries.'**
+  String get exportHtmlEmptyBody;
+
+  /// Website export: empty search result title
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get exportHtmlNoMatchesTitle;
+
+  /// Website export: empty search result message; term is the searched phrase, quoted by the translation
+  ///
+  /// In en, this message translates to:
+  /// **'No entry matches “{term}”'**
+  String exportHtmlNoMatches(String term);
+
+  /// Website export: spoken label of the play button
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get exportHtmlPlay;
+
+  /// Website export: spoken label of the pause button
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get exportHtmlPause;
+
+  /// Website export: spoken label of the skip-back button
+  ///
+  /// In en, this message translates to:
+  /// **'Back 15 seconds'**
+  String get exportHtmlBack;
+
+  /// Website export: spoken label of the rate button
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get exportHtmlSpeed;
+
+  /// Website export: spoken label of the position slider
+  ///
+  /// In en, this message translates to:
+  /// **'Seek'**
+  String get exportHtmlSeek;
+
   /// Home menu row opening the Backup screen
   ///
   /// In en, this message translates to:
@@ -1542,28 +1746,34 @@ abstract class AppLocalizations {
   /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
   String get backupInfo;
 
-  /// The Backup screen intro once the entry count is measured
+  /// Backup intro when the measured journal is empty
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing to back up yet. A backup holds every entry with its audio and reflections.} one {A backup holds your 1 entry with its audio and reflections. Encrypt it and your passphrase is the only key.} other {A backup holds all {count} entries with their audio and reflections. Encrypt it and your passphrase is the only key.}}'**
-  String backupInfoCount(int count);
+  /// **'Nothing to back up yet. A backup holds every entry with its audio and reflections.'**
+  String get backupInfoEmpty;
 
-  /// Section label over the format picker and export row
+  /// Backup intro once measured: entry count and approximate size, then the encryption line
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.'**
+  String backupInfoMeasured(int count, String size);
+
+  /// Section label over the audio toggle and the per-format export action rows
   ///
   /// In en, this message translates to:
   /// **'Export'**
   String get backupExportSection;
 
-  /// Action row exporting the whole journal in the chosen format
+  /// Export card action row, one per format; format is the localized format name
   ///
   /// In en, this message translates to:
-  /// **'Export journal'**
-  String get backupExportJournal;
+  /// **'Export as {format}'**
+  String backupExportAs(String format);
 
   /// Help paragraph under the export card
   ///
   /// In en, this message translates to:
-  /// **'Writes every entry in the chosen format, audio included, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
+  /// **'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
   String get backupExportInfo;
 
   /// Toggle for sealing archives with a passphrase
@@ -1572,10 +1782,10 @@ abstract class AppLocalizations {
   /// **'Encrypt with passphrase'**
   String get backupSeal;
 
-  /// The Backup section row that saves a backup file
+  /// Backup card row exporting the restorable archive, and the seal sheet action
   ///
   /// In en, this message translates to:
-  /// **'Save backup'**
+  /// **'Export backup'**
   String get backupSave;
 
   /// Detail under Save backup showing when the last backup was handed off
@@ -1620,6 +1830,18 @@ abstract class AppLocalizations {
   /// **'Passphrases do not match'**
   String get passphraseMismatch;
 
+  /// Passphrase field toggle revealing the typed secret
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get passphraseShow;
+
+  /// Passphrase field toggle hiding the typed secret again
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get passphraseHide;
+
   /// Unlock sheet title for a sealed archive
   ///
   /// In en, this message translates to:
@@ -1650,10 +1872,10 @@ abstract class AppLocalizations {
   /// **'Restore this backup?'**
   String get importConfirmTitle;
 
-  /// Import confirmation body: additive, nothing touched
+  /// Import confirmation body: additive, but an existing entry is overwritten by the backup's copy
   ///
   /// In en, this message translates to:
-  /// **'Adds its entries to your journal. Restoring the same backup twice never duplicates.'**
+  /// **'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.'**
   String get importConfirmBody;
 
   /// Import confirmation action button
@@ -1668,17 +1890,35 @@ abstract class AppLocalizations {
   /// **'Restore complete'**
   String get importSummaryTitle;
 
-  /// Summary line for how many entries were imported
+  /// Summary line for entries the restore newly added
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing new to restore.} one {Restored 1 entry.} other {Restored {count} entries.}}'**
-  String importSummaryImported(int count);
+  /// **'{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}'**
+  String importSummaryAdded(int count);
+
+  /// Summary line for existing entries the restore overwrote, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry was replaced with the backup\'s version.} other {{count} entries were replaced with the backup\'s version.}}'**
+  String importSummaryReplaced(int count);
 
   /// Summary line for entries already present, shown only when some were
   ///
   /// In en, this message translates to:
   /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
   String importSummarySkipped(int count);
+
+  /// Summary line for recordings the restore put back, shown only when some were
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording restored.} other {{count} recordings restored.}}'**
+  String importSummaryAudio(int count);
+
+  /// Restore confirm fact line: what a plain archive's manifest says it holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}'**
+  String importConfirmCounts(int count, int audio);
 
   /// Import failure sheet title
   ///
@@ -1709,6 +1949,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
   String get importRezipped;
+
+  /// VoiceOver name of the bar back chevron
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get backButton;
+
+  /// VoiceOver name of a bar menu button
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get menuButton;
+
+  /// VoiceOver name of the globe bar button that picks the transcription language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageMenuButton;
+
+  /// VoiceOver name of the floating record disc on home
+  ///
+  /// In en, this message translates to:
+  /// **'New entry'**
+  String get recordButton;
+
+  /// VoiceOver name of the recorder control that leaves the take
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get recordCloseButton;
+
+  /// VoiceOver name of the recorder control that discards the take for a fresh one
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get recordRestartButton;
+
+  /// VoiceOver name of the recorder pause control
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get recordPauseButton;
+
+  /// VoiceOver name of the recorder pause control while paused
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get recordResumeButton;
+
+  /// VoiceOver name of the recorder control that ends and saves the take
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get recordCompleteButton;
+
+  /// VoiceOver name of the floating restore disc on the backup screen
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup'**
+  String get restoreBackupButton;
 
   /// Generic dismiss button
   ///

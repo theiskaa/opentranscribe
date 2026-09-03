@@ -13,9 +13,18 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// theme (never the accent hue, never stark white). The tap's haptic and
 /// navigation belong to [onTap], so this stays presentation-only.
 class GlassFab extends StatelessWidget {
-  const GlassFab({required this.icon, required this.onTap, this.iconSize = 26, super.key});
+  const GlassFab({
+    required this.icon,
+    required this.onTap,
+    required this.semanticLabel,
+    this.iconSize = 26,
+    super.key,
+  });
 
   final IconData icon;
+
+  /// What VoiceOver calls the disc, on both faces.
+  final String semanticLabel;
 
   /// Null disables the disc; both faces render inert rather than vanish.
   final VoidCallback? onTap;
@@ -35,6 +44,7 @@ class GlassFab extends StatelessWidget {
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
         tintColor: theme.text,
+        semanticLabel: semanticLabel,
         isDark: theme.brightness == Brightness.dark,
         onPressed: onTap,
         enabled: onTap != null,
@@ -42,26 +52,33 @@ class GlassFab extends StatelessWidget {
       );
     }
 
-    return Touchable(
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: semanticLabel,
       onTap: onTap,
-      pressedScale: theme.motion.pressScale,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: theme.surface,
-          shape: BoxShape.circle,
-          border: Border.all(color: theme.surfaceBorder),
-          boxShadow: [
-            BoxShadow(
-              color: theme.shadow.withValues(alpha: 0.14),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Center(
-          child: AppIcon(icon, size: iconSize, color: theme.text),
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        pressedScale: theme.motion.pressScale,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: theme.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.surfaceBorder),
+            boxShadow: [
+              BoxShadow(
+                color: theme.shadow.withValues(alpha: 0.14),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Center(
+            child: AppIcon(icon, size: iconSize, color: theme.text),
+          ),
         ),
       ),
     );

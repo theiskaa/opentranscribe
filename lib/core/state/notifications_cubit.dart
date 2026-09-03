@@ -121,7 +121,8 @@ final class NotificationsState {
 }
 
 /// Drives the notifications screen. Turning the master switch on requests
-/// notification permission contextually (never in onboarding). The switch and
+/// notification permission contextually (onboarding asks once too, on phones
+/// that can reflect). The switch and
 /// the capsules store the user's INTENT: a denied grant leaves them on but
 /// surfaces the block (the notifier cancels the OS notification meanwhile), so
 /// permission can be restored in Settings without re-toggling. Every change
@@ -189,9 +190,9 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     );
   }
 
-  /// Flips the reminders master switch. Turning it on with nothing selected
-  /// seeds every shown period, so the first flip delivers full value in one
-  /// gesture; a mix picked later survives off-and-on untouched.
+  /// Flips the reminders master switch. Turning it on stores the intent
+  /// through [ReflectionNotifier.enable], which seeds every shown period when
+  /// nothing was selected yet.
   Future<void> setMaster(bool value) async {
     if (!value) {
       await _settings.setEnabled(ReflectionNotifier.timeKey, false);
@@ -224,20 +225,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       await _scheduler.requestPermission();
       permission = await _scheduler.permissionStatus();
     }
-    await _settings.setEnabled(ReflectionNotifier.timeKey, true);
-    // Against the stored truth, not the state snapshot: a selection changed
-    // elsewhere since this screen was built must not be seeded over.
-    final anyStored = ReflectionPeriod.values.any(
-      (p) => _reflectionSettings.enabledFor(p) && _settings.enabled(ReflectionNotifier.keyFor(p)),
-    );
-    if (!anyStored) {
-      for (final period in ReflectionPeriod.values) {
-        if (_reflectionSettings.enabledFor(period)) {
-          await _settings.setEnabled(ReflectionNotifier.keyFor(period), true);
-        }
-      }
-    }
-    unawaited(_notifier.sync());
+    await _notifier.enable();
     if (isClosed) return;
     emit(
       state.copyWith(

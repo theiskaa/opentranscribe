@@ -62,7 +62,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 `lib/core/`, everything non-UI:
 
-- `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), onboarding flags.
+- `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), the onboarding flag (`onboarding.dart`; a finished user re-enters the flow only as `/onboarding?replay=true`, which nothing links to today) and the one-shot hint flags (`hints.dart`, each shown once, ever).
 - `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
 - `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.
@@ -141,7 +141,7 @@ flutter run --dart-define=STORAGE_KEY=<your-32-char-key>
 
 ## Testing
 
-- Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
+- Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` mirrors its own `lib/` in its own `test/`. The one native suite is `packages/transcriber/ios/transcriber/Core`, a Flutter-free Swift package holding the transcript stitching rules so `swift test` can reach them. **No widget tests.** When UI behavior needs coverage, pull the logic out into a pure function next to the widget (`rollingSlots`, `resamplePeaks`) and test that. This is why `test/view/` exists and why nothing in it pumps a widget tree.
 - Fakes live in `test/support/`. Inject them through constructors; no test may reach a real platform channel or real storage.
 - Test names read as sentences about behavior, not about method names. Tests carry no comments; the name is the explanation, so put the reasoning there.
 

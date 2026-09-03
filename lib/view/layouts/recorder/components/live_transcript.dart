@@ -9,22 +9,55 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 /// cut is still a cut; much over one and the window loses a line to softness.
 const double _edgeFade = 0.7;
 
+/// The text as the window lays it out: its words, and for each whether it is
+/// glued to the one before (no whitespace between them), so no space is packed
+/// or drawn there. A run of spaced script is one word; a CJK character is a
+/// word of its own, its closing punctuation riding along, so a script without
+/// spaces still breaks across lines instead of running off the edge as one.
+({List<String> words, List<bool> glued}) transcriptWords(String text) {
+  final words = <String>[];
+  final glued = <bool>[];
+  int? lastEnd;
+  for (final match in _word.allMatches(text)) {
+    words.add(match.group(0)!);
+    glued.add(lastEnd == match.start);
+    lastEnd = match.end;
+  }
+  return (words: words, glued: glued);
+}
+
+/// The code points of the scripts written without spaces (CJK symbols and
+/// punctuation, kana, the unified ideographs, and their full-width forms), as a
+/// character-class body. One definition: the onboarding take that speaks into
+/// this window must agree with it on what counts as a character.
+const cjkRange = r'\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef';
+
+/// Closing punctuation that never opens a line, so it rides with the character
+/// before it.
+const _cjkClosing = r'\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f\u300d\u300f\uff09';
+final RegExp _word = RegExp('[$cjkRange][$_cjkClosing]*|[^\\s$cjkRange]+');
+
 /// Greedy line packing over [words], as absolute word indices per line.
 /// Packing runs forward from the first word so a line's breaks are settled once
 /// decided: a newly spoken word only ever extends the last line or starts a new
-/// one, and the block above it holds still.
+/// one, and the block above it holds still. [first] starts a fresh line at that
+/// word, for [repackFrom] to continue an earlier packing. A word [glued] to
+/// the one before it takes no space in front.
 List<List<int>> packLines(
   List<String> words,
   double Function(String) widthOf, {
   required double spaceWidth,
   required double maxWidth,
+  int first = 0,
+  List<bool>? glued,
 }) {
   final lines = <List<int>>[];
   var current = <int>[];
   var used = 0.0;
-  for (var i = 0; i < words.length; i++) {
+  for (var i = first; i < words.length; i++) {
     final width = widthOf(words[i]);
-    final advance = current.isEmpty ? width : spaceWidth + width;
+    final joined = current.isEmpty || (glued?[i] ?? false);
+    final advance = joined ? width : spaceWidth + width;
     // A word wider than the line still gets a line of its own, rather than
     // vanishing between two of them.
     if (current.isNotEmpty && used + advance > maxWidth) {
@@ -38,6 +71,83 @@ List<List<int>> packLines(
   }
   if (current.isNotEmpty) lines.add(current);
   return lines;
+}
+
+/// The first index where [a] and [b] disagree; their shared length when one
+/// is a prefix of the other. A live partial usually only appends, so this
+/// lands near the end. A word whose glue changed diverges too: the same words
+/// with a space put between them, or taken out, are packed differently.
+int firstDivergence(List<String> a, List<String> b, {List<bool>? aGlued, List<bool>? bGlued}) {
+  final shared = math.min(a.length, b.length);
+  var i = 0;
+  while (i < shared && a[i] == b[i] && (aGlued?[i] ?? false) == (bGlued?[i] ?? false)) {
+    i++;
+  }
+  return i;
+}
+
+/// [lines]' packing continued after the words from [from] on changed: lines
+/// whose break the change cannot move are kept, and packing re-runs from the
+/// first line whose break it could. Assumes [words] before [from] matches the
+/// packing [lines] came from; then this equals [packLines] over all of
+/// [words], at the cost of the changed tail alone.
+List<List<int>> repackFrom(
+  List<List<int>> lines,
+  int from,
+  List<String> words,
+  double Function(String) widthOf, {
+  required double spaceWidth,
+  required double maxWidth,
+  List<bool>? glued,
+}) {
+  var keep = 0;
+  // Line j's break was decided by the word AFTER it (index last + 1), so the
+  // line is settled only while that word is unchanged.
+  while (keep < lines.length && lines[keep].last < from - 1) {
+    keep++;
+  }
+  final first = keep == 0 ? 0 : lines[keep - 1].last + 1;
+  return lines.sublist(0, keep)..addAll(
+    packLines(
+      words,
+      widthOf,
+      spaceWidth: spaceWidth,
+      maxWidth: maxWidth,
+      first: first,
+      glued: glued,
+    ),
+  );
+}
+
+/// The packing for [words], continued from the previous partial's
+/// [previousWords] and [previous] packing at [previousMaxWidth]. Unchanged
+/// words keep the previous packing, identity included, so an idle rebuild
+/// re-lays nothing; a width change re-packs everything.
+List<List<int>> packIncrementally(
+  List<String> words,
+  double Function(String) widthOf, {
+  required double spaceWidth,
+  required double maxWidth,
+  required List<String> previousWords,
+  required List<List<int>> previous,
+  required double? previousMaxWidth,
+  List<bool>? glued,
+  List<bool>? previousGlued,
+}) {
+  if (maxWidth != previousMaxWidth) {
+    return packLines(words, widthOf, spaceWidth: spaceWidth, maxWidth: maxWidth, glued: glued);
+  }
+  final from = firstDivergence(previousWords, words, aGlued: previousGlued, bGlued: glued);
+  if (from == words.length && from == previousWords.length) return previous;
+  return repackFrom(
+    previous,
+    from,
+    words,
+    widthOf,
+    spaceWidth: spaceWidth,
+    maxWidth: maxWidth,
+    glued: glued,
+  );
 }
 
 /// The live transcript: a four-line window on what is being said, anchored at
@@ -58,13 +168,23 @@ class LiveTranscript extends StatefulWidget {
 class _LiveTranscriptState extends State<LiveTranscript> {
   static const _lines = 4;
 
+  /// The last partial's words and their packing, so the next one re-packs
+  /// only its changed tail instead of the whole take.
+  List<String> _words = const [];
+  List<bool> _glued = const [];
+  List<List<int>> _packed = const [];
+  double? _packedWidth;
+
+  void _dropPacking() {
+    _words = const [];
+    _glued = const [];
+    _packed = const [];
+    _packedWidth = null;
+  }
+
   /// Reversed: offset 0 is the NEWEST line, so the window stays on the latest
   /// speech for free and scrolling back is scrolling forward.
-  final ScrollController _scroll = ScrollController();
-
-  /// Lines packed at the last build, to know how far a new one displaced what
-  /// was already on screen.
-  int _lineCount = 0;
+  final _HoldingController _scroll = _HoldingController();
 
   /// Measured word widths, so a long take does not re-measure its history on
   /// every partial. Dropped when the style or text scale changes under it.
@@ -113,29 +233,6 @@ class _LiveTranscriptState extends State<LiveTranscript> {
     return (above * span, below * span);
   }
 
-  /// Keeps the window where the reader left it as lines arrive. On the reversed
-  /// axis a new line pushes everything already there one line further from the
-  /// bottom, so jumping by that much holds the same words in place. From the
-  /// bottom that jump lands on the frame BEFORE the new line, and gliding back
-  /// to zero is the lift.
-  void _absorbNewLines(int count, double lineHeight, Duration lift) {
-    final delta = count - _lineCount;
-    _lineCount = count;
-    if (delta == 0) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients) return;
-      final position = _scroll.position;
-      final wasAtNewest = position.pixels <= 0.5;
-      final held = (position.pixels + delta * lineHeight).clamp(0.0, position.maxScrollExtent);
-      if (held != position.pixels) _scroll.jumpTo(held);
-      // Only the reader at the bottom is following the speech; anyone scrolled
-      // back is reading, and must not be dragged forward.
-      if (wasAtNewest && held > 0) {
-        _scroll.animateTo(0, duration: lift, curve: Curves.easeInOut);
-      }
-    });
-  }
-
   @override
   void dispose() {
     _scroll.dispose();
@@ -152,16 +249,17 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       _widths.clear();
       _measuredWith = style;
       _measuredAt = scaler;
+      _dropPacking();
     }
     final lineHeight = scaler.scale(style.fontSize!) * style.height!;
     final boxHeight = lineHeight * _lines;
 
-    final words = widget.text.split(RegExp(r'\s+'))..removeWhere((word) => word.isEmpty);
+    final (:words, :glued) = transcriptWords(widget.text);
     if (words.isEmpty) {
       // Only an emptied text is a fresh take; nothing has been shown under the
       // new numbering.
       _shownThrough = -1;
-      _lineCount = 0;
+      _dropPacking();
       return SizedBox(height: boxHeight);
     }
     // A shortening revision ("recognise it" -> "recognized") must not make
@@ -179,21 +277,35 @@ class _LiveTranscriptState extends State<LiveTranscript> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final spaceWidth = _spaceWidth(style, scaler);
-          final lines = packLines(
+          final lines = packIncrementally(
             words,
             (word) => _widthOf(word, style, scaler),
             spaceWidth: spaceWidth,
             maxWidth: constraints.maxWidth,
+            previousWords: _words,
+            previous: _packed,
+            previousMaxWidth: _packedWidth,
+            glued: glued,
+            previousGlued: _glued,
           );
-          _absorbNewLines(lines.length, lineHeight, theme.motion.lineShift);
+          _words = words;
+          _glued = glued;
+          _packed = lines;
+          _packedWidth = constraints.maxWidth;
+          _scroll.lift = context.reduceMotion ? Duration.zero : theme.motion.lineShift;
 
           // Stagger runs over the words arriving in THIS frame, so a partial
           // that lands several at once reads as one cascade. Counted over the
           // packing, not the build, so a line scrolled out of the viewport
-          // cannot renumber the words that are actually appearing.
+          // cannot renumber the words that are actually appearing. Only the
+          // tail can hold arrivals.
+          var firstArriving = lines.length;
+          while (firstArriving > 0 && lines[firstArriving - 1].last > shownBefore) {
+            firstArriving--;
+          }
           final arrivalOrder = <int, int>{};
-          for (final line in lines) {
-            for (final index in line) {
+          for (var l = firstArriving; l < lines.length; l++) {
+            for (final index in lines[l]) {
               if (index > shownBefore) arrivalOrder[index] = arrivalOrder.length;
             }
           }
@@ -226,7 +338,7 @@ class _LiveTranscriptState extends State<LiveTranscript> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (final (position, index) in line.indexed) ...[
-                          if (position > 0) SizedBox(width: spaceWidth),
+                          if (position > 0 && !glued[index]) SizedBox(width: spaceWidth),
                           _Word(
                             key: ValueKey(index),
                             text: words[index],
@@ -253,7 +365,7 @@ class _LiveTranscriptState extends State<LiveTranscript> {
                       end: Alignment.bottomCenter,
                       colors: [
                         tokens.liveTextColor.withValues(alpha: 0),
-                        tokens.liveTextFadedColor,
+                        context.highContrast ? tokens.liveTextColor : tokens.liveTextFadedColor,
                         tokens.liveTextColor,
                         tokens.liveTextColor,
                         tokens.liveTextColor.withValues(alpha: 0),
@@ -344,5 +456,72 @@ class _WordState extends State<_Word> {
       ),
       child: word,
     );
+  }
+}
+
+/// The live window's scroll controller: it holds the words where they are when
+/// a line arrives, and carries the lift's [lift] duration for its position.
+class _HoldingController extends ScrollController {
+  Duration lift = Duration.zero;
+
+  @override
+  ScrollPosition createScrollPosition(
+    ScrollPhysics physics,
+    ScrollContext context,
+    ScrollPosition? oldPosition,
+  ) => _HoldingPosition(
+    controller: this,
+    physics: physics,
+    context: context,
+    oldPosition: oldPosition,
+  );
+}
+
+/// On the reversed axis a new line pushes everything already there one line
+/// further from the bottom. Correcting the offset by that much INSIDE layout
+/// keeps the same words in place with no frame in between: a post-frame jump
+/// showed the shifted block for one frame before the lift, a visible jolt on
+/// every new line. A reader at the newest line then glides to it; a reader
+/// scrolled back is reading and stays where they are. No lift means no hold:
+/// the new line simply appears, for Reduce Motion.
+class _HoldingPosition extends ScrollPositionWithSingleContext {
+  _HoldingPosition({
+    required this.controller,
+    required super.physics,
+    required super.context,
+    super.oldPosition,
+  });
+
+  final _HoldingController controller;
+
+  /// The glide in progress, if any. A reader mid-glide is still following the
+  /// speech; a line arriving then restarts the glide from the held offset,
+  /// since the running one would set its next frame's offset absolutely.
+  Future<void>? _glide;
+
+  @override
+  bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
+    final grew = hasContentDimensions ? maxScrollExtent - this.maxScrollExtent : 0.0;
+    final hold = grew > 0 && controller.lift > Duration.zero;
+    if (hold) {
+      final following = pixels <= 0.5 || _glide != null;
+      correctPixels(pixels + grew);
+      if (following) WidgetsBinding.instance.addPostFrameCallback((_) => _liftToNewest());
+    }
+    final settled = super.applyContentDimensions(minScrollExtent, maxScrollExtent);
+    // A corrected offset is only on screen if the viewport lays out again with
+    // it; answering true would paint this frame at the old offset, the jolt.
+    return settled && !hold;
+  }
+
+  void _liftToNewest() {
+    // The frame between the hold and this callback can rebuild the scrollable
+    // onto a new position; the old one is disposed and must not animate.
+    if (!hasPixels || !controller.positions.contains(this)) return;
+    final glide = animateTo(0, duration: controller.lift, curve: Curves.easeInOut);
+    _glide = glide;
+    glide.whenComplete(() {
+      if (_glide == glide) _glide = null;
+    });
   }
 }

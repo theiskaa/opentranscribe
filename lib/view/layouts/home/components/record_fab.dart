@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 
@@ -12,5 +13,9 @@ class RecordFab extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GlassFab(icon: AppIcons.waveform, onTap: onTap);
+  Widget build(BuildContext context) => GlassFab(
+    icon: AppIcons.waveform,
+    semanticLabel: AppLocalizations.of(context)!.recordButton,
+    onTap: onTap,
+  );
 }

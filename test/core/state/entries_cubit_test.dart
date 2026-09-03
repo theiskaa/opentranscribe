@@ -43,6 +43,39 @@ void main() {
     await cubit.close();
   });
 
+  test('a refresh that changed nothing emits no state', () async {
+    final cubit = await seeded();
+    await pumpEventQueue();
+    cubit.load();
+    final before = cubit.state;
+    var emits = 0;
+    final sub = cubit.stream.listen((_) => emits++);
+
+    cubit.load();
+    await pumpEventQueue();
+
+    expect(emits, 0);
+    expect(identical(cubit.state, before), isTrue);
+    await sub.cancel();
+    await cubit.close();
+  });
+
+  test('a refresh after a change still emits', () async {
+    final cubit = await seeded();
+    var emits = 0;
+    final sub = cubit.stream.listen((_) => emits++);
+
+    await service.startRecording();
+    await service.stopRecording();
+    cubit.load();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.entries, hasLength(2));
+    expect(emits, greaterThan(0));
+    await sub.cancel();
+    await cubit.close();
+  });
+
   test('rename updates the list and clears busy', () async {
     final cubit = await seeded();
     final entry = cubit.state.entries.single;
@@ -312,38 +345,39 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('retranscribe of a transcript-only entry pins a failure, never the zone', () async {
-    final storage = LocalService();
-    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
-    final store = EntryStore(storage);
-    final localEngine = FakeBatchEngine();
-    final svc = TranscriptionService(
-      composer: FakeAudioComposer(),
-      recorder: FakeAudioRecorder(),
-      engine: localEngine,
-      store: store,
-    );
-    await store.save(
-      Entry(
-        id: 'b1',
-        createdAt: DateTime.utc(2026, 3, 4),
-        audioPath: null,
-        duration: Duration.zero,
-      ),
-    );
-    final cubit = EntriesCubit(service: svc);
+  test(
+    'retranscribe of a transcript-only entry pins a missing recording, never the zone',
+    () async {
+      final storage = LocalService();
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final store = EntryStore(storage);
+      final localEngine = FakeBatchEngine();
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(),
+        engine: localEngine,
+        store: store,
+      );
+      await store.save(
+        Entry(
+          id: 'b1',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: null,
+          duration: Duration.zero,
+        ),
+      );
+      final cubit = EntriesCubit(service: svc);
 
-    // A stale open menu can still fire this; the StateError must be caught,
-    // pinned to the entry, and the list left consistent.
-    await cubit.retranscribe(cubit.state.entries.single);
+      await cubit.retranscribe(cubit.state.entries.single);
 
-    expect(cubit.state.errorFor('b1'), EntriesError.generic);
-    expect(cubit.state.entries.single.hasAudio, isFalse);
-    expect(localEngine.batchCalls, isEmpty);
+      expect(cubit.state.errorFor('b1'), EntriesError.recordingMissing);
+      expect(cubit.state.entries.single.hasAudio, isFalse);
+      expect(localEngine.batchCalls, isEmpty);
 
-    await cubit.close();
-    await svc.dispose();
-  });
+      await cubit.close();
+      await svc.dispose();
+    },
+  );
 
   test('a detached discard refreshes the list without a manual load', () async {
     final dir = await Directory.systemTemp.createTemp('otr-cubitdisc');

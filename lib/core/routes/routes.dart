@@ -8,10 +8,16 @@ abstract final class Routes {
   static const home = '/';
   static const homeName = 'home';
 
-  /// First-launch onboarding (intro, permissions, model download). Gated by the
-  /// router's redirect on [Onboarding.isDone]; shown once, then never again.
+  /// First-launch onboarding: a take running, the week read back (eligible
+  /// hardware only), the export shapes, then set up with the permission
+  /// prompts. Gated by the router's redirect on [Onboarding.isDone]: shown
+  /// once, then only as a replay, pushed over home from the menu with
+  /// [onboardingReplayQuery] set.
   static const onboarding = '/onboarding';
   static const onboardingName = 'onboarding';
+
+  /// Query key marking a replay of onboarding by a finished user (`true`).
+  static const onboardingReplayQuery = 'replay';
 
   /// The models screen (per-language on-device speech models). Pushed over
   /// home from the menu.

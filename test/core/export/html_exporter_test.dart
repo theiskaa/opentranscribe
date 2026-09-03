@@ -282,6 +282,58 @@ void main() {
     expect(html, contains('&middot; &lt;img src=x onerror=alert(1)&gt;'));
   });
 
+  test('a month reads day by day, cards over the entries they cover', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(
+        entries: [
+          ExportEntry(
+            entry: entry(id: 'later', createdAt: DateTime(2026, 8, 20, 9)),
+          ),
+          ExportEntry(
+            entry: entry(id: 'covered', createdAt: DateTime(2026, 8, 5, 9)),
+          ),
+        ],
+        reflections: [
+          Reflection(
+            periodStart: DateTime(2026, 8, 3),
+            generatedAt: DateTime.utc(2026, 8, 10),
+            text: 'A week of walking.',
+          ),
+        ],
+      ),
+      context,
+    );
+    final html = textOf(files, 'index.html');
+    expect(html.indexOf('id="e-later"'), lessThan(html.indexOf('class="reflection"')));
+    expect(html.indexOf('class="reflection"'), lessThan(html.indexOf('id="e-covered"')));
+  });
+
+  test('a card never sits under a month heading its own label contradicts', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(
+        entries: [
+          ExportEntry(
+            entry: entry(id: 'august', createdAt: DateTime(2026, 8, 1, 9)),
+          ),
+          ExportEntry(
+            entry: entry(id: 'july', createdAt: DateTime(2026, 7, 30, 9)),
+          ),
+        ],
+        reflections: [
+          Reflection(
+            periodStart: DateTime(2026, 7, 27),
+            generatedAt: DateTime.utc(2026, 8, 3),
+            text: 'A week of walking.',
+          ),
+        ],
+      ),
+      context,
+    );
+    final html = textOf(files, 'index.html');
+    expect(html.indexOf('id="m-2026-07"'), lessThan(html.indexOf('<h3>Week 2026-07-27</h3>')));
+    expect(html.indexOf('<h3>Week 2026-07-27</h3>'), lessThan(html.indexOf('id="e-july"')));
+  });
+
   test('a reflection whose month holds no entry is still written', () {
     final files = exporter.exportJournal(
       ExportSnapshot(
@@ -388,5 +440,85 @@ void main() {
     final html = textOf(files, 'index.html');
     expect(html, contains('<div class="scheme"'));
     expect(html, isNot(contains('class="search"')));
+  });
+
+  ExportContext german() => ExportContext(
+    strings: const ExportStrings(
+      untitledEntry: 'Ohne Titel',
+      transcriptHeading: 'Transkript',
+      quietReflection: 'Eine ruhige Zeit.',
+      periodLabels: {},
+      html: HtmlChromeStrings(
+        languageTag: 'de',
+        search: 'Suchen',
+        schemeLabel: 'Farbschema',
+        schemeAuto: 'Automatisch',
+        schemeLight: 'Hell',
+        schemeDark: 'Dunkel',
+        emptyTitle: 'Noch nichts hier',
+        emptyBody: 'Dieses Journal hat keine Einträge.',
+        noMatchesTitle: 'Nichts gefunden',
+        noMatches: 'Kein Eintrag passt zu ${HtmlChromeStrings.termSlot}',
+        play: 'Wiedergabe',
+        pause: 'Pausieren',
+        back: '15 Sekunden zurück',
+        speed: 'Wiedergabegeschwindigkeit',
+        seek: 'Position',
+      ),
+    ),
+    generatedAt: DateTime.utc(2026, 8, 9, 12),
+    appVersion: '0.2.0',
+  );
+
+  test('the chrome speaks the language it was handed, not English', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(entries: [ExportEntry(entry: entry())]),
+      german(),
+    );
+    final html = textOf(files, 'index.html');
+    expect(html, contains('<html lang="de">'));
+    expect(html, contains('placeholder="Suchen" aria-label="Suchen"'));
+    expect(html, contains('aria-label="Farbschema"'));
+    expect(html, contains('>Hell</button>'));
+    expect(html, contains('Nichts gefunden'));
+    expect(html, contains('Kein Eintrag passt zu <span class="term"></span>'));
+    expect(html, isNot(contains('aria-label="Search"')));
+  });
+
+  test('an empty journal says so in the handed language', () {
+    final files = exporter.exportJournal(ExportSnapshot(entries: const []), german());
+    final html = textOf(files, 'index.html');
+    expect(html, contains('Noch nichts hier'));
+    expect(html, contains('Dieses Journal hat keine Einträge.'));
+  });
+
+  test('the page carries the player labels the static script reads', () {
+    final files = exporter.exportJournal(
+      ExportSnapshot(entries: [ExportEntry(entry: entry())]),
+      german(),
+    );
+    final html = textOf(files, 'index.html');
+    expect(html, contains('<script type="application/json" id="l10n">'));
+    expect(html, contains('"play":"Wiedergabe"'));
+    expect(html, contains('"back":"15 Sekunden zurück"'));
+    expect(textOf(files, 'script.js'), contains("getElementById('l10n')"));
+  });
+
+  test('a hostile player label cannot close the labels block early', () {
+    final hostile = ExportContext(
+      strings: const ExportStrings(
+        untitledEntry: 'Untitled',
+        transcriptHeading: 'Transcript',
+        quietReflection: 'A quiet stretch.',
+        periodLabels: {},
+        html: HtmlChromeStrings(play: '</script><b>x</b>'),
+      ),
+      generatedAt: DateTime.utc(2026, 8, 9, 12),
+      appVersion: '0.2.0',
+    );
+    final files = exporter.exportEntry(ExportEntry(entry: entry()), hostile);
+    final html = utf8.decode(files.single.bytes);
+    expect(html, isNot(contains('"play":"</script>')));
+    expect(html, contains(r'"play":"\u003c/script>'));
   });
 }

@@ -1,5 +1,12 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:opentranscribe/core/export/file_names.dart';
+import 'package:opentranscribe/core/export/journal_exporter.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/utils/period_math.dart';
+import 'package:opentranscribe/core/utils/week.dart';
+import 'package:reflections/reflections.dart';
 
 /// m:ss below an hour, h:mm:ss from there. Negative durations cannot occur in
 /// real recordings; they clamp to zero rather than print disagreeing parts.
@@ -85,4 +92,77 @@ Map<String, dynamic> entryJsonForExport(Entry entry, String? audioRelativePath) 
   final json = entry.toJson()..remove('audioPath');
   if (audioRelativePath != null) json['audioPath'] = audioRelativePath;
   return json;
+}
+
+/// One civil day of the journal as a document reads it: the reflection cards
+/// seated above the day, then the day's entries, newest first.
+@immutable
+final class TimelineDay {
+  TimelineDay({
+    required this.day,
+    required List<Reflection> reflections,
+    required List<ExportEntry> entries,
+  }) : reflections = List.unmodifiable(reflections),
+       entries = List.unmodifiable(entries);
+
+  final DateTime day;
+  final List<Reflection> reflections;
+  final List<ExportEntry> entries;
+}
+
+/// The journal as one timeline, newest day first, in the order home reads it:
+/// a reflection is seated above the most recent day its period covers, and
+/// cards sharing a day run broad to narrow (month over week over day).
+///
+/// Two rules a document needs that a scrolling list does not. A card is
+/// seated only within its own civil month, so it can never sit under a month
+/// heading its own label contradicts; and a period with no such day falls
+/// back to its own start, because an export may drop nothing. No clock is
+/// read either: the service never writes a period that is still open, and
+/// the same snapshot must always export the same bytes.
+List<TimelineDay> journalTimeline({
+  required List<ExportEntry> entries,
+  required List<Reflection> reflections,
+}) {
+  final newestFirst = [...entries]..sort((a, b) => b.entry.createdAt.compareTo(a.entry.createdAt));
+  final byDay = <DateTime, List<ExportEntry>>{};
+  for (final entry in newestFirst) {
+    byDay.putIfAbsent(dateOnly(entry.entry.createdAt.toLocal()), () => []).add(entry);
+  }
+  final entryDays = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
+
+  // Grouped by the identity home keys its cards by and the store keys its
+  // rows by, so one period seats once and carries everything stored under it.
+  final byPeriod = <(ReflectionPeriod, DateTime), List<Reflection>>{};
+  for (final reflection in reflections) {
+    (byPeriod[(reflection.period, reflection.periodStart)] ??= []).add(reflection);
+  }
+
+  final cards = <DateTime, List<Reflection>>{};
+  final seated = <(ReflectionPeriod, DateTime)>{};
+  for (final day in entryDays) {
+    for (final MapEntry(key: key, value: group) in byPeriod.entries) {
+      final (period, start) = key;
+      if (seated.contains(key)) continue;
+      if (day.year != start.year || day.month != start.month) continue;
+      if (!periodContains(start, period, day)) continue;
+      (cards[day] ??= []).addAll(group);
+      seated.add(key);
+    }
+  }
+  for (final MapEntry(key: key, value: group) in byPeriod.entries) {
+    if (seated.contains(key)) continue;
+    (cards[key.$2] ??= []).addAll(group);
+  }
+  // Relies on ReflectionPeriod being declared narrow to broad, like the home
+  // stack does.
+  for (final day in cards.values) {
+    day.sort((a, b) => b.period.index.compareTo(a.period.index));
+  }
+
+  final days = <DateTime>{...entryDays, ...cards.keys}.toList()..sort((a, b) => b.compareTo(a));
+  return [
+    for (final day in days)
+      TimelineDay(day: day, reflections: cards[day] ?? const [], entries: byDay[day] ?? const []),
+  ];
 }

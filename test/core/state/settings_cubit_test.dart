@@ -79,6 +79,57 @@ void main() {
     await cubit.close();
   });
 
+  (SettingsCubit, TranscriptionService, _RefusingEngine) buildRefusing() {
+    final refusing = _RefusingEngine();
+    final scoped = TranscriptionService(
+      recorder: recorder,
+      engine: refusing,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+    );
+    final cubit = SettingsCubit(
+      service: scoped,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: scoped,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: audioStorage,
+    );
+    return (cubit, scoped, refusing);
+  }
+
+  test('a refusing engine leaves the rows as they were and never throws', () async {
+    final (cubit, scoped, refusing) = buildRefusing();
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.languages, isEmpty);
+
+    refusing.refuse = false;
+    await cubit.load();
+    expect(cubit.state.languages, isNotEmpty);
+
+    refusing.refuse = true;
+    await cubit.load();
+    expect(cubit.state.languages, isNotEmpty);
+
+    await cubit.close();
+    await scoped.dispose();
+  });
+
+  test('a refused load says so until the next one lands', () async {
+    final (cubit, scoped, refusing) = buildRefusing();
+    await Future<void>.delayed(Duration.zero);
+    expect(cubit.state.loadFailed, isTrue);
+    expect(cubit.state.defaultLanguage, isNull);
+
+    refusing.refuse = false;
+    await cubit.load();
+    expect(cubit.state.loadFailed, isFalse);
+
+    await cubit.close();
+    await scoped.dispose();
+  });
+
   // A cubit over its own engine with [tags], its default derived from
   // [deviceTag] and resolved the way Deps.init does. Caller closes the cubit;
   // the service dies with the shared tearDown recorder.
@@ -605,4 +656,14 @@ void main() {
     await cubit.close();
     await svc.dispose();
   });
+}
+
+class _RefusingEngine extends FakeManagedEngine {
+  bool refuse = true;
+
+  @override
+  Future<List<String>> supportedLocales() async {
+    if (refuse) throw StateError('channel refused');
+    return super.supportedLocales();
+  }
 }

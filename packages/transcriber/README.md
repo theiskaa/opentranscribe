@@ -27,3 +27,11 @@ A host app provides `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsage
 `TranscriberPlugin.recordingStatusObserver` is an optional native hook: capture status strings (`recording`, `paused`, `interrupted`, `stopped`) delivered after Dart's own status sink, for surfaces the package must not know about. opentranscribe drives its Live Activity with it.
 
 `package:transcriber/testing.dart` exports `FakeStreamingEngine`, `FakeBatchEngine`, `FakeManagedEngine`, `FakeDictationEngine`, and `FakeOffDeviceEngine` for tests that need an engine without a device.
+
+The classic recognizer hands out only its current utterance, and resets that
+hypothesis after a pause of about two seconds. `UtteranceStitcher` rebuilds the
+whole take from those pieces, and `feedHolds` paces the file feeder that drives
+it. Both live in `ios/transcriber/Core`, a Swift package with no Flutter
+dependency, so `swift test` can reach the rules;
+`tool/checks.sh` in the host app runs them. Keep it free of iOS-only API: those
+tests build for the host.

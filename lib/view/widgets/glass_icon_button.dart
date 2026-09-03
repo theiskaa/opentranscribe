@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -16,6 +17,7 @@ class AppGlassIconButton extends StatelessWidget {
     this.size = 44,
     this.iconSize = 18,
     this.color,
+    this.semanticLabel,
     super.key,
   });
 
@@ -25,8 +27,12 @@ class AppGlassIconButton extends StatelessWidget {
   final double iconSize;
   final Color? color;
 
+  /// What VoiceOver calls the button, on both faces.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
+    final onTap = this.onTap;
     if (PlatformCaps.nativeGlass) {
       // The native side draws the glyph itself, from the SF Symbol NAME - our
       // vendored icon font never reaches it. isDark keeps the glass in step
@@ -35,8 +41,16 @@ class AppGlassIconButton extends StatelessWidget {
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
         tintColor: color,
+        semanticLabel: semanticLabel,
         isDark: context.theme.brightness == Brightness.dark,
-        onPressed: onTap,
+        // UIButton gives no haptic of its own; the drawn button buzzes, so
+        // the glass one must too.
+        onPressed: onTap == null
+            ? null
+            : () {
+                Haptics.light();
+                onTap();
+              },
         enabled: onTap != null,
         size: size,
       );
@@ -47,6 +61,7 @@ class AppGlassIconButton extends StatelessWidget {
       size: size,
       iconSize: iconSize,
       foreground: color,
+      semanticLabel: semanticLabel,
     );
   }
 }

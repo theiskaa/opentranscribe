@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/routes/slide_page.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
@@ -45,6 +46,7 @@ class AppRouter {
     redirect: (context, state) => resolveRedirect(
       onboardingDone: Onboarding.isDone(Deps.i.localService),
       matchedLocation: state.matchedLocation,
+      replay: _isReplay(state),
     ),
     // The app has no deep-link surface, so an unroutable location is never
     // something the user asked for: iOS handed it to us. Home instead, quietly.
@@ -56,16 +58,20 @@ class AppRouter {
         // The base of the stack: everything slides in over it. On a plain
         // launch the initial route does not animate; the arrival fade only
         // plays on the swap out of onboarding.
-        pageBuilder: (context, state) =>
-            ArrivalPage<void>(key: state.pageKey, child: const HomeScreen()),
+        pageBuilder: (context, state) => ArrivalPage<void>(
+          motion: context.motionNow,
+          key: state.pageKey,
+          child: const HomeScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.onboarding,
         name: Routes.onboardingName,
-        // No transition: the launch splash collapses straight onto it on a
-        // cold first launch.
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
+        // No transition on first run: the launch splash collapses straight
+        // onto it on a cold launch. A replay is a pushed page like any other.
+        pageBuilder: (context, state) => _isReplay(state)
+            ? SlidePage<void>(key: state.pageKey, child: const OnboardingScreen(replay: true))
+            : NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
       ),
       GoRoute(
         path: Routes.reflections,
@@ -120,6 +126,7 @@ class AppRouter {
         path: Routes.record,
         name: Routes.recordName,
         pageBuilder: (context, state) => SlideUpPage<void>(
+          motion: context.motionNow,
           key: state.pageKey,
           child: RecorderScreen(
             continueEntryId: state.uri.queryParameters[Routes.recordEntryQuery],
@@ -149,10 +156,18 @@ bool canOpenRecorder({required List<String> stack, required bool onboardingDone}
   return !stack.any((location) => Uri.parse(location).path == Routes.record);
 }
 
-/// First-run users land in onboarding; finished users can never re-enter it.
-String? resolveRedirect({required bool onboardingDone, required String matchedLocation}) {
+/// First-run users land in onboarding; finished users re-enter it only as a
+/// [replay], never as first run.
+String? resolveRedirect({
+  required bool onboardingDone,
+  required String matchedLocation,
+  bool replay = false,
+}) {
   final atOnboarding = matchedLocation == Routes.onboarding;
   if (!onboardingDone && !atOnboarding) return Routes.onboarding;
-  if (onboardingDone && atOnboarding) return Routes.home;
+  if (onboardingDone && atOnboarding && !replay) return Routes.home;
   return null;
 }
+
+bool _isReplay(GoRouterState state) =>
+    state.uri.queryParameters[Routes.onboardingReplayQuery] == 'true';

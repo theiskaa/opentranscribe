@@ -55,6 +55,17 @@ final class AppMotion {
     this.periodTurnFloor = 0.35,
     this.periodTurnSpring = const SpringDescription(mass: 1, stiffness: 170, damping: 26),
     this.pageSlide = const Duration(milliseconds: 300),
+    this.routeSlide = const Duration(milliseconds: 300),
+    this.routeSlideCurve = Curves.fastEaseInToSlowEaseOut,
+    this.routeSwipeSettle = const Duration(milliseconds: 350),
+    this.arrival = const Duration(milliseconds: 500),
+    this.arrivalReverse = const Duration(milliseconds: 200),
+    this.arrivalCurve = Curves.easeOutCubic,
+    this.arrivalScale = 0.97,
+    this.fullSheetRise = const Duration(milliseconds: 300),
+    this.fullSheetLeave = const Duration(milliseconds: 260),
+    this.fullSheetRiseCurve = Curves.easeOutCubic,
+    this.fullSheetLeaveCurve = Curves.easeInCubic,
     this.dayGlide = const Duration(milliseconds: 320),
     this.dayGlideCurve = Curves.easeOutCubic,
     this.wordIn = const Duration(milliseconds: 180),
@@ -148,6 +159,32 @@ final class AppMotion {
 
   /// A full-screen pager advancing one page on a button tap (onboarding's Next).
   final Duration pageSlide;
+
+  /// A pushed page sliding in from the trailing edge, and out again on pop.
+  /// The curve is Cupertino's: quick to arrive, slow to settle. A finger-driven
+  /// back swipe tracks 1:1 and ignores it.
+  final Duration routeSlide;
+  final Curve routeSlideCurve;
+
+  /// A released back swipe finishing its travel either way, scaled by the
+  /// distance left so a release near the edge lands at once.
+  final Duration routeSwipeSettle;
+
+  /// Home coming forward to meet the user out of onboarding: a fade with a
+  /// touch of scale, slower than a slide because it is an arrival, not a step.
+  /// The reverse is brief: home only leaves the stack on a replace, never a pop.
+  final Duration arrival;
+  final Duration arrivalReverse;
+  final Curve arrivalCurve;
+  final double arrivalScale;
+
+  /// The recorder's full-screen sheet rising and leaving. The rise
+  /// decelerates (a slow ramp in reads as lag); the leave accelerates away
+  /// and is a touch quicker, the way a dismissal should be.
+  final Duration fullSheetRise;
+  final Duration fullSheetLeave;
+  final Curve fullSheetRiseCurve;
+  final Curve fullSheetLeaveCurve;
 
   /// The list gliding to a tapped day's section, or home.
   final Duration dayGlide;

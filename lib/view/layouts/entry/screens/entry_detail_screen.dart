@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart' show TextInputAction;
+import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/app/hints.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
@@ -17,6 +18,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/entry_export_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/revision_history_sheet.dart';
@@ -28,10 +30,12 @@ import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/error_pill.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
+import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
+import 'package:opentranscribe/view/widgets/hint_callout.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
@@ -55,6 +59,11 @@ class EntryDetailScreen extends StatelessWidget {
 /// Whether the entry offers to be continued: no live edit and no action on it.
 bool continueRowVisible({required bool editing, required bool busy}) => !editing && !busy;
 
+/// Whether the first-entry hint may show: never once seen, and never while the
+/// menu it points at is hidden (editing) or thinned out (an action in flight).
+bool shouldShowEntryHint({required bool seen, required bool editing, required bool busy}) =>
+    !seen && !editing && !busy;
+
 class _DetailView extends StatefulWidget {
   const _DetailView({required this.entryId});
 
@@ -76,6 +85,21 @@ class _DetailViewState extends State<_DetailView> {
   final FocusNode _bodyFocus = FocusNode();
   final TextEditingController _bodyController = TextEditingController();
   bool _editing = false;
+
+  /// The one-shot pointer at the menu, armed only while the hint is unseen.
+  /// Marked seen the frame it first renders, not on dismiss, so a kill before
+  /// the tap does not bring it back forever. A notifier, not state: its
+  /// dismissal must move only the hint, never rebuild the document under it.
+  final ValueNotifier<bool> _hintArmed = ValueNotifier(
+    !Hints.isSeen(Deps.i.localService, Hints.entryMenu),
+  );
+  bool _hintMarked = false;
+
+  /// Any touch on the screen, or a pick from the menu it points at: either
+  /// way it has been read.
+  void _dismissHint() {
+    if (_hintArmed.value) _hintArmed.value = false;
+  }
 
   /// The bar's menu button, which the Transcribe-in dropdown anchors to (the
   /// menu that offered the action grew from the same spot).
@@ -118,6 +142,7 @@ class _DetailViewState extends State<_DetailView> {
     _player?.stopAndDetach();
     _titleFocus.dispose();
     _selectionFocus.dispose();
+    _hintArmed.dispose();
     _bodyFocus.removeListener(_onBodyFocusChange);
     _bodyFocus.dispose();
     _bodyController.dispose();
@@ -165,6 +190,16 @@ class _DetailViewState extends State<_DetailView> {
 
   void _onBodyFocusChange() {
     if (!_bodyFocus.hasFocus) _commitEdit();
+  }
+
+  /// Drops the keyboard on a scroll drag; the blur commits the edit and the
+  /// title. Only these two: the reading selection holds focus too and must
+  /// outlive a scroll.
+  bool _dismissKeyboardOnDrag(ScrollUpdateNotification notification) {
+    if (notification.dragDetails == null) return false;
+    if (_titleFocus.hasFocus) _titleFocus.unfocus();
+    if (_bodyFocus.hasFocus) _bodyFocus.unfocus();
+    return false;
   }
 
   /// Commits the typed text and leaves the mode; the pop path commits with
@@ -441,6 +476,15 @@ class _DetailViewState extends State<_DetailView> {
         // Transcribe only: a delete is also an in-flight action on this id, but
         // it must not dissolve the transcript or flash the loader on its way out.
         final busy = state.busyId == entry.id && state.busyAction == EntriesAction.transcribe;
+        final showHint = shouldShowEntryHint(
+          seen: !_hintArmed.value,
+          editing: _editing,
+          busy: state.busyId == entry.id,
+        );
+        if (showHint && !_hintMarked) {
+          _hintMarked = true;
+          unawaited(Hints.markSeen(Deps.i.localService, Hints.entryMenu).catchError((_) {}));
+        }
         // A take extending this entry, live or landing: the words stay and a
         // quiet wait sits under them.
         final continuing =
@@ -448,20 +492,6 @@ class _DetailViewState extends State<_DetailView> {
         // The entry's own language, once known: the quiet answer to "what
         // will Re-transcribe run in".
         final language = entry.effectiveLocaleId;
-        // For the Transcribe-in choices: a real submenu on the native menu,
-        // the anchored dropdown on the fallback (see _transcribeIn).
-        final settings = context.watch<SettingsCubit>().state;
-        final transcribeTags = _transcribeTags(entry, settings);
-        final preselected = entry.effectiveLocaleId ?? settings.localeId;
-        final menu = _menuItems(
-          entry,
-          l10n,
-          transcribeTags,
-          preselected,
-          anyAction: state.busyId == entry.id,
-          canContinue: context.read<EntriesCubit>().canContinue(entry),
-          editing: _editing,
-        );
         // The bottom CTA exists for a never-transcribed entry; a run in flight
         // disables it in place rather than unmounting it, so a failed run
         // never blinks the button away and back. Transcribing needs the audio,
@@ -470,11 +500,13 @@ class _DetailViewState extends State<_DetailView> {
         // This entry's own failure, if any. It rides the bottom dock above the
         // CTA, pulsing until the user acts on it - never a snackbar.
         // Transcribing needs the audio, so its failures hide without it; a
-        // continuation's own endings show either way.
+        // continuation's ending and a recording that is gone show either way.
         final kind = state.errorFor(entry.id);
-        final continuationEnding =
-            kind == EntriesError.savedSeparately || kind == EntriesError.additionUntranscribed;
-        final error = entry.hasAudio || continuationEnding ? kind : null;
+        final shownWithoutAudio =
+            kind == EntriesError.savedSeparately ||
+            kind == EntriesError.additionUntranscribed ||
+            kind == EntriesError.recordingMissing;
+        final error = entry.hasAudio || shownWithoutAudio ? kind : null;
         final bottomInset = MediaQuery.paddingOf(context).bottom;
         // The keyboard's height while the edit field is up, so the caret can
         // always scroll clear of it; zero the rest of the time.
@@ -496,170 +528,251 @@ class _DetailViewState extends State<_DetailView> {
             : bottomInset + AppSpacing.xxxl;
         return ColoredBox(
           color: theme.screens.entryDetail,
-          child: Stack(
-            children: [
-              // ONE document: title, what it is, how it sounds, what it says -
-              // in that order, on one scroll. The player goes with it rather
-              // than pinning to the floor, so the transcript reads as a page
-              // and not as text squeezed between two bars.
-              Positioned.fill(
-                child: SelectableProse(
-                  focusNode: _selectionFocus,
-                  // The toolbar's road into the editor: with words selected it
-                  // opens on them; bare, it just opens.
-                  editLabel: entry.readableText == null ? null : l10n.editTranscript,
-                  onEdit: entry.readableText == null
-                      ? null
-                      : (selected) => _editFromSelection(entry, selected),
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      // Past the bar AND its fade tail: the material is opaque
-                      // through the row and only melts across the tail, so
-                      // content starting inside it would sit under the wash.
-                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                      AppSpacing.xl,
-                      keyboard + restingBottom,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _TitleField(entry: entry, focusNode: _titleFocus),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
-                          ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
-                          ' \u00b7 ${formatClock(entry.duration)}'
-                          '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
-                          // Hand-written words are never passed off as heard.
-                          '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
-                          style: AppType.digits(
-                            AppType.footnote,
-                          ).copyWith(color: theme.textSecondary),
+          // The hint leaves on the first touch anywhere, a scroll's included,
+          // without taking that touch from whatever it was for.
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => _dismissHint(),
+            child: Stack(
+              children: [
+                // ONE document: title, what it is, how it sounds, what it says -
+                // in that order, on one scroll. The player goes with it rather
+                // than pinning to the floor, so the transcript reads as a page
+                // and not as text squeezed between two bars.
+                Positioned.fill(
+                  child: SelectableProse(
+                    focusNode: _selectionFocus,
+                    // The toolbar's road into the editor: with words selected it
+                    // opens on them; bare, it just opens.
+                    editLabel: entry.readableText == null ? null : l10n.editTranscript,
+                    onEdit: entry.readableText == null
+                        ? null
+                        : (selected) => _editFromSelection(entry, selected),
+                    child: NotificationListener<ScrollUpdateNotification>(
+                      onNotification: _dismissKeyboardOnDrag,
+                      child: SingleChildScrollView(
+                        // A short entry fits its viewport even with the keyboard
+                        // pad; without this no drag exists for the dismiss to hear.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xl,
+                          // Past the bar AND its fade tail: the material is opaque
+                          // through the row and only melts across the tail, so
+                          // content starting inside it would sit under the wash.
+                          AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                          AppSpacing.xl,
+                          keyboard + restingBottom,
                         ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        // Discarded audio: the document flows from the metadata
-                        // straight into what it says. Animated, so a discard
-                        // landing mid-read collapses the player instead of
-                        // snapping ~80px of layout in one frame.
-                        AnimatedSize(
-                          duration: context.reduceMotion
-                              ? AppMotion.instant
-                              : context.motionNow.indicator,
-                          curve: context.motionNow.indicatorCurve,
-                          alignment: Alignment.topCenter,
-                          // The switcher fades the wave out while the size eases
-                          // the gap closed, so nothing hard-cuts mid-read.
-                          child: AnimatedSwitcher(
-                            duration: context.reduceMotion
-                                ? Duration.zero
-                                : context.motionNow.indicator,
-                            child: !entry.hasAudio
-                                ? const SizedBox(width: double.infinity)
-                                : Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
-                                      const SizedBox(height: AppSpacing.xxl),
-                                    ],
-                                  ),
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Fenced out of the reading region like the body
+                            // editor: its long press must not contest the field's.
+                            SelectionContainer.disabled(
+                              child: _TitleField(entry: entry, focusNode: _titleFocus),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
+                              ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
+                              ' \u00b7 ${formatClock(entry.duration)}'
+                              '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
+                              // Hand-written words are never passed off as heard.
+                              '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
+                              style: AppType.digits(
+                                AppType.footnote,
+                              ).copyWith(color: theme.textSecondary),
+                            ),
+                            const SizedBox(height: AppSpacing.xxl),
+                            // Discarded audio: the document flows from the metadata
+                            // straight into what it says. Animated, so a discard
+                            // landing mid-read collapses the player instead of
+                            // snapping ~80px of layout in one frame.
+                            AnimatedSize(
+                              duration: context.reduceMotion
+                                  ? AppMotion.instant
+                                  : context.motionNow.indicator,
+                              curve: context.motionNow.indicatorCurve,
+                              alignment: Alignment.topCenter,
+                              // The switcher fades the wave out while the size eases
+                              // the gap closed, so nothing hard-cuts mid-read.
+                              child: AnimatedSwitcher(
+                                duration: context.reduceMotion
+                                    ? Duration.zero
+                                    : context.motionNow.indicator,
+                                child: !entry.hasAudio
+                                    ? const SizedBox(width: double.infinity)
+                                    : Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
+                                          const SizedBox(height: AppSpacing.xxl),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                            // The edit mode: the same body type in the same seat, so
+                            // entering it moves no text. The service judges the
+                            // commit; this widget only hands the words over. Fenced
+                            // out of the reading region, whose long-press must not
+                            // contest the field's own gestures.
+                            if (_editing)
+                              SelectionContainer.disabled(
+                                child: EditableProse(
+                                  controller: _bodyController,
+                                  focusNode: _bodyFocus,
+                                  style: AppType.body.copyWith(color: theme.text),
+                                  cursorColor: theme.accent,
+                                  backgroundCursorColor: theme.textSecondary,
+                                  selectionColor: theme.accent.withValues(alpha: 0.25),
+                                  keyboardAppearance: theme.brightness,
+                                  capitalization: TextCapitalization.sentences,
+                                  maxLines: null,
+                                ),
+                              )
+                            else
+                              // The take's live words stay on the recorder cubit
+                              // until its stop settles; only the transcript
+                              // follows them.
+                              BlocSelector<RecorderCubit, RecorderState, String>(
+                                selector: (recorder) => continuing ? recorder.liveText : '',
+                                builder: (context, pending) => TranscriptView(
+                                  entry: entry,
+                                  busy: busy,
+                                  appending: continuing,
+                                  pendingText: pending,
+                                ),
+                              ),
+                          ],
                         ),
-                        // The edit mode: the same body type in the same seat, so
-                        // entering it moves no text. The service judges the
-                        // commit; this widget only hands the words over. Fenced
-                        // out of the reading region, whose long-press must not
-                        // contest the field's own gestures.
-                        if (_editing)
-                          SelectionContainer.disabled(
-                            child: EditableText(
-                              controller: _bodyController,
-                              focusNode: _bodyFocus,
-                              style: AppType.body.copyWith(color: theme.text),
-                              cursorColor: theme.accent,
-                              backgroundCursorColor: theme.textSecondary,
-                              selectionColor: theme.accent.withValues(alpha: 0.25),
-                              keyboardAppearance: theme.brightness,
-                              maxLines: null,
-                            ),
-                          )
-                        else
-                          // The take's live words stay on the recorder cubit
-                          // until its stop settles; only the transcript
-                          // follows them.
-                          BlocSelector<RecorderCubit, RecorderState, String>(
-                            selector: (recorder) => continuing ? recorder.liveText : '',
-                            builder: (context, pending) => TranscriptView(
-                              entry: entry,
-                              busy: busy,
-                              appending: continuing,
-                              pendingText: pending,
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AppTopBar(
-                  actions: [
-                    AppMenuButton(
-                      key: _menuAnchor,
-                      icon: AppIcons.ellipsis,
-                      color: theme.topBar.iconColor,
-                      items: menu,
-                      // Only the Transcribe-in parent answers by position; a
-                      // stale index from a menu that outlived a rebuild is
-                      // dropped rather than landing on another row.
-                      onSelected: (index) {
-                        if (index < 0 || index >= menu.length) return;
-                        if (menu[index].children.isEmpty) return;
-                        unawaited(_transcribeIn(entry));
-                      },
-                      onSelectedId: (id) => _onMenuId(id, entry),
-                    ),
-                  ],
-                ),
-              ),
-              // The edit mode's save floats where home's record button does,
-              // riding the keyboard; unfocusing commits through the blur
-              // listener. The check runs well under the waveform's 26: its
-              // ink box is wide for its point size.
-              if (_editing)
                 Positioned(
-                  right: AppSpacing.xl,
-                  bottom: (keyboard > 0 ? keyboard : bottomInset) + AppSpacing.xl,
-                  child: GlassFab(
-                    icon: AppIcons.checkmark,
-                    iconSize: 18,
-                    onTap: _bodyFocus.unfocus,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AppTopBar(
+                    actions: [
+                      // Settings feed only the menu, so a model install's
+                      // progress emits rebuild this button, not the document.
+                      BlocBuilder<SettingsCubit, SettingsState>(
+                        builder: (context, settings) {
+                          final transcribeTags = _transcribeTags(entry, settings);
+                          final preselected = language ?? settings.localeId;
+                          final menu = _menuItems(
+                            entry,
+                            l10n,
+                            transcribeTags,
+                            preselected,
+                            anyAction: state.busyId == entry.id,
+                            canContinue: context.read<EntriesCubit>().canContinue(entry),
+                            editing: _editing,
+                          );
+                          return AppMenuButton(
+                            key: _menuAnchor,
+                            icon: AppIcons.ellipsis,
+                            color: theme.topBar.iconColor,
+                            items: menu,
+                            // Only the Transcribe-in parent answers by position; a
+                            // stale index from a menu that outlived a rebuild is
+                            // dropped rather than landing on another row.
+                            onSelected: (index) {
+                              _dismissHint();
+                              if (index < 0 || index >= menu.length) return;
+                              if (menu[index].children.isEmpty) return;
+                              unawaited(_transcribeIn(entry));
+                            },
+                            onSelectedId: (id) {
+                              _dismissHint();
+                              _onMenuId(id, entry);
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-              // The pinned dock: the error indicator over the Transcribe CTA,
-              // both clear of the document. Either may be absent; the scroll
-              // reserves exactly their room so neither covers content.
-              if (!_editing && (error != null || showCta))
-                _BottomDock(
-                  entry: entry,
-                  error: error,
-                  errorTick: state.errorTick,
-                  relatedId: state.error?.relatedId,
-                  showCta: showCta,
-                  busy: state.busyId == entry.id,
-                  onOpenRelated: (id) =>
-                      context.pushNamed(Routes.entryName, pathParameters: {'id': id}),
-                  // Through the screen's one door, so a dock action gets the
-                  // same selection drop and live-edit guard as the menu rows.
-                  onTranscribe: () => _startRetranscribe(context.read<EntriesCubit>(), entry),
-                ),
-            ],
+                // Above the bar, not under it: seated on the fade tail, the hint
+                // would otherwise be washed by the material. Mounted once it has
+                // shown and kept, so it animates itself out and back.
+                if (_hintMarked)
+                  PositionedDirectional(
+                    top: AppTopBar.heightOf(context),
+                    end: AppSpacing.md,
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: _hintArmed,
+                      builder: (context, armed, _) => _EntryHint(
+                        visible: shouldShowEntryHint(
+                          seen: !armed,
+                          editing: _editing,
+                          busy: state.busyId == entry.id,
+                        ),
+                        onDismiss: _dismissHint,
+                      ),
+                    ),
+                  ),
+                // The edit mode's save floats where home's record button does,
+                // riding the keyboard; unfocusing commits through the blur
+                // listener. The check runs well under the waveform's 26: its
+                // ink box is wide for its point size.
+                if (_editing)
+                  Positioned(
+                    right: AppSpacing.xl,
+                    bottom: (keyboard > 0 ? keyboard : bottomInset) + AppSpacing.xl,
+                    child: GlassFab(
+                      icon: AppIcons.checkmark,
+                      iconSize: 18,
+                      semanticLabel: l10n.done,
+                      onTap: () {
+                        Haptics.light();
+                        _bodyFocus.unfocus();
+                      },
+                    ),
+                  ),
+                // The pinned dock: the error indicator over the Transcribe CTA,
+                // both clear of the document. Either may be absent; the scroll
+                // reserves exactly their room so neither covers content.
+                if (!_editing && (error != null || showCta))
+                  _BottomDock(
+                    entry: entry,
+                    error: error,
+                    errorTick: state.errorTick,
+                    relatedId: state.error?.relatedId,
+                    showCta: showCta,
+                    busy: state.busyId == entry.id,
+                    onOpenRelated: (id) =>
+                        context.pushNamed(Routes.entryName, pathParameters: {'id': id}),
+                    // Through the screen's one door, so a dock action gets the
+                    // same selection drop and live-edit guard as the menu rows.
+                    onTranscribe: () => _startRetranscribe(context.read<EntriesCubit>(), entry),
+                  ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+/// The first-entry hint, seated below the bar's row with its caret on the menu
+/// button (the bar's edge inset plus half an action).
+class _EntryHint extends StatelessWidget {
+  const _EntryHint({required this.visible, required this.onDismiss});
+
+  final bool visible;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return HintCallout(
+      message: AppLocalizations.of(context)!.hintEntryMenu,
+      visible: visible,
+      onDismiss: onDismiss,
+      caretInset: theme.topBar.actionSize / 2,
     );
   }
 }
@@ -710,7 +823,9 @@ class _BottomDock extends StatelessWidget {
       return;
     }
     // Acknowledged, with no retry to clear it later.
-    if (kind == EntriesError.savedSeparately) entries.dismissFailure(entry.id);
+    if (kind == EntriesError.savedSeparately || kind == EntriesError.recordingMissing) {
+      entries.dismissFailure(entry.id);
+    }
   }
 
   @override
@@ -753,6 +868,7 @@ class _BottomDock extends StatelessWidget {
 String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.permissionDenied => l10n.transcribeErrorLabelPermission,
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
+  EntriesError.recordingMissing => l10n.transcribeErrorLabelRecordingMissing,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
   EntriesError.additionUntranscribed => l10n.continueUntranscribedLabel,
@@ -838,7 +954,7 @@ class _TitleFieldState extends State<_TitleField> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return EditableText(
+    return EditableProse(
       controller: _controller,
       focusNode: widget.focusNode,
       style: AppType.display2.copyWith(color: theme.text),
@@ -846,6 +962,7 @@ class _TitleFieldState extends State<_TitleField> {
       backgroundCursorColor: theme.textSecondary,
       selectionColor: theme.accent.withValues(alpha: 0.25),
       keyboardAppearance: theme.brightness,
+      capitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.done,
       maxLines: null,
       onSubmitted: (_) => widget.focusNode.unfocus(),

@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/utils/identical_elements.dart';
 import 'package:transcriber/transcriber.dart';
 
 /// What went wrong with an entry action, as a kind the UI can word for the
@@ -16,6 +17,7 @@ import 'package:transcriber/transcriber.dart';
 enum EntriesError {
   permissionDenied,
   onDeviceUnavailable,
+  recordingMissing,
   modelInstallFailed,
   reservationCap,
 
@@ -57,8 +59,9 @@ final class EntriesFailure {
 /// continuation must not dissolve the words either.
 enum EntriesAction { transcribe, delete, continueRecording }
 
-/// The journal list: loads entries, deletes them, and re-transcribes kept audio.
-class EntriesState {
+/// The journal list and its in-flight action, error, and busy marks.
+@immutable
+final class EntriesState {
   const EntriesState({
     this.entries = const [],
     this.busyId,
@@ -103,8 +106,25 @@ class EntriesState {
     error: clearError ? null : (error ?? this.error),
     errorTick: errorTick ?? this.errorTick,
   );
+
+  // Entries compare by identity: the store keeps unchanged entries' object
+  // identity, so a refresh that changed nothing costs no deep pass.
+  @override
+  bool operator ==(Object other) =>
+      other is EntriesState &&
+      other.busyId == busyId &&
+      other.busyAction == busyAction &&
+      other.error == error &&
+      other.errorTick == errorTick &&
+      identicalElements(other.entries, entries);
+
+  // Length only: == holds across distinct lists with the same elements, so
+  // the list's own identity hash would break equal-implies-same-hash.
+  @override
+  int get hashCode => Object.hash(busyId, busyAction, error, errorTick, entries.length);
 }
 
+/// The journal list: loads entries, deletes them, and re-transcribes kept audio.
 class EntriesCubit extends Cubit<EntriesState> {
   // Seeded from the service, not empty: the detail screen looks its entry up
   // here the moment it opens, and an empty seed would read as "deleted".
@@ -314,6 +334,7 @@ class EntriesCubit extends Cubit<EntriesState> {
     return switch (error) {
       PermissionDenied() => EntriesError.permissionDenied,
       OnDeviceUnavailable() => EntriesError.onDeviceUnavailable,
+      RecordingMissing() => EntriesError.recordingMissing,
       ModelInstallFailed() => EntriesError.modelInstallFailed,
       // Its own kind: the fix is removing a language, not checking the network.
       ReservationCapReached() => EntriesError.reservationCap,

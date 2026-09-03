@@ -263,8 +263,8 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
   }
 
   // The conditions the app reasons about get typed exceptions; the remaining native
-  // codes (file_missing, transcribe_error, bad_args) are all just failures to the
-  // app, so they collapse to TranscriptionFailed on purpose. Structured extras ride
+  // codes (transcribe_error, bad_args) are all just failures to the app, so they
+  // collapse to TranscriptionFailed on purpose. Structured extras ride
   // in [payload] (stream error events) or [details] (method-channel errors): the
   // asset status behind an install failure, the reserved tags behind a full cap.
   TranscriptionException _mapError(
@@ -279,6 +279,7 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
       'on_device_unavailable' => OnDeviceUnavailable(message),
       'model_install_failed' => ModelInstallFailed(message, _assetStatusFrom(extras?['status'])),
       'reservation_cap' => ReservationCapReached(_stringList(extras?['reservedTags']), message),
+      'file_missing' => RecordingMissing(message),
       _ => TranscriptionFailed(message),
     };
   }
