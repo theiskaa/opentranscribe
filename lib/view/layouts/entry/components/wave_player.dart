@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -112,6 +113,9 @@ class _WavePlayerState extends State<WavePlayer> {
                         final width = constraints.maxWidth;
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
+                          // Grab and release answer in the hand, as the
+                          // reflections scrubber's do.
+                          onHorizontalDragStart: (_) => Haptics.light(),
                           onHorizontalDragUpdate: (details) => setState(() {
                             _scrub = ((_scrub ?? fraction) + details.delta.dx / width).clamp(
                               0.0,
@@ -119,6 +123,7 @@ class _WavePlayerState extends State<WavePlayer> {
                             );
                           }),
                           onHorizontalDragEnd: (_) {
+                            Haptics.light();
                             final scrub = _scrub;
                             if (scrub != null) {
                               context.read<PlayerCubit>().seek(
@@ -131,7 +136,15 @@ class _WavePlayerState extends State<WavePlayer> {
                             // frames the platform takes to answer.
                             setState(() => _scrub = null);
                           },
-                          onTapUp: (_) => context.read<PlayerCubit>().toggle(widget.entry),
+                          // A cancelled drag must not leave the wave stuck at
+                          // the last finger position.
+                          onHorizontalDragCancel: () {
+                            if (_scrub != null) setState(() => _scrub = null);
+                          },
+                          onTapUp: (_) {
+                            Haptics.light();
+                            context.read<PlayerCubit>().toggle(widget.entry);
+                          },
                           child: AnimatedOpacity(
                             duration: theme.motion.crossfade,
                             opacity: state.isPlaying ? 1 : _pausedWaveOpacity,

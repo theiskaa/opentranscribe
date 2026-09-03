@@ -54,7 +54,12 @@ class AppSegmentedControl<T> extends StatelessWidget {
       child: LiquidSegmentedControl(
         segments: [for (final (_, label) in segments) label],
         selectedIndex: index < 0 ? 0 : index,
-        onSelected: (i) => onChanged(segments[i].$1),
+        // UISegmentedControl gives no haptic of its own; the drawn pill
+        // buzzes, so the glass one must too.
+        onSelected: (i) {
+          Haptics.selection();
+          onChanged(segments[i].$1);
+        },
         isDark: theme.brightness == Brightness.dark,
         selectedTintColor: theme.accent,
         labelColor: theme.textSecondary,

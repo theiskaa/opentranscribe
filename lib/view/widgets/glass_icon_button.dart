@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -31,12 +32,20 @@ class AppGlassIconButton extends StatelessWidget {
       // The native side draws the glyph itself, from the SF Symbol NAME - our
       // vendored icon font never reaches it. isDark keeps the glass in step
       // with the chosen theme family, not just the system appearance.
+    final onTap = this.onTap;
       return LiquidIconButton(
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
         tintColor: color,
         isDark: context.theme.brightness == Brightness.dark,
-        onPressed: onTap,
+        // UIButton gives no haptic of its own; the drawn button buzzes, so
+        // the glass one must too.
+        onPressed: onTap == null
+            ? null
+            : () {
+                Haptics.light();
+                onTap();
+              },
         enabled: onTap != null,
         size: size,
       );

@@ -378,7 +378,10 @@ class _BackupViewState extends State<_BackupView> {
               bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
               child: _RestoreFab(
                 busy: state.busy == BackupBusy.importing,
-                onTap: () => unawaited(_import(context)),
+                onTap: () {
+                  Haptics.light();
+                  unawaited(_import(context));
+                },
               ),
             ),
           ],

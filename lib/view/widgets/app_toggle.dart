@@ -31,6 +31,8 @@ class AppToggle extends StatelessWidget {
     return SizedBox(
       width: _nativeWidth,
       height: _nativeHeight,
+    // No haptic around onChanged: UISwitch plays its own on flip, and a
+    // second one here would double it.
       child: LiquidToggle(
         value: value,
         enabled: onChanged != null,
