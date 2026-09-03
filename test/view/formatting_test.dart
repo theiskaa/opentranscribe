@@ -81,4 +81,10 @@ void main() {
     expect(formatBytes(1500000, 'de'), '1,5 MB');
     expect(formatBytes(1500000, 'en'), '1.5 MB');
   });
+
+  test('formatElapsed pads the minutes and shows hours only once a take has them', () {
+    expect(formatElapsed(const Duration(seconds: 42)), '00:42');
+    expect(formatElapsed(const Duration(minutes: 5, seconds: 9)), '05:09');
+    expect(formatElapsed(const Duration(hours: 1, minutes: 5, seconds: 9)), '1:05:09');
+  });
 }

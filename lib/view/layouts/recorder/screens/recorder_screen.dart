@@ -23,6 +23,7 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -331,7 +332,7 @@ class _TimerState extends State<_Timer> {
             _last = elapsed;
           }
           return RollingText(
-            text: _formatElapsed(elapsed),
+            text: formatElapsed(elapsed),
             style: AppType.timer.copyWith(color: theme.recorder.timerColor),
             direction: _direction,
           );
@@ -418,13 +419,6 @@ class _LiveText extends StatelessWidget {
       ],
     );
   }
-}
-
-String _formatElapsed(Duration d) {
-  final hours = d.inHours;
-  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-  return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
 }
 
 /// The session-language switch on the bar. Session-only: picking here
