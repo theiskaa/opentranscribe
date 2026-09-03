@@ -126,17 +126,21 @@ class _DrawnSegmentedControl<T> extends StatelessWidget {
                   children: [
                     for (final (value, label) in segments)
                       Expanded(
-                        child: Touchable(
-                          onTap: () {
-                            Haptics.selection();
-                            onChanged(value);
-                          },
-                          child: Center(
-                            child: Text(
-                              label,
-                              style: AppType.subhead.copyWith(
-                                color: value == selected ? theme.onAccent : theme.textSecondary,
-                                fontWeight: value == selected ? FontWeight.w600 : FontWeight.w500,
+                        child: Semantics(
+                          button: true,
+                          selected: value == selected,
+                          child: Touchable(
+                            onTap: () {
+                              Haptics.selection();
+                              onChanged(value);
+                            },
+                            child: Center(
+                              child: Text(
+                                label,
+                                style: AppType.subhead.copyWith(
+                                  color: value == selected ? theme.onAccent : theme.textSecondary,
+                                  fontWeight: value == selected ? FontWeight.w600 : FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),

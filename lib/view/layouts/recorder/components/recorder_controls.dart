@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
@@ -45,13 +46,21 @@ class RecorderControls extends StatelessWidget {
     final tokens = theme.recorder;
     final size = tokens.controlSize;
     final blocked = saving || restarting;
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Flank(icon: AppIcons.xmark, onTap: blocked ? null : onClose, dimmed: saving, size: size),
+        _Flank(
+          icon: AppIcons.xmark,
+          label: l10n.recordCloseButton,
+          onTap: blocked ? null : onClose,
+          dimmed: saving,
+          size: size,
+        ),
         const SizedBox(width: AppSpacing.md),
         _Flank(
           icon: AppIcons.arrowCounterclockwise,
+          label: l10n.recordRestartButton,
           onTap: blocked ? null : onRestart,
           dimmed: saving,
           size: size,
@@ -59,6 +68,7 @@ class RecorderControls extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         _Flank(
           icon: paused ? AppIcons.playFill : AppIcons.pauseFill,
+          label: paused ? l10n.recordResumeButton : l10n.recordPauseButton,
           onTap: blocked ? null : onTogglePause,
           dimmed: saving,
           size: size,
@@ -70,7 +80,12 @@ class RecorderControls extends StatelessWidget {
         const SizedBox(width: AppSpacing.xl),
         _Seam(height: size / 2),
         const SizedBox(width: AppSpacing.xl),
-        _CompleteButton(size: size, saving: saving, onTap: blocked ? null : onComplete),
+        _CompleteButton(
+          size: size,
+          saving: saving,
+          label: l10n.recordCompleteButton,
+          onTap: blocked ? null : onComplete,
+        ),
       ],
     );
   }
@@ -99,9 +114,16 @@ class _Seam extends StatelessWidget {
 /// switch, not inferred from a null [onTap]: a restart blocks taps too, and
 /// must not flash the whole row disabled for it.
 class _Flank extends StatelessWidget {
-  const _Flank({required this.icon, required this.onTap, required this.dimmed, required this.size});
+  const _Flank({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.dimmed,
+    required this.size,
+  });
 
   final IconData icon;
+  final String label;
   final VoidCallback? onTap;
   final bool dimmed;
   final double size;
@@ -112,7 +134,7 @@ class _Flank extends StatelessWidget {
     return AnimatedOpacity(
       duration: theme.motion.crossfade,
       opacity: dimmed ? theme.button.disabledOpacity : 1,
-      child: AppIconButton(icon: icon, onTap: onTap, size: size),
+      child: AppIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label),
     );
   }
 }
@@ -121,10 +143,16 @@ class _Flank extends StatelessWidget {
 /// same machined treatment [AppButton] gives them (a top sheen and a soft
 /// shadow), so the app has one primary surface in two shapes.
 class _CompleteButton extends StatelessWidget {
-  const _CompleteButton({required this.size, required this.saving, required this.onTap});
+  const _CompleteButton({
+    required this.size,
+    required this.saving,
+    required this.label,
+    required this.onTap,
+  });
 
   final double size;
   final bool saving;
+  final String label;
   final VoidCallback? onTap;
 
   @override
@@ -134,30 +162,37 @@ class _CompleteButton extends StatelessWidget {
     final fill = button.background;
     final ink = fill.computeLuminance() < 0.35;
 
-    return Touchable(
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label,
       onTap: onTap,
-      pressedScale: theme.motion.pressScale,
-      haptic: true,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: ink ? null : fill,
-          gradient: ink
-              ? LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0, 0.25],
-                  colors: [Color.alphaBlend(button.sheen, fill), fill],
-                )
-              : null,
-          boxShadow: ink ? [button.shadow] : null,
-        ),
-        child: Center(
-          child: saving
-              ? AppSpinner(color: button.foreground)
-              : AppIcon(AppIcons.checkmark, size: size / 3, color: button.foreground),
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        pressedScale: theme.motion.pressScale,
+        haptic: true,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: ink ? null : fill,
+            gradient: ink
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0, 0.25],
+                    colors: [Color.alphaBlend(button.sheen, fill), fill],
+                  )
+                : null,
+            boxShadow: ink ? [button.shadow] : null,
+          ),
+          child: Center(
+            child: saving
+                ? AppSpinner(color: button.foreground)
+                : AppIcon(AppIcons.checkmark, size: size / 3, color: button.foreground),
+          ),
         ),
       ),
     );

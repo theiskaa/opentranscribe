@@ -198,6 +198,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
                     ? AppIconButton(
                         icon: AppIcons.xmark,
                         size: theme.topBar.largeHeight - AppSpacing.md,
+                        semanticLabel: l10n.recordCloseButton,
                         onTap: () => _close(keepSilence: false),
                       )
                     : const SizedBox.shrink(),

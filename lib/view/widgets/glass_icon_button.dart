@@ -17,6 +17,7 @@ class AppGlassIconButton extends StatelessWidget {
     this.size = 44,
     this.iconSize = 18,
     this.color,
+    this.semanticLabel,
     super.key,
   });
 
@@ -26,17 +27,21 @@ class AppGlassIconButton extends StatelessWidget {
   final double iconSize;
   final Color? color;
 
+  /// What VoiceOver calls the button, on both faces.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
+    final onTap = this.onTap;
     if (PlatformCaps.nativeGlass) {
       // The native side draws the glyph itself, from the SF Symbol NAME - our
       // vendored icon font never reaches it. isDark keeps the glass in step
       // with the chosen theme family, not just the system appearance.
-    final onTap = this.onTap;
       return LiquidIconButton(
         icon: AppIcons.sfSymbolName(icon),
         iconPointSize: iconSize,
         tintColor: color,
+        semanticLabel: semanticLabel,
         isDark: context.theme.brightness == Brightness.dark,
         // UIButton gives no haptic of its own; the drawn button buzzes, so
         // the glass one must too.
@@ -56,6 +61,7 @@ class AppGlassIconButton extends StatelessWidget {
       size: size,
       iconSize: iconSize,
       foreground: color,
+      semanticLabel: semanticLabel,
     );
   }
 }

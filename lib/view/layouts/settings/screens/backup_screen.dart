@@ -425,7 +425,14 @@ class _RestoreFab extends StatelessWidget {
   Widget build(BuildContext context) {
     // 22, under the waveform's 26: the boxy glyph carries far more ink per
     // point, and at the disc's default it crowds the circle.
-    if (!busy) return GlassFab(icon: AppIcons.squareAndArrowDown, iconSize: 22, onTap: onTap);
+    if (!busy) {
+      return GlassFab(
+        icon: AppIcons.squareAndArrowDown,
+        iconSize: 22,
+        semanticLabel: AppLocalizations.of(context)!.restoreBackupButton,
+        onTap: onTap,
+      );
+    }
     return SizedBox.square(
       dimension: GlassFab.size,
       child: Center(child: AppSpinner(size: 24, color: context.theme.textSecondary)),

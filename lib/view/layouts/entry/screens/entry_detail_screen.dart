@@ -18,6 +18,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/entry_export_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/revision_history_sheet.dart';
@@ -707,7 +708,11 @@ class _DetailViewState extends State<_DetailView> {
                   child: GlassFab(
                     icon: AppIcons.checkmark,
                     iconSize: 18,
-                    onTap: _bodyFocus.unfocus,
+                    semanticLabel: l10n.done,
+                    onTap: () {
+                      Haptics.light();
+                      _bodyFocus.unfocus();
+                    },
                   ),
                 ),
               // The pinned dock: the error indicator over the Transcribe CTA,

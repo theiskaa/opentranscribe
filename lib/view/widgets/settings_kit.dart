@@ -229,7 +229,7 @@ class SettingsToggleRow extends StatelessWidget {
             Expanded(
               child: Text(label, style: AppType.subhead.copyWith(color: content)),
             ),
-            AppToggle(value: value, onChanged: onChanged),
+            AppToggle(value: value, onChanged: onChanged, semanticLabel: label),
           ],
         ),
       ),

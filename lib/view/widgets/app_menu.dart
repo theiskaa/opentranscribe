@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/anchored_popup.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -212,11 +213,15 @@ class AppMenuButton extends StatelessWidget {
     this.size = 44,
     this.iconSize = 20,
     this.color,
+    this.semanticLabel,
     super.key,
   });
 
   final IconData icon;
   final List<AppMenuItem> items;
+
+  /// What VoiceOver calls the button; null reads as the generic "More".
+  final String? semanticLabel;
 
   /// Fired with the tapped item's position, for menus that answer by index.
   /// A menu whose every item carries an id answers through [onSelectedId]
@@ -240,6 +245,7 @@ class AppMenuButton extends StatelessWidget {
       items.every((item) => item.children.every((child) => child.id != null)),
       'Submenu children answer through ids; id-less ones collide on one value.',
     );
+    final label = semanticLabel ?? AppLocalizations.of(context)!.menuButton;
     if (PlatformCaps.nativeGlass) {
       // The native menu answers with an entry's VALUE, not its position, so
       // positions are carried across as values ('i', or 'i.j' inside a
@@ -254,6 +260,7 @@ class AppMenuButton extends StatelessWidget {
         // family, not just the system appearance.
         isDark: context.theme.brightness == Brightness.dark,
         size: size,
+        semanticLabel: label,
         items: [
           for (final (i, item) in items.indexed)
             item.isDivider
@@ -309,6 +316,7 @@ class AppMenuButton extends StatelessWidget {
       size: size,
       iconSize: iconSize,
       color: color,
+      semanticLabel: label,
     );
   }
 }
@@ -324,6 +332,7 @@ class _MenuTrigger extends StatefulWidget {
     required this.size,
     required this.iconSize,
     required this.color,
+    required this.semanticLabel,
   });
 
   final IconData icon;
@@ -333,6 +342,7 @@ class _MenuTrigger extends StatefulWidget {
   final double size;
   final double iconSize;
   final Color? color;
+  final String semanticLabel;
 
   @override
   State<_MenuTrigger> createState() => _MenuTriggerState();
@@ -368,6 +378,7 @@ class _MenuTriggerState extends State<_MenuTrigger> {
       size: widget.size,
       iconSize: widget.iconSize,
       foreground: widget.color,
+      semanticLabel: widget.semanticLabel,
     );
   }
 }
