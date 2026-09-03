@@ -4,12 +4,13 @@ All notable changes to opentranscribe are documented here. Each release section 
 
 ## 0.4.0 - 2026-09-02
 
-A faster app throughout, a backup screen that says what it is doing, and dictation that keeps every sentence.
+A faster app throughout, a backup screen that says what it is doing, dictation that keeps every sentence, and a first run that can be played again.
 
 - Speed, everywhere the journal is read: the app no longer re-decrypts your whole journal after every rename, edit, delete, or landed re-transcription, and it decrypts on a worker thread before the first read, so a long journal stays as quick as a short one and the list is there when the splash lifts. Scrolling home, the live transcript, and reflections all stop redoing work they had already done.
 - The backup screen redesigned: it opens by saying what a backup holds and roughly what it weighs, each format is its own action, Export as Markdown, Obsidian Vault, or Website, with one switch for whether recordings ride along, and packing runs off the interface thread with a live percent and a cancel. Passphrase fields can be revealed while you type them.
 - Restore is honest about what it does: an entry that already exists takes the backup's version, you see what the backup holds before you commit, and the summary afterwards splits what was added, what was replaced, and what was already there. Failures name their cause instead of guessing, and the Website export speaks your language rather than shipping English to every locale.
-- Dictation keeps what you said before a pause. Stopping for a couple of seconds used to make the recognizer start over, and everything before the pause was dropped from the live text and from the saved entry; every sentence of a take is now kept, in order, once each. Re-transcribing a long entry no longer stalls out, and an entry whose recording is gone says so instead of failing generically.
+- Onboarding reworked as four short pages built from the app's own parts instead of a list of icons: a take running with the recorder's own wave and live text, your week read back (on iPhones with Apple Intelligence), yours in any shape (the export formats and the sealed backup), then set up, where your language, the microphone, and speech recognition sit as live rows and Get started asks for them. You can swipe back and tap the dots; forward stays on the button. A permission you denied offers Settings where you hit the wall, the whole flow replays from the menu under How it works, and the first entry you open points once at its menu.
+- Dictation keeps what you said before a pause. Stopping for a couple of seconds used to make the recognizer start over, and everything before the pause was dropped from the live text and from the saved entry; every sentence of a take is now kept, in order, once each. Re-transcribing a long entry no longer stalls out, an entry whose recording is gone says so instead of failing generically, and live text in Japanese and Chinese wraps across lines instead of running off the edge.
 
 ## 0.3.0 - 2026-08-31
 
