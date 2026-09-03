@@ -23,6 +23,10 @@ class OnboardingRow extends StatelessWidget {
   final String? note;
   final Widget trailing;
 
+  /// The seat's floor: a spinner, a checkmark, or nothing must all take the
+  /// same room, or the note reflows as the answer lands.
+  static const double _seatMinWidth = 28;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -49,13 +53,22 @@ class OnboardingRow extends StatelessWidget {
                 Text(name, style: AppType.subhead.copyWith(color: theme.text)),
                 if (note != null) ...[
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(note!, style: AppType.footnote.copyWith(color: theme.textSecondary)),
+                  // One line, so the card never changes shape as seats change.
+                  Text(
+                    note!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.footnote.copyWith(color: theme.textSecondary),
+                  ),
                 ],
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          trailing,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: _seatMinWidth),
+            child: Center(child: trailing),
+          ),
         ],
       ),
     );

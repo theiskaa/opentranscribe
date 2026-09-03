@@ -469,22 +469,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingRecordText6 => '明天想在太晚之前给妈妈打个电话。';
 
   @override
-  String get onboardingLanguageDownloads => '下载一次，之后离线可用。';
-
-  @override
-  String get onboardingLanguageBuiltIn => '已内置，无需下载。';
-
-  @override
-  String get onboardingLanguageReady => '已就绪，在本机运行。';
-
-  @override
-  String get onboardingLanguageLoading => '正在读取你的语言';
-
-  @override
   String get onboardingPermissionsTitle => '允许访问';
 
   @override
-  String get onboardingPermissionsBody => '这里的一切都完全在你的设备上运行。“开始使用”会请求麦克风与语音识别权限，两者稍后都可在“设置”中更改。';
+  String get onboardingPermissionsBody => '这里的一切都完全在你的设备上运行。“开始使用”会请求麦克风、语音识别与提醒权限，稍后都可在“设置”中更改。';
 
   @override
   String get onboardingMicName => '麦克风';
@@ -514,6 +502,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingShapeWebNote => '任何浏览器';
+
+  @override
+  String get onboardingRemindersName => '提醒';
+
+  @override
+  String get onboardingRemindersReason => '回顾准备好时提醒你。';
 
   @override
   String get onboardingReflectionsOn => 'Apple Intelligence 已开启。';

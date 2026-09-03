@@ -501,23 +501,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingRecordText6 => 'Amanhã quero ligar à mãe antes que fique tarde.';
 
   @override
-  String get onboardingLanguageDownloads => 'Transfere-se uma vez e depois funciona offline.';
-
-  @override
-  String get onboardingLanguageBuiltIn => 'Incluído. Nada a transferir.';
-
-  @override
-  String get onboardingLanguageReady => 'Pronto, neste dispositivo.';
-
-  @override
-  String get onboardingLanguageLoading => 'A ler o seu idioma';
-
-  @override
   String get onboardingPermissionsTitle => 'Conceder acesso';
 
   @override
   String get onboardingPermissionsBody =>
-      'Tudo aqui funciona inteiramente no seu dispositivo. Começar pede o microfone e o reconhecimento de voz; ambos podem ser alterados mais tarde nas Definições.';
+      'Tudo aqui funciona inteiramente no seu dispositivo. Começar pede o microfone, o reconhecimento de voz e os lembretes; todos podem ser alterados mais tarde nas Definições.';
 
   @override
   String get onboardingMicName => 'Microfone';
@@ -548,6 +536,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingShapeWebNote => 'No browser';
+
+  @override
+  String get onboardingRemindersName => 'Lembretes';
+
+  @override
+  String get onboardingRemindersReason => 'Um aviso quando uma reflexão estiver pronta.';
 
   @override
   String get onboardingReflectionsOn => 'A Apple Intelligence está ativa.';

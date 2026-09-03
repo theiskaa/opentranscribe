@@ -9,7 +9,6 @@ import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
-import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -42,7 +41,11 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OnboardingCubit(service: Deps.i.transcriptionService),
+      create: (_) => OnboardingCubit(
+        service: Deps.i.transcriptionService,
+        scheduler: Deps.i.notificationScheduler,
+        notifier: Deps.i.reflectionNotifier,
+      ),
       child: _OnboardingView(replay: replay),
     );
   }
@@ -84,15 +87,6 @@ class _OnboardingViewState extends State<_OnboardingView> {
   bool _finishing = false;
 
   @override
-  void initState() {
-    super.initState();
-    // The set-up page reads the language rows; load them now so the row is
-    // ready by the time the reader arrives. Shared root cubit, so the
-    // Transcription screen later sees the same state.
-    unawaited(context.read<SettingsCubit>().load());
-  }
-
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -106,6 +100,11 @@ class _OnboardingViewState extends State<_OnboardingView> {
         ),
       );
 
+  /// Read, not watched: the callers are the button and the page change, never
+  /// a build.
+  bool _canReflect(BuildContext context) =>
+      reflectionsEligible(context.read<ReflectionsCubit>().state.availability.status);
+
   Future<void> _next(List<OnboardingStep> steps, Duration slide) async {
     if (_index < steps.length - 1) {
       _frozen ??= steps;
@@ -115,7 +114,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
     if (!widget.replay) {
       if (_requesting) return;
       setState(() => _requesting = true);
-      await context.read<OnboardingCubit>().requestPending();
+      await context.read<OnboardingCubit>().requestPending(reminders: _canReflect(context));
       if (!mounted) return;
       setState(() => _requesting = false);
     }
@@ -193,7 +192,9 @@ class _OnboardingViewState extends State<_OnboardingView> {
                   onPageChanged: (i) {
                     setState(() => _index = i);
                     if (promptsOnArrival(replay: widget.replay, page: i, pageCount: steps.length)) {
-                      unawaited(context.read<OnboardingCubit>().requestPending());
+                      // A replay only asks for answers that never landed; it
+                      // must not switch on reminders the user turned off.
+                      unawaited(context.read<OnboardingCubit>().requestPending(reminders: false));
                     }
                   },
                   children: [

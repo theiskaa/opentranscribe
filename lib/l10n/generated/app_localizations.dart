@@ -978,30 +978,6 @@ abstract class AppLocalizations {
   /// **'Tomorrow I want to call Mum before it gets late.'**
   String get onboardingRecordText6;
 
-  /// Set-up page, language row note when the engine downloads models
-  ///
-  /// In en, this message translates to:
-  /// **'Downloads once, then works offline.'**
-  String get onboardingLanguageDownloads;
-
-  /// Set-up page, language row note when the engine has no downloadable model
-  ///
-  /// In en, this message translates to:
-  /// **'Built in. Nothing to download.'**
-  String get onboardingLanguageBuiltIn;
-
-  /// Set-up page, language row note once the language is ready
-  ///
-  /// In en, this message translates to:
-  /// **'Ready, on this device.'**
-  String get onboardingLanguageReady;
-
-  /// Set-up page, language row while the language list loads
-  ///
-  /// In en, this message translates to:
-  /// **'Reading your language'**
-  String get onboardingLanguageLoading;
-
   /// Headline on the permissions onboarding step
   ///
   /// In en, this message translates to:
@@ -1011,7 +987,7 @@ abstract class AppLocalizations {
   /// Subtitle reassuring that the requested permissions stay on-device
   ///
   /// In en, this message translates to:
-  /// **'Everything here works entirely on your device. Get started asks for the microphone and speech recognition; either can be changed later in Settings.'**
+  /// **'Everything here works entirely on your device. Get started asks for the microphone, speech recognition, and reminders; each can be changed later in Settings.'**
   String get onboardingPermissionsBody;
 
   /// Name of the microphone permission row
@@ -1067,6 +1043,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Any browser'**
   String get onboardingShapeWebNote;
+
+  /// Set-up page row asking notification permission for reflection reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get onboardingRemindersName;
+
+  /// Note under the reminders row
+  ///
+  /// In en, this message translates to:
+  /// **'A nudge when a reflection is ready.'**
+  String get onboardingRemindersReason;
 
   /// Set-up page, reflections row when Apple Intelligence runs
   ///

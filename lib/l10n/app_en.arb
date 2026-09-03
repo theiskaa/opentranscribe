@@ -646,27 +646,11 @@
   "@onboardingRecordText6": {
     "description": "Scene: live transcript, sixth sentence"
   },
-  "onboardingLanguageDownloads": "Downloads once, then works offline.",
-  "@onboardingLanguageDownloads": {
-    "description": "Set-up page, language row note when the engine downloads models"
-  },
-  "onboardingLanguageBuiltIn": "Built in. Nothing to download.",
-  "@onboardingLanguageBuiltIn": {
-    "description": "Set-up page, language row note when the engine has no downloadable model"
-  },
-  "onboardingLanguageReady": "Ready, on this device.",
-  "@onboardingLanguageReady": {
-    "description": "Set-up page, language row note once the language is ready"
-  },
-  "onboardingLanguageLoading": "Reading your language",
-  "@onboardingLanguageLoading": {
-    "description": "Set-up page, language row while the language list loads"
-  },
   "onboardingPermissionsTitle": "Allow access",
   "@onboardingPermissionsTitle": {
     "description": "Headline on the permissions onboarding step"
   },
-  "onboardingPermissionsBody": "Everything here works entirely on your device. Get started asks for the microphone and speech recognition; either can be changed later in Settings.",
+  "onboardingPermissionsBody": "Everything here works entirely on your device. Get started asks for the microphone, speech recognition, and reminders; each can be changed later in Settings.",
   "@onboardingPermissionsBody": {
     "description": "Subtitle reassuring that the requested permissions stay on-device"
   },
@@ -710,6 +694,14 @@
   "onboardingShapeWebNote": "Any browser",
   "@onboardingShapeWebNote": {
     "description": "Export tile note, Website"
+  },
+  "onboardingRemindersName": "Reminders",
+  "@onboardingRemindersName": {
+    "description": "Set-up page row asking notification permission for reflection reminders"
+  },
+  "onboardingRemindersReason": "A nudge when a reflection is ready.",
+  "@onboardingRemindersReason": {
+    "description": "Note under the reminders row"
   },
   "onboardingReflectionsOn": "Apple Intelligence is on.",
   "@onboardingReflectionsOn": {

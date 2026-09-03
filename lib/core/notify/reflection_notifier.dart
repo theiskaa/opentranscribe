@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart' show Locale;
 
 import 'package:opentranscribe/core/notify/notification_scheduler.dart';
@@ -80,6 +82,27 @@ class ReflectionNotifier {
 
   bool _running = false;
   bool _pending = false;
+
+  /// Stores the intent for reminders: the master on and, when no period was
+  /// ever selected, every enabled period selected, so a first turn-on delivers
+  /// full value in one gesture while a mix picked earlier survives untouched.
+  /// Returns once the intent is stored; the [sync] it fires runs on behind,
+  /// so a switch answers at once. Permission is the caller's business: this
+  /// stores what the user asked for, and [sync] decides what the OS may fire.
+  Future<void> enable() async {
+    await _notifySettings.setEnabled(timeKey, true);
+    final anyStored = ReflectionPeriod.values.any(
+      (p) => _reflectionSettings.enabledFor(p) && _notifySettings.enabled(keyFor(p)),
+    );
+    if (!anyStored) {
+      for (final period in ReflectionPeriod.values) {
+        if (_reflectionSettings.enabledFor(period)) {
+          await _notifySettings.setEnabled(keyFor(period), true);
+        }
+      }
+    }
+    unawaited(sync());
+  }
 
   /// Reconciles the OS's pending nudges with the current settings. Cheap and
   /// safe to call often; never throws (the scheduler swallows its own errors,

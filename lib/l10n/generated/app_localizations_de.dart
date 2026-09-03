@@ -504,23 +504,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingRecordText6 => 'Morgen will ich Mama anrufen, bevor es spät wird.';
 
   @override
-  String get onboardingLanguageDownloads => 'Wird einmal geladen und arbeitet dann offline.';
-
-  @override
-  String get onboardingLanguageBuiltIn => 'Eingebaut. Nichts zu laden.';
-
-  @override
-  String get onboardingLanguageReady => 'Bereit, auf diesem Gerät.';
-
-  @override
-  String get onboardingLanguageLoading => 'Ihre Sprache wird gelesen';
-
-  @override
   String get onboardingPermissionsTitle => 'Zugriff erlauben';
 
   @override
   String get onboardingPermissionsBody =>
-      'Alles hier läuft vollständig auf Ihrem Gerät. „Los geht\'s“ fragt nach Mikrofon und Spracherkennung; beides lässt sich später in den Einstellungen ändern.';
+      'Alles hier läuft vollständig auf Ihrem Gerät. „Los geht\'s“ fragt nach Mikrofon, Spracherkennung und Erinnerungen; alles lässt sich später in den Einstellungen ändern.';
 
   @override
   String get onboardingMicName => 'Mikrofon';
@@ -550,6 +538,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingShapeWebNote => 'Im Browser';
+
+  @override
+  String get onboardingRemindersName => 'Erinnerungen';
+
+  @override
+  String get onboardingRemindersReason => 'Ein Hinweis, wenn ein Rückblick bereit ist.';
 
   @override
   String get onboardingReflectionsOn => 'Apple Intelligence ist an.';

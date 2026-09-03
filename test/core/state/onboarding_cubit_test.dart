@@ -1,21 +1,34 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
+import 'package:opentranscribe/core/notify/reflection_notifier.dart';
+import 'package:opentranscribe/core/services/notification_settings.dart';
+import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
+import 'package:reflections/reflections.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+import '../../support/fake_notification_scheduler.dart';
 
 void main() {
   late LocalService storage;
   late EntryStore store;
   late FakeAudioRecorder recorder;
   late FakeStreamingEngine engine;
+  late FakeNotificationScheduler scheduler;
+  late NotificationSettings notify;
+
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -29,7 +42,20 @@ void main() {
     Availability availability = const Availability.available(),
     bool micThrows = false,
     bool speechThrows = false,
+    bool grant = true,
   }) {
+    scheduler = FakeNotificationScheduler(
+      permission: NotificationPermission.notDetermined,
+      grant: grant,
+    );
+    notify = NotificationSettings(storage: storage);
+    final notifier = ReflectionNotifier(
+      scheduler: scheduler,
+      notifySettings: notify,
+      reflectionSettings: ReflectionSettings(storage: storage),
+      availability: () async => const ReflectionAvailability.available(),
+      language: () => 'en',
+    );
     recorder = FakeAudioRecorder(permission: mic, throwOnEnsurePermission: micThrows);
     engine = FakeStreamingEngine(
       availability: availability,
@@ -41,7 +67,7 @@ void main() {
       store: store,
       composer: FakeAudioComposer(),
     );
-    return OnboardingCubit(service: service);
+    return OnboardingCubit(service: service, scheduler: scheduler, notifier: notifier);
   }
 
   test('requestMic reflects a granted microphone permission', () async {
@@ -109,7 +135,7 @@ void main() {
 
   test('requestPending answers both prompts in one pass', () async {
     final cubit = build();
-    await cubit.requestPending();
+    await cubit.requestPending(reminders: false);
     expect(cubit.state.micGranted, isTrue);
     expect(cubit.state.speechGranted, isTrue);
     expect(recorder.ensurePermissionCalls, 1);
@@ -121,7 +147,7 @@ void main() {
     final cubit = build(mic: PermissionStatus.denied);
     await cubit.requestMic();
     await cubit.requestSpeech();
-    await cubit.requestPending();
+    await cubit.requestPending(reminders: false);
     expect(recorder.ensurePermissionCalls, 1);
     expect(engine.checkAvailabilityCalls, 1);
     await cubit.close();
@@ -130,8 +156,8 @@ void main() {
   test('a second requestPending while the mic prompt is up starts nothing over it', () async {
     final cubit = build();
     final prompt = recorder.permissionPrompt = Completer<void>();
-    final first = cubit.requestPending();
-    final second = cubit.requestPending();
+    final first = cubit.requestPending(reminders: false);
+    final second = cubit.requestPending(reminders: false);
     await Future<void>.delayed(Duration.zero);
     expect(engine.checkAvailabilityCalls, 0);
     prompt.complete();
@@ -145,9 +171,41 @@ void main() {
 
   test('requestPending still asks for speech after a failed mic prompt', () async {
     final cubit = build(micThrows: true);
-    await cubit.requestPending();
+    await cubit.requestPending(reminders: false);
     expect(cubit.state.mic, PermissionStatus.undetermined);
     expect(cubit.state.speechGranted, isTrue);
     await cubit.close();
+  });
+
+  test('reminders granted on the set-up page switch the reminders on', () async {
+    final cubit = build();
+    await cubit.requestReminders();
+    await pumpEventQueue();
+    expect(cubit.state.remindersGranted, isTrue);
+    expect(ReflectionNotifier.masterEnabled(notify), isTrue);
+    expect(scheduler.scheduled, isNotEmpty);
+  });
+
+  test('a refused reminders prompt stores nothing', () async {
+    final cubit = build(grant: false);
+    await cubit.requestReminders();
+    expect(cubit.state.reminders, NotificationPermission.denied);
+    expect(ReflectionNotifier.masterEnabled(notify), isFalse);
+    expect(scheduler.scheduled, isEmpty);
+  });
+
+  test('the pending pass asks for reminders after the microphone and speech', () async {
+    final cubit = build();
+    await cubit.requestPending(reminders: true);
+    expect(cubit.state.micGranted, isTrue);
+    expect(cubit.state.speechGranted, isTrue);
+    expect(scheduler.permissionRequests, 1);
+  });
+
+  test('a phone that cannot reflect is never asked for reminders', () async {
+    final cubit = build();
+    await cubit.requestPending(reminders: false);
+    expect(scheduler.permissionRequests, 0);
+    expect(cubit.state.reminders, NotificationPermission.notDetermined);
   });
 }

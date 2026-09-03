@@ -473,23 +473,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingRecordText6 => '明日は遅くなる前に母に電話したい。';
 
   @override
-  String get onboardingLanguageDownloads => '一度ダウンロードすれば、あとはオフラインで動作します。';
-
-  @override
-  String get onboardingLanguageBuiltIn => '内蔵済み。ダウンロードは不要です。';
-
-  @override
-  String get onboardingLanguageReady => 'この端末で準備できています。';
-
-  @override
-  String get onboardingLanguageLoading => '言語を確認しています';
-
-  @override
   String get onboardingPermissionsTitle => 'アクセスを許可';
 
   @override
   String get onboardingPermissionsBody =>
-      'ここにあるものはすべて、この端末上で動作します。「始める」でマイクと音声認識の許可を求めます。どちらも後から設定で変更できます。';
+      'ここにあるものはすべて、この端末上で動作します。「始める」でマイク、音声認識、リマインダーの許可を求めます。いずれも後から設定で変更できます。';
 
   @override
   String get onboardingMicName => 'マイク';
@@ -519,6 +507,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingShapeWebNote => 'ブラウザで';
+
+  @override
+  String get onboardingRemindersName => 'リマインダー';
+
+  @override
+  String get onboardingRemindersReason => '振り返りができたらお知らせします。';
 
   @override
   String get onboardingReflectionsOn => 'Apple Intelligence はオンです。';

@@ -474,23 +474,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingRecordText6 => '내일은 늦기 전에 엄마에게 전화하고 싶다.';
 
   @override
-  String get onboardingLanguageDownloads => '한 번 다운로드하면 오프라인에서 동작합니다.';
-
-  @override
-  String get onboardingLanguageBuiltIn => '내장되어 있습니다. 다운로드할 것이 없습니다.';
-
-  @override
-  String get onboardingLanguageReady => '이 기기에서 준비되었습니다.';
-
-  @override
-  String get onboardingLanguageLoading => '언어를 확인하는 중';
-
-  @override
   String get onboardingPermissionsTitle => '접근 허용';
 
   @override
   String get onboardingPermissionsBody =>
-      '여기 있는 모든 것은 이 기기에서만 실행됩니다. 시작하기를 누르면 마이크와 음성 인식 권한을 요청하며, 둘 다 나중에 설정에서 바꿀 수 있습니다.';
+      '여기 있는 모든 것은 이 기기에서만 실행됩니다. 시작하기를 누르면 마이크, 음성 인식, 알림 권한을 요청하며, 모두 나중에 설정에서 바꿀 수 있습니다.';
 
   @override
   String get onboardingMicName => '마이크';
@@ -520,6 +508,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingShapeWebNote => '어떤 브라우저든';
+
+  @override
+  String get onboardingRemindersName => '알림';
+
+  @override
+  String get onboardingRemindersReason => '돌아보기가 준비되면 알려드립니다.';
 
   @override
   String get onboardingReflectionsOn => 'Apple Intelligence가 켜져 있습니다.';
