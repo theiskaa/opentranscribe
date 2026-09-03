@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/routes/slide_page.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
 import 'package:opentranscribe/view/layouts/onboarding/screens/onboarding_screen.dart';
@@ -57,8 +58,11 @@ class AppRouter {
         // The base of the stack: everything slides in over it. On a plain
         // launch the initial route does not animate; the arrival fade only
         // plays on the swap out of onboarding.
-        pageBuilder: (context, state) =>
-            ArrivalPage<void>(key: state.pageKey, child: const HomeScreen()),
+        pageBuilder: (context, state) => ArrivalPage<void>(
+          motion: context.motionNow,
+          key: state.pageKey,
+          child: const HomeScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.onboarding,
@@ -122,6 +126,7 @@ class AppRouter {
         path: Routes.record,
         name: Routes.recordName,
         pageBuilder: (context, state) => SlideUpPage<void>(
+          motion: context.motionNow,
           key: state.pageKey,
           child: RecorderScreen(
             continueEntryId: state.uri.queryParameters[Routes.recordEntryQuery],
