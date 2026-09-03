@@ -103,9 +103,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get menuSourceCode => 'Código-fonte';
 
   @override
-  String get menuHowItWorks => 'Como funciona';
-
-  @override
   String get recordStateRecording => 'A gravar';
 
   @override

@@ -103,9 +103,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get menuSourceCode => 'Quellcode';
 
   @override
-  String get menuHowItWorks => 'So funktioniert es';
-
-  @override
   String get recordStateRecording => 'Nimmt auf';
 
   @override

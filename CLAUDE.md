@@ -62,7 +62,7 @@ Two layers only. There is no `features/` layer, and we do not want one.
 
 `lib/core/`, everything non-UI:
 
-- `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), the onboarding flag (`onboarding.dart`; a finished user re-enters the flow only as `/onboarding?replay=true`, from the home menu) and the one-shot hint flags (`hints.dart`, each shown once, ever).
+- `core/app/`: composition root (`deps.dart`), encrypted on-device storage (`local_service.dart`), locale source of truth (`app_language.dart`), the onboarding flag (`onboarding.dart`; a finished user re-enters the flow only as `/onboarding?replay=true`, which nothing links to today) and the one-shot hint flags (`hints.dart`, each shown once, ever).
 - `core/export/`: the `JournalExporter` contract and the shipped format exporters, plus the native archive: store-only zip codec, manifest, sealed-container crypto, and the share-sheet channel wrapper.
 - `core/models/`: plain data (`entry.dart`, `engine_descriptor.dart`, `exporter_descriptor.dart`, `reflection.dart`, `reflection_timeline.dart`).
 - `core/routes/`: `app_router.dart` (the `GoRouter`), `routes.dart` (path and name constants), page transitions.

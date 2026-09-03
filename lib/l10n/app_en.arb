@@ -125,10 +125,6 @@
   "@menuSourceCode": {
     "description": "Home menu row linking to the public source repository, followed by the app version"
   },
-  "menuHowItWorks": "How it works",
-  "@menuHowItWorks": {
-    "description": "Home menu row replaying onboarding"
-  },
   "recordStateRecording": "Recording",
   "@recordStateRecording": {
     "description": "State line under the recorder's timer while the microphone is open"

@@ -98,9 +98,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get menuSourceCode => '소스 코드';
 
   @override
-  String get menuHowItWorks => '사용 방법';
-
-  @override
   String get recordStateRecording => '녹음 중';
 
   @override

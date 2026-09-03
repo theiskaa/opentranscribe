@@ -102,9 +102,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuSourceCode => 'Source code';
 
   @override
-  String get menuHowItWorks => 'How it works';
-
-  @override
   String get recordStateRecording => 'Recording';
 
   @override

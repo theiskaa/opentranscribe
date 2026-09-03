@@ -28,7 +28,6 @@
   "homeEmptySubtitle": "話した内容はすべて文字起こしされ、この端末内に保存されます。下に引いて最初の録音を始めましょう。",
   "homePullToRecord": "引いて録音",
   "menuSourceCode": "ソースコード",
-  "menuHowItWorks": "使い方",
   "recordStateRecording": "録音中",
   "recordStatePaused": "一時停止中",
   "recordErrorMessage": "録音中に問題が発生しました。",

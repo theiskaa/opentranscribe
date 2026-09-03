@@ -98,9 +98,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get menuSourceCode => 'ソースコード';
 
   @override
-  String get menuHowItWorks => '使い方';
-
-  @override
   String get recordStateRecording => '録音中';
 
   @override
