@@ -53,6 +53,28 @@ void main() {
       );
     });
 
+    test('a finished user reaches onboarding only as a replay', () {
+      expect(
+        resolveRedirect(onboardingDone: true, matchedLocation: Routes.onboarding, replay: true),
+        isNull,
+      );
+      expect(
+        resolveRedirect(onboardingDone: true, matchedLocation: Routes.onboarding),
+        Routes.home,
+      );
+    });
+
+    test('a replay flag buys an unfinished user nothing', () {
+      expect(
+        resolveRedirect(onboardingDone: false, matchedLocation: Routes.home, replay: true),
+        Routes.onboarding,
+      );
+      expect(
+        resolveRedirect(onboardingDone: false, matchedLocation: Routes.onboarding, replay: true),
+        isNull,
+      );
+    });
+
     test('an unfinished user already at onboarding is not redirected', () {
       // Loop-freedom guarantee: redirecting here would bounce forever.
       expect(resolveRedirect(onboardingDone: false, matchedLocation: Routes.onboarding), isNull);
