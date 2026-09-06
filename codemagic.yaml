@@ -46,6 +46,10 @@ workflows:
       # by the format-check but still tested); see tool/checks.sh.
       - name: Run checks
         script: ./tool/checks.sh
+      # The transcriber plugin links the prebuilt whisper.cpp binary; the
+      # checkout never carries it.
+      - name: Fetch whisper.cpp
+        script: ./tool/whisper/fetch.sh
       - name: Set up keychain
         script: keychain initialize
       - name: Create or fetch the App Store signing files
