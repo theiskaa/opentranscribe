@@ -21,7 +21,8 @@ typedef struct otr_whisper otr_whisper;
 
 OTR_API const char *otr_whisper_version(void);
 
-// Loads a ggml model. NULL when the file cannot be loaded.
+// Loads a ggml model. NULL when the file cannot be loaded. use_gpu is
+// honored on a device and ignored in the simulator.
 OTR_API otr_whisper *otr_whisper_open(const char *model_path, int32_t use_gpu);
 
 OTR_API void otr_whisper_close(otr_whisper *w);

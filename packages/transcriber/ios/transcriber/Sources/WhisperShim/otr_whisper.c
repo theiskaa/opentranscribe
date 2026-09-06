@@ -6,6 +6,17 @@
 #include <string.h>
 #include <whisper/whisper.h>
 
+#if __has_include(<TargetConditionals.h>)
+#include <TargetConditionals.h>
+#endif
+// The simulator's Metal driver cannot hand a model's buffers to the GPU and
+// traps the process; only a device runs on the GPU.
+#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
+#define OTR_GPU_ALLOWED 0
+#else
+#define OTR_GPU_ALLOWED 1
+#endif
+
 // Kept even when nothing native references them: Dart resolves these by
 // name from the process image after dead-code stripping.
 #define OTR_KEEP __attribute__((used))
@@ -32,8 +43,9 @@ OTR_KEEP otr_whisper *otr_whisper_open(const char *model_path, int32_t use_gpu) 
   if (model_path == NULL || model_path[0] == '\0') return NULL;
   whisper_log_set(otr_log, NULL);
   struct whisper_context_params cparams = whisper_context_default_params();
-  cparams.use_gpu = use_gpu != 0;
-  cparams.flash_attn = use_gpu != 0;
+  const bool gpu = use_gpu != 0 && OTR_GPU_ALLOWED;
+  cparams.use_gpu = gpu;
+  cparams.flash_attn = gpu;
   struct whisper_context *ctx = whisper_init_from_file_with_params(model_path, cparams);
   if (ctx == NULL) return NULL;
   otr_whisper *w = calloc(1, sizeof(otr_whisper));
