@@ -45,11 +45,11 @@ A private, offline voice journal. You speak your mind, it writes it down, and it
 
 ## The one rule
 
-**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app must work fully in airplane mode. This is not a feature, it is the architecture, and it constrains every decision below. If a change would open a socket or ship data off-device, it does not belong here.
+**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app must work fully in airplane mode. This is not a feature, it is the architecture, and it constrains every decision below. If a change would open a socket or ship data off-device, it does not belong here. The one carve-out, and the only connection the app ever opens: fetching a public Whisper model file the user asked for, from one pinned host, through one allowlisted file (`packages/transcriber/lib/src/whisper/model_fetcher.dart`). It sends nothing, and `test/one_rule_test.dart` holds the tree to exactly that file and that host.
 
 Corollaries that shape the code:
 
-- Transcription runs on-device, behind one contract: `TranscriptionEngine` in `packages/transcriber`. Two engines ship, user-switchable on the transcription screen: `AppleSpeechEngine` (the iOS 26 SpeechAnalyzer, with managed model downloads) and `AppleDictationEngine` (the classic recognizer behind iOS dictation); whisper.cpp lands later as one more registry entry. Streaming and downloadable-model behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`.
+- Transcription runs on-device, behind one contract: `TranscriptionEngine` in `packages/transcriber`. Three engines ship, user-switchable on the transcription screen: `AppleSpeechEngine` (the iOS 26 SpeechAnalyzer, with managed model downloads), `AppleDictationEngine` (the classic recognizer behind iOS dictation), and `WhisperEngine` (whisper.cpp over `dart:ffi`, batch-only, one downloaded model of five serving every language it knows). Streaming, downloadable-model, model-choice and paced-batch behavior are separate interfaces an engine may also implement, not flags: `StreamingTranscriptionEngine`, `ManagedModelEngine`, `ModelChoiceEngine`, `PacedBatchEngine`, `ReleasableEngine`.
 - `TranscriptionEngine.onDeviceOnly` is a hard gate. The app refuses an engine that answers false, so nothing can quietly route audio off the phone.
 - Nothing in `view/`, `core/services/`, or `core/state/` names a concrete engine. `Deps.init()` is the only place allowed to, plus the engine registry it builds (`EngineEntry` list in `core/app/engine_registry.dart`) for every surface that lists engines: registry order is preference order, auto mode runs the first available entry, and the stored choice lives in `EngineSettings`.
 - Audio capture is recorder-owned, not engine-owned. Buffers stay native; only paths, durations, levels and text cross a channel. Raw audio for each entry is kept on-device by default so entries can be re-transcribed later by a better engine. Keeping is a preference: with keep-audio off, a recording is deleted after its first successful transcription and the entry becomes transcript-only (`Entry.audioPath` is nullable). Bulk reclaim of kept history is only ever the Cache screen's explicit, confirmed action.
@@ -171,7 +171,7 @@ type(scope): what changed
 
 ## Never
 
-- Add a network call, analytics, crash reporting, or any SDK that transmits off-device.
+- Add a network call, analytics, crash reporting, or any SDK that transmits off-device. The model fetcher is the one carve-out; it grows no second host and no second caller.
 - Add a `features/` folder or otherwise blur the `core/` vs `view/` split.
 - Import `material.dart` or `cupertino.dart` in `lib/`, or reach for a Material/Cupertino widget instead of the design system.
 - Reach for `get_it`, `injectable`, code generation for DI, or context-based DI.

@@ -4,11 +4,11 @@ export const SITE_NAME = "OpenTranscribe";
 export const SITE_TAGLINE = "A private, offline voice journal for iOS.";
 
 export const HERO_LEAD =
-  "A voice journal for iOS that records, transcribes, and reflects entirely on the device, with no network access.";
+  "A voice journal for iOS that records, transcribes, and reflects entirely on the device. Its one connection is the download of a Whisper model you choose.";
 
 export const SITE_TITLE = "OpenTranscribe: an offline voice journal for iOS";
 export const SITE_DESCRIPTION =
-  "A voice journal for iOS with no network layer. Recording, transcription, and reflections all happen on the device. No account, no sync, no telemetry.";
+  "A voice journal for iOS that keeps everything on the device. Recording, transcription, and reflections all happen there; its one connection is the download of a Whisper model you choose. No account, no sync, no telemetry.";
 
 export const GITHUB_URL = "https://github.com/theiskaa/opentranscribe";
 export const GITHUB_RAW = "https://raw.githubusercontent.com/theiskaa/opentranscribe/main";
@@ -21,7 +21,7 @@ export const FEATURES = [
     label: "Record",
     title: "Talk. It writes it down.",
     body: "Tap once and talk. A live transcript appears while you speak, and when you stop, the full recording is transcribed on the device before it lands on home.",
-    foot: "Speech models are downloaded once per language and run entirely on the handset. Airplane mode changes nothing.",
+    foot: "Apple speech models are downloaded once per language, or one Whisper model serves them all and run entirely on the handset. Airplane mode changes nothing.",
     shot: "/shots/recording@2x.png",
     cap: "Recording with live text",
   },
@@ -60,7 +60,7 @@ export const FEATURES = [
     n: "05",
     label: "Models",
     title: "The models live on the device, too.",
-    body: "Each language runs its own speech model, downloaded once and shared with the system. Pick the languages you speak and recognition follows, with no server behind it.",
+    body: "Each language runs its own Apple speech model, downloaded once and shared with the system, or one Whisper model of your choosing serves them all. Pick the languages you speak and recognition follows, with no server behind it.",
     foot: "Engines are swappable behind one contract, and every one has to declare it runs on the device before the app will load it.",
     shot: "/shots/models@2x.png",
     cap: "On-device language models",

@@ -12,11 +12,11 @@
   <a href="ios/"><img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2017%2B-000000?logo=apple&logoColor=white"></a>
 </p>
 
-opentranscribe is a voice journal for iOS. Recording, transcription, reflection, and storage all happen on the device. There is no account, no sync, no telemetry, and no code in the app that opens a network connection, so it works the same with the phone in airplane mode. The optional supporter purchase goes through StoreKit: the OS talks to the App Store, no journal content is in that conversation, and only the act of buying needs a connection.
+opentranscribe is a voice journal for iOS. Recording, transcription, reflection, and storage all happen on the device. There is no account, no sync, and no telemetry. The one connection the app ever opens is the download of a Whisper model you pick, from a single pinned host; it sends nothing, and everything else works the same with the phone in airplane mode. The optional supporter purchase goes through StoreKit: the OS talks to the App Store, no journal content is in that conversation, and only the act of buying needs a connection.
 
 <img alt="The week of entries, recording with live text, a finished entry, a written reflection, and the on-device language models" src="assets/readme/showcase.png" width="830">
 
-Transcription and reflection sit behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, shipped as the app-owned plugins [`packages/transcriber`](packages/transcriber/) and [`packages/reflections`](packages/reflections/). An engine that does not declare itself on-device is refused at construction. Recordings and entries stay encrypted in the app's own storage. An entry can be continued: a later take merges into its recording on the device and is transcribed onto the end of the transcript. [CONTRIBUTING.md](CONTRIBUTING.md) covers how it fits together and how to work on it.
+Transcription and reflection sit behind swappable contracts, `TranscriptionEngine` and `ReflectionEngine`, shipped as the app-owned plugins [`packages/transcriber`](packages/transcriber/) and [`packages/reflections`](packages/reflections/). An engine that does not declare itself on-device is refused at construction. Three transcription engines ship, chosen on the transcription screen: Apple's SpeechAnalyzer, the system dictation recognizer, and whisper.cpp, which serves every language from one downloaded model of your choice on any iPhone. Recordings and entries stay encrypted in the app's own storage. An entry can be continued: a later take merges into its recording on the device and is transcribed onto the end of the transcript. [CONTRIBUTING.md](CONTRIBUTING.md) covers how it fits together and how to work on it.
 
 ## At rest
 

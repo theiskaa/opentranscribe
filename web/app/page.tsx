@@ -94,8 +94,9 @@ export default function Home() {
                   the app works the same in airplane mode.
                 </p>
                 <p className="t-body text-ink-2">
-                  There are no requests, no sockets, and no third-party SDKs; there is no
-                  networking code in the app at all. Recordings stay in the native capture layer,
+                  There are no third-party SDKs, and the only networking code in the app is
+                  one file: the fetcher that downloads a public Whisper model you asked for,
+                  from one pinned host, sending nothing. Recordings stay in the native capture layer,
                   and only file paths, durations, levels, and text ever cross into it. Every
                   transcription and reflection engine has to declare that it runs on the device,
                   and the app refuses any that does not. Entries are stored encrypted on the
