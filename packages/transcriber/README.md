@@ -17,6 +17,7 @@ The channels, one Swift class per channel family, all internal to the package (t
 | --- | --- | --- |
 | `PlatformAudioRecorder` | `transcriber/audio` | `transcriber/audio/status`, `transcriber/audio/level` |
 | `PlatformAudioComposer` | `transcriber/audio` (`concatenate`) | |
+| `PlatformPcmDecoder` | `transcriber/audio` (`decodePcm`) | |
 | `AppleSpeechEngine`, `AppleDictationEngine` | `transcriber/speech` | `transcriber/speech/events`, `transcriber/speech/model` |
 | `PlatformAudioPlayer` | `transcriber/player` | `transcriber/player/state` |
 
@@ -26,7 +27,11 @@ A host app provides `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsage
 
 `TranscriberPlugin.recordingStatusObserver` is an optional native hook: capture status strings (`recording`, `paused`, `interrupted`, `stopped`) delivered after Dart's own status sink, for surfaces the package must not know about. opentranscribe drives its Live Activity with it.
 
-`package:transcriber/testing.dart` exports `FakeStreamingEngine`, `FakeBatchEngine`, `FakeManagedEngine`, `FakeDictationEngine`, and `FakeOffDeviceEngine` for tests that need an engine without a device.
+`package:transcriber/testing.dart` exports `FakeStreamingEngine`, `FakeBatchEngine`, `FakeManagedEngine`, `FakeDictationEngine`, `FakeOffDeviceEngine`, `FakeAudioComposer`, and `FakePcmDecoder` for tests that need an engine, a composer, or a decoder without a device.
+
+`PcmDecoder` (`PlatformPcmDecoder`, riding the recorder's channel as `decodePcm`) decodes a slice of a kept recording into raw 16 kHz mono 32-bit float samples under `Application Support/scratch`, for an engine that reads samples from a file. The slice is bounded in the input's own time, a slice holding no frames fails as `decode_empty` rather than answering silence, and the caller deletes the output. The frame math is `pcmSlice` in `ios/transcriber/Core`.
+
+`WhisperShim` binds `ios/transcriber/Sources/WhisperShim/include/otr_whisper.h`, a flat C surface over whisper.cpp compiled into this package against the prebuilt `whisper.xcframework`. The binary is never in the checkout: run `tool/whisper/fetch.sh` in the host app once before an iOS build; it pins the release tag and the zip hash. `TranscriberPlugin.register` references the shim so the linker keeps its object file, and Dart resolves the symbols from the process image.
 
 The classic recognizer hands out only its current utterance, and resets that
 hypothesis after a pause of about two seconds. `UtteranceStitcher` rebuilds the
