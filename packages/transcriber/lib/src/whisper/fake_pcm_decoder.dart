@@ -19,7 +19,8 @@ final class DecodeCall {
 /// [framesPerSecond] times the slice's seconds ([defaultDuration] when the
 /// slice has no end), so a test can assert what the runtime was handed.
 /// [gate] holds a decode open until it completes; [throwOnDecode] fails every
-/// call with the given code, leaving nothing behind like the real one.
+/// call with the given code (mutable, so a test can change the failure between
+/// calls), leaving nothing behind like the real one.
 class FakePcmDecoder implements PcmDecoder {
   FakePcmDecoder({
     required this.scratch,
@@ -33,7 +34,7 @@ class FakePcmDecoder implements PcmDecoder {
   final Duration defaultDuration;
   final int framesPerSecond;
 
-  final String? throwOnDecode;
+  String? throwOnDecode;
   Future<void>? gate;
 
   final List<DecodeCall> calls = [];
@@ -57,7 +58,7 @@ class FakePcmDecoder implements PcmDecoder {
     if (code != null) throw PcmDecodeFailed('fake decode failed', code);
     final from = start ?? Duration.zero;
     final to = end ?? from + defaultDuration;
-    if (to <= from) throw const PcmDecodeFailed('slice holds no frames', 'decode_empty');
+    if (to <= from) throw const PcmDecodeFailed('slice holds no frames', PcmDecodeFailed.empty);
     final frames = (to - from).inMilliseconds * framesPerSecond ~/ 1000;
     await scratch.create(recursive: true);
     final file = File('${scratch.path}/otr-fake-${_serial++}.pcm');

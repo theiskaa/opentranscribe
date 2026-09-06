@@ -89,7 +89,7 @@ final class ReservationInfo {
 
 /// Progress of an on-device model download: [fraction] complete in [0,1], and
 /// [done] once installed. Engine-neutral: whatever an engine must fetch to run
-/// offline (an Apple asset today, a whisper model later) reports through this.
+/// offline (an Apple asset, a whisper model) reports through this.
 @immutable
 final class ModelInstallProgress {
   const ModelInstallProgress({required this.fraction, required this.done});
@@ -103,6 +103,42 @@ final class ModelInstallProgress {
 
   @override
   int get hashCode => Object.hash(fraction, done);
+}
+
+/// How good a downloadable model is, from worst to best, for a picker to word.
+enum ModelQuality { basic, good, better, best, top }
+
+/// One model a [ModelChoiceEngine] can run: what a picker renders. [bytes] is
+/// the download's exact size; [peakMemoryBytes] what a run needs resident, so
+/// a surface can dim a model this device cannot hold. Presentation words
+/// belong to the app; the package carries only the facts.
+@immutable
+final class ModelOption {
+  const ModelOption({
+    required this.id,
+    required this.displayName,
+    required this.bytes,
+    required this.quality,
+    required this.peakMemoryBytes,
+  });
+
+  final String id;
+  final String displayName;
+  final int bytes;
+  final ModelQuality quality;
+  final int peakMemoryBytes;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ModelOption &&
+      other.id == id &&
+      other.displayName == displayName &&
+      other.bytes == bytes &&
+      other.quality == quality &&
+      other.peakMemoryBytes == peakMemoryBytes;
+
+  @override
+  int get hashCode => Object.hash(id, displayName, bytes, quality, peakMemoryBytes);
 }
 
 /// The one boundary the app talks to. Batch (file -> transcript) is universal: it
@@ -147,7 +183,7 @@ abstract interface class TranscriptionEngine {
 }
 
 /// An engine that also produces live partial/final text while capture runs. Apple
-/// Speech implements this; our planned whisper.cpp engine is batch-only. The
+/// Speech implements this; the whisper.cpp engine is batch-only. The
 /// stream emits partials as you speak, then one final event after capture stops.
 /// A degraded engine may emit nothing at all, so consumers must cancel their
 /// subscription when capture ends rather than await the final event as a signal.
@@ -182,8 +218,8 @@ abstract interface class LanguageReadinessEngine implements TranscriptionEngine 
 }
 
 /// An engine whose on-device model is downloaded and managed on the device. Apple
-/// Speech implements this (its language assets); a future whisper.cpp engine would
-/// too (its model file). An engine with no downloadable model does not implement it,
+/// Speech implements this (its language assets) and so does the whisper.cpp
+/// engine (its model file). An engine with no downloadable model does not implement it,
 /// and callers treat that as "always installed". Capability by type, no flag.
 abstract interface class ManagedModelEngine implements TranscriptionEngine {
   /// Whether the model for [localeId] is downloaded, so transcription runs now
@@ -223,4 +259,50 @@ abstract interface class ManagedModelEngine implements TranscriptionEngine {
   /// The platform's language cap and this app's current holdings, for a
   /// management UI to render honestly. Preflight: never throws.
   Future<ReservationInfo> reservationInfo();
+}
+
+/// An engine that offers a choice of models, one of which serves every
+/// language it supports (whisper's tiers). The choice is a preference the app
+/// persists and hands back through [selectModel]; the engine only records it.
+/// [ManagedModelEngine]'s per-language questions answer for the selected
+/// model. An id outside [models] is an [ArgumentError] on every method that
+/// takes one. Capability by type, no flag.
+abstract interface class ModelChoiceEngine implements TranscriptionEngine {
+  /// Every model the engine can run, in the order a picker lists them.
+  List<ModelOption> get models;
+
+  /// The model runs and installs use. Always one of [models].
+  String get selectedModelId;
+
+  /// Records the choice. Nothing is downloaded or deleted.
+  Future<void> selectModel(String id);
+
+  /// The ids whose files are present and whole. Preflight: never throws.
+  Future<Set<String>> installedModels();
+
+  /// Downloads one model, streaming progress and ending with a
+  /// [ModelInstallProgress.done] event. Same rules as
+  /// [ManagedModelEngine.installModel]: listen immediately, one install per id,
+  /// overlapping ids serialized by the engine. A no-op stream when the file is
+  /// already present.
+  Stream<ModelInstallProgress> installModelById(String id);
+
+  /// Deletes one model's file. Answers whether a file was deleted; refused
+  /// (false) while a batch runs on the selected model. The selection is left
+  /// as is, so a removed selected model reads as not installed.
+  Future<bool> removeModel(String id);
+}
+
+/// An engine whose batch pass needs its own time budget: a caller allows
+/// [batchBudget] for a file of that length before treating the run as hung.
+/// Engines without it get the caller's default.
+abstract interface class PacedBatchEngine implements TranscriptionEngine {
+  Duration batchBudget(Duration audio);
+}
+
+/// An engine holding memory it can give back while idle: a loaded model, a
+/// worker. A caller that switches away calls [release]; a run in flight
+/// fails as cancelled, and the next run loads again. Safe at any time.
+abstract interface class ReleasableEngine implements TranscriptionEngine {
+  Future<void> release();
 }

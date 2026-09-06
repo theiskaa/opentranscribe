@@ -837,6 +837,14 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       concatenate(names: names, result: result)
+    case "modelsDirectory":
+      do {
+        result(try AudioCaptureSession.protectedDirectory(named: "models").path)
+      } catch {
+        result(FlutterError(code: "storage_failed", message: "\(error)", details: nil))
+      }
+    case "physicalMemory":
+      result(Int(ProcessInfo.processInfo.physicalMemory))
     case "decodePcm":
       let args = call.arguments as? [String: Any]
       let startMs = args?["startMs"] as? Int

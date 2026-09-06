@@ -41,10 +41,18 @@ class CaptureFailed extends TranscriptionException {
 /// language the platform has no asset for, and an ordinary network failure all
 /// deserve different words in the UI.
 class ModelInstallFailed extends TranscriptionException {
-  const ModelInstallFailed([super.message, this.assetStatus]);
+  const ModelInstallFailed([super.message, this.assetStatus, this.reason]);
 
   final ModelAssetStatus? assetStatus;
+
+  /// Why a file download failed, when the engine fetches its own model.
+  final ModelInstallReason? reason;
 }
+
+/// The ways a model file download fails, each deserving its own words: no
+/// connection, a file that did not verify or a server that refused, no room
+/// on the device, or the user's own cancel.
+enum ModelInstallReason { offline, rejected, noSpace, cancelled }
 
 /// The platform's per-app language cap is full: installing another language
 /// needs one of [reservedTags] removed first. Its own type because the fix is
@@ -84,6 +92,11 @@ class AudioComposeFailed extends TranscriptionException {
 /// input untouched and nothing partial behind.
 class PcmDecodeFailed extends TranscriptionException {
   const PcmDecodeFailed([super.message, this.code]);
+
+  // The native codes; must match AudioDecode.swift.
+  static const missing = 'decode_missing';
+  static const unreadable = 'decode_unreadable';
+  static const empty = 'decode_empty';
 
   final String? code;
 

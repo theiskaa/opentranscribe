@@ -12,16 +12,23 @@ void main() {
   // material/cupertino guard, so a doc comment mentioning "http" never trips it.
   final bannedImport = RegExp(r'''^\s*(?:import|export)\s+['"]package:http/''', multiLine: true);
 
-  // Word-boundary so these never match inside a longer identifier or a
-  // doc-comment mention. Plain dart:io (File, Directory) stays legal; only
-  // its network surface is banned.
+  // Plain dart:io (File, Directory) stays legal; only its network surface is
+  // banned, by bare name so a tear-off or a factory reference trips it too.
   final bannedDartSymbol = RegExp(
-    r'\b(HttpClient\(|HttpServer|Socket\.connect|SecureSocket|WebSocket\.connect)',
+    r'\b(HttpClient|HttpServer|Socket\.connect|SecureSocket|WebSocket\.connect)\b',
   );
 
   final bannedAsset = RegExp(r'\b(Lottie\.network|NetworkAssetBundle|Image\.network)\b');
 
   final packageDirs = Directory('packages').listSync().whereType<Directory>().toList();
+
+  // The one exception: the model fetcher, which downloads a public model file
+  // the user asked for from a pinned host and sends nothing. Its host lives in
+  // the catalog (plus the CDN suffixes redirects may land on), and the test
+  // below holds both files to that.
+  const fetcherPath = 'packages/transcriber/lib/src/whisper/model_fetcher.dart';
+  const catalogPath = 'packages/transcriber/lib/src/whisper/whisper_catalog.dart';
+  const pinnedHost = 'https://huggingface.co/';
 
   test('lib/ and every plugin package never touch the network', () {
     final dartRoots = [
@@ -37,8 +44,9 @@ void main() {
 
     for (final file in files) {
       final contents = file.readAsStringSync();
+      final allowedSymbols = file.path == fetcherPath;
       if (bannedImport.hasMatch(contents) ||
-          bannedDartSymbol.hasMatch(contents) ||
+          (!allowedSymbols && bannedDartSymbol.hasMatch(contents)) ||
           bannedAsset.hasMatch(contents)) {
         offenders.add(file.path);
       }
@@ -51,6 +59,32 @@ void main() {
       final count = files.where((f) => f.path.startsWith(root.path)).length;
       expect(count, greaterThan(0), reason: '${root.path} contributed no Dart files to the scan');
     }
+  });
+
+  test('the model fetcher names no host and the catalog names only the pinned one', () {
+    final fetcher = File(fetcherPath);
+    final catalog = File(catalogPath);
+    expect(
+      fetcher.existsSync(),
+      isTrue,
+      reason: 'the allowlisted fetcher moved; move the allowlist',
+    );
+    expect(catalog.existsSync(), isTrue);
+
+    final literal = RegExp(r'''https?://[^'"\s]*''');
+    final fetcherSource = fetcher.readAsStringSync();
+    expect(literal.allMatches(fetcherSource), isEmpty);
+    expect(RegExp(r'\bUri(\.https|\.http|\.parse)?\(').hasMatch(fetcherSource), isFalse);
+    final catalogSource = catalog.readAsStringSync();
+    final hosts = literal.allMatches(catalogSource).map((m) => m.group(0)!).toList();
+    expect(hosts, isNotEmpty);
+    for (final host in hosts) {
+      expect(host, startsWith(pinnedHost));
+    }
+    // The hosts a redirect may land on: the pinned one and its LFS CDN
+    // (cdn-lfs*.hf.co), verbatim, so a suffix cannot quietly widen.
+    final suffixes = RegExp(r'redirectSuffixes = \[([^\]]*)\]').firstMatch(catalogSource);
+    expect(suffixes?.group(1)?.replaceAll(RegExp(r'\s'), ''), "'huggingface.co','hf.co'");
   });
 
   // Strip // line comments first so a prose mention of these symbols (e.g. in
