@@ -19,3 +19,5 @@ export 'src/transcribe/transcript.dart';
 export 'src/transcribe/transcript_event.dart';
 export 'src/transcribe/transcription_engine.dart';
 export 'src/transcribe/transcription_exception.dart';
+export 'src/whisper/pcm_decoder.dart';
+export 'src/whisper/platform_pcm_decoder.dart';

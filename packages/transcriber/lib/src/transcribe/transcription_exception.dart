@@ -77,3 +77,16 @@ class AudioComposeFailed extends TranscriptionException {
   @override
   String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
 }
+
+/// A slice of kept audio could not be decoded for an engine that reads samples
+/// from a file. [code] carries the native reason (a missing or unreadable
+/// input, a slice holding no frames, a write failure); every case leaves the
+/// input untouched and nothing partial behind.
+class PcmDecodeFailed extends TranscriptionException {
+  const PcmDecodeFailed([super.message, this.code]);
+
+  final String? code;
+
+  @override
+  String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
+}

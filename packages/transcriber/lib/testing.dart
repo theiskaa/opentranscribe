@@ -4,3 +4,4 @@ library;
 
 export 'src/transcribe/fake_engine.dart';
 export 'src/audio/fake_audio_composer.dart';
+export 'src/whisper/fake_pcm_decoder.dart';

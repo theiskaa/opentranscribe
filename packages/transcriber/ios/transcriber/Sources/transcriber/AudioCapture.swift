@@ -736,6 +736,23 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
   }
 
+  private func decodePcm(
+    path: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
+    AudioDecode.queue.async {
+      let reply: Any
+      do {
+        let outcome = try AudioDecode.decodePcm(path: path, startMs: startMs, endMs: endMs)
+        reply = ["path": outcome.path, "frames": outcome.frames]
+      } catch let error as AudioDecode.DecodeError {
+        reply = FlutterError(code: error.code, message: error.errorDescription, details: nil)
+      } catch {
+        reply = FlutterError(code: "decode_failed", message: "\(error)", details: nil)
+      }
+      DispatchQueue.main.async { result(reply) }
+    }
+  }
+
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "ensurePermission":
@@ -820,6 +837,17 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       concatenate(names: names, result: result)
+    case "decodePcm":
+      let args = call.arguments as? [String: Any]
+      let startMs = args?["startMs"] as? Int
+      let endMs = args?["endMs"] as? Int
+      guard let path = args?["path"] as? String, !path.isEmpty,
+        (args?["startMs"] == nil) == (startMs == nil), (args?["endMs"] == nil) == (endMs == nil)
+      else {
+        result(FlutterError(code: "bad_args", message: "path and integer bounds", details: nil))
+        return
+      }
+      decodePcm(path: path, startMs: startMs, endMs: endMs, result: result)
     case "setBackupExcluded":
       do {
         let excluded = (call.arguments as? [String: Any])?["excluded"] as? Bool ?? true
