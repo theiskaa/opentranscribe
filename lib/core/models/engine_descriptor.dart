@@ -25,5 +25,7 @@ final class EngineDescriptor {
   final IconData logo;
 }
 
-/// Why an engine cannot run on this device, as a kind the UI words.
-enum EngineUnavailability { needsNewerDevice }
+/// Why an engine cannot run on this device, as a kind the UI words: the
+/// hardware or system is too old, or its storage could not be reached on this
+/// launch.
+enum EngineUnavailability { needsNewerDevice, storageUnavailable }

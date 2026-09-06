@@ -15,6 +15,7 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_card.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
@@ -142,7 +143,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
-          final chips = chipLanguages(state.languages);
+          final chips = chipLanguages(state.languages, oneModelForAll: state.offersModelChoice);
           return SettingsList(
             children: [
               // Breath under the bar before the first label; sm reads cramped
@@ -209,6 +210,17 @@ class _ModelsScreenState extends State<ModelsScreen> {
                   ],
                 ),
               ),
+              _Melt(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (state.offersModelChoice) ...[
+                      SectionLabel(l10n.transcriptionModel),
+                      ModelCard(rows: state.models),
+                    ],
+                  ],
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               const SettingsCard(children: [_RetranscribeRow()]),
               const SizedBox(height: AppSpacing.md),
@@ -227,7 +239,10 @@ class _ModelsScreenState extends State<ModelsScreen> {
                           (r) => r.isActive && r.descriptor.engineId == state.engineId,
                         ))
                       SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
-                    if (state.managesModels) SectionInfo(l10n.transcriptionFootnote),
+                    if (state.offersModelChoice)
+                      SectionInfo(l10n.transcriptionModelFootnote)
+                    else if (state.managesModels)
+                      SectionInfo(l10n.transcriptionFootnote),
                   ],
                 ),
               ),
@@ -312,10 +327,14 @@ class _EngineRow extends StatelessWidget {
   // until it is worded, never silently borrow this one's words.
   String _unavailableNote(AppLocalizations l10n) => switch (row.unavailability!) {
     EngineUnavailability.needsNewerDevice => l10n.engineUnavailableNote,
+    EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableNote,
   };
 
   String _unavailableBody(AppLocalizations l10n) => switch (row.unavailability!) {
     EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(row.descriptor.displayName),
+    EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableBody(
+      row.descriptor.displayName,
+    ),
   };
 
   Future<void> _tap(BuildContext context) async {

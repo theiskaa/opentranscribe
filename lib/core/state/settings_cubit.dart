@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
+import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
@@ -85,17 +86,73 @@ final class LanguageModelState {
   );
 }
 
+/// One model of an engine's choice as the settings surface manages it:
+/// whether its file is present, whether it is the one runs use, any
+/// in-flight download, whether this phone can hold it, and a standing
+/// install failure.
+@immutable
+final class ModelRowState {
+  const ModelRowState({
+    required this.option,
+    required this.installed,
+    required this.selected,
+    required this.heavy,
+    this.installFraction,
+    this.failure,
+  });
+
+  final ModelOption option;
+  final bool installed;
+  final bool selected;
+
+  /// The model's peak memory exceeds what this phone can spare.
+  final bool heavy;
+
+  /// 0..1 while this cubit downloads this model; null otherwise.
+  final double? installFraction;
+
+  /// Why the last install failed, until a retry clears it.
+  final ModelInstallReason? failure;
+
+  bool get installing => installFraction != null;
+
+  ModelRowState copyWith({
+    bool? installed,
+    bool? selected,
+    bool? heavy,
+    double? installFraction,
+    ModelInstallReason? failure,
+    bool clearInstall = false,
+    bool clearFailure = false,
+  }) => ModelRowState(
+    option: option,
+    installed: installed ?? this.installed,
+    selected: selected ?? this.selected,
+    heavy: heavy ?? this.heavy,
+    installFraction: clearInstall ? null : (installFraction ?? this.installFraction),
+    failure: clearFailure ? null : (failure ?? this.failure),
+  );
+}
+
+/// Whether a model needing [peakBytes] resident is too much for a phone with
+/// [physicalBytes]: past three fifths, the share iOS lets a foreground app
+/// hold. Unknown memory dims nothing.
+bool modelTooHeavy({required int peakBytes, required int? physicalBytes}) =>
+    physicalBytes != null && peakBytes * 5 > physicalBytes * 3;
+
 /// What the settings surfaces render about the transcription and storage
-/// backbone: the default language, one row per language, and the backup
-/// preference.
+/// backbone: the default language, one row per language, the engine's
+/// model choice when it has one, and the backup preference.
 @immutable
 final class SettingsState {
   const SettingsState({
     this.localeId = '',
     this.engineId = '',
     this.managesModels = false,
+    this.offersModelChoice = false,
     this.supportedLocales = const [],
     this.languages = const [],
+    this.models = const [],
     this.reservationMax = 0,
     this.backupExcluded = true,
     this.keepAudio = true,
@@ -114,6 +171,17 @@ final class SettingsState {
   /// (an unready language's story), never off [reservationMax], which only
   /// gates affordances.
   final bool managesModels;
+
+  /// Whether that engine offers a choice of models, one serving every
+  /// language: the model card shows, and the language surfaces keep only
+  /// the default as yours.
+  final bool offersModelChoice;
+
+  /// The engine's models in picker order; empty without a choice.
+  final List<ModelRowState> models;
+
+  /// The model runs use, null without a choice.
+  ModelRowState? get selectedModel => models.where((row) => row.selected).firstOrNull;
 
   /// True when the phone's language has no on-device model in any variant and
   /// the current default equals the derived fallback, so a surface can say why
@@ -175,6 +243,8 @@ final class SettingsState {
     String? localeId,
     String? engineId,
     bool? managesModels,
+    bool? offersModelChoice,
+    List<ModelRowState>? models,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
     int? reservationMax,
@@ -186,6 +256,8 @@ final class SettingsState {
     localeId: localeId ?? this.localeId,
     engineId: engineId ?? this.engineId,
     managesModels: managesModels ?? this.managesModels,
+    offersModelChoice: offersModelChoice ?? this.offersModelChoice,
+    models: models ?? this.models,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
@@ -207,11 +279,15 @@ class SettingsCubit extends Cubit<SettingsState> {
     required TranscriptionService service,
     required TranscriptionSettings transcription,
     required AudioStorageSettings audioStorage,
+    required EngineSettings engineSettings,
+    int? physicalMemoryBytes,
   }) : _service = service,
        _transcription = transcription,
        _audioStorage = audioStorage,
+       _engineSettings = engineSettings,
+       _physicalMemoryBytes = physicalMemoryBytes,
        // Seeded from the synchronous holders rather than defaulted: [load] needs
-       // four channel round trips to answer, and a Cache screen that renders
+       // five channel round trips to answer, and a Cache screen that renders
        // "keep audio on" for a second before flipping itself off is telling the
        // user their setting is something it is not.
        super(
@@ -219,6 +295,7 @@ class SettingsCubit extends Cubit<SettingsState> {
            localeId: transcription.localeId,
            engineId: service.engineId,
            managesModels: service.managesModels,
+           offersModelChoice: service.offersModelChoice,
            backupExcluded: audioStorage.backupExcluded,
            keepAudio: audioStorage.keepAudio,
          ),
@@ -226,20 +303,31 @@ class SettingsCubit extends Cubit<SettingsState> {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());
+    _firstUseSub = _service.firstUseInstalls.listen(_onFirstUseInstall, onError: _onFirstUseFailed);
     unawaited(load());
   }
 
   final TranscriptionService _service;
   final TranscriptionSettings _transcription;
   final AudioStorageSettings _audioStorage;
+  final EngineSettings _engineSettings;
+  final int? _physicalMemoryBytes;
 
   // One in-flight install per tag: the single-flight guard AND the marker for
   // which rows keep their fraction across a load() rebuild.
   final Map<String, StreamSubscription<ModelInstallProgress>> _installSubs = {};
+  // The same, per model of the engine's choice.
+  final Map<String, StreamSubscription<ModelInstallProgress>> _modelInstallSubs = {};
   StreamSubscription<void>? _modelSub;
+  StreamSubscription<FirstUseInstall>? _firstUseSub;
+  // A download a batch started, painted on its model's row without this
+  // cubit starting it.
+  String? _firstUseModelId;
+  double? _firstUseFraction;
   int _loadGeneration = 0;
 
-  /// Rebuilds every language row. Cheap by design: three list calls plus ONE
+  /// Rebuilds every language row and, under an engine with a choice, every
+  /// model row. Cheap by design: four list calls plus ONE
   /// fine-grained probe for the default row (whose readiness the pre-merge
   /// screens render); other rows derive from list membership, and a surface
   /// that shows one can refine it via [refreshLanguage]. In-flight download
@@ -254,11 +342,13 @@ class SettingsCubit extends Cubit<SettingsState> {
     final List<String> installed;
     final ReservationInfo reservations;
     final LocaleModelStatus? defaultStatus;
+    final Set<String> installedModels;
     try {
       supported = await _service.supportedLocales();
       installed = await _service.installedLocales();
       reservations = await _service.reservationInfo();
       defaultStatus = localeId.isEmpty ? null : await _service.localeStatus(localeId);
+      installedModels = await _service.installedModels();
     } catch (e) {
       // A refusing channel is not an empty language list: the rows stay as
       // they were, and load() never throws into an unawaited caller.
@@ -284,13 +374,38 @@ class SettingsCubit extends Cubit<SettingsState> {
     // install trackers go with them.
     final sameEngine = state.engineId == _service.engineId;
     if (!sameEngine) {
-      for (final sub in _installSubs.values) {
+      for (final sub in [..._installSubs.values, ..._modelInstallSubs.values]) {
         // Best effort, like the service's own teardown: a rejecting cancel
         // must not land in the zone.
         unawaited(sub.cancel().catchError((_) {}));
       }
       _installSubs.clear();
+      _modelInstallSubs.clear();
     }
+    final previousModels = sameEngine
+        ? {for (final row in state.models) row.option.id: row}
+        : const <String, ModelRowState>{};
+    final selectedModel = _service.selectedModelId;
+    final modelRows = [
+      for (final option in _service.modelChoices)
+        ModelRowState(
+          option: option,
+          installed: installedModels.contains(option.id),
+          selected: option.id == selectedModel,
+          heavy: modelTooHeavy(
+            peakBytes: option.peakMemoryBytes,
+            physicalBytes: _physicalMemoryBytes,
+          ),
+          installFraction: _modelInstallSubs.containsKey(option.id)
+              ? previousModels[option.id]?.installFraction
+              : option.id == _firstUseModelId
+              ? _firstUseFraction
+              : null,
+          // A standing failure clears once the file is there through another
+          // path; a row wearing "download failed" over a present file is a lie.
+          failure: installedModels.contains(option.id) ? null : previousModels[option.id]?.failure,
+        ),
+    ];
     final previous = sameEngine
         ? {for (final row in state.languages) row.tag: row}
         : const <String, LanguageModelState>{};
@@ -339,8 +454,10 @@ class SettingsCubit extends Cubit<SettingsState> {
         localeId: localeId,
         engineId: _service.engineId,
         managesModels: _service.managesModels,
+        offersModelChoice: _service.offersModelChoice,
         supportedLocales: supported,
-        languages: rows,
+        languages: _mirrorSelectedModel(rows, modelRows),
+        models: modelRows,
         reservationMax: reservations.max,
         backupExcluded: _audioStorage.backupExcluded,
         keepAudio: _audioStorage.keepAudio,
@@ -394,6 +511,15 @@ class SettingsCubit extends Cubit<SettingsState> {
   void install([String? tag]) {
     final target = tag ?? state.localeId;
     if (target.isEmpty || _installSubs.containsKey(target)) return;
+    // One model serves every language: the download is the selected model's,
+    // tracked on its row and mirrored onto the default's.
+    final selected = _service.selectedModelId;
+    if (_service.offersModelChoice && selected != null) {
+      final row = state.selectedModel;
+      if (row != null && row.heavy && !row.installed) return;
+      installModel(selected);
+      return;
+    }
     _patchRow(target, (row) => row.copyWith(installFraction: 0, clearFailure: true));
     _installSubs[target] = _service
         .installModel(localeId: target)
@@ -419,6 +545,136 @@ class SettingsCubit extends Cubit<SettingsState> {
             unawaited(load());
           },
         );
+  }
+
+  /// Makes [id] the model runs use, persisted per engine. A failed persist
+  /// keeps the in-session choice and rethrows so the surface can say it will
+  /// not survive a relaunch.
+  Future<void> selectModel(String id) async {
+    await _service.selectModel(id);
+    await _engineSettings.setModelId(_service.engineId, id);
+  }
+
+  /// Downloads one model of the engine's choice and selects it once landed.
+  /// Single-flight per model, like [install].
+  void installModel(String id) {
+    if (_modelInstallSubs.containsKey(id)) return;
+    // The engine and selection this install belongs to: a switch or a pick
+    // landing mid-download must not have the landing take the choice.
+    final engineId = _service.engineId;
+    final selectedAtStart = _service.selectedModelId;
+    _patchModel(id, (row) => row.copyWith(installFraction: 0, clearFailure: true));
+    _modelInstallSubs[id] = _service
+        .installModelById(id)
+        .listen(
+          (progress) {
+            if (progress.done) return;
+            _patchModel(id, (row) => row.copyWith(installFraction: progress.fraction));
+          },
+          onDone: () async {
+            _modelInstallSubs.remove(id);
+            // Installed at once: the file is there, and the reload that says
+            // so takes five round trips the row must not spend as a download.
+            _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
+            // Selecting is what the download was for; a failed persist still
+            // leaves the file, so the row reads installed either way.
+            if (_service.engineId == engineId && _service.selectedModelId == selectedAtStart) {
+              try {
+                await selectModel(id);
+              } catch (e) {
+                if (kDebugMode) debugPrint('settings: model choice not saved: $e');
+              }
+            }
+            unawaited(load());
+          },
+          onError: (Object error) {
+            _modelInstallSubs.remove(id);
+            final failure = _modelFailureFrom(error);
+            _patchModel(
+              id,
+              (row) =>
+                  row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
+            );
+            unawaited(load());
+          },
+        );
+  }
+
+  /// Deletes one model's file. Answers whether one was deleted.
+  Future<bool> removeModel(String id) async {
+    bool removed;
+    try {
+      removed = await _service.removeModel(id);
+    } catch (_) {
+      removed = false;
+    }
+    if (isClosed) return removed;
+    await load();
+    return removed;
+  }
+
+  /// Folds a raw model install failure into its reason; the raw error is only
+  /// ever debug-logged. A cancel is no failure to wear; an error outside the
+  /// taxonomy reads as the host refusing, the case
+  /// [ModelInstallReason.rejected] covers.
+  ModelInstallReason? _modelFailureFrom(Object error) {
+    if (kDebugMode) debugPrint('settings: $error');
+    return switch (error) {
+      ModelInstallFailed(reason: ModelInstallReason.cancelled) => null,
+      TranscriptionFailed() => null,
+      ModelInstallFailed(reason: final reason?) => reason,
+      _ => ModelInstallReason.rejected,
+    };
+  }
+
+  void _patchModel(String id, ModelRowState Function(ModelRowState) update) {
+    final rows = [for (final row in state.models) row.option.id == id ? update(row) : row];
+    emit(state.copyWith(models: rows, languages: _mirrorSelectedModel(state.languages, rows)));
+  }
+
+  /// Under one model for every language the default row's download is the
+  /// selected model's, so its fraction is that row's.
+  List<LanguageModelState> _mirrorSelectedModel(
+    List<LanguageModelState> languages,
+    List<ModelRowState> models,
+  ) {
+    if (!_service.offersModelChoice) return languages;
+    final fraction = models.where((row) => row.selected).firstOrNull?.installFraction;
+    return [
+      for (final row in languages)
+        row.isDefault
+            ? row.copyWith(installFraction: fraction, clearInstall: fraction == null)
+            : row,
+    ];
+  }
+
+  void _onFirstUseInstall(FirstUseInstall event) {
+    _firstUseModelId = event.progress.done ? null : event.modelId;
+    _firstUseFraction = event.progress.done ? null : event.progress.fraction;
+    // A picker-started download owns its row's fraction.
+    if (_modelInstallSubs.containsKey(event.modelId)) return;
+    _patchModel(
+      event.modelId,
+      (row) => row.copyWith(
+        installFraction: event.progress.fraction,
+        clearInstall: event.progress.done,
+        installed: event.progress.done ? true : null,
+      ),
+    );
+  }
+
+  void _onFirstUseFailed(Object error) {
+    // A download that failed before its first byte named no model; the
+    // service installs the selected one.
+    final id = _firstUseModelId ?? _service.selectedModelId;
+    _firstUseModelId = null;
+    _firstUseFraction = null;
+    if (id == null || _modelInstallSubs.containsKey(id)) return;
+    final failure = _modelFailureFrom(error);
+    _patchModel(
+      id,
+      (row) => row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
+    );
   }
 
   /// Removes a language: releases this app's claim on its model. Removing the
@@ -545,13 +801,15 @@ class SettingsCubit extends Cubit<SettingsState> {
   @override
   Future<void> close() async {
     await _modelSub?.cancel();
+    await _firstUseSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
-    // own tag from the live map, which would invalidate this iteration. A
+    // own key from the live map, which would invalidate this iteration. A
     // rejecting cancel must not abort the close and leak the cubit open.
-    for (final sub in List.of(_installSubs.values)) {
+    for (final sub in [...List.of(_installSubs.values), ...List.of(_modelInstallSubs.values)]) {
       await sub.cancel().catchError((_) {});
     }
     _installSubs.clear();
+    _modelInstallSubs.clear();
     return super.close();
   }
 }

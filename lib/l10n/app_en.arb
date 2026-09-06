@@ -516,6 +516,10 @@
   "@engineBlurbDictation": {
     "description": "One-line explanation under the Dictation engine row"
   },
+  "engineBlurbWhisper": "An open model on whisper.cpp, one download for every language",
+  "@engineBlurbWhisper": {
+    "description": "One-line explanation under the Whisper engine row"
+  },
   "engineUnavailableNote": "Not available on this iPhone",
   "@engineUnavailableNote": {
     "description": "Quiet note under a dimmed engine row this device cannot run"
@@ -532,6 +536,171 @@
         "type": "String"
       }
     }
+  },
+  "engineStorageUnavailableNote": "Storage unavailable right now",
+  "@engineStorageUnavailableNote": {
+    "description": "Quiet note under a dimmed engine row whose model storage could not be reached this launch"
+  },
+  "engineStorageUnavailableBody": "{engine} couldn't reach its model storage on this launch. Relaunch to try again.",
+  "@engineStorageUnavailableBody": {
+    "description": "Sheet body for an engine whose model storage could not be reached this launch",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionModel": "Model",
+  "@transcriptionModel": {
+    "description": "Section label over the model card on the models screen, under an engine that offers a choice of models"
+  },
+  "modelQualityBasic": "Basic",
+  "@modelQualityBasic": {
+    "description": "Quality word for the first (smallest) model tier"
+  },
+  "modelQualityGood": "Good",
+  "@modelQualityGood": {
+    "description": "Quality word for the second model tier"
+  },
+  "modelQualityBetter": "Better",
+  "@modelQualityBetter": {
+    "description": "Quality word for the third model tier"
+  },
+  "modelQualityBest": "Best",
+  "@modelQualityBest": {
+    "description": "Quality word for the fourth model tier"
+  },
+  "modelQualityTop": "Top",
+  "@modelQualityTop": {
+    "description": "Quality word for the fifth (largest) model tier"
+  },
+  "modelSizeAndQuality": "{size} · {quality}",
+  "@modelSizeAndQuality": {
+    "description": "Note under a model row: its download size and quality word",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "quality": {
+        "type": "String"
+      }
+    }
+  },
+  "modelTooHeavyNote": "Too large for this iPhone",
+  "@modelTooHeavyNote": {
+    "description": "Quiet note under a dimmed model row this phone cannot hold in memory"
+  },
+  "modelTooHeavyTitle": "Too large for this iPhone",
+  "@modelTooHeavyTitle": {
+    "description": "Sheet title for a model this phone cannot hold in memory"
+  },
+  "modelTooHeavyBody": "{model} needs more memory than this iPhone has. Pick a smaller model.",
+  "@modelTooHeavyBody": {
+    "description": "Sheet body for a model this phone cannot hold in memory",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveTitle": "Remove {model}?",
+  "@modelRemoveTitle": {
+    "description": "Confirm sheet title before deleting a downloaded model",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveBody": "Frees {size}. You can download it again anytime.",
+  "@modelRemoveBody": {
+    "description": "Confirm sheet body before deleting a downloaded model",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveConfirm": "Remove",
+  "@modelRemoveConfirm": {
+    "description": "Confirm button deleting a downloaded model"
+  },
+  "modelBusyTitle": "Model in use",
+  "@modelBusyTitle": {
+    "description": "Sheet title when a model cannot be removed because a transcription holds it"
+  },
+  "modelBusyBody": "{model} is transcribing right now. Try again when it finishes.",
+  "@modelBusyBody": {
+    "description": "Sheet body when a model cannot be removed because a transcription holds it",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailOfflineTitle": "Couldn't connect",
+  "@modelFailOfflineTitle": {
+    "description": "Sheet title for a model download that failed for lack of a connection"
+  },
+  "modelFailOfflineBody": "Downloading {model} needs a connection. Nothing else in the app ever does. Connect, then try again.",
+  "@modelFailOfflineBody": {
+    "description": "Sheet body for a model download that failed for lack of a connection",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailRejectedTitle": "Download didn't verify",
+  "@modelFailRejectedTitle": {
+    "description": "Sheet title for a model download that did not verify"
+  },
+  "modelFailRejectedBody": "The {model} file didn't match what was expected, so it was discarded. Try again.",
+  "@modelFailRejectedBody": {
+    "description": "Sheet body for a model download that did not verify",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailNoSpaceTitle": "Not enough space",
+  "@modelFailNoSpaceTitle": {
+    "description": "Sheet title for a model download that failed for lack of space"
+  },
+  "modelFailNoSpaceBody": "Free up {size} on this iPhone, then try again.",
+  "@modelFailNoSpaceBody": {
+    "description": "Sheet body for a model download that failed for lack of space",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheModels": "Models",
+  "@cacheModels": {
+    "description": "Fact row label on the Cache screen for downloaded model files"
+  },
+  "cacheModelsInfo": "Downloaded models are managed on the Transcription screen.",
+  "@cacheModelsInfo": {
+    "description": "Explanation under the models fact row on the Cache screen"
+  },
+  "transcriptionHeroNeedsDownload": "Tap to download · {model}",
+  "@transcriptionHeroNeedsDownload": {
+    "description": "Hero status line under a one-model engine whose selected model is not downloaded yet",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionModelFootnote": "The model downloads once and stays in the app.",
+  "@transcriptionModelFootnote": {
+    "description": "Footnote under the transcription screen for an engine whose one model serves every language"
+  },
+  "modelNotSavedBody": "The model choice couldn't be saved and won't survive a relaunch.",
+  "@modelNotSavedBody": {
+    "description": "Sheet body when a model choice could not be persisted"
   },
   "engineBusyTitle": "Recording in progress",
   "@engineBusyTitle": {

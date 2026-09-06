@@ -231,6 +231,22 @@ void main() {
     await cubit.close();
     await svc.dispose();
   });
+
+  test('the sweep measures downloaded models beside the recordings', () async {
+    final cubit = CacheCubit(service: service, modelBytes: () async => 12345);
+    await pumpEventQueue();
+
+    expect(cubit.state.modelBytes, 12345);
+    await cubit.close();
+  });
+
+  test('without a model measure the sweep reports zero model bytes', () async {
+    final cubit = CacheCubit(service: service);
+    await pumpEventQueue();
+
+    expect(cubit.state.modelBytes, 0);
+    await cubit.close();
+  });
 }
 
 /// A store whose [all] can be switched to throw, modeling corrupt reads that

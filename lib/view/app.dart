@@ -100,6 +100,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       unawaited(Deps.i.transcriptionService.finalizeActiveCapture());
       return;
     }
+    // A loaded model is the largest thing the app holds; in the background it
+    // would be the first reason to be killed, and it reloads in seconds.
+    if (state == AppLifecycleState.paused) {
+      unawaited(Deps.i.transcriptionService.releaseIdleEngine());
+      return;
+    }
     if (state != AppLifecycleState.resumed) return;
     // First, ahead of the maintenance passes below: `unawaited` still runs a
     // call's synchronous prefix inline, and a tap waiting on the lock screen
@@ -154,6 +160,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
+            engineSettings: Deps.i.engineSettings,
+            physicalMemoryBytes: Deps.i.physicalMemoryBytes,
           ),
         ),
         // Root-scoped so the choice survives leaving the models screen. Lazy

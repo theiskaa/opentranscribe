@@ -122,9 +122,17 @@ class SpeakingHero extends StatelessWidget {
 
   /// Whatever stands in the way, else ready naming the engine; a running
   /// download takes [_DownloadingLine] instead.
-  String? _statusLine(AppLocalizations l10n, LanguageModelState row) =>
-      modelTroubleLine(l10n, row, managesModels: state.managesModels) ??
-      (engineName == null ? null : l10n.transcriptionHeroReady(engineName!));
+  String? _statusLine(AppLocalizations l10n, LanguageModelState row) {
+    final trouble = modelTroubleLine(l10n, row, managesModels: state.managesModels);
+    if (trouble != null) return trouble;
+    // Under one model for every language the download is the model's, and a
+    // supported language with none on disk is not ready yet.
+    final model = state.selectedModel;
+    if (state.offersModelChoice && model != null && !model.installed) {
+      return l10n.transcriptionHeroNeedsDownload(model.option.displayName);
+    }
+    return engineName == null ? null : l10n.transcriptionHeroReady(engineName!);
+  }
 }
 
 /// "Downloading · 42%", the percent rolling odometer-style as fractions land,

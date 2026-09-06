@@ -32,7 +32,8 @@ class CacheScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => CacheCubit(service: Deps.i.transcriptionService),
+      create: (_) =>
+          CacheCubit(service: Deps.i.transcriptionService, modelBytes: Deps.i.modelBytes),
       child: const _CacheView(),
     );
   }
@@ -86,7 +87,7 @@ class _CacheView extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
           SectionInfo(l10n.cacheUsageInfo),
-          _StorageCard(usage: usage, locale: locale),
+          _StorageCard(usage: usage, modelBytes: cache.modelBytes, locale: locale),
           const SizedBox(height: AppSpacing.md),
           SettingsCard(
             children: [
@@ -126,9 +127,10 @@ class _CacheView extends StatelessWidget {
 /// row. The bar only exists when something IS reclaimable; an empty track
 /// reads as a rendering mistake, not as information.
 class _StorageCard extends StatelessWidget {
-  const _StorageCard({required this.usage, required this.locale});
+  const _StorageCard({required this.usage, required this.modelBytes, required this.locale});
 
   final AudioUsage? usage;
+  final int? modelBytes;
   final String locale;
 
   @override
@@ -137,6 +139,7 @@ class _StorageCard extends StatelessWidget {
     final tokens = theme.settings;
     final l10n = AppLocalizations.of(context)!;
     final measured = usage;
+    final models = modelBytes;
     final showBar = measured != null && measured.reclaimableBytes > 0;
     // AnimatedSize: the bar mounting, the count line landing, and a clear
     // shrinking the card all resize smoothly instead of snapping a frame.
@@ -226,9 +229,20 @@ class _StorageCard extends StatelessWidget {
             ],
           ),
           if (measured != null)
-            _ReclaimableRow(
+            _FactRow(
+              icon: AppIcons.trash,
+              label: l10n.cacheReclaimable,
+              info: l10n.cacheReclaimableInfo,
               size: formatBytes(measured.reclaimableBytes, locale),
               highlighted: measured.reclaimableBytes > 0,
+            ),
+          // Models are a fact here; the transcription screen removes them.
+          if (models != null && models > 0)
+            _FactRow(
+              icon: AppIcons.internaldrive,
+              label: l10n.cacheModels,
+              info: l10n.cacheModelsInfo,
+              size: formatBytes(models, locale),
             ),
         ],
       ),
@@ -236,11 +250,21 @@ class _StorageCard extends StatelessWidget {
   }
 }
 
-/// The reclaimable share as a row: what the clear action would free. The tile
-/// tints accent while there is something to free, quiet otherwise.
-class _ReclaimableRow extends StatelessWidget {
-  const _ReclaimableRow({required this.size, required this.highlighted});
+/// One fact of what the app holds on disk: an icon, a label, its meaning, and
+/// the size. The tile tints accent while [highlighted], for a share an action
+/// on this screen can free; a quiet row states what another screen manages.
+class _FactRow extends StatelessWidget {
+  const _FactRow({
+    required this.icon,
+    required this.label,
+    required this.info,
+    required this.size,
+    this.highlighted = false,
+  });
 
+  final IconData icon;
+  final String label;
+  final String info;
   final String size;
   final bool highlighted;
 
@@ -248,7 +272,6 @@ class _ReclaimableRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.settings;
-    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -261,23 +284,16 @@ class _ReclaimableRow extends StatelessWidget {
               borderRadius: tokens.iconTileRadius,
               color: highlighted ? theme.accent.withValues(alpha: 0.14) : tokens.iconTileBackground,
             ),
-            child: AppIcon(
-              AppIcons.trash,
-              size: 16,
-              color: highlighted ? theme.accent : theme.textSecondary,
-            ),
+            child: AppIcon(icon, size: 16, color: highlighted ? theme.accent : theme.textSecondary),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.cacheReclaimable, style: AppType.subhead.copyWith(color: theme.text)),
+                Text(label, style: AppType.subhead.copyWith(color: theme.text)),
                 const SizedBox(height: 2),
-                Text(
-                  l10n.cacheReclaimableInfo,
-                  style: AppType.footnote.copyWith(color: theme.textSecondary),
-                ),
+                Text(info, style: AppType.footnote.copyWith(color: theme.textSecondary)),
               ],
             ),
           ),

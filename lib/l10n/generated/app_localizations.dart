@@ -798,6 +798,12 @@ abstract class AppLocalizations {
   /// **'The recognizer behind iOS keyboard dictation'**
   String get engineBlurbDictation;
 
+  /// One-line explanation under the Whisper engine row
+  ///
+  /// In en, this message translates to:
+  /// **'An open model on whisper.cpp, one download for every language'**
+  String get engineBlurbWhisper;
+
   /// Quiet note under a dimmed engine row this device cannot run
   ///
   /// In en, this message translates to:
@@ -815,6 +821,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.'**
   String engineUnavailableBody(String engine);
+
+  /// Quiet note under a dimmed engine row whose model storage could not be reached this launch
+  ///
+  /// In en, this message translates to:
+  /// **'Storage unavailable right now'**
+  String get engineStorageUnavailableNote;
+
+  /// Sheet body for an engine whose model storage could not be reached this launch
+  ///
+  /// In en, this message translates to:
+  /// **'{engine} couldn\'t reach its model storage on this launch. Relaunch to try again.'**
+  String engineStorageUnavailableBody(String engine);
+
+  /// Section label over the model card on the models screen, under an engine that offers a choice of models
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get transcriptionModel;
+
+  /// Quality word for the first (smallest) model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Basic'**
+  String get modelQualityBasic;
+
+  /// Quality word for the second model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get modelQualityGood;
+
+  /// Quality word for the third model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Better'**
+  String get modelQualityBetter;
+
+  /// Quality word for the fourth model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get modelQualityBest;
+
+  /// Quality word for the fifth (largest) model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Top'**
+  String get modelQualityTop;
+
+  /// Note under a model row: its download size and quality word
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · {quality}'**
+  String modelSizeAndQuality(String size, String quality);
+
+  /// Quiet note under a dimmed model row this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'Too large for this iPhone'**
+  String get modelTooHeavyNote;
+
+  /// Sheet title for a model this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'Too large for this iPhone'**
+  String get modelTooHeavyTitle;
+
+  /// Sheet body for a model this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'{model} needs more memory than this iPhone has. Pick a smaller model.'**
+  String modelTooHeavyBody(String model);
+
+  /// Confirm sheet title before deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {model}?'**
+  String modelRemoveTitle(String model);
+
+  /// Confirm sheet body before deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Frees {size}. You can download it again anytime.'**
+  String modelRemoveBody(String size);
+
+  /// Confirm button deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get modelRemoveConfirm;
+
+  /// Sheet title when a model cannot be removed because a transcription holds it
+  ///
+  /// In en, this message translates to:
+  /// **'Model in use'**
+  String get modelBusyTitle;
+
+  /// Sheet body when a model cannot be removed because a transcription holds it
+  ///
+  /// In en, this message translates to:
+  /// **'{model} is transcribing right now. Try again when it finishes.'**
+  String modelBusyBody(String model);
+
+  /// Sheet title for a model download that failed for lack of a connection
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t connect'**
+  String get modelFailOfflineTitle;
+
+  /// Sheet body for a model download that failed for lack of a connection
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model} needs a connection. Nothing else in the app ever does. Connect, then try again.'**
+  String modelFailOfflineBody(String model);
+
+  /// Sheet title for a model download that did not verify
+  ///
+  /// In en, this message translates to:
+  /// **'Download didn\'t verify'**
+  String get modelFailRejectedTitle;
+
+  /// Sheet body for a model download that did not verify
+  ///
+  /// In en, this message translates to:
+  /// **'The {model} file didn\'t match what was expected, so it was discarded. Try again.'**
+  String modelFailRejectedBody(String model);
+
+  /// Sheet title for a model download that failed for lack of space
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space'**
+  String get modelFailNoSpaceTitle;
+
+  /// Sheet body for a model download that failed for lack of space
+  ///
+  /// In en, this message translates to:
+  /// **'Free up {size} on this iPhone, then try again.'**
+  String modelFailNoSpaceBody(String size);
+
+  /// Fact row label on the Cache screen for downloaded model files
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get cacheModels;
+
+  /// Explanation under the models fact row on the Cache screen
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded models are managed on the Transcription screen.'**
+  String get cacheModelsInfo;
+
+  /// Hero status line under a one-model engine whose selected model is not downloaded yet
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to download · {model}'**
+  String transcriptionHeroNeedsDownload(String model);
+
+  /// Footnote under the transcription screen for an engine whose one model serves every language
+  ///
+  /// In en, this message translates to:
+  /// **'The model downloads once and stays in the app.'**
+  String get transcriptionModelFootnote;
+
+  /// Sheet body when a model choice could not be persisted
+  ///
+  /// In en, this message translates to:
+  /// **'The model choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get modelNotSavedBody;
 
   /// Sheet title when an engine switch is refused mid-take
   ///

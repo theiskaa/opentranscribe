@@ -1,7 +1,8 @@
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 
-/// Persists the engine choice. Unset means auto: the first available registry
+/// Persists the engine choice and each engine's model choice. An unset engine
+/// means auto: the first available registry
 /// entry, so a device that cannot run the preferred engine starts on one that
 /// works without the user touching anything.
 class EngineSettings {
@@ -25,6 +26,23 @@ class EngineSettings {
   /// Persists the choice so it survives relaunches. Throws when persisting
   /// fails; the caller reverts the in-session switch and surfaces it.
   Future<void> setEngineId(String id) => _storage.write(_key, id);
+
+  /// The stored model choice for [engineId], null when the user never chose
+  /// (the engine's own default) or the value cannot be read.
+  String? modelIdFor(String engineId) {
+    try {
+      return _storage.readString(_modelKey(engineId));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Persists a model choice per engine, so switching engines never forgets
+  /// what each one ran. Throws when persisting fails.
+  Future<void> setModelId(String engineId, String modelId) =>
+      _storage.write(_modelKey(engineId), modelId);
+
+  static String _modelKey(String engineId) => 'transcribe.model.$engineId';
 
   /// The entry the app should run: the stored choice when that engine exists
   /// and is available, else the first available entry, else the first entry

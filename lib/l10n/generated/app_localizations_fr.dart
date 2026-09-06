@@ -397,6 +397,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get engineBlurbDictation => 'La reconnaissance derrière la dictée du clavier iOS';
 
   @override
+  String get engineBlurbWhisper =>
+      'Un modèle ouvert sur whisper.cpp, un seul téléchargement pour toutes les langues';
+
+  @override
   String get engineUnavailableNote => 'Indisponible sur cet iPhone';
 
   @override
@@ -406,6 +410,111 @@ class AppLocalizationsFr extends AppLocalizations {
   String engineUnavailableBody(String engine) {
     return '$engine nécessite iOS 26 et un iPhone plus récent. L\'enregistrement continue avec le moteur disponible ici.';
   }
+
+  @override
+  String get engineStorageUnavailableNote => 'Stockage indisponible pour le moment';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine n\'a pas pu accéder à son stockage de modèles à ce lancement. Relancez l\'app pour réessayer.';
+  }
+
+  @override
+  String get transcriptionModel => 'Modèle';
+
+  @override
+  String get modelQualityBasic => 'Basique';
+
+  @override
+  String get modelQualityGood => 'Bon';
+
+  @override
+  String get modelQualityBetter => 'Meilleur';
+
+  @override
+  String get modelQualityBest => 'Excellent';
+
+  @override
+  String get modelQualityTop => 'Optimal';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => 'Trop lourd pour cet iPhone';
+
+  @override
+  String get modelTooHeavyTitle => 'Trop lourd pour cet iPhone';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model a besoin de plus de mémoire que cet iPhone n\'en a. Choisissez un modèle plus petit.';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return 'Supprimer $model ?';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return 'Libère $size. Vous pourrez le retélécharger à tout moment.';
+  }
+
+  @override
+  String get modelRemoveConfirm => 'Supprimer';
+
+  @override
+  String get modelBusyTitle => 'Modèle en cours d\'utilisation';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model transcrit en ce moment. Réessayez quand ce sera terminé.';
+  }
+
+  @override
+  String get modelFailOfflineTitle => 'Connexion impossible';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return 'Télécharger $model demande une connexion. Rien d\'autre dans l\'app n\'en demande jamais. Connectez-vous, puis réessayez.';
+  }
+
+  @override
+  String get modelFailRejectedTitle => 'Téléchargement non vérifié';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return 'Le fichier de $model ne correspondait pas à ce qui était attendu et a été rejeté. Réessayez.';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => 'Espace insuffisant';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return 'Libérez $size sur cet iPhone, puis réessayez.';
+  }
+
+  @override
+  String get cacheModels => 'Modèles';
+
+  @override
+  String get cacheModelsInfo => 'Les modèles téléchargés se gèrent depuis l\'écran Transcription.';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return 'Touchez pour télécharger · $model';
+  }
+
+  @override
+  String get transcriptionModelFootnote => 'Le modèle se télécharge une fois et reste dans l\'app.';
+
+  @override
+  String get modelNotSavedBody =>
+      'Le choix du modèle n\'a pas pu être enregistré et ne survivra pas à un redémarrage.';
 
   @override
   String get engineBusyTitle => 'Enregistrement en cours';

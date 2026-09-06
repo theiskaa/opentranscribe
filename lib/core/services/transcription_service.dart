@@ -11,6 +11,9 @@ import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
 
+/// One event of [TranscriptionService.firstUseInstalls]: which model, and how far.
+typedef FirstUseInstall = ({String modelId, ModelInstallProgress progress});
+
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
 /// contracts, so swapping SpeechAnalyzer for whisper.cpp touches nothing here.
@@ -95,6 +98,59 @@ class TranscriptionService {
   /// are different stories).
   bool get managesModels => _engine is ManagedModelEngine;
 
+  /// Whether the active engine offers a choice of models, one of which serves
+  /// every language, for a surface that renders the choice.
+  bool get offersModelChoice => _engine is ModelChoiceEngine;
+
+  /// The models the active engine offers, in picker order; empty for an
+  /// engine without a choice.
+  List<ModelOption> get modelChoices {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.models : const [];
+  }
+
+  /// The model runs and installs use, null for an engine without a choice.
+  String? get selectedModelId {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.selectedModelId : null;
+  }
+
+  /// Records the model choice on the engine and pokes every model surface;
+  /// persisting it is the caller's job. A no-op for an engine without a choice.
+  Future<void> selectModel(String id) async {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) return;
+    await engine.selectModel(id);
+    _notifyModelStateChanged();
+  }
+
+  /// The ids whose files are present and whole; empty for an engine without
+  /// a choice.
+  Future<Set<String>> installedModels() async {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.installedModels() : const {};
+  }
+
+  /// Downloads one model of the choice, like [installModel]. An engine
+  /// without a choice completes instantly.
+  Stream<ModelInstallProgress> installModelById(String id) {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) {
+      return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+    }
+    return _pokingOnDone(engine.installModelById(id));
+  }
+
+  /// Deletes one model's file. Answers whether one was deleted; false for an
+  /// engine without a choice or a removal the engine refused.
+  Future<bool> removeModel(String id) async {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) return false;
+    final removed = await engine.removeModel(id);
+    if (removed) _notifyModelStateChanged();
+    return removed;
+  }
+
   /// Whether the active engine answers per-language readiness cheaply and
   /// without side effects, so a list surface may refine every row. A managed
   /// engine answers false: its model status is already the per-language truth.
@@ -140,6 +196,10 @@ class TranscriptionService {
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
+  final StreamController<FirstUseInstall> _firstUseInstalls =
+      StreamController<FirstUseInstall>.broadcast();
+  // Ends the pre-install a batch waits on, so a cancel stops it like the run.
+  Future<void> Function()? _firstUseWaiter;
   final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
@@ -359,9 +419,23 @@ class TranscriptionService {
     if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
     if (retranscribeAll.isRunning) return false;
     if (identical(engine, _engine)) return true;
+    final previous = _engine;
     _engine = engine;
     _notifyModelStateChanged();
+    // A model the old engine holds in memory has no reader now; best effort,
+    // like every other teardown, so a refusing release cannot fail a switch.
+    if (previous is ReleasableEngine) unawaited(previous.release().catchError((_) {}));
     return true;
+  }
+
+  /// Gives back the memory the active engine holds while nothing needs it
+  /// (a loaded model, a worker), for the app going to the background. A take,
+  /// a finalize or the bulk run in flight keeps it; the next run loads again.
+  Future<void> releaseIdleEngine() async {
+    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return;
+    if (retranscribeAll.isRunning || _userBatches > 0) return;
+    final engine = _engine;
+    if (engine is ReleasableEngine) await engine.release().catchError((Object _) {});
   }
 
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
@@ -397,6 +471,12 @@ class TranscriptionService {
         : true;
   }
 
+  /// Progress of a first-use model download a batch is waiting on (a choice
+  /// engine's, before the run), tagged with the model, so a surface can show
+  /// the percent the user never tapped for. Each download ends with its done
+  /// event or with the failure the batch then reports its own way.
+  Stream<FirstUseInstall> get firstUseInstalls => _firstUseInstalls.stream;
+
   /// Fires after any path that may have changed a model's install state (a
   /// first-use install during transcription, an explicit install, a removal,
   /// or an engine switch and its locale re-resolution), so state layers
@@ -429,11 +509,14 @@ class TranscriptionService {
     if (engine is! ManagedModelEngine) {
       return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
     }
-    return engine.installModel(localeId: localeId ?? this.localeId).map((progress) {
-      if (progress.done) _notifyModelStateChanged();
-      return progress;
-    });
+    return _pokingOnDone(engine.installModel(localeId: localeId ?? this.localeId));
   }
+
+  Stream<ModelInstallProgress> _pokingOnDone(Stream<ModelInstallProgress> install) =>
+      install.map((progress) {
+        if (progress.done) _notifyModelStateChanged();
+        return progress;
+      });
 
   /// The tags whose models are downloaded on this device. An engine with no
   /// downloadable model lists everything it supports (the coarse answer;
@@ -2021,12 +2104,25 @@ class TranscriptionService {
     String? localeId,
     Duration? start,
     Duration? end,
-  }) {
+  }) async {
+    final locale = localeId ?? this.localeId;
+    // A choice engine's first-use download can outlast any run budget, so it
+    // lands untimed first, through the same path the picker's install uses.
+    if (engine is ManagedModelEngine && engine is ModelChoiceEngine) {
+      if (!await engine.isModelInstalled(localeId: locale)) {
+        await _installFirstUse(
+          engine.installModel(localeId: locale),
+          (engine as ModelChoiceEngine).selectedModelId,
+        );
+      }
+    }
     // Scale the timeout by audio length so a long entry is not cut off, while still
-    // bounding a hung native call.
-    final timeout = _batchTimeout + duration * 2;
+    // bounding a hung native call. An engine that knows its own pace says so.
+    final timeout = engine is PacedBatchEngine
+        ? engine.batchBudget(duration)
+        : _batchTimeout + duration * 2;
     return engine
-        .transcribeFile(file, localeId: localeId ?? this.localeId, start: start, end: end)
+        .transcribeFile(file, localeId: locale, start: start, end: end)
         .timeout(
           timeout,
           onTimeout: () {
@@ -2038,10 +2134,45 @@ class TranscriptionService {
         );
   }
 
-  /// Cancels [engine]'s in-flight batch passes, when it supports that.
+  /// Waits for a first-use download, feeding [firstUseInstalls] as it goes.
+  /// A cancelled subscription fires neither done nor error, so the waiter is
+  /// failed here when [_cancelEngineBatches] ends it.
+  Future<void> _installFirstUse(Stream<ModelInstallProgress> install, String modelId) {
+    final done = Completer<void>();
+    void emit(FirstUseInstall event) {
+      if (!_firstUseInstalls.isClosed) _firstUseInstalls.add(event);
+    }
+
+    final sub = _pokingOnDone(install).listen(
+      (progress) => emit((modelId: modelId, progress: progress)),
+      onError: (Object error, StackTrace stack) {
+        if (!_firstUseInstalls.isClosed) _firstUseInstalls.addError(error, stack);
+        if (!done.isCompleted) done.completeError(error, stack);
+      },
+      onDone: () {
+        if (!done.isCompleted) done.complete();
+      },
+    );
+    Future<void> cancel() async {
+      await sub.cancel();
+      const cancelled = TranscriptionFailed('cancelled');
+      if (!_firstUseInstalls.isClosed) _firstUseInstalls.addError(cancelled);
+      if (!done.isCompleted) done.completeError(cancelled);
+    }
+
+    _firstUseWaiter = cancel;
+    return done.future.whenComplete(() {
+      if (identical(_firstUseWaiter, cancel)) _firstUseWaiter = null;
+    });
+  }
+
+  /// Cancels [engine]'s in-flight batch passes, when it supports that, and
+  /// the first-use download a batch may be waiting on.
   /// CancellableBatchEngine does not extend TranscriptionEngine, so `is`
   /// alone cannot promote; the cast makes the member visible.
   Future<void> _cancelEngineBatches(TranscriptionEngine engine) async {
+    final firstUse = _firstUseWaiter;
+    if (firstUse != null) await firstUse();
     if (engine is CancellableBatchEngine) {
       await (engine as CancellableBatchEngine).cancelBatches();
     }
@@ -2236,6 +2367,7 @@ class TranscriptionService {
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();
+    await _firstUseInstalls.close();
     await _entriesChanged.close();
     await _continuations.close();
   }

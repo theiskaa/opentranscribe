@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
+import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
@@ -44,8 +45,12 @@ void main() {
 
   tearDown(() => service.dispose());
 
-  SettingsCubit build() =>
-      SettingsCubit(service: service, transcription: transcription, audioStorage: audioStorage);
+  SettingsCubit build() => SettingsCubit(
+    service: service,
+    transcription: transcription,
+    audioStorage: audioStorage,
+    engineSettings: EngineSettings(storage: storage),
+  );
 
   test('load surfaces locale, supported tags, readiness, and backup state', () async {
     engine.installed = true;
@@ -95,6 +100,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
+      engineSettings: EngineSettings(storage: storage),
     );
     return (cubit, scoped, refusing);
   }
@@ -153,6 +159,7 @@ void main() {
       service: scopedService,
       transcription: scopedTranscription,
       audioStorage: audioStorage,
+      engineSettings: EngineSettings(storage: storage),
     );
     await Future<void>.delayed(Duration.zero);
     return (cubit, scopedService);
@@ -317,6 +324,7 @@ void main() {
           deviceTag: () => 'en-US',
         ),
         audioStorage: audioStorage,
+        engineSettings: EngineSettings(storage: storage),
       );
       await Future<void>.delayed(Duration.zero);
       expect(row(cubit, 'en-US').isReady, isTrue);
@@ -568,6 +576,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
+      engineSettings: EngineSettings(storage: storage),
     );
     await pumpEventQueue();
 
@@ -646,6 +655,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
+      engineSettings: EngineSettings(storage: storage),
     );
     await pumpEventQueue();
 

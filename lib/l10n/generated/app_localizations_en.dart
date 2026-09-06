@@ -392,6 +392,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get engineBlurbDictation => 'The recognizer behind iOS keyboard dictation';
 
   @override
+  String get engineBlurbWhisper => 'An open model on whisper.cpp, one download for every language';
+
+  @override
   String get engineUnavailableNote => 'Not available on this iPhone';
 
   @override
@@ -401,6 +404,111 @@ class AppLocalizationsEn extends AppLocalizations {
   String engineUnavailableBody(String engine) {
     return '$engine needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.';
   }
+
+  @override
+  String get engineStorageUnavailableNote => 'Storage unavailable right now';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine couldn\'t reach its model storage on this launch. Relaunch to try again.';
+  }
+
+  @override
+  String get transcriptionModel => 'Model';
+
+  @override
+  String get modelQualityBasic => 'Basic';
+
+  @override
+  String get modelQualityGood => 'Good';
+
+  @override
+  String get modelQualityBetter => 'Better';
+
+  @override
+  String get modelQualityBest => 'Best';
+
+  @override
+  String get modelQualityTop => 'Top';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => 'Too large for this iPhone';
+
+  @override
+  String get modelTooHeavyTitle => 'Too large for this iPhone';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model needs more memory than this iPhone has. Pick a smaller model.';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return 'Remove $model?';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return 'Frees $size. You can download it again anytime.';
+  }
+
+  @override
+  String get modelRemoveConfirm => 'Remove';
+
+  @override
+  String get modelBusyTitle => 'Model in use';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model is transcribing right now. Try again when it finishes.';
+  }
+
+  @override
+  String get modelFailOfflineTitle => 'Couldn\'t connect';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return 'Downloading $model needs a connection. Nothing else in the app ever does. Connect, then try again.';
+  }
+
+  @override
+  String get modelFailRejectedTitle => 'Download didn\'t verify';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return 'The $model file didn\'t match what was expected, so it was discarded. Try again.';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => 'Not enough space';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return 'Free up $size on this iPhone, then try again.';
+  }
+
+  @override
+  String get cacheModels => 'Models';
+
+  @override
+  String get cacheModelsInfo => 'Downloaded models are managed on the Transcription screen.';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return 'Tap to download · $model';
+  }
+
+  @override
+  String get transcriptionModelFootnote => 'The model downloads once and stays in the app.';
+
+  @override
+  String get modelNotSavedBody =>
+      'The model choice couldn\'t be saved and won\'t survive a relaunch.';
 
   @override
   String get engineBusyTitle => 'Recording in progress';

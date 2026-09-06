@@ -41,8 +41,36 @@ Future<void> showLanguageSheet(BuildContext context, {required SettingsCubit cub
 /// Whether [row] sits in Yours rather than the library: the default is kept
 /// honestly even when unready; beyond it a managed engine keeps whatever
 /// holds a slot, and a readiness-probing one keeps what can transcribe now.
-bool keptLanguage(LanguageModelState row, {required bool managesModels}) =>
-    row.isDefault || (managesModels ? row.reserved : row.isReady);
+/// Under an engine whose one model serves every language, readiness says
+/// nothing about the user, so only the default is theirs.
+bool keptLanguage(
+  LanguageModelState row, {
+  required bool managesModels,
+  required bool oneModelForAll,
+}) => row.isDefault || (!oneModelForAll && (managesModels ? row.reserved : row.isReady));
+
+/// Whether a sheet row offers a download: a managed engine with somewhere to
+/// put one (a reservation cap, or one model for every language), and a
+/// language that is neither ready nor unsupported. Under one model for all
+/// only the default row installs; the download is the model's, not a
+/// language's.
+bool sheetRowInstalls(
+  LanguageModelState row, {
+  required bool managesModels,
+  required int reservationMax,
+  required bool oneModelForAll,
+}) =>
+    managesModels &&
+    (reservationMax > 0 || oneModelForAll) &&
+    !row.isReady &&
+    row.status != ModelAssetStatus.unsupported &&
+    (!oneModelForAll || row.isDefault);
+
+/// Whether a tap makes the row the default: it can transcribe now, or, under
+/// one model for every language, it is any supported language (readiness
+/// there is the model's story, not the language's).
+bool sheetRowPicks(LanguageModelState row, {required bool oneModelForAll}) =>
+    row.isReady || (oneModelForAll && !row.isDefault && row.status != ModelAssetStatus.unsupported);
 
 class _LanguageList extends StatelessWidget {
   const _LanguageList();
@@ -53,13 +81,26 @@ class _LanguageList extends StatelessWidget {
     return BlocBuilder<SettingsCubit, SettingsState>(
       builder: (context, state) {
         final canManage = state.reservationMax > 0;
+        bool kept(LanguageModelState row) => keptLanguage(
+          row,
+          managesModels: state.managesModels,
+          oneModelForAll: state.offersModelChoice,
+        );
+        bool installs(LanguageModelState row) => sheetRowInstalls(
+          row,
+          managesModels: state.managesModels,
+          reservationMax: state.reservationMax,
+          oneModelForAll: state.offersModelChoice,
+        );
+        bool picks(LanguageModelState row) =>
+            sheetRowPicks(row, oneModelForAll: state.offersModelChoice);
         final yours = [
           for (final row in state.languages)
-            if (keptLanguage(row, managesModels: state.managesModels)) row,
+            if (kept(row)) row,
         ];
         final others = [
           for (final row in state.languages)
-            if (!keptLanguage(row, managesModels: state.managesModels)) row,
+            if (!kept(row)) row,
         ];
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -75,6 +116,8 @@ class _LanguageList extends StatelessWidget {
                       row: row,
                       managesModels: state.managesModels,
                       canManage: canManage,
+                      installs: installs(row),
+                      picks: picks(row),
                     ),
                 ],
               ),
@@ -89,6 +132,8 @@ class _LanguageList extends StatelessWidget {
                       row: row,
                       managesModels: state.managesModels,
                       canManage: canManage,
+                      installs: installs(row),
+                      picks: picks(row),
                     ),
                 ],
               ),
@@ -110,12 +155,16 @@ class _SheetRow extends StatelessWidget {
     required this.row,
     required this.managesModels,
     required this.canManage,
+    required this.installs,
+    required this.picks,
     super.key,
   });
 
   final LanguageModelState row;
   final bool managesModels;
   final bool canManage;
+  final bool installs;
+  final bool picks;
 
   bool get _unready => row.status == ModelAssetStatus.unsupported;
 
@@ -229,7 +278,7 @@ class _SheetRow extends StatelessWidget {
     if (_installFailed || _stuck) {
       return AppIcon(AppIcons.arrowCounterclockwise, size: 17, color: theme.accent);
     }
-    if (row.isReady || _unready || !canManage) return const SizedBox.shrink();
+    if (!installs) return const SizedBox.shrink();
     return AppIcon(AppIcons.icloud, size: 18, color: theme.accent);
   }
 
@@ -243,7 +292,7 @@ class _SheetRow extends StatelessWidget {
       return;
     }
     if (row.installing) return;
-    if (row.isReady) {
+    if (picks) {
       if (row.isDefault) {
         Navigator.of(context).pop();
         return;
@@ -262,6 +311,6 @@ class _SheetRow extends StatelessWidget {
       if (context.mounted && (route?.isCurrent ?? false)) Navigator.of(context).pop();
       return;
     }
-    if (canManage) cubit.install(row.tag);
+    if (installs) cubit.install(row.tag);
   }
 }

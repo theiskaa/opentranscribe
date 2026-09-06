@@ -378,6 +378,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get engineBlurbDictation => 'iOS 키보드 받아쓰기에 쓰이는 인식 엔진';
 
   @override
+  String get engineBlurbWhisper => 'whisper.cpp 기반의 공개 모델, 한 번의 다운로드로 모든 언어 지원';
+
+  @override
   String get engineUnavailableNote => '이 iPhone에서는 사용할 수 없음';
 
   @override
@@ -387,6 +390,110 @@ class AppLocalizationsKo extends AppLocalizations {
   String engineUnavailableBody(String engine) {
     return '$engine은(는) iOS 26과 최신 iPhone이 필요합니다. 녹음은 사용 가능한 엔진으로 계속됩니다.';
   }
+
+  @override
+  String get engineStorageUnavailableNote => '지금은 저장 공간을 사용할 수 없음';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine이(가) 이번 실행에서 모델 저장 공간에 접근하지 못했습니다. 앱을 다시 실행해 다시 시도하세요.';
+  }
+
+  @override
+  String get transcriptionModel => '모델';
+
+  @override
+  String get modelQualityBasic => '기본';
+
+  @override
+  String get modelQualityGood => '좋음';
+
+  @override
+  String get modelQualityBetter => '더 좋음';
+
+  @override
+  String get modelQualityBest => '최상';
+
+  @override
+  String get modelQualityTop => '최고';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => '이 iPhone에는 너무 큼';
+
+  @override
+  String get modelTooHeavyTitle => '이 iPhone에는 너무 큽니다';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model에는 이 iPhone보다 많은 메모리가 필요합니다. 더 작은 모델을 선택하세요.';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return '$model을(를) 제거할까요?';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return '$size가 확보됩니다. 언제든 다시 다운로드할 수 있습니다.';
+  }
+
+  @override
+  String get modelRemoveConfirm => '제거';
+
+  @override
+  String get modelBusyTitle => '모델 사용 중';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model이(가) 지금 받아쓰는 중입니다. 끝난 뒤 다시 시도하세요.';
+  }
+
+  @override
+  String get modelFailOfflineTitle => '연결할 수 없음';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return '$model 다운로드에는 연결이 필요합니다. 앱에서 연결이 필요한 일은 이것뿐입니다. 연결한 뒤 다시 시도하세요.';
+  }
+
+  @override
+  String get modelFailRejectedTitle => '다운로드를 확인하지 못함';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return '$model 파일이 예상과 달라 폐기했습니다. 다시 시도하세요.';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => '공간 부족';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return '이 iPhone에서 $size를 확보한 뒤 다시 시도하세요.';
+  }
+
+  @override
+  String get cacheModels => '모델';
+
+  @override
+  String get cacheModelsInfo => '다운로드한 모델은 받아쓰기 화면에서 관리합니다.';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return '탭하여 다운로드 · $model';
+  }
+
+  @override
+  String get transcriptionModelFootnote => '모델은 한 번 다운로드하면 앱 안에 남습니다.';
+
+  @override
+  String get modelNotSavedBody => '모델 선택을 저장하지 못해 다시 실행하면 유지되지 않습니다.';
 
   @override
   String get engineBusyTitle => '녹음 진행 중';

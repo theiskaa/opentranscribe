@@ -16,10 +16,16 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// The rows that earn a chip: not the default (the hero carries it), ready or
 /// mid-download, and never one wearing a failure story: a broken language (a
 /// ready one with a refused remove included) must not sit one tap away from
-/// becoming the default; its story lives in the sheet.
-List<LanguageModelState> chipLanguages(List<LanguageModelState> rows) => [
-  for (final row in rows)
-    if (!row.isDefault && (row.isReady || row.installing) && !rowHasFailureStory(row)) row,
+/// becoming the default; its story lives in the sheet. Under an engine whose
+/// one model serves every language nothing earns a chip: every language
+/// would, and the sheet already offers them all.
+List<LanguageModelState> chipLanguages(
+  List<LanguageModelState> rows, {
+  required bool oneModelForAll,
+}) => [
+  if (!oneModelForAll)
+    for (final row in rows)
+      if (!row.isDefault && (row.isReady || row.installing) && !rowHasFailureStory(row)) row,
 ];
 
 /// The kept languages minus the default, as a chip strip: tapping a chip makes

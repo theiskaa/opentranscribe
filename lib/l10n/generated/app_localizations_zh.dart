@@ -374,6 +374,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get engineBlurbDictation => 'iOS 键盘听写背后的识别引擎';
 
   @override
+  String get engineBlurbWhisper => '基于 whisper.cpp 的开放模型，一次下载即可支持所有语言';
+
+  @override
   String get engineUnavailableNote => '此 iPhone 上不可用';
 
   @override
@@ -383,6 +386,110 @@ class AppLocalizationsZh extends AppLocalizations {
   String engineUnavailableBody(String engine) {
     return '$engine 需要 iOS 26 和更新的 iPhone。录音将继续使用此设备可用的引擎。';
   }
+
+  @override
+  String get engineStorageUnavailableNote => '存储暂时不可用';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine 在本次启动时无法访问模型存储。请重新启动应用再试。';
+  }
+
+  @override
+  String get transcriptionModel => '模型';
+
+  @override
+  String get modelQualityBasic => '基础';
+
+  @override
+  String get modelQualityGood => '良好';
+
+  @override
+  String get modelQualityBetter => '更好';
+
+  @override
+  String get modelQualityBest => '最佳';
+
+  @override
+  String get modelQualityTop => '顶级';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => '对这台 iPhone 来说太大';
+
+  @override
+  String get modelTooHeavyTitle => '对这台 iPhone 来说太大';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model 需要的内存超过了这台 iPhone 的容量。请选择更小的模型。';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return '移除 $model？';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return '释放 $size。随时可以重新下载。';
+  }
+
+  @override
+  String get modelRemoveConfirm => '移除';
+
+  @override
+  String get modelBusyTitle => '模型使用中';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model 正在转写。请等它完成后再试。';
+  }
+
+  @override
+  String get modelFailOfflineTitle => '无法连接';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return '下载 $model 需要网络连接。应用中只有这一项需要联网。连接后再试。';
+  }
+
+  @override
+  String get modelFailRejectedTitle => '下载未通过校验';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return '$model 的文件与预期不符，已被丢弃。请再试一次。';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => '空间不足';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return '在这台 iPhone 上腾出 $size 后再试。';
+  }
+
+  @override
+  String get cacheModels => '模型';
+
+  @override
+  String get cacheModelsInfo => '已下载的模型在“转写”页面管理。';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return '点按下载 · $model';
+  }
+
+  @override
+  String get transcriptionModelFootnote => '模型只需下载一次，之后留在应用内。';
+
+  @override
+  String get modelNotSavedBody => '无法保存模型选择，重新启动后不会保留。';
 
   @override
   String get engineBusyTitle => '正在录音';

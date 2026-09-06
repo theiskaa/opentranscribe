@@ -69,4 +69,15 @@ void main() {
 
     expect(EngineSettings(storage: storage).engineId, 'b');
   });
+
+  test('a model choice is stored per engine and unset reads as null', () async {
+    expect(settings.modelIdFor('whisper'), isNull);
+
+    await settings.setModelId('whisper', 'small');
+    await settings.setModelId('other', 'large');
+
+    expect(settings.modelIdFor('whisper'), 'small');
+    expect(settings.modelIdFor('other'), 'large');
+    expect(settings.modelIdFor('third'), isNull);
+  });
 }

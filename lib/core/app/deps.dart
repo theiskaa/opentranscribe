@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -31,6 +32,7 @@ import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
 import 'package:opentranscribe/core/services/import_service.dart';
+import 'package:opentranscribe/core/services/model_usage.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
@@ -88,6 +90,7 @@ class Deps {
     required this.reflectionNotifier,
     required this.engineRegistry,
     required this.engineSettings,
+    required this.physicalMemoryBytes,
     required this.exportService,
     required this.importService,
     required this.stagingRegistry,
@@ -169,6 +172,13 @@ class Deps {
   /// registry entry).
   final EngineSettings engineSettings;
 
+  /// The phone's memory, for a surface that dims a model it cannot hold;
+  /// null when the platform could not say.
+  final int? physicalMemoryBytes;
+
+  /// What every engine's downloaded models hold on disk, for the Cache screen.
+  Future<int> modelBytes() => installedModelBytes(engineRegistry.map((e) => e.engine));
+
   /// Stages exports (entry, journal, native archive) and hands them to the
   /// share sheet. Read-only with respect to journal state.
   final ExportService exportService;
@@ -215,6 +225,9 @@ class Deps {
   /// wedged channel lands on the failure screen instead of as a launch kill
   /// with no frame at all.
   static const _channelTimeout = Duration(seconds: 8);
+
+  // Past the performance cores a thread only warms the phone.
+  static const _whisperThreads = 4;
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
@@ -280,6 +293,36 @@ class Deps {
 
     final speechEngine = AppleSpeechEngine();
     final dictationEngine = AppleDictationEngine();
+    final engineSettings = EngineSettings(storage: localService);
+    // A models directory the platform cannot provide leaves Whisper
+    // unavailable for this launch; it must not kill a launch on the Apple engines.
+    final modelStorage = PlatformModelStorage();
+    final (modelsDir, physicalMemoryBytes) = await (
+      modelStorage
+          .modelsDirectory()
+          .timeout(_channelTimeout)
+          .then<Directory?>(
+            (dir) => dir,
+            onError: (Object e) {
+              if (kDebugMode) debugPrint('deps: the models directory is unavailable: $e');
+              return null;
+            },
+          ),
+      modelStorage.physicalMemoryBytes().timeout(_channelTimeout, onTimeout: () => null),
+    ).wait;
+    // Restored before the service resolves the active engine, so a launch under
+    // Whisper reports the right model from the first frame; an id the catalog
+    // dropped reads as unset.
+    final storedWhisperModel = engineSettings.modelIdFor(WhisperEngine.engineId);
+    final whisperEngine = WhisperEngine(
+      modelsDir: modelsDir ?? Directory('${Directory.systemTemp.path}/models'),
+      fetcher: PinnedHostFetcher(allowedHostSuffixes: WhisperHosts.redirectSuffixes),
+      decoder: PlatformPcmDecoder(),
+      runtime: FfiWhisperRuntime(threads: min(_whisperThreads, Platform.numberOfProcessors)),
+      initialModelId: storedWhisperModel != null && whisperModelById(storedWhisperModel) != null
+          ? storedWhisperModel
+          : whisperDefaultModelId,
+    );
     // One availability probe decides the analyzer entry; the native side
     // resolves it once per process behind its own deadline, so a wedged
     // catalog query answers unavailable instead of holding this timeout.
@@ -288,7 +331,7 @@ class Deps {
       onTimeout: () => false,
     );
     // Preference order: the registry's first available entry is the auto
-    // default. A future engine (whisper.cpp) is one more entry here.
+    // default.
     final engineRegistry = <EngineEntry>[
       EngineEntry(
         descriptor: EngineDescriptor(
@@ -311,8 +354,20 @@ class Deps {
         engine: dictationEngine,
         available: true,
       ),
+      // Every iPhone runs the smallest model; one too heavy for this phone is
+      // the model card's business, not the engine's.
+      EngineEntry(
+        descriptor: EngineDescriptor(
+          engineId: whisperEngine.id,
+          displayName: 'Whisper',
+          blurb: (l10n) => l10n.engineBlurbWhisper,
+          logo: AppIcons.waveform,
+        ),
+        engine: whisperEngine,
+        available: modelsDir != null,
+        unavailability: modelsDir == null ? EngineUnavailability.storageUnavailable : null,
+      ),
     ];
-    final engineSettings = EngineSettings(storage: localService);
     // Built before the service so a fresh recording's wave shape can be read
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
@@ -430,6 +485,7 @@ class Deps {
       reflectionNotifier: reflectionNotifier,
       engineRegistry: engineRegistry,
       engineSettings: engineSettings,
+      physicalMemoryBytes: physicalMemoryBytes,
       exportService: exportService,
       importService: importService,
       stagingRegistry: stagingRegistry,
