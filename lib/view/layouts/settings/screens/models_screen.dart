@@ -24,6 +24,7 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -155,6 +156,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
+      actions: [_RetranscribeAction(color: theme.topBar.iconColor)],
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
           // Managing (install affordances, the slot count) exists only where
@@ -231,8 +233,6 @@ class _ModelsScreenState extends State<ModelsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              const SettingsCard(children: [_RetranscribeRow()]),
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,20 +319,20 @@ class _Melt extends StatelessWidget {
   }
 }
 
-/// Seated under the picker because the picker defines it: everything the
-/// active engine has not heard.
-class _RetranscribeRow extends StatelessWidget {
-  const _RetranscribeRow();
+/// Re-transcribe the journal, in the bar where a screen's own action
+/// belongs. A run in flight tints the glyph; its numbers live in the sheet.
+class _RetranscribeAction extends StatelessWidget {
+  const _RetranscribeAction({required this.color});
+
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final state = context.watch<RetranscribeCubit>().state;
-    return SettingsBusyRow(
+    final running = context.watch<RetranscribeCubit>().state.isRunning;
+    return AppGlassIconButton(
       icon: AppIcons.arrowCounterclockwise,
-      label: l10n.retranscribeAllTitle,
-      busy: state.isRunning,
-      detail: state.runnable > 0 ? '${state.runnable}' : null,
+      color: running ? context.theme.accent : color,
+      semanticLabel: AppLocalizations.of(context)!.retranscribeAllTitle,
       onTap: () {
         if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
         unawaited(showRetranscribeSheet(context));
