@@ -100,6 +100,7 @@ final class ModelRowState {
     this.accelerated = false,
     this.installFraction,
     this.preparing = false,
+    this.queued = false,
     this.cancellable = false,
     this.failure,
   });
@@ -114,6 +115,10 @@ final class ModelRowState {
   /// The download's bytes are in and the install is unpacking or compiling:
   /// no percent to show, nothing to cancel.
   final bool preparing;
+
+  /// The download is waiting for its turn behind another; nothing has
+  /// started yet.
+  final bool queued;
 
   /// The model's peak memory exceeds what this phone can spare.
   final bool heavy;
@@ -138,6 +143,7 @@ final class ModelRowState {
     bool? accelerated,
     double? installFraction,
     bool? preparing,
+    bool? queued,
     bool? cancellable,
     ModelInstallReason? failure,
     bool clearInstall = false,
@@ -150,6 +156,7 @@ final class ModelRowState {
     accelerated: accelerated ?? this.accelerated,
     installFraction: clearInstall ? null : (installFraction ?? this.installFraction),
     preparing: clearInstall ? false : (preparing ?? this.preparing),
+    queued: clearInstall ? false : (queued ?? this.queued),
     cancellable: clearInstall ? false : (cancellable ?? this.cancellable),
     failure: clearFailure ? null : (failure ?? this.failure),
   );
@@ -444,6 +451,9 @@ class SettingsCubit extends Cubit<SettingsState> {
           preparing:
               (_modelInstallSubs.containsKey(option.id) || option.id == _firstUseModelId) &&
               (previousModels[option.id]?.preparing ?? false),
+          queued:
+              _modelInstallSubs.containsKey(option.id) &&
+              (previousModels[option.id]?.queued ?? false),
           cancellable: previousModels[option.id]?.cancellable ?? false,
           // A standing failure clears once the file is there through another
           // path; a row wearing "download failed" over a present file is a
@@ -652,9 +662,14 @@ class SettingsCubit extends Cubit<SettingsState> {
     // landing mid-download must not have the landing take the choice.
     final engineId = _service.engineId;
     final selectedAtStart = _service.selectedModelId;
+    // Installs of different models run one after the other, so a download
+    // started while another holds the engine waits its turn; the engine's
+    // first word clears it.
+    final waiting = _modelInstallSubs.isNotEmpty;
     _patchModel(
       id,
-      (row) => row.copyWith(installFraction: 0, cancellable: true, clearFailure: true),
+      (row) =>
+          row.copyWith(installFraction: 0, queued: waiting, cancellable: true, clearFailure: true),
     );
     _modelInstallSubs[id] = start().listen(
       (progress) {
@@ -663,6 +678,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           id,
           (row) => row.copyWith(
             installFraction: progress.fraction,
+            queued: false,
             preparing: progress.preparing,
             cancellable: !progress.preparing,
           ),

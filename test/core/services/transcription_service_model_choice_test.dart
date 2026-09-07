@@ -167,7 +167,7 @@ void main() {
     await svc.stopRecording();
     await pumpEventQueue();
     expect(events.map((e) => e.modelId).toSet(), {'small'});
-    expect(events.map((e) => e.progress.fraction), [0.25, 1]);
+    expect(events.map((e) => e.progress.fraction), [0, 0.25, 1]);
     expect(events.last.progress.done, isTrue);
 
     engine.installed.clear();
@@ -232,6 +232,7 @@ void main() {
 
     expect(events.map((e) => e.entryId).toSet(), {null});
     expect(events.map((e) => (e.step, e.fraction, e.modelName)), [
+      (BatchStep.downloading, 0.0, 'Small'),
       (BatchStep.downloading, 0.25, 'Small'),
       (BatchStep.downloading, 0.5, 'Small'),
       (BatchStep.transcribing, 0.0, null),
@@ -276,7 +277,11 @@ void main() {
     await expectLater(svc.retranscribe(entry), throwsA(isA<ModelInstallFailed>()));
     await pumpEventQueue();
 
-    expect(events.map((e) => e.step), [BatchStep.downloading, BatchStep.done]);
+    expect(events.map((e) => e.step), [
+      BatchStep.downloading,
+      BatchStep.downloading,
+      BatchStep.done,
+    ]);
     await sub.cancel();
     await svc.dispose();
   });

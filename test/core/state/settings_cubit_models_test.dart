@@ -183,6 +183,48 @@ void main() {
     expect(rowOf(cubit, 'small').failure, ModelInstallReason.rejected);
   });
 
+  test('a download alone on the engine never reads as queued', () async {
+    final gate = Completer<void>();
+    engine.startGate = gate.future;
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').installing, isTrue);
+    expect(rowOf(cubit, 'large').queued, isFalse);
+    gate.complete();
+    await pumpEventQueue();
+  });
+
+  test('a download started behind another waits in the queue until its turn', () async {
+    final gate = Completer<void>();
+    final busy = FakeModelChoiceEngine()..startGate = gate.future;
+    final scoped = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: busy,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+    );
+    addTearDown(scoped.dispose);
+    final cubit = buildFor(scoped);
+    await Future<void>.delayed(Duration.zero);
+
+    cubit.installModelById('small');
+    cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').queued, isFalse);
+    expect(rowOf(cubit, 'large').queued, isTrue);
+    expect(rowOf(cubit, 'large').cancellable, isTrue);
+
+    gate.complete();
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'large').queued, isFalse);
+    expect(rowOf(cubit, 'large').installed, isTrue);
+  });
+
   test('an unknown memory figure dims nothing', () async {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
