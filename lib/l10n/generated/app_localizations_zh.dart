@@ -522,6 +522,78 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelCancelDownload => '取消';
 
   @override
+  String get transcriptionDownloadFootnote => '下载只在应用打开时进行。离开后，回来时会从停下的地方继续。';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '下载 $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '使用 $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model 使用中';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '重新下载 $model';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '正在下载 $model，$percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model 对这台 iPhone 来说太大了';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return '取消下载 $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '移除 $model';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return '正在转写 · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '正在下载 $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => '用 Neural Engine 加速';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return '在 Neural Engine 上运行每个模型的编码器。每个模型需要第二次下载（使用中的模型为 $size），以及一次性的准备，较大的模型需要几分钟。';
+  }
+
+  @override
+  String get accelerationNotSavedBody => 'Neural Engine 的选择未能保存，重新启动后不会保留。';
+
+  @override
+  String get modelPreparing => '正在准备…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '正在准备 $model';
+  }
+
+  @override
   String get engineBusyTitle => '正在录音';
 
   @override

@@ -552,6 +552,80 @@ class AppLocalizationsIt extends AppLocalizations {
   String get modelCancelDownload => 'Annulla';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'I download avvengono solo mentre l\'app è aperta. Se esci, il download riprende da dove si era fermato quando torni.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return 'Scarica $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return 'Usa $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model in uso';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return 'Riprova a scaricare $model';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return 'Download di $model, $percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model è troppo grande per questo iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Annulla il download di $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return 'Rimuovi $model';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'Trascrizione · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return 'Download di $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Più veloce con il Neural Engine';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return 'Esegue l\'encoder di ogni modello sul Neural Engine. Ogni modello richiede un secondo download ($size per quello in uso) e una preparazione una tantum che sui modelli più grandi richiede minuti.';
+  }
+
+  @override
+  String get accelerationNotSavedBody =>
+      'La scelta del Neural Engine non è stata salvata e non sopravvivrà a un riavvio.';
+
+  @override
+  String get modelPreparing => 'Preparazione…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return 'Preparazione di $model';
+  }
+
+  @override
   String get engineBusyTitle => 'Registrazione in corso';
 
   @override

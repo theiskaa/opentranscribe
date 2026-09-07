@@ -742,6 +742,136 @@
   "@modelCancelDownload": {
     "description": "Text action stopping a model download; the same word as the re-transcribe sheet's cancel"
   },
+  "transcriptionDownloadFootnote": "Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.",
+  "@transcriptionDownloadFootnote": {
+    "description": "Footnote under the model cards while a model downloads: downloads need the app open, and resume on return"
+  },
+  "modelDownloadButton": "Download {model}",
+  "@modelDownloadButton": {
+    "description": "VoiceOver name of a model card's Download pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelUseButton": "Use {model}",
+  "@modelUseButton": {
+    "description": "VoiceOver name of a model card's Use pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelInUseLabel": "{model} in use",
+  "@modelInUseLabel": {
+    "description": "VoiceOver name of a model card's In use pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRetryButton": "Try downloading {model} again",
+  "@modelRetryButton": {
+    "description": "VoiceOver name of a model card's Try again pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDownloadingLabel": "Downloading {model}, {percent}%",
+  "@modelDownloadingLabel": {
+    "description": "VoiceOver name of a model card's download ring, with the percent",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "modelTooHeavyLabel": "{model} is too large for this iPhone",
+  "@modelTooHeavyLabel": {
+    "description": "VoiceOver name of a model card's disabled pill for a model this iPhone cannot hold",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelCancelDownloadButton": "Cancel downloading {model}",
+  "@modelCancelDownloadButton": {
+    "description": "VoiceOver name of a model card's Cancel action",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveButton": "Remove {model}",
+  "@modelRemoveButton": {
+    "description": "VoiceOver name of a model card's Remove action",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "takeTranscribingProgress": "Transcribing · {percent}%",
+  "@takeTranscribingProgress": {
+    "description": "Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "takeDownloadingProgress": "Downloading {model} · {percent}%",
+  "@takeDownloadingProgress": {
+    "description": "Progress line while the model a transcription needs downloads first",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "transcriptionAcceleration": "Faster with the Neural Engine",
+  "@transcriptionAcceleration": {
+    "description": "Toggle row under the model cards: run the whisper encoder on the Neural Engine"
+  },
+  "transcriptionAccelerationNote": "Runs each model's encoder on the Neural Engine. Every model needs a second download ({size} for the one in use) and a one-time preparation that takes minutes on the larger models.",
+  "@transcriptionAccelerationNote": {
+    "description": "Footnote under the acceleration toggle, with the second download's size for the model in use",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "accelerationNotSavedBody": "The Neural Engine choice couldn't be saved and won't survive a relaunch.",
+  "@accelerationNotSavedBody": {
+    "description": "Sheet body when the acceleration choice failed to persist"
+  },
+  "modelPreparing": "Preparing…",
+  "@modelPreparing": {
+    "description": "Model card trail while an install unpacks or compiles after its download"
+  },
+  "modelPreparingLabel": "Preparing {model}",
+  "@modelPreparingLabel": {
+    "description": "VoiceOver name of a model card's control while the install prepares",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "engineBusyTitle": "Recording in progress",
   "@engineBusyTitle": {
     "description": "Sheet title when an engine switch is refused mid-take"

@@ -546,6 +546,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelCancelDownload => 'Cancel';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return 'Download $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return 'Use $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model in use';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return 'Try downloading $model again';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return 'Downloading $model, $percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model is too large for this iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Cancel downloading $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return 'Remove $model';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'Transcribing · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return 'Downloading $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Faster with the Neural Engine';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return 'Runs each model\'s encoder on the Neural Engine. Every model needs a second download ($size for the one in use) and a one-time preparation that takes minutes on the larger models.';
+  }
+
+  @override
+  String get accelerationNotSavedBody =>
+      'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.';
+
+  @override
+  String get modelPreparing => 'Preparing…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return 'Preparing $model';
+  }
+
+  @override
   String get engineBusyTitle => 'Recording in progress';
 
   @override

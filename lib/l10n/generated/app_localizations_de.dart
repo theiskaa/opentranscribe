@@ -550,6 +550,80 @@ class AppLocalizationsDe extends AppLocalizations {
   String get modelCancelDownload => 'Abbrechen';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'Downloads laufen nur, solange die App geöffnet ist. Wenn Sie die App verlassen, wird der Download beim nächsten Öffnen fortgesetzt.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '$model laden';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '$model verwenden';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model in Verwendung';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '$model erneut laden';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '$model wird geladen, $percent %';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model ist zu groß für dieses iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Download von $model abbrechen';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '$model entfernen';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'Transkription · $percent %';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '$model wird geladen · $percent %';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Schneller mit der Neural Engine';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return 'Führt den Encoder jedes Modells auf der Neural Engine aus. Jedes Modell braucht einen zweiten Download ($size für das verwendete) und eine einmalige Vorbereitung, die bei den größeren Modellen Minuten dauert.';
+  }
+
+  @override
+  String get accelerationNotSavedBody =>
+      'Die Neural-Engine-Einstellung konnte nicht gespeichert werden und geht beim nächsten Start verloren.';
+
+  @override
+  String get modelPreparing => 'Wird vorbereitet…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '$model wird vorbereitet';
+  }
+
+  @override
   String get engineBusyTitle => 'Aufnahme läuft';
 
   @override

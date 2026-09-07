@@ -552,6 +552,80 @@ class AppLocalizationsFr extends AppLocalizations {
   String get modelCancelDownload => 'Annuler';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'Les téléchargements ne se font que lorsque l\'app est ouverte. Si vous la quittez, le téléchargement reprend là où il s\'est arrêté à votre retour.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return 'Télécharger $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return 'Utiliser $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model utilisé';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return 'Réessayer de télécharger $model';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return 'Téléchargement de $model, $percent %';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model est trop volumineux pour cet iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Annuler le téléchargement de $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return 'Supprimer $model';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'Transcription · $percent %';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return 'Téléchargement de $model · $percent %';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Plus rapide avec le Neural Engine';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return 'Exécute l\'encodeur de chaque modèle sur le Neural Engine. Chaque modèle demande un second téléchargement ($size pour celui en cours d\'utilisation) et une préparation unique qui prend quelques minutes sur les grands modèles.';
+  }
+
+  @override
+  String get accelerationNotSavedBody =>
+      'Le choix du Neural Engine n\'a pas pu être enregistré et ne survivra pas à un redémarrage.';
+
+  @override
+  String get modelPreparing => 'Préparation…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return 'Préparation de $model';
+  }
+
+  @override
   String get engineBusyTitle => 'Enregistrement en cours';
 
   @override

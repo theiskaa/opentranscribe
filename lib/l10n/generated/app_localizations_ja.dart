@@ -525,6 +525,79 @@ class AppLocalizationsJa extends AppLocalizations {
   String get modelCancelDownload => 'キャンセル';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'ダウンロードはアプリを開いている間だけ進みます。アプリを離れても、戻ったときに止まったところから再開します。';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '$model をダウンロード';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '$model を使用';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model を使用中';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '$model のダウンロードを再試行';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '$model をダウンロード中、$percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model はこの iPhone には大きすぎます';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return '$model のダウンロードをキャンセル';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '$model を削除';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return '文字起こし中 · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '$model をダウンロード中 · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Neural Engine で高速化';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return '各モデルのエンコーダーを Neural Engine で実行します。モデルごとに 2 つ目のダウンロード（使用中のモデルは $size）と、大きなモデルでは数分かかる初回の準備が必要です。';
+  }
+
+  @override
+  String get accelerationNotSavedBody => 'Neural Engine の設定を保存できず、再起動後には残りません。';
+
+  @override
+  String get modelPreparing => '準備中…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '$model を準備中';
+  }
+
+  @override
   String get engineBusyTitle => '録音中';
 
   @override

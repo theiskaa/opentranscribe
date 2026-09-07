@@ -551,6 +551,80 @@ class AppLocalizationsPt extends AppLocalizations {
   String get modelCancelDownload => 'Cancelar';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      'As transferências só decorrem com a app aberta. Se sair, a transferência retoma onde parou quando voltar.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return 'Transferir $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return 'Usar $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model em uso';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return 'Tentar transferir $model novamente';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return 'A transferir $model, $percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model é demasiado grande para este iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Cancelar a transferência de $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return 'Remover $model';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'A transcrever · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return 'A transferir $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Mais rápido com o Neural Engine';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return 'Executa o codificador de cada modelo no Neural Engine. Cada modelo precisa de uma segunda transferência ($size para o que está em uso) e de uma preparação única que demora minutos nos modelos maiores.';
+  }
+
+  @override
+  String get accelerationNotSavedBody =>
+      'A escolha do Neural Engine não pôde ser guardada e não sobrevive a um reinício.';
+
+  @override
+  String get modelPreparing => 'A preparar…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return 'A preparar $model';
+  }
+
+  @override
   String get engineBusyTitle => 'Gravação em curso';
 
   @override

@@ -526,6 +526,79 @@ class AppLocalizationsKo extends AppLocalizations {
   String get modelCancelDownload => '취소';
 
   @override
+  String get transcriptionDownloadFootnote =>
+      '다운로드는 앱이 열려 있는 동안에만 진행됩니다. 앱을 떠나도 돌아오면 멈춘 곳에서 이어집니다.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '$model 다운로드';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '$model 사용';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model 사용 중';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '$model 다시 다운로드';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '$model 다운로드 중, $percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model은(는) 이 iPhone에 너무 큽니다';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return '$model 다운로드 취소';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '$model 제거';
+  }
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return '전사 중 · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '$model 다운로드 중 · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Neural Engine으로 더 빠르게';
+
+  @override
+  String transcriptionAccelerationNote(String size) {
+    return '각 모델의 인코더를 Neural Engine에서 실행합니다. 모델마다 두 번째 다운로드(사용 중인 모델은 $size)와 큰 모델에서는 몇 분이 걸리는 1회 준비가 필요합니다.';
+  }
+
+  @override
+  String get accelerationNotSavedBody => 'Neural Engine 설정을 저장하지 못해 다시 실행하면 사라집니다.';
+
+  @override
+  String get modelPreparing => '준비 중…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '$model 준비 중';
+  }
+
+  @override
   String get engineBusyTitle => '녹음 진행 중';
 
   @override

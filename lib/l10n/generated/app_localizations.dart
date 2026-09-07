@@ -1050,6 +1050,102 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get modelCancelDownload;
 
+  /// Footnote under the model cards while a model downloads: downloads need the app open, and resume on return
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.'**
+  String get transcriptionDownloadFootnote;
+
+  /// VoiceOver name of a model card's Download pill
+  ///
+  /// In en, this message translates to:
+  /// **'Download {model}'**
+  String modelDownloadButton(String model);
+
+  /// VoiceOver name of a model card's Use pill
+  ///
+  /// In en, this message translates to:
+  /// **'Use {model}'**
+  String modelUseButton(String model);
+
+  /// VoiceOver name of a model card's In use pill
+  ///
+  /// In en, this message translates to:
+  /// **'{model} in use'**
+  String modelInUseLabel(String model);
+
+  /// VoiceOver name of a model card's Try again pill
+  ///
+  /// In en, this message translates to:
+  /// **'Try downloading {model} again'**
+  String modelRetryButton(String model);
+
+  /// VoiceOver name of a model card's download ring, with the percent
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model}, {percent}%'**
+  String modelDownloadingLabel(String model, int percent);
+
+  /// VoiceOver name of a model card's disabled pill for a model this iPhone cannot hold
+  ///
+  /// In en, this message translates to:
+  /// **'{model} is too large for this iPhone'**
+  String modelTooHeavyLabel(String model);
+
+  /// VoiceOver name of a model card's Cancel action
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel downloading {model}'**
+  String modelCancelDownloadButton(String model);
+
+  /// VoiceOver name of a model card's Remove action
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {model}'**
+  String modelRemoveButton(String model);
+
+  /// Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing · {percent}%'**
+  String takeTranscribingProgress(int percent);
+
+  /// Progress line while the model a transcription needs downloads first
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model} · {percent}%'**
+  String takeDownloadingProgress(String model, int percent);
+
+  /// Toggle row under the model cards: run the whisper encoder on the Neural Engine
+  ///
+  /// In en, this message translates to:
+  /// **'Faster with the Neural Engine'**
+  String get transcriptionAcceleration;
+
+  /// Footnote under the acceleration toggle, with the second download's size for the model in use
+  ///
+  /// In en, this message translates to:
+  /// **'Runs each model\'s encoder on the Neural Engine. Every model needs a second download ({size} for the one in use) and a one-time preparation that takes minutes on the larger models.'**
+  String transcriptionAccelerationNote(String size);
+
+  /// Sheet body when the acceleration choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get accelerationNotSavedBody;
+
+  /// Model card trail while an install unpacks or compiles after its download
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing…'**
+  String get modelPreparing;
+
+  /// VoiceOver name of a model card's control while the install prepares
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing {model}'**
+  String modelPreparingLabel(String model);
+
   /// Sheet title when an engine switch is refused mid-take
   ///
   /// In en, this message translates to:
