@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
@@ -14,6 +13,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
+import 'package:opentranscribe/view/layouts/settings/components/engine_picker.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_card.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
@@ -225,14 +225,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 ),
               ),
               SectionLabel(l10n.transcriptionEngines),
-              _Melt(
-                child: SettingsCard(
-                  children: [
-                    for (final engineRow in engineRows)
-                      _EngineRow(key: ValueKey(engineRow.descriptor.engineId), row: engineRow),
-                  ],
-                ),
-              ),
+              _Melt(child: EnginePicker(rows: engineRows)),
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -337,106 +330,6 @@ class _RetranscribeAction extends StatelessWidget {
         if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
         unawaited(showRetranscribeSheet(context));
       },
-    );
-  }
-}
-
-/// One engine as the picker offers it: logo chip, name, the active marker, and
-/// a quiet second line (the descriptor's blurb, or why a dimmed one cannot run
-/// here). Tapping switches; tapping a dimmed row opens the fuller story
-/// instead, and a switch refused mid-take says so.
-class _EngineRow extends StatelessWidget {
-  const _EngineRow({required this.row, super.key});
-
-  final EngineRowState row;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
-    return SelectableRow(
-      label: row.descriptor.displayName,
-      leading: AppIcon(
-        row.descriptor.logo,
-        size: 18,
-        color: row.available ? theme.text : theme.textSecondary,
-      ),
-      selected: row.isActive,
-      dimmed: !row.available,
-      note: row.available ? row.descriptor.blurb(l10n) : _unavailableNote(l10n),
-      noteLines: 2,
-      onTap: () => _tap(context),
-    );
-  }
-
-  // Exhaustive on purpose: a new unavailability kind must fail to compile
-  // until it is worded, never silently borrow this one's words.
-  String _unavailableNote(AppLocalizations l10n) => switch (row.unavailability!) {
-    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableNote,
-    EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableNote,
-  };
-
-  String _unavailableBody(AppLocalizations l10n) => switch (row.unavailability!) {
-    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(row.descriptor.displayName),
-    EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableBody(
-      row.descriptor.displayName,
-    ),
-  };
-
-  Future<void> _tap(BuildContext context) async {
-    // Same one-sheet rule as the hero: a second pointer in the same frame
-    // must not stack another sheet.
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
-    final l10n = AppLocalizations.of(context)!;
-    if (!row.available) {
-      await showAppSheet<void>(
-        context,
-        builder: (context) => SheetMessage(
-          icon: row.descriptor.logo,
-          title: l10n.engineUnavailableTitle,
-          body: _unavailableBody(l10n),
-        ),
-      );
-      return;
-    }
-    final EnginePickOutcome outcome;
-    try {
-      outcome = await context.read<EnginesCubit>().pick(row.descriptor.engineId);
-    } catch (_) {
-      // The switch (or its revert) happened; only the stored choice is lost.
-      // The rows above already say what is active; this says it will not hold.
-      // Re-checked, not just mounted: the screen may have been covered or
-      // popped during the pick, and this sheet belongs on it alone.
-      if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-      await showAppSheet<void>(
-        context,
-        builder: (context) => SheetMessage(
-          icon: AppIcons.internaldrive,
-          title: l10n.engineNotSavedTitle,
-          body: l10n.engineNotSavedBody,
-        ),
-      );
-      return;
-    }
-    if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-    final refusal = switch (outcome) {
-      EnginePickOutcome.busy => (
-        icon: AppIcons.micFill,
-        title: l10n.engineBusyTitle,
-        body: l10n.engineBusyBody,
-      ),
-      EnginePickOutcome.retranscribing => (
-        icon: AppIcons.arrowCounterclockwise,
-        title: l10n.engineRetranscribingTitle,
-        body: l10n.engineRetranscribingBody,
-      ),
-      _ => null,
-    };
-    if (refusal == null) return;
-    await showAppSheet<void>(
-      context,
-      builder: (context) =>
-          SheetMessage(icon: refusal.icon, title: refusal.title, body: refusal.body),
     );
   }
 }
