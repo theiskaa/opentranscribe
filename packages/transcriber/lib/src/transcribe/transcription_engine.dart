@@ -90,19 +90,25 @@ final class ReservationInfo {
 /// Progress of an on-device model download: [fraction] complete in [0,1], and
 /// [done] once installed. Engine-neutral: whatever an engine must fetch to run
 /// offline (an Apple asset, a whisper model) reports through this.
+/// [preparing] marks the work after the bytes arrived (unpacking, a one-time
+/// compile) that no fraction measures and no cancel can end.
 @immutable
 final class ModelInstallProgress {
-  const ModelInstallProgress({required this.fraction, required this.done});
+  const ModelInstallProgress({required this.fraction, required this.done, this.preparing = false});
 
   final double fraction;
   final bool done;
+  final bool preparing;
 
   @override
   bool operator ==(Object other) =>
-      other is ModelInstallProgress && other.fraction == fraction && other.done == done;
+      other is ModelInstallProgress &&
+      other.fraction == fraction &&
+      other.done == done &&
+      other.preparing == preparing;
 
   @override
-  int get hashCode => Object.hash(fraction, done);
+  int get hashCode => Object.hash(fraction, done, preparing);
 }
 
 /// How good a downloadable model is, from worst to best, for a picker to word.
@@ -120,6 +126,7 @@ final class ModelOption {
     required this.bytes,
     required this.quality,
     required this.peakMemoryBytes,
+    this.accelerationBytes = 0,
   });
 
   final String id;
@@ -128,6 +135,10 @@ final class ModelOption {
   final ModelQuality quality;
   final int peakMemoryBytes;
 
+  /// The extra download acceleration costs this model; zero for an engine
+  /// without it.
+  final int accelerationBytes;
+
   @override
   bool operator ==(Object other) =>
       other is ModelOption &&
@@ -135,10 +146,12 @@ final class ModelOption {
       other.displayName == displayName &&
       other.bytes == bytes &&
       other.quality == quality &&
-      other.peakMemoryBytes == peakMemoryBytes;
+      other.peakMemoryBytes == peakMemoryBytes &&
+      other.accelerationBytes == accelerationBytes;
 
   @override
-  int get hashCode => Object.hash(id, displayName, bytes, quality, peakMemoryBytes);
+  int get hashCode =>
+      Object.hash(id, displayName, bytes, quality, peakMemoryBytes, accelerationBytes);
 }
 
 /// The one boundary the app talks to. Batch (file -> transcript) is universal: it
@@ -305,4 +318,44 @@ abstract interface class PacedBatchEngine implements TranscriptionEngine {
 /// fails as cancelled, and the next run loads again. Safe at any time.
 abstract interface class ReleasableEngine implements TranscriptionEngine {
   Future<void> release();
+}
+
+/// An engine whose batch pass can say how far it is. [transcribeFileWithProgress]
+/// is [TranscriptionEngine.transcribeFile] with a listener: fractions in
+/// `[0, 1]`, in order, never after the future settles, none at all for a run
+/// the engine cannot measure, and not necessarily reaching one: the future's
+/// settling is the end, not a fraction. The plain [transcribeFile] is the
+/// same run with no listener.
+abstract interface class ProgressBatchEngine implements TranscriptionEngine {
+  Future<Transcript> transcribeFileWithProgress(
+    File audio, {
+    required String localeId,
+    required void Function(double fraction) onProgress,
+    Duration? start,
+    Duration? end,
+  });
+}
+
+/// A [ModelChoiceEngine] whose models run faster with a second on-device
+/// file each (whisper's Core ML encoder on the Neural Engine). The choice is
+/// a preference the app persists and hands back through [setAccelerated].
+/// Guarantees: [canAccelerate] false means the rest is inert (the platform
+/// has no such path); with acceleration on, [ModelChoiceEngine.installModelById]
+/// fetches the extra file too and a run uses it when present; off means no
+/// run uses one: every extra file is deleted, a run in flight keeping its
+/// own until it ends; [installAcceleration] fetches one model's extra file
+/// under the install rules of [installModelById] and ends only once a run
+/// can use it, or at once while the switch is off; [acceleratedModels]
+/// never throws.
+abstract interface class AcceleratedModelEngine implements ModelChoiceEngine {
+  bool get canAccelerate;
+
+  bool get accelerated;
+
+  Future<void> setAccelerated(bool on);
+
+  /// The ids whose extra file is present and whole.
+  Future<Set<String>> acceleratedModels();
+
+  Stream<ModelInstallProgress> installAcceleration(String id);
 }

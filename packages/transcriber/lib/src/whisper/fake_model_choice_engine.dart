@@ -18,7 +18,9 @@ class FakeModelChoiceEngine
         CancellableBatchEngine,
         ModelChoiceEngine,
         PacedBatchEngine,
-        ReleasableEngine {
+        ReleasableEngine,
+        ProgressBatchEngine,
+        AcceleratedModelEngine {
   FakeModelChoiceEngine({
     this.models = const [
       ModelOption(
@@ -27,6 +29,7 @@ class FakeModelChoiceEngine
         bytes: 100,
         quality: ModelQuality.better,
         peakMemoryBytes: 1000,
+        accelerationBytes: 40,
       ),
       ModelOption(
         id: 'large',
@@ -34,10 +37,14 @@ class FakeModelChoiceEngine
         bytes: 500,
         quality: ModelQuality.top,
         peakMemoryBytes: 5000,
+        accelerationBytes: 200,
       ),
     ],
     String? selected,
     Set<String> installed = const {},
+    this.canAccelerate = false,
+    bool accelerated = false,
+    Set<String> acceleratedModelIds = const {},
     this.installSteps = const [0.5],
     this.failInstall,
     this.installGate,
@@ -45,8 +52,11 @@ class FakeModelChoiceEngine
     this.cannedText = 'batch transcript',
     this.budgetFactor = 3,
     this.batchDelay,
+    this.progressSteps = const [],
     DateTime Function()? clock,
   }) : installed = Set.of(installed),
+       acceleratedIds = Set.of(acceleratedModelIds),
+       _accelerated = canAccelerate && accelerated,
        _selected = selected ?? models.first.id,
        _clock = clock ?? DateTime.now;
 
@@ -56,6 +66,16 @@ class FakeModelChoiceEngine
   /// The ids whose files are present; an install adds, a removal takes away.
   final Set<String> installed;
 
+  /// The ids whose extra file is present.
+  final Set<String> acceleratedIds;
+
+  @override
+  final bool canAccelerate;
+  bool _accelerated;
+
+  /// Every acceleration install asked for, in order.
+  final List<String> accelerationInstalls = [];
+
   /// The fractions an install replays before it lands.
   List<double> installSteps;
 
@@ -64,6 +84,9 @@ class FakeModelChoiceEngine
 
   /// Holds an install open after its steps, for tests interleaving other work.
   Future<void>? installGate;
+
+  /// Holds an install open while it reads as preparing, after its bytes.
+  Future<void>? prepareGate;
   final List<String> supportedLocaleTags;
   final String cannedText;
 
@@ -72,6 +95,12 @@ class FakeModelChoiceEngine
 
   /// Holds a batch, for timeout tests.
   Duration? batchDelay;
+
+  /// The fractions a reporting batch replays before its delay.
+  List<double> progressSteps;
+
+  /// A fraction reported after the delay, for a listener that gave up.
+  double? lateProgress;
   final DateTime Function() _clock;
 
   String _selected;
@@ -110,9 +139,28 @@ class FakeModelChoiceEngine
     required String localeId,
     Duration? start,
     Duration? end,
+  }) => transcribeFileWithProgress(
+    audio,
+    localeId: localeId,
+    start: start,
+    end: end,
+    onProgress: (_) {},
+  );
+
+  @override
+  Future<Transcript> transcribeFileWithProgress(
+    File audio, {
+    required String localeId,
+    required void Function(double fraction) onProgress,
+    Duration? start,
+    Duration? end,
   }) async {
+    for (final step in progressSteps) {
+      onProgress(step);
+    }
     final delay = batchDelay;
     if (delay != null) await Future<void>.delayed(delay);
+    if (lateProgress case final late?) onProgress(late);
     return Transcript(
       fullText: cannedText,
       segments: [
@@ -153,11 +201,21 @@ class FakeModelChoiceEngine
   Stream<ModelInstallProgress> installModelById(String id) {
     if (!models.any((m) => m.id == id)) throw ArgumentError.value(id, 'id');
     installs.add(id);
+    return _installing(id, withModel: true, withEncoder: _accelerated);
+  }
+
+  Stream<ModelInstallProgress> _installing(
+    String id, {
+    required bool withModel,
+    required bool withEncoder,
+  }) {
     late final StreamController<ModelInstallProgress> controller;
     var cancelled = false;
     controller = StreamController<ModelInstallProgress>(
       onListen: () async {
-        if (installed.contains(id)) {
+        final needModel = withModel && !installed.contains(id);
+        final needEncoder = withEncoder && !acceleratedIds.contains(id);
+        if (!needModel && !needEncoder) {
           controller.add(const ModelInstallProgress(fraction: 1, done: true));
           await controller.close();
           return;
@@ -173,7 +231,14 @@ class FakeModelChoiceEngine
         if (reason != null) {
           controller.addError(ModelInstallFailed('fake install failure', null, reason));
         } else {
-          installed.add(id);
+          if (needModel) installed.add(id);
+          if (needEncoder) {
+            controller.add(const ModelInstallProgress(fraction: 1, done: false, preparing: true));
+            final preparing = prepareGate;
+            if (preparing != null) await preparing;
+            if (cancelled) return;
+            acceleratedIds.add(id);
+          }
           controller.add(const ModelInstallProgress(fraction: 1, done: true));
         }
         await controller.close();
@@ -188,7 +253,28 @@ class FakeModelChoiceEngine
     if (!models.any((m) => m.id == id)) throw ArgumentError.value(id, 'id');
     removals.add(id);
     if (refuseRemove) return false;
+    acceleratedIds.remove(id);
     return installed.remove(id);
+  }
+
+  @override
+  bool get accelerated => _accelerated;
+
+  @override
+  Future<void> setAccelerated(bool on) async {
+    if (!canAccelerate) return;
+    _accelerated = on;
+    if (!on) acceleratedIds.clear();
+  }
+
+  @override
+  Future<Set<String>> acceleratedModels() async => Set.of(acceleratedIds);
+
+  @override
+  Stream<ModelInstallProgress> installAcceleration(String id) {
+    if (!models.any((m) => m.id == id)) throw ArgumentError.value(id, 'id');
+    accelerationInstalls.add(id);
+    return _installing(id, withModel: false, withEncoder: canAccelerate);
   }
 
   @override

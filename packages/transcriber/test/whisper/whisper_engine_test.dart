@@ -11,6 +11,8 @@ import 'package:transcriber/src/whisper/whisper_catalog.dart';
 import 'package:transcriber/src/whisper/whisper_engine.dart';
 import 'package:transcriber/src/whisper/whisper_runtime.dart';
 
+import 'zip_fixture.dart';
+
 void main() {
   late Directory root;
   late Directory models;
@@ -184,6 +186,29 @@ void main() {
       await expectLater(run, throwsA(isA<TranscriptionFailed>()));
       expect(fetcher.cancelled, 1);
       expect(runtime.runs, isEmpty);
+    });
+
+    test('a reporting run forwards the runtime\'s fractions in order', () async {
+      final e = engine();
+      await install(e);
+      runtime.progressSteps = [0.3, 0.9];
+      final heard = <double>[];
+
+      await e.transcribeFileWithProgress(audio, localeId: 'en-US', onProgress: heard.add);
+
+      expect(heard, [0.3, 0.9]);
+    });
+
+    test('a plain run asks the runtime for no progress', () async {
+      final e = engine();
+      await install(e);
+      runtime.progressSteps = [0.3, 0.9];
+      var asked = false;
+      runtime.onProgressAsked = () => asked = true;
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(asked, isFalse);
     });
 
     test('a landed run deletes its scratch file', () async {
@@ -651,6 +676,228 @@ void main() {
       expect(runtime.disposes, 1);
       expect(runtime.loads, hasLength(2));
     });
+  });
+
+  group('acceleration', () {
+    final tiny = whisperModelById('tiny-q5_1')!;
+    List<int> encoderZip({bool withDirectory = true}) => zipOf({
+      if (withDirectory) '${tiny.encoderDirName}/': null,
+      '${withDirectory ? '${tiny.encoderDirName}/' : ''}weights/weight.bin': List.filled(4096, 7),
+      '${withDirectory ? '${tiny.encoderDirName}/' : ''}coremldata.bin': [1, 2, 3],
+    });
+
+    WhisperEngine accelerated({bool on = true, bool can = true}) => WhisperEngine(
+      modelsDir: models,
+      fetcher: fetcher,
+      decoder: decoder,
+      runtime: runtime,
+      initialModelId: tiny.id,
+      canAccelerate: can,
+      initiallyAccelerated: on,
+      clock: () => DateTime.utc(2026, 9, 6),
+    );
+
+    Directory encoderDir() => Directory('${models.path}/${tiny.encoderDirName}');
+
+    setUp(() {
+      fetcher = FakeModelFetcher(bodies: {tiny.encoder.fileName: encoderZip()});
+    });
+
+    test(
+      'with acceleration on an install fetches the encoder after the model and unpacks it beside it',
+      () async {
+        final e = accelerated();
+        final events = await e.installModelById(tiny.id).toList();
+
+        expect(fetcher.calls.map((c) => c.source.pathSegments.last), [
+          tiny.fileName,
+          tiny.encoder.fileName,
+        ]);
+        expect(encoderDir().existsSync(), isTrue);
+        expect(File('${encoderDir().path}/coremldata.bin').readAsBytesSync(), [1, 2, 3]);
+        expect(File('${models.path}/${tiny.encoder.fileName}').existsSync(), isFalse);
+        expect(Directory('${models.path}/.unpack-${tiny.encoderDirName}').existsSync(), isFalse);
+        final fractions = events.map((p) => p.fraction).toList();
+        expect(fractions, orderedEquals([...fractions]..sort()));
+        expect(events.where((p) => p.preparing), isNotEmpty);
+        expect(events.last.done, isTrue);
+        expect(await e.acceleratedModels(), {tiny.id});
+        expect(runtime.loads, [fileOf(tiny.id).path]);
+      },
+    );
+
+    test('installing acceleration on an installed model fetches only the encoder', () async {
+      final e = accelerated(on: false);
+      await install(e);
+      await e.setAccelerated(true);
+      fetcher.calls.clear();
+
+      await e.installAcceleration(tiny.id).drain<void>();
+
+      expect(fetcher.calls.map((c) => c.source.pathSegments.last), [tiny.encoder.fileName]);
+      expect(encoderDir().existsSync(), isTrue);
+    });
+
+    test('with acceleration off an install fetches the model alone', () async {
+      final e = accelerated(on: false);
+
+      await install(e);
+
+      expect(fetcher.calls.map((c) => c.source.pathSegments.last), [tiny.fileName]);
+      expect(await e.acceleratedModels(), isEmpty);
+    });
+
+    test('turning acceleration off deletes every encoder', () async {
+      final e = accelerated();
+      await install(e);
+      expect(encoderDir().existsSync(), isTrue);
+
+      await e.setAccelerated(false);
+
+      expect(e.accelerated, isFalse);
+      expect(encoderDir().existsSync(), isFalse);
+      expect(await e.acceleratedModels(), isEmpty);
+    });
+
+    test('turning acceleration off under a run keeps its encoder until the run ends', () async {
+      final e = accelerated();
+      await install(e);
+      final gate = Completer<void>();
+      runtime.gate = gate.future;
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.runs.length == 1);
+
+      await e.setAccelerated(false);
+      expect(encoderDir().existsSync(), isTrue);
+
+      gate.complete();
+      await run;
+      expect(encoderDir().existsSync(), isFalse);
+      expect(runtime.closes, 1);
+    });
+
+    test('a leftover encoder is deleted before a load with acceleration off', () async {
+      final e = accelerated(on: false);
+      await install(e);
+      await encoderDir().create(recursive: true);
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(encoderDir().existsSync(), isFalse);
+      expect(runtime.loads, hasLength(1));
+    });
+
+    test('removing a model deletes its encoder too', () async {
+      final e = accelerated();
+      await install(e);
+
+      expect(await e.removeModel(tiny.id), isTrue);
+
+      expect(encoderDir().existsSync(), isFalse);
+      expect(fileOf(tiny.id).existsSync(), isFalse);
+    });
+
+    test('an archive without the encoder directory is rejected and leaves nothing', () async {
+      fetcher = FakeModelFetcher(bodies: {tiny.encoder.fileName: encoderZip(withDirectory: false)});
+      final e = accelerated();
+
+      await expectLater(
+        e.installModelById(tiny.id).drain<void>(),
+        throwsA(
+          isA<ModelInstallFailed>().having((f) => f.reason, 'reason', ModelInstallReason.rejected),
+        ),
+      );
+
+      expect(encoderDir().existsSync(), isFalse);
+      expect(Directory('${models.path}/.unpack-${tiny.encoderDirName}').existsSync(), isFalse);
+      expect(await e.installedModels(), {tiny.id});
+    });
+
+    test(
+      'a first-use install with the switch on lands its encoder and the run still goes',
+      () async {
+        final e = accelerated();
+
+        final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+        expect(transcript.fullText, 'hello');
+        expect(encoderDir().existsSync(), isTrue);
+        expect(fetcher.calls.map((c) => c.source.pathSegments.last), [
+          tiny.fileName,
+          tiny.encoder.fileName,
+        ]);
+        expect(runtime.loads, hasLength(1));
+      },
+    );
+
+    test('a switch flipped off during the encoder download leaves nothing behind', () async {
+      final e = accelerated(on: false);
+      await install(e);
+      await e.setAccelerated(true);
+      final gate = Completer<void>();
+      fetcher.gate = gate.future;
+      final done = e.installAcceleration(tiny.id).drain<void>();
+      await until(() => fetcher.calls.isNotEmpty);
+
+      await e.setAccelerated(false);
+      gate.complete();
+      await done;
+
+      expect(encoderDir().existsSync(), isFalse);
+      expect(await e.acceleratedModels(), isEmpty);
+    });
+
+    test('a switch flipped on during the model download still fetches its encoder', () async {
+      final e = accelerated(on: false);
+      final gate = Completer<void>();
+      fetcher.gate = gate.future;
+      final done = e.installModelById(tiny.id).drain<void>();
+      await until(() => fetcher.calls.isNotEmpty);
+
+      await e.setAccelerated(true);
+      gate.complete();
+      await done;
+
+      expect(fetcher.calls.map((c) => c.source.pathSegments.last), [
+        tiny.fileName,
+        tiny.encoder.fileName,
+      ]);
+      expect(encoderDir().existsSync(), isTrue);
+    });
+
+    test('a warm-up load that fails keeps the files and lands the install', () async {
+      runtime.failLoad = true;
+      final e = accelerated();
+
+      await e.installModelById(tiny.id).drain<void>();
+
+      expect(encoderDir().existsSync(), isTrue);
+      expect(await e.acceleratedModels(), {tiny.id});
+    });
+
+    test('a warm-up of a model other than the choice closes it again', () async {
+      final e = accelerated();
+      await e.selectModel('base-q5_1');
+
+      await e.installModelById(tiny.id).drain<void>();
+
+      expect(runtime.loads, hasLength(1));
+      expect(runtime.closes, 1);
+    });
+
+    test(
+      'an engine that cannot accelerate keeps the toggle off and fetches nothing extra',
+      () async {
+        final e = accelerated(can: false);
+
+        await e.setAccelerated(true);
+        await e.installAcceleration(tiny.id).drain<void>();
+        await install(e);
+
+        expect(e.accelerated, isFalse);
+        expect(fetcher.calls.map((c) => c.source.pathSegments.last), [tiny.fileName]);
+      },
+    );
   });
 
   group('the per-language view of one model', () {

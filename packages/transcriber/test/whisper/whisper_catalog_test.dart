@@ -12,6 +12,19 @@ void main() {
     }
   });
 
+  test('every encoder is the zipped Core ML directory whisper.cpp derives from the model file', () {
+    for (final model in whisperCatalog) {
+      final stem = model.fileName.substring(0, model.fileName.length - '.bin'.length);
+      final unquantized = stem.substring(0, stem.lastIndexOf('-'));
+      expect(model.encoderDirName, '$unquantized-encoder.mlmodelc');
+      expect(model.encoder.fileName, '${model.encoderDirName}.zip');
+      expect(model.encoder.bytes, greaterThan(0));
+      expect(model.option.accelerationBytes, model.encoder.bytes);
+      expect(model.encoder.sha256, hasLength(64));
+      expect(model.encoder.source.host, 'huggingface.co');
+    }
+  });
+
   test('ids are unique and the default is one of them', () {
     final ids = whisperCatalog.map((m) => m.id).toSet();
     expect(ids, hasLength(whisperCatalog.length));

@@ -8,6 +8,7 @@ import 'package:transcriber/src/whisper/model_fetcher.dart';
 import 'package:transcriber/src/whisper/pcm_decoder.dart';
 import 'package:transcriber/src/whisper/whisper_catalog.dart';
 import 'package:transcriber/src/whisper/whisper_runtime.dart';
+import 'package:transcriber/src/whisper/zip_extract.dart';
 
 // ignore_for_file: prefer_initializing_formals
 // Public parameters assigned to private fields; the lint wants the fields public.
@@ -31,6 +32,12 @@ import 'package:transcriber/src/whisper/whisper_runtime.dart';
 /// model file counts as installed only when its length matches the catalog
 /// (the hash was verified at install); [installedModels], [localeStatus] and
 /// the other preflights never throw.
+///
+/// Acceleration is whisper.cpp's Core ML encoder: a zipped directory per
+/// model, fetched like the model and unpacked beside it under the name
+/// whisper.cpp derives from the model file, so a load finds it on its own.
+/// Its first load compiles it for this phone's Neural Engine, which an
+/// install pays up front as its preparing tail.
 class WhisperEngine
     implements
         TranscriptionEngine,
@@ -38,19 +45,25 @@ class WhisperEngine
         CancellableBatchEngine,
         ModelChoiceEngine,
         PacedBatchEngine,
-        ReleasableEngine {
+        ReleasableEngine,
+        ProgressBatchEngine,
+        AcceleratedModelEngine {
   WhisperEngine({
     required Directory modelsDir,
     required ModelFetcher fetcher,
     required PcmDecoder decoder,
     required WhisperRuntime runtime,
     String initialModelId = whisperDefaultModelId,
+    bool canAccelerate = false,
+    bool initiallyAccelerated = false,
     DateTime Function()? clock,
   }) : _modelsDir = modelsDir,
        _fetcher = fetcher,
        _decoder = decoder,
        _runtime = runtime,
-       _clock = clock ?? DateTime.now {
+       _clock = clock ?? DateTime.now,
+       canAccelerate = canAccelerate,
+       _accelerated = canAccelerate && initiallyAccelerated {
     _selectedId = _model(initialModelId).id;
   }
 
@@ -65,6 +78,7 @@ class WhisperEngine
   final DateTime Function() _clock;
 
   late String _selectedId;
+  bool _accelerated;
   WhisperSession? _session;
   String? _sessionModelId;
   Future<void> _closing = Future<void>.value();
@@ -97,6 +111,29 @@ class WhisperEngine
     return stat.type == FileSystemEntityType.file && stat.size == model.option.bytes;
   }
 
+  Directory _encoderDir(WhisperModel model) =>
+      Directory('${_modelsDir.path}/${model.encoderDirName}');
+
+  File _encoderZip(WhisperModel model) => File('${_modelsDir.path}/${model.encoder.fileName}');
+
+  // Unpacked here and renamed into place last, so a present directory is a
+  // whole one.
+  Directory _encoderStaging(WhisperModel model) =>
+      Directory('${_modelsDir.path}/.unpack-${model.encoderDirName}');
+
+  Future<bool> _acceleratedFor(WhisperModel model) => _encoderDir(model).exists();
+
+  Future<void> _deleteEncoder(WhisperModel model) async {
+    for (final leftover in [
+      _encoderDir(model),
+      _encoderStaging(model),
+      _encoderZip(model),
+      File('${_encoderZip(model).path}$modelPartSuffix'),
+    ]) {
+      if (await leftover.exists()) await leftover.delete(recursive: true);
+    }
+  }
+
   /// The whisper code the selected model can run [localeId] as, or null.
   String? _codeFor(String localeId) {
     final code = whisperLanguageCode(localeId);
@@ -118,12 +155,29 @@ class WhisperEngine
     required String localeId,
     Duration? start,
     Duration? end,
+  }) => _enqueue(audio, localeId: localeId, start: start, end: end);
+
+  @override
+  Future<Transcript> transcribeFileWithProgress(
+    File audio, {
+    required String localeId,
+    required void Function(double fraction) onProgress,
+    Duration? start,
+    Duration? end,
+  }) => _enqueue(audio, localeId: localeId, start: start, end: end, onProgress: onProgress);
+
+  Future<Transcript> _enqueue(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+    void Function(double fraction)? onProgress,
   }) async {
     final language = _codeFor(localeId);
     if (language == null) throw OnDeviceUnavailable('unsupported: $localeId');
     final generation = _generation;
     final run = _batches.then(
-      (_) => _transcribe(audio, localeId, language, start, end, generation),
+      (_) => _transcribe(audio, localeId, language, start, end, generation, onProgress),
     );
     // The chain only sequences; one failure must not poison every later run.
     _batches = run.then((_) {}, onError: (Object _) {});
@@ -137,6 +191,7 @@ class WhisperEngine
     Duration? start,
     Duration? end,
     int generation,
+    void Function(double fraction)? onProgress,
   ) async {
     if (generation != _generation) throw _cancelled;
     final model = _model(_selectedId);
@@ -157,7 +212,7 @@ class WhisperEngine
       final List<WhisperSegment> segments;
       try {
         if (generation != _generation) throw _cancelled;
-        segments = await session.run(decoded.file, language: language);
+        segments = await session.run(decoded.file, language: language, onProgress: onProgress);
       } on WhisperRuntimeException catch (e) {
         throw switch (e.error) {
           WhisperRuntimeError.aborted => _cancelled,
@@ -178,6 +233,12 @@ class WhisperEngine
     } finally {
       _running = false;
       _runningModelId = null;
+      // The encoder a turn-off left for this run goes now; one an install is
+      // fetching is that install's to drop.
+      if (!_accelerated && !_installing.containsKey(model.id) && await _acceleratedFor(model)) {
+        await _closeSession();
+        await _deleteEncoder(model);
+      }
     }
   }
 
@@ -226,6 +287,10 @@ class WhisperEngine
     final open = _session;
     if (open != null && _sessionModelId == model.id) return open;
     await _closeSession();
+    // whisper.cpp takes any encoder it finds beside the model, so off means
+    // gone; a run that held it kept it until now, and an install fetching
+    // one drops it itself.
+    if (!_accelerated && !_installing.containsKey(model.id)) await _deleteEncoder(model);
     try {
       final session = await _runtime.load(_file(model));
       _session = session;
@@ -282,8 +347,47 @@ class WhisperEngine
   };
 
   @override
-  Stream<ModelInstallProgress> installModelById(String id) {
-    final model = _model(id);
+  Stream<ModelInstallProgress> installModelById(String id) => _install(_model(id), withModel: true);
+
+  @override
+  final bool canAccelerate;
+
+  @override
+  bool get accelerated => _accelerated;
+
+  @override
+  Future<void> setAccelerated(bool on) async {
+    if (!canAccelerate) return;
+    _accelerated = on;
+    if (on) return;
+    for (final model in whisperCatalog) {
+      // A run holding its encoder keeps it until the run ends; an install
+      // fetching one drops it itself once it lands.
+      if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) continue;
+      if (_installing.containsKey(model.id)) continue;
+      if (_sessionModelId == model.id) await _closeSession();
+      await _deleteEncoder(model);
+    }
+  }
+
+  @override
+  Future<Set<String>> acceleratedModels() async => {
+    for (final model in whisperCatalog)
+      if (await _acceleratedFor(model)) model.id,
+  };
+
+  @override
+  Stream<ModelInstallProgress> installAcceleration(String id) =>
+      _install(_model(id), withModel: false);
+
+  /// One install turn over [model]: the model file when [withModel] and it
+  /// is missing, then the encoder when the switch is on and it is missing,
+  /// then, with the model present and no run in flight, the load that
+  /// compiles a fresh encoder. The switch is read as each step begins, so a
+  /// flip mid-turn decides that step. Fractions cover the bytes of both
+  /// files; the unpack and the load ride as preparing.
+  Stream<ModelInstallProgress> _install(WhisperModel model, {required bool withModel}) {
+    final id = model.id;
     // A manual controller, not async*: a consumer cancel must complete while
     // the fetch is parked, and the turn passes on the stream's own done.
     late final StreamController<ModelInstallProgress> controller;
@@ -291,7 +395,10 @@ class WhisperEngine
     // A consumer cancel completes done without closing the controller, so
     // "gone" is the listener, not the closed flag.
     bool gone() => controller.isClosed || !controller.hasListener;
+    var released = false;
     void release() {
+      if (released) return;
+      released = true;
       final left = (_installing[id] ?? 1) - 1;
       if (left <= 0) {
         _installing.remove(id);
@@ -314,39 +421,86 @@ class WhisperEngine
       await controller.close();
     }
 
-    Future<void> begin() async {
-      if (gone()) return release();
-      if (await _installed(model)) return finish();
-      if (gone()) return release();
+    void report(double fraction, {bool preparing = false}) {
+      if (!gone()) {
+        controller.add(ModelInstallProgress(fraction: fraction, done: false, preparing: preparing));
+      }
+    }
+
+    // A fetch parked behind a cancel resolves like a landing: null.
+    Future<(Object, StackTrace)?> fetch(WhisperFile file, File into, double from, double share) {
+      final done = Completer<(Object, StackTrace)?>();
       fetching = _fetcher
-          .fetch(
-            model.source,
-            into: _file(model),
-            expectedBytes: model.option.bytes,
-            expectedSha256: model.sha256,
-          )
+          .fetch(file.source, into: into, expectedBytes: file.bytes, expectedSha256: file.sha256)
           .listen(
-            // The fetcher's own 1 is withheld: done is the engine's word,
-            // after the length check.
+            // The fetcher's own 1 is withheld: done is the engine's word.
             (fraction) {
-              if (fraction < 1) {
-                controller.add(ModelInstallProgress(fraction: fraction, done: false));
-              }
+              if (fraction < 1) report(from + fraction * share);
             },
-            onError: fail,
-            onDone: () async {
-              if (gone()) return release();
-              if (await _installed(model)) return finish();
-              await fail(
-                const ModelInstallFailed(
-                  'the file is not the catalog\'s length',
-                  null,
-                  ModelInstallReason.rejected,
-                ),
-                StackTrace.current,
-              );
+            onError: (Object error, StackTrace stack) {
+              if (!done.isCompleted) done.complete((error, stack));
+            },
+            onDone: () {
+              if (!done.isCompleted) done.complete(null);
             },
           );
+      return done.future;
+    }
+
+    Future<void> begin() async {
+      if (gone()) return release();
+      final needModel = withModel && !await _installed(model);
+      var needEncoder = _accelerated && !await _acceleratedFor(model);
+      if (!needModel && !needEncoder) return finish();
+      if (gone()) return release();
+      final total = (needModel ? model.option.bytes : 0) + (needEncoder ? model.encoder.bytes : 0);
+      var from = 0.0;
+      if (needModel) {
+        final share = model.option.bytes / total;
+        final failure = await fetch(model.file, _file(model), from, share);
+        if (failure != null) return fail(failure.$1, failure.$2);
+        if (gone()) return release();
+        if (!await _installed(model)) {
+          return fail(
+            const ModelInstallFailed(
+              'the file is not the catalog\'s length',
+              null,
+              ModelInstallReason.rejected,
+            ),
+            StackTrace.current,
+          );
+        }
+        from += share;
+        // A switch flipped on during the download still gets its encoder.
+        needEncoder = _accelerated && !await _acceleratedFor(model);
+        if (needEncoder && from >= 1) from = 0;
+      }
+      if (!needEncoder) return finish();
+      final zip = _encoderZip(model);
+      final failure = await fetch(model.encoder, zip, from, 1 - from);
+      if (failure != null) return fail(failure.$1, failure.$2);
+      if (gone()) return release();
+      // A switch flipped off during the download leaves nothing behind.
+      if (!_accelerated) {
+        await _deleteEncoder(model);
+        return finish();
+      }
+      report(1, preparing: true);
+      try {
+        await _unpackEncoder(model, zip);
+      } catch (e, stack) {
+        await _deleteEncoder(model);
+        return fail(
+          e is ModelInstallFailed ? e : ModelInstallFailed('$e', null, _installReason(e)),
+          stack,
+        );
+      }
+      if (!_accelerated) {
+        await _deleteEncoder(model);
+        return finish();
+      }
+      if (await _installed(model)) await _warmUp(model);
+      await finish();
     }
 
     controller = StreamController<ModelInstallProgress>(
@@ -364,12 +518,56 @@ class WhisperEngine
     return controller.stream;
   }
 
+  static ModelInstallReason _installReason(Object error) =>
+      error is FileSystemException && error.osError?.errorCode == 28
+      ? ModelInstallReason.noSpace
+      : ModelInstallReason.rejected;
+
+  Future<void> _unpackEncoder(WhisperModel model, File zip) async {
+    final staging = _encoderStaging(model);
+    if (await staging.exists()) await staging.delete(recursive: true);
+    await extractZip(zip, staging);
+    final unpacked = Directory('${staging.path}/${model.encoderDirName}');
+    if (!await unpacked.exists()) {
+      throw const ModelInstallFailed(
+        'the archive holds no encoder directory',
+        null,
+        ModelInstallReason.rejected,
+      );
+    }
+    final target = _encoderDir(model);
+    if (await target.exists()) await target.delete(recursive: true);
+    await unpacked.rename(target.path);
+    await staging.delete(recursive: true);
+    await zip.delete();
+  }
+
+  /// Loads the model once, on the run chain, so the encoder's compile is
+  /// paid here and not by the first entry. Skipped under a run in flight
+  /// (its own load pays it, and the run may be the one waiting on this
+  /// install); a load that fails keeps the files and lets the next run
+  /// report it; a model other than the choice is closed again.
+  Future<void> _warmUp(WhisperModel model) {
+    if (_running || !_accelerated) return Future.value();
+    final load = _batches.then((_) async {
+      if (_running || !_accelerated) return;
+      try {
+        await _closeSession();
+        await _sessionFor(model);
+        if (model.id != _selectedId) await _closeSession();
+      } catch (_) {}
+    });
+    _batches = load.then((_) {}, onError: (Object _) {});
+    return load;
+  }
+
   @override
   Future<bool> removeModel(String id) async {
     final model = _model(id);
     if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) return false;
     if (_installing.containsKey(model.id)) return false;
     if (_sessionModelId == model.id) await _closeSession();
+    await _deleteEncoder(model);
     final file = _file(model);
     final part = File('${file.path}$modelPartSuffix');
     if (await part.exists()) await part.delete();
