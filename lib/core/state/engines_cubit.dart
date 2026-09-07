@@ -35,10 +35,12 @@ final class EnginesState {
   final List<EngineRowState> rows;
 }
 
-/// Drives the engine picker over the registry: one row per shipped engine in
-/// registry order, the active one marked. Picking swaps the service's engine,
-/// persists the choice, and re-resolves the language default against the new
-/// engine; an engine this device cannot run is never switched to.
+/// Drives the engine picker over the registry: one row per shipped engine,
+/// ordered by the descriptor's `displayOrder` because the registry's own
+/// order is preference order, with the active engine marked. Picking swaps
+/// the service's engine, persists the choice, and re-resolves the language
+/// default against the new engine; an engine this device cannot run is never
+/// switched to.
 // ignore_for_file: prefer_initializing_formals
 // Public parameters assigned to private fields, matching the sibling cubits'
 // constructor shape.
@@ -59,15 +61,27 @@ class EnginesCubit extends Cubit<EnginesState> {
   final EngineSettings _engineSettings;
   final TranscriptionSettings _transcriptionSettings;
 
-  static List<EngineRowState> _rows(List<EngineEntry> registry, String activeId) => [
-    for (final entry in registry)
-      EngineRowState(
-        descriptor: entry.descriptor,
-        available: entry.available,
-        isActive: entry.descriptor.engineId == activeId,
-        unavailability: entry.unavailability,
-      ),
-  ];
+  static List<EngineRowState> _rows(List<EngineEntry> registry, String activeId) {
+    final ranked = [
+      for (final (index, entry) in registry.indexed)
+        (
+          index,
+          EngineRowState(
+            descriptor: entry.descriptor,
+            available: entry.available,
+            isActive: entry.descriptor.engineId == activeId,
+            unavailability: entry.unavailability,
+          ),
+        ),
+    ];
+    // Registry position breaks a tie, so the order is total however the
+    // descriptors are written.
+    ranked.sort((a, b) {
+      final byOrder = a.$2.descriptor.displayOrder.compareTo(b.$2.descriptor.displayOrder);
+      return byOrder != 0 ? byOrder : a.$1.compareTo(b.$1);
+    });
+    return [for (final (_, row) in ranked) row];
+  }
 
   EnginesState _derive() => EnginesState(rows: _rows(_registry, _service.engineId));
 

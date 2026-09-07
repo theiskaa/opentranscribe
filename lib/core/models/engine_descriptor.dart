@@ -13,10 +13,24 @@ final class EngineDescriptor {
     required this.displayName,
     required this.blurb,
     required this.logo,
+    this.shortName,
+    this.displayOrder = 0,
   });
 
   final String engineId;
   final String displayName;
+
+  /// The name a segment can hold, for an engine whose full name does not fit
+  /// three across a screen. Not localized, like [displayName].
+  final String? shortName;
+
+  /// Where a picker shows this engine, low first, ties falling back to
+  /// registry order. Its own order because the registry's is preference
+  /// order, which auto mode resolves against.
+  final int displayOrder;
+
+  /// The name a segment carries.
+  String get segmentName => shortName ?? displayName;
 
   /// One line saying what this engine is. A function because descriptors are
   /// built at the composition root, before any locale is current.

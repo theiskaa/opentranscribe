@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
@@ -6,6 +5,8 @@ import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
+
+import '../../support/engine_fixtures.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -20,12 +21,7 @@ void main() {
   });
 
   EngineEntry entry(String id, {required bool available}) => EngineEntry(
-    descriptor: EngineDescriptor(
-      engineId: id,
-      displayName: id,
-      blurb: (_) => id,
-      logo: const IconData(0x21),
-    ),
+    descriptor: engineDescriptor(id),
     engine: FakeBatchEngine(),
     available: available,
     unavailability: available ? null : EngineUnavailability.needsNewerDevice,

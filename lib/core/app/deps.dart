@@ -351,6 +351,7 @@ class Deps {
         descriptor: EngineDescriptor(
           engineId: speechEngine.id,
           displayName: 'SpeechAnalyzer',
+          shortName: 'Speech',
           blurb: (l10n) => l10n.engineBlurbSpeechAnalyzer,
           logo: AppIcons.appleLogo,
         ),
@@ -362,6 +363,7 @@ class Deps {
         descriptor: EngineDescriptor(
           engineId: dictationEngine.id,
           displayName: 'Dictation',
+          displayOrder: 2,
           blurb: (l10n) => l10n.engineBlurbDictation,
           logo: AppIcons.appleLogo,
         ),
@@ -374,6 +376,7 @@ class Deps {
         descriptor: EngineDescriptor(
           engineId: whisperEngine.id,
           displayName: 'Whisper',
+          displayOrder: 1,
           blurb: (l10n) => l10n.engineBlurbWhisper,
           logo: AppIcons.waveform,
         ),
