@@ -453,6 +453,8 @@ class WhisperEngine
       var needEncoder = _accelerated && !await _acceleratedFor(model);
       if (!needModel && !needEncoder) return finish();
       if (gone()) return release();
+      // The turn's first word, so a waiting consumer knows the queue moved.
+      report(0);
       final total = (needModel ? model.option.bytes : 0) + (needEncoder ? model.encoder.bytes : 0);
       var from = 0.0;
       if (needModel) {

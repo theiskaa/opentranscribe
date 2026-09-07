@@ -356,20 +356,24 @@ void main() {
       expect(() => e.removeModel('nope'), throwsArgumentError);
     });
 
-    test('an install streams the fetch fractions and ends done once the file is whole', () async {
-      fetcher = FakeModelFetcher(steps: const [0.2, 0.9]);
-      final e = engine();
+    test(
+      'an install reports zero when its turn begins, then the fetch fractions, then done',
+      () async {
+        fetcher = FakeModelFetcher(steps: const [0.2, 0.9]);
+        final e = engine();
 
-      final progress = await e.installModelById('tiny-q5_1').toList();
+        final progress = await e.installModelById('tiny-q5_1').toList();
 
-      expect(progress, const [
-        ModelInstallProgress(fraction: 0.2, done: false),
-        ModelInstallProgress(fraction: 0.9, done: false),
-        ModelInstallProgress(fraction: 1, done: true),
-      ]);
-      expect(await e.installedModels(), {'tiny-q5_1'});
-      expect(fetcher.calls.single.source.toString(), startsWith(WhisperHosts.modelHost));
-    });
+        expect(progress, const [
+          ModelInstallProgress(fraction: 0, done: false),
+          ModelInstallProgress(fraction: 0.2, done: false),
+          ModelInstallProgress(fraction: 0.9, done: false),
+          ModelInstallProgress(fraction: 1, done: true),
+        ]);
+        expect(await e.installedModels(), {'tiny-q5_1'});
+        expect(fetcher.calls.single.source.toString(), startsWith(WhisperHosts.modelHost));
+      },
+    );
 
     test('an installed model answers done at once without fetching again', () async {
       final e = engine();

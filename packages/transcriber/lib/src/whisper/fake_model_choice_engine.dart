@@ -87,6 +87,9 @@ class FakeModelChoiceEngine
 
   /// Holds an install open while it reads as preparing, after its bytes.
   Future<void>? prepareGate;
+
+  /// Holds an install before its first word, the engine's queue.
+  Future<void>? startGate;
   final List<String> supportedLocaleTags;
   final String cannedText;
 
@@ -220,6 +223,10 @@ class FakeModelChoiceEngine
           await controller.close();
           return;
         }
+        final starting = startGate;
+        if (starting != null) await starting;
+        if (cancelled) return;
+        controller.add(const ModelInstallProgress(fraction: 0, done: false));
         for (final fraction in installSteps) {
           if (cancelled) return;
           controller.add(ModelInstallProgress(fraction: fraction, done: false));
