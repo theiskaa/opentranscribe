@@ -226,8 +226,10 @@ class Deps {
   /// with no frame at all.
   static const _channelTimeout = Duration(seconds: 8);
 
-  // Past the performance cores a thread only warms the phone.
+  // Past the performance cores a thread only warms the phone; a phone already
+  // hot gets fewer, from the next run on.
   static const _whisperThreads = 4;
+  static const _whisperHotThreads = 2;
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
@@ -294,6 +296,9 @@ class Deps {
     final speechEngine = AppleSpeechEngine();
     final dictationEngine = AppleDictationEngine();
     final engineSettings = EngineSettings(storage: localService);
+    // Costs the launch a channel listen; whisper's thread count and the bulk
+    // re-transcribe queue read the cached answer.
+    final thermalMonitor = ThermalMonitor()..start();
     // A models directory the platform cannot provide leaves Whisper
     // unavailable for this launch; it must not kill a launch on the Apple engines.
     final modelStorage = PlatformModelStorage();
@@ -318,10 +323,19 @@ class Deps {
       modelsDir: modelsDir ?? Directory('${Directory.systemTemp.path}/models'),
       fetcher: PinnedHostFetcher(allowedHostSuffixes: WhisperHosts.redirectSuffixes),
       decoder: PlatformPcmDecoder(),
-      runtime: FfiWhisperRuntime(threads: min(_whisperThreads, Platform.numberOfProcessors)),
+      runtime: FfiWhisperRuntime(
+        threads: () => min(
+          thermalMonitor.underPressure ? _whisperHotThreads : _whisperThreads,
+          Platform.numberOfProcessors,
+        ),
+      ),
       initialModelId: storedWhisperModel != null && whisperModelById(storedWhisperModel) != null
           ? storedWhisperModel
           : whisperDefaultModelId,
+      // The Core ML encoder is an Apple path; another platform runs the
+      // ggml encoder and never offers the switch.
+      canAccelerate: Platform.isIOS,
+      initiallyAccelerated: engineSettings.acceleratedFor(WhisperEngine.engineId),
     );
     // One availability probe decides the analyzer entry; the native side
     // resolves it once per process behind its own deadline, so a wedged
@@ -378,9 +392,6 @@ class Deps {
     // Decrypts the journal on a worker isolate while the rest of init and the
     // first frames run, so home's first read finds the cache built.
     unawaited(_quietly('journal warm', entryStore.warm));
-    // Costs the launch a channel listen; the bulk re-transcribe queue reads
-    // the cached answer between entries.
-    final thermalMonitor = ThermalMonitor()..start();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engineSettings.resolveActive(engineRegistry).engine,

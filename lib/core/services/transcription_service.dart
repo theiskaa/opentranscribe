@@ -14,6 +14,16 @@ import 'package:transcriber/transcriber.dart';
 /// One event of [TranscriptionService.firstUseInstalls]: which model, and how far.
 typedef FirstUseInstall = ({String modelId, ModelInstallProgress progress});
 
+/// Where a batch pass is: fetching the model it needs first, running, or over.
+enum BatchStep { downloading, transcribing, done }
+
+/// One event of [TranscriptionService.batchProgress]: the entry the pass is
+/// for (null for a take being saved), its step, how far along that step is,
+/// and the model's name while it downloads.
+typedef BatchProgress = ({String? entryId, BatchStep step, double fraction, String? modelName});
+
+typedef _BatchReport = void Function(BatchStep step, double fraction, {String? modelName});
+
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
 /// contracts, so swapping SpeechAnalyzer for whisper.cpp touches nothing here.
@@ -151,6 +161,42 @@ class TranscriptionService {
     return removed;
   }
 
+  /// Whether the active engine can run its models faster with a second file
+  /// each, for the surface that offers the switch.
+  bool get offersAcceleration {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine && engine.canAccelerate;
+  }
+
+  /// Whether that switch is on; false for an engine without one.
+  bool get accelerated {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine && engine.accelerated;
+  }
+
+  /// Flips the switch on the engine and pokes every model surface;
+  /// persisting it is the caller's job. A no-op for an engine without one.
+  Future<void> setAccelerated(bool on) async {
+    if (!offersAcceleration) return;
+    await (_engine as AcceleratedModelEngine).setAccelerated(on);
+    _notifyModelStateChanged();
+  }
+
+  /// The ids whose extra file is present; empty for an engine without one.
+  Future<Set<String>> acceleratedModels() async {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine ? engine.acceleratedModels() : const {};
+  }
+
+  /// Fetches one model's extra file, like [installModelById]. An engine
+  /// without acceleration completes instantly.
+  Stream<ModelInstallProgress> installAcceleration(String id) {
+    if (!offersAcceleration) {
+      return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+    }
+    return _pokingOnDone((_engine as AcceleratedModelEngine).installAcceleration(id));
+  }
+
   /// Whether the active engine answers per-language readiness cheaply and
   /// without side effects, so a list surface may refine every row. A managed
   /// engine answers false: its model status is already the per-language truth.
@@ -200,6 +246,8 @@ class TranscriptionService {
       StreamController<FirstUseInstall>.broadcast();
   // Ends the pre-installs batches wait on, so a cancel stops them like the run.
   final Set<Future<void> Function()> _firstUseWaiters = {};
+  final StreamController<BatchProgress> _batchProgress =
+      StreamController<BatchProgress>.broadcast();
   final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
@@ -480,6 +528,14 @@ class TranscriptionService {
   /// the percent the user never tapped for. Each download ends with its done
   /// event or with the failure the batch then reports its own way.
   Stream<FirstUseInstall> get firstUseInstalls => _firstUseInstalls.stream;
+
+  /// How far each batch pass is, for the surfaces that wait on one: a
+  /// re-transcription or a continuation under its entry, a fresh take under
+  /// none. Every pass ends with its [BatchStep.done] event, landed or failed,
+  /// whose fraction says nothing, and nothing follows it. Fractions arrive
+  /// only from an engine that reports them, and may stop short of one; the
+  /// download step arrives for a first-use install ahead of the run.
+  Stream<BatchProgress> get batchProgress => _batchProgress.stream;
 
   /// Fires after any path that may have changed a model's install state (a
   /// first-use install during transcription, an explicit install, a removal,
@@ -906,9 +962,18 @@ class TranscriptionService {
       Future<void> batchTail() async {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
-          transcript = spans.length > 1
-              ? await _segmentedBatch(_engine, audioFile, recording.duration, spans)
-              : await _batch(_engine, audioFile, recording.duration, localeId: sessionLocale);
+          transcript = await _reporting(
+            continuation?.id,
+            (report) => spans.length > 1
+                ? _segmentedBatch(_engine, audioFile, recording.duration, spans, report: report)
+                : _batch(
+                    _engine,
+                    audioFile,
+                    recording.duration,
+                    localeId: sessionLocale,
+                    report: report,
+                  ),
+          );
           // A first-use model install may have piggybacked on this pass.
           _notifyModelStateChanged();
         } catch (_) {
@@ -1086,11 +1151,14 @@ class TranscriptionService {
     if (stored.transcript == null && transcribe) {
       try {
         final audio = File(file.path);
-        whole = newSpans != null
-            ? await _segmentedBatch(_engine, audio, file.duration, [
-                for (final span in newSpans) (startMs: span.startMs, tag: span.localeId),
-              ])
-            : await _batch(_engine, audio, file.duration, localeId: baseLocale);
+        whole = await _reporting(
+          stored.id,
+          (report) => newSpans != null
+              ? _segmentedBatch(_engine, audio, file.duration, [
+                  for (final span in newSpans) (startMs: span.startMs, tag: span.localeId),
+                ], report: report)
+              : _batch(_engine, audio, file.duration, localeId: baseLocale, report: report),
+        );
       } catch (_) {
         whole = null;
       }
@@ -1882,15 +1950,15 @@ class TranscriptionService {
     // UNLESS the caller chose a language explicitly: the user's correction
     // flattens the whole take into that one language on purpose.
     final spans = entry.languageSpans;
-    final Transcript transcript;
-    if (localeId == null && spans != null && spans.length > 1) {
-      transcript = await _segmentedBatch(engine, audioFile, entry.duration, [
-        for (final span in spans) (startMs: span.startMs, tag: span.localeId),
-      ]);
-    } else {
+    final transcript = await _reporting(entry.id, (report) {
+      if (localeId == null && spans != null && spans.length > 1) {
+        return _segmentedBatch(engine, audioFile, entry.duration, [
+          for (final span in spans) (startMs: span.startMs, tag: span.localeId),
+        ], report: report);
+      }
       final locale = localeId ?? entry.effectiveLocaleId ?? serviceLocaleId;
-      transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
-    }
+      return _batch(engine, audioFile, entry.duration, localeId: locale, report: report);
+    });
     // A first-use model install may have piggybacked on this pass.
     _notifyModelStateChanged();
     // The batch pass can run minutes; the user may have deleted the entry or
@@ -2106,6 +2174,25 @@ class TranscriptionService {
     return '$dir/$stored';
   }
 
+  /// Runs [body] as one batch pass on [batchProgress] under [entryId]: its
+  /// reports go out as they come, and its done follows however it settles.
+  /// A report after that (a run this side gave up on, still polling) is
+  /// dropped, so done stays the last word.
+  Future<T> _reporting<T>(String? entryId, Future<T> Function(_BatchReport report) body) async {
+    var over = false;
+    void emit(BatchStep step, double fraction, {String? modelName}) {
+      if (over || _batchProgress.isClosed) return;
+      over = step == BatchStep.done;
+      _batchProgress.add((entryId: entryId, step: step, fraction: fraction, modelName: modelName));
+    }
+
+    try {
+      return await body(emit);
+    } finally {
+      emit(BatchStep.done, 1);
+    }
+  }
+
   Future<Transcript> _batch(
     TranscriptionEngine engine,
     File file,
@@ -2113,15 +2200,21 @@ class TranscriptionService {
     String? localeId,
     Duration? start,
     Duration? end,
+    _BatchReport? report,
   }) async {
     final locale = localeId ?? this.localeId;
     // A choice engine's first-use download can outlast any run budget, so it
     // lands untimed first, through the same path the picker's install uses.
     if (engine is ManagedModelEngine && engine is ModelChoiceEngine) {
       if (!await engine.isModelInstalled(localeId: locale)) {
+        final choice = engine as ModelChoiceEngine;
+        final modelId = choice.selectedModelId;
+        final modelName = choice.models.where((m) => m.id == modelId).firstOrNull?.displayName;
         await _installFirstUse(
           engine.installModel(localeId: locale),
-          (engine as ModelChoiceEngine).selectedModelId,
+          modelId,
+          onProgress: (fraction) =>
+              report?.call(BatchStep.downloading, fraction, modelName: modelName),
         );
       }
     }
@@ -2130,30 +2223,47 @@ class TranscriptionService {
     final timeout = engine is PacedBatchEngine
         ? engine.batchBudget(duration)
         : _batchTimeout + duration * 2;
-    return engine
-        .transcribeFile(file, localeId: locale, start: start, end: end)
-        .timeout(
-          timeout,
-          onTimeout: () {
-            // The Dart side is giving up; tell the engine so the native task does not
-            // keep holding the recognizer for work nobody will read.
-            unawaited(_cancelEngineBatches(engine));
-            throw const TranscriptionFailed('transcription timed out');
-          },
-        );
+    // The run's first word comes with its first window, so the download's
+    // last percent would otherwise linger over a run already going.
+    if (engine is ProgressBatchEngine) report?.call(BatchStep.transcribing, 0);
+    final run = engine is ProgressBatchEngine && report != null
+        ? engine.transcribeFileWithProgress(
+            file,
+            localeId: locale,
+            start: start,
+            end: end,
+            onProgress: (fraction) => report(BatchStep.transcribing, fraction),
+          )
+        : engine.transcribeFile(file, localeId: locale, start: start, end: end);
+    return run.timeout(
+      timeout,
+      onTimeout: () {
+        // The Dart side is giving up; tell the engine so the native task does not
+        // keep holding the recognizer for work nobody will read.
+        unawaited(_cancelEngineBatches(engine));
+        throw const TranscriptionFailed('transcription timed out');
+      },
+    );
   }
 
   /// Waits for a first-use download, feeding [firstUseInstalls] as it goes.
   /// A cancelled subscription fires neither done nor error, so the waiter is
   /// failed here when [_cancelEngineBatches] ends it.
-  Future<void> _installFirstUse(Stream<ModelInstallProgress> install, String modelId) {
+  Future<void> _installFirstUse(
+    Stream<ModelInstallProgress> install,
+    String modelId, {
+    void Function(double fraction)? onProgress,
+  }) {
     final done = Completer<void>();
     void emit(FirstUseInstall event) {
       if (!_firstUseInstalls.isClosed) _firstUseInstalls.add(event);
     }
 
     final sub = _pokingOnDone(install).listen(
-      (progress) => emit((modelId: modelId, progress: progress)),
+      (progress) {
+        emit((modelId: modelId, progress: progress));
+        if (!progress.done) onProgress?.call(progress.fraction);
+      },
       onError: (Object error, StackTrace stack) {
         if (!_firstUseInstalls.isClosed) _firstUseInstalls.addError(error, stack);
         if (!done.isCompleted) done.completeError(error, stack);
@@ -2197,14 +2307,20 @@ class TranscriptionService {
     TranscriptionEngine engine,
     File file,
     Duration duration,
-    List<({int startMs, String tag})> spans,
-  ) async {
+    List<({int startMs, String tag})> spans, {
+    _BatchReport? report,
+  }) async {
     try {
       final parts = <Transcript>[];
       for (var i = 0; i < spans.length; i++) {
         final start = Duration(milliseconds: spans[i].startMs);
         final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
         final spanLength = (end ?? duration) - start;
+        // Each span's run is its length's share of the whole; the download
+        // ahead of the first is not.
+        final whole = duration.inMilliseconds;
+        final from = whole == 0 ? 0.0 : start.inMilliseconds / whole;
+        final share = whole == 0 ? 0.0 : spanLength.inMilliseconds / whole;
         parts.add(
           await _batch(
             engine,
@@ -2213,6 +2329,13 @@ class TranscriptionService {
             localeId: spans[i].tag,
             start: start,
             end: end,
+            report: report == null
+                ? null
+                : (step, fraction, {modelName}) => report(
+                    step,
+                    step == BatchStep.transcribing ? from + fraction * share : fraction,
+                    modelName: modelName,
+                  ),
           ),
         );
       }
@@ -2257,7 +2380,7 @@ class TranscriptionService {
         createdAt: _clock(),
       );
     } on TranscriptionException {
-      return _batch(engine, file, duration, localeId: spans.first.tag);
+      return _batch(engine, file, duration, localeId: spans.first.tag, report: report);
     }
   }
 
@@ -2376,6 +2499,7 @@ class TranscriptionService {
     await _autoFinalized.close();
     await _modelStateChanged.close();
     await _firstUseInstalls.close();
+    await _batchProgress.close();
     await _entriesChanged.close();
     await _continuations.close();
   }
