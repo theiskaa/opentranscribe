@@ -8,28 +8,14 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_control.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
-import 'package:opentranscribe/view/widgets/melt_stack.dart';
-import 'package:opentranscribe/view/widgets/progress_ring.dart';
-import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
-
-/// What a card's control means, folded in priority: a download in flight,
-/// then a failure, then too heavy while absent, then present or not.
-enum ModelRowFace { installing, failed, heavy, download, selected, installed }
-
-ModelRowFace modelRowFace(ModelRowState row) {
-  if (row.installing) return ModelRowFace.installing;
-  if (row.failure != null) return ModelRowFace.failed;
-  if (!row.installed) return row.heavy ? ModelRowFace.heavy : ModelRowFace.download;
-  return row.selected ? ModelRowFace.selected : ModelRowFace.installed;
-}
 
 String _qualityWord(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
   ModelQuality.basic => l10n.modelQualityBasic,
@@ -64,10 +50,10 @@ String _tierInfo(AppLocalizations l10n, ModelQuality quality) => switch (quality
       ),
     };
 
-/// The models an engine offers, one card each: the name and size, two lines
-/// on what the tier is for, and one control that follows the model's state.
-/// [accelerated] is the engine's switch: on, a card's size counts the second
-/// file the switch adds.
+/// The models an engine offers, two cards a row: the name over its size and
+/// what the tier is for, a quiet line carrying a failure or the too-large
+/// note, and one [ModelControl] across the bottom. [accelerated] is the
+/// engine's switch: on, a card's size counts the second file the switch adds.
 class ModelCards extends StatelessWidget {
   const ModelCards({required this.rows, this.accelerated = false, super.key});
 
@@ -79,9 +65,28 @@ class ModelCards extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (i, row) in rows.indexed) ...[
+        for (var i = 0; i < rows.length; i += 2) ...[
           if (i > 0) const SizedBox(height: AppSpacing.sm),
-          _ModelTile(key: ValueKey(row.option.id), row: row, accelerated: accelerated),
+          // Measured, not free: a card's control hangs off a Spacer, which
+          // needs a bounded height. Two cards then share the row's, so their
+          // controls sit level, and an odd last one spans the width.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (j, row) in rows.skip(i).take(2).indexed) ...[
+                  if (j > 0) const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _ModelTile(
+                      key: ValueKey(row.option.id),
+                      row: row,
+                      accelerated: accelerated,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ],
     );
@@ -94,6 +99,10 @@ class _ModelTile extends StatelessWidget {
   final ModelRowState row;
   final bool accelerated;
 
+  /// Reserved on every card, held or not, so the cards' text lines up: the
+  /// trash's touch target is taller than the name it sits beside.
+  static const double _headerHeight = 32;
+
   int get _bytes => row.option.bytes + (accelerated ? row.option.accelerationBytes : 0);
 
   @override
@@ -101,6 +110,8 @@ class _ModelTile extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.settings;
     final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<SettingsCubit>();
+    final id = row.option.id;
     final face = modelRowFace(row);
     final dimmed = face == ModelRowFace.heavy;
     final motion = context.motionNow;
@@ -122,84 +133,69 @@ class _ModelTile extends StatelessWidget {
       child: Padding(
         padding: tokens.rowPadding,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    row.option.displayName,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.subhead.copyWith(
-                      color: dimmed ? theme.textSecondary : theme.text,
-                      fontWeight: FontWeight.w600,
+            SizedBox(
+              height: _headerHeight,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      row.option.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.subhead.copyWith(
+                        color: dimmed ? theme.textSecondary : theme.text,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  l10n.modelSizeAndQuality(
-                    formatBytes(_bytes, localeTag(context)),
-                    _qualityWord(l10n, row.option.quality),
-                  ),
-                  style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
-                ),
-              ],
+                  // Never on the model in use: emptying the seat transcription
+                  // runs from is a trap, and picking another model first is
+                  // the way out.
+                  if (face == ModelRowFace.installed)
+                    _RemoveButton(
+                      modelName: row.option.displayName,
+                      onTap: () => _confirmRemove(context),
+                    ),
+                ],
+              ),
             ),
-            const SizedBox(height: 3),
+            Text(
+              l10n.modelSizeAndQuality(
+                formatBytes(_bytes, localeTag(context)),
+                _qualityWord(l10n, row.option.quality),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               _tierInfo(l10n, row.option.quality),
-              maxLines: 2,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
             ),
-            const SizedBox(height: AppSpacing.md),
-            _ModelAction(row: row, face: face),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The card's bottom band, fixed-height so a face change never resizes the
-/// card: one pill that morphs between Download, the ring, Use and In use,
-/// with the percent, Cancel, Remove or a failure to its right.
-class _ModelAction extends StatelessWidget {
-  const _ModelAction({required this.row, required this.face});
-
-  final ModelRowState row;
-  final ModelRowFace face;
-
-  @override
-  Widget build(BuildContext context) {
-    final cubit = context.read<SettingsCubit>();
-    final id = row.option.id;
-    return SizedBox(
-      height: context.theme.button.bandHeight,
-      child: Row(
-        children: [
-          _ControlPill(
-            face: face,
-            fraction: row.installFraction,
-            preparing: row.preparing,
-            modelName: row.option.displayName,
-            onTap: switch (face) {
-              ModelRowFace.download || ModelRowFace.failed => () => cubit.installModelById(id),
-              ModelRowFace.installed => () => _use(context),
-              _ => null,
-            },
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: _BandTrail(
+            // A card with slack pushes its control down; one without still
+            // keeps this much air over it.
+            const Spacer(),
+            const SizedBox(height: AppSpacing.sm),
+            _QuietLine(row: row, face: face),
+            const SizedBox(height: AppSpacing.xs),
+            ModelControl(
               row: row,
               face: face,
+              onTap: switch (face) {
+                ModelRowFace.download || ModelRowFace.failed => () => cubit.installModelById(id),
+                ModelRowFace.installed => () => _use(context),
+                ModelRowFace.heavy => () => _explainHeavy(context),
+                _ => null,
+              },
               onCancel: () => cubit.cancelModelInstallById(id),
-              onRemove: () => _confirmRemove(context),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -222,6 +218,19 @@ class _ModelAction extends StatelessWidget {
         ),
       );
     }
+  }
+
+  Future<void> _explainHeavy(BuildContext context) async {
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    final l10n = AppLocalizations.of(context)!;
+    await showAppSheet<void>(
+      context,
+      builder: (context) => SheetMessage(
+        icon: AppIcons.internaldrive,
+        title: l10n.modelTooHeavyTitle,
+        body: l10n.modelTooHeavyBody(row.option.displayName),
+      ),
+    );
   }
 
   Future<void> _confirmRemove(BuildContext context) async {
@@ -264,202 +273,72 @@ class _ModelAction extends StatelessWidget {
   }
 }
 
-/// The words to the pill's right: the rolling percent and a Cancel while a
-/// download this screen started runs, Remove beside a present model, the
-/// reason beside a failed download.
-class _BandTrail extends StatelessWidget {
-  const _BandTrail({
-    required this.row,
-    required this.face,
-    required this.onCancel,
-    required this.onRemove,
-  });
+/// The line over the control: the reason over a failed download, the note
+/// over a model too large. Nothing to say is no line, and the control sits
+/// on the card's bottom edge either way.
+class _QuietLine extends StatelessWidget {
+  const _QuietLine({required this.row, required this.face});
 
   final ModelRowState row;
   final ModelRowFace face;
-  final VoidCallback onCancel;
-  final VoidCallback onRemove;
+
+  /// A footnote's line box: a card that has nothing to say here keeps the
+  /// same shape as one that does.
+  static const double height = 24;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     return switch (face) {
-      ModelRowFace.installing when row.preparing => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          l10n.modelPreparing,
-          style: AppType.footnote.copyWith(color: theme.textSecondary),
+      ModelRowFace.failed => SizedBox(
+        height: height,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: _FailureLine(row: row),
         ),
       ),
-      ModelRowFace.installing => Row(
-        children: [
-          RollingText(
-            text: '${percentOf(row.installFraction)}%',
-            style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
-          ),
-          const Spacer(),
-          if (row.cancellable)
-            _TextAction(
-              label: l10n.modelCancelDownload,
-              semanticLabel: l10n.modelCancelDownloadButton(row.option.displayName),
-              onTap: onCancel,
-            ),
-        ],
+      // Two lines: it says why the card's control will not run, and no phone
+      // fits it on one.
+      ModelRowFace.heavy => Text(
+        l10n.modelTooHeavyNote,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
       ),
-      ModelRowFace.installed => Align(
-        alignment: Alignment.centerRight,
-        child: _TextAction(
-          label: l10n.modelRemove,
-          semanticLabel: l10n.modelRemoveButton(row.option.displayName),
-          onTap: onRemove,
-        ),
-      ),
-      ModelRowFace.failed => _FailureLine(row: row),
       _ => const SizedBox.shrink(),
     };
   }
 }
 
-/// The pill whose width, fill and words follow the face on the indicator
-/// motion; the ring face is the pill at its narrowest. One VoiceOver name
-/// carries the face and the model, the percent folded in.
-class _ControlPill extends StatelessWidget {
-  const _ControlPill({
-    required this.face,
-    required this.fraction,
-    required this.preparing,
-    required this.modelName,
-    required this.onTap,
-  });
+/// The card's quiet way to delete a model: a glyph at the top corner, where
+/// a card's own affordance belongs, not a word in the control's row.
+class _RemoveButton extends StatelessWidget {
+  const _RemoveButton({required this.modelName, required this.onTap});
 
-  final ModelRowFace face;
-  final double? fraction;
-  final bool preparing;
   final String modelName;
-  final VoidCallback? onTap;
-
-  static const double _ringSize = 18;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final button = theme.button;
-    final height = button.bandHeight;
-    final l10n = AppLocalizations.of(context)!;
-    final motion = context.motionNow;
-    final duration = context.reduceMotion ? Duration.zero : motion.indicator;
-    final fade = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
-    final (fill, border, ink) = switch (face) {
-      ModelRowFace.installed => (button.background, button.background, button.foreground),
-      // The toggle's green already means on.
-      ModelRowFace.selected => (
-        theme.settings.toggleActive.withValues(alpha: 0.14),
-        theme.settings.toggleActive.withValues(alpha: 0.14),
-        theme.settings.toggleActive,
-      ),
-      _ => (button.secondaryBackground, button.secondaryBorder, button.secondaryForeground),
-    };
-    final ring = face == ModelRowFace.installing;
-    final progress = fraction ?? 0;
-    final semanticLabel = switch (face) {
-      ModelRowFace.installing when preparing => l10n.modelPreparingLabel(modelName),
-      ModelRowFace.installing => l10n.modelDownloadingLabel(modelName, percentOf(fraction)),
-      ModelRowFace.download => l10n.modelDownloadButton(modelName),
-      ModelRowFace.failed => l10n.modelRetryButton(modelName),
-      ModelRowFace.installed => l10n.modelUseButton(modelName),
-      ModelRowFace.selected => l10n.modelInUseLabel(modelName),
-      ModelRowFace.heavy => l10n.modelTooHeavyLabel(modelName),
-    };
-    final content = switch (face) {
-      ModelRowFace.installing when progress <= 0 || preparing => AppSpinner(color: ink),
-      ModelRowFace.installing => ProgressRing(fraction: progress, size: _ringSize),
-      ModelRowFace.download => _PillWords(
-        icon: AppIcons.icloud,
-        text: l10n.modelDownload,
-        ink: ink,
-      ),
-      ModelRowFace.failed => _PillWords(
-        icon: AppIcons.arrowCounterclockwise,
-        text: l10n.retry,
-        ink: ink,
-      ),
-      ModelRowFace.installed => _PillWords(text: l10n.modelUse, ink: ink),
-      ModelRowFace.selected => _PillWords(
-        icon: AppIcons.checkmark,
-        text: l10n.modelInUse,
-        ink: ink,
-      ),
-      ModelRowFace.heavy => _PillWords(text: l10n.modelTooHeavyNote, ink: theme.textSecondary),
-    };
-    // Only a control can be dimmed: the in-use and downloading faces are
-    // states, not disabled buttons.
     return Semantics(
-      button: onTap != null,
-      enabled: switch (face) {
-        ModelRowFace.heavy => false,
-        _ when onTap != null => true,
-        _ => null,
-      },
-      label: semanticLabel,
+      button: true,
+      label: AppLocalizations.of(context)!.modelRemoveButton(modelName),
       onTap: onTap,
       excludeSemantics: true,
       child: Touchable(
         onTap: onTap,
-        haptic: onTap != null,
+        haptic: true,
         pressedScale: theme.motion.pressIconScale,
-        child: AnimatedContainer(
-          duration: duration,
-          curve: motion.indicatorCurve,
-          height: height,
-          padding: EdgeInsets.symmetric(horizontal: ring ? (height - _ringSize) / 2 : 14),
-          decoration: SuperellipseDecoration(
-            borderRadius: height / 2,
-            color: fill,
-            border: BorderSide(color: border),
-          ),
-          child: AnimatedSize(
-            duration: duration,
-            curve: motion.indicatorCurve,
-            alignment: Alignment.centerLeft,
-            child: AnimatedSwitcher(
-              duration: fade,
-              layoutBuilder: meltStack,
-              child: KeyedSubtree(
-                key: ValueKey(face),
-                child: Center(child: content),
-              ),
-            ),
-          ),
+        // The glyph is small; its target is not, and it reaches into the
+        // card's own padding rather than pushing the name aside.
+        child: SizedBox(
+          width: 44,
+          height: _ModelTile._headerHeight,
+          child: Center(child: AppIcon(AppIcons.trash, size: 14, color: theme.textSecondary)),
         ),
       ),
-    );
-  }
-}
-
-/// A pill's words: an optional glyph and the label, in the pill's ink.
-class _PillWords extends StatelessWidget {
-  const _PillWords({required this.text, required this.ink, this.icon});
-
-  final String text;
-  final Color ink;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          AppIcon(icon!, size: 14, color: ink),
-          const SizedBox(width: AppSpacing.xs),
-        ],
-        Text(
-          text,
-          maxLines: 1,
-          style: AppType.footnote.copyWith(color: ink, fontWeight: FontWeight.w600),
-        ),
-      ],
     );
   }
 }
@@ -482,14 +361,11 @@ class _FailureLine extends StatelessWidget {
       excludeSemantics: true,
       child: Touchable(
         onTap: () => _story(context),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppType.footnote.copyWith(color: theme.textSecondary),
-          ),
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppType.footnote.copyWith(color: theme.textSecondary),
         ),
       ),
     );
@@ -502,49 +378,6 @@ class _FailureLine extends StatelessWidget {
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(icon: AppIcons.icloud, title: title, body: body),
-    );
-  }
-}
-
-/// A quiet text action at the band's edge: a word in the secondary ink,
-/// filling the band's height so the target is the band, not the word.
-class _TextAction extends StatelessWidget {
-  const _TextAction({required this.label, required this.semanticLabel, required this.onTap});
-
-  final String label;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    return Semantics(
-      button: true,
-      label: semanticLabel,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: Touchable(
-        onTap: onTap,
-        haptic: true,
-        child: SizedBox(
-          height: theme.button.bandHeight,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            // Under Align a plain Center fills the band's trail and parks the
-            // word mid-band.
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                label,
-                style: AppType.footnote.copyWith(
-                  color: theme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
