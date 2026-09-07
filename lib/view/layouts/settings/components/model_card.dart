@@ -66,10 +66,13 @@ String _tierInfo(AppLocalizations l10n, ModelQuality quality) => switch (quality
 
 /// The models an engine offers, one card each: the name and size, two lines
 /// on what the tier is for, and one control that follows the model's state.
+/// [accelerated] is the engine's switch: on, a card's size counts the second
+/// file the switch adds.
 class ModelCards extends StatelessWidget {
-  const ModelCards({required this.rows, super.key});
+  const ModelCards({required this.rows, this.accelerated = false, super.key});
 
   final List<ModelRowState> rows;
+  final bool accelerated;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +81,7 @@ class ModelCards extends StatelessWidget {
       children: [
         for (final (i, row) in rows.indexed) ...[
           if (i > 0) const SizedBox(height: AppSpacing.sm),
-          _ModelTile(key: ValueKey(row.option.id), row: row),
+          _ModelTile(key: ValueKey(row.option.id), row: row, accelerated: accelerated),
         ],
       ],
     );
@@ -86,9 +89,12 @@ class ModelCards extends StatelessWidget {
 }
 
 class _ModelTile extends StatelessWidget {
-  const _ModelTile({required this.row, super.key});
+  const _ModelTile({required this.row, required this.accelerated, super.key});
 
   final ModelRowState row;
+  final bool accelerated;
+
+  int get _bytes => row.option.bytes + (accelerated ? row.option.accelerationBytes : 0);
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +139,7 @@ class _ModelTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   l10n.modelSizeAndQuality(
-                    formatBytes(row.option.bytes, localeTag(context)),
+                    formatBytes(_bytes, localeTag(context)),
                     _qualityWord(l10n, row.option.quality),
                   ),
                   style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
@@ -176,6 +182,8 @@ class _ModelAction extends StatelessWidget {
           _ControlPill(
             face: face,
             fraction: row.installFraction,
+            preparing: row.preparing,
+            modelName: row.option.displayName,
             onTap: switch (face) {
               ModelRowFace.download || ModelRowFace.failed => () => cubit.installModelById(id),
               ModelRowFace.installed => () => _use(context),
@@ -220,7 +228,8 @@ class _ModelAction extends StatelessWidget {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
     final cubit = context.read<SettingsCubit>();
-    final size = formatBytes(row.option.bytes, localeTag(context));
+    final held = row.option.bytes + (row.accelerated ? row.option.accelerationBytes : 0);
+    final size = formatBytes(held, localeTag(context));
     final confirmed = await showAppSheet<bool>(
       context,
       builder: (context) => SheetMessage(
@@ -276,19 +285,35 @@ class _BandTrail extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     return switch (face) {
+      ModelRowFace.installing when row.preparing => Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          l10n.modelPreparing,
+          style: AppType.footnote.copyWith(color: theme.textSecondary),
+        ),
+      ),
       ModelRowFace.installing => Row(
         children: [
           RollingText(
-            text: '${((row.installFraction ?? 0).clamp(0.0, 1.0) * 100).round()}%',
+            text: '${percentOf(row.installFraction)}%',
             style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
           ),
           const Spacer(),
-          if (row.cancellable) _TextAction(label: l10n.modelCancelDownload, onTap: onCancel),
+          if (row.cancellable)
+            _TextAction(
+              label: l10n.modelCancelDownload,
+              semanticLabel: l10n.modelCancelDownloadButton(row.option.displayName),
+              onTap: onCancel,
+            ),
         ],
       ),
       ModelRowFace.installed => Align(
         alignment: Alignment.centerRight,
-        child: _TextAction(label: l10n.modelRemove, onTap: onRemove),
+        child: _TextAction(
+          label: l10n.modelRemove,
+          semanticLabel: l10n.modelRemoveButton(row.option.displayName),
+          onTap: onRemove,
+        ),
       ),
       ModelRowFace.failed => _FailureLine(row: row),
       _ => const SizedBox.shrink(),
@@ -297,12 +322,21 @@ class _BandTrail extends StatelessWidget {
 }
 
 /// The pill whose width, fill and words follow the face on the indicator
-/// motion; the ring face is the pill at its narrowest.
+/// motion; the ring face is the pill at its narrowest. One VoiceOver name
+/// carries the face and the model, the percent folded in.
 class _ControlPill extends StatelessWidget {
-  const _ControlPill({required this.face, required this.fraction, required this.onTap});
+  const _ControlPill({
+    required this.face,
+    required this.fraction,
+    required this.preparing,
+    required this.modelName,
+    required this.onTap,
+  });
 
   final ModelRowFace face;
   final double? fraction;
+  final bool preparing;
+  final String modelName;
   final VoidCallback? onTap;
 
   static const double _ringSize = 18;
@@ -328,8 +362,17 @@ class _ControlPill extends StatelessWidget {
     };
     final ring = face == ModelRowFace.installing;
     final progress = fraction ?? 0;
+    final semanticLabel = switch (face) {
+      ModelRowFace.installing when preparing => l10n.modelPreparingLabel(modelName),
+      ModelRowFace.installing => l10n.modelDownloadingLabel(modelName, percentOf(fraction)),
+      ModelRowFace.download => l10n.modelDownloadButton(modelName),
+      ModelRowFace.failed => l10n.modelRetryButton(modelName),
+      ModelRowFace.installed => l10n.modelUseButton(modelName),
+      ModelRowFace.selected => l10n.modelInUseLabel(modelName),
+      ModelRowFace.heavy => l10n.modelTooHeavyLabel(modelName),
+    };
     final content = switch (face) {
-      ModelRowFace.installing when progress <= 0 => AppSpinner(color: ink),
+      ModelRowFace.installing when progress <= 0 || preparing => AppSpinner(color: ink),
       ModelRowFace.installing => ProgressRing(fraction: progress, size: _ringSize),
       ModelRowFace.download => _PillWords(
         icon: AppIcons.icloud,
@@ -349,30 +392,43 @@ class _ControlPill extends StatelessWidget {
       ),
       ModelRowFace.heavy => _PillWords(text: l10n.modelTooHeavyNote, ink: theme.textSecondary),
     };
-    return Touchable(
+    // Only a control can be dimmed: the in-use and downloading faces are
+    // states, not disabled buttons.
+    return Semantics(
+      button: onTap != null,
+      enabled: switch (face) {
+        ModelRowFace.heavy => false,
+        _ when onTap != null => true,
+        _ => null,
+      },
+      label: semanticLabel,
       onTap: onTap,
-      haptic: onTap != null,
-      pressedScale: theme.motion.pressIconScale,
-      child: AnimatedContainer(
-        duration: duration,
-        curve: motion.indicatorCurve,
-        height: height,
-        padding: EdgeInsets.symmetric(horizontal: ring ? (height - _ringSize) / 2 : 14),
-        decoration: SuperellipseDecoration(
-          borderRadius: height / 2,
-          color: fill,
-          border: BorderSide(color: border),
-        ),
-        child: AnimatedSize(
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        haptic: onTap != null,
+        pressedScale: theme.motion.pressIconScale,
+        child: AnimatedContainer(
           duration: duration,
           curve: motion.indicatorCurve,
-          alignment: Alignment.centerLeft,
-          child: AnimatedSwitcher(
-            duration: fade,
-            layoutBuilder: meltStack,
-            child: KeyedSubtree(
-              key: ValueKey(face),
-              child: Center(child: content),
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: ring ? (height - _ringSize) / 2 : 14),
+          decoration: SuperellipseDecoration(
+            borderRadius: height / 2,
+            color: fill,
+            border: BorderSide(color: border),
+          ),
+          child: AnimatedSize(
+            duration: duration,
+            curve: motion.indicatorCurve,
+            alignment: Alignment.centerLeft,
+            child: AnimatedSwitcher(
+              duration: fade,
+              layoutBuilder: meltStack,
+              child: KeyedSubtree(
+                key: ValueKey(face),
+                child: Center(child: content),
+              ),
             ),
           ),
         ),
@@ -419,15 +475,21 @@ class _FailureLine extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final (title, _) = _failureWords(context, l10n, row);
-    return Touchable(
+    return Semantics(
+      button: true,
+      label: title,
       onTap: () => _story(context),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppType.footnote.copyWith(color: theme.textSecondary),
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: () => _story(context),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.footnote.copyWith(color: theme.textSecondary),
+          ),
         ),
       ),
     );
@@ -447,27 +509,37 @@ class _FailureLine extends StatelessWidget {
 /// A quiet text action at the band's edge: a word in the secondary ink,
 /// filling the band's height so the target is the band, not the word.
 class _TextAction extends StatelessWidget {
-  const _TextAction({required this.label, required this.onTap});
+  const _TextAction({required this.label, required this.semanticLabel, required this.onTap});
 
   final String label;
+  final String semanticLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return Touchable(
+    return Semantics(
+      button: true,
+      label: semanticLabel,
       onTap: onTap,
-      haptic: true,
-      child: SizedBox(
-        height: theme.button.bandHeight,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Center(
-            child: Text(
-              label,
-              style: AppType.footnote.copyWith(
-                color: theme.textSecondary,
-                fontWeight: FontWeight.w600,
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        haptic: true,
+        child: SizedBox(
+          height: theme.button.bandHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            // Under Align a plain Center fills the band's trail and parks the
+            // word mid-band.
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: AppType.footnote.copyWith(
+                  color: theme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

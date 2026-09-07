@@ -23,6 +23,7 @@ import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.da
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -105,6 +106,26 @@ class _ModelsScreenState extends State<ModelsScreen> {
   /// Whether the screen is still the top route: two pointers landing on two
   /// sheet-opening surfaces in one frame would otherwise stack two sheets.
   bool _onTop(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
+
+  /// The switch takes for the session either way; only a refused persist is
+  /// worth a word.
+  Future<void> _setAccelerated(BuildContext context, bool on) async {
+    final cubit = context.read<SettingsCubit>();
+    try {
+      await cubit.setAccelerated(on);
+    } catch (_) {
+      if (!context.mounted || !_onTop(context)) return;
+      final l10n = AppLocalizations.of(context)!;
+      await showAppSheet<void>(
+        context,
+        builder: (context) => SheetMessage(
+          icon: AppIcons.internaldrive,
+          title: l10n.engineNotSavedTitle,
+          body: l10n.accelerationNotSavedBody,
+        ),
+      );
+    }
+  }
 
   void _openLanguageSheet(BuildContext context) {
     if (!_onTop(context)) return;
@@ -218,7 +239,20 @@ class _ModelsScreenState extends State<ModelsScreen> {
                   children: [
                     if (state.offersModelChoice) ...[
                       SectionLabel(l10n.transcriptionModel),
-                      ModelCards(rows: state.models),
+                      ModelCards(rows: state.models, accelerated: state.accelerated),
+                    ],
+                    if (state.offersAcceleration) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      SettingsCard(
+                        children: [
+                          SettingsToggleRow(
+                            icon: AppIcons.sparkles,
+                            label: l10n.transcriptionAcceleration,
+                            value: state.accelerated,
+                            onChanged: (on) => _setAccelerated(context, on),
+                          ),
+                        ],
+                      ),
                     ],
                   ],
                 ),
@@ -239,6 +273,17 @@ class _ModelsScreenState extends State<ModelsScreen> {
                           (r) => r.isActive && r.descriptor.engineId == state.engineId,
                         ))
                       SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
+                    if (state.offersModelChoice && state.models.any((r) => r.installing))
+                      SectionInfo(l10n.transcriptionDownloadFootnote),
+                    if (state.offersAcceleration)
+                      SectionInfo(
+                        l10n.transcriptionAccelerationNote(
+                          formatBytes(
+                            state.selectedModel?.option.accelerationBytes ?? 0,
+                            localeTag(context),
+                          ),
+                        ),
+                      ),
                     if (state.offersModelChoice)
                       SectionInfo(l10n.transcriptionModelFootnote)
                     else if (state.managesModels)
