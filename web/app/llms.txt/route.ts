@@ -36,7 +36,7 @@ OpenTranscribe is an open source voice journal for iOS. It records audio nativel
 - Editing: transcripts edit in place, with a restorable revision history
 - Continue: record more onto a saved entry; the audio merges into the kept recording on the device and the transcript grows to match
 - Quick start: lock screen control, widget row, Siri and Shortcuts through App Intents
-- Network: one connection, the download of a Whisper model you choose, from one pinned host, sending nothing; no other networking code
+- Network: one connection, the download of a Whisper model you choose (and its Neural Engine encoder, if you switch that on), from one pinned host, sending nothing; no other networking code
 - License: MIT
 - Distribution: App Store, iPhone, iOS 17 or newer
 `;
