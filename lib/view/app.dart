@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
+import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -147,6 +148,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // Root-scoped so a bulk run outlives the sheet that started it.
         BlocProvider(create: (_) => RetranscribeCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
+        // Root-scoped: home's bar and the entry screen read the same passes.
+        BlocProvider(create: (_) => BatchProgressCubit(service: Deps.i.transcriptionService)),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance. The exception to the rule above: its
         // constructor seeds from three synchronous settings reads and then

@@ -114,3 +114,6 @@ String formatBytes(int bytes, [String? locale]) {
   if (bytes < gb && mbTenths < 10000) return '${decimal.format(mbTenths / 10)} MB';
   return '${decimal.format(bytes / gb)} GB';
 }
+
+/// The whole percent a fraction reads as, clamped to 0..100.
+int percentOf(double? fraction) => ((fraction ?? 0).clamp(0.0, 1.0) * 100).round();

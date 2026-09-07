@@ -8,14 +8,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/view/layouts/entry/components/append_ink.dart';
+import 'package:opentranscribe/core/services/transcription_service.dart';
+import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:transcriber/transcriber.dart';
 
 /// The transcript body. Where the transcript carries timings, the segment under
@@ -432,7 +436,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final inkImage = _inkImage;
     final inkPoints = _inkPoints;
     if (_phase == _Phase.shimmer && inkSize != null && (inkImage != null || inkPoints != null)) {
-      return Stack(
+      final cloud = Stack(
         children: [
           // Opacity does not block hit testing: the IgnorePointer keeps the
           // fading text out of the SelectableRegion while the shimmer is up, so
@@ -463,6 +467,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
           ),
         ],
       );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          cloud,
+          _Wait(entryId: widget.entry.id, dots: false),
+        ],
+      );
     }
 
     final loading = _phase == _Phase.loading;
@@ -470,7 +481,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
       layoutBuilder: meltStack,
       child: loading
-          ? const _QuietWait(key: ValueKey('loading'))
+          ? _Wait(key: const ValueKey('loading'), entryId: widget.entry.id)
           : KeyedSubtree(key: const ValueKey('content'), child: _content(context)),
     );
     final trailing = widget.appending || _append.isAnimating || _landing;
@@ -478,7 +489,10 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     if (context.reduceMotion) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [body, const _QuietWait()],
+        children: [
+          body,
+          _Wait(entryId: widget.entry.id),
+        ],
       );
     }
     // The ink sits over the paragraph where the words will land: the
@@ -523,7 +537,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
               ],
             ),
             // Nothing heard yet, or the words not painted yet: a quiet wait.
-            if (widget.appending && !inked) const _QuietWait(),
+            if (widget.appending) _Wait(entryId: widget.entry.id, dots: !inked),
           ],
         );
       },
@@ -643,10 +657,48 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   }
 }
 
+/// The wait under a pass over this entry: the quiet dots when asked, and
+/// how far the pass is when its engine says (the run's percent, or the model
+/// download ahead of it); an engine that only answers at the end shows the
+/// dots alone.
+class _Wait extends StatelessWidget {
+  const _Wait({required this.entryId, this.dots = true, super.key});
+
+  final String entryId;
+  final bool dots;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (dots) const _QuietWait(),
+        BlocSelector<BatchProgressCubit, BatchProgressState, BatchProgress?>(
+          selector: (state) => state.forEntry(entryId),
+          builder: (context, progress) {
+            final label = batchProgressLabel(AppLocalizations.of(context)!, progress);
+            if (label == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: RollingText(
+                text: label,
+                style: AppType.footnote.copyWith(color: theme.textSecondary),
+                window: theme.motion.subtitleRoll,
+                stagger: Duration.zero,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
 /// The ink dots at the page's left edge, so a wait reads as the page's own,
 /// not a chip.
 class _QuietWait extends StatelessWidget {
-  const _QuietWait({super.key});
+  const _QuietWait();
 
   @override
   Widget build(BuildContext context) {
