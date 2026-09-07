@@ -10,6 +10,17 @@ void main() {
     expect(await installedModelBytes([FakeBatchEngine(), choice, other]), 100 + 500 + 100);
   });
 
+  test('an accelerated model adds its second file to the count', () async {
+    final engine = FakeModelChoiceEngine(
+      installed: {'small', 'large'},
+      canAccelerate: true,
+      accelerated: true,
+      acceleratedModelIds: {'small'},
+    );
+
+    expect(await installedModelBytes([engine]), 100 + 500 + 40);
+  });
+
   test('no downloaded model is zero bytes', () async {
     expect(await installedModelBytes([FakeBatchEngine(), FakeModelChoiceEngine()]), 0);
   });

@@ -55,6 +55,29 @@ void main() {
 
   SettingsCubit build({int? memory}) => buildFor(service, memory: memory);
 
+  (SettingsCubit, FakeModelChoiceEngine) buildAccelerating({
+    bool accelerated = false,
+    Set<String> acceleratedModelIds = const {},
+    Future<void>? prepareGate,
+    Future<void>? installGate,
+  }) {
+    final accelerating = FakeModelChoiceEngine(
+      installed: {'small'},
+      canAccelerate: true,
+      accelerated: accelerated,
+      acceleratedModelIds: acceleratedModelIds,
+      installGate: installGate,
+    )..prepareGate = prepareGate;
+    final scoped = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: accelerating,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+    );
+    addTearDown(scoped.dispose);
+    return (buildFor(scoped), accelerating);
+  }
+
   ModelRowState rowOf(SettingsCubit cubit, String id) =>
       cubit.state.models.firstWhere((r) => r.option.id == id);
 
@@ -69,6 +92,95 @@ void main() {
     expect(rowOf(cubit, 'small').heavy, isFalse);
     expect(rowOf(cubit, 'large').installed, isFalse);
     expect(rowOf(cubit, 'large').heavy, isTrue);
+  });
+
+  test('an engine without acceleration offers no switch', () async {
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.offersAcceleration, isFalse);
+    expect(cubit.state.accelerated, isFalse);
+  });
+
+  test(
+    'turning acceleration on persists it and fetches every installed model\'s extra file',
+    () async {
+      final (cubit, accelerating) = buildAccelerating();
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.offersAcceleration, isTrue);
+
+      await cubit.setAccelerated(true);
+      await pumpEventQueue();
+
+      expect(cubit.state.accelerated, isTrue);
+      expect(engineSettings.acceleratedFor(accelerating.id), isTrue);
+      expect(accelerating.accelerationInstalls, ['small']);
+      expect(rowOf(cubit, 'small').accelerated, isTrue);
+      expect(rowOf(cubit, 'small').installing, isFalse);
+      expect(rowOf(cubit, 'large').accelerated, isFalse);
+    },
+  );
+
+  test('a preparing install shows no percent and cannot be cancelled', () async {
+    final gate = Completer<void>();
+    final (cubit, _) = buildAccelerating(prepareGate: gate.future);
+    await Future<void>.delayed(Duration.zero);
+
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').installing, isTrue);
+    expect(rowOf(cubit, 'small').preparing, isTrue);
+    expect(rowOf(cubit, 'small').cancellable, isFalse);
+
+    gate.complete();
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').installing, isFalse);
+    expect(rowOf(cubit, 'small').accelerated, isTrue);
+  });
+
+  test('turning acceleration off leaves every row plain', () async {
+    final (cubit, accelerating) = buildAccelerating(
+      accelerated: true,
+      acceleratedModelIds: {'small'},
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(rowOf(cubit, 'small').accelerated, isTrue);
+
+    await cubit.setAccelerated(false);
+    await pumpEventQueue();
+
+    expect(cubit.state.accelerated, isFalse);
+    expect(engineSettings.acceleratedFor(accelerating.id), isFalse);
+    expect(rowOf(cubit, 'small').accelerated, isFalse);
+  });
+
+  test('turning the switch off ends the downloads it started', () async {
+    final gate = Completer<void>();
+    final (cubit, accelerating) = buildAccelerating(installGate: gate.future);
+    await Future<void>.delayed(Duration.zero);
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').installing, isTrue);
+
+    await cubit.setAccelerated(false);
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').installing, isFalse);
+    expect(rowOf(cubit, 'small').accelerated, isFalse);
+    expect(accelerating.acceleratedIds, isEmpty);
+  });
+
+  test('a failed encoder download stays on an installed row while the switch is on', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.rejected;
+
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').installed, isTrue);
+    expect(rowOf(cubit, 'small').failure, ModelInstallReason.rejected);
   });
 
   test('an unknown memory figure dims nothing', () async {

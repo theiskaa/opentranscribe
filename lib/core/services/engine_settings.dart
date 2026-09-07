@@ -44,6 +44,22 @@ class EngineSettings {
 
   static String _modelKey(String engineId) => 'transcribe.model.$engineId';
 
+  /// Whether the user turned [engineId]'s acceleration on; false when never
+  /// chosen or unreadable.
+  bool acceleratedFor(String engineId) {
+    try {
+      return _storage.readString(_accelerationKey(engineId)) == 'on';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Persists the acceleration choice per engine. Throws when persisting fails.
+  Future<void> setAccelerated(String engineId, bool on) =>
+      _storage.write(_accelerationKey(engineId), on ? 'on' : 'off');
+
+  static String _accelerationKey(String engineId) => 'transcribe.acceleration.$engineId';
+
   /// The entry the app should run: the stored choice when that engine exists
   /// and is available, else the first available entry, else the first entry
   /// (an all-unavailable registry still needs a defined answer; every surface

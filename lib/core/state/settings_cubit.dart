@@ -97,7 +97,9 @@ final class ModelRowState {
     required this.installed,
     required this.selected,
     required this.heavy,
+    this.accelerated = false,
     this.installFraction,
+    this.preparing = false,
     this.cancellable = false,
     this.failure,
   });
@@ -105,6 +107,13 @@ final class ModelRowState {
   final ModelOption option;
   final bool installed;
   final bool selected;
+
+  /// The model's acceleration file is present beside it.
+  final bool accelerated;
+
+  /// The download's bytes are in and the install is unpacking or compiling:
+  /// no percent to show, nothing to cancel.
+  final bool preparing;
 
   /// The model's peak memory exceeds what this phone can spare.
   final bool heavy;
@@ -126,7 +135,9 @@ final class ModelRowState {
     bool? installed,
     bool? selected,
     bool? heavy,
+    bool? accelerated,
     double? installFraction,
+    bool? preparing,
     bool? cancellable,
     ModelInstallReason? failure,
     bool clearInstall = false,
@@ -136,7 +147,9 @@ final class ModelRowState {
     installed: installed ?? this.installed,
     selected: selected ?? this.selected,
     heavy: heavy ?? this.heavy,
+    accelerated: accelerated ?? this.accelerated,
     installFraction: clearInstall ? null : (installFraction ?? this.installFraction),
+    preparing: clearInstall ? false : (preparing ?? this.preparing),
     cancellable: clearInstall ? false : (cancellable ?? this.cancellable),
     failure: clearFailure ? null : (failure ?? this.failure),
   );
@@ -158,6 +171,8 @@ final class SettingsState {
     this.engineId = '',
     this.managesModels = false,
     this.offersModelChoice = false,
+    this.offersAcceleration = false,
+    this.accelerated = false,
     this.supportedLocales = const [],
     this.languages = const [],
     this.models = const [],
@@ -187,6 +202,11 @@ final class SettingsState {
 
   /// The engine's models in picker order; empty without a choice.
   final List<ModelRowState> models;
+
+  /// Whether that engine can run its models faster with a second file each,
+  /// so the switch shows; [accelerated] is the switch.
+  final bool offersAcceleration;
+  final bool accelerated;
 
   /// The model runs use, null without a choice.
   ModelRowState? get selectedModel => models.where((row) => row.selected).firstOrNull;
@@ -252,6 +272,8 @@ final class SettingsState {
     String? engineId,
     bool? managesModels,
     bool? offersModelChoice,
+    bool? offersAcceleration,
+    bool? accelerated,
     List<ModelRowState>? models,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
@@ -265,6 +287,8 @@ final class SettingsState {
     engineId: engineId ?? this.engineId,
     managesModels: managesModels ?? this.managesModels,
     offersModelChoice: offersModelChoice ?? this.offersModelChoice,
+    offersAcceleration: offersAcceleration ?? this.offersAcceleration,
+    accelerated: accelerated ?? this.accelerated,
     models: models ?? this.models,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
@@ -304,6 +328,8 @@ class SettingsCubit extends Cubit<SettingsState> {
            engineId: service.engineId,
            managesModels: service.managesModels,
            offersModelChoice: service.offersModelChoice,
+           offersAcceleration: service.offersAcceleration,
+           accelerated: service.accelerated,
            backupExcluded: audioStorage.backupExcluded,
            keepAudio: audioStorage.keepAudio,
          ),
@@ -326,6 +352,9 @@ class SettingsCubit extends Cubit<SettingsState> {
   final Map<String, StreamSubscription<ModelInstallProgress>> _installSubs = {};
   // The same, per model of the engine's choice.
   final Map<String, StreamSubscription<ModelInstallProgress>> _modelInstallSubs = {};
+  // The ids whose download the acceleration switch started, so off can end
+  // them.
+  final Set<String> _accelerationInstalls = {};
   StreamSubscription<void>? _modelSub;
   StreamSubscription<FirstUseInstall>? _firstUseSub;
   // A download a batch started, painted on its model's row without this
@@ -351,12 +380,14 @@ class SettingsCubit extends Cubit<SettingsState> {
     final ReservationInfo reservations;
     final LocaleModelStatus? defaultStatus;
     final Set<String> installedModels;
+    final Set<String> acceleratedModels;
     try {
       supported = await _service.supportedLocales();
       installed = await _service.installedLocales();
       reservations = await _service.reservationInfo();
       defaultStatus = localeId.isEmpty ? null : await _service.localeStatus(localeId);
       installedModels = await _service.installedModels();
+      acceleratedModels = await _service.acceleratedModels();
     } catch (e) {
       // A refusing channel is not an empty language list: the rows stay as
       // they were, and load() never throws into an unawaited caller.
@@ -404,15 +435,24 @@ class SettingsCubit extends Cubit<SettingsState> {
             peakBytes: option.peakMemoryBytes,
             physicalBytes: _physicalMemoryBytes,
           ),
+          accelerated: acceleratedModels.contains(option.id),
           installFraction: _modelInstallSubs.containsKey(option.id)
               ? previousModels[option.id]?.installFraction
               : option.id == _firstUseModelId
               ? _firstUseFraction
               : null,
-          cancellable: _modelInstallSubs.containsKey(option.id),
+          preparing:
+              (_modelInstallSubs.containsKey(option.id) || option.id == _firstUseModelId) &&
+              (previousModels[option.id]?.preparing ?? false),
+          cancellable: previousModels[option.id]?.cancellable ?? false,
           // A standing failure clears once the file is there through another
-          // path; a row wearing "download failed" over a present file is a lie.
-          failure: installedModels.contains(option.id) ? null : previousModels[option.id]?.failure,
+          // path; a row wearing "download failed" over a present file is a
+          // lie, unless the switch is on and it was the encoder that failed.
+          failure:
+              installedModels.contains(option.id) &&
+                  (!_service.accelerated || acceleratedModels.contains(option.id))
+              ? null
+              : previousModels[option.id]?.failure,
         ),
     ];
     final previous = sameEngine
@@ -464,6 +504,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         engineId: _service.engineId,
         managesModels: _service.managesModels,
         offersModelChoice: _service.offersModelChoice,
+        offersAcceleration: _service.offersAcceleration,
+        accelerated: _service.accelerated,
         supportedLocales: supported,
         languages: _mirrorSelectedModel(rows, modelRows),
         models: modelRows,
@@ -566,7 +608,45 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   /// Like [install], but for one model of the engine's choice: downloads it
   /// and selects it once landed. Single-flight per model.
-  void installModelById(String id) {
+  void installModelById(String id) =>
+      _trackModelInstall(id, () => _service.installModelById(id), selectOnLand: true);
+
+  /// Turns the engine's acceleration on or off and persists it. On fetches
+  /// the extra file of every installed model as a download on its row; off
+  /// ends those downloads. The switch takes before the persist, so a refused
+  /// write throws after the surfaces moved.
+  Future<void> setAccelerated(bool on) async {
+    await _service.setAccelerated(on);
+    if (isClosed) return;
+    emit(state.copyWith(accelerated: on));
+    if (on) {
+      for (final row in state.models) {
+        if (row.installed && !row.accelerated && !row.installing) {
+          _accelerationInstalls.add(row.option.id);
+          _trackModelInstall(
+            row.option.id,
+            () => _service.installAcceleration(row.option.id),
+            selectOnLand: false,
+          );
+        }
+      }
+    } else {
+      for (final id in _accelerationInstalls.toList()) {
+        await cancelModelInstallById(id);
+      }
+    }
+    unawaited(load());
+    await _engineSettings.setAccelerated(_service.engineId, on);
+  }
+
+  /// One download on a model's row, from a picker tap or the acceleration
+  /// switch; [selectOnLand] is the picker's rule, the download was for
+  /// choosing the model.
+  void _trackModelInstall(
+    String id,
+    Stream<ModelInstallProgress> Function() start, {
+    required bool selectOnLand,
+  }) {
     if (_modelInstallSubs.containsKey(id)) return;
     // The engine and selection this install belongs to: a switch or a pick
     // landing mid-download must not have the landing take the choice.
@@ -576,46 +656,56 @@ class SettingsCubit extends Cubit<SettingsState> {
       id,
       (row) => row.copyWith(installFraction: 0, cancellable: true, clearFailure: true),
     );
-    _modelInstallSubs[id] = _service
-        .installModelById(id)
-        .listen(
-          (progress) {
-            if (progress.done) return;
-            _patchModel(id, (row) => row.copyWith(installFraction: progress.fraction));
-          },
-          onDone: () async {
-            _modelInstallSubs.remove(id);
-            // Installed at once: the file is there, and the reload that says
-            // so takes five round trips the row must not spend as a download.
-            _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
-            // Selecting is what the download was for; a failed persist still
-            // leaves the file, so the row reads installed either way.
-            if (_service.engineId == engineId && _service.selectedModelId == selectedAtStart) {
-              try {
-                await selectModel(id);
-              } catch (e) {
-                if (kDebugMode) debugPrint('settings: model choice not saved: $e');
-              }
-            }
-            unawaited(load());
-          },
-          onError: (Object error) {
-            _modelInstallSubs.remove(id);
-            final failure = _modelFailureFrom(error);
-            _patchModel(
-              id,
-              (row) =>
-                  row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
-            );
-            unawaited(load());
-          },
+    _modelInstallSubs[id] = start().listen(
+      (progress) {
+        if (progress.done) return;
+        _patchModel(
+          id,
+          (row) => row.copyWith(
+            installFraction: progress.fraction,
+            preparing: progress.preparing,
+            cancellable: !progress.preparing,
+          ),
         );
+      },
+      onDone: () async {
+        _modelInstallSubs.remove(id);
+        _accelerationInstalls.remove(id);
+        // Installed at once: the file is there, and the reload that says
+        // so takes six round trips the row must not spend as a download.
+        _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
+        // Selecting is what the download was for; a failed persist still
+        // leaves the file, so the row reads installed either way.
+        if (selectOnLand &&
+            _service.engineId == engineId &&
+            _service.selectedModelId == selectedAtStart) {
+          try {
+            await selectModel(id);
+          } catch (e) {
+            if (kDebugMode) debugPrint('settings: model choice not saved: $e');
+          }
+        }
+        unawaited(load());
+      },
+      onError: (Object error) {
+        _modelInstallSubs.remove(id);
+        _accelerationInstalls.remove(id);
+        final failure = _modelFailureFrom(error);
+        _patchModel(
+          id,
+          (row) =>
+              row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
+        );
+        unawaited(load());
+      },
+    );
   }
 
   /// Stops a download this cubit started; what arrived stays for a later
   /// resume. A no-op when nothing this cubit started is downloading.
   Future<void> cancelModelInstallById(String id) async {
     final sub = _modelInstallSubs.remove(id);
+    _accelerationInstalls.remove(id);
     if (sub == null) return;
     await sub.cancel().catchError((_) {});
     if (isClosed) return;
@@ -680,6 +770,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       event.modelId,
       (row) => row.copyWith(
         installFraction: event.progress.fraction,
+        preparing: event.progress.preparing,
         clearInstall: event.progress.done,
         installed: event.progress.done ? true : null,
       ),

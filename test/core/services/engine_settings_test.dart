@@ -80,4 +80,15 @@ void main() {
     expect(settings.modelIdFor('other'), 'large');
     expect(settings.modelIdFor('third'), isNull);
   });
+
+  test('acceleration is stored per engine and unset reads as off', () async {
+    expect(settings.acceleratedFor('whisper'), isFalse);
+
+    await settings.setAccelerated('whisper', true);
+    await settings.setAccelerated('other', false);
+
+    expect(settings.acceleratedFor('whisper'), isTrue);
+    expect(settings.acceleratedFor('other'), isFalse);
+    expect(settings.acceleratedFor('third'), isFalse);
+  });
 }
