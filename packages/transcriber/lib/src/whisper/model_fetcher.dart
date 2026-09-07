@@ -32,18 +32,30 @@ abstract interface class ModelFetcher {
 /// every redirect must be https on a host in [allowedHostSuffixes] (a loopback
 /// address may be plain http, for tests). Resumes a `.part` with a Range
 /// request, hashes while writing, and moves the verified part into place last.
+/// A transfer that breaks after bytes arrived (a reset, a stall, the socket
+/// iOS closed while the app was away) is reopened from the part a few times
+/// before it counts as offline; one that never delivered a byte fails at once.
 class PinnedHostFetcher implements ModelFetcher {
-  PinnedHostFetcher({required List<String> allowedHostSuffixes, HttpClient Function()? newClient})
-    : _suffixes = List.unmodifiable(allowedHostSuffixes),
-      _newClient = newClient ?? HttpClient.new;
+  PinnedHostFetcher({
+    required List<String> allowedHostSuffixes,
+    HttpClient Function()? newClient,
+    List<Duration> retryBackoff = _defaultBackoff,
+  }) : _suffixes = List.unmodifiable(allowedHostSuffixes),
+       _newClient = newClient ?? HttpClient.new,
+       _backoff = List.unmodifiable(retryBackoff);
 
   final List<String> _suffixes;
   final HttpClient Function() _newClient;
+
+  /// The waits before each retry of a transfer that broke after bytes
+  /// arrived; its length is the retry count.
+  final List<Duration> _backoff;
 
   static const _maxRedirects = 5;
   static const _progressStep = 0.005;
   static const _stall = Duration(seconds: 60);
   static const _enospc = 28;
+  static const _defaultBackoff = [Duration(seconds: 1), Duration(seconds: 2), Duration(seconds: 4)];
 
   bool _allowed(Uri uri) {
     final loopback = InternetAddress.tryParse(uri.host)?.isLoopback ?? false;
@@ -132,48 +144,79 @@ class PinnedHostFetcher implements ModelFetcher {
       }
       if (!progress.hasListener) return;
 
-      final response = await _open(client, source, offset);
-      final resumed = response.statusCode == HttpStatus.partialContent && offset > 0;
-      if (response.statusCode != HttpStatus.ok && !resumed) {
-        await response.drain<void>();
-        throw _rejected('http ${response.statusCode}');
-      }
-      if (!resumed) offset = 0;
-      final length = response.contentLength;
-      if (length != -1 && length != expectedBytes - offset) {
-        await response.drain<void>();
-        if (await part.exists()) await part.delete();
-        throw _rejected('the host serves $length bytes, not the catalog\'s');
-      }
-      if (!progress.hasListener) {
-        await response.drain<void>();
-        return;
+      // One running hash across attempts: over the part's prefix once resumed,
+      // then every chunk as it lands.
+      ByteConversionSink? digesting;
+      var lastEmitted = -1.0;
+      var gotBytes = false;
+
+      Future<void> attempt() async {
+        final response = await _open(client, source, offset);
+        final resumed = response.statusCode == HttpStatus.partialContent && offset > 0;
+        if (response.statusCode != HttpStatus.ok && !resumed) {
+          await response.drain<void>();
+          throw _rejected('http ${response.statusCode}');
+        }
+        if (!resumed) {
+          offset = 0;
+          digesting = null;
+          lastEmitted = -1.0;
+        }
+        final length = response.contentLength;
+        if (length != -1 && length != expectedBytes - offset) {
+          await response.drain<void>();
+          if (await part.exists()) await part.delete();
+          throw _rejected('the host serves $length bytes, not the catalog\'s');
+        }
+        if (!progress.hasListener) {
+          await response.drain<void>();
+          return;
+        }
+        final fresh = digesting == null;
+        final sink = digesting ??= hashing();
+        if (resumed && fresh) await hashPrefix(sink);
+        received = offset;
+        final raf = await part.open(mode: resumed ? FileMode.append : FileMode.write);
+        try {
+          await for (final chunk in response.timeout(_stall)) {
+            if (!progress.hasListener) return;
+            received += chunk.length;
+            if (received > expectedBytes) throw _rejected('longer than expected');
+            sink.add(chunk);
+            await raf.writeFrom(chunk);
+            gotBytes = true;
+            final fraction = received / expectedBytes;
+            if (fraction - lastEmitted >= _progressStep) {
+              lastEmitted = fraction;
+              progress.add(fraction);
+            }
+          }
+        } finally {
+          await raf.close();
+        }
+        if (progress.hasListener && received < expectedBytes) {
+          throw _offline('connection closed early');
+        }
       }
 
-      final digesting = hashing();
-      if (resumed) await hashPrefix(digesting);
-      received = offset;
-      var lastEmitted = -1.0;
-      final raf = await part.open(mode: resumed ? FileMode.append : FileMode.write);
-      try {
-        await for (final chunk in response.timeout(_stall)) {
+      for (var attempts = 0; ; attempts++) {
+        try {
+          await attempt();
+          break;
+        } catch (e) {
+          final failure = _failure(e);
+          // A break after the last byte leaves the hash to decide.
+          if (failure.reason != ModelInstallReason.offline) throw failure;
+          if (received == expectedBytes) break;
+          if (!gotBytes || attempts >= _backoff.length) throw failure;
           if (!progress.hasListener) return;
-          received += chunk.length;
-          if (received > expectedBytes) throw _rejected('longer than expected');
-          digesting.add(chunk);
-          await raf.writeFrom(chunk);
-          final fraction = received / expectedBytes;
-          if (fraction - lastEmitted >= _progressStep) {
-            lastEmitted = fraction;
-            progress.add(fraction);
-          }
+          offset = received;
+          await Future<void>.delayed(_backoff[attempts]);
+          if (!progress.hasListener) return;
         }
-      } finally {
-        await raf.close();
       }
       if (!progress.hasListener) return;
-      if (received < expectedBytes) throw _offline('connection closed early');
-      digesting.close();
+      digesting!.close();
       if (digest.toString() != expectedSha256) {
         await part.delete();
         throw _rejected('sha256 mismatch');

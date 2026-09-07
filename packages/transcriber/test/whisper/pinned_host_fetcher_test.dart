@@ -20,6 +20,7 @@ class _ModelServer {
   int? truncateAfter;
   int? stallAfter;
   int? dropAfter;
+  int? dropCount;
   int? contentLength;
   final Completer<void> release = Completer<void>();
   final Completer<void> stalled = Completer<void>();
@@ -63,7 +64,8 @@ class _ModelServer {
     if (corrupt) bytes = Uint8List.fromList([...bytes.sublist(0, bytes.length - 1), 0]);
     if (truncateAfter case final n?) bytes = bytes.sublist(0, min(n, bytes.length));
     response.contentLength = contentLength ?? bytes.length;
-    if (dropAfter case final n?) {
+    if (dropAfter case final n? when dropCount != 0) {
+      if (dropCount case final left?) dropCount = left - 1;
       final socket = await response.detachSocket();
       socket.add(bytes.sublist(0, n));
       await socket.flush();
@@ -104,7 +106,10 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  PinnedHostFetcher fetcher() => PinnedHostFetcher(allowedHostSuffixes: const ['127.0.0.1']);
+  PinnedHostFetcher fetcher({List<Duration> retryBackoff = const []}) =>
+      PinnedHostFetcher(allowedHostSuffixes: const ['127.0.0.1'], retryBackoff: retryBackoff);
+
+  const quickRetries = [Duration(milliseconds: 5), Duration(milliseconds: 5)];
 
   Stream<double> fetch(PinnedHostFetcher f, {Uri? source, String? sha}) => f.fetch(
     source ?? server.uri,
@@ -218,7 +223,93 @@ void main() {
       ),
     );
     expect(into.existsSync(), isFalse);
+    expect(server.requests, 1);
     expect(File('${into.path}.part').lengthSync(), inInclusiveRange(1, 65536));
+  });
+
+  test('a drop mid-body is retried from the part and lands one verified file', () async {
+    server.dropAfter = 65536;
+    server.dropCount = 1;
+
+    final fractions = await fetch(fetcher(retryBackoff: quickRetries)).toList();
+
+    expect(fractions.last, 1);
+    expect(fractions, orderedEquals([...fractions]..sort()));
+    expect(server.requests, 2);
+    expect(server.rangeHeaders.last, startsWith('bytes='));
+    expect(await into.readAsBytes(), body);
+    expect(File('${into.path}.part').existsSync(), isFalse);
+  });
+
+  test('a body that keeps dropping fails as offline once the retries are spent', () async {
+    server.dropAfter = 65536;
+
+    await expectLater(
+      fetch(fetcher(retryBackoff: quickRetries)).drain<void>(),
+      throwsA(
+        isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
+      ),
+    );
+    expect(server.requests, quickRetries.length + 1);
+    expect(File('${into.path}.part').existsSync(), isTrue);
+  });
+
+  test('a drop before the first byte is not retried', () async {
+    server.dropAfter = 0;
+
+    await expectLater(
+      fetch(fetcher(retryBackoff: quickRetries)).drain<void>(),
+      throwsA(
+        isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
+      ),
+    );
+    expect(server.requests, 1);
+  });
+
+  test('a retry the host answers whole still lands the verified file', () async {
+    server.dropAfter = 65536;
+    server.dropCount = 1;
+    server.supportsRange = false;
+
+    await fetch(fetcher(retryBackoff: quickRetries)).drain<void>();
+
+    expect(server.requests, 2);
+    expect(server.rangeHeaders.last, startsWith('bytes='));
+    expect(await into.readAsBytes(), body);
+    expect(File('${into.path}.part').existsSync(), isFalse);
+  });
+
+  test('a resumed part whose host cannot be reached fails at once', () async {
+    await into.parent.create(recursive: true);
+    await File('${into.path}.part').writeAsBytes(body.sublist(0, 50000));
+    final gone = server.uri.replace(port: 1);
+
+    await expectLater(
+      fetch(fetcher(retryBackoff: quickRetries), source: gone).drain<void>(),
+      throwsA(
+        isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
+      ),
+    );
+    expect(server.requests, 0);
+    expect(File('${into.path}.part').lengthSync(), 50000);
+  });
+
+  test('a cancel during the backoff ends the download without another request', () async {
+    server.dropAfter = 65536;
+    server.dropCount = 1;
+    final sub = fetch(
+      fetcher(retryBackoff: const [Duration(milliseconds: 200)]),
+    ).listen(null, onError: (Object _) {});
+    while (server.requests < 1) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    await sub.cancel();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    expect(server.requests, 1);
+    expect(File('${into.path}.part').existsSync(), isTrue);
   });
 
   test('a host declaring a length other than the catalog is rejected', () async {
