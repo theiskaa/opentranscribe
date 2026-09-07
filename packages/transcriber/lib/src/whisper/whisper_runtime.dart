@@ -57,12 +57,17 @@ final class WhisperRuntimeException implements Exception {
 /// A loaded model. Guarantees a caller may rely on: [run] reads a
 /// [DecodedPcm] file (raw 16 kHz mono 32-bit float, no header) and answers
 /// whisper's segments in order, an empty list when it heard nothing; one run
-/// at a time per session, the caller serializes; [abort] ends the run in
+/// at a time per session, the caller serializes; [onProgress] hears the run's
+/// fraction in order, never after the future settles; [abort] ends the run in
 /// flight (it fails as [WhisperRuntimeError.aborted]), is safe when nothing
 /// runs, and does not carry into the next run; after [close] nothing else may
 /// be called.
 abstract interface class WhisperSession {
-  Future<List<WhisperSegment>> run(File pcm, {required String language});
+  Future<List<WhisperSegment>> run(
+    File pcm, {
+    required String language,
+    void Function(double fraction)? onProgress,
+  });
 
   void abort();
 

@@ -13,17 +13,20 @@ import 'package:transcriber/src/whisper/whisper_shim.dart';
 
 /// The [WhisperRuntime] over the shim, on one worker isolate that owns the
 /// whisper context: a run blocks that isolate and nothing else. The abort
-/// flag lives in native memory owned by this isolate, so a cancel reaches the
-/// worker mid-run without a message. [threads] is what every run gets;
-/// [useGpu] is handed to whisper's context init as is.
+/// flag and the progress percent live in native memory owned by this
+/// isolate, so a cancel reaches the worker mid-run and its progress reaches
+/// back, without a message. [threads] is asked at every run's start and
+/// holds until that run ends; [useGpu] is handed to whisper's context init
+/// as is.
 class FfiWhisperRuntime implements WhisperRuntime {
-  FfiWhisperRuntime({required int threads, bool useGpu = true})
-    : assert(threads >= 1, 'whisper needs at least one thread'),
-      _threads = threads,
+  FfiWhisperRuntime({required int Function() threads, bool useGpu = true})
+    : _threads = threads,
       _useGpu = useGpu;
 
-  final int _threads;
+  final int Function() _threads;
   final bool _useGpu;
+
+  static const _progressPoll = Duration(milliseconds: 200);
 
   Isolate? _isolate;
   Future<SendPort>? _spawning;
@@ -75,7 +78,7 @@ class FfiWhisperRuntime implements WhisperRuntime {
       await _ask<void>(_Load(model.path, _useGpu));
     } catch (_) {
       _open = null;
-      calloc.free(session._abort);
+      session._free();
       rethrow;
     }
     return session;
@@ -96,19 +99,45 @@ class FfiWhisperRuntime implements WhisperRuntime {
 }
 
 class _FfiSession implements WhisperSession {
-  _FfiSession(this._runtime) : _abort = calloc<Int32>();
+  _FfiSession(this._runtime) : _abort = calloc<Int32>(), _progress = calloc<Int32>();
 
   final FfiWhisperRuntime _runtime;
   final Pointer<Int32> _abort;
+  final Pointer<Int32> _progress;
   Future<void>? _closing;
 
+  void _free() {
+    calloc.free(_abort);
+    calloc.free(_progress);
+  }
+
   @override
-  Future<List<WhisperSegment>> run(File pcm, {required String language}) {
+  Future<List<WhisperSegment>> run(
+    File pcm, {
+    required String language,
+    void Function(double fraction)? onProgress,
+  }) async {
     if (_closing != null) throw StateError('session closed');
     _abort.value = 0;
-    return _runtime._ask<List<WhisperSegment>>(
-      _Run(pcm.path, language, _runtime._threads, _abort.address),
+    _progress.value = 0;
+    final threads = _runtime._threads();
+    assert(threads >= 1, 'whisper needs at least one thread');
+    final answer = _runtime._ask<List<WhisperSegment>>(
+      _Run(pcm.path, language, threads, _abort.address, _progress.address),
     );
+    if (onProgress == null) return answer;
+    var reported = 0;
+    final poll = Timer.periodic(FfiWhisperRuntime._progressPoll, (_) {
+      final percent = _progress.value;
+      if (percent <= reported) return;
+      reported = percent;
+      onProgress(percent / 100);
+    });
+    try {
+      return await answer;
+    } finally {
+      poll.cancel();
+    }
   }
 
   @override
@@ -125,7 +154,7 @@ class _FfiSession implements WhisperSession {
     try {
       await _runtime._ask<void>(const _Close());
     } finally {
-      calloc.free(_abort);
+      _free();
     }
   }();
 }
@@ -142,12 +171,13 @@ final class _Load extends _Request {
 }
 
 final class _Run extends _Request {
-  const _Run(this.pcmPath, this.language, this.threads, this.abortAddress);
+  const _Run(this.pcmPath, this.language, this.threads, this.abortAddress, this.progressAddress);
 
   final String pcmPath;
   final String language;
   final int threads;
   final int abortAddress;
+  final int progressAddress;
 }
 
 final class _Close extends _Request {
@@ -171,12 +201,14 @@ void _workerMain(SendPort home) {
     try {
       answer = switch (request) {
         _Load(:final path, :final useGpu) => worker.load(path, useGpu),
-        _Run(:final pcmPath, :final language, :final threads, :final abortAddress) => worker.run(
-          pcmPath,
-          language,
-          threads,
-          abortAddress,
-        ),
+        _Run(
+          :final pcmPath,
+          :final language,
+          :final threads,
+          :final abortAddress,
+          :final progressAddress,
+        ) =>
+          worker.run(pcmPath, language, threads, abortAddress, progressAddress),
         _Close() => worker.close(),
       };
     } catch (e) {
@@ -211,7 +243,7 @@ class _Worker {
     return null;
   }
 
-  Object run(String pcmPath, String language, int threads, int abortAddress) {
+  Object run(String pcmPath, String language, int threads, int abortAddress, int progressAddress) {
     if (context == nullptr) return const _Failure(WhisperRuntimeError.badArgs, 'no model loaded');
     final file = File(pcmPath);
     final count = file.lengthSync() ~/ 4;
@@ -234,6 +266,7 @@ class _Worker {
         cLanguage,
         threads,
         Pointer<Int32>.fromAddress(abortAddress),
+        Pointer<Int32>.fromAddress(progressAddress),
       );
       if (rc == WhisperShimCode.aborted) return const _Failure(WhisperRuntimeError.aborted);
       if (rc == WhisperShimCode.badArgs) return const _Failure(WhisperRuntimeError.badArgs, 'run');

@@ -37,6 +37,14 @@ static bool otr_abort(void *user_data) {
   return flag != NULL && *flag != 0;
 }
 
+static void otr_progress(
+    struct whisper_context *ctx, struct whisper_state *state, int progress, void *user_data) {
+  (void)ctx;
+  (void)state;
+  volatile int32_t *out = (volatile int32_t *)user_data;
+  if (out != NULL) *out = (int32_t)progress;
+}
+
 OTR_KEEP const char *otr_whisper_version(void) { return whisper_version(); }
 
 OTR_KEEP otr_whisper *otr_whisper_open(const char *model_path, int32_t use_gpu) {
@@ -69,8 +77,10 @@ OTR_KEEP int32_t otr_whisper_run(
     int32_t count,
     const char *language,
     int32_t n_threads,
-    const int32_t *abort_flag) {
+    const int32_t *abort_flag,
+    int32_t *progress_out) {
   if (w == NULL || samples == NULL || count <= 0 || n_threads <= 0) return OTR_BAD_ARGS;
+  if (progress_out != NULL) *progress_out = 0;
   const char *lang = (language == NULL || language[0] == '\0') ? "auto" : language;
   if (strcmp(lang, "auto") != 0) {
     const int lang_id = whisper_lang_id(lang);
@@ -95,6 +105,8 @@ OTR_KEEP int32_t otr_whisper_run(
   params.suppress_nst = true;
   params.abort_callback = otr_abort;
   params.abort_callback_user_data = (void *)abort_flag;
+  params.progress_callback = progress_out == NULL ? NULL : otr_progress;
+  params.progress_callback_user_data = progress_out;
 
   int rc = whisper_full(w->ctx, params, samples, count);
   if (rc != 0) return otr_abort((void *)abort_flag) ? OTR_ABORTED : OTR_FAILED;

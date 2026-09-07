@@ -12,12 +12,12 @@ final class RunCall {
   final String modelPath;
 }
 
-/// Deterministic [WhisperRuntime] for tests. Every run answers [segments];
-/// [gate] holds a run open so a test can abort or interleave; [closeGate]
-/// holds a close open; [loadGate] holds a load open; [failLoad] and [failRun]
-/// fail typed; all are mutable
-/// so a test flips them between runs. Records loads, runs, closes, aborts
-/// and disposes, so a caller's session handling can be asserted.
+/// Deterministic [WhisperRuntime] for tests. Every run answers [segments]
+/// after replaying [progressSteps] to its listener; [gate] holds a run open
+/// so a test can abort or interleave; [closeGate] holds a close open;
+/// [loadGate] holds a load open; [failLoad] and [failRun] fail typed; all are
+/// mutable so a test flips them between runs. Records loads, runs, closes,
+/// aborts and disposes, so a caller's session handling can be asserted.
 class FakeWhisperRuntime implements WhisperRuntime {
   FakeWhisperRuntime({
     this.segments = const [
@@ -33,11 +33,18 @@ class FakeWhisperRuntime implements WhisperRuntime {
     this.gate,
     this.closeGate,
     this.loadGate,
+    this.progressSteps = const [],
   });
 
   List<WhisperSegment> segments;
   bool failLoad;
   bool failRun;
+
+  /// The fractions a run reports before its gate, in order.
+  List<double> progressSteps;
+
+  /// Called when a run comes with a progress listener.
+  void Function()? onProgressAsked;
   Future<void>? gate;
   Future<void>? closeGate;
   Future<void>? loadGate;
@@ -78,10 +85,20 @@ class FakeWhisperSession implements WhisperSession {
   bool _aborted = false;
 
   @override
-  Future<List<WhisperSegment>> run(File pcm, {required String language}) async {
+  Future<List<WhisperSegment>> run(
+    File pcm, {
+    required String language,
+    void Function(double fraction)? onProgress,
+  }) async {
     if (closed) throw StateError('session closed');
     _aborted = false;
     _runtime.runs.add(RunCall(pcmPath: pcm.path, language: language, modelPath: modelPath));
+    if (onProgress != null) {
+      _runtime.onProgressAsked?.call();
+      for (final step in _runtime.progressSteps) {
+        onProgress(step);
+      }
+    }
     final held = _runtime.gate;
     if (held != null) await held;
     if (_aborted) throw const WhisperRuntimeException(WhisperRuntimeError.aborted);

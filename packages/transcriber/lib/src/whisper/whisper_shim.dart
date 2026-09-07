@@ -24,6 +24,7 @@ typedef _RunNative =
       Pointer<Utf8> language,
       Int32 threads,
       Pointer<Int32> abortFlag,
+      Pointer<Int32> progressOut,
     );
 typedef WhisperShimRunDart =
     int Function(
@@ -33,6 +34,7 @@ typedef WhisperShimRunDart =
       Pointer<Utf8> language,
       int threads,
       Pointer<Int32> abortFlag,
+      Pointer<Int32> progressOut,
     );
 typedef _SegmentCountNative = Int32 Function(Pointer<Void> w);
 typedef WhisperShimSegmentCountDart = int Function(Pointer<Void> w);

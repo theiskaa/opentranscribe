@@ -31,6 +31,8 @@ OTR_API void otr_whisper_close(otr_whisper *w);
 // "tr"), NULL or empty for auto detection; a code unknown to whisper, or one
 // this model has no token for, is OTR_BAD_ARGS.
 // abort_flag is polled between passes: nonzero ends the run as OTR_ABORTED.
+// progress_out, when given, receives the run's percent (0..100) as whisper
+// reports it, so a caller on another thread can poll it mid-run.
 // Segments from the previous run are gone once this returns.
 OTR_API int32_t otr_whisper_run(
     otr_whisper *w,
@@ -38,7 +40,8 @@ OTR_API int32_t otr_whisper_run(
     int32_t count,
     const char *language,
     int32_t n_threads,
-    const int32_t *abort_flag);
+    const int32_t *abort_flag,
+    int32_t *progress_out);
 
 OTR_API int32_t otr_whisper_n_segments(otr_whisper *w);
 
