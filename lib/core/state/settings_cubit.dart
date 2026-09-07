@@ -600,6 +600,17 @@ class SettingsCubit extends Cubit<SettingsState> {
         );
   }
 
+  /// Stops a download this cubit started; what arrived stays for a later
+  /// resume. A no-op when nothing is downloading.
+  Future<void> cancelModelInstall(String id) async {
+    final sub = _modelInstallSubs.remove(id);
+    if (sub == null) return;
+    await sub.cancel().catchError((_) {});
+    if (isClosed) return;
+    _patchModel(id, (row) => row.copyWith(clearInstall: true));
+    unawaited(load());
+  }
+
   /// Deletes one model's file. Answers whether one was deleted.
   Future<bool> removeModel(String id) async {
     bool removed;

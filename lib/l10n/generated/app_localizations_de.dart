@@ -515,6 +515,41 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Modellwahl konnte nicht gespeichert werden und geht beim nächsten Start verloren.';
 
   @override
+  String get modelTierBasicInfo =>
+      'Das kleinste und schnellste. Grob bei Namen und Akzenten, gut für eine schnelle Notiz.';
+
+  @override
+  String get modelTierGoodInfo =>
+      'Schnell, mit klareren Wörtern als Tiny. Gut für kurze Notizen im ruhigen Raum.';
+
+  @override
+  String get modelTierBetterInfo =>
+      'Die Balance für die meisten iPhones. Genau bei Alltagssprache in jeder Sprache.';
+
+  @override
+  String get modelTierBestInfo =>
+      'Langsamer und sorgfältig. Stark bei Akzenten, leisen Aufnahmen und langen Einträgen.';
+
+  @override
+  String get modelTierTopInfo =>
+      'Das Beste, was Whisper bietet. Braucht ein neueres iPhone und etwas Geduld pro Eintrag.';
+
+  @override
+  String get modelDownload => 'Laden';
+
+  @override
+  String get modelUse => 'Verwenden';
+
+  @override
+  String get modelInUse => 'In Gebrauch';
+
+  @override
+  String get modelRemove => 'Entfernen';
+
+  @override
+  String get modelCancelDownload => 'Abbrechen';
+
+  @override
   String get engineBusyTitle => 'Aufnahme läuft';
 
   @override

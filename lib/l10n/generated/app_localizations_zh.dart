@@ -492,6 +492,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelNotSavedBody => '无法保存模型选择，重新启动后不会保留。';
 
   @override
+  String get modelTierBasicInfo => '最小最快。对人名和口音不够准确，适合随手记。';
+
+  @override
+  String get modelTierGoodInfo => '快速，词语比 Tiny 更清晰。适合安静环境下的短笔记。';
+
+  @override
+  String get modelTierBetterInfo => '适合大多数 iPhone 的平衡之选。各种语言的日常说话都能准确转写。';
+
+  @override
+  String get modelTierBestInfo => '更慢也更细致。擅长口音、轻声录音和长条目。';
+
+  @override
+  String get modelTierTopInfo => 'Whisper 的最佳模型。需要较新的 iPhone，每条记录多等一会儿。';
+
+  @override
+  String get modelDownload => '下载';
+
+  @override
+  String get modelUse => '使用';
+
+  @override
+  String get modelInUse => '使用中';
+
+  @override
+  String get modelRemove => '移除';
+
+  @override
+  String get modelCancelDownload => '取消';
+
+  @override
   String get engineBusyTitle => '正在录音';
 
   @override

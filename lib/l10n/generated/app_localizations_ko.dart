@@ -496,6 +496,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get modelNotSavedBody => '모델 선택을 저장하지 못해 다시 실행하면 유지되지 않습니다.';
 
   @override
+  String get modelTierBasicInfo => '가장 작고 빠릅니다. 이름과 억양에는 약하지만 빠른 메모에는 충분합니다.';
+
+  @override
+  String get modelTierGoodInfo => '빠르면서 Tiny보다 단어가 또렷합니다. 조용한 곳의 짧은 메모에 좋습니다.';
+
+  @override
+  String get modelTierBetterInfo => '대부분의 iPhone에 맞는 균형. 모든 언어의 일상 말하기를 정확히 받아씁니다.';
+
+  @override
+  String get modelTierBestInfo => '느리지만 꼼꼼합니다. 억양, 작은 목소리, 긴 기록에 강합니다.';
+
+  @override
+  String get modelTierTopInfo => 'Whisper 최고 모델. 최신 iPhone과 기록마다 약간의 인내가 필요합니다.';
+
+  @override
+  String get modelDownload => '다운로드';
+
+  @override
+  String get modelUse => '사용';
+
+  @override
+  String get modelInUse => '사용 중';
+
+  @override
+  String get modelRemove => '제거';
+
+  @override
+  String get modelCancelDownload => '취소';
+
+  @override
   String get engineBusyTitle => '녹음 진행 중';
 
   @override

@@ -702,6 +702,46 @@
   "@modelNotSavedBody": {
     "description": "Sheet body when a model choice could not be persisted"
   },
+  "modelTierBasicInfo": "The smallest and fastest. Rough on names and accents, fine for a quick note.",
+  "@modelTierBasicInfo": {
+    "description": "Two-line description under the smallest model tier on its card"
+  },
+  "modelTierGoodInfo": "Quick, with clearer words than Tiny. Good for short notes in a quiet room.",
+  "@modelTierGoodInfo": {
+    "description": "Two-line description under the second model tier on its card"
+  },
+  "modelTierBetterInfo": "The balance most iPhones want. Accurate for everyday speech in every language.",
+  "@modelTierBetterInfo": {
+    "description": "Two-line description under the third model tier on its card"
+  },
+  "modelTierBestInfo": "Slower and careful. Strong on accents, quiet takes, and long entries.",
+  "@modelTierBestInfo": {
+    "description": "Two-line description under the fourth model tier on its card"
+  },
+  "modelTierTopInfo": "The best whisper offers. Needs a recent iPhone and a little patience per entry.",
+  "@modelTierTopInfo": {
+    "description": "Two-line description under the largest model tier on its card"
+  },
+  "modelDownload": "Download",
+  "@modelDownload": {
+    "description": "Button starting a model download"
+  },
+  "modelUse": "Use",
+  "@modelUse": {
+    "description": "Button making a downloaded model the one runs use"
+  },
+  "modelInUse": "In use",
+  "@modelInUse": {
+    "description": "Label on the model card that runs use"
+  },
+  "modelRemove": "Remove",
+  "@modelRemove": {
+    "description": "Text action deleting a downloaded model"
+  },
+  "modelCancelDownload": "Cancel",
+  "@modelCancelDownload": {
+    "description": "Text action stopping a model download"
+  },
   "engineBusyTitle": "Recording in progress",
   "@engineBusyTitle": {
     "description": "Sheet title when an engine switch is refused mid-take"

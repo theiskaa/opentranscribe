@@ -517,6 +517,41 @@ class AppLocalizationsIt extends AppLocalizations {
       'La scelta del modello non è stata salvata e non sopravviverà a un riavvio.';
 
   @override
+  String get modelTierBasicInfo =>
+      'Il più piccolo e veloce. Impreciso su nomi e accenti, va bene per una nota rapida.';
+
+  @override
+  String get modelTierGoodInfo =>
+      'Veloce, con parole più chiare di Tiny. Buono per note brevi in una stanza silenziosa.';
+
+  @override
+  String get modelTierBetterInfo =>
+      'L\'equilibrio adatto alla maggior parte degli iPhone. Preciso sul parlato quotidiano in ogni lingua.';
+
+  @override
+  String get modelTierBestInfo =>
+      'Più lento e accurato. Forte su accenti, registrazioni sommesse e voci lunghe.';
+
+  @override
+  String get modelTierTopInfo =>
+      'Il meglio che Whisper offre. Richiede un iPhone recente e un po\' di pazienza per voce.';
+
+  @override
+  String get modelDownload => 'Scarica';
+
+  @override
+  String get modelUse => 'Usa';
+
+  @override
+  String get modelInUse => 'In uso';
+
+  @override
+  String get modelRemove => 'Rimuovi';
+
+  @override
+  String get modelCancelDownload => 'Annulla';
+
+  @override
   String get engineBusyTitle => 'Registrazione in corso';
 
   @override

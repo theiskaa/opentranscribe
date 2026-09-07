@@ -511,6 +511,41 @@ class AppLocalizationsEn extends AppLocalizations {
       'The model choice couldn\'t be saved and won\'t survive a relaunch.';
 
   @override
+  String get modelTierBasicInfo =>
+      'The smallest and fastest. Rough on names and accents, fine for a quick note.';
+
+  @override
+  String get modelTierGoodInfo =>
+      'Quick, with clearer words than Tiny. Good for short notes in a quiet room.';
+
+  @override
+  String get modelTierBetterInfo =>
+      'The balance most iPhones want. Accurate for everyday speech in every language.';
+
+  @override
+  String get modelTierBestInfo =>
+      'Slower and careful. Strong on accents, quiet takes, and long entries.';
+
+  @override
+  String get modelTierTopInfo =>
+      'The best whisper offers. Needs a recent iPhone and a little patience per entry.';
+
+  @override
+  String get modelDownload => 'Download';
+
+  @override
+  String get modelUse => 'Use';
+
+  @override
+  String get modelInUse => 'In use';
+
+  @override
+  String get modelRemove => 'Remove';
+
+  @override
+  String get modelCancelDownload => 'Cancel';
+
+  @override
   String get engineBusyTitle => 'Recording in progress';
 
   @override

@@ -495,6 +495,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get modelNotSavedBody => 'モデルの選択を保存できず、再起動後には残りません。';
 
   @override
+  String get modelTierBasicInfo => '最小で最速。名前や訛りには弱く、手早いメモ向き。';
+
+  @override
+  String get modelTierGoodInfo => '速く、Tiny より言葉が明瞭。静かな場所での短いメモに。';
+
+  @override
+  String get modelTierBetterInfo => '多くの iPhone に合うバランス。あらゆる言語の日常的な話し言葉を正確に。';
+
+  @override
+  String get modelTierBestInfo => '遅いが丁寧。訛り、小声の録音、長い記録に強い。';
+
+  @override
+  String get modelTierTopInfo => 'Whisper の最高峰。新しめの iPhone と、記録ごとに少しの辛抱が必要。';
+
+  @override
+  String get modelDownload => 'ダウンロード';
+
+  @override
+  String get modelUse => '使う';
+
+  @override
+  String get modelInUse => '使用中';
+
+  @override
+  String get modelRemove => '削除';
+
+  @override
+  String get modelCancelDownload => 'キャンセル';
+
+  @override
   String get engineBusyTitle => '録音中';
 
   @override

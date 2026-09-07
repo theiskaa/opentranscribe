@@ -210,19 +210,19 @@ class _ModelsScreenState extends State<ModelsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+              const SettingsCard(children: [_RetranscribeRow()]),
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (state.offersModelChoice) ...[
                       SectionLabel(l10n.transcriptionModel),
-                      ModelCard(rows: state.models),
+                      ModelCards(rows: state.models),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              const SettingsCard(children: [_RetranscribeRow()]),
               const SizedBox(height: AppSpacing.md),
               _Melt(
                 child: Column(
@@ -319,6 +319,7 @@ class _EngineRow extends StatelessWidget {
       selected: row.isActive,
       dimmed: !row.available,
       note: row.available ? row.descriptor.blurb(l10n) : _unavailableNote(l10n),
+      noteLines: 2,
       onTap: () => _tap(context),
     );
   }

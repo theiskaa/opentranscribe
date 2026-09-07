@@ -335,6 +335,25 @@ void main() {
     expect(rowOf(cubit, 'small').failure, ModelInstallReason.offline);
   });
 
+  test('cancelling a model download clears its row and keeps nothing installed', () async {
+    engine.installed.clear();
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    cubit.installModel('large');
+    await Future<void>.delayed(Duration.zero);
+    expect(rowOf(cubit, 'large').installing, isTrue);
+    await cubit.cancelModelInstall('large');
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').installing, isFalse);
+    expect(rowOf(cubit, 'large').installed, isFalse);
+    expect(rowOf(cubit, 'large').failure, isNull);
+  });
+
   group('modelTooHeavy', () {
     test('a model past three fifths of the phone is heavy', () {
       expect(modelTooHeavy(peakBytes: 61, physicalBytes: 100), isTrue);

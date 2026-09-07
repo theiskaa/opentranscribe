@@ -990,6 +990,66 @@ abstract class AppLocalizations {
   /// **'The model choice couldn\'t be saved and won\'t survive a relaunch.'**
   String get modelNotSavedBody;
 
+  /// Two-line description under the smallest model tier on its card
+  ///
+  /// In en, this message translates to:
+  /// **'The smallest and fastest. Rough on names and accents, fine for a quick note.'**
+  String get modelTierBasicInfo;
+
+  /// Two-line description under the second model tier on its card
+  ///
+  /// In en, this message translates to:
+  /// **'Quick, with clearer words than Tiny. Good for short notes in a quiet room.'**
+  String get modelTierGoodInfo;
+
+  /// Two-line description under the third model tier on its card
+  ///
+  /// In en, this message translates to:
+  /// **'The balance most iPhones want. Accurate for everyday speech in every language.'**
+  String get modelTierBetterInfo;
+
+  /// Two-line description under the fourth model tier on its card
+  ///
+  /// In en, this message translates to:
+  /// **'Slower and careful. Strong on accents, quiet takes, and long entries.'**
+  String get modelTierBestInfo;
+
+  /// Two-line description under the largest model tier on its card
+  ///
+  /// In en, this message translates to:
+  /// **'The best whisper offers. Needs a recent iPhone and a little patience per entry.'**
+  String get modelTierTopInfo;
+
+  /// Button starting a model download
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get modelDownload;
+
+  /// Button making a downloaded model the one runs use
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get modelUse;
+
+  /// Label on the model card that runs use
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get modelInUse;
+
+  /// Text action deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get modelRemove;
+
+  /// Text action stopping a model download
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get modelCancelDownload;
+
   /// Sheet title when an engine switch is refused mid-take
   ///
   /// In en, this message translates to:

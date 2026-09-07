@@ -89,6 +89,7 @@ class SelectableRow extends StatelessWidget {
     this.flag,
     this.leading,
     this.note,
+    this.noteLines = 1,
     this.dimmed = false,
     super.key,
   });
@@ -96,9 +97,13 @@ class SelectableRow extends StatelessWidget {
   final String label;
 
   /// A quiet second line saying what the choice actually is (what an export
-  /// format writes). One line, and only inside a card: it makes the row taller
-  /// than the fixed height showAppDropdown estimates its popup by.
+  /// format writes). Only inside a card: it makes the row taller than the
+  /// fixed height showAppDropdown estimates its popup by.
   final String? note;
+
+  /// How many lines the note may take. One inside a popup, whose row height is
+  /// fixed; a card can afford the two an engine's blurb needs.
+  final int noteLines;
 
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
   /// choice with no chip (a reflection option).
@@ -146,9 +151,7 @@ class SelectableRow extends StatelessWidget {
             Expanded(
               child: _LabelAndNote(
                 note: note,
-                // One line each: a wrapped row would break showAppDropdown's
-                // fixed row estimate and misplace the popup.
-                oneLine: true,
+                maxLines: noteLines,
                 label: AnimatedDefaultTextStyle(
                   duration: duration,
                   curve: curve,
@@ -240,14 +243,13 @@ class SettingsToggleRow extends StatelessWidget {
 /// A row's name over its quiet second line, the one stack every settings row
 /// puts in its middle column.
 class _LabelAndNote extends StatelessWidget {
-  const _LabelAndNote({required this.label, required this.note, this.oneLine = false});
+  const _LabelAndNote({required this.label, required this.note, this.maxLines});
 
   final Widget label;
   final String? note;
 
-  /// Clips the note to one line, for a row inside a popup measured by a fixed
-  /// row height.
-  final bool oneLine;
+  /// Clips the note to this many lines; null lets it wrap freely.
+  final int? maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -260,8 +262,8 @@ class _LabelAndNote extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             note!,
-            maxLines: oneLine ? 1 : null,
-            overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
+            maxLines: maxLines,
+            overflow: maxLines == null ? TextOverflow.clip : TextOverflow.ellipsis,
             style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.3),
           ),
         ],
