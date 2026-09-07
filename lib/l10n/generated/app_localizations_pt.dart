@@ -545,12 +545,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get modelInUse => 'Em uso';
 
   @override
-  String get modelRemove => 'Remover';
-
-  @override
-  String get modelCancelDownload => 'Cancelar';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'As transferências só decorrem com a app aberta. Se sair, a transferência retoma onde parou quando voltar.';
 
@@ -622,6 +616,14 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return 'A preparar $model';
+  }
+
+  @override
+  String get modelQueued => 'Em fila';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model em fila';
   }
 
   @override

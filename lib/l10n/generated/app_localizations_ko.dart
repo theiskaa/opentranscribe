@@ -520,12 +520,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get modelInUse => '사용 중';
 
   @override
-  String get modelRemove => '제거';
-
-  @override
-  String get modelCancelDownload => '취소';
-
-  @override
   String get transcriptionDownloadFootnote =>
       '다운로드는 앱이 열려 있는 동안에만 진행됩니다. 앱을 떠나도 돌아오면 멈춘 곳에서 이어집니다.';
 
@@ -596,6 +590,14 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return '$model 준비 중';
+  }
+
+  @override
+  String get modelQueued => '대기 중';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model 대기 중';
   }
 
   @override

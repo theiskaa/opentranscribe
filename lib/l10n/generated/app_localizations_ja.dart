@@ -519,12 +519,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get modelInUse => '使用中';
 
   @override
-  String get modelRemove => '削除';
-
-  @override
-  String get modelCancelDownload => 'キャンセル';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'ダウンロードはアプリを開いている間だけ進みます。アプリを離れても、戻ったときに止まったところから再開します。';
 
@@ -595,6 +589,14 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return '$model を準備中';
+  }
+
+  @override
+  String get modelQueued => '待機中';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model は待機中';
   }
 
   @override

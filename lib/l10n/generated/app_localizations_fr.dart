@@ -546,12 +546,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get modelInUse => 'Utilisé';
 
   @override
-  String get modelRemove => 'Supprimer';
-
-  @override
-  String get modelCancelDownload => 'Annuler';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'Les téléchargements ne se font que lorsque l\'app est ouverte. Si vous la quittez, le téléchargement reprend là où il s\'est arrêté à votre retour.';
 
@@ -623,6 +617,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return 'Préparation de $model';
+  }
+
+  @override
+  String get modelQueued => 'En attente';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model en attente';
   }
 
   @override

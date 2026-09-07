@@ -1038,18 +1038,6 @@ abstract class AppLocalizations {
   /// **'In use'**
   String get modelInUse;
 
-  /// Text action deleting a downloaded model; the same word as the confirm sheet's button
-  ///
-  /// In en, this message translates to:
-  /// **'Remove'**
-  String get modelRemove;
-
-  /// Text action stopping a model download; the same word as the re-transcribe sheet's cancel
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get modelCancelDownload;
-
   /// Footnote under the model cards while a model downloads: downloads need the app open, and resume on return
   ///
   /// In en, this message translates to:
@@ -1145,6 +1133,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preparing {model}'**
   String modelPreparingLabel(String model);
+
+  /// Model card line while its download waits behind another
+  ///
+  /// In en, this message translates to:
+  /// **'In queue'**
+  String get modelQueued;
+
+  /// VoiceOver name of a model card's control while its download waits its turn
+  ///
+  /// In en, this message translates to:
+  /// **'{model} in queue'**
+  String modelQueuedLabel(String model);
 
   /// Sheet title when an engine switch is refused mid-take
   ///

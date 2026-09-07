@@ -540,12 +540,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelInUse => 'In use';
 
   @override
-  String get modelRemove => 'Remove';
-
-  @override
-  String get modelCancelDownload => 'Cancel';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.';
 
@@ -617,6 +611,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return 'Preparing $model';
+  }
+
+  @override
+  String get modelQueued => 'In queue';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model in queue';
   }
 
   @override

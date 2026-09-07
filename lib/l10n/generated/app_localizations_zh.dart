@@ -516,12 +516,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelInUse => '使用中';
 
   @override
-  String get modelRemove => '移除';
-
-  @override
-  String get modelCancelDownload => '取消';
-
-  @override
   String get transcriptionDownloadFootnote => '下载只在应用打开时进行。离开后，回来时会从停下的地方继续。';
 
   @override
@@ -591,6 +585,14 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String modelPreparingLabel(String model) {
     return '正在准备 $model';
+  }
+
+  @override
+  String get modelQueued => '排队中';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model 排队中';
   }
 
   @override

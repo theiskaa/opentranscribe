@@ -734,14 +734,6 @@
   "@modelInUse": {
     "description": "Label on the card of the model transcription uses"
   },
-  "modelRemove": "Remove",
-  "@modelRemove": {
-    "description": "Text action deleting a downloaded model; the same word as the confirm sheet's button"
-  },
-  "modelCancelDownload": "Cancel",
-  "@modelCancelDownload": {
-    "description": "Text action stopping a model download; the same word as the re-transcribe sheet's cancel"
-  },
   "transcriptionDownloadFootnote": "Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.",
   "@transcriptionDownloadFootnote": {
     "description": "Footnote under the model cards while a model downloads: downloads need the app open, and resume on return"
@@ -866,6 +858,19 @@
   "modelPreparingLabel": "Preparing {model}",
   "@modelPreparingLabel": {
     "description": "VoiceOver name of a model card's control while the install prepares",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelQueued": "In queue",
+  "@modelQueued": {
+    "description": "Model card line while its download waits behind another"
+  },
+  "modelQueuedLabel": "{model} in queue",
+  "@modelQueuedLabel": {
+    "description": "VoiceOver name of a model card's control while its download waits its turn",
     "placeholders": {
       "model": {
         "type": "String"
