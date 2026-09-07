@@ -15,7 +15,9 @@ import 'package:transcriber/src/whisper/whisper_runtime.dart';
 /// whisper.cpp as a batch-only engine: one downloaded model serves every
 /// language it knows. The per-language [ManagedModelEngine] questions answer
 /// for the selected model, so the app's language surfaces keep working
-/// unchanged; the model choice itself is [ModelChoiceEngine].
+/// unchanged; the model choice itself is [ModelChoiceEngine]. The language
+/// list follows the selected model: every model knows the same ninety-nine,
+/// and the large-v3 family adds Cantonese.
 ///
 /// Guarantees a caller may rely on: audio never leaves the device, and the
 /// only connection the engine ever opens is the [ModelFetcher]'s, for a
@@ -71,9 +73,12 @@ class WhisperEngine
   // Bumped by cancelBatches; a run queued before the bump never starts.
   int _generation = 0;
   bool _running = false;
-  // Ids with a download in flight or waiting its turn; a removal under one
+  // The model the run in flight is loading or using, whatever the choice
+  // moved to since.
+  String? _runningModelId;
+  // Downloads in flight or waiting their turn, per id; a removal under one
   // would pull the file from beneath the fetcher.
-  final Set<String> _installing = {};
+  final Map<String, int> _installing = {};
   Future<void> Function()? _cancelFirstUse;
 
   @override
@@ -92,14 +97,20 @@ class WhisperEngine
     return stat.type == FileSystemEntityType.file && stat.size == model.option.bytes;
   }
 
+  /// The whisper code the selected model can run [localeId] as, or null.
+  String? _codeFor(String localeId) {
+    final code = whisperLanguageCode(localeId);
+    return code != null && _model(_selectedId).speaks(code) ? code : null;
+  }
+
   @override
   Future<Availability> checkAvailability({required String localeId}) async =>
-      whisperLanguageCode(localeId) == null
+      _codeFor(localeId) == null
       ? Availability(AvailabilityStatus.onDeviceUnavailable, detail: 'unsupported: $localeId')
       : const Availability.available();
 
   @override
-  Future<List<String>> supportedLocales() async => List.unmodifiable(whisperLanguageTags.values);
+  Future<List<String>> supportedLocales() async => _model(_selectedId).supportedTags;
 
   @override
   Future<Transcript> transcribeFile(
@@ -108,7 +119,7 @@ class WhisperEngine
     Duration? start,
     Duration? end,
   }) async {
-    final language = whisperLanguageCode(localeId);
+    final language = _codeFor(localeId);
     if (language == null) throw OnDeviceUnavailable('unsupported: $localeId');
     final generation = _generation;
     final run = _batches.then(
@@ -130,6 +141,7 @@ class WhisperEngine
     if (generation != _generation) throw _cancelled;
     final model = _model(_selectedId);
     _running = true;
+    _runningModelId = model.id;
     try {
       if (!await _installed(model)) await _installFirstUse(model);
       if (generation != _generation) throw _cancelled;
@@ -165,6 +177,7 @@ class WhisperEngine
       return _transcript(segments, localeId);
     } finally {
       _running = false;
+      _runningModelId = null;
     }
   }
 
@@ -278,30 +291,33 @@ class WhisperEngine
     // A consumer cancel completes done without closing the controller, so
     // "gone" is the listener, not the closed flag.
     bool gone() => controller.isClosed || !controller.hasListener;
+    void release() {
+      final left = (_installing[id] ?? 1) - 1;
+      if (left <= 0) {
+        _installing.remove(id);
+      } else {
+        _installing[id] = left;
+      }
+    }
+
     Future<void> finish() async {
-      _installing.remove(id);
+      release();
       if (gone()) return;
       controller.add(const ModelInstallProgress(fraction: 1, done: true));
       await controller.close();
     }
 
     Future<void> fail(Object error, StackTrace stack) async {
-      _installing.remove(id);
+      release();
       if (gone()) return;
       controller.addError(error, stack);
       await controller.close();
     }
 
     Future<void> begin() async {
-      if (gone()) {
-        _installing.remove(id);
-        return;
-      }
+      if (gone()) return release();
       if (await _installed(model)) return finish();
-      if (gone()) {
-        _installing.remove(id);
-        return;
-      }
+      if (gone()) return release();
       fetching = _fetcher
           .fetch(
             model.source,
@@ -319,10 +335,7 @@ class WhisperEngine
             },
             onError: fail,
             onDone: () async {
-              if (gone()) {
-                _installing.remove(id);
-                return;
-              }
+              if (gone()) return release();
               if (await _installed(model)) return finish();
               await fail(
                 const ModelInstallFailed(
@@ -338,13 +351,13 @@ class WhisperEngine
 
     controller = StreamController<ModelInstallProgress>(
       onListen: () {
-        _installing.add(id);
+        _installing[id] = (_installing[id] ?? 0) + 1;
         final previous = _installs;
         _installs = controller.done;
         unawaited(previous.then((_) => begin()).catchError(fail));
       },
       onCancel: () async {
-        _installing.remove(id);
+        release();
         await fetching?.cancel();
       },
     );
@@ -354,8 +367,8 @@ class WhisperEngine
   @override
   Future<bool> removeModel(String id) async {
     final model = _model(id);
-    if (_running && (model.id == _selectedId || model.id == _sessionModelId)) return false;
-    if (_installing.contains(model.id)) return false;
+    if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) return false;
+    if (_installing.containsKey(model.id)) return false;
     if (_sessionModelId == model.id) await _closeSession();
     final file = _file(model);
     final part = File('${file.path}$modelPartSuffix');
@@ -378,7 +391,7 @@ class WhisperEngine
 
   @override
   Future<LocaleModelStatus> localeStatus({required String localeId}) async {
-    final resolved = whisperResolvedTag(localeId);
+    final resolved = _codeFor(localeId) == null ? null : whisperResolvedTag(localeId);
     if (resolved == null) {
       return LocaleModelStatus(
         status: ModelAssetStatus.unsupported,

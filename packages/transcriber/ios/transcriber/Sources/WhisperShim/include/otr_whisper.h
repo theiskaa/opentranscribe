@@ -28,7 +28,8 @@ OTR_API otr_whisper *otr_whisper_open(const char *model_path, int32_t use_gpu);
 OTR_API void otr_whisper_close(otr_whisper *w);
 
 // Transcribes 16 kHz mono float samples. language is a whisper code ("en",
-// "tr"), NULL or empty for auto detection; an unknown code is OTR_BAD_ARGS.
+// "tr"), NULL or empty for auto detection; a code unknown to whisper, or one
+// this model has no token for, is OTR_BAD_ARGS.
 // abort_flag is polled between passes: nonzero ends the run as OTR_ABORTED.
 // Segments from the previous run are gone once this returns.
 OTR_API int32_t otr_whisper_run(

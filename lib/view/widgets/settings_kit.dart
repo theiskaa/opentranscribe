@@ -101,8 +101,8 @@ class SelectableRow extends StatelessWidget {
   /// fixed height showAppDropdown estimates its popup by.
   final String? note;
 
-  /// How many lines the note may take. One inside a popup, whose row height is
-  /// fixed; a card can afford the two an engine's blurb needs.
+  /// How many lines the note may take: one inside a popup, whose row height
+  /// is fixed by showAppDropdown; more inside a card.
   final int noteLines;
 
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain

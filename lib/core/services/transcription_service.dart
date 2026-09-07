@@ -198,8 +198,8 @@ class TranscriptionService {
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
   final StreamController<FirstUseInstall> _firstUseInstalls =
       StreamController<FirstUseInstall>.broadcast();
-  // Ends the pre-install a batch waits on, so a cancel stops it like the run.
-  Future<void> Function()? _firstUseWaiter;
+  // Ends the pre-installs batches wait on, so a cancel stops them like the run.
+  final Set<Future<void> Function()> _firstUseWaiters = {};
   final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
@@ -422,9 +422,13 @@ class TranscriptionService {
     final previous = _engine;
     _engine = engine;
     _notifyModelStateChanged();
-    // A model the old engine holds in memory has no reader now; best effort,
-    // like every other teardown, so a refusing release cannot fail a switch.
-    if (previous is ReleasableEngine) unawaited(previous.release().catchError((_) {}));
+    // A model the old engine holds in memory has no reader now, unless a
+    // user's re-transcription still runs on it (retranscribe releases then).
+    // Best effort, like every other teardown, so a refusing release cannot
+    // fail a switch.
+    if (_userBatches == 0 && previous is ReleasableEngine) {
+      unawaited(previous.release().catchError((_) {}));
+    }
     return true;
   }
 
@@ -1828,11 +1832,16 @@ class TranscriptionService {
   /// the file twice. An entry with no recording throws [RecordingMissing]:
   /// nothing to re-hear, and no retry can change that.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
+    final engine = using ?? _engine;
     _userBatches++;
     try {
-      return await _retranscribeGuarded(entry, using: using, localeId: localeId);
+      return await _retranscribeGuarded(entry, using: engine, localeId: localeId);
     } finally {
       _userBatches--;
+      // The switch useEngine deferred while this run held its engine.
+      if (_userBatches == 0 && !identical(engine, _engine) && engine is ReleasableEngine) {
+        unawaited(engine.release().catchError((_) {}));
+      }
     }
   }
 
@@ -2160,10 +2169,8 @@ class TranscriptionService {
       if (!done.isCompleted) done.completeError(cancelled);
     }
 
-    _firstUseWaiter = cancel;
-    return done.future.whenComplete(() {
-      if (identical(_firstUseWaiter, cancel)) _firstUseWaiter = null;
-    });
+    _firstUseWaiters.add(cancel);
+    return done.future.whenComplete(() => _firstUseWaiters.remove(cancel));
   }
 
   /// Cancels [engine]'s in-flight batch passes, when it supports that, and
@@ -2171,8 +2178,9 @@ class TranscriptionService {
   /// CancellableBatchEngine does not extend TranscriptionEngine, so `is`
   /// alone cannot promote; the cast makes the member visible.
   Future<void> _cancelEngineBatches(TranscriptionEngine engine) async {
-    final firstUse = _firstUseWaiter;
-    if (firstUse != null) await firstUse();
+    for (final cancel in _firstUseWaiters.toList()) {
+      await cancel();
+    }
     if (engine is CancellableBatchEngine) {
       await (engine as CancellableBatchEngine).cancelBatches();
     }

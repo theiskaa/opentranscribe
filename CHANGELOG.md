@@ -6,7 +6,7 @@ All notable changes to opentranscribe are documented here. Each release section 
 
 A third engine, Whisper, that runs every language from one model you pick, on any iPhone.
 
-- Whisper: whisper.cpp joins SpeechAnalyzer and Dictation on the transcription screen. Pick it, pick a model (Tiny, Base, Small, Medium, or Large Turbo, each with its size and a quality word), and one download serves all hundred languages it knows, including the ones the Apple engines have no model for. The live text stays off under Whisper; the transcript lands after you stop. The model card shows the download as it runs, dims a model too large for the phone, and lets you remove one you no longer want; the Cache screen counts what the models hold.
+- Whisper: whisper.cpp joins SpeechAnalyzer and Dictation on the transcription screen. Pick it, pick a model (Tiny, Base, Small, Medium, or Large Turbo, each with its size and a quality word), and one download serves the ninety-nine languages every model knows (Large Turbo adds Cantonese), including the ones the Apple engines have no model for. The live text stays off under Whisper; the transcript lands after you stop. The model card shows the download as it runs, dims a model too large for the phone, and lets you remove one you no longer want; the Cache screen counts what the models hold.
 - The one connection: downloading a model is the only thing the app ever does over the network. It fetches a public file from one pinned host, resumes an interrupted download where it stopped, verifies the file before it counts, and sends nothing. Everything else keeps working in airplane mode, and the one-rule test now holds the code to exactly that one file.
 
 ## 0.4.0 - 2026-09-02

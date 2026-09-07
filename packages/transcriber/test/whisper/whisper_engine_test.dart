@@ -50,13 +50,31 @@ void main() {
   }
 
   group('identity and languages', () {
-    test('the engine is on-device and lists every whisper language as a tag', () async {
+    test('the engine is on-device and lists the languages the selected model carries', () async {
       final e = engine();
 
       expect(e.id, 'whisper.cpp');
       expect(e.onDeviceOnly, isTrue);
-      expect(await e.supportedLocales(), hasLength(100));
+      expect(await e.supportedLocales(), hasLength(99));
       expect(await e.supportedLocales(), contains('ka-GE'));
+      expect(await e.supportedLocales(), isNot(contains('yue-HK')));
+
+      await e.selectModel('large-v3-turbo-q5_0');
+      expect(await e.supportedLocales(), hasLength(100));
+      expect(await e.supportedLocales(), contains('yue-HK'));
+    });
+
+    test('Cantonese is refused on a model without its token, never sent as another', () async {
+      final e = engine();
+      await install(e);
+
+      expect((await e.checkAvailability(localeId: 'yue-HK')).isAvailable, isFalse);
+      expect((await e.localeStatus(localeId: 'yue-HK')).status, ModelAssetStatus.unsupported);
+      await expectLater(
+        e.transcribeFile(audio, localeId: 'yue-HK'),
+        throwsA(isA<OnDeviceUnavailable>()),
+      );
+      expect(runtime.runs, isEmpty);
     });
 
     test('an unknown language is unavailable and a known one available in any region', () async {
@@ -434,6 +452,44 @@ void main() {
       expect(runtime.loads, hasLength(2));
     });
 
+    test(
+      'removing the model a run is still loading is refused after the choice moved on',
+      () async {
+        final loadGate = Completer<void>();
+        runtime.loadGate = loadGate.future;
+        final e = engine();
+        await install(e);
+        await install(e, 'tiny-q5_1');
+
+        final running = e.transcribeFile(audio, localeId: 'en-US');
+        await until(() => runtime.loads.isNotEmpty);
+        await e.selectModel('tiny-q5_1');
+        expect(await e.removeModel(whisperDefaultModelId), isFalse);
+
+        runtime.loadGate = null;
+        loadGate.complete();
+        await running;
+        expect(await e.removeModel(whisperDefaultModelId), isTrue);
+      },
+    );
+
+    test('a removal stays refused while a second install of the same model still runs', () async {
+      final gate = Completer<void>();
+      fetcher = FakeModelFetcher(gate: gate.future);
+      final e = engine();
+
+      final first = e.installModelById('tiny-q5_1').listen(null);
+      final second = e.installModelById('tiny-q5_1').drain<void>();
+      await until(() => fetcher.calls.isNotEmpty);
+      await first.cancel();
+      expect(await e.removeModel('tiny-q5_1'), isFalse);
+
+      fetcher.gate = null;
+      gate.complete();
+      await second;
+      expect(await e.installedModels(), {'tiny-q5_1'});
+    });
+
     test('a consumer leaving an install hands the turn to the next', () async {
       final gate = Completer<void>();
       fetcher = FakeModelFetcher(gate: gate.future);
@@ -610,7 +666,7 @@ void main() {
         await install(e);
 
         expect(await e.isModelInstalled(localeId: 'ka-GE'), isTrue);
-        expect(await e.installedLocales(), hasLength(100));
+        expect(await e.installedLocales(), hasLength(99));
         final status = await e.localeStatus(localeId: 'de-AT');
         expect(status.status, ModelAssetStatus.installed);
         expect(status.reserved, isTrue);

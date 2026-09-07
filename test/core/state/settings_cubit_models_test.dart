@@ -97,7 +97,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').installing, isTrue);
     expect(rowOf(cubit, 'large').installFraction, 0.7);
@@ -135,7 +135,7 @@ void main() {
     final cubit = buildFor(scoped);
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     await cubit.selectModel('medium');
     gate.complete();
@@ -152,8 +152,8 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
-    cubit.installModel('large');
+    cubit.installModelById('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
 
     expect(engine.installs, ['large']);
@@ -165,13 +165,13 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await pumpEventQueue();
     expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
     expect(rowOf(cubit, 'large').installed, isFalse);
 
     engine.failInstall = null;
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').failure, isNull);
   });
@@ -312,7 +312,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     await cubit.close();
     gate.complete();
@@ -342,16 +342,38 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModel('large');
+    cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').installing, isTrue);
-    await cubit.cancelModelInstall('large');
+    await cubit.cancelModelInstallById('large');
     gate.complete();
     await pumpEventQueue();
 
     expect(rowOf(cubit, 'large').installing, isFalse);
     expect(rowOf(cubit, 'large').installed, isFalse);
     expect(rowOf(cubit, 'large').failure, isNull);
+  });
+
+  test('a picker-started download can be cancelled and a first-use one cannot', () async {
+    engine.installed.clear();
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    cubit.installModelById('large');
+    await Future<void>.delayed(Duration.zero);
+    expect(rowOf(cubit, 'large').cancellable, isTrue);
+    await cubit.cancelModelInstallById('large');
+    engine.installSteps = [0.4];
+    await service.startRecording();
+    final stop = service.stopRecording();
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').installing, isTrue);
+    expect(rowOf(cubit, 'small').cancellable, isFalse);
+
+    gate.complete();
+    await stop;
   });
 
   group('modelTooHeavy', () {

@@ -521,7 +521,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get modelTierGoodInfo =>
-      'Rápido, com palavras mais nítidas do que o Tiny. Bom para notas curtas num sítio sossegado.';
+      'Rápido, com palavras mais nítidas do que o mais pequeno. Bom para notas curtas num sítio sossegado.';
 
   @override
   String get modelTierBetterInfo =>
@@ -533,7 +533,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get modelTierTopInfo =>
-      'O melhor que o Whisper oferece. Precisa de um iPhone recente e de alguma paciência por entrada.';
+      'O melhor disponível. Precisa de um iPhone recente e de alguma paciência por entrada.';
 
   @override
   String get modelDownload => 'Transferir';

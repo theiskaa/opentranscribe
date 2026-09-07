@@ -414,7 +414,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String engineStorageUnavailableBody(String engine) {
-    return '$engine konnte bei diesem Start nicht auf seinen Modellspeicher zugreifen. Starte die App neu, um es erneut zu versuchen.';
+    return '$engine konnte bei diesem Start nicht auf seinen Modellspeicher zugreifen. Starten Sie die App neu, um es erneut zu versuchen.';
   }
 
   @override
@@ -448,7 +448,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelTooHeavyBody(String model) {
-    return '$model braucht mehr Arbeitsspeicher, als dieses iPhone hat. Wähle ein kleineres Modell.';
+    return '$model braucht mehr Arbeitsspeicher, als dieses iPhone hat. Wählen Sie ein kleineres Modell.';
   }
 
   @override
@@ -458,7 +458,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelRemoveBody(String size) {
-    return 'Gibt $size frei. Du kannst es jederzeit erneut laden.';
+    return 'Gibt $size frei. Sie können es jederzeit erneut laden.';
   }
 
   @override
@@ -469,7 +469,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelBusyBody(String model) {
-    return '$model transkribiert gerade. Versuche es, wenn es fertig ist.';
+    return '$model transkribiert gerade. Versuchen Sie es, wenn es fertig ist.';
   }
 
   @override
@@ -477,7 +477,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelFailOfflineBody(String model) {
-    return 'Das Laden von $model braucht eine Verbindung. Nichts anderes in der App braucht je eine. Verbinde dich und versuche es erneut.';
+    return 'Das Laden von $model braucht eine Verbindung. Nichts anderes in der App braucht je eine. Verbinden Sie sich und versuchen Sie es erneut.';
   }
 
   @override
@@ -485,7 +485,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelFailRejectedBody(String model) {
-    return 'Die Datei von $model entsprach nicht dem Erwarteten und wurde verworfen. Versuche es erneut.';
+    return 'Die Datei von $model entsprach nicht dem Erwarteten und wurde verworfen. Versuchen Sie es erneut.';
   }
 
   @override
@@ -493,14 +493,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String modelFailNoSpaceBody(String size) {
-    return 'Schaffe $size Platz auf diesem iPhone und versuche es erneut.';
+    return 'Schaffen Sie $size Platz auf diesem iPhone und versuchen Sie es erneut.';
   }
 
   @override
   String get cacheModels => 'Modelle';
 
   @override
-  String get cacheModelsInfo => 'Geladene Modelle verwaltest du im Bereich Transkription.';
+  String get cacheModelsInfo => 'Geladene Modelle verwalten Sie im Bereich Transkription.';
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
@@ -520,7 +520,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get modelTierGoodInfo =>
-      'Schnell, mit klareren Wörtern als Tiny. Gut für kurze Notizen im ruhigen Raum.';
+      'Schnell, mit klareren Wörtern als das kleinste. Gut für kurze Notizen im ruhigen Raum.';
 
   @override
   String get modelTierBetterInfo =>
@@ -532,7 +532,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get modelTierTopInfo =>
-      'Das Beste, was Whisper bietet. Braucht ein neueres iPhone und etwas Geduld pro Eintrag.';
+      'Das Beste im Angebot. Braucht ein neueres iPhone und etwas Geduld pro Eintrag.';
 
   @override
   String get modelDownload => 'Laden';

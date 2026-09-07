@@ -706,7 +706,7 @@
   "@modelTierBasicInfo": {
     "description": "Two-line description under the smallest model tier on its card"
   },
-  "modelTierGoodInfo": "Quick, with clearer words than Tiny. Good for short notes in a quiet room.",
+  "modelTierGoodInfo": "Quick, with clearer words than the smallest. Good for short notes in a quiet room.",
   "@modelTierGoodInfo": {
     "description": "Two-line description under the second model tier on its card"
   },
@@ -718,7 +718,7 @@
   "@modelTierBestInfo": {
     "description": "Two-line description under the fourth model tier on its card"
   },
-  "modelTierTopInfo": "The best whisper offers. Needs a recent iPhone and a little patience per entry.",
+  "modelTierTopInfo": "The best on offer. Needs a recent iPhone and a little patience per entry.",
   "@modelTierTopInfo": {
     "description": "Two-line description under the largest model tier on its card"
   },
@@ -728,19 +728,19 @@
   },
   "modelUse": "Use",
   "@modelUse": {
-    "description": "Button making a downloaded model the one runs use"
+    "description": "Button that makes a downloaded model the one transcription uses"
   },
   "modelInUse": "In use",
   "@modelInUse": {
-    "description": "Label on the model card that runs use"
+    "description": "Label on the card of the model transcription uses"
   },
   "modelRemove": "Remove",
   "@modelRemove": {
-    "description": "Text action deleting a downloaded model"
+    "description": "Text action deleting a downloaded model; the same word as the confirm sheet's button"
   },
   "modelCancelDownload": "Cancel",
   "@modelCancelDownload": {
-    "description": "Text action stopping a model download"
+    "description": "Text action stopping a model download; the same word as the re-transcribe sheet's cancel"
   },
   "engineBusyTitle": "Recording in progress",
   "@engineBusyTitle": {

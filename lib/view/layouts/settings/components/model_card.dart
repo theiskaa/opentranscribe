@@ -11,6 +11,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
@@ -19,8 +20,8 @@ import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// What a card's action area means, folded in priority: a download in
-/// flight, then a failure, then too heavy while absent, then present or not.
+/// What a card's control means, folded in priority: a download in flight,
+/// then a failure, then too heavy while absent, then present or not.
 enum ModelRowFace { installing, failed, heavy, download, selected, installed }
 
 ModelRowFace modelRowFace(ModelRowState row) {
@@ -30,8 +31,7 @@ ModelRowFace modelRowFace(ModelRowState row) {
   return row.selected ? ModelRowFace.selected : ModelRowFace.installed;
 }
 
-/// The quality word a picker shows for a tier.
-String modelQualityWord(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
+String _qualityWord(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
   ModelQuality.basic => l10n.modelQualityBasic,
   ModelQuality.good => l10n.modelQualityGood,
   ModelQuality.better => l10n.modelQualityBetter,
@@ -39,8 +39,7 @@ String modelQualityWord(AppLocalizations l10n, ModelQuality quality) => switch (
   ModelQuality.top => l10n.modelQualityTop,
 };
 
-/// The two lines a card says about what a tier is good for.
-String modelTierInfo(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
+String _tierInfo(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
   ModelQuality.basic => l10n.modelTierBasicInfo,
   ModelQuality.good => l10n.modelTierGoodInfo,
   ModelQuality.better => l10n.modelTierBetterInfo,
@@ -48,10 +47,25 @@ String modelTierInfo(AppLocalizations l10n, ModelQuality quality) => switch (qua
   ModelQuality.top => l10n.modelTierTopInfo,
 };
 
+/// The title and body a failed download wears, by its reason.
+(String, String) _failureWords(BuildContext context, AppLocalizations l10n, ModelRowState row) =>
+    switch (row.failure!) {
+      ModelInstallReason.offline => (
+        l10n.modelFailOfflineTitle,
+        l10n.modelFailOfflineBody(row.option.displayName),
+      ),
+      ModelInstallReason.noSpace => (
+        l10n.modelFailNoSpaceTitle,
+        l10n.modelFailNoSpaceBody(formatBytes(row.option.bytes, localeTag(context))),
+      ),
+      ModelInstallReason.rejected || ModelInstallReason.cancelled => (
+        l10n.modelFailRejectedTitle,
+        l10n.modelFailRejectedBody(row.option.displayName),
+      ),
+    };
+
 /// The models an engine offers, one card each: the name and size, two lines
-/// on what the tier is for, and the action its state calls for: a download,
-/// the download's own bar with a cancel, the mark of the one in use, or Use
-/// and Remove on a present one.
+/// on what the tier is for, and one control that follows the model's state.
 class ModelCards extends StatelessWidget {
   const ModelCards({required this.rows, super.key});
 
@@ -85,17 +99,17 @@ class _ModelTile extends StatelessWidget {
     final dimmed = face == ModelRowFace.heavy;
     final motion = context.motionNow;
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
-    // The ring glides between cards rather than jumping, like the theme
+    // The edge glides between cards rather than jumping, like the theme
     // cards' selection.
     return TweenAnimationBuilder<Color?>(
       tween: ColorTween(end: row.selected ? theme.accent : tokens.cardBorder),
       duration: duration,
       curve: motion.indicatorCurve,
-      builder: (context, ring, child) => DecoratedBox(
+      builder: (context, edge, child) => DecoratedBox(
         decoration: SuperellipseDecoration(
           borderRadius: tokens.cardRadius,
           color: tokens.cardBackground,
-          border: BorderSide(color: ring ?? tokens.cardBorder),
+          border: BorderSide(color: edge ?? tokens.cardBorder),
         ),
         child: child,
       ),
@@ -120,7 +134,7 @@ class _ModelTile extends StatelessWidget {
                 Text(
                   l10n.modelSizeAndQuality(
                     formatBytes(row.option.bytes, localeTag(context)),
-                    modelQualityWord(l10n, row.option.quality),
+                    _qualityWord(l10n, row.option.quality),
                   ),
                   style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
                 ),
@@ -128,7 +142,7 @@ class _ModelTile extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(
-              modelTierInfo(l10n, row.option.quality),
+              _tierInfo(l10n, row.option.quality),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.3),
@@ -142,72 +156,41 @@ class _ModelTile extends StatelessWidget {
   }
 }
 
-/// The card's bottom band: one control that stays in place and changes shape
-/// as the model's state does, the App Store's own pattern. A Download pill
-/// becomes the ring as bytes arrive, the ring becomes Use once the file is
-/// whole, and Use becomes the In use mark on a pick; the pill morphs its
-/// width and fill while the words inside fade. The band's other words (the
-/// percent, Cancel, Remove, a failure) sit to its right.
+/// The card's bottom band, fixed-height so a face change never resizes the
+/// card: one pill that morphs between Download, the ring, Use and In use,
+/// with the percent, Cancel, Remove or a failure to its right.
 class _ModelAction extends StatelessWidget {
   const _ModelAction({required this.row, required this.face});
 
   final ModelRowState row;
   final ModelRowFace face;
 
-  /// The band's height, so a card never resizes when its face changes.
-  static const double _height = 32;
-
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
     final cubit = context.read<SettingsCubit>();
     final id = row.option.id;
-    if (face == ModelRowFace.heavy) {
-      return SizedBox(
-        height: _height,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            l10n.modelTooHeavyNote,
-            style: AppType.footnote.copyWith(color: theme.textSecondary),
-          ),
-        ),
-      );
-    }
     return SizedBox(
-      height: _height,
+      height: context.theme.button.bandHeight,
       child: Row(
         children: [
           _ControlPill(
             face: face,
             fraction: row.installFraction,
             onTap: switch (face) {
-              ModelRowFace.download || ModelRowFace.failed => () => cubit.installModel(id),
+              ModelRowFace.download || ModelRowFace.failed => () => cubit.installModelById(id),
               ModelRowFace.installed => () => _use(context),
               _ => null,
             },
           ),
           const SizedBox(width: AppSpacing.md),
-          ...switch (face) {
-            ModelRowFace.installing => [
-              RollingText(
-                text: '${((row.installFraction ?? 0).clamp(0.0, 1.0) * 100).round()}%',
-                style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
-              ),
-              const Spacer(),
-              _TextAction(
-                label: l10n.modelCancelDownload,
-                onTap: () => cubit.cancelModelInstall(id),
-              ),
-            ],
-            ModelRowFace.installed => [
-              const Spacer(),
-              _TextAction(label: l10n.modelRemove, onTap: () => _confirmRemove(context)),
-            ],
-            ModelRowFace.failed => [Expanded(child: _FailureLine(row: row))],
-            _ => const <Widget>[],
-          },
+          Expanded(
+            child: _BandTrail(
+              row: row,
+              face: face,
+              onCancel: () => cubit.cancelModelInstallById(id),
+              onRemove: () => _confirmRemove(context),
+            ),
+          ),
         ],
       ),
     );
@@ -272,10 +255,49 @@ class _ModelAction extends StatelessWidget {
   }
 }
 
-/// The control itself: a pill whose width, fill, and words follow the face,
-/// each on the indicator motion, so a state change is one shape moving
-/// rather than one control replaced by another. The ring face is the pill at
-/// its narrowest, holding only the ring.
+/// The words to the pill's right: the rolling percent and a Cancel while a
+/// download this screen started runs, Remove beside a present model, the
+/// reason beside a failed download.
+class _BandTrail extends StatelessWidget {
+  const _BandTrail({
+    required this.row,
+    required this.face,
+    required this.onCancel,
+    required this.onRemove,
+  });
+
+  final ModelRowState row;
+  final ModelRowFace face;
+  final VoidCallback onCancel;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    return switch (face) {
+      ModelRowFace.installing => Row(
+        children: [
+          RollingText(
+            text: '${((row.installFraction ?? 0).clamp(0.0, 1.0) * 100).round()}%',
+            style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+          ),
+          const Spacer(),
+          if (row.cancellable) _TextAction(label: l10n.modelCancelDownload, onTap: onCancel),
+        ],
+      ),
+      ModelRowFace.installed => Align(
+        alignment: Alignment.centerRight,
+        child: _TextAction(label: l10n.modelRemove, onTap: onRemove),
+      ),
+      ModelRowFace.failed => _FailureLine(row: row),
+      _ => const SizedBox.shrink(),
+    };
+  }
+}
+
+/// The pill whose width, fill and words follow the face on the indicator
+/// motion; the ring face is the pill at its narrowest.
 class _ControlPill extends StatelessWidget {
   const _ControlPill({required this.face, required this.fraction, required this.onTap});
 
@@ -283,19 +305,20 @@ class _ControlPill extends StatelessWidget {
   final double? fraction;
   final VoidCallback? onTap;
 
-  static const double _height = _ModelAction._height;
+  static const double _ringSize = 18;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final button = theme.button;
+    final height = button.bandHeight;
     final l10n = AppLocalizations.of(context)!;
     final motion = context.motionNow;
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
     final fade = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
     final (fill, border, ink) = switch (face) {
       ModelRowFace.installed => (button.background, button.background, button.foreground),
-      // The toggle's own green: the one colour in the app that already means on.
+      // The toggle's green already means on.
       ModelRowFace.selected => (
         theme.settings.toggleActive.withValues(alpha: 0.14),
         theme.settings.toggleActive.withValues(alpha: 0.14),
@@ -304,8 +327,10 @@ class _ControlPill extends StatelessWidget {
       _ => (button.secondaryBackground, button.secondaryBorder, button.secondaryForeground),
     };
     final ring = face == ModelRowFace.installing;
+    final progress = fraction ?? 0;
     final content = switch (face) {
-      ModelRowFace.installing => ProgressRing(fraction: fraction ?? 0, size: 18),
+      ModelRowFace.installing when progress <= 0 => AppSpinner(color: ink),
+      ModelRowFace.installing => ProgressRing(fraction: progress, size: _ringSize),
       ModelRowFace.download => _PillWords(
         icon: AppIcons.icloud,
         text: l10n.modelDownload,
@@ -322,7 +347,7 @@ class _ControlPill extends StatelessWidget {
         text: l10n.modelInUse,
         ink: ink,
       ),
-      ModelRowFace.heavy => const SizedBox.shrink(),
+      ModelRowFace.heavy => _PillWords(text: l10n.modelTooHeavyNote, ink: theme.textSecondary),
     };
     return Touchable(
       onTap: onTap,
@@ -331,10 +356,10 @@ class _ControlPill extends StatelessWidget {
       child: AnimatedContainer(
         duration: duration,
         curve: motion.indicatorCurve,
-        height: _height,
-        padding: EdgeInsets.symmetric(horizontal: ring ? 7 : 14),
+        height: height,
+        padding: EdgeInsets.symmetric(horizontal: ring ? (height - _ringSize) / 2 : 14),
         decoration: SuperellipseDecoration(
-          borderRadius: _height / 2,
+          borderRadius: height / 2,
           color: fill,
           border: BorderSide(color: border),
         ),
@@ -369,7 +394,10 @@ class _PillWords extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (icon != null) ...[AppIcon(icon!, size: 13, color: ink), const SizedBox(width: 6)],
+        if (icon != null) ...[
+          AppIcon(icon!, size: 14, color: ink),
+          const SizedBox(width: AppSpacing.xs),
+        ],
         Text(
           text,
           maxLines: 1,
@@ -390,7 +418,7 @@ class _FailureLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final (title, _) = modelFailureWords(context, l10n, row);
+    final (title, _) = _failureWords(context, l10n, row);
     return Touchable(
       onTap: () => _story(context),
       child: Align(
@@ -408,7 +436,7 @@ class _FailureLine extends StatelessWidget {
   Future<void> _story(BuildContext context) async {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
-    final (title, body) = modelFailureWords(context, l10n, row);
+    final (title, body) = _failureWords(context, l10n, row);
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(icon: AppIcons.icloud, title: title, body: body),
@@ -416,28 +444,8 @@ class _FailureLine extends StatelessWidget {
   }
 }
 
-/// The title and body a failed download wears, by its reason.
-(String, String) modelFailureWords(
-  BuildContext context,
-  AppLocalizations l10n,
-  ModelRowState row,
-) => switch (row.failure!) {
-  ModelInstallReason.offline => (
-    l10n.modelFailOfflineTitle,
-    l10n.modelFailOfflineBody(row.option.displayName),
-  ),
-  ModelInstallReason.noSpace => (
-    l10n.modelFailNoSpaceTitle,
-    l10n.modelFailNoSpaceBody(formatBytes(row.option.bytes, localeTag(context))),
-  ),
-  ModelInstallReason.rejected || ModelInstallReason.cancelled => (
-    l10n.modelFailRejectedTitle,
-    l10n.modelFailRejectedBody(row.option.displayName),
-  ),
-};
-
-/// A quiet text action at the card's edge: a word in the secondary ink,
-/// with the row-sized touch target a bare label would lack.
+/// A quiet text action at the band's edge: a word in the secondary ink,
+/// filling the band's height so the target is the band, not the word.
 class _TextAction extends StatelessWidget {
   const _TextAction({required this.label, required this.onTap});
 
@@ -450,11 +458,19 @@ class _TextAction extends StatelessWidget {
     return Touchable(
       onTap: onTap,
       haptic: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-        child: Text(
-          label,
-          style: AppType.footnote.copyWith(color: theme.textSecondary, fontWeight: FontWeight.w600),
+      child: SizedBox(
+        height: theme.button.bandHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Center(
+            child: Text(
+              label,
+              style: AppType.footnote.copyWith(
+                color: theme.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -162,4 +162,25 @@ void main() {
     expect(engine.releases, 1);
     await svc.dispose();
   });
+
+  test('a switch under a user re-transcription defers the release until it lands', () async {
+    final whisperLike = FakeModelChoiceEngine(
+      installed: {'small'},
+      batchDelay: const Duration(milliseconds: 50),
+    );
+    final svc = build(whisperLike);
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+
+    final run = svc.retranscribe(entry);
+    await Future<void>.delayed(Duration.zero);
+    expect(svc.useEngine(FakeBatchEngine()), isTrue);
+    await pumpEventQueue();
+    expect(whisperLike.releases, 0);
+
+    expect((await run).transcript?.fullText, 'batch transcript');
+    await pumpEventQueue();
+    expect(whisperLike.releases, 1);
+    await svc.dispose();
+  });
 }

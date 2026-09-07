@@ -72,7 +72,14 @@ OTR_KEEP int32_t otr_whisper_run(
     const int32_t *abort_flag) {
   if (w == NULL || samples == NULL || count <= 0 || n_threads <= 0) return OTR_BAD_ARGS;
   const char *lang = (language == NULL || language[0] == '\0') ? "auto" : language;
-  if (strcmp(lang, "auto") != 0 && whisper_lang_id(lang) < 0) return OTR_BAD_ARGS;
+  if (strcmp(lang, "auto") != 0) {
+    const int lang_id = whisper_lang_id(lang);
+    // whisper maps a language to sot + 1 + id with no bounds check, so a
+    // language past this model's own token count would silently become the
+    // task token instead (Cantonese on a pre-v3 model).
+    const int n_langs = whisper_model_n_vocab(w->ctx) - 51765 - whisper_is_multilingual(w->ctx);
+    if (lang_id < 0 || lang_id >= n_langs) return OTR_BAD_ARGS;
+  }
   if (otr_abort((void *)abort_flag)) return OTR_ABORTED;
 
   struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);

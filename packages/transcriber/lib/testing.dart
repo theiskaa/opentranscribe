@@ -6,6 +6,5 @@ export 'src/transcribe/fake_engine.dart';
 export 'src/audio/fake_audio_composer.dart';
 export 'src/whisper/fake_model_choice_engine.dart';
 export 'src/whisper/fake_model_fetcher.dart';
-export 'src/whisper/fake_model_storage.dart';
 export 'src/whisper/fake_pcm_decoder.dart';
 export 'src/whisper/fake_whisper_runtime.dart';

@@ -98,6 +98,7 @@ final class ModelRowState {
     required this.selected,
     required this.heavy,
     this.installFraction,
+    this.cancellable = false,
     this.failure,
   });
 
@@ -108,8 +109,13 @@ final class ModelRowState {
   /// The model's peak memory exceeds what this phone can spare.
   final bool heavy;
 
-  /// 0..1 while this cubit downloads this model; null otherwise.
+  /// 0..1 while this model downloads; null otherwise.
   final double? installFraction;
+
+  /// Whether the download in flight is this cubit's to stop: a picker-started
+  /// one is, a batch's first-use download is not (a stop would fail the
+  /// transcription waiting on it).
+  final bool cancellable;
 
   /// Why the last install failed, until a retry clears it.
   final ModelInstallReason? failure;
@@ -121,6 +127,7 @@ final class ModelRowState {
     bool? selected,
     bool? heavy,
     double? installFraction,
+    bool? cancellable,
     ModelInstallReason? failure,
     bool clearInstall = false,
     bool clearFailure = false,
@@ -130,6 +137,7 @@ final class ModelRowState {
     selected: selected ?? this.selected,
     heavy: heavy ?? this.heavy,
     installFraction: clearInstall ? null : (installFraction ?? this.installFraction),
+    cancellable: clearInstall ? false : (cancellable ?? this.cancellable),
     failure: clearFailure ? null : (failure ?? this.failure),
   );
 }
@@ -401,6 +409,7 @@ class SettingsCubit extends Cubit<SettingsState> {
               : option.id == _firstUseModelId
               ? _firstUseFraction
               : null,
+          cancellable: _modelInstallSubs.containsKey(option.id),
           // A standing failure clears once the file is there through another
           // path; a row wearing "download failed" over a present file is a lie.
           failure: installedModels.contains(option.id) ? null : previousModels[option.id]?.failure,
@@ -517,7 +526,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (_service.offersModelChoice && selected != null) {
       final row = state.selectedModel;
       if (row != null && row.heavy && !row.installed) return;
-      installModel(selected);
+      installModelById(selected);
       return;
     }
     _patchRow(target, (row) => row.copyWith(installFraction: 0, clearFailure: true));
@@ -555,15 +564,18 @@ class SettingsCubit extends Cubit<SettingsState> {
     await _engineSettings.setModelId(_service.engineId, id);
   }
 
-  /// Downloads one model of the engine's choice and selects it once landed.
-  /// Single-flight per model, like [install].
-  void installModel(String id) {
+  /// Like [install], but for one model of the engine's choice: downloads it
+  /// and selects it once landed. Single-flight per model.
+  void installModelById(String id) {
     if (_modelInstallSubs.containsKey(id)) return;
     // The engine and selection this install belongs to: a switch or a pick
     // landing mid-download must not have the landing take the choice.
     final engineId = _service.engineId;
     final selectedAtStart = _service.selectedModelId;
-    _patchModel(id, (row) => row.copyWith(installFraction: 0, clearFailure: true));
+    _patchModel(
+      id,
+      (row) => row.copyWith(installFraction: 0, cancellable: true, clearFailure: true),
+    );
     _modelInstallSubs[id] = _service
         .installModelById(id)
         .listen(
@@ -601,8 +613,8 @@ class SettingsCubit extends Cubit<SettingsState> {
   }
 
   /// Stops a download this cubit started; what arrived stays for a later
-  /// resume. A no-op when nothing is downloading.
-  Future<void> cancelModelInstall(String id) async {
+  /// resume. A no-op when nothing this cubit started is downloading.
+  Future<void> cancelModelInstallById(String id) async {
     final sub = _modelInstallSubs.remove(id);
     if (sub == null) return;
     await sub.cancel().catchError((_) {});

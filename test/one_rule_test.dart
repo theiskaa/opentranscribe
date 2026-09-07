@@ -22,10 +22,8 @@ void main() {
 
   final packageDirs = Directory('packages').listSync().whereType<Directory>().toList();
 
-  // The one exception: the model fetcher, which downloads a public model file
-  // the user asked for from a pinned host and sends nothing. Its host lives in
-  // the catalog (plus the CDN suffixes redirects may land on), and the test
-  // below holds both files to that.
+  // The fetcher is the one carve-out; the test below pins it to one file, one
+  // host, and the CDN suffixes its redirects may land on.
   const fetcherPath = 'packages/transcriber/lib/src/whisper/model_fetcher.dart';
   const catalogPath = 'packages/transcriber/lib/src/whisper/whisper_catalog.dart';
   const pinnedHost = 'https://huggingface.co/';

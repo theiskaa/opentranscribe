@@ -64,6 +64,7 @@ final class ButtonTheme {
     this.disabledOpacity = 0.5,
     this.height = 52.0,
     this.compactHeight = 36.0,
+    this.bandHeight = 32.0,
     this.radius = AppRadius.pill,
   });
 
@@ -83,6 +84,10 @@ final class ButtonTheme {
 
   /// An inline card action, sized to sit inside content rather than end it.
   final double compactHeight;
+
+  /// A control seated in a card's band under the card's own words, one line
+  /// tall, so the band never resizes as the control changes face.
+  final double bandHeight;
   final double radius;
 }
 

@@ -522,11 +522,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get modelTierGoodInfo =>
-      'Rapide, avec des mots plus nets que Tiny. Bien pour de courtes notes au calme.';
+      'Rapide, avec des mots plus nets que le plus petit. Bien pour de courtes notes au calme.';
 
   @override
   String get modelTierBetterInfo =>
-      'L\'équilibre qui convient à la plupart des iPhone. Précis sur la parole courante dans toutes les langues.';
+      'L\'équilibre pour la plupart des iPhone. Précis sur la parole courante, dans toutes les langues.';
 
   @override
   String get modelTierBestInfo =>
@@ -534,7 +534,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get modelTierTopInfo =>
-      'Le meilleur de Whisper. Demande un iPhone récent et un peu de patience par entrée.';
+      'Le meilleur disponible. Demande un iPhone récent et un peu de patience par entrée.';
 
   @override
   String get modelDownload => 'Télécharger';

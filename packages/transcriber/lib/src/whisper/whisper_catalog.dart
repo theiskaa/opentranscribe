@@ -11,6 +11,8 @@ abstract final class WhisperHosts {
 
 /// One catalog entry: the picker facts plus what the fetcher verifies.
 /// [budgetFactor] is how many times the audio's length a batch may take.
+/// [languageCount] is how many of [whisperLanguageTags], in order, the model
+/// carries a token for: the large-v3 family added Cantonese as the hundredth.
 @immutable
 final class WhisperModel {
   const WhisperModel({
@@ -18,14 +20,26 @@ final class WhisperModel {
     required this.fileName,
     required this.sha256,
     required this.budgetFactor,
+    required this.languageCount,
   });
 
   final ModelOption option;
   final String fileName;
   final String sha256;
   final int budgetFactor;
+  final int languageCount;
 
   String get id => option.id;
+
+  /// Whether this model has a token for whisper's [code].
+  bool speaks(String code) {
+    final index = whisperLanguageIndex(code);
+    return index != null && index < languageCount;
+  }
+
+  /// The tags this model lists, in catalog order.
+  List<String> get supportedTags =>
+      List.unmodifiable(whisperLanguageTags.values.take(languageCount));
 
   Uri get source => Uri.parse('${WhisperHosts.modelHost}$fileName');
 }
@@ -46,6 +60,7 @@ const whisperCatalog = <WhisperModel>[
     fileName: 'ggml-tiny-q5_1.bin',
     sha256: '818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7',
     budgetFactor: 3,
+    languageCount: 99,
   ),
   WhisperModel(
     option: ModelOption(
@@ -58,6 +73,7 @@ const whisperCatalog = <WhisperModel>[
     fileName: 'ggml-base-q5_1.bin',
     sha256: '422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898',
     budgetFactor: 3,
+    languageCount: 99,
   ),
   WhisperModel(
     option: ModelOption(
@@ -70,6 +86,7 @@ const whisperCatalog = <WhisperModel>[
     fileName: 'ggml-small-q5_1.bin',
     sha256: 'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb',
     budgetFactor: 3,
+    languageCount: 99,
   ),
   WhisperModel(
     option: ModelOption(
@@ -82,6 +99,7 @@ const whisperCatalog = <WhisperModel>[
     fileName: 'ggml-medium-q5_0.bin',
     sha256: '19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f',
     budgetFactor: 6,
+    languageCount: 99,
   ),
   WhisperModel(
     option: ModelOption(
@@ -94,6 +112,7 @@ const whisperCatalog = <WhisperModel>[
     fileName: 'ggml-large-v3-turbo-q5_0.bin',
     sha256: '394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2',
     budgetFactor: 6,
+    languageCount: 100,
   ),
 ];
 
@@ -106,8 +125,10 @@ WhisperModel? whisperModelById(String id) {
   return null;
 }
 
-/// Every language whisper knows, by its own code, with the one BCP-47 tag the
-/// engine lists and resolves to. `no` reads nb-NO to match the Apple engines.
+/// Every language whisper knows, by its own code, in whisper's own token
+/// order (a model's [WhisperModel.languageCount] cuts this list), with the
+/// one BCP-47 tag the engine lists and resolves to. `no` reads nb-NO to match
+/// the Apple engines.
 const whisperLanguageTags = <String, String>{
   'en': 'en-US',
   'zh': 'zh-CN',
@@ -221,6 +242,16 @@ String? whisperLanguageCode(String tag) {
   final language = tag.toLowerCase().split('-').first;
   final code = _languageAliases[language] ?? language;
   return whisperLanguageTags.containsKey(code) ? code : null;
+}
+
+/// The position of whisper's [code] in its token order, or null.
+int? whisperLanguageIndex(String code) {
+  var index = 0;
+  for (final known in whisperLanguageTags.keys) {
+    if (known == code) return index;
+    index++;
+  }
+  return null;
 }
 
 /// The tag the engine lists for a request, or null when unsupported.

@@ -999,7 +999,7 @@ abstract class AppLocalizations {
   /// Two-line description under the second model tier on its card
   ///
   /// In en, this message translates to:
-  /// **'Quick, with clearer words than Tiny. Good for short notes in a quiet room.'**
+  /// **'Quick, with clearer words than the smallest. Good for short notes in a quiet room.'**
   String get modelTierGoodInfo;
 
   /// Two-line description under the third model tier on its card
@@ -1017,7 +1017,7 @@ abstract class AppLocalizations {
   /// Two-line description under the largest model tier on its card
   ///
   /// In en, this message translates to:
-  /// **'The best whisper offers. Needs a recent iPhone and a little patience per entry.'**
+  /// **'The best on offer. Needs a recent iPhone and a little patience per entry.'**
   String get modelTierTopInfo;
 
   /// Button starting a model download
@@ -1026,25 +1026,25 @@ abstract class AppLocalizations {
   /// **'Download'**
   String get modelDownload;
 
-  /// Button making a downloaded model the one runs use
+  /// Button that makes a downloaded model the one transcription uses
   ///
   /// In en, this message translates to:
   /// **'Use'**
   String get modelUse;
 
-  /// Label on the model card that runs use
+  /// Label on the card of the model transcription uses
   ///
   /// In en, this message translates to:
   /// **'In use'**
   String get modelInUse;
 
-  /// Text action deleting a downloaded model
+  /// Text action deleting a downloaded model; the same word as the confirm sheet's button
   ///
   /// In en, this message translates to:
   /// **'Remove'**
   String get modelRemove;
 
-  /// Text action stopping a model download
+  /// Text action stopping a model download; the same word as the re-transcribe sheet's cancel
   ///
   /// In en, this message translates to:
   /// **'Cancel'**

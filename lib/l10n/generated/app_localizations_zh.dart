@@ -495,7 +495,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelTierBasicInfo => '最小最快。对人名和口音不够准确，适合随手记。';
 
   @override
-  String get modelTierGoodInfo => '快速，词语比 Tiny 更清晰。适合安静环境下的短笔记。';
+  String get modelTierGoodInfo => '快速，词语比最小模型更清晰。适合安静环境下的短笔记。';
 
   @override
   String get modelTierBetterInfo => '适合大多数 iPhone 的平衡之选。各种语言的日常说话都能准确转写。';
@@ -504,7 +504,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelTierBestInfo => '更慢也更细致。擅长口音、轻声录音和长条目。';
 
   @override
-  String get modelTierTopInfo => 'Whisper 的最佳模型。需要较新的 iPhone，每条记录多等一会儿。';
+  String get modelTierTopInfo => '最佳模型。需要较新的 iPhone，每条记录多等一会儿。';
 
   @override
   String get modelDownload => '下载';

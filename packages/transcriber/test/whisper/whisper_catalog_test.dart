@@ -33,6 +33,20 @@ void main() {
     }
   });
 
+  test('every model but the large-v3 family stops short of Cantonese, the hundredth', () {
+    expect(whisperLanguageIndex('en'), 0);
+    expect(whisperLanguageIndex('yue'), 99);
+    expect(whisperLanguageIndex('xx'), isNull);
+    for (final model in whisperCatalog) {
+      expect(model.speaks('en'), isTrue, reason: model.id);
+      expect(model.speaks('ka'), isTrue, reason: model.id);
+      expect(model.speaks('yue'), model.languageCount == 100, reason: model.id);
+      expect(model.supportedTags, hasLength(model.languageCount));
+    }
+    expect(whisperModelById('large-v3-turbo-q5_0')!.speaks('yue'), isTrue);
+    expect(whisperModelById(whisperDefaultModelId)!.speaks('yue'), isFalse);
+  });
+
   test('whisper knows one hundred languages, each with one tag', () {
     expect(whisperLanguageTags, hasLength(100));
     final tags = whisperLanguageTags.values.toSet();
