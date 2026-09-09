@@ -164,6 +164,7 @@
   "modelTooHeavyLabel": "{model} 对这台 iPhone 来说太大了",
   "modelCancelDownloadButton": "取消下载 {model}",
   "modelRemoveButton": "移除 {model}",
+  "takeTranscribing": "正在转写",
   "takeTranscribingProgress": "正在转写 · {percent}%",
   "takeDownloadingProgress": "正在下载 {model} · {percent}%",
   "transcriptionAcceleration": "用 Neural Engine 加速",

@@ -559,6 +559,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get takeTranscribing => '正在转写';
+
+  @override
   String takeTranscribingProgress(int percent) {
     return '正在转写 · $percent%';
   }

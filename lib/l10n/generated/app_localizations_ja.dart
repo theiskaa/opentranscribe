@@ -563,6 +563,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get takeTranscribing => '文字起こし中';
+
+  @override
   String takeTranscribingProgress(int percent) {
     return '文字起こし中 · $percent%';
   }

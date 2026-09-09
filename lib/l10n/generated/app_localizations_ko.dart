@@ -564,6 +564,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get takeTranscribing => '전사 중';
+
+  @override
   String takeTranscribingProgress(int percent) {
     return '전사 중 · $percent%';
   }

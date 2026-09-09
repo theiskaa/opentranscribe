@@ -164,6 +164,7 @@
   "modelTooHeavyLabel": "{model} はこの iPhone には大きすぎます",
   "modelCancelDownloadButton": "{model} のダウンロードをキャンセル",
   "modelRemoveButton": "{model} を削除",
+  "takeTranscribing": "文字起こし中",
   "takeTranscribingProgress": "文字起こし中 · {percent}%",
   "takeDownloadingProgress": "{model} をダウンロード中 · {percent}%",
   "transcriptionAcceleration": "Neural Engine で高速化",

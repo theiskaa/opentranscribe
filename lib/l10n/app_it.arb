@@ -164,6 +164,7 @@
   "modelTooHeavyLabel": "{model} è troppo grande per questo iPhone",
   "modelCancelDownloadButton": "Annulla il download di {model}",
   "modelRemoveButton": "Rimuovi {model}",
+  "takeTranscribing": "Trascrizione",
   "takeTranscribingProgress": "Trascrizione · {percent}%",
   "takeDownloadingProgress": "Download di {model} · {percent}%",
   "transcriptionAcceleration": "Più veloce con il Neural Engine",

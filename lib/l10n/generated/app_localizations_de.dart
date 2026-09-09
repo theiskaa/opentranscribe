@@ -588,6 +588,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get takeTranscribing => 'Transkription';
+
+  @override
   String takeTranscribingProgress(int percent) {
     return 'Transkription · $percent %';
   }

@@ -164,6 +164,7 @@
   "modelTooHeavyLabel": "{model}은(는) 이 iPhone에 너무 큽니다",
   "modelCancelDownloadButton": "{model} 다운로드 취소",
   "modelRemoveButton": "{model} 제거",
+  "takeTranscribing": "전사 중",
   "takeTranscribingProgress": "전사 중 · {percent}%",
   "takeDownloadingProgress": "{model} 다운로드 중 · {percent}%",
   "transcriptionAcceleration": "Neural Engine으로 더 빠르게",

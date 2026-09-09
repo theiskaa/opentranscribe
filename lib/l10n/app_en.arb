@@ -813,6 +813,10 @@
       }
     }
   },
+  "takeTranscribing": "Transcribing",
+  "@takeTranscribing": {
+    "description": "Line while an entry transcribes and the engine has not reported how far it is; also the accessible name of the take's row while its cloud shimmers"
+  },
   "takeTranscribingProgress": "Transcribing · {percent}%",
   "@takeTranscribingProgress": {
     "description": "Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved",

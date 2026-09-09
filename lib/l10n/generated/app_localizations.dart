@@ -1092,6 +1092,12 @@ abstract class AppLocalizations {
   /// **'Remove {model}'**
   String modelRemoveButton(String model);
 
+  /// Line while an entry transcribes and the engine has not reported how far it is; also the accessible name of the take's row while its cloud shimmers
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing'**
+  String get takeTranscribing;
+
   /// Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved
   ///
   /// In en, this message translates to:
