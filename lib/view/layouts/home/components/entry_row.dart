@@ -51,12 +51,7 @@ class EntryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = theme.entryList;
     final l10n = AppLocalizations.of(context)!;
-    final excerpt = entry.readableText?.trim() ?? '';
-    final title = entry.title;
-    final leadStyle = title != null ? AppType.headline : AppType.body;
 
     return DeleteSwipe(
       id: entry.id,
@@ -69,58 +64,102 @@ class EntryRow extends StatelessWidget {
       // they hold still while the record slides. The swipe wraps only the text
       // column (right of the gutter), so the record never reaches the rail;
       // the frame ties rail, gutter and day gap to the row's exit.
-      frame: (context, swipe) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        child: CustomPaint(
-          painter: _RailPainter(
-            railColor: tokens.railColor,
-            nodeColor: tokens.nodeColor,
-            railWidth: tokens.railWidth,
-            nodeSize: tokens.nodeSize,
-            nodeCenter: _firstLineCenter(leadStyle),
+      frame: (context, swipe) =>
+          EntryRail(last: last, leadStyle: EntryRowBody.leadStyleOf(entry), child: swipe),
+      child: EntryRowBody(entry: entry),
+    );
+  }
+}
+
+/// What a record reads as: its title (when it has one), its excerpt, and the
+/// time and length under them. Its own widget so a take's cloud can resolve
+/// into exactly the row it becomes.
+class EntryRowBody extends StatelessWidget {
+  const EntryRowBody({required this.entry, super.key});
+
+  final Entry entry;
+
+  /// The style the row leads with, which is what [EntryRail] puts its node on.
+  static TextStyle leadStyleOf(Entry entry) =>
+      entry.title != null ? AppType.headline : AppType.body;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.entryList;
+    final l10n = AppLocalizations.of(context)!;
+    final excerpt = entry.readableText?.trim() ?? '';
+    final title = entry.title;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.headline.copyWith(color: tokens.titleColor),
           ),
-          // [last] FLIPS on a neighbor's delete or arrival, and the rail is
-          // painted through this gap, so the line closes with it.
-          child: SeamPadding(
-            closing: last,
-            padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: tokens.railGutter),
-                Expanded(child: swipe),
-              ],
-            ),
+          const SizedBox(height: AppSpacing.xxs),
+        ],
+        Text(
+          excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
+          maxLines: tokens.excerptLines,
+          overflow: TextOverflow.ellipsis,
+          style: AppType.body.copyWith(
+            color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (title != null) ...[
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppType.headline.copyWith(color: tokens.titleColor),
-            ),
-            const SizedBox(height: AppSpacing.xxs),
-          ],
-          Text(
-            excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
-            maxLines: tokens.excerptLines,
-            overflow: TextOverflow.ellipsis,
-            style: AppType.body.copyWith(
-              color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
-            ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '${formatTime(entry.createdAt, localeTag(context))} · '
+          '${formatDurationCompact(entry.duration)}',
+          style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
+        ),
+      ],
+    );
+  }
+}
+
+/// The line a day's records hang off: the hairline rail with this record's
+/// node on it, the gutter, and the gap down to the next record. Shared, so a
+/// take still transcribing hangs off the same line as the records it joins.
+class EntryRail extends StatelessWidget {
+  const EntryRail({required this.last, required this.leadStyle, required this.child, super.key});
+
+  /// The day's last LIVING record; see [EntryRow.last].
+  final bool last;
+
+  /// The style the row leads with, which is where the node lands.
+  final TextStyle leadStyle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.entryList;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: CustomPaint(
+        painter: _RailPainter(
+          railColor: tokens.railColor,
+          nodeColor: tokens.nodeColor,
+          railWidth: tokens.railWidth,
+          nodeSize: tokens.nodeSize,
+          nodeCenter: firstLineCenter(leadStyle),
+        ),
+        // [last] FLIPS on a neighbor's delete or arrival, and the rail is
+        // painted through this gap, so the line closes with it.
+        child: SeamPadding(
+          closing: last,
+          padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xxl),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: tokens.railGutter),
+              Expanded(child: child),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${formatTime(entry.createdAt, localeTag(context))} · '
-            '${formatDurationCompact(entry.duration)}',
-            style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -129,7 +168,7 @@ class EntryRow extends StatelessWidget {
   /// marks that line rather than floating beside the block. Derived from the
   /// style the row actually leads with - a title sits higher than an excerpt,
   /// because its line box is tighter.
-  static double _firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
+  static double firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
 }
 
 /// The ids that ARRIVED between two home builds: entries present now that the
@@ -144,6 +183,25 @@ Set<String> newEntryIds(Set<String>? previous, List<Entry> current) {
     for (final entry in current)
       if (!previous.contains(entry.id)) entry.id,
   };
+}
+
+/// The record a finished take landed as, among the ids that just arrived: the
+/// newest of them, since [entries] is newest first and the take is the most
+/// recent thing in the journal. Null when the pass landed nothing (a failed
+/// save) or when its record arrived in an earlier build.
+Entry? takeArrival(List<Entry> entries, Set<String> arrived) {
+  for (final entry in entries) {
+    if (arrived.contains(entry.id)) return entry;
+  }
+  return null;
+}
+
+/// The record with [id], or null once it has left the journal.
+Entry? entryById(List<Entry> entries, String id) {
+  for (final entry in entries) {
+    if (entry.id == id) return entry;
+  }
+  return null;
 }
 
 /// The calendar days that ARRIVED between two home builds, feeding the day

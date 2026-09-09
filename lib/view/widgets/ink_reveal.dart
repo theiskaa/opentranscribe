@@ -46,6 +46,7 @@ class InkReveal extends StatefulWidget {
     required this.background,
     this.placeholderLines = 4,
     this.onWriteStarted,
+    this.onWriteFinished,
     super.key,
   });
 
@@ -65,6 +66,10 @@ class InkReveal extends StatefulWidget {
   /// Fired once when a write-on actually begins (or is skipped under Reduce
   /// Motion), so the caller can mark its replay ledger.
   final VoidCallback? onWriteStarted;
+
+  /// Fired once the words are fully written and this widget renders them
+  /// plain, so a caller holding the child's place can hand it back.
+  final VoidCallback? onWriteFinished;
 
   @override
   State<InkReveal> createState() => _InkRevealState();
@@ -168,6 +173,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
       // words simply render plain.
       setState(() => _done = true);
       _markStarted();
+      _markFinished();
       return;
     }
     _arrivalQueued = true;
@@ -206,6 +212,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
         _done = true;
       });
       _stopShimmer();
+      _markFinished();
     });
   }
 
@@ -218,6 +225,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
       // No usable frame: arrive with a plain fade instead of a blank page.
       setState(() => _done = true);
       _markStarted();
+      _markFinished();
       return;
     }
     setState(() => _shimmering = true);
@@ -277,6 +285,14 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     // inside a build/transition callback.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) started();
+    });
+  }
+
+  void _markFinished() {
+    final finished = widget.onWriteFinished;
+    if (finished == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) finished();
     });
   }
 
@@ -365,6 +381,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
         if (mounted && !_done) {
           setState(() => _done = true);
           _markStarted();
+          _markFinished();
         }
       });
     }

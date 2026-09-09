@@ -27,6 +27,7 @@ import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
+import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
@@ -70,6 +71,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// they keep their wrapper so a later rebuild cannot re-play it.
   Set<String>? _seenEntryIds;
   final Set<String> _enteredEntries = {};
+
+  /// A take was holding its place as of the last build, so the record that
+  /// arrives when the hold clears is that take's.
+  bool _takeArmed = false;
+
+  /// The record a take's cloud is resolving into. The take's slot renders it
+  /// until the words are written, and the list leaves the id out of its own
+  /// rows meanwhile so it is never in two places at once.
+  String? _writingId;
 
   /// The same ledger for calendar days: a day that arrived while home was up
   /// unfolds its splitter along with its first row, so the section's whole
@@ -247,9 +257,25 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
-          _enteredEntries.addAll(newEntryIds(_seenEntryIds, state.entries));
+          final arrived = newEntryIds(_seenEntryIds, state.entries);
+          // The take's cloud resolves INTO its record, so that one arrival
+          // earns the ink instead of the list's own unfold.
+          final adopted = _takeArmed && !state.takePending
+              ? takeArrival(state.entries, arrived)
+              : null;
+          _takeArmed = state.takePending;
+          if (adopted != null) _writingId = adopted.id;
+          _enteredEntries.addAll(adopted == null ? arrived : arrived.difference({adopted.id}));
           _seenEntryIds = {for (final e in state.entries) e.id};
-          _enteredDays.addAll(newEntryDays(_seenDays, state.entryDays));
+          // A record deleted mid-write leaves nothing to hand back.
+          if (!_seenEntryIds!.contains(_writingId)) _writingId = null;
+          final writing = _writingId == null ? null : entryById(state.entries, _writingId!);
+          // The adopted record's day is not an arrival: the take's slot has
+          // been standing under that title since its pass began.
+          final newDays = newEntryDays(_seenDays, state.entryDays);
+          _enteredDays.addAll(
+            adopted == null ? newDays : newDays.difference({localDayOf(adopted.createdAt)}),
+          );
           // Departures before the re-measure, against the same previous set; under
           // Reduce Motion emptied days simply leave, no ghost, and a flip
           // drops any ghost still mid-fold. A day whose title pre-folded with
@@ -326,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _departingCards.removeWhere((day, _) => !_departingDays.contains(day));
               _seenSeats = seats;
 
-              final body = state.entries.isEmpty
+              final body = state.entries.isEmpty && !state.takePending && writing == null
                   // A scrollable, not a Center: it overscrolls so the pull-to-record
                   // gesture works with nothing recorded yet, the one way in from here.
                   ? SingleChildScrollView(
@@ -345,6 +371,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       enteredCards: _enteredCards,
                       enteredEntries: _enteredEntries,
                       enteredDays: _enteredDays,
+                      takePending: state.takePending,
+                      writing: writing,
+                      onWritten: () {
+                        if (mounted) setState(() => _writingId = null);
+                      },
                       departingDays: _departingDays,
                       onDepartureEnd: (day) {
                         if (!mounted) return;
@@ -747,6 +778,9 @@ class _RecordsList extends StatelessWidget {
     required this.enteredCards,
     required this.enteredEntries,
     required this.enteredDays,
+    required this.takePending,
+    required this.writing,
+    required this.onWritten,
     required this.departingDays,
     required this.onDepartureEnd,
     required this.dying,
@@ -779,6 +813,16 @@ class _RecordsList extends StatelessWidget {
   /// Days that arrived while home was up; their splitters unfold with their
   /// first row.
   final Set<DateTime> enteredDays;
+
+  /// A take is being transcribed and holds a place at the top of its day.
+  final bool takePending;
+
+  /// The record the take's slot is writing on, once it has landed. The list
+  /// leaves it out of its own rows while the slot has it.
+  final Entry? writing;
+
+  /// The written record is settled; the list takes it back.
+  final VoidCallback onWritten;
 
   /// Days folding away after their last record left; each renders a ghost
   /// splitter in the seam its section vacated.
@@ -820,6 +864,16 @@ class _RecordsList extends StatelessWidget {
     ];
     final dyingIds = dying.keys.toSet();
 
+    // Where the take's slot sits: at the top of its day's section, or, when
+    // that day holds no records yet, leading the list under a splitter of its
+    // own. The day is the landed record's, so a pass that ran across midnight
+    // files its row under the title it actually belongs to.
+    final writingId = writing?.id;
+    final takeAlive = takePending || writing != null;
+    final takeDay = takeAlive ? localDayOf(writing?.createdAt ?? DateTime.now()) : null;
+    final takeSection = takeDay == null ? -1 : sectionDays.indexOf(takeDay);
+    final takeLeads = takeAlive && takeSection < 0;
+
     final unseating = unseatingCards(
       cards: cards,
       sectionDays: sectionDays,
@@ -829,7 +883,10 @@ class _RecordsList extends StatelessWidget {
     final ghosts = departingSplitterSlots(sectionDays: sectionDays, departing: departingDays);
     // Dying counts as gone, so a lead's seams close with the exits above them
     // instead of snapping when the emit lands.
-    bool leads(int s) => s == 0 || sectionIds.take(s).every((ids) => allDying(ids, dyingIds));
+    // A take leading the list supplies the first break itself, so the section
+    // under it no longer leads.
+    bool leads(int s) =>
+        !takeLeads && (s == 0 || sectionIds.take(s).every((ids) => allDying(ids, dyingIds)));
     // A card group above the splitter supplies the break itself.
     bool gapless(int s) => leads(s) || cards[s] != null;
 
@@ -841,18 +898,22 @@ class _RecordsList extends StatelessWidget {
       scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
       padding: EdgeInsets.only(top: topPadding, bottom: clearance + AppSpacing.lg + tail),
       children: [
+        if (takeAlive && takeLeads) ...[
+          _SplitterLabel(day: takeDay!, gapless: true),
+          _TakeSlot(key: const ValueKey('take'), entry: writing, last: true, onWritten: onWritten),
+        ],
         for (final (s, section) in sections.indexed) ...[
           for (final (g, day) in ghosts[s].indexed) ...[
             if (departingCards[day] != null)
               _DepartingCardGroup(
                 key: ValueKey('departing-cards-${day.toIso8601String()}'),
                 reflections: departingCards[day]!,
-                gapless: s == 0 && g == 0,
+                gapless: !takeLeads && s == 0 && g == 0,
               ),
             _DepartingSplitter(
               key: ValueKey('departing-${day.toIso8601String()}'),
               day: day,
-              gapless: (s == 0 && g == 0) || departingCards[day] != null,
+              gapless: (!takeLeads && s == 0 && g == 0) || departingCards[day] != null,
               onEnd: () => onDepartureEnd(day),
             ),
           ],
@@ -883,49 +944,79 @@ class _RecordsList extends StatelessWidget {
               ),
             ),
           ),
-          for (final (i, entry) in section.entries.indexed)
-            // Keyed so an entry insert or delete above cannot re-inflate the
-            // slot at its shifted index and replay the entrance.
-            _ArrivalUnfold(
-              key: ValueKey(entry.id),
-              entrance: enteredEntries.contains(entry.id),
-              child: EntryRow(
-                entry: entry,
-                // A dying successor is already gone for layout: the gap and
-                // rail close in step with its exit, and the emit changes
-                // nothing.
-                last: allDying(sectionIds[s].skip(i + 1), dyingIds),
-                openId: openRow,
-                onDelete: onDelete,
-                onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
-                onTap: () {
-                  final home = context.read<HomeCubit>();
-                  // The detail screen reads EntriesCubit; refresh it before the
-                  // push, and refresh home on return (delete or rename).
-                  context.read<EntriesCubit>().load();
-                  context
-                      .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
-                      .then((_) => home.load());
-                },
-              ),
+          if (s == takeSection)
+            _TakeSlot(
+              key: const ValueKey('take'),
+              entry: writing,
+              last: allDying(sectionIds[s].where((id) => id != writingId), dyingIds),
+              onWritten: onWritten,
             ),
+          // The record the take's slot is writing renders THERE, not here:
+          // its row is the same one, and the ink is how it arrives.
+          for (final (i, entry) in section.entries.indexed)
+            if (entry.id != writingId)
+              // Keyed so an entry insert or delete above cannot re-inflate the
+              // slot at its shifted index and replay the entrance.
+              _ArrivalUnfold(
+                key: ValueKey(entry.id),
+                entrance: enteredEntries.contains(entry.id),
+                child: EntryRow(
+                  entry: entry,
+                  // A dying successor is already gone for layout: the gap and
+                  // rail close in step with its exit, and the emit changes
+                  // nothing.
+                  last: allDying(sectionIds[s].skip(i + 1), dyingIds),
+                  openId: openRow,
+                  onDelete: onDelete,
+                  onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
+                  onTap: () {
+                    final home = context.read<HomeCubit>();
+                    // The detail screen reads EntriesCubit; refresh it before the
+                    // push, and refresh home on return (delete or rename).
+                    context.read<EntriesCubit>().load();
+                    context
+                        .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
+                        .then((_) => home.load());
+                  },
+                ),
+              ),
         ],
         for (final (g, day) in ghosts[sections.length].indexed) ...[
           if (departingCards[day] != null)
             _DepartingCardGroup(
               key: ValueKey('departing-cards-${day.toIso8601String()}'),
               reflections: departingCards[day]!,
-              gapless: sections.isEmpty && g == 0,
+              gapless: !takeLeads && sections.isEmpty && g == 0,
             ),
           _DepartingSplitter(
             key: ValueKey('departing-${day.toIso8601String()}'),
             day: day,
-            gapless: (sections.isEmpty && g == 0) || departingCards[day] != null,
+            gapless: (!takeLeads && sections.isEmpty && g == 0) || departingCards[day] != null,
             onEnd: () => onDepartureEnd(day),
           ),
         ],
         const SizedBox(height: _listBottomInset),
       ],
+    );
+  }
+}
+
+/// The take's place in the list: the ink row under a fold that plays once, so
+/// the cloud opens the slot instead of snapping it in. Constant for the take's
+/// whole life (it keeps its key as it moves from leading the list to sitting
+/// inside its day's section), so the ink that waits is the ink that resolves.
+class _TakeSlot extends StatelessWidget {
+  const _TakeSlot({required this.entry, required this.last, required this.onWritten, super.key});
+
+  final Entry? entry;
+  final bool last;
+  final VoidCallback onWritten;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ArrivalUnfold(
+      entrance: true,
+      child: TakeRow(entry: entry, last: last, onWritten: onWritten),
     );
   }
 }
