@@ -2,6 +2,13 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
+## 0.4.1 - 2026-09-09
+
+Development-only code is gone from the shipped app.
+
+- Three switches that only ever served development have been taken out of the code: a build flag that forced the pre-iOS 26 chrome on, a hidden long-press on the transcription screen that stamped fake model failures, and an unused query flag that could reopen onboarding. Nothing in the app could reach any of them, and none of them exist now.
+- The native toggle carried fallback paths that reached UIKit by selector name, for a control the plugin never builds. They could not run; the toggle is a UISwitch and the code now says so plainly.
+
 ## 0.4.0 - 2026-09-02
 
 Faster everywhere, a clearer backup screen, dictation that keeps what you said before a pause, a new first run, and polish across the app.
