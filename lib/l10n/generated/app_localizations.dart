@@ -1086,12 +1086,6 @@ abstract class AppLocalizations {
   /// **'Get started'**
   String get onboardingStart;
 
-  /// Button closing a replayed onboarding
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get onboardingDone;
-
   /// One-shot callout under the entry menu button, shown on the first entry opened
   ///
   /// In en, this message translates to:
