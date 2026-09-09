@@ -19,7 +19,6 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_set
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_shape.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_steps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
-import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 
 /// First-launch onboarding: three or four pages over one bottom button, then
@@ -29,14 +28,8 @@ import 'package:opentranscribe/view/widgets/page_indicator.dart';
 /// the app, since App Store 5.1.1(iv) requires a priming page to always lead
 /// to the request; the set-up page is that priming. Back is free, by swipe or
 /// by dot. Denials never block, only mark the rows.
-///
-/// A [replay] is the same flow pushed over home by a finished user: its last
-/// button pops instead of marking anything, and the prompts fire on reaching
-/// the set-up page rather than on that button (see [promptsOnArrival]).
 class OnboardingScreen extends StatelessWidget {
-  const OnboardingScreen({this.replay = false, super.key});
-
-  final bool replay;
+  const OnboardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,23 +39,13 @@ class OnboardingScreen extends StatelessWidget {
         scheduler: Deps.i.notificationScheduler,
         notifier: Deps.i.reflectionNotifier,
       ),
-      child: _OnboardingView(replay: replay),
+      child: const _OnboardingView(),
     );
   }
 }
 
-/// Whether landing on [page] of [pageCount] fires the pending prompts. A first
-/// run asks on the last page's button; a replay's last button only pops, so a
-/// replay asks on arriving at that page instead, still over the page that
-/// primes the request. The cubit asks only for an answer that never landed,
-/// so a replay after a full first run asks nothing.
-bool promptsOnArrival({required bool replay, required int page, required int pageCount}) =>
-    replay && page == pageCount - 1;
-
 class _OnboardingView extends StatefulWidget {
-  const _OnboardingView({required this.replay});
-
-  final bool replay;
+  const _OnboardingView();
 
   @override
   State<_OnboardingView> createState() => _OnboardingViewState();
@@ -111,13 +94,11 @@ class _OnboardingViewState extends State<_OnboardingView> {
       _goTo(_index + 1, slide);
       return;
     }
-    if (!widget.replay) {
-      if (_requesting) return;
-      setState(() => _requesting = true);
-      await context.read<OnboardingCubit>().requestPending(reminders: _canReflect(context));
-      if (!mounted) return;
-      setState(() => _requesting = false);
-    }
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    await context.read<OnboardingCubit>().requestPending(reminders: _canReflect(context));
+    if (!mounted) return;
+    setState(() => _requesting = false);
     unawaited(_finish());
   }
 
@@ -138,12 +119,6 @@ class _OnboardingViewState extends State<_OnboardingView> {
 
   Future<void> _finish() async {
     if (_finishing) return;
-    if (widget.replay) {
-      // No setState: the page is leaving, a spinner on it would only flash.
-      _finishing = true;
-      context.pop();
-      return;
-    }
     setState(() => _finishing = true);
     try {
       await Onboarding.markDone(Deps.i.localService);
@@ -167,14 +142,6 @@ class _OnboardingViewState extends State<_OnboardingView> {
       child: SafeArea(
         child: Column(
           children: [
-            if (widget.replay)
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: AppBackButton(onBack: () => context.pop()),
-                ),
-              ),
             Expanded(
               child: NotificationListener<ScrollEndNotification>(
                 onNotification: (n) {
@@ -189,14 +156,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
                 child: PageView(
                   controller: _controller,
                   physics: BackOnlyPagePhysics(reach: () => _reach),
-                  onPageChanged: (i) {
-                    setState(() => _index = i);
-                    if (promptsOnArrival(replay: widget.replay, page: i, pageCount: steps.length)) {
-                      // A replay only asks for answers that never landed; it
-                      // must not switch on reminders the user turned off.
-                      unawaited(context.read<OnboardingCubit>().requestPending(reminders: false));
-                    }
-                  },
+                  onPageChanged: (i) => setState(() => _index = i),
                   children: [
                     for (final step in steps)
                       switch (step) {
@@ -214,11 +174,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: AppButton(
-                label: switch ((isLast, widget.replay)) {
-                  (false, _) => l10n.onboardingNext,
-                  (true, false) => l10n.onboardingStart,
-                  (true, true) => l10n.onboardingDone,
-                },
+                label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
                 isLoading: _requesting || _finishing,
                 onPressed: () => unawaited(_next(steps, slide)),
               ),
