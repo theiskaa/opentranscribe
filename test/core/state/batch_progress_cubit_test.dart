@@ -59,7 +59,7 @@ void main() {
     await cubit.close();
   });
 
-  test('a done for a pass it never saw changes nothing', () async {
+  test('a pass with nothing to report still opens and closes the take', () async {
     final storage = LocalService();
     await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
     final plain = TranscriptionService(
@@ -76,7 +76,7 @@ void main() {
     await plain.stopRecording();
     await pumpEventQueue();
 
-    expect(seen, isEmpty);
+    expect(seen.map((s) => s.take?.step), [BatchStep.transcribing, null]);
     await sub.cancel();
     await cubit.close();
     await plain.dispose();

@@ -142,6 +142,66 @@ void main() {
       await cubit.close();
     });
 
+    test('a take being transcribed holds a place until its record lands', () async {
+      final cubit = HomeCubit(service: service);
+      final seen = <bool>[];
+      final sub = cubit.stream.listen((s) => seen.add(s.takePending));
+
+      await service.startRecording();
+      await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      await pumpEventQueue();
+
+      expect(seen, [true, false]);
+      expect(cubit.state.entries, hasLength(1));
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('a refresh while the pass is still running keeps the hold', () async {
+      SharedPreferences.setMockInitialValues({});
+      final storage = LocalService();
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final gate = Completer<void>();
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(),
+        engine: FakeBatchEngine(gate: gate.future),
+        store: EntryStore(storage),
+      );
+      final cubit = HomeCubit(service: svc);
+
+      await svc.startRecording();
+      final stopping = svc.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+
+      expect(cubit.state.takePending, isTrue);
+      gate.complete();
+      await stopping;
+      await cubit.close();
+      await svc.dispose();
+    });
+
+    test('a pass over a record that already exists holds no place', () async {
+      final cubit = HomeCubit(service: service);
+      await service.startRecording();
+      final entry = await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      final seen = <bool>[];
+      final sub = cubit.stream.listen((s) => seen.add(s.takePending));
+
+      await service.retranscribe(entry);
+      await pumpEventQueue();
+      cubit.load();
+
+      expect(seen, isNot(contains(true)));
+      await sub.cancel();
+      await cubit.close();
+    });
+
     test('an auto-finalized entry refreshes the list', () async {
       final rec = FakeAudioRecorder();
       SharedPreferences.setMockInitialValues({});

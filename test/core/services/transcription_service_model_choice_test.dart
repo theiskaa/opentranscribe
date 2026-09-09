@@ -328,7 +328,7 @@ void main() {
     await svc.dispose();
   });
 
-  test('an engine that cannot report still ends its pass with done', () async {
+  test('an engine that cannot report still says its pass began and ended', () async {
     final engine = FakeBatchEngine();
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
     final events = <BatchProgress>[];
@@ -338,7 +338,10 @@ void main() {
     await svc.stopRecording();
     await pumpEventQueue();
 
-    expect(events.map((e) => (e.entryId, e.step)), [(null, BatchStep.done)]);
+    expect(events.map((e) => (e.entryId, e.step)), [
+      (null, BatchStep.transcribing),
+      (null, BatchStep.done),
+    ]);
     await sub.cancel();
     await svc.dispose();
   });

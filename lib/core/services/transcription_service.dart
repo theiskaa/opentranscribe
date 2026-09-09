@@ -2224,8 +2224,10 @@ class TranscriptionService {
         ? engine.batchBudget(duration)
         : _batchTimeout + duration * 2;
     // The run's first word comes with its first window, so the download's
-    // last percent would otherwise linger over a run already going.
-    if (engine is ProgressBatchEngine) report?.call(BatchStep.transcribing, 0);
+    // last percent would otherwise linger over a run already going. Reported
+    // by every engine, reporting or not: that a run has started is what the
+    // surfaces holding a place for it wait on.
+    report?.call(BatchStep.transcribing, 0);
     final run = engine is ProgressBatchEngine && report != null
         ? engine.transcribeFileWithProgress(
             file,
