@@ -553,9 +553,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStart => 'Get started';
 
   @override
-  String get onboardingDone => 'Done';
-
-  @override
   String get hintEntryMenu =>
       'Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.';
 
