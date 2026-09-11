@@ -50,7 +50,7 @@ Set<DateTime> daysWithEntries(List<Entry> entries) {
 /// of them; the calendar navigates rather than filters.
 @immutable
 final class HomeState {
-  HomeState({required this.entries, this.takePending = true})
+  HomeState({required this.entries, required this.takePending})
     : sections = groupByLocalDay(entries),
       entryDays = daysWithEntries(entries),
       firstEntryDay = earliestEntryDay(entries);
@@ -88,7 +88,7 @@ final class HomeState {
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({required TranscriptionService service})
     : _service = service,
-      super(HomeState(entries: service.entries())) {
+      super(HomeState(entries: service.entries(), takePending: false)) {
     _autoSub = _service.autoFinalized.listen((_) => load(), onError: (Object _) {});
     // Detached discards mutate the store without a navigation to refresh on.
     _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});

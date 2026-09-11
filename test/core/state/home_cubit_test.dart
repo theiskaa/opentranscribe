@@ -101,13 +101,27 @@ void main() {
     test('sections cover every day with entries, newest first', () async {
       final cubit = HomeCubit(service: service);
       cubit.emit(
-        HomeState(entries: [entryAt(DateTime(2026, 7, 20)), entryAt(DateTime(2026, 7, 23))]),
+        HomeState(
+          entries: [entryAt(DateTime(2026, 7, 20)), entryAt(DateTime(2026, 7, 23))],
+          takePending: false,
+        ),
       );
 
       expect(cubit.state.sections.map((s) => s.day), [
         DateTime(2026, 7, 23),
         DateTime(2026, 7, 20),
       ]);
+
+      await cubit.close();
+    });
+
+    test('a cubit built over a journal whose takes all landed holds no place for one', () async {
+      await service.startRecording();
+      await service.stopRecording();
+      final cubit = HomeCubit(service: service);
+
+      expect(cubit.state.takePending, isFalse);
+      expect(cubit.state.entries, hasLength(1));
 
       await cubit.close();
     });
