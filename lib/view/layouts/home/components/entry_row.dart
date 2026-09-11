@@ -145,7 +145,7 @@ class EntryRail extends StatelessWidget {
           nodeColor: tokens.nodeColor,
           railWidth: tokens.railWidth,
           nodeSize: tokens.nodeSize,
-          nodeCenter: firstLineCenter(leadStyle),
+          nodeCenter: _firstLineCenter(leadStyle),
         ),
         // [last] FLIPS on a neighbor's delete or arrival, and the rail is
         // painted through this gap, so the line closes with it.
@@ -168,7 +168,7 @@ class EntryRail extends StatelessWidget {
   /// marks that line rather than floating beside the block. Derived from the
   /// style the row actually leads with - a title sits higher than an excerpt,
   /// because its line box is tighter.
-  static double firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
+  static double _firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
 }
 
 /// The ids that ARRIVED between two home builds: entries present now that the

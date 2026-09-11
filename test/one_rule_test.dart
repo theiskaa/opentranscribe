@@ -22,8 +22,6 @@ void main() {
 
   final packageDirs = Directory('packages').listSync().whereType<Directory>().toList();
 
-  // The fetcher is the one carve-out; the test below pins it to one file, one
-  // host, and the CDN suffixes its redirects may land on.
   const fetcherPath = 'packages/transcriber/lib/src/whisper/model_fetcher.dart';
   const catalogPath = 'packages/transcriber/lib/src/whisper/whisper_catalog.dart';
   const pinnedHost = 'https://huggingface.co/';
@@ -79,8 +77,6 @@ void main() {
     for (final host in hosts) {
       expect(host, startsWith(pinnedHost));
     }
-    // The hosts a redirect may land on: the pinned one and its LFS CDN
-    // (cdn-lfs*.hf.co), verbatim, so a suffix cannot quietly widen.
     final suffixes = RegExp(r'redirectSuffixes = \[([^\]]*)\]').firstMatch(catalogSource);
     expect(suffixes?.group(1)?.replaceAll(RegExp(r'\s'), ''), "'huggingface.co','hf.co'");
   });

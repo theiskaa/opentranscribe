@@ -206,19 +206,6 @@ class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final style = AppType.digits(AppType.footnote).copyWith(fontWeight: FontWeight.w600);
-    Widget words(Color ink) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      child: Center(
-        child: Text(
-          face.label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: style.copyWith(color: ink),
-        ),
-      ),
-    );
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(end: face.fill.clamp(0.0, 1.0)),
       duration: context.reduceMotion ? Duration.zero : theme.motion.indicator,
@@ -228,18 +215,41 @@ class _ProgressBar extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            words(trackInk),
+            _BarWords(label: face.label, ink: trackInk),
             ClipRect(
               clipper: _Sweep(value),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   ColoredBox(color: fill),
-                  words(fillInk),
+                  _BarWords(label: face.label, ink: fillInk),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BarWords extends StatelessWidget {
+  const _BarWords({required this.label, required this.ink});
+
+  final String label;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: Center(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: AppType.digits(AppType.footnote).copyWith(fontWeight: FontWeight.w600, color: ink),
         ),
       ),
     );

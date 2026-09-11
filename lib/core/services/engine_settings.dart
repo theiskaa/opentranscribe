@@ -2,9 +2,9 @@ import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 
 /// Persists the engine choice and each engine's model choice. An unset engine
-/// means auto: the first available registry
-/// entry, so a device that cannot run the preferred engine starts on one that
-/// works without the user touching anything.
+/// means auto: the first available registry entry, so a device that cannot run
+/// the preferred engine starts on one that works without the user touching
+/// anything.
 class EngineSettings {
   EngineSettings({required this._storage});
 

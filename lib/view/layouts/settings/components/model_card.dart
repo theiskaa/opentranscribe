@@ -282,8 +282,7 @@ class _QuietLine extends StatelessWidget {
   final ModelRowState row;
   final ModelRowFace face;
 
-  /// A footnote's line box: a card that has nothing to say here keeps the
-  /// same shape as one that does.
+  /// The failure line's box.
   static const double height = 24;
 
   @override

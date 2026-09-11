@@ -5,9 +5,8 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 /// One line for a batch pass in flight: the run's percent, or the model's
 /// download ahead of it. Null once the pass is over.
 ///
-/// A run reports at the pace of whisper's own windows, 30 seconds of audio
-/// each, so a short entry has nothing to report until it is done: the line
-/// names the work and takes the number only once there is one.
+/// An engine may report nothing until a short run is done, so the line names
+/// the work and takes the number only once there is one.
 String? batchProgressLabel(AppLocalizations l10n, BatchProgress? progress) {
   if (progress == null) return null;
   final percent = percentOf(progress.fraction);
