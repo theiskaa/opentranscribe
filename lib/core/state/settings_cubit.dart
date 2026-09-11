@@ -326,7 +326,7 @@ class SettingsCubit extends Cubit<SettingsState> {
        _engineSettings = engineSettings,
        _physicalMemoryBytes = physicalMemoryBytes,
        // Seeded from the synchronous holders rather than defaulted: [load] needs
-       // five channel round trips to answer, and a Cache screen that renders
+       // several channel round trips to answer, and a Cache screen that renders
        // "keep audio on" for a second before flipping itself off is telling the
        // user their setting is something it is not.
        super(
@@ -371,7 +371,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   int _loadGeneration = 0;
 
   /// Rebuilds every language row and, under an engine with a choice, every
-  /// model row. Cheap by design: four list calls plus ONE
+  /// model row. Cheap by design: list calls plus ONE
   /// fine-grained probe for the default row (whose readiness the pre-merge
   /// screens render); other rows derive from list membership, and a surface
   /// that shows one can refine it via [refreshLanguage]. In-flight download
@@ -594,6 +594,7 @@ class SettingsCubit extends Cubit<SettingsState> {
             _patchRow(target, (row) => row.copyWith(clearInstall: true));
             unawaited(load());
           },
+          cancelOnError: true,
           onError: (Object error) {
             _installSubs.remove(target);
             _patchRow(
@@ -688,7 +689,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);
         // Installed at once: the file is there, and the reload that says
-        // so takes six round trips the row must not spend as a download.
+        // so takes several round trips the row must not spend as a download.
         _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
         // Selecting is what the download was for; a failed persist still
         // leaves the file, so the row reads installed either way.
@@ -703,6 +704,9 @@ class SettingsCubit extends Cubit<SettingsState> {
         }
         unawaited(load());
       },
+      // A failed install's stream closes after its error; without this its
+      // onDone would mark the model installed and select it.
+      cancelOnError: true,
       onError: (Object error) {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);

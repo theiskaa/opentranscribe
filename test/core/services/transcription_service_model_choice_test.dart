@@ -122,6 +122,72 @@ void main() {
     await svc.dispose();
   });
 
+  TranscriptionService buildCounting(TranscriptionEngine engine, {FakeAudioRecorder? recorder}) {
+    var next = 0;
+    return TranscriptionService(
+      recorder: recorder ?? FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(),
+      clock: () => DateTime.utc(2026, 9, 6),
+      idGenerator: () => 'id-${next++}',
+    );
+  }
+
+  test(
+    'a take queued behind another pass on a paced engine keeps its own budget and cancels nothing',
+    () async {
+      final engine = FakeModelChoiceEngine(
+        installed: {'small'},
+        serialRuns: true,
+        batchDelay: const Duration(milliseconds: 200),
+      );
+      final svc = buildCounting(
+        engine,
+        recorder: FakeAudioRecorder(duration: const Duration(milliseconds: 100)),
+      );
+      await svc.startRecording();
+      final first = await svc.stopRecording();
+
+      final pass = svc.retranscribe(first);
+      await svc.startRecording();
+      final take = await svc.stopRecording();
+
+      expect(take.transcript?.fullText, 'batch transcript');
+      expect((await pass).transcript?.fullText, 'batch transcript');
+      expect(engine.cancelBatchesCalls, 0);
+      await svc.dispose();
+    },
+  );
+
+  test('a cancelled bulk run stops a mixed-language entry between its spans', () async {
+    final engine = FakeModelChoiceEngine(failInstall: ModelInstallReason.offline);
+    final svc = buildCounting(
+      engine,
+      recorder: FakeAudioRecorder(duration: const Duration(seconds: 10)),
+    );
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    await store.save(
+      entry.withLanguageSpans(const [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 8000, localeId: 'de-DE'),
+      ]),
+    );
+    engine
+      ..failInstall = null
+      ..batchDelay = const Duration(milliseconds: 200);
+
+    final run = svc.retranscribeAll.start();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    svc.retranscribeAll.cancel();
+    final result = await run;
+
+    expect(result.landed, 0);
+    expect(store.read(entry.id)?.transcript, isNull);
+    await svc.dispose();
+  });
+
   test('a paced engine with a real budget lands its transcript', () async {
     final engine = FakeModelChoiceEngine(installed: {'small'});
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));

@@ -246,6 +246,12 @@ class TranscriptionService {
       StreamController<FirstUseInstall>.broadcast();
   // Ends the pre-installs batches wait on, so a cancel stops them like the run.
   final Set<Future<void> Function()> _firstUseWaiters = {};
+  // Bumped by an explicit cancel, never by a timeout: what separates a pass
+  // told to stop from one that failed and may fall back.
+  int _cancelGeneration = 0;
+  // A paced engine runs passes one at a time; queueing them here means each
+  // budget counts its own run, never the wait behind another.
+  Future<void> _pacedTurn = Future<void>.value();
   final StreamController<BatchProgress> _batchProgress =
       StreamController<BatchProgress>.broadcast();
   final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
@@ -281,6 +287,7 @@ class TranscriptionService {
   /// cancel is forbidden inside it, so a stop's batch can never queue behind
   /// bulk work or die to a bulk cancel.
   bool get _captureActive => _recording || _starting || _finalizingCaptures > 0;
+  bool get _captureBusy => _captureActive || _finalizing != null;
 
   /// User-initiated re-transcriptions in flight (the detail screen's action).
   /// The bulk hard cancel kills EVERY batch on the engine, so it is also
@@ -464,7 +471,7 @@ class TranscriptionService {
     if (!engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
     }
-    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
+    if (_captureBusy) return false;
     if (retranscribeAll.isRunning) return false;
     if (identical(engine, _engine)) return true;
     final previous = _engine;
@@ -475,7 +482,7 @@ class TranscriptionService {
     // Best effort, like every other teardown, so a refusing release cannot
     // fail a switch.
     if (_userBatches == 0 && previous is ReleasableEngine) {
-      unawaited(previous.release().catchError((_) {}));
+      unawaited(_releaseQuietly(previous));
     }
     return true;
   }
@@ -484,11 +491,14 @@ class TranscriptionService {
   /// (a loaded model, a worker), for the app going to the background. A take,
   /// a finalize or the bulk run in flight keeps it; the next run loads again.
   Future<void> releaseIdleEngine() async {
-    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return;
+    if (_captureBusy) return;
     if (retranscribeAll.isRunning || _userBatches > 0) return;
     final engine = _engine;
-    if (engine is ReleasableEngine) await engine.release().catchError((Object _) {});
+    if (engine is ReleasableEngine) await _releaseQuietly(engine);
   }
+
+  Future<void> _releaseQuietly(ReleasableEngine engine) =>
+      engine.release().catchError((Object _) {});
 
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
   Future<List<String>> supportedLocales() => _engine.supportedLocales();
@@ -1908,7 +1918,7 @@ class TranscriptionService {
       _userBatches--;
       // The switch useEngine deferred while this run held its engine.
       if (_userBatches == 0 && !identical(engine, _engine) && engine is ReleasableEngine) {
-        unawaited(engine.release().catchError((_) {}));
+        unawaited(_releaseQuietly(engine));
       }
     }
   }
@@ -2228,24 +2238,46 @@ class TranscriptionService {
     // by every engine, reporting or not: that a run has started is what the
     // surfaces holding a place for it wait on.
     report?.call(BatchStep.transcribing, 0);
-    final run = engine is ProgressBatchEngine && report != null
-        ? engine.transcribeFileWithProgress(
-            file,
-            localeId: locale,
-            start: start,
-            end: end,
-            onProgress: (fraction) => report(BatchStep.transcribing, fraction),
-          )
-        : engine.transcribeFile(file, localeId: locale, start: start, end: end);
-    return run.timeout(
-      timeout,
-      onTimeout: () {
-        // The Dart side is giving up; tell the engine so the native task does not
-        // keep holding the recognizer for work nobody will read.
-        unawaited(_cancelEngineBatches(engine));
-        throw const TranscriptionFailed('transcription timed out');
-      },
-    );
+    final paced = engine is PacedBatchEngine;
+    Future<Transcript> run() {
+      final pass = engine is ProgressBatchEngine && report != null
+          ? engine.transcribeFileWithProgress(
+              file,
+              localeId: locale,
+              start: start,
+              end: end,
+              onProgress: (fraction) => report(BatchStep.transcribing, fraction),
+            )
+          : engine.transcribeFile(file, localeId: locale, start: start, end: end);
+      return pass.timeout(
+        timeout,
+        onTimeout: () {
+          // The Dart side is giving up; tell the engine so the native task does
+          // not keep holding the recognizer for work nobody will read. A paced
+          // engine's run is this pass alone, so the passes behind it keep theirs.
+          if (paced) {
+            if (engine is CancellableBatchEngine) {
+              unawaited((engine as CancellableBatchEngine).cancelBatches());
+            }
+          } else {
+            unawaited(_abortEngine(engine));
+          }
+          throw const TranscriptionFailed('transcription timed out');
+        },
+      );
+    }
+
+    return paced ? _inPacedTurn(run) : run();
+  }
+
+  Future<Transcript> _inPacedTurn(Future<Transcript> Function() run) {
+    final generation = _cancelGeneration;
+    final turn = _pacedTurn.then((_) {
+      if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
+      return run();
+    });
+    _pacedTurn = turn.then((_) {}, onError: (Object _) {});
+    return turn;
   }
 
   /// Waits for a first-use download, feeding [firstUseInstalls] as it goes.
@@ -2289,7 +2321,12 @@ class TranscriptionService {
   /// the first-use download a batch may be waiting on.
   /// CancellableBatchEngine does not extend TranscriptionEngine, so `is`
   /// alone cannot promote; the cast makes the member visible.
-  Future<void> _cancelEngineBatches(TranscriptionEngine engine) async {
+  Future<void> _cancelEngineBatches(TranscriptionEngine engine) {
+    _cancelGeneration++;
+    return _abortEngine(engine);
+  }
+
+  Future<void> _abortEngine(TranscriptionEngine engine) async {
     for (final cancel in _firstUseWaiters.toList()) {
       await cancel();
     }
@@ -2312,9 +2349,11 @@ class TranscriptionService {
     List<({int startMs, String tag})> spans, {
     _BatchReport? report,
   }) async {
+    final generation = _cancelGeneration;
     try {
       final parts = <Transcript>[];
       for (var i = 0; i < spans.length; i++) {
+        if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
         final start = Duration(milliseconds: spans[i].startMs);
         final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
         final spanLength = (end ?? duration) - start;
@@ -2382,6 +2421,7 @@ class TranscriptionService {
         createdAt: _clock(),
       );
     } on TranscriptionException {
+      if (generation != _cancelGeneration) rethrow;
       return _batch(engine, file, duration, localeId: spans.first.tag, report: report);
     }
   }

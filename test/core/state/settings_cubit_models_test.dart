@@ -330,6 +330,19 @@ void main() {
     expect(rowOf(cubit, 'large').failure, isNull);
   });
 
+  test('a failed download neither selects the model nor saves it as the choice', () async {
+    engine.failInstall = ModelInstallReason.offline;
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(engine.selectedModelId, 'small');
+    expect(engineSettings.modelIdFor(engine.id), isNot('large'));
+    expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
+  });
+
   test('removing a model drops it from installed and leaves the selection', () async {
     engine.installed.add('large');
     final cubit = build();

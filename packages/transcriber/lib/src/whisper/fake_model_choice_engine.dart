@@ -52,6 +52,7 @@ class FakeModelChoiceEngine
     this.cannedText = 'batch transcript',
     this.budgetFactor = 3,
     this.batchDelay,
+    this.serialRuns = false,
     this.progressSteps = const [],
     DateTime Function()? clock,
   }) : installed = Set.of(installed),
@@ -98,6 +99,10 @@ class FakeModelChoiceEngine
 
   /// Holds a batch, for timeout tests.
   Duration? batchDelay;
+
+  /// Runs one batch at a time, the way whisper.cpp's engine does.
+  final bool serialRuns;
+  Future<void> _runs = Future<void>.value();
 
   /// The fractions a reporting batch replays before its delay.
   List<double> progressSteps;
@@ -157,7 +162,14 @@ class FakeModelChoiceEngine
     required void Function(double fraction) onProgress,
     Duration? start,
     Duration? end,
-  }) async {
+  }) {
+    if (!serialRuns) return _run(localeId, onProgress);
+    final run = _runs.then((_) => _run(localeId, onProgress));
+    _runs = run.then((_) {}, onError: (Object _) {});
+    return run;
+  }
+
+  Future<Transcript> _run(String localeId, void Function(double fraction) onProgress) async {
     for (final step in progressSteps) {
       onProgress(step);
     }
