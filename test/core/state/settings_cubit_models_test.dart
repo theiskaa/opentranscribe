@@ -546,6 +546,32 @@ void main() {
     expect(rowOf(cubit, 'large').installing, isFalse);
     gate.complete();
     await stop;
+    await pumpEventQueue();
+    await cubit.load();
+
+    expect(rowOf(cubit, 'small').installing, isFalse);
+    expect(rowOf(cubit, 'small').installed, isTrue);
+  });
+
+  test('another pass starting its run leaves a painted download alone', () async {
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+    await service.startRecording();
+    final earlier = await service.stopRecording();
+    engine.installed.clear();
+    engine.installSteps = [0.4];
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    await service.startRecording();
+    final stop = service.stopRecording();
+    await pumpEventQueue();
+
+    await service.retranscribe(earlier, using: FakeBatchEngine());
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').installFraction, 0.4);
+    gate.complete();
+    await stop;
   });
 
   test('closing the cubit mid model install cancels the download', () async {
@@ -562,6 +588,33 @@ void main() {
     await pumpEventQueue();
 
     expect(engine.installed, isNot(contains('large')));
+  });
+
+  test('a run whose model will not open lands that on the row while its file stays', () async {
+    engine.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    await service.startRecording();
+    await service.stopRecording();
+    await pumpEventQueue();
+    await cubit.load();
+
+    expect(rowOf(cubit, 'small').installed, isTrue);
+    expect(rowOf(cubit, 'small').failure, ModelInstallReason.loadFailed);
+  });
+
+  test('a run that fails for its words leaves the model row alone', () async {
+    engine.failRun = const TranscriptionFailed('fake');
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+
+    await service.startRecording();
+    await service.stopRecording();
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').failure, isNull);
+    expect(rowOf(cubit, 'small').installing, isFalse);
   });
 
   test('a first-use download that fails before its first byte still names its model', () async {

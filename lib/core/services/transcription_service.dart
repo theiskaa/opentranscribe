@@ -11,18 +11,58 @@ import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// One event of [TranscriptionService.firstUseInstalls]: which model, and how far.
-typedef FirstUseInstall = ({String modelId, ModelInstallProgress progress});
-
 /// Where a batch pass is: fetching the model it needs first, running, or over.
 enum BatchStep { downloading, transcribing, done }
 
 /// One event of [TranscriptionService.batchProgress]: the entry the pass is
-/// for (null for a take being saved), its step, how far along that step is,
-/// and the model's name while it downloads.
-typedef BatchProgress = ({String? entryId, BatchStep step, double fraction, String? modelName});
+/// for (null for a take being saved), its step and how far along that step
+/// is. Under an engine with a model choice it also names the model the pass
+/// runs on ([modelId], and [modelName] while it downloads), says when the
+/// download is in its [preparing] tail, and on the done of a pass that failed
+/// for its model says why ([failure]).
+@immutable
+final class BatchProgress {
+  const BatchProgress({
+    required this.entryId,
+    required this.step,
+    required this.fraction,
+    this.modelId,
+    this.modelName,
+    this.preparing = false,
+    this.failure,
+  });
 
-typedef _BatchReport = void Function(BatchStep step, double fraction, {String? modelName});
+  final String? entryId;
+  final BatchStep step;
+  final double fraction;
+  final String? modelId;
+  final String? modelName;
+  final bool preparing;
+  final ModelInstallReason? failure;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BatchProgress &&
+      other.entryId == entryId &&
+      other.step == step &&
+      other.fraction == fraction &&
+      other.modelId == modelId &&
+      other.modelName == modelName &&
+      other.preparing == preparing &&
+      other.failure == failure;
+
+  @override
+  int get hashCode => Object.hash(entryId, step, fraction, modelId, modelName, preparing, failure);
+}
+
+typedef _BatchReport =
+    void Function(
+      BatchStep step,
+      double fraction, {
+      String? modelId,
+      String? modelName,
+      bool preparing,
+    });
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
@@ -242,8 +282,6 @@ class TranscriptionService {
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
-  final StreamController<FirstUseInstall> _firstUseInstalls =
-      StreamController<FirstUseInstall>.broadcast();
   // Ends the pre-installs batches wait on, so a cancel stops them like the run.
   final Set<Future<void> Function()> _firstUseWaiters = {};
   // Bumped by an explicit cancel, never by a timeout: what separates a pass
@@ -532,12 +570,6 @@ class TranscriptionService {
         ? engine.isModelInstalled(localeId: localeId ?? this.localeId)
         : true;
   }
-
-  /// Progress of a first-use model download a batch is waiting on (a choice
-  /// engine's, before the run), tagged with the model, so a surface can show
-  /// the percent the user never tapped for. Each download ends with its done
-  /// event or with the failure the batch then reports its own way.
-  Stream<FirstUseInstall> get firstUseInstalls => _firstUseInstalls.stream;
 
   /// How far each batch pass is, for the surfaces that wait on one: a
   /// re-transcription or a continuation under its entry, a fresh take under
@@ -2185,21 +2217,60 @@ class TranscriptionService {
   }
 
   /// Runs [body] as one batch pass on [batchProgress] under [entryId]: its
-  /// reports go out as they come, and its done follows however it settles.
-  /// A report after that (a run this side gave up on, still polling) is
-  /// dropped, so done stays the last word.
+  /// reports go out as they come, and its done follows however it settles,
+  /// naming the pass's model and why it failed for it. A report after that
+  /// (a run this side gave up on, still polling) is dropped, so done stays
+  /// the last word; so is one identical to the last, as the download's own
+  /// first word is to the pass naming its model.
   Future<T> _reporting<T>(String? entryId, Future<T> Function(_BatchReport report) body) async {
     var over = false;
-    void emit(BatchStep step, double fraction, {String? modelName}) {
-      if (over || _batchProgress.isClosed) return;
-      over = step == BatchStep.done;
-      _batchProgress.add((entryId: entryId, step: step, fraction: fraction, modelName: modelName));
+    BatchProgress? last;
+    String? modelIdSeen;
+    void add(BatchProgress event) {
+      if (over || _batchProgress.isClosed || event == last) return;
+      over = event.step == BatchStep.done;
+      last = event;
+      _batchProgress.add(event);
     }
 
+    void emit(
+      BatchStep step,
+      double fraction, {
+      String? modelId,
+      String? modelName,
+      bool preparing = false,
+    }) {
+      if (modelId != null) modelIdSeen = modelId;
+      add(
+        BatchProgress(
+          entryId: entryId,
+          step: step,
+          fraction: fraction,
+          modelId: modelId,
+          modelName: modelName,
+          preparing: preparing,
+        ),
+      );
+    }
+
+    ModelInstallReason? failure;
     try {
       return await body(emit);
+    } on ModelInstallFailed catch (e) {
+      if (e.reason != ModelInstallReason.cancelled) {
+        failure = e.reason ?? ModelInstallReason.rejected;
+      }
+      rethrow;
     } finally {
-      emit(BatchStep.done, 1);
+      add(
+        BatchProgress(
+          entryId: entryId,
+          step: BatchStep.done,
+          fraction: 1,
+          modelId: modelIdSeen,
+          failure: modelIdSeen == null ? null : failure,
+        ),
+      );
     }
   }
 
@@ -2220,12 +2291,30 @@ class TranscriptionService {
         final choice = engine as ModelChoiceEngine;
         final modelId = choice.selectedModelId;
         final modelName = choice.models.where((m) => m.id == modelId).firstOrNull?.displayName;
-        await _installFirstUse(
-          engine.installModel(localeId: locale),
-          modelId,
-          onProgress: (fraction) =>
-              report?.call(BatchStep.downloading, fraction, modelName: modelName),
-        );
+        // Named before the stream's first word, so a download that fails
+        // before any byte still says which model it was.
+        report?.call(BatchStep.downloading, 0, modelId: modelId, modelName: modelName);
+        try {
+          await _installFirstUse(
+            engine.installModel(localeId: locale),
+            onProgress: (progress) {
+              if (progress.done) return;
+              report?.call(
+                BatchStep.downloading,
+                progress.fraction,
+                modelId: modelId,
+                modelName: modelName,
+                preparing: progress.preparing,
+              );
+            },
+          );
+        } on TranscriptionException {
+          rethrow;
+        } catch (e) {
+          // Outside the taxonomy (a file system error): the download failed all
+          // the same, and the pass's done must say so.
+          throw ModelInstallFailed('$e', null, ModelInstallReason.rejected);
+        }
       }
     }
     // Scale the timeout by audio length so a long entry is not cut off, while still
@@ -2237,7 +2326,11 @@ class TranscriptionService {
     // last percent would otherwise linger over a run already going. Reported
     // by every engine, reporting or not: that a run has started is what the
     // surfaces holding a place for it wait on.
-    report?.call(BatchStep.transcribing, 0);
+    report?.call(
+      BatchStep.transcribing,
+      0,
+      modelId: engine is ModelChoiceEngine ? engine.selectedModelId : null,
+    );
     final paced = engine is PacedBatchEngine;
     Future<Transcript> run() {
       final pass = engine is ProgressBatchEngine && report != null
@@ -2280,41 +2373,19 @@ class TranscriptionService {
     return turn;
   }
 
-  /// Waits for a first-use download, feeding [firstUseInstalls] as it goes.
-  /// A cancelled subscription fires neither done nor error, so the waiter is
-  /// failed here when [_cancelEngineBatches] ends it.
+  /// Waits for a first-use download; [_cancelEngineBatches] ends it.
   Future<void> _installFirstUse(
-    Stream<ModelInstallProgress> install,
-    String modelId, {
-    void Function(double fraction)? onProgress,
+    Stream<ModelInstallProgress> install, {
+    void Function(ModelInstallProgress progress)? onProgress,
   }) {
-    final done = Completer<void>();
-    void emit(FirstUseInstall event) {
-      if (!_firstUseInstalls.isClosed) _firstUseInstalls.add(event);
-    }
-
-    final sub = _pokingOnDone(install).listen(
-      (progress) {
-        emit((modelId: modelId, progress: progress));
-        if (!progress.done) onProgress?.call(progress.fraction);
-      },
-      onError: (Object error, StackTrace stack) {
-        if (!_firstUseInstalls.isClosed) _firstUseInstalls.addError(error, stack);
-        if (!done.isCompleted) done.completeError(error, stack);
-      },
-      onDone: () {
-        if (!done.isCompleted) done.complete();
-      },
+    final wait = InstallWait(
+      _pokingOnDone(install),
+      cancelled: const TranscriptionFailed('cancelled'),
+      onProgress: onProgress,
     );
-    Future<void> cancel() async {
-      await sub.cancel();
-      const cancelled = TranscriptionFailed('cancelled');
-      if (!_firstUseInstalls.isClosed) _firstUseInstalls.addError(cancelled);
-      if (!done.isCompleted) done.completeError(cancelled);
-    }
-
+    final cancel = wait.cancel;
     _firstUseWaiters.add(cancel);
-    return done.future.whenComplete(() => _firstUseWaiters.remove(cancel));
+    return wait.done.whenComplete(() => _firstUseWaiters.remove(cancel));
   }
 
   /// Cancels [engine]'s in-flight batch passes, when it supports that, and
@@ -2372,10 +2443,12 @@ class TranscriptionService {
             end: end,
             report: report == null
                 ? null
-                : (step, fraction, {modelName}) => report(
+                : (step, fraction, {modelId, modelName, preparing = false}) => report(
                     step,
                     step == BatchStep.transcribing ? from + fraction * share : fraction,
+                    modelId: modelId,
                     modelName: modelName,
+                    preparing: preparing,
                   ),
           ),
         );
@@ -2540,7 +2613,6 @@ class TranscriptionService {
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();
-    await _firstUseInstalls.close();
     await _batchProgress.close();
     await _entriesChanged.close();
     await _continuations.close();

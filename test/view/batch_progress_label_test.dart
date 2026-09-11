@@ -8,7 +8,7 @@ void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
 
   BatchProgress progress(BatchStep step, double fraction, {String? modelName}) =>
-      (entryId: null, step: step, fraction: fraction, modelName: modelName);
+      BatchProgress(entryId: null, step: step, fraction: fraction, modelName: modelName);
 
   test('no pass has no line', () {
     expect(batchProgressLabel(l10n, null), isNull);

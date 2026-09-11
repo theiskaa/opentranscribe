@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
@@ -222,28 +224,117 @@ void main() {
     await svc.dispose();
   });
 
-  test('a first-use download reports its model and progress, and its failure', () async {
+  test('a first-use download names its model on the pass, and its failure on the done', () async {
     final engine = FakeModelChoiceEngine(installSteps: const [0.25]);
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
-    final events = <FirstUseInstall>[];
-    final errors = <Object>[];
-    final sub = svc.firstUseInstalls.listen(events.add, onError: errors.add);
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
 
     await svc.startRecording();
     await svc.stopRecording();
     await pumpEventQueue();
-    expect(events.map((e) => e.modelId).toSet(), {'small'});
-    expect(events.map((e) => e.progress.fraction), [0, 0.25, 1]);
-    expect(events.last.progress.done, isTrue);
+    expect(events.map((e) => (e.step, e.fraction, e.modelId)), [
+      (BatchStep.downloading, 0.0, 'small'),
+      (BatchStep.downloading, 0.25, 'small'),
+      (BatchStep.transcribing, 0.0, 'small'),
+      (BatchStep.done, 1.0, 'small'),
+    ]);
+    expect(events.last.failure, isNull);
 
+    events.clear();
     engine.installed.clear();
     engine.failInstall = ModelInstallReason.noSpace;
     await svc.startRecording();
     final entry = await svc.stopRecording();
     await pumpEventQueue();
     expect(entry.transcript, isNull);
-    expect(errors.single, isA<ModelInstallFailed>());
+    expect(events.last.step, BatchStep.done);
+    expect(events.last.modelId, 'small');
+    expect(events.last.failure, ModelInstallReason.noSpace);
 
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('a hard cancel during a first-use download ends the pass with no model failure', () async {
+    final engine = FakeModelChoiceEngine(
+      installSteps: const [0.25],
+      failInstall: ModelInstallReason.offline,
+    );
+    final svc = buildCounting(
+      engine,
+      recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)),
+    );
+    await svc.startRecording();
+    final entry = await svc.stopRecording();
+    final gate = Completer<void>();
+    engine
+      ..failInstall = null
+      ..installGate = gate.future;
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
+
+    final run = svc.retranscribeAll.start();
+    await pumpEventQueue();
+    svc.retranscribeAll.cancel();
+    final result = await run;
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(result.landed, 0);
+    expect(store.read(entry.id)?.transcript, isNull);
+    expect(events.last.step, BatchStep.done);
+    expect(events.last.failure, isNull);
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('a first-use download in its preparing tail says so on the pass', () async {
+    final engine = FakeModelChoiceEngine(canAccelerate: true, accelerated: true);
+    final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(events.where((e) => e.step == BatchStep.downloading).last.preparing, isTrue);
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('a run whose model will not open carries that on its done', () async {
+    final engine = FakeModelChoiceEngine(installed: {'small'})
+      ..failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(events.last.step, BatchStep.done);
+    expect(events.last.modelId, 'small');
+    expect(events.last.failure, ModelInstallReason.loadFailed);
+    await sub.cancel();
+    await svc.dispose();
+  });
+
+  test('a pass that fails for its words, not its model, carries no model failure', () async {
+    final engine = FakeModelChoiceEngine(installed: {'small'})
+      ..failRun = const TranscriptionFailed('fake');
+    final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
+
+    await svc.startRecording();
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(events.last.step, BatchStep.done);
+    expect(events.last.failure, isNull);
     await sub.cancel();
     await svc.dispose();
   });

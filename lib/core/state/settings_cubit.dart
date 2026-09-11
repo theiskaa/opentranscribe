@@ -344,7 +344,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());
-    _firstUseSub = _service.firstUseInstalls.listen(_onFirstUseInstall, onError: _onFirstUseFailed);
+    _passSub = _service.batchProgress.listen(_onPass, onError: (Object _) {});
     unawaited(load());
   }
 
@@ -363,11 +363,10 @@ class SettingsCubit extends Cubit<SettingsState> {
   // them.
   final Set<String> _accelerationInstalls = {};
   StreamSubscription<void>? _modelSub;
-  StreamSubscription<FirstUseInstall>? _firstUseSub;
-  // A download a batch started, painted on its model's row without this
-  // cubit starting it.
-  String? _firstUseModelId;
-  double? _firstUseFraction;
+  StreamSubscription<BatchProgress>? _passSub;
+  // The pass whose download is painting a model's row, without this cubit
+  // having started it; keyed by pass so another pass's events leave it be.
+  ({String? entryId, String modelId})? _pass;
   // Models between a refused-or-not removal and their retry's install.
   final Set<String> _reinstalling = {};
   int _loadGeneration = 0;
@@ -429,6 +428,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       }
       _installSubs.clear();
       _modelInstallSubs.clear();
+      _pass = null;
     }
     final previousModels = sameEngine
         ? {for (final row in state.models) row.option.id: row}
@@ -445,13 +445,11 @@ class SettingsCubit extends Cubit<SettingsState> {
             physicalBytes: _physicalMemoryBytes,
           ),
           accelerated: acceleratedModels.contains(option.id),
-          installFraction: _modelInstallSubs.containsKey(option.id)
+          installFraction: _modelInstallSubs.containsKey(option.id) || option.id == _pass?.modelId
               ? previousModels[option.id]?.installFraction
-              : option.id == _firstUseModelId
-              ? _firstUseFraction
               : null,
           preparing:
-              (_modelInstallSubs.containsKey(option.id) || option.id == _firstUseModelId) &&
+              (_modelInstallSubs.containsKey(option.id) || option.id == _pass?.modelId) &&
               (previousModels[option.id]?.preparing ?? false),
           queued:
               _modelInstallSubs.containsKey(option.id) &&
@@ -816,34 +814,49 @@ class SettingsCubit extends Cubit<SettingsState> {
     ];
   }
 
-  void _onFirstUseInstall(FirstUseInstall event) {
-    _firstUseModelId = event.progress.done ? null : event.modelId;
-    _firstUseFraction = event.progress.done ? null : event.progress.fraction;
-    // A picker-started download owns its row's fraction.
-    if (_modelInstallSubs.containsKey(event.modelId)) return;
-    _patchModel(
-      event.modelId,
-      (row) => row.copyWith(
-        installFraction: event.progress.fraction,
-        preparing: event.progress.preparing,
-        clearInstall: event.progress.done,
-        installed: event.progress.done ? true : null,
-      ),
-    );
+  /// A batch pass on a model's row: its download painted as it runs, landed
+  /// when that pass's run starts (whatever model the run names, since the
+  /// choice may have moved meanwhile), and the failure its done carries put
+  /// on the model it names. A picker-started download owns its row.
+  void _onPass(BatchProgress event) {
+    if (isClosed) return;
+    final id = event.modelId;
+    final pass = _pass;
+    final ours = pass != null && pass.entryId == event.entryId;
+    switch (event.step) {
+      case BatchStep.downloading:
+        if (id == null || _modelInstallSubs.containsKey(id)) return;
+        final fresh = pass?.modelId != id;
+        _pass = (entryId: event.entryId, modelId: id);
+        _patchModel(
+          id,
+          (row) => row.copyWith(
+            installFraction: event.fraction,
+            preparing: event.preparing,
+            clearFailure: fresh,
+          ),
+        );
+      case BatchStep.transcribing:
+        if (!ours) return;
+        _pass = null;
+        _land(pass.modelId, (row) => row.copyWith(clearInstall: true, installed: true));
+      case BatchStep.done:
+        final failure = event.failure;
+        if (ours) {
+          _pass = null;
+          _land(
+            pass.modelId,
+            (row) => row.copyWith(clearInstall: true, failure: pass.modelId == id ? failure : null),
+          );
+        }
+        if (failure != null && id != null && !(ours && pass.modelId == id)) {
+          _land(id, (row) => row.copyWith(failure: failure));
+        }
+    }
   }
 
-  void _onFirstUseFailed(Object error) {
-    // A download that failed before its first byte named no model; the
-    // service installs the selected one.
-    final id = _firstUseModelId ?? _service.selectedModelId;
-    _firstUseModelId = null;
-    _firstUseFraction = null;
-    if (id == null || _modelInstallSubs.containsKey(id)) return;
-    final failure = _modelFailureFrom(error);
-    _patchModel(
-      id,
-      (row) => row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
-    );
+  void _land(String id, ModelRowState Function(ModelRowState) update) {
+    if (!_modelInstallSubs.containsKey(id)) _patchModel(id, update);
   }
 
   /// Removes a language: releases this app's claim on its model. Removing the
@@ -962,7 +975,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   @override
   Future<void> close() async {
     await _modelSub?.cancel();
-    await _firstUseSub?.cancel();
+    await _passSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
     // own key from the live map, which would invalidate this iteration. A
     // rejecting cancel must not abort the close and leak the cubit open.

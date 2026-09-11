@@ -109,6 +109,9 @@ class FakeModelChoiceEngine
 
   /// A fraction reported after the delay, for a listener that gave up.
   double? lateProgress;
+
+  /// Thrown by every run instead of a transcript, when set.
+  Object? failRun;
   final DateTime Function() _clock;
 
   String _selected;
@@ -176,6 +179,7 @@ class FakeModelChoiceEngine
     final delay = batchDelay;
     if (delay != null) await Future<void>.delayed(delay);
     if (lateProgress case final late?) onProgress(late);
+    if (failRun case final failure?) throw failure;
     return Transcript(
       fullText: cannedText,
       segments: [

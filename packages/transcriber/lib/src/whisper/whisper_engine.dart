@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:transcriber/src/transcribe/install_wait.dart';
 import 'package:transcriber/src/transcribe/transcript.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
@@ -334,23 +335,9 @@ class WhisperEngine
   }
 
   Future<void> _installFirstUse(WhisperModel model) {
-    final done = Completer<void>();
-    final install = installModelById(model.id).listen(
-      null,
-      onError: (Object error, StackTrace stack) {
-        if (!done.isCompleted) done.completeError(error, stack);
-      },
-      onDone: () {
-        if (!done.isCompleted) done.complete();
-      },
-    );
-    // A cancelled subscription fires neither done nor error; the waiter is
-    // failed here so the run ends instead of parking forever.
-    _cancelFirstUse = () async {
-      await install.cancel();
-      if (!done.isCompleted) done.completeError(_cancelled);
-    };
-    return done.future.whenComplete(() => _cancelFirstUse = null);
+    final wait = InstallWait(installModelById(model.id), cancelled: _cancelled);
+    _cancelFirstUse = wait.cancel;
+    return wait.done.whenComplete(() => _cancelFirstUse = null);
   }
 
   Transcript _transcript(List<WhisperSegment> segments, String localeId) {
