@@ -21,6 +21,9 @@
 // name from the process image after dead-code stripping.
 #define OTR_KEEP __attribute__((used))
 
+// The tokens ahead of the language block: every model's text vocabulary.
+#define OTR_TEXT_VOCAB 51765
+
 struct otr_whisper {
   struct whisper_context *ctx;
 };
@@ -87,7 +90,7 @@ OTR_KEEP int32_t otr_whisper_run(
     // whisper maps a language to sot + 1 + id with no bounds check, so a
     // language past this model's own token count would silently become the
     // task token instead (Cantonese on a pre-v3 model).
-    const int n_langs = whisper_model_n_vocab(w->ctx) - 51765 - whisper_is_multilingual(w->ctx);
+    const int n_langs = whisper_model_n_vocab(w->ctx) - OTR_TEXT_VOCAB - whisper_is_multilingual(w->ctx);
     if (lang_id < 0 || lang_id >= n_langs) return OTR_BAD_ARGS;
   }
   if (otr_abort((void *)abort_flag)) return OTR_ABORTED;

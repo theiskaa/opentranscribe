@@ -65,8 +65,6 @@ final class WhisperModel {
   /// The tags this model lists, in catalog order.
   List<String> get supportedTags =>
       List.unmodifiable(whisperLanguageTags.values.take(languageCount));
-
-  Uri get source => file.source;
 }
 
 const _mb = 1024 * 1024;

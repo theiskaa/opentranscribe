@@ -97,6 +97,7 @@ class PcmDecodeFailed extends TranscriptionException {
   static const missing = 'decode_missing';
   static const unreadable = 'decode_unreadable';
   static const empty = 'decode_empty';
+  static const failed = 'decode_failed';
 
   final String? code;
 

@@ -246,7 +246,7 @@ class _Worker {
   Object run(String pcmPath, String language, int threads, int abortAddress, int progressAddress) {
     if (context == nullptr) return const _Failure(WhisperRuntimeError.badArgs, 'no model loaded');
     final file = File(pcmPath);
-    final count = file.lengthSync() ~/ 4;
+    final count = file.lengthSync() ~/ sizeOf<Float>();
     if (count == 0) return const <WhisperSegment>[];
     final samples = calloc<Float>(count);
     final cLanguage = language.toNativeUtf8();
@@ -255,7 +255,7 @@ class _Worker {
       // must not sit in the Dart heap as well.
       final raf = file.openSync();
       try {
-        raf.readIntoSync(samples.asTypedList(count).buffer.asUint8List(0, count * 4));
+        raf.readIntoSync(samples.asTypedList(count).buffer.asUint8List(0, count * sizeOf<Float>()));
       } finally {
         raf.closeSync();
       }

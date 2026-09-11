@@ -41,8 +41,8 @@ void main() {
 
   test('a model source lives on the pinned host', () {
     for (final model in whisperCatalog) {
-      expect(model.source.toString(), startsWith(WhisperHosts.modelHost));
-      expect(model.source.host, 'huggingface.co');
+      expect(model.file.source.toString(), startsWith(WhisperHosts.modelHost));
+      expect(model.file.source.host, 'huggingface.co');
     }
   });
 
