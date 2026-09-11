@@ -115,8 +115,9 @@ final class ModelInstallProgress {
 enum ModelQuality { basic, good, better, best, top }
 
 /// One model a [ModelChoiceEngine] can run: what a picker renders. [bytes] is
-/// the download's exact size; [peakMemoryBytes] what a run needs resident, so
-/// a surface can dim a model this device cannot hold. Presentation words
+/// the download's exact size; [peakMemoryBytes] what a run needs resident
+/// whatever the audio's length, so a surface can dim a model this device
+/// cannot hold. Presentation words
 /// belong to the app; the package carries only the facts.
 @immutable
 final class ModelOption {

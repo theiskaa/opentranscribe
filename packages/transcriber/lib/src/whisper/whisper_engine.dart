@@ -14,30 +14,14 @@ import 'package:transcriber/src/whisper/zip_extract.dart';
 // Public parameters assigned to private fields; the lint wants the fields public.
 
 /// whisper.cpp as a batch-only engine: one downloaded model serves every
-/// language it knows. The per-language [ManagedModelEngine] questions answer
-/// for the selected model, so the app's language surfaces keep working
-/// unchanged; the model choice itself is [ModelChoiceEngine]. The language
-/// list follows the selected model: every model knows the same ninety-nine,
-/// and the large-v3 family adds Cantonese.
+/// language it knows, and the per-language questions answer for that model.
 ///
-/// Guarantees a caller may rely on: audio never leaves the device, and the
-/// only connection the engine ever opens is the [ModelFetcher]'s, for a
-/// catalog file the user asked for or, the managed-engine convention, the
-/// selected model's first use; a transcription decodes exactly the requested
-/// slice through the [PcmDecoder] and deletes the scratch file whether the run
-/// lands or fails; runs are serialized, and [cancelBatches] ends the one in
-/// flight (its first-use download included) and drops the queued ones; the
-/// service pre-installs a missing model before a run, and the engine's own
-/// first-use install is the fallback for any other caller; a
-/// model file counts as installed only when its length matches the catalog
-/// (the hash was verified at install); [installedModels], [localeStatus] and
-/// the other preflights never throw.
-///
-/// Acceleration is whisper.cpp's Core ML encoder: a zipped directory per
-/// model, fetched like the model and unpacked beside it under the name
-/// whisper.cpp derives from the model file, so a load finds it on its own.
-/// Its first load compiles it for this phone's Neural Engine, which an
-/// install pays up front as its preparing tail.
+/// The only connection it opens is the [ModelFetcher]'s, for a catalog file.
+/// Runs are serialized, hold at most [chunkLength] of decoded audio at a time
+/// and delete every scratch file whether they land or fail; a model counts as
+/// installed only at the catalog's length (its hash was checked at install).
+/// Acceleration is whisper.cpp's
+/// Core ML encoder, unpacked beside the model and compiled by a first load.
 class WhisperEngine
     implements
         TranscriptionEngine,
@@ -69,6 +53,10 @@ class WhisperEngine
 
   static const String engineId = 'whisper.cpp';
   static const _batchFloor = Duration(minutes: 2);
+
+  /// The most audio a run holds at once: ten minutes of samples plus their
+  /// spectrogram fit the catalog's memory figures, whatever the entry's length.
+  static const chunkLength = Duration(minutes: 10);
   static const _cancelled = TranscriptionFailed('cancelled');
 
   final Directory _modelsDir;
@@ -204,32 +192,68 @@ class WhisperEngine
       if (generation != _generation) throw _cancelled;
       final session = await _sessionFor(model);
       if (generation != _generation) throw _cancelled;
-      final DecodedPcm decoded;
+      final Duration total;
       try {
-        decoded = await _decoder.decode(audio, start: start, end: end);
+        total = await _decoder.length(audio);
       } on PcmDecodeFailed catch (e) {
-        if (e.code == PcmDecodeFailed.missing) throw RecordingMissing(e.message);
-        throw TranscriptionFailed('decode failed: ${e.message}');
+        throw _decodeFailure(e);
       }
-      final List<WhisperSegment> segments;
-      try {
-        if (generation != _generation) throw _cancelled;
-        segments = await session.run(decoded.file, language: language, onProgress: onProgress);
-      } on WhisperRuntimeException catch (e) {
-        throw switch (e.error) {
-          WhisperRuntimeError.aborted => _cancelled,
-          _ => TranscriptionFailed('run failed: ${e.message ?? e.error.name}'),
-        };
-      } on StateError {
-        // The session was released under this run; a release that raced the
-        // load left it closed, so the next run must load again.
-        if (identical(_session, session)) {
-          _session = null;
-          _sessionModelId = null;
+      final from = start ?? Duration.zero;
+      final to = end ?? total;
+      if (to <= from) return _transcript(const [], localeId);
+      if (to - from <= chunkLength) {
+        final heard = await _hear(session, audio, language, start, end, generation, onProgress);
+        return _transcript(heard ?? const [], localeId);
+      }
+      final bound = to < total ? to : total;
+      final whole = (bound - from).inMicroseconds;
+      final segments = <WhisperSegment>[];
+      var cursor = from;
+      // A re-heard tail restarts below the last fraction reported; only a
+      // climb is forwarded.
+      var reported = 0.0;
+      while (cursor < bound) {
+        final chunkEnd = cursor + chunkLength < bound ? cursor + chunkLength : bound;
+        final done = (cursor - from).inMicroseconds;
+        final share = (chunkEnd - cursor).inMicroseconds;
+        final heard = await _hear(
+          session,
+          audio,
+          language,
+          cursor,
+          chunkEnd,
+          generation,
+          onProgress == null
+              ? null
+              : (p) {
+                  final fraction = (done + p * share) / whole;
+                  if (fraction <= reported) return;
+                  reported = fraction;
+                  onProgress(fraction);
+                },
+        );
+        if (heard == null) break;
+        var kept = heard;
+        var next = chunkEnd;
+        // A chunk's last segment may be cut by the boundary; the next chunk
+        // starts where it began, so the words are heard whole once.
+        final tail = heard.isEmpty ? null : heard.last.start;
+        if (chunkEnd < bound && tail != null && tail > Duration.zero && tail < chunkEnd - cursor) {
+          kept = heard.sublist(0, heard.length - 1);
+          next = cursor + tail;
         }
-        throw _cancelled;
-      } finally {
-        await decoded.file.delete().catchError((_) => decoded.file);
+        final offset = cursor - from;
+        for (final s in kept) {
+          segments.add(
+            WhisperSegment(
+              text: s.text,
+              start: s.start + offset,
+              end: s.end + offset,
+              confidence: s.confidence,
+            ),
+          );
+        }
+        cursor = next;
       }
       return _transcript(segments, localeId);
     } finally {
@@ -241,6 +265,71 @@ class WhisperEngine
         await _closeSession();
         await _deleteEncoder(model);
       }
+    }
+  }
+
+  /// One decoded slice through whisper, its scratch file deleted after. Null
+  /// for a slice holding no audio: past the file's end, or empty.
+  Future<List<WhisperSegment>?> _hear(
+    WhisperSession session,
+    File audio,
+    String language,
+    Duration? start,
+    Duration? end,
+    int generation,
+    void Function(double fraction)? onProgress,
+  ) async {
+    final DecodedPcm decoded;
+    try {
+      decoded = await _decoder.decode(audio, start: start, end: end);
+      if (!_sweptScratch) {
+        _sweptScratch = true;
+        await _sweepScratch(decoded.file);
+      }
+    } on PcmDecodeFailed catch (e) {
+      if (e.code == PcmDecodeFailed.empty) return null;
+      throw _decodeFailure(e);
+    }
+    try {
+      if (generation != _generation) throw _cancelled;
+      return await session.run(decoded.file, language: language, onProgress: onProgress);
+    } on WhisperRuntimeException catch (e) {
+      throw switch (e.error) {
+        WhisperRuntimeError.aborted => _cancelled,
+        _ => TranscriptionFailed('run failed: ${e.message ?? e.error.name}'),
+      };
+    } on StateError {
+      // The session was released under this run; a release that raced the
+      // load left it closed, so the next run must load again.
+      if (identical(_session, session)) {
+        _session = null;
+        _sessionModelId = null;
+      }
+      throw _cancelled;
+    } finally {
+      await decoded.file.delete().catchError((_) => decoded.file);
+    }
+  }
+
+  TranscriptionException _decodeFailure(PcmDecodeFailed e) => e.code == PcmDecodeFailed.missing
+      ? RecordingMissing(e.message)
+      : TranscriptionFailed('decode failed: ${e.message}');
+
+  /// Runs are serialized, so beside the first run's own slice every decoded
+  /// file is one a killed process never deleted: a copy of the user's voice.
+  Future<void> _sweepScratch(File current) async {
+    try {
+      await for (final leftover in current.parent.list()) {
+        final name = leftover.uri.pathSegments.last;
+        if (leftover is File &&
+            leftover.path != current.path &&
+            name.startsWith('otr-') &&
+            name.endsWith('.pcm')) {
+          await leftover.delete().catchError((_) => leftover);
+        }
+      }
+    } on FileSystemException {
+      // Best effort; the next launch sweeps again.
     }
   }
 

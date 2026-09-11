@@ -18,6 +18,8 @@ final class DecodeCall {
 /// under [scratch] so a caller's cleanup can be observed; its length is
 /// [framesPerSecond] times the slice's seconds ([defaultDuration] when the
 /// slice has no end), so a test can assert what the runtime was handed.
+/// [fileDuration] is what [length] answers and what a slice's end clamps to;
+/// unset, the file is as long as [defaultDuration] and nothing clamps.
 /// [gate] holds a decode open until it completes; [throwOnDecode] fails every
 /// call with the given code (mutable, so a test can change the failure between
 /// calls), leaving nothing behind like the real one.
@@ -25,6 +27,7 @@ class FakePcmDecoder implements PcmDecoder {
   FakePcmDecoder({
     required this.scratch,
     this.defaultDuration = const Duration(seconds: 2),
+    this.fileDuration,
     this.framesPerSecond = DecodedPcm.sampleRate,
     this.throwOnDecode,
     this.gate,
@@ -32,6 +35,7 @@ class FakePcmDecoder implements PcmDecoder {
 
   final Directory scratch;
   final Duration defaultDuration;
+  final Duration? fileDuration;
   final int framesPerSecond;
 
   String? throwOnDecode;
@@ -57,7 +61,8 @@ class FakePcmDecoder implements PcmDecoder {
     final code = throwOnDecode;
     if (code != null) throw PcmDecodeFailed('fake decode failed', code);
     final from = start ?? Duration.zero;
-    final to = end ?? from + defaultDuration;
+    var to = end ?? fileDuration ?? from + defaultDuration;
+    if (fileDuration case final whole? when to > whole) to = whole;
     if (to <= from) throw const PcmDecodeFailed('slice holds no frames', PcmDecodeFailed.empty);
     final frames = (to - from).inMilliseconds * framesPerSecond ~/ 1000;
     await scratch.create(recursive: true);
@@ -65,5 +70,13 @@ class FakePcmDecoder implements PcmDecoder {
     await file.writeAsBytes(Uint8List(frames * 4), flush: true);
     written.add(file);
     return DecodedPcm(file: file, frames: frames);
+  }
+
+  @override
+  Future<Duration> length(File audio) async {
+    if (audio.path.isEmpty) throw ArgumentError.value(audio, 'audio', 'path required');
+    final code = throwOnDecode;
+    if (code != null) throw PcmDecodeFailed('fake length failed', code);
+    return fileDuration ?? defaultDuration;
   }
 }

@@ -32,8 +32,11 @@ final class DecodedPcm {
 /// input (null = its own edge), and a slice that would hold no frames (start at
 /// or past end, or past the file) throws [PcmDecodeFailed] with code
 /// `decode_empty` rather than answering silence; any failure throws
-/// [PcmDecodeFailed] and leaves nothing behind. Nothing but paths and numbers
-/// cross the platform boundary.
+/// [PcmDecodeFailed] and leaves nothing behind. [length] answers the input's
+/// own duration without decoding it, failing the same typed way. Nothing but
+/// paths and numbers cross the platform boundary.
 abstract interface class PcmDecoder {
   Future<DecodedPcm> decode(File audio, {Duration? start, Duration? end});
+
+  Future<Duration> length(File audio);
 }

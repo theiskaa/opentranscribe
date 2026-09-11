@@ -37,6 +37,35 @@ void main() {
     expect(decoded.duration, const Duration(seconds: 3));
   });
 
+  test('length answers the file duration, and a slice past it is clamped', () async {
+    final decoder = FakePcmDecoder(
+      scratch: scratch,
+      fileDuration: const Duration(seconds: 3),
+      framesPerSecond: 10,
+    );
+
+    expect(await decoder.length(File('/a.m4a')), const Duration(seconds: 3));
+    final decoded = await decoder.decode(
+      File('/a.m4a'),
+      start: const Duration(seconds: 2),
+      end: const Duration(seconds: 9),
+    );
+    expect(decoded.frames, 10);
+    await expectLater(
+      decoder.decode(File('/a.m4a'), start: const Duration(seconds: 3)),
+      throwsA(isA<PcmDecodeFailed>().having((e) => e.code, 'code', 'decode_empty')),
+    );
+  });
+
+  test('length fails with the scripted code like a decode does', () async {
+    final decoder = FakePcmDecoder(scratch: scratch, throwOnDecode: 'decode_missing');
+
+    await expectLater(
+      decoder.length(File('/a.m4a')),
+      throwsA(isA<PcmDecodeFailed>().having((e) => e.code, 'code', 'decode_missing')),
+    );
+  });
+
   test('a slice holding no frames fails as decode_empty like the real one', () async {
     final decoder = FakePcmDecoder(scratch: scratch);
 

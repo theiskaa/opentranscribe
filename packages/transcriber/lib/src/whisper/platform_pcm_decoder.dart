@@ -29,25 +29,44 @@ class PlatformPcmDecoder implements PcmDecoder {
     return run;
   }
 
-  Future<DecodedPcm> _invoke(File audio, Duration? start, Duration? end) async {
-    try {
-      final result = await _methods.invokeMapMethod<String, dynamic>('decodePcm', {
+  Future<DecodedPcm> _invoke(File audio, Duration? start, Duration? end) => _typed(() async {
+    final result = await _methods.invokeMapMethod<String, dynamic>('decodePcm', {
+      'path': audio.path,
+      if (start != null) 'startMs': start.inMilliseconds,
+      if (end != null) 'endMs': end.inMilliseconds,
+    });
+    final path = result?['path'] as String?;
+    final frames = result?['frames'] as int?;
+    if (path == null || path.isEmpty || frames == null || frames < 0) {
+      throw const PcmDecodeFailed('malformed reply', PcmDecodeFailed.failed);
+    }
+    return DecodedPcm(file: File(path), frames: frames);
+  });
+
+  @override
+  Future<Duration> length(File audio) {
+    if (audio.path.isEmpty) throw ArgumentError.value(audio, 'audio', 'path required');
+    return _typed(() async {
+      final result = await _methods.invokeMapMethod<String, dynamic>('pcmLength', {
         'path': audio.path,
-        if (start != null) 'startMs': start.inMilliseconds,
-        if (end != null) 'endMs': end.inMilliseconds,
       });
-      final path = result?['path'] as String?;
-      final frames = result?['frames'] as int?;
-      if (path == null || path.isEmpty || frames == null || frames < 0) {
-        throw const PcmDecodeFailed('malformed reply', 'decode_failed');
+      final ms = result?['ms'] as int?;
+      if (ms == null || ms < 0) {
+        throw const PcmDecodeFailed('malformed reply', PcmDecodeFailed.failed);
       }
-      return DecodedPcm(file: File(path), frames: frames);
+      return Duration(milliseconds: ms);
+    });
+  }
+
+  Future<T> _typed<T>(Future<T> Function() call) async {
+    try {
+      return await call();
     } on PlatformException catch (e) {
       throw PcmDecodeFailed(e.message, e.code);
     } on MissingPluginException catch (e) {
       throw PcmDecodeFailed(e.message);
     } on TypeError {
-      throw const PcmDecodeFailed('malformed reply', 'decode_failed');
+      throw const PcmDecodeFailed('malformed reply', PcmDecodeFailed.failed);
     }
   }
 }

@@ -739,11 +739,21 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private func decodePcm(
     path: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
   ) {
+    onDecodeQueue(result) {
+      let outcome = try AudioDecode.decodePcm(path: path, startMs: startMs, endMs: endMs)
+      return ["path": outcome.path, "frames": outcome.frames]
+    }
+  }
+
+  private func pcmLength(path: String, result: @escaping FlutterResult) {
+    onDecodeQueue(result) { ["ms": try AudioDecode.lengthMs(path: path)] }
+  }
+
+  private func onDecodeQueue(_ result: @escaping FlutterResult, _ body: @escaping () throws -> Any) {
     AudioDecode.queue.async {
       let reply: Any
       do {
-        let outcome = try AudioDecode.decodePcm(path: path, startMs: startMs, endMs: endMs)
-        reply = ["path": outcome.path, "frames": outcome.frames]
+        reply = try body()
       } catch let error as AudioDecode.DecodeError {
         reply = FlutterError(code: error.code, message: error.errorDescription, details: nil)
       } catch {
@@ -856,6 +866,13 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       decodePcm(path: path, startMs: startMs, endMs: endMs, result: result)
+    case "pcmLength":
+      guard let path = (call.arguments as? [String: Any])?["path"] as? String, !path.isEmpty
+      else {
+        result(FlutterError(code: "bad_args", message: "path required", details: nil))
+        return
+      }
+      pcmLength(path: path, result: result)
     case "setBackupExcluded":
       do {
         let excluded = (call.arguments as? [String: Any])?["excluded"] as? Bool ?? true

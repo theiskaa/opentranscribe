@@ -53,10 +53,15 @@ enum AudioDecode {
     try AudioCaptureSession.protectedDirectory(named: "scratch")
   }
 
-  static func decodePcm(path: String, startMs: Int?, endMs: Int?) throws -> Outcome {
+  /// The input's own duration in milliseconds, from its header; nothing is decoded.
+  static func lengthMs(path: String) throws -> Int {
+    let input = try open(path: path)
+    return Int((Double(input.length) / input.processingFormat.sampleRate * 1000).rounded())
+  }
+
+  private static func open(path: String) throws -> AVAudioFile {
     guard !path.isEmpty else { throw DecodeError.badInput }
-    let fm = FileManager.default
-    guard fm.fileExists(atPath: path) else { throw DecodeError.missing }
+    guard FileManager.default.fileExists(atPath: path) else { throw DecodeError.missing }
     let input: AVAudioFile
     do {
       input = try AVAudioFile(forReading: URL(fileURLWithPath: path))
@@ -67,6 +72,13 @@ enum AudioDecode {
     guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
       throw DecodeError.unreadable("no format")
     }
+    return input
+  }
+
+  static func decodePcm(path: String, startMs: Int?, endMs: Int?) throws -> Outcome {
+    let fm = FileManager.default
+    let input = try open(path: path)
+    let inFormat = input.processingFormat
     guard
       let slice = pcmSlice(
         startMs: startMs, endMs: endMs, sampleRate: inFormat.sampleRate, length: input.length)

@@ -100,6 +100,19 @@ void main() {
   });
 
   group('transcribing', () {
+    test('the first run deletes the decoded slices a killed process left behind', () async {
+      final scratch = Directory('${root.path}/scratch')..createSync(recursive: true);
+      final leftover = File('${scratch.path}/otr-left.pcm')..writeAsBytesSync([1, 2, 3]);
+      final unrelated = File('${scratch.path}/notes.txt')..writeAsStringSync('keep');
+      final e = engine();
+      await install(e);
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(leftover.existsSync(), isFalse);
+      expect(unrelated.existsSync(), isTrue);
+    });
+
     test('a run hands the decoder the slice and whisper the lowercase code', () async {
       final e = engine();
       await install(e);
@@ -162,6 +175,21 @@ void main() {
 
       expect(transcript.isEmpty, isTrue);
       expect(transcript.segments, isEmpty);
+    });
+
+    test('a slice holding no audio is an empty transcript, not a failure', () async {
+      final e = engine();
+      await install(e);
+
+      final transcript = await e.transcribeFile(
+        audio,
+        localeId: 'en-US',
+        start: const Duration(seconds: 3),
+        end: const Duration(seconds: 3),
+      );
+
+      expect(transcript.isEmpty, isTrue);
+      expect(runtime.runs, isEmpty);
     });
 
     test('a model missing at run time installs first, the managed-engine convention', () async {
@@ -338,6 +366,247 @@ void main() {
       expect(e.batchBudget(const Duration(minutes: 10)), const Duration(minutes: 32));
       await e.selectModel('large-v3-turbo-q5_0');
       expect(e.batchBudget(const Duration(minutes: 10)), const Duration(minutes: 62));
+    });
+  });
+
+  group('long audio', () {
+    const minute = Duration(minutes: 1);
+    const cut = [
+      WhisperSegment(
+        text: 'whole',
+        start: Duration.zero,
+        end: Duration(minutes: 8),
+        confidence: 0.9,
+      ),
+      WhisperSegment(
+        text: 'cut',
+        start: Duration(minutes: 9),
+        end: Duration(minutes: 10),
+        confidence: 0.5,
+      ),
+    ];
+
+    WhisperEngine longEngine(Duration length) {
+      decoder = FakePcmDecoder(
+        scratch: Directory('${root.path}/scratch'),
+        fileDuration: length,
+        framesPerSecond: 4,
+      );
+      return engine();
+    }
+
+    List<(Duration?, Duration?)> slices() => [for (final c in decoder.calls) (c.start, c.end)];
+
+    test('a file longer than a chunk runs as slices, one scratch file alive at a time', () async {
+      runtime.segments = const [];
+      final e = longEngine(minute * 25);
+      await install(e);
+      var gate = Completer<void>();
+      runtime.gate = gate.future;
+
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.runs.length == 1);
+      final first = gate;
+      gate = Completer<void>();
+      runtime.gate = gate.future;
+      first.complete();
+      await until(() => runtime.runs.length == 2);
+      expect(decoder.written[0].existsSync(), isFalse);
+      expect(decoder.written[1].existsSync(), isTrue);
+      runtime.gate = null;
+      gate.complete();
+      await run;
+
+      expect(slices(), [
+        (minute * 0, minute * 10),
+        (minute * 10, minute * 20),
+        (minute * 20, minute * 25),
+      ]);
+      expect(decoder.written.any((f) => f.existsSync()), isFalse);
+    });
+
+    test('a segment cut by a chunk boundary is dropped and heard whole from its start', () async {
+      runtime.segments = cut;
+      final e = longEngine(minute * 25);
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(slices(), [
+        (minute * 0, minute * 10),
+        (minute * 9, minute * 19),
+        (minute * 18, minute * 25),
+      ]);
+      expect(transcript.segments.map((s) => s.text), ['whole', 'whole', 'whole', 'cut']);
+      expect(transcript.segments.map((s) => s.start), [
+        Duration.zero,
+        minute * 9,
+        minute * 18,
+        minute * 27,
+      ]);
+      expect(transcript.segments[1].end, minute * 17);
+    });
+
+    test('a chunk whose only segment starts at its own start advances a whole chunk', () async {
+      runtime.segments = const [
+        WhisperSegment(
+          text: 'one',
+          start: Duration.zero,
+          end: Duration(minutes: 10),
+          confidence: 1,
+        ),
+      ];
+      final e = longEngine(minute * 25);
+      await install(e);
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(slices(), [
+        (minute * 0, minute * 10),
+        (minute * 10, minute * 20),
+        (minute * 20, minute * 25),
+      ]);
+    });
+
+    test('a slice inside a long file keeps its own bounds and slice-relative timings', () async {
+      runtime.segments = cut;
+      final e = longEngine(minute * 60);
+      await install(e);
+
+      final transcript = await e.transcribeFile(
+        audio,
+        localeId: 'en-US',
+        start: minute * 30,
+        end: minute * 45,
+      );
+
+      expect(slices(), [(minute * 30, minute * 40), (minute * 39, minute * 45)]);
+      expect(transcript.segments.map((s) => s.start), [Duration.zero, minute * 9, minute * 18]);
+    });
+
+    test('a slice no longer than a chunk is decoded exactly as asked', () async {
+      final e = longEngine(minute * 60);
+      await install(e);
+
+      await e.transcribeFile(audio, localeId: 'en-US', start: minute * 5, end: minute * 12);
+
+      expect(slices(), [(minute * 5, minute * 12)]);
+    });
+
+    test(
+      'a tail stamped past the chunk is kept and the next chunk starts at the boundary',
+      () async {
+        runtime.segments = const [
+          WhisperSegment(
+            text: 'real',
+            start: Duration.zero,
+            end: Duration(minutes: 9),
+            confidence: 1,
+          ),
+          WhisperSegment(
+            text: 'ghost',
+            start: Duration(minutes: 10),
+            end: Duration(minutes: 10, seconds: 3),
+            confidence: 0.1,
+          ),
+        ];
+        final e = longEngine(minute * 25);
+        await install(e);
+
+        final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+        expect(slices(), [
+          (minute * 0, minute * 10),
+          (minute * 10, minute * 20),
+          (minute * 20, minute * 25),
+        ]);
+        expect(transcript.segments.map((s) => s.text), [
+          'real',
+          'ghost',
+          'real',
+          'ghost',
+          'real',
+          'ghost',
+        ]);
+      },
+    );
+
+    test('a short slice past the end of the file decodes once and is empty', () async {
+      final e = longEngine(minute * 2);
+      await install(e);
+
+      final transcript = await e.transcribeFile(
+        audio,
+        localeId: 'en-US',
+        start: minute * 3,
+        end: minute * 4,
+      );
+
+      expect(transcript.isEmpty, isTrue);
+      expect(decoder.calls, hasLength(1));
+      expect(runtime.runs, isEmpty);
+    });
+
+    test('a start past the end of the file is an empty transcript with no decode', () async {
+      final e = longEngine(minute * 2);
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US', start: minute * 5);
+
+      expect(transcript.isEmpty, isTrue);
+      expect(decoder.calls, isEmpty);
+      expect(runtime.runs, isEmpty);
+    });
+
+    test('a cancel during a later chunk ends the run with no scratch file left', () async {
+      runtime.segments = const [];
+      final e = longEngine(minute * 25);
+      await install(e);
+      var gate = Completer<void>();
+      decoder.gate = gate.future;
+
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => decoder.calls.length == 1);
+      final first = gate;
+      gate = Completer<void>();
+      decoder.gate = gate.future;
+      first.complete();
+      await until(() => decoder.calls.length == 2);
+      await e.cancelBatches();
+      gate.complete();
+
+      await expectLater(run, throwsA(isA<TranscriptionFailed>()));
+      expect(runtime.runs, hasLength(1));
+      expect(decoder.calls, hasLength(2));
+      expect(decoder.written.any((f) => f.existsSync()), isFalse);
+    });
+
+    test('progress climbs across chunks and ends at one', () async {
+      runtime
+        ..segments = cut
+        ..progressSteps = const [0, 0.5, 1];
+      final e = longEngine(minute * 25);
+      await install(e);
+      final seen = <double>[];
+
+      await e.transcribeFileWithProgress(audio, localeId: 'en-US', onProgress: seen.add);
+
+      expect(seen, hasLength(6));
+      expect(seen, orderedEquals([...seen]..sort()));
+      expect(seen.first, closeTo(0.2, 1e-9));
+      expect(seen.last, closeTo(1, 1e-9));
+    });
+
+    test('a recording the decoder cannot find is missing before any chunk', () async {
+      final e = longEngine(minute * 25);
+      await install(e);
+      decoder.throwOnDecode = PcmDecodeFailed.missing;
+
+      await expectLater(
+        e.transcribeFile(audio, localeId: 'en-US'),
+        throwsA(isA<RecordingMissing>()),
+      );
+      expect(decoder.calls, isEmpty);
     });
   });
 

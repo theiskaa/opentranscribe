@@ -54,6 +54,29 @@ void main() {
     expect(sent, {'path': '/recordings/otr-a.m4a'});
   });
 
+  test('length sends the path and reads back milliseconds', () async {
+    Map<Object?, Object?>? sent;
+    mockMethods((call) async {
+      expect(call.method, 'pcmLength');
+      sent = call.arguments as Map<Object?, Object?>;
+      return {'ms': 5400000};
+    });
+
+    final length = await decoder.length(File('/recordings/otr-a.m4a'));
+
+    expect(sent, {'path': '/recordings/otr-a.m4a'});
+    expect(length, const Duration(minutes: 90));
+  });
+
+  test('a length reply without milliseconds is refused as malformed', () async {
+    mockMethods((call) async => {'frames': 1});
+
+    await expectLater(
+      decoder.length(File('/recordings/otr-a.m4a')),
+      throwsA(isA<PcmDecodeFailed>().having((e) => e.code, 'code', 'decode_failed')),
+    );
+  });
+
   test('a channel error maps to PcmDecodeFailed carrying the native code', () async {
     mockMethods((call) async => throw PlatformException(code: 'decode_empty', message: 'none'));
 
