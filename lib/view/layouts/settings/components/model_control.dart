@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:opentranscribe/core/state/settings_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -53,6 +54,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
     // model the system quietly removed. Bounded by the reservation cap; a
     // non-managed engine's whole-list refinement rides load() itself.
     final cubit = context.read<SettingsCubit>();
+    unawaited(context.read<ModelsCubit>().load());
     unawaited(
       cubit.load().then((_) {
         // Only where a reservation concept exists (max > 0): platforms without
@@ -74,7 +76,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
   /// The switch takes for the session either way; only a refused persist is
   /// worth a word.
   Future<void> _setAccelerated(BuildContext context, bool on) async {
-    final cubit = context.read<SettingsCubit>();
+    final cubit = context.read<ModelsCubit>();
     try {
       await cubit.setAccelerated(on);
     } catch (_) {
@@ -115,6 +117,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final engineRows = context.watch<EnginesCubit>().state.rows;
+    final models = context.watch<ModelsCubit>().state;
 
     return AppScaffold(
       background: theme.screens.settings,
@@ -126,6 +129,11 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // a real reservation concept does; max 0 also covers the
           // could-not-answer degrade, where offering actions would be lying.
           final canManage = state.reservationMax > 0;
+          // The two cubits reload apart across an engine switch; the model half
+          // shows only once it describes the engine the languages do.
+          final settled = models.engineId == state.engineId;
+          final choice = settled && models.offersModelChoice;
+          final acceleration = settled && models.offersAcceleration;
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
@@ -139,13 +147,17 @@ class _ModelsScreenState extends State<ModelsScreen> {
               _Melt(
                 child: SpeakingHero(
                   state: state,
+                  selectedModel: choice ? models.selectedModel : null,
                   // By the state's own engine id, not the active row: mid-switch
-                  // the readiness still describes the previous engine.
-                  engineName: engineRows
-                      .where((row) => row.descriptor.engineId == state.engineId)
-                      .firstOrNull
-                      ?.descriptor
-                      .displayName,
+                  // the readiness still describes the previous engine. Unnamed
+                  // until the model half agrees, so no ready line lands early.
+                  engineName: settled
+                      ? engineRows
+                            .where((row) => row.descriptor.engineId == state.engineId)
+                            .firstOrNull
+                            ?.descriptor
+                            .displayName
+                      : null,
                   onTap: () => _openHero(context, state),
                 ),
               ),
@@ -187,18 +199,18 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (state.offersModelChoice) ...[
+                    if (choice) ...[
                       SectionLabel(l10n.transcriptionModel),
-                      ModelCards(rows: state.models, accelerated: state.accelerated),
+                      ModelCards(rows: models.models, accelerated: models.accelerated),
                     ],
-                    if (state.offersAcceleration) ...[
+                    if (acceleration) ...[
                       const SizedBox(height: AppSpacing.md),
                       SettingsCard(
                         children: [
                           SettingsToggleRow(
                             icon: AppIcons.sparkles,
                             label: l10n.transcriptionAcceleration,
-                            value: state.accelerated,
+                            value: models.accelerated,
                             onChanged: (on) => _setAccelerated(context, on),
                           ),
                         ],
@@ -223,13 +235,13 @@ class _ModelsScreenState extends State<ModelsScreen> {
                           (r) => r.isActive && r.descriptor.engineId == state.engineId,
                         ))
                       SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
-                    if (state.offersModelChoice && state.models.any((r) => r.installing))
+                    if (choice && models.models.any((r) => r.installing))
                       SectionInfo(l10n.transcriptionDownloadFootnote),
-                    if (state.offersAcceleration)
+                    if (acceleration)
                       SectionInfo(
                         l10n.transcriptionAccelerationNote(
                           formatBytes(
-                            state.selectedModel?.option.accelerationBytes ?? 0,
+                            models.selectedModel?.option.accelerationBytes ?? 0,
                             localeTag(context),
                           ),
                         ),

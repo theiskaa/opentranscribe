@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,11 +46,20 @@ void main() {
 
   tearDown(() => service.dispose());
 
+  ModelsCubit modelsOver(TranscriptionService scoped) {
+    final models = ModelsCubit(
+      service: scoped,
+      engineSettings: EngineSettings(storage: storage),
+    );
+    addTearDown(models.close);
+    return models;
+  }
+
   SettingsCubit build() => SettingsCubit(
     service: service,
     transcription: transcription,
     audioStorage: audioStorage,
-    engineSettings: EngineSettings(storage: storage),
+    models: modelsOver(service),
   );
 
   test('load surfaces locale, supported tags, readiness, and backup state', () async {
@@ -100,7 +110,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
-      engineSettings: EngineSettings(storage: storage),
+      models: modelsOver(scoped),
     );
     return (cubit, scoped, refusing);
   }
@@ -159,7 +169,7 @@ void main() {
       service: scopedService,
       transcription: scopedTranscription,
       audioStorage: audioStorage,
-      engineSettings: EngineSettings(storage: storage),
+      models: modelsOver(scopedService),
     );
     await Future<void>.delayed(Duration.zero);
     return (cubit, scopedService);
@@ -324,7 +334,7 @@ void main() {
           deviceTag: () => 'en-US',
         ),
         audioStorage: audioStorage,
-        engineSettings: EngineSettings(storage: storage),
+        models: modelsOver(multiService),
       );
       await Future<void>.delayed(Duration.zero);
       expect(row(cubit, 'en-US').isReady, isTrue);
@@ -576,7 +586,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
-      engineSettings: EngineSettings(storage: storage),
+      models: modelsOver(dictationService),
     );
     await pumpEventQueue();
 
@@ -655,7 +665,7 @@ void main() {
         deviceTag: () => 'en-US',
       ),
       audioStorage: audioStorage,
-      engineSettings: EngineSettings(storage: storage),
+      models: modelsOver(svc),
     );
     await pumpEventQueue();
 

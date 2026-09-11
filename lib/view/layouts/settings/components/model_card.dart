@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/state/settings_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
@@ -117,7 +117,7 @@ class _ModelTile extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.settings;
     final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<SettingsCubit>();
+    final cubit = context.read<ModelsCubit>();
     final id = row.option.id;
     final face = modelRowFace(row);
     final dimmed = face == ModelRowFace.heavy;
@@ -213,7 +213,7 @@ class _ModelTile extends StatelessWidget {
   /// A refused retry is a model a run holds; the busy words say to wait.
   Future<void> _install(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final installing = await context.read<SettingsCubit>().installModelById(row.option.id);
+    final installing = await context.read<ModelsCubit>().installModelById(row.option.id);
     if (installing || !context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
     await showAppSheet<void>(
       context,
@@ -228,7 +228,7 @@ class _ModelTile extends StatelessWidget {
   Future<void> _use(BuildContext context) async {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<SettingsCubit>();
+    final cubit = context.read<ModelsCubit>();
     try {
       await cubit.selectModel(row.option.id);
     } catch (_) {
@@ -261,7 +261,7 @@ class _ModelTile extends StatelessWidget {
   Future<void> _confirmRemove(BuildContext context) async {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<SettingsCubit>();
+    final cubit = context.read<ModelsCubit>();
     final held = row.option.bytes + (row.accelerated ? row.option.accelerationBytes : 0);
     final size = formatBytes(held, localeTag(context));
     final confirmed = await showAppSheet<bool>(

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -21,12 +22,16 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 class SpeakingHero extends StatelessWidget {
   const SpeakingHero({
     required this.state,
+    required this.selectedModel,
     required this.engineName,
     required this.onTap,
     super.key,
   });
 
   final SettingsState state;
+
+  /// The model runs use under an engine with a choice, else null.
+  final ModelRowState? selectedModel;
 
   /// Display name of the engine the state's readiness describes; null until
   /// known, and the ready line waits for it.
@@ -127,7 +132,7 @@ class SpeakingHero extends StatelessWidget {
     if (trouble != null) return trouble;
     // Under one model for every language the download is the model's, and a
     // supported language with none on disk is not ready yet.
-    final model = state.selectedModel;
+    final model = selectedModel;
     if (state.offersModelChoice && model != null && !model.installed) {
       return l10n.transcriptionHeroNeedsDownload(model.option.displayName);
     }

@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
@@ -150,6 +151,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped: home's bar and the entry screen read the same passes.
         BlocProvider(create: (_) => BatchProgressCubit(service: Deps.i.transcriptionService)),
+        // Root-scoped and eager, ahead of the settings cubit that mirrors its
+        // download onto the default language; its constructor only snapshots
+        // synchronous state and fires an unawaited load.
+        BlocProvider(
+          lazy: false,
+          create: (_) => ModelsCubit(
+            service: Deps.i.transcriptionService,
+            engineSettings: Deps.i.engineSettings,
+            physicalMemoryBytes: Deps.i.physicalMemoryBytes,
+          ),
+        ),
         // Root-scoped so the settings screen and the language picker (separate
         // routes) share one instance. The exception to the rule above: its
         // constructor seeds from three synchronous settings reads and then
@@ -159,12 +171,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // user's eyes.
         BlocProvider(
           lazy: false,
-          create: (_) => SettingsCubit(
+          create: (context) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
-            engineSettings: Deps.i.engineSettings,
-            physicalMemoryBytes: Deps.i.physicalMemoryBytes,
+            models: context.read<ModelsCubit>(),
           ),
         ),
         // Root-scoped so the choice survives leaving the models screen. Lazy

@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
-import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -86,91 +86,9 @@ final class LanguageModelState {
   );
 }
 
-/// One model of an engine's choice as the settings surface manages it:
-/// whether its file is present, whether it is the one runs use, any
-/// in-flight download, whether this phone can hold it, and a standing
-/// install failure.
-@immutable
-final class ModelRowState {
-  const ModelRowState({
-    required this.option,
-    required this.installed,
-    required this.selected,
-    required this.heavy,
-    this.accelerated = false,
-    this.installFraction,
-    this.preparing = false,
-    this.queued = false,
-    this.cancellable = false,
-    this.failure,
-  });
-
-  final ModelOption option;
-  final bool installed;
-  final bool selected;
-
-  /// The model's acceleration file is present beside it.
-  final bool accelerated;
-
-  /// The download's bytes are in and the install is unpacking or compiling:
-  /// no percent to show, nothing to cancel.
-  final bool preparing;
-
-  /// The download is waiting for its turn behind another; nothing has
-  /// started yet.
-  final bool queued;
-
-  /// The model's peak memory exceeds what this phone can spare.
-  final bool heavy;
-
-  /// 0..1 while this model downloads; null otherwise.
-  final double? installFraction;
-
-  /// Whether the download in flight is this cubit's to stop: a picker-started
-  /// one is, a batch's first-use download is not (a stop would fail the
-  /// transcription waiting on it).
-  final bool cancellable;
-
-  /// Why the last install failed, until a retry clears it.
-  final ModelInstallReason? failure;
-
-  bool get installing => installFraction != null;
-
-  ModelRowState copyWith({
-    bool? installed,
-    bool? selected,
-    bool? heavy,
-    bool? accelerated,
-    double? installFraction,
-    bool? preparing,
-    bool? queued,
-    bool? cancellable,
-    ModelInstallReason? failure,
-    bool clearInstall = false,
-    bool clearFailure = false,
-  }) => ModelRowState(
-    option: option,
-    installed: installed ?? this.installed,
-    selected: selected ?? this.selected,
-    heavy: heavy ?? this.heavy,
-    accelerated: accelerated ?? this.accelerated,
-    installFraction: clearInstall ? null : (installFraction ?? this.installFraction),
-    preparing: clearInstall ? false : (preparing ?? this.preparing),
-    queued: clearInstall ? false : (queued ?? this.queued),
-    cancellable: clearInstall ? false : (cancellable ?? this.cancellable),
-    failure: clearFailure ? null : (failure ?? this.failure),
-  );
-}
-
-/// Whether a model needing [peakBytes] resident is too much for a phone with
-/// [physicalBytes]: past three fifths, the share iOS lets a foreground app
-/// hold. Unknown memory dims nothing.
-bool modelTooHeavy({required int peakBytes, required int? physicalBytes}) =>
-    physicalBytes != null && peakBytes * 5 > physicalBytes * 3;
-
 /// What the settings surfaces render about the transcription and storage
-/// backbone: the default language, one row per language, the engine's
-/// model choice when it has one, and the backup preference.
+/// backbone: the default language, one row per language, and the backup
+/// preference.
 @immutable
 final class SettingsState {
   const SettingsState({
@@ -178,11 +96,8 @@ final class SettingsState {
     this.engineId = '',
     this.managesModels = false,
     this.offersModelChoice = false,
-    this.offersAcceleration = false,
-    this.accelerated = false,
     this.supportedLocales = const [],
     this.languages = const [],
-    this.models = const [],
     this.reservationMax = 0,
     this.backupExcluded = true,
     this.keepAudio = true,
@@ -206,17 +121,6 @@ final class SettingsState {
   /// language: the model card shows, and the language surfaces keep only
   /// the default as yours.
   final bool offersModelChoice;
-
-  /// The engine's models in picker order; empty without a choice.
-  final List<ModelRowState> models;
-
-  /// Whether that engine can run its models faster with a second file each,
-  /// so the switch shows; [accelerated] is the switch.
-  final bool offersAcceleration;
-  final bool accelerated;
-
-  /// The model runs use, null without a choice.
-  ModelRowState? get selectedModel => models.where((row) => row.selected).firstOrNull;
 
   /// True when the phone's language has no on-device model in any variant and
   /// the current default equals the derived fallback, so a surface can say why
@@ -279,9 +183,6 @@ final class SettingsState {
     String? engineId,
     bool? managesModels,
     bool? offersModelChoice,
-    bool? offersAcceleration,
-    bool? accelerated,
-    List<ModelRowState>? models,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
     int? reservationMax,
@@ -294,9 +195,6 @@ final class SettingsState {
     engineId: engineId ?? this.engineId,
     managesModels: managesModels ?? this.managesModels,
     offersModelChoice: offersModelChoice ?? this.offersModelChoice,
-    offersAcceleration: offersAcceleration ?? this.offersAcceleration,
-    accelerated: accelerated ?? this.accelerated,
-    models: models ?? this.models,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
@@ -308,7 +206,9 @@ final class SettingsState {
 }
 
 /// Drives the settings surfaces over the idle backbone: the default language,
-/// per-language model state and installs, and the backup preference. Theme
+/// per-language model state and installs, and the backup preference. The
+/// model choice is [ModelsCubit]'s; this one only mirrors its download onto
+/// the default language and hands it the language surfaces' install. Theme
 /// mode and app language live elsewhere (ThemeCubit, AppLanguage).
 // ignore_for_file: prefer_initializing_formals
 // The fields are private (a cubit owns its collaborators) and the constructor
@@ -318,13 +218,11 @@ class SettingsCubit extends Cubit<SettingsState> {
     required TranscriptionService service,
     required TranscriptionSettings transcription,
     required AudioStorageSettings audioStorage,
-    required EngineSettings engineSettings,
-    int? physicalMemoryBytes,
+    required ModelsCubit models,
   }) : _service = service,
        _transcription = transcription,
        _audioStorage = audioStorage,
-       _engineSettings = engineSettings,
-       _physicalMemoryBytes = physicalMemoryBytes,
+       _models = models,
        // Seeded from the synchronous holders rather than defaulted: [load] needs
        // several channel round trips to answer, and a Cache screen that renders
        // "keep audio on" for a second before flipping itself off is telling the
@@ -335,8 +233,6 @@ class SettingsCubit extends Cubit<SettingsState> {
            engineId: service.engineId,
            managesModels: service.managesModels,
            offersModelChoice: service.offersModelChoice,
-           offersAcceleration: service.offersAcceleration,
-           accelerated: service.accelerated,
            backupExcluded: audioStorage.backupExcluded,
            keepAudio: audioStorage.keepAudio,
          ),
@@ -344,35 +240,29 @@ class SettingsCubit extends Cubit<SettingsState> {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());
-    _passSub = _service.batchProgress.listen(_onPass, onError: (Object _) {});
+    // Under one model for every language the default row wears the model's
+    // download, which the models cubit owns.
+    _mirrorSub = _models.stream.listen((models) {
+      if (isClosed || !_service.offersModelChoice) return;
+      if (state.defaultLanguage?.installFraction == models.selectedModel?.installFraction) return;
+      emit(state.copyWith(languages: _mirrorSelectedModel(state.languages)));
+    });
     unawaited(load());
   }
 
   final TranscriptionService _service;
   final TranscriptionSettings _transcription;
   final AudioStorageSettings _audioStorage;
-  final EngineSettings _engineSettings;
-  final int? _physicalMemoryBytes;
+  final ModelsCubit _models;
 
   // One in-flight install per tag: the single-flight guard AND the marker for
   // which rows keep their fraction across a load() rebuild.
   final Map<String, StreamSubscription<ModelInstallProgress>> _installSubs = {};
-  // The same, per model of the engine's choice.
-  final Map<String, StreamSubscription<ModelInstallProgress>> _modelInstallSubs = {};
-  // The ids whose download the acceleration switch started, so off can end
-  // them.
-  final Set<String> _accelerationInstalls = {};
   StreamSubscription<void>? _modelSub;
-  StreamSubscription<BatchProgress>? _passSub;
-  // The pass whose download is painting a model's row, without this cubit
-  // having started it; keyed by pass so another pass's events leave it be.
-  ({String? entryId, String modelId})? _pass;
-  // Models between a refused-or-not removal and their retry's install.
-  final Set<String> _reinstalling = {};
+  StreamSubscription<ModelsState>? _mirrorSub;
   int _loadGeneration = 0;
 
-  /// Rebuilds every language row and, under an engine with a choice, every
-  /// model row. Cheap by design: list calls plus ONE
+  /// Rebuilds every language row. Cheap by design: list calls plus ONE
   /// fine-grained probe for the default row (whose readiness the pre-merge
   /// screens render); other rows derive from list membership, and a surface
   /// that shows one can refine it via [refreshLanguage]. In-flight download
@@ -387,15 +277,11 @@ class SettingsCubit extends Cubit<SettingsState> {
     final List<String> installed;
     final ReservationInfo reservations;
     final LocaleModelStatus? defaultStatus;
-    final Set<String> installedModels;
-    final Set<String> acceleratedModels;
     try {
       supported = await _service.supportedLocales();
       installed = await _service.installedLocales();
       reservations = await _service.reservationInfo();
       defaultStatus = localeId.isEmpty ? null : await _service.localeStatus(localeId);
-      installedModels = await _service.installedModels();
-      acceleratedModels = await _service.acceleratedModels();
     } catch (e) {
       // A refusing channel is not an empty language list: the rows stay as
       // they were, and load() never throws into an unawaited caller.
@@ -421,47 +307,13 @@ class SettingsCubit extends Cubit<SettingsState> {
     // install trackers go with them.
     final sameEngine = state.engineId == _service.engineId;
     if (!sameEngine) {
-      for (final sub in [..._installSubs.values, ..._modelInstallSubs.values]) {
+      for (final sub in _installSubs.values) {
         // Best effort, like the service's own teardown: a rejecting cancel
         // must not land in the zone.
         unawaited(sub.cancel().catchError((_) {}));
       }
       _installSubs.clear();
-      _modelInstallSubs.clear();
-      _pass = null;
     }
-    final previousModels = sameEngine
-        ? {for (final row in state.models) row.option.id: row}
-        : const <String, ModelRowState>{};
-    final selectedModel = _service.selectedModelId;
-    final modelRows = [
-      for (final option in _service.modelChoices)
-        ModelRowState(
-          option: option,
-          installed: installedModels.contains(option.id),
-          selected: option.id == selectedModel,
-          heavy: modelTooHeavy(
-            peakBytes: option.peakMemoryBytes,
-            physicalBytes: _physicalMemoryBytes,
-          ),
-          accelerated: acceleratedModels.contains(option.id),
-          installFraction: _modelInstallSubs.containsKey(option.id) || option.id == _pass?.modelId
-              ? previousModels[option.id]?.installFraction
-              : null,
-          preparing:
-              (_modelInstallSubs.containsKey(option.id) || option.id == _pass?.modelId) &&
-              (previousModels[option.id]?.preparing ?? false),
-          queued:
-              _modelInstallSubs.containsKey(option.id) &&
-              (previousModels[option.id]?.queued ?? false),
-          cancellable: previousModels[option.id]?.cancellable ?? false,
-          failure: _carriedFailure(
-            previousModels[option.id]?.failure,
-            installed: installedModels.contains(option.id),
-            encoderMissing: _service.accelerated && !acceleratedModels.contains(option.id),
-          ),
-        ),
-    ];
     final previous = sameEngine
         ? {for (final row in state.languages) row.tag: row}
         : const <String, LanguageModelState>{};
@@ -511,11 +363,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         engineId: _service.engineId,
         managesModels: _service.managesModels,
         offersModelChoice: _service.offersModelChoice,
-        offersAcceleration: _service.offersAcceleration,
-        accelerated: _service.accelerated,
         supportedLocales: supported,
-        languages: _mirrorSelectedModel(rows, modelRows),
-        models: modelRows,
+        languages: _mirrorSelectedModel(rows),
         reservationMax: reservations.max,
         backupExcluded: _audioStorage.backupExcluded,
         keepAudio: _audioStorage.keepAudio,
@@ -571,11 +420,8 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (target.isEmpty || _installSubs.containsKey(target)) return;
     // One model serves every language: the download is the selected model's,
     // tracked on its row and mirrored onto the default's.
-    final selected = _service.selectedModelId;
-    if (_service.offersModelChoice && selected != null) {
-      final row = state.selectedModel;
-      if (row != null && row.heavy && !row.installed) return;
-      unawaited(installModelById(selected));
+    if (_service.offersModelChoice) {
+      unawaited(_models.installSelected());
       return;
     }
     _patchRow(target, (row) => row.copyWith(installFraction: 0, clearFailure: true));
@@ -606,257 +452,17 @@ class SettingsCubit extends Cubit<SettingsState> {
         );
   }
 
-  /// Makes [id] the model runs use, persisted per engine. A failed persist
-  /// keeps the in-session choice and rethrows so the surface can say it will
-  /// not survive a relaunch.
-  Future<void> selectModel(String id) async {
-    await _service.selectModel(id);
-    await _engineSettings.setModelId(_service.engineId, id);
-  }
-
-  /// Like [install], but for one model of the engine's choice: downloads it
-  /// and selects it once landed. Single-flight per model. A model that
-  /// downloaded but would not open is removed first, so the retry fetches a
-  /// fresh file; answers false when that removal was refused (a run holds the
-  /// model), and the row keeps its failure.
-  Future<bool> installModelById(String id) async {
-    if (_modelInstallSubs.containsKey(id) || !_reinstalling.add(id)) return true;
-    try {
-      final row = state.models.where((r) => r.option.id == id).firstOrNull;
-      if (row != null && row.installed && row.failure == ModelInstallReason.loadFailed) {
-        bool removed;
-        try {
-          removed = await _service.removeModel(id);
-        } catch (_) {
-          removed = false;
-        }
-        if (isClosed) return false;
-        if (!removed && (await _service.installedModels()).contains(id)) return false;
-      }
-      if (isClosed) return false;
-      _trackModelInstall(id, () => _service.installModelById(id), selectOnLand: true);
-      return true;
-    } finally {
-      _reinstalling.remove(id);
-    }
-  }
-
-  /// Turns the engine's acceleration on or off and persists it. On fetches
-  /// the extra file of every installed model as a download on its row; off
-  /// ends those downloads. The switch takes before the persist, so a refused
-  /// write throws after the surfaces moved.
-  Future<void> setAccelerated(bool on) async {
-    await _service.setAccelerated(on);
-    if (isClosed) return;
-    emit(state.copyWith(accelerated: on));
-    if (on) {
-      for (final row in state.models) {
-        if (row.installed && !row.accelerated && !row.installing) {
-          _accelerationInstalls.add(row.option.id);
-          _trackModelInstall(
-            row.option.id,
-            () => _service.installAcceleration(row.option.id),
-            selectOnLand: false,
-          );
-        }
-      }
-    } else {
-      for (final id in _accelerationInstalls.toList()) {
-        await cancelModelInstallById(id);
-      }
-    }
-    unawaited(load());
-    await _engineSettings.setAccelerated(_service.engineId, on);
-  }
-
-  /// One download on a model's row, from a picker tap or the acceleration
-  /// switch; [selectOnLand] is the picker's rule, the download was for
-  /// choosing the model.
-  void _trackModelInstall(
-    String id,
-    Stream<ModelInstallProgress> Function() start, {
-    required bool selectOnLand,
-  }) {
-    if (_modelInstallSubs.containsKey(id)) return;
-    // The engine and selection this install belongs to: a switch or a pick
-    // landing mid-download must not have the landing take the choice.
-    final engineId = _service.engineId;
-    final selectedAtStart = _service.selectedModelId;
-    // Installs of different models run one after the other, so a download
-    // started while another holds the engine waits its turn; the engine's
-    // first word clears it.
-    final waiting = _modelInstallSubs.isNotEmpty;
-    _patchModel(
-      id,
-      (row) =>
-          row.copyWith(installFraction: 0, queued: waiting, cancellable: true, clearFailure: true),
-    );
-    _modelInstallSubs[id] = start().listen(
-      (progress) {
-        if (progress.done) return;
-        _patchModel(
-          id,
-          (row) => row.copyWith(
-            installFraction: progress.fraction,
-            queued: false,
-            preparing: progress.preparing,
-            cancellable: !progress.preparing,
-          ),
-        );
-      },
-      onDone: () async {
-        _modelInstallSubs.remove(id);
-        _accelerationInstalls.remove(id);
-        // Installed at once: the file is there, and the reload that says
-        // so takes several round trips the row must not spend as a download.
-        _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
-        // Selecting is what the download was for; a failed persist still
-        // leaves the file, so the row reads installed either way.
-        if (selectOnLand &&
-            _service.engineId == engineId &&
-            _service.selectedModelId == selectedAtStart) {
-          try {
-            await selectModel(id);
-          } catch (e) {
-            if (kDebugMode) debugPrint('settings: model choice not saved: $e');
-          }
-        }
-        unawaited(load());
-      },
-      // A failed install's stream closes after its error; without this its
-      // onDone would mark the model installed and select it.
-      cancelOnError: true,
-      onError: (Object error) {
-        _modelInstallSubs.remove(id);
-        _accelerationInstalls.remove(id);
-        final failure = _modelFailureFrom(error);
-        _patchModel(
-          id,
-          (row) =>
-              row.copyWith(clearInstall: true, failure: failure, clearFailure: failure == null),
-        );
-        unawaited(load());
-      },
-    );
-  }
-
-  /// Stops a download this cubit started; what arrived stays for a later
-  /// resume. A no-op when nothing this cubit started is downloading.
-  Future<void> cancelModelInstallById(String id) async {
-    final sub = _modelInstallSubs.remove(id);
-    _accelerationInstalls.remove(id);
-    if (sub == null) return;
-    await sub.cancel().catchError((_) {});
-    if (isClosed) return;
-    _patchModel(id, (row) => row.copyWith(clearInstall: true));
-    unawaited(load());
-  }
-
-  /// Deletes one model's file. Answers whether one was deleted.
-  Future<bool> removeModel(String id) async {
-    bool removed;
-    try {
-      removed = await _service.removeModel(id);
-    } catch (_) {
-      removed = false;
-    }
-    if (isClosed) return removed;
-    await load();
-    return removed;
-  }
-
-  /// Folds a raw model install failure into its reason; the raw error is only
-  /// ever debug-logged. A cancel is no failure to wear; an error outside the
-  /// taxonomy reads as the host refusing, the case
-  /// [ModelInstallReason.rejected] covers.
-  ModelInstallReason? _modelFailureFrom(Object error) {
-    if (kDebugMode) debugPrint('settings: $error');
-    return switch (error) {
-      ModelInstallFailed(reason: ModelInstallReason.cancelled) => null,
-      TranscriptionFailed() => null,
-      ModelInstallFailed(reason: final reason?) => reason,
-      _ => ModelInstallReason.rejected,
-    };
-  }
-
-  /// A failure a reload keeps. A download failure clears once the file is
-  /// there through another path, unless it was the encoder that failed; one
-  /// that would not open stands on the present file until a retry replaces it,
-  /// and goes with the file.
-  static ModelInstallReason? _carriedFailure(
-    ModelInstallReason? previous, {
-    required bool installed,
-    required bool encoderMissing,
-  }) => switch (previous) {
-    ModelInstallReason.loadFailed => installed ? previous : null,
-    _ when installed && !encoderMissing => null,
-    _ => previous,
-  };
-
-  void _patchModel(String id, ModelRowState Function(ModelRowState) update) {
-    final rows = [for (final row in state.models) row.option.id == id ? update(row) : row];
-    emit(state.copyWith(models: rows, languages: _mirrorSelectedModel(state.languages, rows)));
-  }
-
   /// Under one model for every language the default row's download is the
   /// selected model's, so its fraction is that row's.
-  List<LanguageModelState> _mirrorSelectedModel(
-    List<LanguageModelState> languages,
-    List<ModelRowState> models,
-  ) {
+  List<LanguageModelState> _mirrorSelectedModel(List<LanguageModelState> languages) {
     if (!_service.offersModelChoice) return languages;
-    final fraction = models.where((row) => row.selected).firstOrNull?.installFraction;
+    final fraction = _models.state.selectedModel?.installFraction;
     return [
       for (final row in languages)
         row.isDefault
             ? row.copyWith(installFraction: fraction, clearInstall: fraction == null)
             : row,
     ];
-  }
-
-  /// A batch pass on a model's row: its download painted as it runs, landed
-  /// when that pass's run starts (whatever model the run names, since the
-  /// choice may have moved meanwhile), and the failure its done carries put
-  /// on the model it names. A picker-started download owns its row.
-  void _onPass(BatchProgress event) {
-    if (isClosed) return;
-    final id = event.modelId;
-    final pass = _pass;
-    final ours = pass != null && pass.entryId == event.entryId;
-    switch (event.step) {
-      case BatchStep.downloading:
-        if (id == null || _modelInstallSubs.containsKey(id)) return;
-        final fresh = pass?.modelId != id;
-        _pass = (entryId: event.entryId, modelId: id);
-        _patchModel(
-          id,
-          (row) => row.copyWith(
-            installFraction: event.fraction,
-            preparing: event.preparing,
-            clearFailure: fresh,
-          ),
-        );
-      case BatchStep.transcribing:
-        if (!ours) return;
-        _pass = null;
-        _land(pass.modelId, (row) => row.copyWith(clearInstall: true, installed: true));
-      case BatchStep.done:
-        final failure = event.failure;
-        if (ours) {
-          _pass = null;
-          _land(
-            pass.modelId,
-            (row) => row.copyWith(clearInstall: true, failure: pass.modelId == id ? failure : null),
-          );
-        }
-        if (failure != null && id != null && !(ours && pass.modelId == id)) {
-          _land(id, (row) => row.copyWith(failure: failure));
-        }
-    }
-  }
-
-  void _land(String id, ModelRowState Function(ModelRowState) update) {
-    if (!_modelInstallSubs.containsKey(id)) _patchModel(id, update);
   }
 
   /// Removes a language: releases this app's claim on its model. Removing the
@@ -975,15 +581,14 @@ class SettingsCubit extends Cubit<SettingsState> {
   @override
   Future<void> close() async {
     await _modelSub?.cancel();
-    await _passSub?.cancel();
+    await _mirrorSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
     // own key from the live map, which would invalidate this iteration. A
     // rejecting cancel must not abort the close and leak the cubit open.
-    for (final sub in [...List.of(_installSubs.values), ...List.of(_modelInstallSubs.values)]) {
+    for (final sub in List.of(_installSubs.values)) {
       await sub.cancel().catchError((_) {});
     }
     _installSubs.clear();
-    _modelInstallSubs.clear();
     return super.close();
   }
 }

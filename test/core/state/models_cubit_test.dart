@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
@@ -37,15 +38,9 @@ void main() {
 
   tearDown(() => service.dispose());
 
-  SettingsCubit buildFor(TranscriptionService scoped, {int? memory}) {
-    final cubit = SettingsCubit(
+  ModelsCubit buildFor(TranscriptionService scoped, {int? memory}) {
+    final cubit = ModelsCubit(
       service: scoped,
-      transcription: TranscriptionSettings(
-        storage: storage,
-        service: scoped,
-        deviceTag: () => 'en-US',
-      ),
-      audioStorage: AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder()),
       engineSettings: engineSettings,
       physicalMemoryBytes: memory,
     );
@@ -53,9 +48,24 @@ void main() {
     return cubit;
   }
 
-  SettingsCubit build({int? memory}) => buildFor(service, memory: memory);
+  ModelsCubit build({int? memory}) => buildFor(service, memory: memory);
 
-  (SettingsCubit, FakeModelChoiceEngine) buildAccelerating({
+  SettingsCubit settingsOver(ModelsCubit models) {
+    final cubit = SettingsCubit(
+      service: service,
+      transcription: TranscriptionSettings(
+        storage: storage,
+        service: service,
+        deviceTag: () => 'en-US',
+      ),
+      audioStorage: AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder()),
+      models: models,
+    );
+    addTearDown(cubit.close);
+    return cubit;
+  }
+
+  (ModelsCubit, FakeModelChoiceEngine) buildAccelerating({
     bool accelerated = false,
     Set<String> acceleratedModelIds = const {},
     Future<void>? prepareGate,
@@ -78,7 +88,7 @@ void main() {
     return (buildFor(scoped), accelerating);
   }
 
-  ModelRowState rowOf(SettingsCubit cubit, String id) =>
+  ModelRowState rowOf(ModelsCubit cubit, String id) =>
       cubit.state.models.firstWhere((r) => r.option.id == id);
 
   test('the model rows follow the engine: installed, selected, and heavy per phone', () async {
@@ -471,14 +481,15 @@ void main() {
     final gate = Completer<void>();
     engine.installGate = gate.future;
     final cubit = build();
+    final settings = settingsOver(cubit);
     await Future<void>.delayed(Duration.zero);
 
-    cubit.install('en-US');
+    settings.install('en-US');
     await Future<void>.delayed(Duration.zero);
 
     expect(engine.installs, ['small']);
     expect(rowOf(cubit, 'small').installing, isTrue);
-    final defaultRow = cubit.state.languages.firstWhere((r) => r.isDefault);
+    final defaultRow = settings.state.languages.firstWhere((r) => r.isDefault);
     expect(defaultRow.installing, isTrue);
     expect(defaultRow.installFraction, rowOf(cubit, 'small').installFraction);
     gate.complete();
@@ -492,6 +503,7 @@ void main() {
       final gate = Completer<void>();
       engine.installGate = gate.future;
       final cubit = build();
+      final settings = settingsOver(cubit);
       await Future<void>.delayed(Duration.zero);
 
       await service.startRecording();
@@ -499,22 +511,57 @@ void main() {
       await pumpEventQueue();
 
       expect(rowOf(cubit, 'small').installFraction, 0.4);
-      expect(cubit.state.languages.firstWhere((r) => r.isDefault).installFraction, 0.4);
+      expect(settings.state.languages.firstWhere((r) => r.isDefault).installFraction, 0.4);
       gate.complete();
       await stop;
       await pumpEventQueue();
 
       expect(rowOf(cubit, 'small').installed, isTrue);
       expect(rowOf(cubit, 'small').installing, isFalse);
-      expect(cubit.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
+      expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
     },
   );
+
+  test('a download of a model other than the choice never reaches the default language', () async {
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    final cubit = build();
+    final settings = settingsOver(cubit);
+    await Future<void>.delayed(Duration.zero);
+
+    await cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').installing, isTrue);
+    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
+    gate.complete();
+  });
+
+  test('a switch to an engine without a choice clears the mirrored download', () async {
+    engine.installed.clear();
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    final cubit = build();
+    final settings = settingsOver(cubit);
+    await Future<void>.delayed(Duration.zero);
+    settings.install('en-US');
+    await pumpEventQueue();
+    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isTrue);
+
+    expect(service.useEngine(FakeBatchEngine()), isTrue);
+    await cubit.load();
+    await settings.load();
+
+    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
+    gate.complete();
+  });
 
   test('a first-use download that fails clears the rows and wears its reason', () async {
     engine.installed.clear();
     engine.installSteps = [0.4];
     engine.failInstall = ModelInstallReason.offline;
     final cubit = build();
+    final settings = settingsOver(cubit);
     await Future<void>.delayed(Duration.zero);
 
     await service.startRecording();
@@ -523,7 +570,7 @@ void main() {
 
     expect(rowOf(cubit, 'small').installing, isFalse);
     expect(rowOf(cubit, 'small').failure, ModelInstallReason.offline);
-    expect(cubit.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
+    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
   });
 
   test('a first-use download paints the model it fetches, not a choice made meanwhile', () async {
