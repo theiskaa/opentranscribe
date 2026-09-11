@@ -36,8 +36,10 @@ abstract interface class ModelFetcher {
 /// address may be plain http, for tests). Resumes a `.part` with a Range
 /// request, hashes while writing, and moves the verified part into place last.
 /// A transfer that breaks after bytes arrived (a reset, a stall, the socket
-/// iOS closed while the app was away) is reopened from the part a few times
-/// before it counts as offline; one that never delivered a byte fails at once.
+/// iOS closed while the app was away) is reopened from the part; only breaks
+/// in a row that delivered nothing count towards offline, so a long file on a
+/// link that keeps dropping still lands. One that never delivered a byte
+/// fails at once.
 class PinnedHostFetcher implements ModelFetcher {
   PinnedHostFetcher({
     required List<String> allowedHostSuffixes,
@@ -51,7 +53,8 @@ class PinnedHostFetcher implements ModelFetcher {
   final HttpClient Function() _newClient;
 
   /// The waits before each retry of a transfer that broke after bytes
-  /// arrived; its length is the retry count.
+  /// arrived; the transfer counts as offline once this many breaks in a row
+  /// deliver nothing.
   final List<Duration> _backoff;
 
   static const _maxRedirects = 5;
@@ -201,7 +204,11 @@ class PinnedHostFetcher implements ModelFetcher {
         }
       }
 
-      for (var attempts = 0; ; attempts++) {
+      // The part's high-water mark: a host answering a resume whole starts
+      // received over, and only new bytes count as progress.
+      var furthest = offset;
+      var emptyBreaks = 0;
+      while (true) {
         try {
           await attempt();
           break;
@@ -210,10 +217,15 @@ class PinnedHostFetcher implements ModelFetcher {
           // A break after the last byte leaves the hash to decide.
           if (failure.reason != ModelInstallReason.offline) throw failure;
           if (received == expectedBytes) break;
-          if (!gotBytes || attempts >= _backoff.length) throw failure;
+          if (!gotBytes) throw failure;
+          final grew = received > furthest;
+          if (grew) furthest = received;
+          final next = grew ? 0 : emptyBreaks + 1;
+          if (next >= _backoff.length) throw failure;
           if (!progress.hasListener) return;
           offset = received;
-          await Future<void>.delayed(_backoff[attempts]);
+          await Future<void>.delayed(_backoff[grew ? 0 : emptyBreaks]);
+          emptyBreaks = next;
           if (!progress.hasListener) return;
         }
       }

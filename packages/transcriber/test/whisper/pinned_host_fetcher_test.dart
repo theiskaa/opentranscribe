@@ -21,6 +21,7 @@ class _ModelServer {
   int? stallAfter;
   int? dropAfter;
   int? dropCount;
+  List<int?>? dropScript;
   int? contentLength;
   final Completer<void> release = Completer<void>();
   final Completer<void> stalled = Completer<void>();
@@ -64,12 +65,14 @@ class _ModelServer {
     if (corrupt) bytes = Uint8List.fromList([...bytes.sublist(0, bytes.length - 1), 0]);
     if (truncateAfter case final n?) bytes = bytes.sublist(0, min(n, bytes.length));
     response.contentLength = contentLength ?? bytes.length;
+    final scripted = dropScript?.elementAtOrNull(requests - 1);
+    if (scripted != null) {
+      await drop(response, bytes, after: scripted);
+      return;
+    }
     if (dropAfter case final n? when dropCount != 0) {
       if (dropCount case final left?) dropCount = left - 1;
-      final socket = await response.detachSocket();
-      socket.add(bytes.sublist(0, n));
-      await socket.flush();
-      socket.destroy();
+      await drop(response, bytes, after: n);
       return;
     }
     if (stallAfter case final n?) {
@@ -85,6 +88,13 @@ class _ModelServer {
     } on SocketException {
       // The client hung up mid-body, which is the point of the cancel test.
     }
+  }
+
+  Future<void> drop(HttpResponse response, Uint8List bytes, {required int after}) async {
+    final socket = await response.detachSocket();
+    socket.add(bytes.sublist(0, after));
+    await socket.flush();
+    socket.destroy();
   }
 }
 
@@ -241,8 +251,35 @@ void main() {
     expect(File('${into.path}.part').existsSync(), isFalse);
   });
 
-  test('a body that keeps dropping fails as offline once the retries are spent', () async {
-    server.dropAfter = 65536;
+  test('a break after bytes costs nothing, so a file that keeps dropping still lands', () async {
+    server.dropAfter = 32768;
+    server.dropCount = 5;
+
+    final fractions = await fetch(fetcher(retryBackoff: quickRetries)).toList();
+
+    expect(fractions.last, 1);
+    expect(server.requests, 6);
+    expect(await into.readAsBytes(), body);
+    expect(File('${into.path}.part').existsSync(), isFalse);
+  });
+
+  test('a break that delivers bytes starts the count of empty breaks over', () async {
+    server.dropScript = [65536, 0, 30000, 0, 0, 0];
+    const three = [Duration(milliseconds: 5), Duration(milliseconds: 5), Duration(milliseconds: 5)];
+
+    await expectLater(
+      fetch(fetcher(retryBackoff: three)).drain<void>(),
+      throwsA(
+        isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
+      ),
+    );
+    expect(server.requests, 6);
+    expect(File('${into.path}.part').lengthSync(), inInclusiveRange(65537, 95536));
+  });
+
+  test('a host answering a resume whole counts only bytes past the part as progress', () async {
+    server.supportsRange = false;
+    server.dropScript = [65536, 30000, 30000, 30000];
 
     await expectLater(
       fetch(fetcher(retryBackoff: quickRetries)).drain<void>(),
@@ -250,8 +287,7 @@ void main() {
         isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
       ),
     );
-    expect(server.requests, quickRetries.length + 1);
-    expect(File('${into.path}.part').existsSync(), isTrue);
+    expect(server.requests, 3);
   });
 
   test('a drop before the first byte is not retried', () async {
