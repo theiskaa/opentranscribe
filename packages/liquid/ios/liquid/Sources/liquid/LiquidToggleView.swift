@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 
 final class LiquidToggleView: LiquidNativeView {
-  private let toggle: UIControl
+  private let toggle: UISwitch
 
   // Last-applied styling, so a value flip (which re-sends every param) never
   // re-runs the expensive work. Setting overrideUserInterfaceStyle or the
@@ -60,8 +60,7 @@ final class LiquidToggleView: LiquidNativeView {
     let enabled = params["enabled"] as? Bool ?? true
     guard enabled != appliedEnabled else { return }
     appliedEnabled = enabled
-    toggle.isUserInteractionEnabled = enabled
-    (toggle as? UISwitch)?.isEnabled = enabled
+    toggle.isEnabled = enabled
   }
 
   private func applyAccent(from params: [String: Any]) {
@@ -70,16 +69,7 @@ final class LiquidToggleView: LiquidNativeView {
     else { return }
     appliedAccent = accentColor
 
-    if let nativeToggle = toggle as? UISwitch {
-      nativeToggle.onTintColor = accentColor
-      return
-    }
-    let setter = NSSelectorFromString("setAccentColor:")
-    if toggle.responds(to: setter) {
-      toggle.perform(setter, with: accentColor)
-    } else {
-      toggle.tintColor = accentColor
-    }
+    toggle.onTintColor = accentColor
   }
 
   private func applyLabel(from params: [String: Any]) {
@@ -95,34 +85,13 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   /// A programmatic flip (a row tap round-tripping back, or a declined change
-  /// reverting) should slide like a direct tap, not snap. UISwitch and the
-  /// glass control both mirror the UIKit `setOn:animated:` API; KVC is the
-  /// last resort for a control that lacks it, and only ever lands unanimated.
+  /// reverting) should slide like a direct tap, not snap.
   private func setOn(_ value: Bool, animated: Bool) {
-    if let nativeToggle = toggle as? UISwitch {
-      nativeToggle.setOn(value, animated: animated)
-      return
-    }
-    let selector = NSSelectorFromString("setOn:animated:")
-    if animated, toggle.responds(to: selector), let imp = toggle.method(for: selector) {
-      typealias SetOnAnimated = @convention(c) (AnyObject, Selector, Bool, Bool) -> Void
-      let call = unsafeBitCast(imp, to: SetOnAnimated.self)
-      call(toggle, selector, value, true)
-      return
-    }
-    toggle.setValue(value, forKey: "isOn")
+    toggle.setOn(value, animated: animated)
   }
 
   private func currentValue() -> Bool {
-    if let nativeToggle = toggle as? UISwitch {
-      return nativeToggle.isOn
-    }
-
-    if let value = toggle.value(forKey: "isOn") as? Bool {
-      return value
-    }
-
-    return false
+    toggle.isOn
   }
 }
 

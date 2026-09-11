@@ -745,9 +745,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingStart => '始める';
 
   @override
-  String get onboardingDone => '完了';
-
-  @override
   String get hintEntryMenu => 'このエントリーでできることは、右上のメニューにあります。テキストの編集、書き出し、追加の録音。';
 
   @override

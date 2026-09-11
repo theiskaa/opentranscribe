@@ -739,9 +739,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingStart => '开始使用';
 
   @override
-  String get onboardingDone => '完成';
-
-  @override
   String get hintEntryMenu => '这个条目能做的一切都在上方菜单里：编辑文字、导出、继续录音。';
 
   @override

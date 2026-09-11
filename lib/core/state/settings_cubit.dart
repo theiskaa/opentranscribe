@@ -898,14 +898,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(keepAudio: _audioStorage.keepAudio));
   }
 
-  /// Debug-only: stamps a synthetic [failure] on [tag] so the failure sheet
-  /// can be inspected without a real install failing. A no-op in release, and
-  /// gone the next time [load] runs (except a removeFailed on a ready row).
-  void debugStampFailure(String tag, LanguageFailure failure) {
-    if (!kDebugMode) return;
-    _patchRow(tag, (row) => row.copyWith(failure: failure));
-  }
-
   void _patchRow(String tag, LanguageModelState Function(LanguageModelState) update) {
     final rows = [for (final row in state.languages) row.tag == tag ? update(row) : row];
     emit(state.copyWith(languages: rows));

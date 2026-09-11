@@ -1071,10 +1071,6 @@
   "@onboardingStart": {
     "description": "Button finishing onboarding and entering the app"
   },
-  "onboardingDone": "Done",
-  "@onboardingDone": {
-    "description": "Button closing a replayed onboarding"
-  },
   "hintEntryMenu": "Everything this entry can do is in the menu up here: edit the text, export it, record more onto it.",
   "@hintEntryMenu": {
     "description": "One-shot callout under the entry menu button, shown on the first entry opened"

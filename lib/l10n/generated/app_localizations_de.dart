@@ -786,9 +786,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingStart => 'Los geht’s';
 
   @override
-  String get onboardingDone => 'Fertig';
-
-  @override
   String get hintEntryMenu =>
       'Alles, was dieser Eintrag kann, steckt im Menü hier oben: Text bearbeiten, exportieren, mehr aufnehmen.';
 

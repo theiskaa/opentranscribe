@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -44,42 +43,6 @@ class ModelsScreen extends StatefulWidget {
 }
 
 class _ModelsScreenState extends State<ModelsScreen> {
-  /// Debug-only: which failure kind the next section-label long-press stamps.
-  int _debugFailureIndex = 0;
-
-  /// Debug-only: stamps a rotating failure kind on the default row, so the
-  /// hero (and the sheet's row) show it; tap through to view its sheet.
-  /// Long-press the Speaking section label to cycle: cap, unsupported, stuck,
-  /// generic, removeFailed. Cap fills its eviction list from the currently
-  /// reserved languages, so install a second language first to see that
-  /// picker populated. No effect in release (the gesture is never wired
-  /// there).
-  void _debugCycleFailure() {
-    final cubit = context.read<SettingsCubit>();
-    final rows = cubit.state.languages;
-    if (rows.isEmpty) return;
-    final target = (cubit.state.defaultLanguage ?? rows.first).tag;
-    final reserved = [
-      for (final r in rows)
-        if (r.reserved) r.tag,
-    ];
-    final kinds = <LanguageFailure>[
-      LanguageFailure(kind: LanguageFailureKind.capReached, reservedTags: reserved),
-      const LanguageFailure(
-        kind: LanguageFailureKind.installFailed,
-        assetStatus: ModelAssetStatus.unsupported,
-      ),
-      const LanguageFailure(
-        kind: LanguageFailureKind.installFailed,
-        assetStatus: ModelAssetStatus.downloading,
-      ),
-      const LanguageFailure(kind: LanguageFailureKind.installFailed),
-      const LanguageFailure(kind: LanguageFailureKind.removeFailed),
-    ];
-    cubit.debugStampFailure(target, kinds[_debugFailureIndex % kinds.length]);
-    _debugFailureIndex++;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -172,13 +135,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
               // Breath under the bar before the first label; sm reads cramped
               // against the frosted edge, md doubles the label's own top pad.
               const SizedBox(height: 10),
-              GestureDetector(
-                // Opaque so the label's whole padded band takes the press,
-                // not just the text ink.
-                behavior: HitTestBehavior.opaque,
-                onLongPress: kDebugMode ? _debugCycleFailure : null,
-                child: SectionLabel(l10n.transcriptionSpeaking),
-              ),
+              SectionLabel(l10n.transcriptionSpeaking),
               _Melt(
                 child: SpeakingHero(
                   state: state,

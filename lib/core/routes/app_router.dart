@@ -46,7 +46,6 @@ class AppRouter {
     redirect: (context, state) => resolveRedirect(
       onboardingDone: Onboarding.isDone(Deps.i.localService),
       matchedLocation: state.matchedLocation,
-      replay: _isReplay(state),
     ),
     // The app has no deep-link surface, so an unroutable location is never
     // something the user asked for: iOS handed it to us. Home instead, quietly.
@@ -67,11 +66,10 @@ class AppRouter {
       GoRoute(
         path: Routes.onboarding,
         name: Routes.onboardingName,
-        // No transition on first run: the launch splash collapses straight
-        // onto it on a cold launch. A replay is a pushed page like any other.
-        pageBuilder: (context, state) => _isReplay(state)
-            ? SlidePage<void>(key: state.pageKey, child: const OnboardingScreen(replay: true))
-            : NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
+        // No transition: the launch splash collapses straight onto it on a
+        // cold launch.
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
       ),
       GoRoute(
         path: Routes.reflections,
@@ -156,18 +154,11 @@ bool canOpenRecorder({required List<String> stack, required bool onboardingDone}
   return !stack.any((location) => Uri.parse(location).path == Routes.record);
 }
 
-/// First-run users land in onboarding; finished users re-enter it only as a
-/// [replay], never as first run.
-String? resolveRedirect({
-  required bool onboardingDone,
-  required String matchedLocation,
-  bool replay = false,
-}) {
+/// First-run users land in onboarding; a finished user who reaches it goes
+/// home.
+String? resolveRedirect({required bool onboardingDone, required String matchedLocation}) {
   final atOnboarding = matchedLocation == Routes.onboarding;
   if (!onboardingDone && !atOnboarding) return Routes.onboarding;
-  if (onboardingDone && atOnboarding && !replay) return Routes.home;
+  if (onboardingDone && atOnboarding) return Routes.home;
   return null;
 }
-
-bool _isReplay(GoRouterState state) =>
-    state.uri.queryParameters[Routes.onboardingReplayQuery] == 'true';

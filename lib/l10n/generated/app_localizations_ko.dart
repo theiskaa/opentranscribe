@@ -746,9 +746,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingStart => '시작하기';
 
   @override
-  String get onboardingDone => '완료';
-
-  @override
   String get hintEntryMenu => '이 항목으로 할 수 있는 모든 것은 위의 메뉴에 있습니다. 텍스트 편집, 내보내기, 추가 녹음.';
 
   @override
