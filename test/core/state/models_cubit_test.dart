@@ -415,6 +415,84 @@ void main() {
     expect(accelerating.removals, ['small']);
   });
 
+  test('a model that would not open is cleared by the next pass that runs on it', () async {
+    engine.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    final cubit = build();
+    await Future<void>.delayed(Duration.zero);
+    await service.startRecording();
+    await service.stopRecording();
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').failure, ModelInstallReason.loadFailed);
+
+    engine.failRun = null;
+    await service.startRecording();
+    await service.stopRecording();
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').failure, isNull);
+  });
+
+  test('a retry on a model whose warm-up would not open leaves the choice where it was', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    accelerating.installed.add('large');
+    await cubit.load();
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'large').failure, ModelInstallReason.loadFailed);
+    accelerating.failInstall = null;
+
+    expect(await cubit.installModelById('large'), isTrue);
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').installed, isTrue);
+    expect(rowOf(cubit, 'large').failure, isNull);
+    expect(accelerating.selectedModelId, 'small');
+  });
+
+  test(
+    'a retry on a model downloaded to use it that would not open still takes the choice',
+    () async {
+      final gate = Completer<void>();
+      final (cubit, accelerating) = buildAccelerating(
+        accelerated: true,
+        acceleratedModelIds: {'small'},
+        installGate: gate.future,
+      );
+      await Future<void>.delayed(Duration.zero);
+      accelerating.failInstall = ModelInstallReason.loadFailed;
+      await cubit.installModelById('large');
+      await pumpEventQueue();
+      accelerating.installed.add('large');
+      gate.complete();
+      await pumpEventQueue();
+      expect(rowOf(cubit, 'large').failure, ModelInstallReason.loadFailed);
+      accelerating
+        ..failInstall = null
+        ..installGate = null;
+
+      expect(await cubit.installModelById('large'), isTrue);
+      await pumpEventQueue();
+
+      expect(accelerating.removals, ['large']);
+      expect(accelerating.selectedModelId, 'large');
+    },
+  );
+
+  test('a language surface never fetches a selected model too large for this phone', () async {
+    engine.installed.clear();
+    final cubit = build(memory: 6000);
+    await Future<void>.delayed(Duration.zero);
+    await cubit.selectModel('large');
+    await cubit.load();
+
+    await cubit.installSelected();
+    await pumpEventQueue();
+
+    expect(engine.installs, isEmpty);
+    expect(rowOf(cubit, 'large').installing, isFalse);
+  });
+
   test('removing a model that would not open drops its failure with the file', () async {
     final (cubit, accelerating) = buildAccelerating();
     await Future<void>.delayed(Duration.zero);
@@ -521,40 +599,6 @@ void main() {
       expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
     },
   );
-
-  test('a download of a model other than the choice never reaches the default language', () async {
-    final gate = Completer<void>();
-    engine.installGate = gate.future;
-    final cubit = build();
-    final settings = settingsOver(cubit);
-    await Future<void>.delayed(Duration.zero);
-
-    await cubit.installModelById('large');
-    await pumpEventQueue();
-
-    expect(rowOf(cubit, 'large').installing, isTrue);
-    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
-    gate.complete();
-  });
-
-  test('a switch to an engine without a choice clears the mirrored download', () async {
-    engine.installed.clear();
-    final gate = Completer<void>();
-    engine.installGate = gate.future;
-    final cubit = build();
-    final settings = settingsOver(cubit);
-    await Future<void>.delayed(Duration.zero);
-    settings.install('en-US');
-    await pumpEventQueue();
-    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isTrue);
-
-    expect(service.useEngine(FakeBatchEngine()), isTrue);
-    await cubit.load();
-    await settings.load();
-
-    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
-    gate.complete();
-  });
 
   test('a first-use download that fails clears the rows and wears its reason', () async {
     engine.installed.clear();

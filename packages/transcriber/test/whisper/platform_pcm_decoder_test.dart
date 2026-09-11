@@ -54,7 +54,7 @@ void main() {
     expect(sent, {'path': '/recordings/otr-a.m4a'});
   });
 
-  test('length sends the path and reads back milliseconds', () async {
+  test('a recording is measured by its path, the answer read back from milliseconds', () async {
     Map<Object?, Object?>? sent;
     mockMethods((call) async {
       expect(call.method, 'pcmLength');

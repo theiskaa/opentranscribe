@@ -118,8 +118,8 @@ final class SettingsState {
   final bool managesModels;
 
   /// Whether that engine offers a choice of models, one serving every
-  /// language: the model card shows, and the language surfaces keep only
-  /// the default as yours.
+  /// language: the language surfaces keep only the default as yours, and it
+  /// wears the selected model's download.
   final bool offersModelChoice;
 
   /// True when the phone's language has no on-device model in any variant and
@@ -210,31 +210,24 @@ final class SettingsState {
 /// model choice is [ModelsCubit]'s; this one only mirrors its download onto
 /// the default language and hands it the language surfaces' install. Theme
 /// mode and app language live elsewhere (ThemeCubit, AppLanguage).
-// ignore_for_file: prefer_initializing_formals
-// The fields are private (a cubit owns its collaborators) and the constructor
-// must call super(state), so initializing formals do not apply.
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit({
-    required TranscriptionService service,
-    required TranscriptionSettings transcription,
-    required AudioStorageSettings audioStorage,
-    required ModelsCubit models,
-  }) : _service = service,
-       _transcription = transcription,
-       _audioStorage = audioStorage,
-       _models = models,
-       // Seeded from the synchronous holders rather than defaulted: [load] needs
-       // several channel round trips to answer, and a Cache screen that renders
-       // "keep audio on" for a second before flipping itself off is telling the
-       // user their setting is something it is not.
-       super(
+    required this._service,
+    required this._transcription,
+    required this._audioStorage,
+    required this._models,
+  }) : super(
+         // Seeded from the synchronous holders rather than defaulted: [load]
+         // needs several channel round trips to answer, and a Cache screen that
+         // renders "keep audio on" for a second before flipping itself off is
+         // telling the user their setting is something it is not.
          SettingsState(
-           localeId: transcription.localeId,
-           engineId: service.engineId,
-           managesModels: service.managesModels,
-           offersModelChoice: service.offersModelChoice,
-           backupExcluded: audioStorage.backupExcluded,
-           keepAudio: audioStorage.keepAudio,
+           localeId: _transcription.localeId,
+           engineId: _service.engineId,
+           managesModels: _service.managesModels,
+           offersModelChoice: _service.offersModelChoice,
+           backupExcluded: _audioStorage.backupExcluded,
+           keepAudio: _audioStorage.keepAudio,
          ),
        ) {
     // A first-use install piggybacking on a transcription, or a removal, must

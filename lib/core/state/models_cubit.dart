@@ -140,25 +140,16 @@ final class ModelsState {
 /// Drives the models surface over the service: the model rows, their
 /// downloads (picker-started or riding a batch pass), the choice, removal,
 /// and the acceleration switch.
-// ignore_for_file: prefer_initializing_formals
-// The fields are private (a cubit owns its collaborators) and the constructor
-// must call super(state), so initializing formals do not apply.
 class ModelsCubit extends Cubit<ModelsState> {
-  ModelsCubit({
-    required TranscriptionService service,
-    required EngineSettings engineSettings,
-    int? physicalMemoryBytes,
-  }) : _service = service,
-       _engineSettings = engineSettings,
-       _physicalMemoryBytes = physicalMemoryBytes,
-       super(
-         ModelsState(
-           engineId: service.engineId,
-           offersModelChoice: service.offersModelChoice,
-           offersAcceleration: service.offersAcceleration,
-           accelerated: service.accelerated,
-         ),
-       ) {
+  ModelsCubit({required this._service, required this._engineSettings, this._physicalMemoryBytes})
+    : super(
+        ModelsState(
+          engineId: _service.engineId,
+          offersModelChoice: _service.offersModelChoice,
+          offersAcceleration: _service.offersAcceleration,
+          accelerated: _service.accelerated,
+        ),
+      ) {
     // A first-use install riding a transcription, or a removal, must reach
     // this surface without the user re-entering it.
     _modelSub = _service.modelStateChanged.listen((_) => load());
@@ -181,8 +172,12 @@ class ModelsCubit extends Cubit<ModelsState> {
   // The pass whose download is painting a model's row, without this cubit
   // having started it; keyed by pass so another pass's events leave it be.
   ({String? entryId, String modelId})? _pass;
-  // Models between a refused-or-not removal and their retry's install.
-  final Set<String> _reinstalling = {};
+  // Models whose install is past its guard but not yet tracked: a retry's
+  // removal is awaited in between, and a second tap must not remove twice.
+  final Set<String> _starting = {};
+  // Models whose download to use them failed: a retry still means to choose
+  // them.
+  final Set<String> _choosing = {};
   int _loadGeneration = 0;
 
   /// Rebuilds every model row. In-flight download fractions and standing
@@ -208,6 +203,7 @@ class ModelsCubit extends Cubit<ModelsState> {
         unawaited(sub.cancel().catchError((_) {}));
       }
       _modelInstallSubs.clear();
+      _choosing.clear();
       _pass = null;
     }
     final previousModels = sameEngine
@@ -271,29 +267,28 @@ class ModelsCubit extends Cubit<ModelsState> {
     await installModelById(id);
   }
 
-  /// Downloads one model of the engine's choice and selects it once landed. Single-flight per model. A model that
-  /// downloaded but would not open is removed first, so the retry fetches a
-  /// fresh file; answers false when that removal was refused (a run holds the
-  /// model), and the row keeps its failure.
+  /// Downloads one model of the engine's choice and selects it once landed.
+  /// Single-flight per model. A model that downloaded but would not open is
+  /// removed first, so the retry fetches a fresh file, and takes the choice
+  /// only if it held it or was being downloaded to. Answers false when that
+  /// file could not be removed (a run holds the model); the row keeps its
+  /// failure.
   Future<bool> installModelById(String id) async {
-    if (_modelInstallSubs.containsKey(id) || !_reinstalling.add(id)) return true;
+    if (_modelInstallSubs.containsKey(id) || !_starting.add(id)) return true;
     try {
-      final row = state.models.where((r) => r.option.id == id).firstOrNull;
+      final row = _row(id);
+      var choose = true;
       if (row != null && row.installed && row.failure == ModelInstallReason.loadFailed) {
-        bool removed;
-        try {
-          removed = await _service.removeModel(id);
-        } catch (_) {
-          removed = false;
-        }
+        choose = row.selected || _choosing.contains(id);
+        final removed = await _tryRemove(id);
         if (isClosed) return false;
         if (!removed && (await _service.installedModels()).contains(id)) return false;
       }
       if (isClosed) return false;
-      _trackModelInstall(id, () => _service.installModelById(id), selectOnLand: true);
+      _trackModelInstall(id, () => _service.installModelById(id), selectOnLand: choose);
       return true;
     } finally {
-      _reinstalling.remove(id);
+      _starting.remove(id);
     }
   }
 
@@ -363,6 +358,7 @@ class ModelsCubit extends Cubit<ModelsState> {
       onDone: () async {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);
+        _choosing.remove(id);
         // Installed at once: the file is there, and the reload that says
         // so takes several round trips the row must not spend as a download.
         _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
@@ -386,6 +382,7 @@ class ModelsCubit extends Cubit<ModelsState> {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);
         final failure = _modelFailureFrom(error);
+        if (selectOnLand && failure != null) _choosing.add(id);
         _patchModel(
           id,
           (row) =>
@@ -410,15 +407,17 @@ class ModelsCubit extends Cubit<ModelsState> {
 
   /// Deletes one model's file. Answers whether one was deleted.
   Future<bool> removeModel(String id) async {
-    bool removed;
-    try {
-      removed = await _service.removeModel(id);
-    } catch (_) {
-      removed = false;
-    }
-    if (isClosed) return removed;
-    await load();
+    final removed = await _tryRemove(id);
+    if (!isClosed) await load();
     return removed;
+  }
+
+  Future<bool> _tryRemove(String id) async {
+    try {
+      return await _service.removeModel(id);
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Folds a raw model install failure into its reason; the raw error is only
@@ -449,6 +448,8 @@ class ModelsCubit extends Cubit<ModelsState> {
     _ => previous,
   };
 
+  ModelRowState? _row(String id) => state.models.where((r) => r.option.id == id).firstOrNull;
+
   void _patchModel(String id, ModelRowState Function(ModelRowState) update) {
     emit(
       state.copyWith(
@@ -460,7 +461,8 @@ class ModelsCubit extends Cubit<ModelsState> {
   /// A batch pass on a model's row: its download painted as it runs, landed
   /// when that pass's run starts (whatever model the run names, since the
   /// choice may have moved meanwhile), and the failure its done carries put
-  /// on the model it names. A picker-started download owns its row.
+  /// on the model it names. A pass that landed proves its model opens, so a
+  /// standing loadFailed there goes. A picker-started download owns its row.
   void _onPass(BatchProgress event) {
     if (isClosed) return;
     final id = event.modelId;
@@ -494,6 +496,10 @@ class ModelsCubit extends Cubit<ModelsState> {
         }
         if (failure != null && id != null && !(ours && pass.modelId == id)) {
           _land(id, (row) => row.copyWith(failure: failure));
+        } else if (event.landed &&
+            id != null &&
+            _row(id)?.failure == ModelInstallReason.loadFailed) {
+          _land(id, (row) => row.copyWith(clearFailure: true));
         }
     }
   }

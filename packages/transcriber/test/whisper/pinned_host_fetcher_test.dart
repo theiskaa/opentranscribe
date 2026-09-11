@@ -277,6 +277,25 @@ void main() {
     expect(File('${into.path}.part').lengthSync(), inInclusiveRange(65537, 95536));
   });
 
+  test('each empty break in a row waits the next backoff before its retry', () async {
+    server.dropScript = [65536, 0, 0, 0];
+    const waits = [
+      Duration(milliseconds: 1),
+      Duration(milliseconds: 1),
+      Duration(milliseconds: 250),
+    ];
+    final clock = Stopwatch()..start();
+
+    await expectLater(
+      fetch(fetcher(retryBackoff: waits)).drain<void>(),
+      throwsA(
+        isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
+      ),
+    );
+    expect(server.requests, 4);
+    expect(clock.elapsed, greaterThanOrEqualTo(const Duration(milliseconds: 250)));
+  });
+
   test('a host answering a resume whole counts only bytes past the part as progress', () async {
     server.supportsRange = false;
     server.dropScript = [65536, 30000, 30000, 30000];

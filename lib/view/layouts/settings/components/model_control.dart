@@ -10,6 +10,7 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// What a card's control means, folded in priority: a download in flight,
 /// then a failure, then too heavy while absent, then present or not.
@@ -21,6 +22,15 @@ ModelRowFace modelRowFace(ModelRowState row) {
   if (!row.installed) return row.heavy ? ModelRowFace.heavy : ModelRowFace.download;
   return row.selected ? ModelRowFace.selected : ModelRowFace.installed;
 }
+
+/// Whether a card offers its trash: never on the model in use (emptying the
+/// seat runs start from is a trap), unless it would not open, when removing
+/// it is the way out.
+bool modelRowRemovable(ModelRowState row) => switch (modelRowFace(row)) {
+  ModelRowFace.installed => true,
+  ModelRowFace.failed => row.installed && row.failure == ModelInstallReason.loadFailed,
+  _ => false,
+};
 
 /// What the bar reads while a download runs: how full it is, and the word in
 /// it. The fill follows the shown percent rather than the raw fraction, so a

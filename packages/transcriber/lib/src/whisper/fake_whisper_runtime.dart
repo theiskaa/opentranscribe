@@ -64,6 +64,11 @@ class FakeWhisperRuntime implements WhisperRuntime {
     final session = open = FakeWhisperSession(this, model.path);
     final held = loadGate;
     if (held != null) await held;
+    // The real runtime's dispose ends the worker, which answers a load in
+    // flight as failed.
+    if (session.closed) {
+      throw const WhisperRuntimeException(WhisperRuntimeError.runFailed, 'the worker ended');
+    }
     return session;
   }
 

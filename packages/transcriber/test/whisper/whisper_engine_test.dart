@@ -282,23 +282,24 @@ void main() {
       expect(decoder.written.single.existsSync(), isFalse);
     });
 
-    test('a model that fails to load says it would not open and keeps its file', () async {
-      runtime.failLoad = true;
-      final e = engine();
-      await install(e);
+    test(
+      'a model that fails to load says it would not open, names itself, and keeps its file',
+      () async {
+        runtime.failLoad = true;
+        final e = engine();
+        await install(e);
 
-      await expectLater(
-        e.transcribeFile(audio, localeId: 'en-US'),
-        throwsA(
-          isA<ModelInstallFailed>().having(
-            (f) => f.reason,
-            'reason',
-            ModelInstallReason.loadFailed,
+        await expectLater(
+          e.transcribeFile(audio, localeId: 'en-US'),
+          throwsA(
+            isA<ModelInstallFailed>()
+                .having((f) => f.reason, 'reason', ModelInstallReason.loadFailed)
+                .having((f) => f.modelId, 'modelId', whisperDefaultModelId),
           ),
-        ),
-      );
-      expect(fileOf(whisperDefaultModelId).existsSync(), isTrue);
-    });
+        );
+        expect(fileOf(whisperDefaultModelId).existsSync(), isTrue);
+      },
+    );
 
     test('the session loads once per model and reloads when the choice changes', () async {
       final e = engine();
@@ -352,6 +353,22 @@ void main() {
       expect(runtime.aborts, 1);
       expect(runtime.runs, hasLength(1));
       expect(decoder.written.single.existsSync(), isFalse);
+    });
+
+    test('a cancel while the recording is measured decodes nothing', () async {
+      final gate = Completer<void>();
+      decoder.lengthGate = gate.future;
+      final e = engine();
+      await install(e);
+
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.loads.isNotEmpty);
+      await pumpEventQueue();
+      await e.cancelBatches();
+      gate.complete();
+
+      await expectLater(run, throwsA(isA<TranscriptionFailed>()));
+      expect(decoder.calls, isEmpty);
     });
 
     test('a cancel with nothing in flight is harmless and later runs land', () async {
@@ -470,6 +487,28 @@ void main() {
         (minute * 10, minute * 20),
         (minute * 20, minute * 25),
       ]);
+    });
+
+    test('a last segment that ended well before the boundary is kept, not heard again', () async {
+      runtime.segments = const [
+        WhisperSegment(
+          text: 'early',
+          start: Duration(minutes: 1),
+          end: Duration(minutes: 1, seconds: 5),
+          confidence: 1,
+        ),
+      ];
+      final e = longEngine(minute * 25);
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(slices(), [
+        (minute * 0, minute * 10),
+        (minute * 10, minute * 20),
+        (minute * 20, minute * 25),
+      ]);
+      expect(transcript.segments.map((s) => s.start), [minute, minute * 11, minute * 21]);
     });
 
     test('a slice inside a long file keeps its own bounds and slice-relative timings', () async {

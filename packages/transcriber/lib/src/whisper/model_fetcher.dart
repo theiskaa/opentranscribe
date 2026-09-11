@@ -52,9 +52,9 @@ class PinnedHostFetcher implements ModelFetcher {
   final List<String> _suffixes;
   final HttpClient Function() _newClient;
 
-  /// The waits before each retry of a transfer that broke after bytes
-  /// arrived; the transfer counts as offline once this many breaks in a row
-  /// deliver nothing.
+  /// The wait before retrying a transfer that broke after bytes arrived,
+  /// indexed by how many breaks in a row delivered nothing; as many empty
+  /// breaks in a row as there are waits count as offline.
   final List<Duration> _backoff;
 
   static const _maxRedirects = 5;
@@ -220,12 +220,11 @@ class PinnedHostFetcher implements ModelFetcher {
           if (!gotBytes) throw failure;
           final grew = received > furthest;
           if (grew) furthest = received;
-          final next = grew ? 0 : emptyBreaks + 1;
-          if (next >= _backoff.length) throw failure;
+          emptyBreaks = grew ? 0 : emptyBreaks + 1;
+          if (emptyBreaks >= _backoff.length) throw failure;
           if (!progress.hasListener) return;
           offset = received;
-          await Future<void>.delayed(_backoff[grew ? 0 : emptyBreaks]);
-          emptyBreaks = next;
+          await Future<void>.delayed(_backoff[emptyBreaks]);
           if (!progress.hasListener) return;
         }
       }

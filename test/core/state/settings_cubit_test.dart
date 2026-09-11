@@ -676,6 +676,76 @@ void main() {
     await cubit.close();
     await svc.dispose();
   });
+
+  group('under a model choice', () {
+    late FakeModelChoiceEngine choice;
+    late TranscriptionService scoped;
+
+    setUp(() {
+      choice = FakeModelChoiceEngine(installed: {'small'});
+      scoped = TranscriptionService(
+        recorder: recorder,
+        engine: choice,
+        store: EntryStore(storage),
+        composer: FakeAudioComposer(),
+      );
+    });
+    tearDown(() => scoped.dispose());
+
+    (SettingsCubit, ModelsCubit) buildOver() {
+      final models = modelsOver(scoped);
+      final cubit = SettingsCubit(
+        service: scoped,
+        transcription: TranscriptionSettings(
+          storage: storage,
+          service: scoped,
+          deviceTag: () => 'en-US',
+        ),
+        audioStorage: audioStorage,
+        models: models,
+      );
+      addTearDown(cubit.close);
+      return (cubit, models);
+    }
+
+    bool defaultInstalling(SettingsCubit cubit) =>
+        cubit.state.languages.firstWhere((r) => r.isDefault).installing;
+
+    test(
+      'a download of a model other than the choice never reaches the default language',
+      () async {
+        final gate = Completer<void>();
+        choice.installGate = gate.future;
+        final (cubit, models) = buildOver();
+        await Future<void>.delayed(Duration.zero);
+
+        await models.installModelById('large');
+        await pumpEventQueue();
+
+        expect(models.state.models.firstWhere((r) => r.option.id == 'large').installing, isTrue);
+        expect(defaultInstalling(cubit), isFalse);
+        gate.complete();
+      },
+    );
+
+    test('a switch to an engine without a choice clears the mirrored download', () async {
+      choice.installed.clear();
+      final gate = Completer<void>();
+      choice.installGate = gate.future;
+      final (cubit, models) = buildOver();
+      await Future<void>.delayed(Duration.zero);
+      cubit.install('en-US');
+      await pumpEventQueue();
+      expect(defaultInstalling(cubit), isTrue);
+
+      expect(scoped.useEngine(FakeBatchEngine()), isTrue);
+      await models.load();
+      await cubit.load();
+
+      expect(defaultInstalling(cubit), isFalse);
+      gate.complete();
+    });
+  });
 }
 
 class _RefusingEngine extends FakeManagedEngine {

@@ -133,7 +133,7 @@ class SpeakingHero extends StatelessWidget {
     // Under one model for every language the download is the model's, and a
     // supported language with none on disk is not ready yet.
     final model = selectedModel;
-    if (state.offersModelChoice && model != null && !model.installed) {
+    if (model != null && !model.installed) {
       return l10n.transcriptionHeroNeedsDownload(model.option.displayName);
     }
     return engineName == null ? null : l10n.transcriptionHeroReady(engineName!);

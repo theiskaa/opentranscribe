@@ -16,10 +16,11 @@ enum BatchStep { downloading, transcribing, done }
 
 /// One event of [TranscriptionService.batchProgress]: the entry the pass is
 /// for (null for a take being saved), its step and how far along that step
-/// is. Under an engine with a model choice it also names the model the pass
-/// runs on ([modelId], and [modelName] while it downloads), says when the
-/// download is in its [preparing] tail, and on the done of a pass that failed
-/// for its model says why ([failure]).
+/// is. Under an engine with a model choice, the download's events, the run's
+/// start and the done name the model ([modelId], and [modelName] while it
+/// downloads), and the download says when it is in its [preparing] tail. The
+/// done says whether the pass [landed], and when it failed for its model,
+/// why ([failure]).
 @immutable
 final class BatchProgress {
   const BatchProgress({
@@ -29,6 +30,7 @@ final class BatchProgress {
     this.modelId,
     this.modelName,
     this.preparing = false,
+    this.landed = false,
     this.failure,
   });
 
@@ -38,6 +40,9 @@ final class BatchProgress {
   final String? modelId;
   final String? modelName;
   final bool preparing;
+
+  /// The pass produced a transcript, so the model it names opened.
+  final bool landed;
   final ModelInstallReason? failure;
 
   @override
@@ -49,10 +54,12 @@ final class BatchProgress {
       other.modelId == modelId &&
       other.modelName == modelName &&
       other.preparing == preparing &&
+      other.landed == landed &&
       other.failure == failure;
 
   @override
-  int get hashCode => Object.hash(entryId, step, fraction, modelId, modelName, preparing, failure);
+  int get hashCode =>
+      Object.hash(entryId, step, fraction, modelId, modelName, preparing, landed, failure);
 }
 
 typedef _BatchReport =
@@ -2218,7 +2225,8 @@ class TranscriptionService {
 
   /// Runs [body] as one batch pass on [batchProgress] under [entryId]: its
   /// reports go out as they come, and its done follows however it settles,
-  /// naming the pass's model and why it failed for it. A report after that
+  /// naming the pass's model (the one that failed, when the engine says) and
+  /// whether it landed or why it failed for its model. A report after that
   /// (a run this side gave up on, still polling) is dropped, so done stays
   /// the last word; so is one identical to the last, as the download's own
   /// first word is to the pass naming its model.
@@ -2254,12 +2262,16 @@ class TranscriptionService {
     }
 
     ModelInstallReason? failure;
+    var landed = false;
     try {
-      return await body(emit);
+      final result = await body(emit);
+      landed = true;
+      return result;
     } on ModelInstallFailed catch (e) {
       if (e.reason != ModelInstallReason.cancelled) {
         failure = e.reason ?? ModelInstallReason.rejected;
       }
+      if (e.modelId case final failed?) modelIdSeen = failed;
       rethrow;
     } finally {
       add(
@@ -2268,6 +2280,7 @@ class TranscriptionService {
           step: BatchStep.done,
           fraction: 1,
           modelId: modelIdSeen,
+          landed: landed,
           failure: modelIdSeen == null ? null : failure,
         ),
       );
@@ -2326,13 +2339,14 @@ class TranscriptionService {
     // last percent would otherwise linger over a run already going. Reported
     // by every engine, reporting or not: that a run has started is what the
     // surfaces holding a place for it wait on.
-    report?.call(
-      BatchStep.transcribing,
-      0,
-      modelId: engine is ModelChoiceEngine ? engine.selectedModelId : null,
-    );
+    final announced = engine is ModelChoiceEngine ? engine.selectedModelId : null;
+    report?.call(BatchStep.transcribing, 0, modelId: announced);
     final paced = engine is PacedBatchEngine;
     Future<Transcript> run() {
+      // A pass that waited its turn runs on the choice as it stands now.
+      if (engine is ModelChoiceEngine && engine.selectedModelId != announced) {
+        report?.call(BatchStep.transcribing, 0, modelId: engine.selectedModelId);
+      }
       final pass = engine is ProgressBatchEngine && report != null
           ? engine.transcribeFileWithProgress(
               file,
@@ -2412,7 +2426,8 @@ class TranscriptionService {
   /// failing (an engine that cannot slice, pre-26) falls the WHOLE take back
   /// to one flattened pass in the first span's language: a flattened
   /// transcript beats an untranscribed entry, and the persisted spans let a
-  /// re-transcription rebuild the mix on a capable engine later.
+  /// re-transcription rebuild the mix on a capable engine later. A model
+  /// failure under an engine with one model for every language is final.
   Future<Transcript> _segmentedBatch(
     TranscriptionEngine engine,
     File file,
@@ -2493,8 +2508,11 @@ class TranscriptionService {
         engineId: engine.id,
         createdAt: _clock(),
       );
-    } on TranscriptionException {
+    } on TranscriptionException catch (e) {
       if (generation != _cancelGeneration) rethrow;
+      // One model serves every span, so a flattened pass would fail on it
+      // again, and fetch it again after a download that did not verify.
+      if (e is ModelInstallFailed && engine is ModelChoiceEngine) rethrow;
       return _batch(engine, file, duration, localeId: spans.first.tag, report: report);
     }
   }

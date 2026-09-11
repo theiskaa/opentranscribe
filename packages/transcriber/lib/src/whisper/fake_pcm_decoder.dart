@@ -20,7 +20,8 @@ final class DecodeCall {
 /// slice has no end), so a test can assert what the runtime was handed.
 /// [fileDuration] is what [length] answers and what a slice's end clamps to;
 /// unset, the file is as long as [defaultDuration] and nothing clamps.
-/// [gate] holds a decode open until it completes; [throwOnDecode] fails every
+/// [gate] holds a decode open until it completes, [lengthGate] a length
+/// question; [throwOnDecode] fails every
 /// call with the given code (mutable, so a test can change the failure between
 /// calls), leaving nothing behind like the real one.
 class FakePcmDecoder implements PcmDecoder {
@@ -31,6 +32,7 @@ class FakePcmDecoder implements PcmDecoder {
     this.framesPerSecond = DecodedPcm.sampleRate,
     this.throwOnDecode,
     this.gate,
+    this.lengthGate,
   });
 
   final Directory scratch;
@@ -40,6 +42,7 @@ class FakePcmDecoder implements PcmDecoder {
 
   String? throwOnDecode;
   Future<void>? gate;
+  Future<void>? lengthGate;
 
   final List<DecodeCall> calls = [];
   final List<File> written = [];
@@ -75,6 +78,8 @@ class FakePcmDecoder implements PcmDecoder {
   @override
   Future<Duration> length(File audio) async {
     if (audio.path.isEmpty) throw ArgumentError.value(audio, 'audio', 'path required');
+    final held = lengthGate;
+    if (held != null) await held;
     final code = throwOnDecode;
     if (code != null) throw PcmDecodeFailed('fake length failed', code);
     return fileDuration ?? defaultDuration;

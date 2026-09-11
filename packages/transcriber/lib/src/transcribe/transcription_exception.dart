@@ -41,12 +41,16 @@ class CaptureFailed extends TranscriptionException {
 /// language the platform has no asset for, and an ordinary network failure all
 /// deserve different words in the UI.
 class ModelInstallFailed extends TranscriptionException {
-  const ModelInstallFailed([super.message, this.assetStatus, this.reason]);
+  const ModelInstallFailed([super.message, this.assetStatus, this.reason, this.modelId]);
 
   final ModelAssetStatus? assetStatus;
 
   /// Why a file download failed, when the engine fetches its own model.
   final ModelInstallReason? reason;
+
+  /// The model that failed, when an engine with a model choice knows it: the
+  /// choice may have moved since the caller asked.
+  final String? modelId;
 }
 
 /// The ways a model file download fails, each deserving its own words: no

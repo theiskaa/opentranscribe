@@ -31,6 +31,21 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:transcriber/transcriber.dart';
 
+/// What the screen shows of the model half. The two cubits reload apart
+/// across an engine switch, so it shows only once the models describe the
+/// engine the languages do ([languagesEngineId]).
+({bool settled, bool choice, bool acceleration}) modelHalf(
+  ModelsState models, {
+  required String languagesEngineId,
+}) {
+  final settled = models.engineId == languagesEngineId;
+  return (
+    settled: settled,
+    choice: settled && models.offersModelChoice,
+    acceleration: settled && models.offersAcceleration,
+  );
+}
+
 /// The transcription screen as an answer to one question, what happens when I
 /// hit record: the default language as a hero card, the other kept languages
 /// as chips (a chip tap makes it the default), the engine picker, and the
@@ -129,11 +144,10 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // a real reservation concept does; max 0 also covers the
           // could-not-answer degrade, where offering actions would be lying.
           final canManage = state.reservationMax > 0;
-          // The two cubits reload apart across an engine switch; the model half
-          // shows only once it describes the engine the languages do.
-          final settled = models.engineId == state.engineId;
-          final choice = settled && models.offersModelChoice;
-          final acceleration = settled && models.offersAcceleration;
+          final (:settled, :choice, :acceleration) = modelHalf(
+            models,
+            languagesEngineId: state.engineId,
+          );
           // Reservations, not ready models: a language mid-download (or one
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;

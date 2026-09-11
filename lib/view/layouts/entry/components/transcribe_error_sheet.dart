@@ -77,10 +77,13 @@ class _ErrorContent extends StatelessWidget {
     final (icon, title, body) = _story(kind, l10n);
 
     // The action names the fix: a whole-file re-hear for a lost addition,
-    // nothing to retry for a take kept apart or a recording that is gone.
+    // nothing to retry for a take kept apart, a recording that is gone, or a
+    // model that will not open (its fix is on the Transcription screen).
     final (label, retry) = switch (kind) {
       EntriesError.additionUntranscribed => (l10n.retranscribe, true),
-      EntriesError.savedSeparately || EntriesError.recordingMissing => (l10n.done, false),
+      EntriesError.savedSeparately ||
+      EntriesError.recordingMissing ||
+      EntriesError.modelLoadFailed => (l10n.done, false),
       _ => (l10n.retry, true),
     };
     return SheetMessage(

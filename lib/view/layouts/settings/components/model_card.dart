@@ -157,13 +157,7 @@ class _ModelTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Never on the model in use (emptying the seat runs start
-                  // from is a trap), unless it would not open: then it is the
-                  // way out.
-                  if (face == ModelRowFace.installed ||
-                      (face == ModelRowFace.failed &&
-                          row.installed &&
-                          row.failure == ModelInstallReason.loadFailed))
+                  if (modelRowRemovable(row))
                     _RemoveButton(
                       modelName: row.option.displayName,
                       onTap: () => _confirmRemove(context),
@@ -212,9 +206,14 @@ class _ModelTile extends StatelessWidget {
 
   /// A refused retry is a model a run holds; the busy words say to wait.
   Future<void> _install(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
     final installing = await context.read<ModelsCubit>().installModelById(row.option.id);
-    if (installing || !context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    if (installing || !context.mounted) return;
+    await _explainBusy(context);
+  }
+
+  Future<void> _explainBusy(BuildContext context) async {
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    final l10n = AppLocalizations.of(context)!;
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(
@@ -285,16 +284,8 @@ class _ModelTile extends StatelessWidget {
     // A refusal shows only while the file is really still there: a model that
     // vanished underneath reads as removed once the reload lands.
     final stillThere = cubit.state.models.any((r) => r.option.id == row.option.id && r.installed);
-    if (removed || !stillThere) return;
-    if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-    await showAppSheet<void>(
-      context,
-      builder: (context) => SheetMessage(
-        icon: AppIcons.internaldrive,
-        title: l10n.modelBusyTitle,
-        body: l10n.modelBusyBody(row.option.displayName),
-      ),
-    );
+    if (removed || !stillThere || !context.mounted) return;
+    await _explainBusy(context);
   }
 }
 

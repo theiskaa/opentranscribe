@@ -56,6 +56,29 @@ void main() {
     });
   });
 
+  group('modelRowRemovable', () {
+    test('a present model offers its trash unless it is the one in use', () {
+      expect(modelRowRemovable(row(installed: true)), isTrue);
+      expect(modelRowRemovable(row(installed: true, selected: true)), isFalse);
+    });
+
+    test('a model that would not open offers its trash even as the one in use', () {
+      expect(
+        modelRowRemovable(
+          row(installed: true, selected: true, failure: ModelInstallReason.loadFailed),
+        ),
+        isTrue,
+      );
+    });
+
+    test('an absent model, a failed download, or one in flight offers no trash', () {
+      expect(modelRowRemovable(row()), isFalse);
+      expect(modelRowRemovable(row(failure: ModelInstallReason.offline)), isFalse);
+      expect(modelRowRemovable(row(installed: true, failure: ModelInstallReason.noSpace)), isFalse);
+      expect(modelRowRemovable(row(installed: true, installFraction: 0.4)), isFalse);
+    });
+  });
+
   group('progressFace', () {
     test('a download waiting its turn reads as the queue at an empty bar', () {
       final face = progressFace(l10n, queued: true, preparing: false, fraction: 0.4);

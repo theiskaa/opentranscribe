@@ -83,6 +83,10 @@ class FakeModelChoiceEngine
   /// Fails every install with this reason; null lets them land.
   ModelInstallReason? failInstall;
 
+  /// Fails every install with this error instead, for one outside the
+  /// taxonomy.
+  Object? failInstallWith;
+
   /// Holds an install open after its steps, for tests interleaving other work.
   Future<void>? installGate;
 
@@ -112,6 +116,9 @@ class FakeModelChoiceEngine
 
   /// Thrown by every run instead of a transcript, when set.
   Object? failRun;
+
+  /// How many runs started.
+  int runs = 0;
   final DateTime Function() _clock;
 
   String _selected;
@@ -173,6 +180,7 @@ class FakeModelChoiceEngine
   }
 
   Future<Transcript> _run(String localeId, void Function(double fraction) onProgress) async {
+    runs++;
     for (final step in progressSteps) {
       onProgress(step);
     }
@@ -251,7 +259,9 @@ class FakeModelChoiceEngine
         if (held != null) await held;
         if (cancelled) return;
         final reason = failInstall;
-        if (reason != null) {
+        if (failInstallWith case final error?) {
+          controller.addError(error);
+        } else if (reason != null) {
           controller.addError(ModelInstallFailed('fake install failure', null, reason));
         } else {
           if (needModel) installed.add(id);

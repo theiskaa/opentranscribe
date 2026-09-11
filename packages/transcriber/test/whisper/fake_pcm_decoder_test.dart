@@ -37,7 +37,7 @@ void main() {
     expect(decoded.duration, const Duration(seconds: 3));
   });
 
-  test('length answers the file duration, and a slice past it is clamped', () async {
+  test('the fake measures the file it was given, and clamps a slice past its end', () async {
     final decoder = FakePcmDecoder(
       scratch: scratch,
       fileDuration: const Duration(seconds: 3),
@@ -57,7 +57,7 @@ void main() {
     );
   });
 
-  test('length fails with the scripted code like a decode does', () async {
+  test('measuring fails with the scripted code, as a decode does', () async {
     final decoder = FakePcmDecoder(scratch: scratch, throwOnDecode: 'decode_missing');
 
     await expectLater(

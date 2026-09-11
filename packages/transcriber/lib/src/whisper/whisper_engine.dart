@@ -11,18 +11,21 @@ import 'package:transcriber/src/whisper/whisper_catalog.dart';
 import 'package:transcriber/src/whisper/whisper_runtime.dart';
 import 'package:transcriber/src/whisper/zip_extract.dart';
 
-// ignore_for_file: prefer_initializing_formals
-// Public parameters assigned to private fields; the lint wants the fields public.
-
 /// whisper.cpp as a batch-only engine: one downloaded model serves every
 /// language it knows, and the per-language questions answer for that model.
+/// Every model knows the same ninety-nine; the large-v3 family adds Cantonese.
 ///
-/// The only connection it opens is the [ModelFetcher]'s, for a catalog file.
-/// Runs are serialized, hold at most [chunkLength] of decoded audio at a time
-/// and delete every scratch file whether they land or fail; a model counts as
-/// installed only at the catalog's length (its hash was checked at install).
-/// Acceleration is whisper.cpp's
-/// Core ML encoder, unpacked beside the model and compiled by a first load.
+/// Guarantees: the only connection it opens is the [ModelFetcher]'s, for a
+/// catalog file. Runs are serialized, hold at most [chunkLength] of decoded
+/// audio at a time and delete every scratch file whether they land or fail;
+/// [cancelBatches] ends the run in flight, its first-use download included,
+/// and drops the queued ones. The service installs a missing model before a
+/// run; the engine's own first-use install is the fallback for any other
+/// caller. A model counts as installed only at the catalog's length (its hash
+/// was checked at install), and the preflights never throw.
+///
+/// Acceleration is whisper.cpp's Core ML encoder, unpacked beside the model
+/// and compiled by a first load.
 class WhisperEngine
     implements
         TranscriptionEngine,
@@ -34,20 +37,15 @@ class WhisperEngine
         ProgressBatchEngine,
         AcceleratedModelEngine {
   WhisperEngine({
-    required Directory modelsDir,
-    required ModelFetcher fetcher,
-    required PcmDecoder decoder,
-    required WhisperRuntime runtime,
+    required this._modelsDir,
+    required this._fetcher,
+    required this._decoder,
+    required this._runtime,
     String initialModelId = whisperDefaultModelId,
-    bool canAccelerate = false,
+    this.canAccelerate = false,
     bool initiallyAccelerated = false,
     DateTime Function()? clock,
-  }) : _modelsDir = modelsDir,
-       _fetcher = fetcher,
-       _decoder = decoder,
-       _runtime = runtime,
-       _clock = clock ?? DateTime.now,
-       canAccelerate = canAccelerate,
+  }) : _clock = clock ?? DateTime.now,
        _accelerated = canAccelerate && initiallyAccelerated {
     _selectedId = _model(initialModelId).id;
   }
@@ -58,6 +56,10 @@ class WhisperEngine
   /// The most audio a run holds at once: ten minutes of samples plus their
   /// spectrogram fit the catalog's memory figures, whatever the entry's length.
   static const chunkLength = Duration(minutes: 10);
+
+  // A segment ending this close to a chunk's edge may have run past it; one
+  // ending earlier finished inside.
+  static const _tailMargin = Duration(seconds: 2);
   static const _cancelled = TranscriptionFailed('cancelled');
 
   final Directory _modelsDir;
@@ -203,59 +205,26 @@ class WhisperEngine
       final to = end ?? total;
       if (to <= from) return _transcript(const [], localeId);
       if (to - from <= chunkLength) {
-        final heard = await _hear(session, audio, language, start, end, generation, onProgress);
-        return _transcript(heard ?? const [], localeId);
-      }
-      final bound = to < total ? to : total;
-      final whole = (bound - from).inMicroseconds;
-      final segments = <WhisperSegment>[];
-      var cursor = from;
-      // A re-heard tail restarts below the last fraction reported; only a
-      // climb is forwarded.
-      var reported = 0.0;
-      while (cursor < bound) {
-        final chunkEnd = cursor + chunkLength < bound ? cursor + chunkLength : bound;
-        final done = (cursor - from).inMicroseconds;
-        final share = (chunkEnd - cursor).inMicroseconds;
         final heard = await _hear(
           session,
           audio,
-          language,
-          cursor,
-          chunkEnd,
-          generation,
-          onProgress == null
-              ? null
-              : (p) {
-                  final fraction = (done + p * share) / whole;
-                  if (fraction <= reported) return;
-                  reported = fraction;
-                  onProgress(fraction);
-                },
+          language: language,
+          start: start,
+          end: end,
+          generation: generation,
+          onProgress: onProgress,
         );
-        if (heard == null) break;
-        var kept = heard;
-        var next = chunkEnd;
-        // A chunk's last segment may be cut by the boundary; the next chunk
-        // starts where it began, so the words are heard whole once.
-        final tail = heard.isEmpty ? null : heard.last.start;
-        if (chunkEnd < bound && tail != null && tail > Duration.zero && tail < chunkEnd - cursor) {
-          kept = heard.sublist(0, heard.length - 1);
-          next = cursor + tail;
-        }
-        final offset = cursor - from;
-        for (final s in kept) {
-          segments.add(
-            WhisperSegment(
-              text: s.text,
-              start: s.start + offset,
-              end: s.end + offset,
-              confidence: s.confidence,
-            ),
-          );
-        }
-        cursor = next;
+        return _transcript(heard ?? const [], localeId);
       }
+      final segments = await _hearInChunks(
+        session,
+        audio,
+        language: language,
+        from: from,
+        to: to < total ? to : total,
+        generation: generation,
+        onProgress: onProgress,
+      );
       return _transcript(segments, localeId);
     } finally {
       _running = false;
@@ -269,17 +238,87 @@ class WhisperEngine
     }
   }
 
+  /// [from] to [to] of [audio], longer than [chunkLength], heard one chunk at a
+  /// time, its segments timed from [from] and its progress one climb.
+  Future<List<WhisperSegment>> _hearInChunks(
+    WhisperSession session,
+    File audio, {
+    required String language,
+    required Duration from,
+    required Duration to,
+    required int generation,
+    void Function(double fraction)? onProgress,
+  }) async {
+    final whole = (to - from).inMicroseconds;
+    final segments = <WhisperSegment>[];
+    var cursor = from;
+    // A re-heard tail restarts below the last fraction reported; only a
+    // climb is forwarded.
+    var reported = 0.0;
+    while (cursor < to) {
+      final chunkEnd = cursor + chunkLength < to ? cursor + chunkLength : to;
+      final length = chunkEnd - cursor;
+      final done = (cursor - from).inMicroseconds;
+      final heard = await _hear(
+        session,
+        audio,
+        language: language,
+        start: cursor,
+        end: chunkEnd,
+        generation: generation,
+        onProgress: onProgress == null
+            ? null
+            : (p) {
+                final fraction = (done + p * length.inMicroseconds) / whole;
+                if (fraction <= reported) return;
+                reported = fraction;
+                onProgress(fraction);
+              },
+      );
+      if (heard == null) break;
+      var kept = heard;
+      var next = chunkEnd;
+      // A last segment running into the boundary may be cut by it; the next
+      // chunk starts where it began, so the words are heard whole once.
+      final last = heard.lastOrNull;
+      if (chunkEnd < to &&
+          last != null &&
+          last.start > Duration.zero &&
+          last.start < length &&
+          last.end >= length - _tailMargin) {
+        kept = heard.sublist(0, heard.length - 1);
+        next = cursor + last.start;
+      }
+      final offset = cursor - from;
+      for (final s in kept) {
+        segments.add(
+          WhisperSegment(
+            text: s.text,
+            start: s.start + offset,
+            end: s.end + offset,
+            confidence: s.confidence,
+          ),
+        );
+      }
+      cursor = next;
+    }
+    return segments;
+  }
+
   /// One decoded slice through whisper, its scratch file deleted after. Null
   /// for a slice holding no audio: past the file's end, or empty.
   Future<List<WhisperSegment>?> _hear(
     WhisperSession session,
-    File audio,
-    String language,
-    Duration? start,
-    Duration? end,
-    int generation,
+    File audio, {
+    required String language,
+    required Duration? start,
+    required Duration? end,
+    required int generation,
     void Function(double fraction)? onProgress,
-  ) async {
+  }) async {
+    // Checked before the decode too: a cancel between chunks must not pay
+    // for another ten minutes of it.
+    if (generation != _generation) throw _cancelled;
     final DecodedPcm decoded;
     try {
       decoded = await _decoder.decode(audio, start: start, end: end);
@@ -378,10 +417,13 @@ class WhisperEngine
       _sessionModelId = model.id;
       return session;
     } on WhisperRuntimeException catch (e) {
+      // A release ends the worker mid-load, which answers as a failed load.
+      if (releases != _releases) throw _cancelled;
       throw ModelInstallFailed(
         'model failed to load: ${e.message}',
         null,
         ModelInstallReason.loadFailed,
+        model.id,
       );
     }
   }
@@ -593,7 +635,7 @@ class WhisperEngine
           await _warmUp(model);
         } on ModelInstallFailed catch (e, stack) {
           return fail(e, stack);
-        } catch (_) {
+        } on TranscriptionFailed {
           // A release during the load; the next run loads again.
         }
       }
