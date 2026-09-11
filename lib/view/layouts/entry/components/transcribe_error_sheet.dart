@@ -39,6 +39,11 @@ Future<bool> showTranscribeErrorSheet(BuildContext context, EntriesError kind) a
     l10n.transcribeErrorTitleModelInstall,
     l10n.transcribeErrorModelInstall,
   ),
+  EntriesError.modelLoadFailed => (
+    AppIcons.internaldrive,
+    l10n.transcribeErrorTitleModelLoad,
+    l10n.transcribeErrorModelLoad,
+  ),
   EntriesError.reservationCap => (
     AppIcons.globe,
     l10n.transcribeErrorTitleCapReached,

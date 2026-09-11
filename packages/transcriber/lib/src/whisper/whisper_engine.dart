@@ -394,7 +394,7 @@ class WhisperEngine
       throw ModelInstallFailed(
         'model failed to load: ${e.message}',
         null,
-        ModelInstallReason.rejected,
+        ModelInstallReason.loadFailed,
       );
     }
   }
@@ -601,7 +601,15 @@ class WhisperEngine
         await _deleteEncoder(model);
         return finish();
       }
-      if (await _installed(model)) await _warmUp(model);
+      if (await _installed(model)) {
+        try {
+          await _warmUp(model);
+        } on ModelInstallFailed catch (e, stack) {
+          return fail(e, stack);
+        } catch (_) {
+          // A release during the load; the next run loads again.
+        }
+      }
       await finish();
     }
 
@@ -648,17 +656,16 @@ class WhisperEngine
   /// Loads the model once, on the run chain, so the encoder's compile is
   /// paid here and not by the first entry. Skipped under a run in flight
   /// (its own load pays it, and the run may be the one waiting on this
-  /// install); a load that fails keeps the files and lets the next run
-  /// report it; a model other than the choice is closed again.
+  /// install); a load that fails keeps the files and throws, so the install
+  /// says the model will not open; a model other than the choice is closed
+  /// again.
   Future<void> _warmUp(WhisperModel model) {
     if (_running || !_accelerated) return Future.value();
     final load = _batches.then((_) async {
       if (_running || !_accelerated) return;
-      try {
-        await _closeSession();
-        await _sessionFor(model);
-        if (model.id != _selectedId) await _closeSession();
-      } catch (_) {}
+      await _closeSession();
+      await _sessionFor(model);
+      if (model.id != _selectedId) await _closeSession();
     });
     _batches = load.then((_) {}, onError: (Object _) {});
     return load;

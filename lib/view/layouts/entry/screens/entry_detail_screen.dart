@@ -870,6 +870,7 @@ String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
   EntriesError.recordingMissing => l10n.transcribeErrorLabelRecordingMissing,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
+  EntriesError.modelLoadFailed => l10n.transcribeErrorLabelModelLoad,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
   EntriesError.additionUntranscribed => l10n.continueUntranscribedLabel,
   EntriesError.savedSeparately => l10n.continueSavedSeparatelyLabel,

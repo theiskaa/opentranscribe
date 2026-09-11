@@ -163,6 +163,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d\'obtenir le modèle vocal pour cette langue. Vérifiez votre connexion et l\'espace disponible, ou gérez les langues dans Modèles.';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'Le modèle a été téléchargé mais n\'a pas pu être ouvert sur cet iPhone. Sur l\'écran Transcription, choisissez un autre modèle, supprimez celui-ci, puis retéléchargez-le.';
+
+  @override
   String get transcribeErrorPermission =>
       'Autorisez la reconnaissance vocale pour opentranscribe dans l\'app Réglages, puis réessayez.';
 
@@ -191,6 +195,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => 'Modèle de langue non obtenu';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'Modèle impossible à ouvrir';
+
+  @override
   String get transcribeErrorLabelCapReached => 'Limite de langues atteinte';
 
   @override
@@ -207,6 +214,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'Téléchargement du modèle impossible';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'Impossible d\'ouvrir le modèle';
 
   @override
   String get transcribeErrorTitleCapReached => 'Limite de langues atteinte';
@@ -488,6 +498,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return 'Le fichier de $model ne correspondait pas à ce qui était attendu et a été rejeté. Réessayez.';
+  }
+
+  @override
+  String get modelFailLoadTitle => 'Ouverture impossible';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model a été téléchargé mais n\'a pas pu être ouvert sur cet iPhone. Réessayez pour le retélécharger, ou supprimez-le.';
   }
 
   @override

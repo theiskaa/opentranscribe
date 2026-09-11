@@ -161,6 +161,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'The model downloaded but couldn\'t be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.';
+
+  @override
   String get transcribeErrorPermission =>
       'Allow speech recognition for opentranscribe in the Settings app, then try again.';
 
@@ -189,6 +193,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => 'Couldn\'t get the language model';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'Couldn\'t open the model';
+
+  @override
   String get transcribeErrorLabelCapReached => 'Language limit reached';
 
   @override
@@ -205,6 +212,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'Couldn\'t download the model';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'Couldn\'t open the model';
 
   @override
   String get transcribeErrorTitleCapReached => 'Language limit reached';
@@ -482,6 +492,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return 'The $model file didn\'t match what was expected, so it was discarded. Try again.';
+  }
+
+  @override
+  String get modelFailLoadTitle => 'Couldn\'t open';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model downloaded but couldn\'t be opened on this iPhone. Try again to download it afresh, or remove it.';
   }
 
   @override

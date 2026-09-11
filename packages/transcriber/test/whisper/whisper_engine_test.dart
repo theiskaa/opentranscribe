@@ -282,7 +282,7 @@ void main() {
       expect(decoder.written.single.existsSync(), isFalse);
     });
 
-    test('a model that fails to load reads as a rejected install', () async {
+    test('a model that fails to load says it would not open and keeps its file', () async {
       runtime.failLoad = true;
       final e = engine();
       await install(e);
@@ -290,7 +290,11 @@ void main() {
       await expectLater(
         e.transcribeFile(audio, localeId: 'en-US'),
         throwsA(
-          isA<ModelInstallFailed>().having((f) => f.reason, 'reason', ModelInstallReason.rejected),
+          isA<ModelInstallFailed>().having(
+            (f) => f.reason,
+            'reason',
+            ModelInstallReason.loadFailed,
+          ),
         ),
       );
       expect(fileOf(whisperDefaultModelId).existsSync(), isTrue);
@@ -1160,12 +1164,21 @@ void main() {
       expect(encoderDir().existsSync(), isTrue);
     });
 
-    test('a warm-up load that fails keeps the files and lands the install', () async {
+    test('a warm-up load that fails keeps the files and fails the install as unopenable', () async {
       runtime.failLoad = true;
       final e = accelerated();
 
-      await e.installModelById(tiny.id).drain<void>();
-
+      await expectLater(
+        e.installModelById(tiny.id).drain<void>(),
+        throwsA(
+          isA<ModelInstallFailed>().having(
+            (f) => f.reason,
+            'reason',
+            ModelInstallReason.loadFailed,
+          ),
+        ),
+      );
+      expect(fileOf(tiny.id).existsSync(), isTrue);
       expect(encoderDir().existsSync(), isTrue);
       expect(await e.acceleratedModels(), {tiny.id});
     });

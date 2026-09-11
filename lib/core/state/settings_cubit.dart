@@ -368,6 +368,8 @@ class SettingsCubit extends Cubit<SettingsState> {
   // cubit starting it.
   String? _firstUseModelId;
   double? _firstUseFraction;
+  // Models between a refused-or-not removal and their retry's install.
+  final Set<String> _reinstalling = {};
   int _loadGeneration = 0;
 
   /// Rebuilds every language row and, under an engine with a choice, every
@@ -455,14 +457,11 @@ class SettingsCubit extends Cubit<SettingsState> {
               _modelInstallSubs.containsKey(option.id) &&
               (previousModels[option.id]?.queued ?? false),
           cancellable: previousModels[option.id]?.cancellable ?? false,
-          // A standing failure clears once the file is there through another
-          // path; a row wearing "download failed" over a present file is a
-          // lie, unless the switch is on and it was the encoder that failed.
-          failure:
-              installedModels.contains(option.id) &&
-                  (!_service.accelerated || acceleratedModels.contains(option.id))
-              ? null
-              : previousModels[option.id]?.failure,
+          failure: _carriedFailure(
+            previousModels[option.id]?.failure,
+            installed: installedModels.contains(option.id),
+            encoderMissing: _service.accelerated && !acceleratedModels.contains(option.id),
+          ),
         ),
     ];
     final previous = sameEngine
@@ -578,7 +577,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (_service.offersModelChoice && selected != null) {
       final row = state.selectedModel;
       if (row != null && row.heavy && !row.installed) return;
-      installModelById(selected);
+      unawaited(installModelById(selected));
       return;
     }
     _patchRow(target, (row) => row.copyWith(installFraction: 0, clearFailure: true));
@@ -618,9 +617,31 @@ class SettingsCubit extends Cubit<SettingsState> {
   }
 
   /// Like [install], but for one model of the engine's choice: downloads it
-  /// and selects it once landed. Single-flight per model.
-  void installModelById(String id) =>
+  /// and selects it once landed. Single-flight per model. A model that
+  /// downloaded but would not open is removed first, so the retry fetches a
+  /// fresh file; answers false when that removal was refused (a run holds the
+  /// model), and the row keeps its failure.
+  Future<bool> installModelById(String id) async {
+    if (_modelInstallSubs.containsKey(id) || !_reinstalling.add(id)) return true;
+    try {
+      final row = state.models.where((r) => r.option.id == id).firstOrNull;
+      if (row != null && row.installed && row.failure == ModelInstallReason.loadFailed) {
+        bool removed;
+        try {
+          removed = await _service.removeModel(id);
+        } catch (_) {
+          removed = false;
+        }
+        if (isClosed) return false;
+        if (!removed && (await _service.installedModels()).contains(id)) return false;
+      }
+      if (isClosed) return false;
       _trackModelInstall(id, () => _service.installModelById(id), selectOnLand: true);
+      return true;
+    } finally {
+      _reinstalling.remove(id);
+    }
+  }
 
   /// Turns the engine's acceleration on or off and persists it. On fetches
   /// the extra file of every installed model as a download on its row; off
@@ -759,6 +780,20 @@ class SettingsCubit extends Cubit<SettingsState> {
       _ => ModelInstallReason.rejected,
     };
   }
+
+  /// A failure a reload keeps. A download failure clears once the file is
+  /// there through another path, unless it was the encoder that failed; one
+  /// that would not open stands on the present file until a retry replaces it,
+  /// and goes with the file.
+  static ModelInstallReason? _carriedFailure(
+    ModelInstallReason? previous, {
+    required bool installed,
+    required bool encoderMissing,
+  }) => switch (previous) {
+    ModelInstallReason.loadFailed => installed ? previous : null,
+    _ when installed && !encoderMissing => null,
+    _ => previous,
+  };
 
   void _patchModel(String id, ModelRowState Function(ModelRowState) update) {
     final rows = [for (final row in state.models) row.option.id == id ? update(row) : row];

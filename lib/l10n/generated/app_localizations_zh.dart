@@ -151,6 +151,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorModelInstall => '无法获取该语言的语音模型。请检查网络连接和可用空间，或在“模型”中管理语言。';
 
   @override
+  String get transcribeErrorModelLoad => '模型已下载，但无法在此 iPhone 上打开。请在“转写”页面选择其他模型，移除此模型，然后重新下载。';
+
+  @override
   String get transcribeErrorPermission => '请在“设置”应用中为 opentranscribe 开启语音识别权限，然后重试。';
 
   @override
@@ -175,6 +178,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => '无法获取语言模型';
 
   @override
+  String get transcribeErrorLabelModelLoad => '无法打开模型';
+
+  @override
   String get transcribeErrorLabelCapReached => '语言数量已达上限';
 
   @override
@@ -191,6 +197,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => '无法下载模型';
+
+  @override
+  String get transcribeErrorTitleModelLoad => '无法打开模型';
 
   @override
   String get transcribeErrorTitleCapReached => '语言数量已达上限';
@@ -464,6 +473,14 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return '$model 的文件与预期不符，已被丢弃。请再试一次。';
+  }
+
+  @override
+  String get modelFailLoadTitle => '无法打开';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model 已下载，但无法在此 iPhone 上打开。再试一次会重新下载，或将其移除。';
   }
 
   @override

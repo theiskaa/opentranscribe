@@ -197,6 +197,10 @@
   "@transcribeErrorModelInstall": {
     "description": "Notice when the on-device model download fails during transcription"
   },
+  "transcribeErrorModelLoad": "The model downloaded but couldn't be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.",
+  "@transcribeErrorModelLoad": {
+    "description": "Notice when the model is present but could not be opened during transcription"
+  },
   "transcribeErrorPermission": "Allow speech recognition for opentranscribe in the Settings app, then try again.",
   "@transcribeErrorPermission": {
     "description": "Notice when speech recognition permission is denied"
@@ -229,6 +233,10 @@
   "@transcribeErrorLabelModelInstall": {
     "description": "Short label on the inline error indicator when the model download failed"
   },
+  "transcribeErrorLabelModelLoad": "Couldn't open the model",
+  "@transcribeErrorLabelModelLoad": {
+    "description": "Short label on the inline error indicator when the model could not be opened"
+  },
   "transcribeErrorLabelCapReached": "Language limit reached",
   "@transcribeErrorLabelCapReached": {
     "description": "Short label on the inline error indicator when the language cap is full"
@@ -252,6 +260,10 @@
   "transcribeErrorTitleModelInstall": "Couldn't download the model",
   "@transcribeErrorTitleModelInstall": {
     "description": "Details-sheet title when the model download failed"
+  },
+  "transcribeErrorTitleModelLoad": "Couldn't open the model",
+  "@transcribeErrorTitleModelLoad": {
+    "description": "Details-sheet title when the model could not be opened"
   },
   "transcribeErrorTitleCapReached": "Language limit reached",
   "@transcribeErrorTitleCapReached": {
@@ -658,6 +670,19 @@
   "modelFailRejectedBody": "The {model} file didn't match what was expected, so it was discarded. Try again.",
   "@modelFailRejectedBody": {
     "description": "Sheet body for a model download that did not verify",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailLoadTitle": "Couldn't open",
+  "@modelFailLoadTitle": {
+    "description": "Card title for a model that downloaded but could not be opened"
+  },
+  "modelFailLoadBody": "{model} downloaded but couldn't be opened on this iPhone. Try again to download it afresh, or remove it.",
+  "@modelFailLoadBody": {
+    "description": "Card body for a model that downloaded but could not be opened",
     "placeholders": {
       "model": {
         "type": "String"

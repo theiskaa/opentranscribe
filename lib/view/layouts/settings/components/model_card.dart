@@ -34,21 +34,28 @@ String _tierInfo(AppLocalizations l10n, ModelQuality quality) => switch (quality
 };
 
 /// The title and body a failed download wears, by its reason.
-(String, String) _failureWords(BuildContext context, AppLocalizations l10n, ModelRowState row) =>
-    switch (row.failure!) {
-      ModelInstallReason.offline => (
-        l10n.modelFailOfflineTitle,
-        l10n.modelFailOfflineBody(row.option.displayName),
-      ),
-      ModelInstallReason.noSpace => (
-        l10n.modelFailNoSpaceTitle,
-        l10n.modelFailNoSpaceBody(formatBytes(row.option.bytes, localeTag(context))),
-      ),
-      ModelInstallReason.rejected || ModelInstallReason.cancelled => (
-        l10n.modelFailRejectedTitle,
-        l10n.modelFailRejectedBody(row.option.displayName),
-      ),
-    };
+(String, String) modelFailureWords(
+  AppLocalizations l10n,
+  ModelRowState row, {
+  required String localeTag,
+}) => switch (row.failure!) {
+  ModelInstallReason.offline => (
+    l10n.modelFailOfflineTitle,
+    l10n.modelFailOfflineBody(row.option.displayName),
+  ),
+  ModelInstallReason.noSpace => (
+    l10n.modelFailNoSpaceTitle,
+    l10n.modelFailNoSpaceBody(formatBytes(row.option.bytes, localeTag)),
+  ),
+  ModelInstallReason.rejected || ModelInstallReason.cancelled => (
+    l10n.modelFailRejectedTitle,
+    l10n.modelFailRejectedBody(row.option.displayName),
+  ),
+  ModelInstallReason.loadFailed => (
+    l10n.modelFailLoadTitle,
+    l10n.modelFailLoadBody(row.option.displayName),
+  ),
+};
 
 /// The models an engine offers, two cards a row: the name over its size and
 /// what the tier is for, a quiet line carrying a failure or the too-large
@@ -150,10 +157,13 @@ class _ModelTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Never on the model in use: emptying the seat transcription
-                  // runs from is a trap, and picking another model first is
-                  // the way out.
-                  if (face == ModelRowFace.installed)
+                  // Never on the model in use (emptying the seat runs start
+                  // from is a trap), unless it would not open: then it is the
+                  // way out.
+                  if (face == ModelRowFace.installed ||
+                      (face == ModelRowFace.failed &&
+                          row.installed &&
+                          row.failure == ModelInstallReason.loadFailed))
                     _RemoveButton(
                       modelName: row.option.displayName,
                       onTap: () => _confirmRemove(context),
@@ -187,7 +197,7 @@ class _ModelTile extends StatelessWidget {
               row: row,
               face: face,
               onTap: switch (face) {
-                ModelRowFace.download || ModelRowFace.failed => () => cubit.installModelById(id),
+                ModelRowFace.download || ModelRowFace.failed => () => _install(context),
                 ModelRowFace.installed => () => _use(context),
                 ModelRowFace.heavy => () => _explainHeavy(context),
                 _ => null,
@@ -196,6 +206,21 @@ class _ModelTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// A refused retry is a model a run holds; the busy words say to wait.
+  Future<void> _install(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final installing = await context.read<SettingsCubit>().installModelById(row.option.id);
+    if (installing || !context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    await showAppSheet<void>(
+      context,
+      builder: (context) => SheetMessage(
+        icon: AppIcons.internaldrive,
+        title: l10n.modelBusyTitle,
+        body: l10n.modelBusyBody(row.option.displayName),
       ),
     );
   }
@@ -352,7 +377,7 @@ class _FailureLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final (title, _) = _failureWords(context, l10n, row);
+    final (title, _) = modelFailureWords(l10n, row, localeTag: localeTag(context));
     return Semantics(
       button: true,
       label: title,
@@ -373,7 +398,7 @@ class _FailureLine extends StatelessWidget {
   Future<void> _story(BuildContext context) async {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context)!;
-    final (title, body) = _failureWords(context, l10n, row);
+    final (title, body) = modelFailureWords(l10n, row, localeTag: localeTag(context));
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(icon: AppIcons.icloud, title: title, body: body),

@@ -153,6 +153,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 언어의 음성 모델을 가져오지 못했습니다. 연결과 여유 공간을 확인하거나 모델에서 언어를 관리하세요.';
 
   @override
+  String get transcribeErrorModelLoad =>
+      '모델을 다운로드했지만 이 iPhone에서 열 수 없습니다. 전사 화면에서 다른 모델을 선택하고 이 모델을 제거한 뒤 다시 다운로드하세요.';
+
+  @override
   String get transcribeErrorPermission => '\'설정\' 앱에서 opentranscribe의 음성 인식을 허용한 뒤 다시 시도하세요.';
 
   @override
@@ -178,6 +182,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => '언어 모델을 가져오지 못함';
 
   @override
+  String get transcribeErrorLabelModelLoad => '모델을 열 수 없음';
+
+  @override
   String get transcribeErrorLabelCapReached => '언어 한도에 도달함';
 
   @override
@@ -194,6 +201,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => '모델을 다운로드하지 못함';
+
+  @override
+  String get transcribeErrorTitleModelLoad => '모델을 열 수 없음';
 
   @override
   String get transcribeErrorTitleCapReached => '언어 한도에 도달함';
@@ -468,6 +478,14 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return '$model 파일이 예상과 달라 폐기했습니다. 다시 시도하세요.';
+  }
+
+  @override
+  String get modelFailLoadTitle => '열 수 없음';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model을(를) 다운로드했지만 이 iPhone에서 열 수 없습니다. 다시 시도하면 새로 다운로드하며, 제거할 수도 있습니다.';
   }
 
   @override

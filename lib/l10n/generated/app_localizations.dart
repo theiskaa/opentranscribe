@@ -384,6 +384,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.'**
   String get transcribeErrorModelInstall;
 
+  /// Notice when the model is present but could not be opened during transcription
+  ///
+  /// In en, this message translates to:
+  /// **'The model downloaded but couldn\'t be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.'**
+  String get transcribeErrorModelLoad;
+
   /// Notice when speech recognition permission is denied
   ///
   /// In en, this message translates to:
@@ -432,6 +438,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t get the language model'**
   String get transcribeErrorLabelModelInstall;
 
+  /// Short label on the inline error indicator when the model could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the model'**
+  String get transcribeErrorLabelModelLoad;
+
   /// Short label on the inline error indicator when the language cap is full
   ///
   /// In en, this message translates to:
@@ -467,6 +479,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t download the model'**
   String get transcribeErrorTitleModelInstall;
+
+  /// Details-sheet title when the model could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the model'**
+  String get transcribeErrorTitleModelLoad;
 
   /// Details-sheet title when the language cap is full
   ///
@@ -947,6 +965,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The {model} file didn\'t match what was expected, so it was discarded. Try again.'**
   String modelFailRejectedBody(String model);
+
+  /// Card title for a model that downloaded but could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open'**
+  String get modelFailLoadTitle;
+
+  /// Card body for a model that downloaded but could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'{model} downloaded but couldn\'t be opened on this iPhone. Try again to download it afresh, or remove it.'**
+  String modelFailLoadBody(String model);
 
   /// Sheet title for a model download that failed for lack of space
   ///

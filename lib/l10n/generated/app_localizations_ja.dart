@@ -153,6 +153,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'この言語の音声モデルを取得できませんでした。接続と空き容量を確認するか、「モデル」で言語を管理してください。';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'モデルはダウンロードされましたが、この iPhone で開けませんでした。「文字起こし」画面で別のモデルを選び、このモデルを削除してから、もう一度ダウンロードしてください。';
+
+  @override
   String get transcribeErrorPermission => '「設定」App で opentranscribe の音声認識を許可してから、もう一度お試しください。';
 
   @override
@@ -178,6 +182,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => '言語モデルを取得できませんでした';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'モデルを開けませんでした';
+
+  @override
   String get transcribeErrorLabelCapReached => '言語の上限に達しました';
 
   @override
@@ -194,6 +201,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'モデルをダウンロードできませんでした';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'モデルを開けませんでした';
 
   @override
   String get transcribeErrorTitleCapReached => '言語の上限に達しました';
@@ -467,6 +477,14 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return '$model のファイルが想定と一致しなかったため破棄しました。もう一度お試しください。';
+  }
+
+  @override
+  String get modelFailLoadTitle => '開けませんでした';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model はダウンロードされましたが、この iPhone で開けませんでした。もう一度お試しになると再ダウンロードします。または削除してください。';
   }
 
   @override

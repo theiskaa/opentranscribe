@@ -162,6 +162,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível obter o modelo de fala para este idioma. Verifique a ligação e o espaço livre, ou faça a gestão dos idiomas em Modelos.';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'O modelo foi transferido mas não pôde ser aberto neste iPhone. No ecrã Transcrição, escolha outro modelo, remova este e transfira-o de novo.';
+
+  @override
   String get transcribeErrorPermission =>
       'Permita o reconhecimento de fala para o opentranscribe na app Definições e tente novamente.';
 
@@ -190,6 +194,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => 'Não foi possível obter o modelo';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'Não foi possível abrir o modelo';
+
+  @override
   String get transcribeErrorLabelCapReached => 'Limite de idiomas atingido';
 
   @override
@@ -206,6 +213,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'Não foi possível transferir o modelo';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'Não foi possível abrir o modelo';
 
   @override
   String get transcribeErrorTitleCapReached => 'Limite de idiomas atingido';
@@ -487,6 +497,14 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String modelFailRejectedBody(String model) {
     return 'O ficheiro de $model não correspondeu ao esperado e foi descartado. Tente novamente.';
+  }
+
+  @override
+  String get modelFailLoadTitle => 'Não foi possível abrir';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model foi transferido mas não pôde ser aberto neste iPhone. Tente novamente para o transferir de novo, ou remova-o.';
   }
 
   @override

@@ -19,6 +19,9 @@ enum EntriesError {
   onDeviceUnavailable,
   recordingMissing,
   modelInstallFailed,
+
+  /// The model is on the phone, whole, and the engine could not open it.
+  modelLoadFailed,
   reservationCap,
 
   /// A continuation merged its audio but the new part's words did not land.
@@ -335,6 +338,7 @@ class EntriesCubit extends Cubit<EntriesState> {
       PermissionDenied() => EntriesError.permissionDenied,
       OnDeviceUnavailable() => EntriesError.onDeviceUnavailable,
       RecordingMissing() => EntriesError.recordingMissing,
+      ModelInstallFailed(reason: ModelInstallReason.loadFailed) => EntriesError.modelLoadFailed,
       ModelInstallFailed() => EntriesError.modelInstallFailed,
       // Its own kind: the fix is removing a language, not checking the network.
       ReservationCapReached() => EntriesError.reservationCap,

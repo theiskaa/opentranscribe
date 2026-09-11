@@ -189,7 +189,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await pumpEventQueue();
 
     expect(rowOf(cubit, 'large').installing, isTrue);
@@ -211,8 +211,8 @@ void main() {
     final cubit = buildFor(scoped);
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('small');
-    cubit.installModelById('large');
+    await cubit.installModelById('small');
+    await cubit.installModelById('large');
     await pumpEventQueue();
 
     expect(rowOf(cubit, 'small').queued, isFalse);
@@ -251,7 +251,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').installing, isTrue);
     expect(rowOf(cubit, 'large').installFraction, 0.7);
@@ -289,7 +289,7 @@ void main() {
     final cubit = buildFor(scoped);
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     await cubit.selectModel('medium');
     gate.complete();
@@ -306,8 +306,8 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
 
     expect(engine.installs, ['large']);
@@ -319,13 +319,13 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await pumpEventQueue();
     expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
     expect(rowOf(cubit, 'large').installed, isFalse);
 
     engine.failInstall = null;
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').failure, isNull);
   });
@@ -335,12 +335,88 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await pumpEventQueue();
 
     expect(engine.selectedModelId, 'small');
     expect(engineSettings.modelIdFor(engine.id), isNot('large'));
     expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
+  });
+
+  test('a model that would not open keeps saying so through a reload', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    await cubit.load();
+
+    expect(rowOf(cubit, 'small').installed, isTrue);
+    expect(rowOf(cubit, 'small').failure, ModelInstallReason.loadFailed);
+  });
+
+  test('a retry on a model that would not open removes its file and downloads it afresh', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    accelerating.failInstall = null;
+
+    expect(await cubit.installModelById('small'), isTrue);
+    await pumpEventQueue();
+
+    expect(accelerating.removals, ['small']);
+    expect(accelerating.installs, ['small']);
+    expect(accelerating.installed, contains('small'));
+    expect(rowOf(cubit, 'small').failure, isNull);
+    expect(rowOf(cubit, 'small').installed, isTrue);
+  });
+
+  test('a retry whose removal a run refuses keeps the failure and downloads nothing', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    accelerating
+      ..failInstall = null
+      ..refuseRemove = true;
+
+    expect(await cubit.installModelById('small'), isFalse);
+    await pumpEventQueue();
+
+    expect(accelerating.installs, isEmpty);
+    expect(rowOf(cubit, 'small').failure, ModelInstallReason.loadFailed);
+  });
+
+  test('two quick retries on a model that would not open remove it once', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    accelerating.failInstall = null;
+
+    await Future.wait([cubit.installModelById('small'), cubit.installModelById('small')]);
+    await pumpEventQueue();
+
+    expect(accelerating.removals, ['small']);
+  });
+
+  test('removing a model that would not open drops its failure with the file', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+
+    expect(await cubit.removeModel('small'), isTrue);
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').installed, isFalse);
+    expect(rowOf(cubit, 'small').failure, isNull);
   });
 
   test('removing a model drops it from installed and leaves the selection', () async {
@@ -479,7 +555,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     await cubit.close();
     gate.complete();
@@ -509,7 +585,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').installing, isTrue);
     await cubit.cancelModelInstallById('large');
@@ -528,7 +604,7 @@ void main() {
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 
-    cubit.installModelById('large');
+    await cubit.installModelById('large');
     await Future<void>.delayed(Duration.zero);
     expect(rowOf(cubit, 'large').cancellable, isTrue);
     await cubit.cancelModelInstallById('large');
