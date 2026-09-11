@@ -82,6 +82,8 @@ class WhisperEngine
   WhisperSession? _session;
   String? _sessionModelId;
   Future<void> _closing = Future<void>.value();
+  int _releases = 0;
+  bool _sweptScratch = false;
   Future<void> _batches = Future<void>.value();
   Future<void> _installs = Future<void>.value();
   // Bumped by cancelBatches; a run queued before the bump never starts.
@@ -291,8 +293,11 @@ class WhisperEngine
     // gone; a run that held it kept it until now, and an install fetching
     // one drops it itself.
     if (!_accelerated && !_installing.containsKey(model.id)) await _deleteEncoder(model);
+    final releases = _releases;
     try {
       final session = await _runtime.load(_file(model));
+      // A release during the load closed this session with the runtime.
+      if (releases != _releases) throw _cancelled;
       _session = session;
       _sessionModelId = model.id;
       return session;
@@ -314,8 +319,10 @@ class WhisperEngine
   }
 
   @override
-  Future<void> release() =>
-      _closing = _closeSession().then((_) => _runtime.dispose()).catchError((Object _) {});
+  Future<void> release() {
+    _releases++;
+    return _closing = _closeSession().then((_) => _runtime.dispose()).catchError((Object _) {});
+  }
 
   @override
   Future<void> cancelBatches() async {
@@ -361,13 +368,17 @@ class WhisperEngine
     _accelerated = on;
     if (on) return;
     for (final model in whisperCatalog) {
-      // A run holding its encoder keeps it until the run ends; an install
-      // fetching one drops it itself once it lands.
-      if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) continue;
-      if (_installing.containsKey(model.id)) continue;
-      if (_sessionModelId == model.id) await _closeSession();
-      await _deleteEncoder(model);
+      await _dropEncoder(model);
     }
+  }
+
+  /// Off means gone, except an encoder a run holds (the run's end drops it)
+  /// or an install is fetching (its landing or its cancel drops it).
+  Future<void> _dropEncoder(WhisperModel model) async {
+    if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) return;
+    if (_installing.containsKey(model.id)) return;
+    if (_sessionModelId == model.id) await _closeSession();
+    await _deleteEncoder(model);
   }
 
   @override
@@ -515,13 +526,14 @@ class WhisperEngine
       onCancel: () async {
         release();
         await fetching?.cancel();
+        if (!_accelerated) await _dropEncoder(model);
       },
     );
     return controller.stream;
   }
 
   static ModelInstallReason _installReason(Object error) =>
-      error is FileSystemException && error.osError?.errorCode == 28
+      error is FileSystemException && error.osError?.errorCode == enospc
       ? ModelInstallReason.noSpace
       : ModelInstallReason.rejected;
 

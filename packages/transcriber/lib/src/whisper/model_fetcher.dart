@@ -9,6 +9,9 @@ import 'package:transcriber/src/transcribe/transcription_exception.dart';
 /// Where a fetcher keeps an unfinished download, beside its destination.
 const modelPartSuffix = '.part';
 
+/// The errno a write answers with when the disk is full.
+const enospc = 28;
+
 /// Downloads one model file. The only contract in the package that reaches
 /// the network; [PinnedHostFetcher] is the only code that does.
 ///
@@ -54,7 +57,6 @@ class PinnedHostFetcher implements ModelFetcher {
   static const _maxRedirects = 5;
   static const _progressStep = 0.005;
   static const _stall = Duration(seconds: 60);
-  static const _enospc = 28;
   static const _defaultBackoff = [Duration(seconds: 1), Duration(seconds: 2), Duration(seconds: 4)];
 
   bool _allowed(Uri uri) {
@@ -256,7 +258,7 @@ class PinnedHostFetcher implements ModelFetcher {
     TlsException() ||
     HttpException() ||
     TimeoutException() => _offline('$error'),
-    FileSystemException(osError: final os) when os?.errorCode == _enospc => ModelInstallFailed(
+    FileSystemException(osError: final os) when os?.errorCode == enospc => ModelInstallFailed(
       '$error',
       null,
       ModelInstallReason.noSpace,

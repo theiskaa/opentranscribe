@@ -7,6 +7,7 @@ import 'package:transcriber/src/transcribe/transcription_exception.dart';
 import 'package:transcriber/src/whisper/fake_model_fetcher.dart';
 import 'package:transcriber/src/whisper/fake_pcm_decoder.dart';
 import 'package:transcriber/src/whisper/fake_whisper_runtime.dart';
+import 'package:transcriber/src/whisper/model_fetcher.dart';
 import 'package:transcriber/src/whisper/whisper_catalog.dart';
 import 'package:transcriber/src/whisper/whisper_engine.dart';
 import 'package:transcriber/src/whisper/whisper_runtime.dart';
@@ -851,6 +852,27 @@ void main() {
       expect(await e.acceleratedModels(), isEmpty);
     });
 
+    test(
+      'an encoder download cancelled after the switch went off leaves no partial file',
+      () async {
+        final e = accelerated(on: false);
+        await install(e);
+        await e.setAccelerated(true);
+        final gate = Completer<void>();
+        fetcher.gate = gate.future;
+        final sub = e.installAcceleration(tiny.id).listen(null);
+        await until(() => fetcher.calls.isNotEmpty);
+        final partial = File('${models.path}/${tiny.encoder.fileName}$modelPartSuffix')
+          ..writeAsBytesSync([1, 2, 3]);
+
+        await e.setAccelerated(false);
+        await sub.cancel();
+
+        expect(partial.existsSync(), isFalse);
+        expect(await e.acceleratedModels(), isEmpty);
+      },
+    );
+
     test('a switch flipped on during the model download still fetches its encoder', () async {
       final e = accelerated(on: false);
       final gate = Completer<void>();
@@ -877,6 +899,22 @@ void main() {
 
       expect(encoderDir().existsSync(), isTrue);
       expect(await e.acceleratedModels(), {tiny.id});
+    });
+
+    test('a release during the warm-up load leaves no dead session for the next run', () async {
+      final loadGate = Completer<void>();
+      runtime.loadGate = loadGate.future;
+      final e = accelerated();
+      final installing = install(e, tiny.id);
+      await until(() => runtime.loads.isNotEmpty);
+
+      final released = e.release();
+      runtime.loadGate = null;
+      loadGate.complete();
+      await released;
+      await installing;
+
+      expect((await e.transcribeFile(audio, localeId: 'en-US')).fullText, 'hello');
     });
 
     test('a warm-up of a model other than the choice closes it again', () async {
