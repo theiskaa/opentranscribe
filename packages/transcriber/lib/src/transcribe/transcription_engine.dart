@@ -285,10 +285,13 @@ abstract interface class ModelChoiceEngine implements TranscriptionEngine {
   /// Every model the engine can run, in the order a picker lists them.
   List<ModelOption> get models;
 
-  /// The model runs and installs use. Always one of [models].
+  /// The model runs and installs use. Always one of [models]. A run takes
+  /// the choice as it stands when it is asked for and keeps it, so a caller
+  /// reading this just before asking knows the model that runs.
   String get selectedModelId;
 
-  /// Records the choice. Nothing is downloaded or deleted.
+  /// Records the choice. Nothing is downloaded or deleted, and a run already
+  /// asked for keeps its model.
   Future<void> selectModel(String id);
 
   /// The ids whose files are present and whole. Preflight: never throws.
@@ -302,7 +305,8 @@ abstract interface class ModelChoiceEngine implements TranscriptionEngine {
   Stream<ModelInstallProgress> installModelById(String id);
 
   /// Deletes one model's file. Answers whether a file was deleted; refused
-  /// (false) while a batch runs on the selected model. The selection is left
+  /// (false) while a run, queued or in flight, holds the model, or a download
+  /// for it (the model or its acceleration file) runs. The selection is left
   /// as is, so a removed selected model reads as not installed.
   Future<bool> removeModel(String id);
 }
@@ -311,6 +315,8 @@ abstract interface class ModelChoiceEngine implements TranscriptionEngine {
 /// [batchBudget] for a file of that length before treating the run as hung.
 /// Engines without it get the caller's default.
 abstract interface class PacedBatchEngine implements TranscriptionEngine {
+  /// Under a model choice, answers for a run asked for now, on the model it
+  /// would take.
   Duration batchBudget(Duration audio);
 }
 

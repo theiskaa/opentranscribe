@@ -21,9 +21,9 @@ final class DecodeCall {
 /// [fileDuration] is what [length] answers and what a slice's end clamps to;
 /// unset, the file is as long as [defaultDuration] and nothing clamps.
 /// [gate] holds a decode open until it completes, [lengthGate] a length
-/// question; [throwOnDecode] fails every
-/// call with the given code (mutable, so a test can change the failure between
-/// calls), leaving nothing behind like the real one.
+/// question; [throwOnDecode] fails every call with the given code (mutable,
+/// so a test can change the failure between calls), leaving nothing behind
+/// like the real one.
 class FakePcmDecoder implements PcmDecoder {
   FakePcmDecoder({
     required this.scratch,

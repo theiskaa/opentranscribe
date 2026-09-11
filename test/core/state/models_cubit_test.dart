@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/state/models_cubit.dart';
-import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
@@ -49,21 +46,6 @@ void main() {
   }
 
   ModelsCubit build({int? memory}) => buildFor(service, memory: memory);
-
-  SettingsCubit settingsOver(ModelsCubit models) {
-    final cubit = SettingsCubit(
-      service: service,
-      transcription: TranscriptionSettings(
-        storage: storage,
-        service: service,
-        deviceTag: () => 'en-US',
-      ),
-      audioStorage: AudioStorageSettings(storage: storage, recorder: FakeAudioRecorder()),
-      models: models,
-    );
-    addTearDown(cubit.close);
-    return cubit;
-  }
 
   (ModelsCubit, FakeModelChoiceEngine) buildAccelerating({
     bool accelerated = false,
@@ -416,7 +398,7 @@ void main() {
   });
 
   test('a model that would not open is cleared by the next pass that runs on it', () async {
-    engine.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    engine.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed);
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
     await service.startRecording();
@@ -476,6 +458,68 @@ void main() {
 
       expect(accelerating.removals, ['large']);
       expect(accelerating.selectedModelId, 'large');
+    },
+  );
+
+  test('a retry of the switch\'s extra file that failed offline leaves the choice alone', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    accelerating.installed.add('large');
+    await cubit.load();
+    accelerating.failInstall = ModelInstallReason.offline;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
+    accelerating.failInstall = null;
+
+    await cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').failure, isNull);
+    expect(accelerating.selectedModelId, 'small');
+  });
+
+  test('a retry that fails again keeps the purpose of the download it retried', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    accelerating.installed.add('large');
+    await cubit.load();
+    accelerating.failInstall = ModelInstallReason.loadFailed;
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    accelerating.failInstall = ModelInstallReason.offline;
+    await cubit.installModelById('large');
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'large').failure, ModelInstallReason.offline);
+    accelerating.failInstall = null;
+
+    await cubit.installModelById('large');
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'large').installed, isTrue);
+    expect(accelerating.selectedModelId, 'small');
+  });
+
+  test(
+    'a pass failing for a model after a picker download of it failed retries without the choice',
+    () async {
+      engine.installed
+        ..clear()
+        ..add('large');
+      engine.failInstall = ModelInstallReason.offline;
+      final cubit = build();
+      await Future<void>.delayed(Duration.zero);
+      await cubit.installModelById('small');
+      await pumpEventQueue();
+      await service.startRecording();
+      await service.stopRecording();
+      await pumpEventQueue();
+      await cubit.selectModel('large');
+      engine.failInstall = null;
+
+      await cubit.installModelById('small');
+      await pumpEventQueue();
+
+      expect(rowOf(cubit, 'small').installed, isTrue);
+      expect(engine.selectedModelId, 'large');
     },
   );
 
@@ -554,69 +598,6 @@ void main() {
     expect(cubit.state.models, isEmpty);
   });
 
-  test('a language install under a model choice downloads the selected model instead', () async {
-    engine.installed.clear();
-    final gate = Completer<void>();
-    engine.installGate = gate.future;
-    final cubit = build();
-    final settings = settingsOver(cubit);
-    await Future<void>.delayed(Duration.zero);
-
-    settings.install('en-US');
-    await Future<void>.delayed(Duration.zero);
-
-    expect(engine.installs, ['small']);
-    expect(rowOf(cubit, 'small').installing, isTrue);
-    final defaultRow = settings.state.languages.firstWhere((r) => r.isDefault);
-    expect(defaultRow.installing, isTrue);
-    expect(defaultRow.installFraction, rowOf(cubit, 'small').installFraction);
-    gate.complete();
-  });
-
-  test(
-    'a first-use download a batch started shows on the selected model and default rows',
-    () async {
-      engine.installed.clear();
-      engine.installSteps = [0.4];
-      final gate = Completer<void>();
-      engine.installGate = gate.future;
-      final cubit = build();
-      final settings = settingsOver(cubit);
-      await Future<void>.delayed(Duration.zero);
-
-      await service.startRecording();
-      final stop = service.stopRecording();
-      await pumpEventQueue();
-
-      expect(rowOf(cubit, 'small').installFraction, 0.4);
-      expect(settings.state.languages.firstWhere((r) => r.isDefault).installFraction, 0.4);
-      gate.complete();
-      await stop;
-      await pumpEventQueue();
-
-      expect(rowOf(cubit, 'small').installed, isTrue);
-      expect(rowOf(cubit, 'small').installing, isFalse);
-      expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
-    },
-  );
-
-  test('a first-use download that fails clears the rows and wears its reason', () async {
-    engine.installed.clear();
-    engine.installSteps = [0.4];
-    engine.failInstall = ModelInstallReason.offline;
-    final cubit = build();
-    final settings = settingsOver(cubit);
-    await Future<void>.delayed(Duration.zero);
-
-    await service.startRecording();
-    await service.stopRecording();
-    await pumpEventQueue();
-
-    expect(rowOf(cubit, 'small').installing, isFalse);
-    expect(rowOf(cubit, 'small').failure, ModelInstallReason.offline);
-    expect(settings.state.languages.firstWhere((r) => r.isDefault).installing, isFalse);
-  });
-
   test('a first-use download paints the model it fetches, not a choice made meanwhile', () async {
     engine.installed
       ..clear()
@@ -682,7 +663,7 @@ void main() {
   });
 
   test('a run whose model will not open lands that on the row while its file stays', () async {
-    engine.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    engine.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed);
     final cubit = build();
     await Future<void>.delayed(Duration.zero);
 

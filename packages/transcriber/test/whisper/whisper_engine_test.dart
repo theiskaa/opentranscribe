@@ -511,6 +511,40 @@ void main() {
       expect(transcript.segments.map((s) => s.start), [minute, minute * 11, minute * 21]);
     });
 
+    test('a last segment ending just inside the margin is heard again from its start', () async {
+      runtime.segments = const [
+        WhisperSegment(
+          text: 'near',
+          start: Duration(minutes: 9),
+          end: Duration(minutes: 9, seconds: 59),
+          confidence: 1,
+        ),
+      ];
+      final e = longEngine(minute * 25);
+      await install(e);
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(slices().take(2), [(minute * 0, minute * 10), (minute * 9, minute * 19)]);
+    });
+
+    test('a last segment ending just before the margin is kept where it is', () async {
+      runtime.segments = const [
+        WhisperSegment(
+          text: 'clear',
+          start: Duration(minutes: 9),
+          end: Duration(minutes: 9, seconds: 57),
+          confidence: 1,
+        ),
+      ];
+      final e = longEngine(minute * 25);
+      await install(e);
+
+      await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(slices().take(2), [(minute * 0, minute * 10), (minute * 10, minute * 20)]);
+    });
+
     test('a slice inside a long file keeps its own bounds and slice-relative timings', () async {
       runtime.segments = cut;
       final e = longEngine(minute * 60);
@@ -698,14 +732,16 @@ void main() {
       expect(fetcher.calls, hasLength(1));
     });
 
-    test('a fetch failure surfaces with its reason', () async {
+    test('a fetch failure surfaces with its reason and names its model', () async {
       fetcher = FakeModelFetcher(failWith: ModelInstallReason.offline);
       final e = engine();
 
       await expectLater(
         e.installModelById('tiny-q5_1').drain<void>(),
         throwsA(
-          isA<ModelInstallFailed>().having((f) => f.reason, 'reason', ModelInstallReason.offline),
+          isA<ModelInstallFailed>()
+              .having((f) => f.reason, 'reason', ModelInstallReason.offline)
+              .having((f) => f.modelId, 'modelId', 'tiny-q5_1'),
         ),
       );
       expect(await e.installedModels(), isEmpty);
@@ -915,6 +951,133 @@ void main() {
       expect(runtime.aborts, 0);
     });
 
+    test('a queued run keeps the model chosen when it was queued', () async {
+      final gate = Completer<void>();
+      runtime.gate = gate.future;
+      final e = engine();
+      await install(e);
+      await install(e, 'tiny-q5_1');
+
+      final first = e.transcribeFile(audio, localeId: 'en-US');
+      final queued = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.runs.isNotEmpty);
+      await e.selectModel('tiny-q5_1');
+      runtime.gate = null;
+      gate.complete();
+      await first;
+      await queued;
+
+      expect(runtime.runs.map((r) => r.modelPath), [
+        fileOf(whisperDefaultModelId).path,
+        fileOf(whisperDefaultModelId).path,
+      ]);
+    });
+
+    test('removing the model a queued run holds is refused until the run ends', () async {
+      final gate = Completer<void>();
+      runtime.gate = gate.future;
+      final e = engine();
+      await install(e);
+      await install(e, 'tiny-q5_1');
+      await e.selectModel('tiny-q5_1');
+
+      final first = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.runs.isNotEmpty);
+      await e.selectModel(whisperDefaultModelId);
+      final queued = e.transcribeFile(audio, localeId: 'en-US');
+      await e.selectModel('tiny-q5_1');
+      expect(await e.removeModel(whisperDefaultModelId), isFalse);
+
+      runtime.gate = null;
+      gate.complete();
+      await first;
+      await queued;
+      expect(await e.removeModel(whisperDefaultModelId), isTrue);
+    });
+
+    test('a release racing a load that fails reads as a cancel, and the next run loads', () async {
+      final loadGate = Completer<void>();
+      runtime
+        ..loadGate = loadGate.future
+        ..failLoad = true;
+      final e = engine();
+      await install(e);
+
+      final first = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.loads.isNotEmpty);
+      final released = e.release();
+      loadGate.complete();
+      await released;
+
+      await expectLater(
+        first,
+        throwsA(isA<TranscriptionFailed>().having((f) => f.message, 'message', 'cancelled')),
+      );
+      runtime
+        ..loadGate = null
+        ..failLoad = false;
+      expect((await e.transcribeFile(audio, localeId: 'en-US')).fullText, 'hello');
+    });
+
+    test('a run queued while its model is being removed waits, then fetches it afresh', () async {
+      final e = engine();
+      await install(e);
+
+      final removing = e.removeModel(whisperDefaultModelId);
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(await removing, isTrue);
+      expect((await run).fullText, 'hello');
+      expect(fetcher.calls, hasLength(2));
+      expect(fileOf(whisperDefaultModelId).existsSync(), isTrue);
+    });
+
+    test(
+      'an install started during its model\'s removal waits it out and fetches afresh',
+      () async {
+        final e = engine();
+        await install(e);
+
+        final removing = e.removeModel(whisperDefaultModelId);
+        final installing = install(e);
+
+        expect(await removing, isTrue);
+        await installing;
+        expect(fetcher.calls, hasLength(2));
+        expect(fileOf(whisperDefaultModelId).existsSync(), isTrue);
+      },
+    );
+
+    test('a second removal during the first answers false once the first is done', () async {
+      final e = engine();
+      await install(e);
+
+      final first = e.removeModel(whisperDefaultModelId);
+      final second = e.removeModel(whisperDefaultModelId);
+
+      expect(await first, isTrue);
+      expect(await second, isFalse);
+    });
+
+    test('a run cancelled while it waits out its model\'s removal fetches nothing', () async {
+      final e = engine();
+      await install(e);
+      await e.transcribeFile(audio, localeId: 'en-US');
+      final closing = Completer<void>();
+      runtime.closeGate = closing.future;
+
+      final removing = e.removeModel(whisperDefaultModelId);
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await pumpEventQueue();
+      await e.cancelBatches();
+      closing.complete();
+
+      expect(await removing, isTrue);
+      await expectLater(run, throwsA(isA<TranscriptionFailed>()));
+      expect(fetcher.calls, hasLength(1));
+      expect(fileOf(whisperDefaultModelId).existsSync(), isFalse);
+    });
+
     test('an install cancelled while the file is being checked stays quiet', () async {
       final e = engine();
       await install(e, 'tiny-q5_1');
@@ -1042,6 +1205,15 @@ void main() {
         expect(runtime.loads, [fileOf(tiny.id).path]);
       },
     );
+
+    test('acceleration for a model that is not there fetches nothing', () async {
+      final e = accelerated();
+
+      await e.installAcceleration(tiny.id).drain<void>();
+
+      expect(fetcher.calls, isEmpty);
+      expect(encoderDir().existsSync(), isFalse);
+    });
 
     test('installing acceleration on an installed model fetches only the encoder', () async {
       final e = accelerated(on: false);

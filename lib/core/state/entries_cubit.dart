@@ -29,7 +29,20 @@ enum EntriesError {
 
   /// A continuation could not land and the take became its own entry.
   savedSeparately,
-  generic,
+  generic;
+
+  /// Whether a second pass may clear it, so its surface offers a retry. A take
+  /// kept apart, a recording that is gone, and a model that will not open (its
+  /// fix is on the Transcription screen) are only acknowledged.
+  bool get retryable => switch (this) {
+    permissionDenied ||
+    onDeviceUnavailable ||
+    modelInstallFailed ||
+    reservationCap ||
+    additionUntranscribed ||
+    generic => true,
+    recordingMissing || modelLoadFailed || savedSeparately => false,
+  };
 }
 
 /// One action's failure, pinned to the entry it happened to. Scoped so a

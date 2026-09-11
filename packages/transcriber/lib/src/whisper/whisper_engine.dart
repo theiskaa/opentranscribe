@@ -22,7 +22,9 @@ import 'package:transcriber/src/whisper/zip_extract.dart';
 /// and drops the queued ones. The service installs a missing model before a
 /// run; the engine's own first-use install is the fallback for any other
 /// caller. A model counts as installed only at the catalog's length (its hash
-/// was checked at install), and the preflights never throw.
+/// was checked at install), and the preflights ([installedModels],
+/// [localeStatus] and the like) never throw. A run keeps the model chosen
+/// when it was queued.
 ///
 /// Acceleration is whisper.cpp's Core ML encoder, unpacked beside the model
 /// and compiled by a first load.
@@ -83,6 +85,12 @@ class WhisperEngine
   // The model the run in flight is loading or using, whatever the choice
   // moved to since.
   String? _runningModelId;
+  // Runs queued or in flight, per model id; a removal would pull the file
+  // from beneath one.
+  final Map<String, int> _holding = {};
+  // A removal in flight, per model id: a run or an install reaching that
+  // model meanwhile waits it out, so it finds the file gone, not going.
+  final Map<String, Completer<void>> _removals = {};
   // Downloads in flight or waiting their turn, per id; a removal under one
   // would pull the file from beneath the fetcher.
   final Map<String, int> _installing = {};
@@ -166,19 +174,32 @@ class WhisperEngine
     Duration? end,
     void Function(double fraction)? onProgress,
   }) async {
+    // Fixed at the ask: the language was checked against this model.
+    final model = _model(_selectedId);
     final language = _codeFor(localeId);
     if (language == null) throw OnDeviceUnavailable('unsupported: $localeId');
     final generation = _generation;
+    _holding[model.id] = (_holding[model.id] ?? 0) + 1;
     final run = _batches.then(
-      (_) => _transcribe(audio, localeId, language, start, end, generation, onProgress),
+      (_) => _transcribe(audio, model, localeId, language, start, end, generation, onProgress),
     );
     // The chain only sequences; one failure must not poison every later run.
     _batches = run.then((_) {}, onError: (Object _) {});
-    return run;
+    return run.whenComplete(() => _decrement(_holding, model.id));
+  }
+
+  static void _decrement(Map<String, int> counts, String id) {
+    final left = (counts[id] ?? 1) - 1;
+    if (left <= 0) {
+      counts.remove(id);
+    } else {
+      counts[id] = left;
+    }
   }
 
   Future<Transcript> _transcribe(
     File audio,
+    WhisperModel model,
     String localeId,
     String language,
     Duration? start,
@@ -187,11 +208,15 @@ class WhisperEngine
     void Function(double fraction)? onProgress,
   ) async {
     if (generation != _generation) throw _cancelled;
-    final model = _model(_selectedId);
     _running = true;
     _runningModelId = model.id;
     try {
-      if (!await _installed(model)) await _installFirstUse(model);
+      await _removals[model.id]?.future;
+      if (!await _installed(model)) {
+        // A cancel landing while a removal was waited out must not refetch.
+        if (generation != _generation) throw _cancelled;
+        await _installFirstUse(model);
+      }
       if (generation != _generation) throw _cancelled;
       final session = await _sessionFor(model);
       if (generation != _generation) throw _cancelled;
@@ -417,13 +442,13 @@ class WhisperEngine
       _sessionModelId = model.id;
       return session;
     } on WhisperRuntimeException catch (e) {
-      // A release ends the worker mid-load, which answers as a failed load.
+      // A release racing a load that failed is still a cancel; the next run
+      // loads again.
       if (releases != _releases) throw _cancelled;
       throw ModelInstallFailed(
         'model failed to load: ${e.message}',
-        null,
-        ModelInstallReason.loadFailed,
-        model.id,
+        reason: ModelInstallReason.loadFailed,
+        modelId: model.id,
       );
     }
   }
@@ -528,12 +553,7 @@ class WhisperEngine
     void release() {
       if (released) return;
       released = true;
-      final left = (_installing[id] ?? 1) - 1;
-      if (left <= 0) {
-        _installing.remove(id);
-      } else {
-        _installing[id] = left;
-      }
+      _decrement(_installing, id);
     }
 
     Future<void> finish() async {
@@ -546,7 +566,17 @@ class WhisperEngine
     Future<void> fail(Object error, StackTrace stack) async {
       release();
       if (gone()) return;
-      controller.addError(error, stack);
+      controller.addError(
+        error is ModelInstallFailed && error.modelId == null
+            ? ModelInstallFailed(
+                error.message,
+                assetStatus: error.assetStatus,
+                reason: error.reason,
+                modelId: id,
+              )
+            : error,
+        stack,
+      );
       await controller.close();
     }
 
@@ -578,6 +608,10 @@ class WhisperEngine
 
     Future<void> begin() async {
       if (gone()) return release();
+      await _removals[id]?.future;
+      if (gone()) return release();
+      // An extra file for a model that is not there has nothing to speed up.
+      if (!withModel && !await _installed(model)) return finish();
       final needModel = withModel && !await _installed(model);
       var needEncoder = _accelerated && !await _acceleratedFor(model);
       if (!needModel && !needEncoder) return finish();
@@ -595,8 +629,7 @@ class WhisperEngine
           return fail(
             const ModelInstallFailed(
               'the file is not the catalog\'s length',
-              null,
-              ModelInstallReason.rejected,
+              reason: ModelInstallReason.rejected,
             ),
             StackTrace.current,
           );
@@ -622,7 +655,7 @@ class WhisperEngine
       } catch (e, stack) {
         await _deleteEncoder(model);
         return fail(
-          e is ModelInstallFailed ? e : ModelInstallFailed('$e', null, _installReason(e)),
+          e is ModelInstallFailed ? e : ModelInstallFailed('$e', reason: _installReason(e)),
           stack,
         );
       }
@@ -671,8 +704,7 @@ class WhisperEngine
     if (!await unpacked.exists()) {
       throw const ModelInstallFailed(
         'the archive holds no encoder directory',
-        null,
-        ModelInstallReason.rejected,
+        reason: ModelInstallReason.rejected,
       );
     }
     final target = _encoderDir(model);
@@ -703,8 +735,23 @@ class WhisperEngine
   @override
   Future<bool> removeModel(String id) async {
     final model = _model(id);
-    if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) return false;
-    if (_installing.containsKey(model.id)) return false;
+    if (_holding.containsKey(model.id) || _installing.containsKey(model.id)) return false;
+    final pending = _removals[model.id];
+    if (pending != null) {
+      await pending.future;
+      return false;
+    }
+    // Registered before its first await: a run queued from here on waits it.
+    final done = _removals[model.id] = Completer<void>();
+    try {
+      return await _remove(model);
+    } finally {
+      _removals.remove(model.id);
+      done.complete();
+    }
+  }
+
+  Future<bool> _remove(WhisperModel model) async {
     if (_sessionModelId == model.id) await _closeSession();
     await _deleteEncoder(model);
     final file = _file(model);

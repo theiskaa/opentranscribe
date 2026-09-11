@@ -116,8 +116,14 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  PinnedHostFetcher fetcher({List<Duration> retryBackoff = const []}) =>
-      PinnedHostFetcher(allowedHostSuffixes: const ['127.0.0.1'], retryBackoff: retryBackoff);
+  PinnedHostFetcher fetcher({
+    List<Duration> retryBackoff = const [],
+    Future<void> Function(Duration wait)? sleep,
+  }) => PinnedHostFetcher(
+    allowedHostSuffixes: const ['127.0.0.1'],
+    retryBackoff: retryBackoff,
+    sleep: sleep,
+  );
 
   const quickRetries = [Duration(milliseconds: 5), Duration(milliseconds: 5)];
 
@@ -279,21 +285,17 @@ void main() {
 
   test('each empty break in a row waits the next backoff before its retry', () async {
     server.dropScript = [65536, 0, 0, 0];
-    const waits = [
-      Duration(milliseconds: 1),
-      Duration(milliseconds: 1),
-      Duration(milliseconds: 250),
-    ];
-    final clock = Stopwatch()..start();
+    const waits = [Duration(seconds: 3), Duration(seconds: 5), Duration(seconds: 7)];
+    final slept = <Duration>[];
 
     await expectLater(
-      fetch(fetcher(retryBackoff: waits)).drain<void>(),
+      fetch(fetcher(retryBackoff: waits, sleep: (wait) async => slept.add(wait))).drain<void>(),
       throwsA(
         isA<ModelInstallFailed>().having((e) => e.reason, 'reason', ModelInstallReason.offline),
       ),
     );
     expect(server.requests, 4);
-    expect(clock.elapsed, greaterThanOrEqualTo(const Duration(milliseconds: 250)));
+    expect(slept, waits);
   });
 
   test('a host answering a resume whole counts only bytes past the part as progress', () async {
@@ -352,16 +354,22 @@ void main() {
   test('a cancel during the backoff ends the download without another request', () async {
     server.dropAfter = 65536;
     server.dropCount = 1;
+    final backingOff = Completer<void>();
+    final held = Completer<void>();
     final sub = fetch(
-      fetcher(retryBackoff: const [Duration(milliseconds: 200)]),
+      fetcher(
+        retryBackoff: const [Duration(seconds: 1)],
+        sleep: (_) {
+          backingOff.complete();
+          return held.future;
+        },
+      ),
     ).listen(null, onError: (Object _) {});
-    while (server.requests < 1) {
-      await Future<void>.delayed(const Duration(milliseconds: 5));
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await backingOff.future;
 
     await sub.cancel();
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    held.complete();
+    await pumpEventQueue();
 
     expect(server.requests, 1);
     expect(File('${into.path}.part').existsSync(), isTrue);

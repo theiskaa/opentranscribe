@@ -277,7 +277,10 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
     return switch (code) {
       'permission_denied' => PermissionDenied(message),
       'on_device_unavailable' => OnDeviceUnavailable(message),
-      'model_install_failed' => ModelInstallFailed(message, _assetStatusFrom(extras?['status'])),
+      'model_install_failed' => ModelInstallFailed(
+        message,
+        assetStatus: _assetStatusFrom(extras?['status']),
+      ),
       'reservation_cap' => ReservationCapReached(_stringList(extras?['reservedTags']), message),
       'file_missing' => RecordingMissing(message),
       _ => TranscriptionFailed(message),

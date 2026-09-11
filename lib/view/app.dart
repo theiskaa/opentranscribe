@@ -151,10 +151,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
         // Root-scoped: home's bar and the entry screen read the same passes.
         BlocProvider(create: (_) => BatchProgressCubit(service: Deps.i.transcriptionService)),
-        // Root-scoped and eager, an exception to the lazy rule above: the
-        // settings cubit below mirrors its download onto the default language,
-        // and its constructor only snapshots synchronous state and fires an
-        // unawaited load.
+        // Eager, ahead of the settings cubit below that reads it at once.
         BlocProvider(
           lazy: false,
           create: (_) => ModelsCubit(
@@ -163,12 +160,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             physicalMemoryBytes: Deps.i.physicalMemoryBytes,
           ),
         ),
-        // Root-scoped so the settings screen and the language picker (separate
-        // routes) share one instance. Eager too: its constructor seeds from
-        // three synchronous settings reads and then fires an UNAWAITED load,
-        // so building it here costs this frame microseconds rather than a
-        // journal decrypt, and its language list is ready before the first
-        // recording instead of populating under the user's eyes.
+        // Root-scoped for the settings screen and the language picker, and
+        // eager: it seeds from synchronous reads and loads unawaited, so its
+        // languages are ready before the first recording at no cost here.
         BlocProvider(
           lazy: false,
           create: (context) => SettingsCubit(

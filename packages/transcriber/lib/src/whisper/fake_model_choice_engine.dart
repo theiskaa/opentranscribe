@@ -101,12 +101,18 @@ class FakeModelChoiceEngine
   /// What [batchBudget] multiplies the audio length by.
   int budgetFactor;
 
+  /// Per-model overrides of [budgetFactor], read for the selected model.
+  Map<String, int> budgetFactors = {};
+
   /// Holds a batch, for timeout tests.
   Duration? batchDelay;
 
   /// Runs one batch at a time, the way whisper.cpp's engine does.
   final bool serialRuns;
-  Future<void> _runs = Future<void>.value();
+  Future<void> _serial = Future<void>.value();
+
+  /// Holds every run open after its progress, for tests interleaving work.
+  Future<void>? runGate;
 
   /// The fractions a reporting batch replays before its delay.
   List<double> progressSteps;
@@ -118,7 +124,7 @@ class FakeModelChoiceEngine
   Object? failRun;
 
   /// How many runs started.
-  int runs = 0;
+  int runsStarted = 0;
   final DateTime Function() _clock;
 
   String _selected;
@@ -174,16 +180,18 @@ class FakeModelChoiceEngine
     Duration? end,
   }) {
     if (!serialRuns) return _run(localeId, onProgress);
-    final run = _runs.then((_) => _run(localeId, onProgress));
-    _runs = run.then((_) {}, onError: (Object _) {});
+    final run = _serial.then((_) => _run(localeId, onProgress));
+    _serial = run.then((_) {}, onError: (Object _) {});
     return run;
   }
 
   Future<Transcript> _run(String localeId, void Function(double fraction) onProgress) async {
-    runs++;
+    runsStarted++;
     for (final step in progressSteps) {
       onProgress(step);
     }
+    final held = runGate;
+    if (held != null) await held;
     final delay = batchDelay;
     if (delay != null) await Future<void>.delayed(delay);
     if (lateProgress case final late?) onProgress(late);
@@ -210,7 +218,7 @@ class FakeModelChoiceEngine
   }
 
   @override
-  Duration batchBudget(Duration audio) => audio * budgetFactor;
+  Duration batchBudget(Duration audio) => audio * (budgetFactors[_selected] ?? budgetFactor);
 
   @override
   String get selectedModelId => _selected;
@@ -258,11 +266,12 @@ class FakeModelChoiceEngine
         final held = installGate;
         if (held != null) await held;
         if (cancelled) return;
-        final reason = failInstall;
         if (failInstallWith case final error?) {
           controller.addError(error);
-        } else if (reason != null) {
-          controller.addError(ModelInstallFailed('fake install failure', null, reason));
+        } else if (failInstall case final reason?) {
+          controller.addError(
+            ModelInstallFailed('fake install failure', reason: reason, modelId: id),
+          );
         } else {
           if (needModel) installed.add(id);
           if (needEncoder) {

@@ -18,9 +18,10 @@ enum BatchStep { downloading, transcribing, done }
 /// for (null for a take being saved), its step and how far along that step
 /// is. Under an engine with a model choice, the download's events, the run's
 /// start and the done name the model ([modelId], and [modelName] while it
-/// downloads), and the download says when it is in its [preparing] tail. The
-/// done says whether the pass [landed], and when it failed for its model,
-/// why ([failure]).
+/// downloads); a pass that waited its turn names its start again when the
+/// choice moved meanwhile. The download says when it is in its [preparing]
+/// tail. The done says whether the pass [landed], and when it failed for its
+/// model, why ([failure]).
 @immutable
 final class BatchProgress {
   const BatchProgress({
@@ -2326,15 +2327,10 @@ class TranscriptionService {
         } catch (e) {
           // Outside the taxonomy (a file system error): the download failed all
           // the same, and the pass's done must say so.
-          throw ModelInstallFailed('$e', null, ModelInstallReason.rejected);
+          throw ModelInstallFailed('$e', reason: ModelInstallReason.rejected);
         }
       }
     }
-    // Scale the timeout by audio length so a long entry is not cut off, while still
-    // bounding a hung native call. An engine that knows its own pace says so.
-    final timeout = engine is PacedBatchEngine
-        ? engine.batchBudget(duration)
-        : _batchTimeout + duration * 2;
     // The run's first word comes with its first window, so the download's
     // last percent would otherwise linger over a run already going. Reported
     // by every engine, reporting or not: that a run has started is what the
@@ -2347,6 +2343,12 @@ class TranscriptionService {
       if (engine is ModelChoiceEngine && engine.selectedModelId != announced) {
         report?.call(BatchStep.transcribing, 0, modelId: engine.selectedModelId);
       }
+      // Scale the timeout by audio length so a long entry is not cut off, while
+      // still bounding a hung native call. An engine that knows its own pace
+      // says so, for the model this run is about to take.
+      final timeout = engine is PacedBatchEngine
+          ? engine.batchBudget(duration)
+          : _batchTimeout + duration * 2;
       final pass = engine is ProgressBatchEngine && report != null
           ? engine.transcribeFileWithProgress(
               file,

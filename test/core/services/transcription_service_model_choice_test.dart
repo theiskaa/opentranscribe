@@ -33,6 +33,14 @@ void main() {
         idGenerator: () => 'id-0',
       );
 
+  Future<void> until(bool Function() condition) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (!condition()) {
+      if (DateTime.now().isAfter(deadline)) fail('condition never held');
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+  }
+
   test('the model choice surfaces mirror the engine', () async {
     final engine = FakeModelChoiceEngine(installed: {'small'});
     final svc = build(engine);
@@ -307,7 +315,7 @@ void main() {
 
   test('a run whose model will not open carries that on its done', () async {
     final engine = FakeModelChoiceEngine(installed: {'small'})
-      ..failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+      ..failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed);
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
     final events = <BatchProgress>[];
     final sub = svc.batchProgress.listen(events.add);
@@ -367,7 +375,11 @@ void main() {
     'a model failure naming its own model lands there, not on the choice the pass began under',
     () async {
       final engine = FakeModelChoiceEngine(installed: {'small', 'large'})
-        ..failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed, 'large');
+        ..failRun = const ModelInstallFailed(
+          'fake',
+          reason: ModelInstallReason.loadFailed,
+          modelId: 'large',
+        );
       final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
       final events = <BatchProgress>[];
       final sub = svc.batchProgress.listen(events.add);
@@ -385,22 +397,22 @@ void main() {
   );
 
   test('a pass that waited its turn names the model the choice moved to meanwhile', () async {
-    final engine = FakeModelChoiceEngine(
-      installed: {'small', 'large'},
-      serialRuns: true,
-      batchDelay: const Duration(milliseconds: 100),
-    );
+    final engine = FakeModelChoiceEngine(installed: {'small', 'large'}, serialRuns: true);
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
     await svc.startRecording();
     final first = await svc.stopRecording();
+    final gate = Completer<void>();
+    engine.runGate = gate.future;
     final events = <BatchProgress>[];
     final sub = svc.batchProgress.listen(events.add);
 
     final pass = svc.retranscribe(first);
     await svc.startRecording();
     final take = svc.stopRecording();
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await until(() => events.any((e) => e.entryId == null && e.step == BatchStep.transcribing));
     await svc.selectModel('large');
+    engine.runGate = null;
+    gate.complete();
     await take;
     await pass;
     await pumpEventQueue();
@@ -417,6 +429,39 @@ void main() {
     await svc.dispose();
   });
 
+  test('a pass that waited its turn is timed for the model it runs on', () async {
+    final engine = FakeModelChoiceEngine(
+      installed: {'small', 'large'},
+      selected: 'large',
+      serialRuns: true,
+    )..budgetFactors = {'small': 0, 'large': 3};
+    final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 5)));
+    await svc.startRecording();
+    final first = await svc.stopRecording();
+    final gate = Completer<void>();
+    engine
+      ..runGate = gate.future
+      ..batchDelay = const Duration(milliseconds: 20);
+    final events = <BatchProgress>[];
+    final sub = svc.batchProgress.listen(events.add);
+
+    final pass = svc.retranscribe(first);
+    await until(() => engine.runsStarted == 2);
+    await svc.selectModel('small');
+    await svc.startRecording();
+    final take = svc.stopRecording();
+    await until(() => events.any((e) => e.entryId == null && e.step == BatchStep.transcribing));
+    await svc.selectModel('large');
+    engine.runGate = null;
+    gate.complete();
+
+    expect((await take).transcript?.fullText, 'batch transcript');
+    await pass;
+    expect(engine.cancelBatchesCalls, 0);
+    await sub.cancel();
+    await svc.dispose();
+  });
+
   test('a mixed-language take whose model will not open fails once, not again flattened', () async {
     final engine = FakeModelChoiceEngine(installed: {'small'});
     final svc = build(engine, recorder: FakeAudioRecorder(duration: const Duration(seconds: 10)));
@@ -429,11 +474,11 @@ void main() {
       ]),
     );
     engine
-      ..failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed)
-      ..runs = 0;
+      ..failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed)
+      ..runsStarted = 0;
 
     await expectLater(svc.retranscribe(store.read(entry.id)!), throwsA(isA<ModelInstallFailed>()));
-    expect(engine.runs, 1);
+    expect(engine.runsStarted, 1);
     await svc.dispose();
   });
 

@@ -823,9 +823,7 @@ class _BottomDock extends StatelessWidget {
       return;
     }
     // Acknowledged, with no retry to clear it later.
-    if (kind == EntriesError.savedSeparately || kind == EntriesError.recordingMissing) {
-      entries.dismissFailure(entry.id);
-    }
+    if (!kind.retryable) entries.dismissFailure(entry.id);
   }
 
   @override

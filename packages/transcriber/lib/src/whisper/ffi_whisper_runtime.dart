@@ -105,8 +105,13 @@ class _FfiSession implements WhisperSession {
   final Pointer<Int32> _abort;
   final Pointer<Int32> _progress;
   Future<void>? _closing;
+  bool _freed = false;
 
+  // A release closes a loading session behind its load, and a load that then
+  // fails frees it too; a second free would corrupt the heap.
   void _free() {
+    if (_freed) return;
+    _freed = true;
     calloc.free(_abort);
     calloc.free(_progress);
   }

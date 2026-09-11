@@ -15,9 +15,10 @@ final class RunCall {
 /// Deterministic [WhisperRuntime] for tests. Every run answers [segments]
 /// after replaying [progressSteps] to its listener; [gate] holds a run open
 /// so a test can abort or interleave; [closeGate] holds a close open;
-/// [loadGate] holds a load open; [failLoad] and [failRun] fail typed; all are
-/// mutable so a test flips them between runs. Records loads, runs, closes,
-/// aborts and disposes, so a caller's session handling can be asserted.
+/// [loadGate] holds a load open, and a [failLoad] answers after it, as the
+/// real worker does; [failRun] fails a run typed; all are mutable so a test
+/// flips them between runs. Records loads, runs, closes, aborts and
+/// disposes, so a caller's session handling can be asserted.
 class FakeWhisperRuntime implements WhisperRuntime {
   FakeWhisperRuntime({
     this.segments = const [
@@ -60,14 +61,12 @@ class FakeWhisperRuntime implements WhisperRuntime {
   Future<WhisperSession> load(File model) async {
     if (open != null) throw StateError('a session is open');
     loads.add(model.path);
-    if (failLoad) throw const WhisperRuntimeException(WhisperRuntimeError.loadFailed, 'fake');
     final session = open = FakeWhisperSession(this, model.path);
     final held = loadGate;
     if (held != null) await held;
-    // The real runtime's dispose ends the worker, which answers a load in
-    // flight as failed.
-    if (session.closed) {
-      throw const WhisperRuntimeException(WhisperRuntimeError.runFailed, 'the worker ended');
+    if (failLoad) {
+      if (identical(open, session)) open = null;
+      throw const WhisperRuntimeException(WhisperRuntimeError.loadFailed, 'fake');
     }
     return session;
   }

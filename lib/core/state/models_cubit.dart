@@ -175,9 +175,10 @@ class ModelsCubit extends Cubit<ModelsState> {
   // Models whose install is past its guard but not yet tracked: a retry's
   // removal is awaited in between, and a second tap must not remove twice.
   final Set<String> _starting = {};
-  // Models whose download to use them failed: a retry still means to choose
-  // them.
-  final Set<String> _choosing = {};
+  // What each standing failure's download was for: true to choose the model,
+  // so its retry takes the choice too; false for the switch's extra file or a
+  // pass's own. Kept only while the row wears the failure.
+  final Map<String, bool> _retryTakesChoice = {};
   int _loadGeneration = 0;
 
   /// Rebuilds every model row. In-flight download fractions and standing
@@ -203,7 +204,6 @@ class ModelsCubit extends Cubit<ModelsState> {
         unawaited(sub.cancel().catchError((_) {}));
       }
       _modelInstallSubs.clear();
-      _choosing.clear();
       _pass = null;
     }
     final previousModels = sameEngine
@@ -267,19 +267,18 @@ class ModelsCubit extends Cubit<ModelsState> {
     await installModelById(id);
   }
 
-  /// Downloads one model of the engine's choice and selects it once landed.
-  /// Single-flight per model. A model that downloaded but would not open is
-  /// removed first, so the retry fetches a fresh file, and takes the choice
-  /// only if it held it or was being downloaded to. Answers false when that
-  /// file could not be removed (a run holds the model); the row keeps its
-  /// failure.
+  /// Downloads one model of the engine's choice, single-flight per model. A
+  /// fresh download selects the model once landed; a retry of a failed one
+  /// does only if that download was for choosing it. A model that downloaded
+  /// but would not open is removed first, so the retry fetches a fresh file.
+  /// Answers false when that file could not be removed (a run holds the
+  /// model) or the cubit closed meanwhile; the row keeps its failure.
   Future<bool> installModelById(String id) async {
     if (_modelInstallSubs.containsKey(id) || !_starting.add(id)) return true;
     try {
       final row = _row(id);
-      var choose = true;
+      final choose = _retryTakesChoice[id] ?? true;
       if (row != null && row.installed && row.failure == ModelInstallReason.loadFailed) {
-        choose = row.selected || _choosing.contains(id);
         final removed = await _tryRemove(id);
         if (isClosed) return false;
         if (!removed && (await _service.installedModels()).contains(id)) return false;
@@ -358,7 +357,6 @@ class ModelsCubit extends Cubit<ModelsState> {
       onDone: () async {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);
-        _choosing.remove(id);
         // Installed at once: the file is there, and the reload that says
         // so takes several round trips the row must not spend as a download.
         _patchModel(id, (row) => row.copyWith(clearInstall: true, installed: true));
@@ -382,7 +380,7 @@ class ModelsCubit extends Cubit<ModelsState> {
         _modelInstallSubs.remove(id);
         _accelerationInstalls.remove(id);
         final failure = _modelFailureFrom(error);
-        if (selectOnLand && failure != null) _choosing.add(id);
+        if (failure != null) _retryTakesChoice[id] = selectOnLand;
         _patchModel(
           id,
           (row) =>
@@ -458,6 +456,13 @@ class ModelsCubit extends Cubit<ModelsState> {
     );
   }
 
+  // Every emit, so a record never outlives the failure it explains.
+  @override
+  void emit(ModelsState state) {
+    super.emit(state);
+    _retryTakesChoice.removeWhere((id, _) => _row(id)?.failure == null);
+  }
+
   /// A batch pass on a model's row: its download painted as it runs, landed
   /// when that pass's run starts (whatever model the run names, since the
   /// choice may have moved meanwhile), and the failure its done carries put
@@ -487,19 +492,20 @@ class ModelsCubit extends Cubit<ModelsState> {
         _land(pass.modelId, (row) => row.copyWith(clearInstall: true, installed: true));
       case BatchStep.done:
         final failure = event.failure;
+        final painted = ours && pass.modelId == id;
         if (ours) {
           _pass = null;
-          _land(
-            pass.modelId,
-            (row) => row.copyWith(clearInstall: true, failure: pass.modelId == id ? failure : null),
-          );
+          if (!painted) _land(pass.modelId, (row) => row.copyWith(clearInstall: true));
         }
-        if (failure != null && id != null && !(ours && pass.modelId == id)) {
-          _land(id, (row) => row.copyWith(failure: failure));
-        } else if (event.landed &&
-            id != null &&
-            _row(id)?.failure == ModelInstallReason.loadFailed) {
-          _land(id, (row) => row.copyWith(clearFailure: true));
+        if (id == null) return;
+        if (failure != null) {
+          if (!_modelInstallSubs.containsKey(id)) _retryTakesChoice[id] = false;
+          _land(id, (row) => row.copyWith(clearInstall: painted, failure: failure));
+          return;
+        }
+        final opened = event.landed && _row(id)?.failure == ModelInstallReason.loadFailed;
+        if (painted || opened) {
+          _land(id, (row) => row.copyWith(clearInstall: painted, clearFailure: opened));
         }
     }
   }

@@ -38,6 +38,17 @@ void main() {
     return EntriesCubit(service: service);
   }
 
+  test('a failure no second pass can fix is only acknowledged', () {
+    expect(
+      EntriesError.values.where((kind) => !kind.retryable),
+      unorderedEquals([
+        EntriesError.recordingMissing,
+        EntriesError.modelLoadFailed,
+        EntriesError.savedSeparately,
+      ]),
+    );
+  });
+
   test('seeds from the service so a fresh cubit is never empty', () async {
     final cubit = await seeded();
     expect(cubit.state.entries, hasLength(1));
@@ -395,11 +406,11 @@ void main() {
     final cubit = EntriesCubit(service: svc);
     final entry = cubit.state.entries.single;
 
-    choice.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.loadFailed);
+    choice.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed);
     await cubit.retranscribe(entry);
     expect(cubit.state.errorFor(entry.id), EntriesError.modelLoadFailed);
 
-    choice.failRun = const ModelInstallFailed('fake', null, ModelInstallReason.offline);
+    choice.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.offline);
     await cubit.retranscribe(entry);
     expect(cubit.state.errorFor(entry.id), EntriesError.modelInstallFailed);
 

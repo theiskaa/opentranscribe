@@ -45,9 +45,11 @@ class PinnedHostFetcher implements ModelFetcher {
     required List<String> allowedHostSuffixes,
     HttpClient Function()? newClient,
     List<Duration> retryBackoff = _defaultBackoff,
+    Future<void> Function(Duration wait)? sleep,
   }) : _suffixes = List.unmodifiable(allowedHostSuffixes),
        _newClient = newClient ?? HttpClient.new,
-       _backoff = List.unmodifiable(retryBackoff);
+       _backoff = List.unmodifiable(retryBackoff),
+       _sleep = sleep ?? Future<void>.delayed;
 
   final List<String> _suffixes;
   final HttpClient Function() _newClient;
@@ -56,6 +58,7 @@ class PinnedHostFetcher implements ModelFetcher {
   /// indexed by how many breaks in a row delivered nothing; as many empty
   /// breaks in a row as there are waits count as offline.
   final List<Duration> _backoff;
+  final Future<void> Function(Duration wait) _sleep;
 
   static const _maxRedirects = 5;
   static const _progressStep = 0.005;
@@ -224,7 +227,7 @@ class PinnedHostFetcher implements ModelFetcher {
           if (emptyBreaks >= _backoff.length) throw failure;
           if (!progress.hasListener) return;
           offset = received;
-          await Future<void>.delayed(_backoff[emptyBreaks]);
+          await _sleep(_backoff[emptyBreaks]);
           if (!progress.hasListener) return;
         }
       }
@@ -271,15 +274,14 @@ class PinnedHostFetcher implements ModelFetcher {
     TimeoutException() => _offline('$error'),
     FileSystemException(osError: final os) when os?.errorCode == enospc => ModelInstallFailed(
       '$error',
-      null,
-      ModelInstallReason.noSpace,
+      reason: ModelInstallReason.noSpace,
     ),
     _ => _rejected('$error'),
   };
 
   static ModelInstallFailed _offline(String message) =>
-      ModelInstallFailed(message, null, ModelInstallReason.offline);
+      ModelInstallFailed(message, reason: ModelInstallReason.offline);
 
   static ModelInstallFailed _rejected(String message) =>
-      ModelInstallFailed(message, null, ModelInstallReason.rejected);
+      ModelInstallFailed(message, reason: ModelInstallReason.rejected);
 }

@@ -34,22 +34,24 @@ class CaptureFailed extends TranscriptionException {
   String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
 }
 
-/// The engine's on-device model could not be downloaded or installed. Distinct from
-/// [TranscriptionFailed]: almost always transient (network), with a different retry
-/// story than a broken transcription. [assetStatus] is the asset's state just
-/// before the attempt, when the engine could report it: a stuck download, a
-/// language the platform has no asset for, and an ordinary network failure all
-/// deserve different words in the UI.
+/// The engine's on-device model could not be downloaded, installed, or opened.
+/// Distinct from [TranscriptionFailed]: a download failure is almost always
+/// transient (network), and a model that will not open wants a fresh file,
+/// both a different retry story than a broken transcription. [assetStatus] is
+/// the asset's state just before the attempt, when the engine could report it:
+/// a stuck download, a language the platform has no asset for, and an
+/// ordinary network failure all deserve different words in the UI.
 class ModelInstallFailed extends TranscriptionException {
-  const ModelInstallFailed([super.message, this.assetStatus, this.reason, this.modelId]);
+  const ModelInstallFailed(super.message, {this.assetStatus, this.reason, this.modelId});
 
   final ModelAssetStatus? assetStatus;
 
-  /// Why a file download failed, when the engine fetches its own model.
+  /// Why the model did not arrive or would not open, when the engine fetches
+  /// its own model.
   final ModelInstallReason? reason;
 
-  /// The model that failed, when an engine with a model choice knows it: the
-  /// choice may have moved since the caller asked.
+  /// The model that failed, when the engine names it; one with a choice of
+  /// models does on every failure of its own.
   final String? modelId;
 }
 

@@ -708,8 +708,72 @@ void main() {
       return (cubit, models);
     }
 
-    bool defaultInstalling(SettingsCubit cubit) =>
-        cubit.state.languages.firstWhere((r) => r.isDefault).installing;
+    ModelRowState modelRow(ModelsCubit models, String id) =>
+        models.state.models.firstWhere((r) => r.option.id == id);
+
+    LanguageModelState defaultRow(SettingsCubit cubit) =>
+        cubit.state.languages.firstWhere((r) => r.isDefault);
+
+    test('a language install downloads the selected model and wears its download', () async {
+      choice.installed.clear();
+      final gate = Completer<void>();
+      choice.installGate = gate.future;
+      final (cubit, models) = buildOver();
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.install('en-US');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(choice.installs, ['small']);
+      expect(modelRow(models, 'small').installing, isTrue);
+      expect(defaultRow(cubit).installing, isTrue);
+      expect(defaultRow(cubit).installFraction, modelRow(models, 'small').installFraction);
+      gate.complete();
+    });
+
+    test('a first-use download a batch started shows on the default language row', () async {
+      choice
+        ..installed.clear()
+        ..installSteps = [0.4];
+      final gate = Completer<void>();
+      choice.installGate = gate.future;
+      final (cubit, models) = buildOver();
+      await Future<void>.delayed(Duration.zero);
+
+      await scoped.startRecording();
+      final stop = scoped.stopRecording();
+      await pumpEventQueue();
+
+      expect(modelRow(models, 'small').installFraction, 0.4);
+      expect(defaultRow(cubit).installFraction, 0.4);
+      gate.complete();
+      await stop;
+      await pumpEventQueue();
+
+      expect(modelRow(models, 'small').installed, isTrue);
+      expect(defaultRow(cubit).installing, isFalse);
+    });
+
+    test(
+      'a first-use download that fails ends the default row\'s download and leaves it no failure',
+      () async {
+        choice
+          ..installed.clear()
+          ..installSteps = [0.4]
+          ..failInstall = ModelInstallReason.offline;
+        final (cubit, models) = buildOver();
+        await Future<void>.delayed(Duration.zero);
+
+        await scoped.startRecording();
+        await scoped.stopRecording();
+        await pumpEventQueue();
+
+        expect(modelRow(models, 'small').failure, ModelInstallReason.offline);
+        expect(modelRow(models, 'small').installing, isFalse);
+        expect(defaultRow(cubit).installing, isFalse);
+        expect(defaultRow(cubit).failure, isNull);
+      },
+    );
 
     test(
       'a download of a model other than the choice never reaches the default language',
@@ -722,8 +786,8 @@ void main() {
         await models.installModelById('large');
         await pumpEventQueue();
 
-        expect(models.state.models.firstWhere((r) => r.option.id == 'large').installing, isTrue);
-        expect(defaultInstalling(cubit), isFalse);
+        expect(modelRow(models, 'large').installing, isTrue);
+        expect(defaultRow(cubit).installing, isFalse);
         gate.complete();
       },
     );
@@ -736,13 +800,13 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       cubit.install('en-US');
       await pumpEventQueue();
-      expect(defaultInstalling(cubit), isTrue);
+      expect(defaultRow(cubit).installing, isTrue);
 
       expect(scoped.useEngine(FakeBatchEngine()), isTrue);
       await models.load();
       await cubit.load();
 
-      expect(defaultInstalling(cubit), isFalse);
+      expect(defaultRow(cubit).installing, isFalse);
       gate.complete();
     });
   });

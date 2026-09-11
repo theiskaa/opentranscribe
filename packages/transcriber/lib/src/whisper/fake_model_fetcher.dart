@@ -63,7 +63,7 @@ class FakeModelFetcher implements ModelFetcher {
         if (unsubscribed) return;
         final reason = failWith;
         if (reason != null) {
-          controller.addError(ModelInstallFailed('fake fetch failed', null, reason));
+          controller.addError(ModelInstallFailed('fake fetch failed', reason: reason));
         } else {
           await into.parent.create(recursive: true);
           final body = bodies[source.pathSegments.last];
