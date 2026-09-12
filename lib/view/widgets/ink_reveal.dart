@@ -10,6 +10,10 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
+/// Lays a placeholder cloud's lines out at [width] and the reader's text
+/// scale.
+typedef InkRowsBuilder = List<InkRow> Function(double width, TextScaler scaler);
+
 /// What the caller wants the text to be doing.
 enum InkPhase {
   /// The child renders plain; no tickers run.
@@ -45,6 +49,7 @@ class InkReveal extends StatefulWidget {
     required this.color,
     required this.background,
     this.placeholderLines = 4,
+    this.placeholderRows,
     this.onWriteStarted,
     this.onWriteFinished,
     super.key,
@@ -62,6 +67,11 @@ class InkReveal extends StatefulWidget {
   /// Placeholder cloud height, in [AppType.body] lines, when pending has no
   /// text to dissolve.
   final int placeholderLines;
+
+  /// The placeholder cloud's own lines at the width this widget gets and the
+  /// reader's text scale, in place of [placeholderLines] (which still stand in
+  /// when it lays out none); the cloud stands exactly as tall as the rows.
+  final InkRowsBuilder? placeholderRows;
 
   /// Fired once when a write-on actually begins (or is skipped under Reduce
   /// Motion), so the caller can mark its replay ledger.
@@ -263,19 +273,26 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     if (box is! RenderBox || !box.hasSize) return false;
     final width = box.size.width;
     if (width <= 0) return false;
-    const style = AppType.body;
     // The reader's text scale sizes the cloud like the text it stands for.
-    final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize!);
-    final lineHeight = fontSize * style.height!;
+    final scaler = MediaQuery.textScalerOf(context);
+    final built = widget.placeholderRows?.call(width, scaler);
+    final rows = built == null || built.isEmpty ? _placeholderLines(width, scaler) : built;
+    if (rows.isEmpty) return false;
     _releaseInk();
-    _inkPoints = placeholderInkPoints(
+    _inkPoints = rowInkPoints(rows);
+    _inkSize = Size(width, inkRowsHeight(rows));
+    return true;
+  }
+
+  List<InkRow> _placeholderLines(double width, TextScaler scaler) {
+    const style = AppType.body;
+    final fontSize = scaler.scale(style.fontSize!);
+    return placeholderInkRows(
       width: width,
       lines: widget.placeholderLines,
       fontSize: fontSize,
-      lineHeight: lineHeight,
+      lineHeight: fontSize * style.height!,
     );
-    _inkSize = Size(width, widget.placeholderLines * lineHeight);
-    return true;
   }
 
   void _markStarted() {
