@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/transcript_stitch.dart';
+import 'package:opentranscribe/core/services/speech_tally.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -45,7 +46,7 @@ class RecorderState {
   final bool liveUnavailable;
 
   /// Whether the microphone has heard real sound this take (input level crossed
-  /// [RecorderCubit._kHeardThreshold] at least once). This, NOT [liveText], is
+  /// [heardLevel] at least once). This, NOT [liveText], is
   /// what tells an X-to-discard whether the take is worth keeping: the live
   /// stream can be blank while real speech was captured, and the batch pass on
   /// stop reads the audio the live engine could not. Latches true for the take.
@@ -144,12 +145,6 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// Watches the input level so [RecorderState.heardSound] can latch when the
   /// mic hears real sound, independent of whether the live engine transcribed it.
   StreamSubscription<double>? _levelSub;
-
-  /// Input level (0..1, native `(dBFS + 60) / 60`) above which the take counts as
-  /// having heard real sound: digital silence sits near 0, quiet room tone near
-  /// 0.2, and any spoken word peaks well above this. Set to clear the room floor
-  /// without ever missing speech - discarding a real take is the failure to avoid.
-  static const double _kHeardThreshold = 0.3;
 
   /// How long a continuation waits to learn whether its entry's language is
   /// ready before opening in the default; a hung probe must not hold the
@@ -268,7 +263,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     _levelSub = _service.inputLevel.listen((level) {
       // Latch once: this is what an X-to-discard consults, so it must not depend
       // on the live transcript, which can be blank over real speech.
-      if (!state.heardSound && level >= _kHeardThreshold && !isClosed) {
+      if (!state.heardSound && level >= heardLevel && !isClosed) {
         emit(state.copyWith(heardSound: true));
       }
     });

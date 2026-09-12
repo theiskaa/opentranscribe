@@ -5,8 +5,11 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
+import 'package:opentranscribe/core/services/speaking_pace.dart';
+import 'package:opentranscribe/core/services/speech_tally.dart';
 import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
@@ -33,6 +36,7 @@ final class BatchProgress {
     this.preparing = false,
     this.landed = false,
     this.failure,
+    this.forecast,
   });
 
   final String? entryId;
@@ -46,6 +50,11 @@ final class BatchProgress {
   final bool landed;
   final ModelInstallReason? failure;
 
+  /// What the take this pass is over will read as, on every event of a pass
+  /// over a just-recorded take (a fresh one or a continuation's tail); null on
+  /// any other pass.
+  final TakeForecast? forecast;
+
   @override
   bool operator ==(Object other) =>
       other is BatchProgress &&
@@ -56,11 +65,21 @@ final class BatchProgress {
       other.modelName == modelName &&
       other.preparing == preparing &&
       other.landed == landed &&
-      other.failure == failure;
+      other.failure == failure &&
+      other.forecast == forecast;
 
   @override
-  int get hashCode =>
-      Object.hash(entryId, step, fraction, modelId, modelName, preparing, landed, failure);
+  int get hashCode => Object.hash(
+    entryId,
+    step,
+    fraction,
+    modelId,
+    modelName,
+    preparing,
+    landed,
+    failure,
+    forecast,
+  );
 }
 
 typedef _BatchReport =
@@ -105,7 +124,9 @@ class TranscriptionService {
     Future<void> Function(File file)? fileDeleter,
     bool Function()? keepAudio,
     bool Function()? thermalPressure,
+    Duration Function()? monotonic,
   }) : _clock = clock ?? DateTime.now,
+       _monotonic = monotonic ?? _stopwatch(),
        _newId = idGenerator ?? _defaultId,
        _deleteFile = fileDeleter ?? _deleteFileDefault,
        _keepAudio = keepAudio ?? _keepAudioDefault,
@@ -280,6 +301,20 @@ class TranscriptionService {
   final bool Function() _thermalPressure;
 
   static bool _noThermalPressure() => false;
+
+  /// Stamps the take's level windows; monotonic, so a wall clock change
+  /// mid-take cannot stretch or fold its speech time.
+  final Duration Function() _monotonic;
+
+  static Duration Function() _stopwatch() {
+    final watch = Stopwatch()..start();
+    return () => watch.elapsed;
+  }
+
+  /// The current take's speech time, fed by its level windows from start to
+  /// stop; claimed by the finalize with the rest of the session.
+  SpeechTally? _tally;
+  StreamSubscription<double>? _levelSub;
 
   /// Reads an audio file's amplitude envelope (0..1), injected so the service
   /// can persist a new entry's shape at save time without owning a player.
@@ -736,11 +771,21 @@ class TranscriptionService {
           _pendingInterruption = true;
         }
       });
+      // Before start(), like the status: the first words' windows count too.
+      final tally = SpeechTally();
+      _tally = tally;
+      _levelSub = _recorder.level.listen(
+        (level) => tally.add(level, _monotonic()),
+        onError: (Object _) {},
+      );
       try {
         await _recorder.start();
       } catch (_) {
         await _statusSub?.cancel();
         _statusSub = null;
+        await _levelSub?.cancel();
+        _levelSub = null;
+        _tally = null;
         rethrow;
       }
       _recording = true;
@@ -960,6 +1005,10 @@ class TranscriptionService {
     _liveSub = null;
     final statusSub = _statusSub;
     _statusSub = null;
+    final levelSub = _levelSub;
+    _levelSub = null;
+    final tally = _tally;
+    _tally = null;
     final sessionLocale = _sessionLocaleId;
     final spans = _sessionSpans;
     _sessionSpans = [];
@@ -984,6 +1033,8 @@ class TranscriptionService {
       // process.
       _finalizingCaptures++;
       await statusSub?.cancel();
+      // Before the stop: the windows it would drop are the reach for stop.
+      await levelSub?.cancel();
       final recording = await _recorder.stop();
       // UI-only; released here (not after the batch) so the next take's live
       // session is not queued behind it. Re-awaited in the finally; a cancel
@@ -1002,18 +1053,34 @@ class TranscriptionService {
       // the file, but persist the reference verbatim so it survives a backup/restore.
       Transcript? transcript;
       var salvaged = false;
+      final openingLocale = spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId);
       Transcript salvage() => Transcript(
         fullText: liveText,
         segments: const [],
-        localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
+        localeId: openingLocale,
         engineId: _engine.id,
         createdAt: _clock(),
       );
-      Future<void> batchTail() async {
+      late final speech = tally?.speech ?? Duration.zero;
+      late final forecast = TakeForecast(
+        audio: recording.duration,
+        speech: speech,
+        localeId: openingLocale,
+        characters: forecastCharacters(
+          speech: speech,
+          audio: recording.duration,
+          spans: spans.isNotEmpty ? spans : [(startMs: 0, tag: openingLocale)],
+          pace: startingPace,
+        ),
+      );
+      // A fallen-back tail lands as its own entry, not where its forecast
+      // would draw, so its pass carries none.
+      Future<void> batchTail({bool forecasting = true}) async {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
           transcript = await _reporting(
             continuation?.id,
+            forecast: forecasting ? forecast : null,
             (report) => spans.length > 1
                 ? _segmentedBatch(_engine, audioFile, recording.duration, spans, report: report)
                 : _batch(
@@ -1072,7 +1139,9 @@ class TranscriptionService {
             // gave the take its pass).
             fallback = reason;
             if (kDebugMode) debugPrint('continuation fell back: ${reason.name}');
-            if (transcribe && baseUnheard && baseStored.audioPath != null) await batchTail();
+            if (transcribe && baseUnheard && baseStored.audioPath != null) {
+              await batchTail(forecasting: false);
+            }
         }
       }
 
@@ -1390,6 +1459,7 @@ class TranscriptionService {
     if (_recording) {
       _paused = false;
       _audioSegmentStart = _clock();
+      _tally?.markBreak();
     }
   }
 
@@ -1484,6 +1554,9 @@ class TranscriptionService {
     _liveSub = null;
     final statusSub = _statusSub;
     _statusSub = null;
+    final levelSub = _levelSub;
+    _levelSub = null;
+    _tally = null;
     _sessionLocaleId = null;
     _sessionLiveCommitted = '';
     _sessionLiveCurrent = '';
@@ -1497,6 +1570,7 @@ class TranscriptionService {
       _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
     }
     await statusSub?.cancel();
+    await levelSub?.cancel();
     try {
       await _recorder.cancel();
     } on CaptureFailed {
@@ -2230,8 +2304,13 @@ class TranscriptionService {
   /// whether it landed or why it failed for its model. A report after that
   /// (a run this side gave up on, still polling) is dropped, so done stays
   /// the last word; so is one identical to the last, as the download's own
-  /// first word is to the pass naming its model.
-  Future<T> _reporting<T>(String? entryId, Future<T> Function(_BatchReport report) body) async {
+  /// first word is to the pass naming its model. A [forecast] rides every
+  /// event, the done included.
+  Future<T> _reporting<T>(
+    String? entryId,
+    Future<T> Function(_BatchReport report) body, {
+    TakeForecast? forecast,
+  }) async {
     var over = false;
     BatchProgress? last;
     String? modelIdSeen;
@@ -2258,6 +2337,7 @@ class TranscriptionService {
           modelId: modelId,
           modelName: modelName,
           preparing: preparing,
+          forecast: forecast,
         ),
       );
     }
@@ -2283,6 +2363,7 @@ class TranscriptionService {
           modelId: modelIdSeen,
           landed: landed,
           failure: modelIdSeen == null ? null : failure,
+          forecast: forecast,
         ),
       );
     }
@@ -2630,6 +2711,8 @@ class TranscriptionService {
     _liveSub = null;
     await _statusSub?.cancel();
     _statusSub = null;
+    await _levelSub?.cancel();
+    _levelSub = null;
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();

@@ -130,6 +130,9 @@ const languagePriority = [
   'yue',
 ];
 
+/// The language part of a locale tag, lowercased: en-US and en-GB are both en.
+String languageOf(String tag) => tag.toLowerCase().split('-').first;
+
 /// The supported tag a requested tag should transcribe as: the exact tag when
 /// supported (case-insensitive, in the supported spelling), else a supported
 /// variant of the same language (tr-GE resolves to tr-TR), else null. Only a
@@ -141,10 +144,10 @@ String? resolveSupportedTag(String tag, List<String> supported) {
   for (final candidate in supported) {
     if (candidate.toLowerCase() == lower) return candidate;
   }
-  final language = lower.split('-').first;
+  final language = languageOf(lower);
   final variants = [
     for (final candidate in supported)
-      if (candidate.toLowerCase().split('-').first == language) candidate,
+      if (languageOf(candidate) == language) candidate,
   ]..sort();
   if (variants.isEmpty) return null;
   final home = languageHomeRegion[language];
@@ -161,8 +164,8 @@ String? resolveSupportedTag(String tag, List<String> supported) {
 /// in list order, the rest alphabetically by language; within a language the
 /// [languageHomeRegion] variant leads (en-US before en-AU), then alphabetical.
 int languageTagCompare(String a, String b) {
-  final la = a.toLowerCase().split('-').first;
-  final lb = b.toLowerCase().split('-').first;
+  final la = languageOf(a);
+  final lb = languageOf(b);
   if (la != lb) {
     final pa = _priorityOf(la);
     final pb = _priorityOf(lb);
