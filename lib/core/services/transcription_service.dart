@@ -1032,6 +1032,7 @@ class TranscriptionService {
     // deferred read can never absorb another take's words.
     final liveGeneration = _liveGeneration;
     _audioClockPause();
+    final audioClockMs = _audioMsAccumulated;
     try {
       // Inside the try, and still in the same synchronous block as the flips
       // above (nothing between them awaits), so the claim can never leak: a
@@ -1042,6 +1043,13 @@ class TranscriptionService {
       // Before the stop: the windows it would drop are the reach for stop.
       await levelSub?.cancel();
       final recording = await _recorder.stop();
+      if (kDebugMode && spans.length > 1) {
+        debugPrint(
+          'spans: ${spans.map((s) => '${s.tag}@${s.startMs}').join(' ')}; '
+          'clock $audioClockMs ms, file ${recording.duration.inMilliseconds} ms'
+          '${transcribe ? '' : ', ended without a stop'}',
+        );
+      }
       // UI-only; released here (not after the batch) so the next take's live
       // session is not queued behind it. Re-awaited in the finally; a cancel
       // rejection is swallowed on both copies, or this detached one would hit
@@ -2551,14 +2559,17 @@ class TranscriptionService {
         if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
         final start = Duration(milliseconds: spans[i].startMs);
         final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
-        final spanLength = (end ?? duration) - start;
+        final stop = end ?? duration;
+        final spanLength = stop - start;
         // Each span's run is its length's share of the whole; the download
         // ahead of the first is not.
         final whole = duration.inMilliseconds;
         final from = whole == 0 ? 0.0 : start.inMilliseconds / whole;
         final share = whole == 0 ? 0.0 : spanLength.inMilliseconds / whole;
-        parts.add(
-          await _batch(
+        final trace = 'span ${spans[i].tag} ${start.inMilliseconds}..${stop.inMilliseconds}';
+        final Transcript part;
+        try {
+          part = await _batch(
             engine,
             file,
             spanLength.isNegative ? Duration.zero : spanLength,
@@ -2574,8 +2585,21 @@ class TranscriptionService {
                     modelName: modelName,
                     preparing: preparing,
                   ),
-          ),
-        );
+          );
+        } catch (e) {
+          if (kDebugMode) debugPrint('$trace: failed $e');
+          rethrow;
+        }
+        if (kDebugMode) {
+          final words = part.segments.isEmpty
+              ? ''
+              : ', words ${(start + part.segments.first.start).inMilliseconds}'
+                    '..${(start + part.segments.last.end).inMilliseconds} ms';
+          debugPrint(
+            '$trace: ${part.segments.length} segments, ${part.fullText.trim().length} chars$words',
+          );
+        }
+        parts.add(part);
       }
       final buffer = StringBuffer();
       final segments = <TranscriptSegment>[];
@@ -2622,6 +2646,7 @@ class TranscriptionService {
       // One model serves every span, so a flattened pass would fail on it
       // again, and fetch it again after a download that did not verify.
       if (e is ModelInstallFailed && engine is ModelChoiceEngine) rethrow;
+      if (kDebugMode) debugPrint('flattened to ${spans.first.tag}: $e');
       return _batch(engine, file, duration, localeId: spans.first.tag, report: report);
     }
   }
