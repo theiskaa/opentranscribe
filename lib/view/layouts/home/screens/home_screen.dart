@@ -11,8 +11,6 @@ import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
-import 'package:opentranscribe/core/services/transcription_service.dart';
-import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
@@ -21,7 +19,6 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
@@ -556,18 +553,12 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Quieter than the title: every changed character moves together, fast.
       // While a take is being saved the line is its progress instead, since
       // the entry lands only once its pass does.
-      subtitle: BlocSelector<BatchProgressCubit, BatchProgressState, BatchProgress?>(
-        selector: (progress) => progress.take,
-        builder: (context, take) => RollingText(
-          text:
-              batchProgressLabel(AppLocalizations.of(context)!, take) ??
-              '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
-                  '${DateFormat.yMMMM(locale).format(widget.visibleWeek)}',
-          style: AppType.footnote.copyWith(color: theme.textSecondary),
-          direction: _direction,
-          window: theme.motion.subtitleRoll,
-          stagger: Duration.zero,
-        ),
+      subtitle: BatchProgressLine(
+        select: (passes) => passes.take,
+        fallback:
+            '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
+            '${DateFormat.yMMMM(locale).format(widget.visibleWeek)}',
+        direction: _direction,
       ),
       bottom: Padding(
         padding: const EdgeInsets.only(top: AppSpacing.md),

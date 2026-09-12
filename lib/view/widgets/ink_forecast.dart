@@ -44,8 +44,9 @@ String fillerSample({required String localeId, required List<Entry> journal}) {
 /// About [characters] of [sample]'s words, cycled as often as it takes and
 /// ending on a whole word (a word too long to be one is cut at the length); a
 /// sample in a script written without spaces (Japanese, Chinese, Thai) is
-/// cycled by character. Empty when the sample has no words. Filler, so it must never reach the semantics tree. A caller
-/// clamps [characters] to what it can show ([mostCharacters]).
+/// cycled by character. Empty when the sample has no words. A caller clamps
+/// [characters] to what it can show ([mostCharacters]), and keeps the filler
+/// out of the semantics tree.
 String fillerText(String sample, int characters) {
   final trimmed = sample.trim();
   if (trimmed.isEmpty || characters <= 0) return '';

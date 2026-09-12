@@ -55,7 +55,8 @@ class AppTopBar extends StatelessWidget {
   /// lands its controls on the same edge.
   final List<Widget> actions;
 
-  /// The recorder centers its timer; everything else left-aligns.
+  /// The recorder centers its timer and the entry screen a pass's progress;
+  /// every other title left-aligns.
   final bool centerTitle;
 
   /// Content row height override; defaults to the compact `TopBarTheme.height`.
@@ -155,7 +156,14 @@ class AppTopBar extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               row,
-              Center(child: titleBlock),
+              // Clear of one control and its inset on each edge, so a long
+              // centered line never runs under the bar's buttons.
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _edgeInset * 2 + AppGlassIconButton.defaultSize,
+                ),
+                child: Center(child: titleBlock),
+              ),
             ],
           )
         : row;

@@ -9,7 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/app/hints.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -32,10 +34,12 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/hint_callout.dart';
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
@@ -636,12 +640,27 @@ class _DetailViewState extends State<_DetailView> {
                               // follows them.
                               BlocSelector<RecorderCubit, RecorderState, String>(
                                 selector: (recorder) => continuing ? recorder.liveText : '',
-                                builder: (context, pending) => TranscriptView(
-                                  entry: entry,
-                                  busy: busy,
-                                  appending: continuing,
-                                  pendingText: pending,
-                                ),
+                                builder: (context, pending) =>
+                                    BlocSelector<
+                                      BatchProgressCubit,
+                                      BatchProgressState,
+                                      TakeForecast?
+                                    >(
+                                      selector: (passes) => passes.forEntry(entry.id)?.forecast,
+                                      builder: (context, forecast) => TranscriptView(
+                                        entry: entry,
+                                        busy: busy,
+                                        appending: continuing,
+                                        pendingText: pending,
+                                        forecast: forecast,
+                                        sample: forecast == null
+                                            ? ''
+                                            : fillerSample(
+                                                localeId: forecast.localeId,
+                                                journal: [entry, ...state.entries],
+                                              ),
+                                      ),
+                                    ),
                               ),
                           ],
                         ),
@@ -654,6 +673,15 @@ class _DetailViewState extends State<_DetailView> {
                   left: 0,
                   right: 0,
                   child: AppTopBar(
+                    // Where a pass on this entry says how far it is, as home's
+                    // bar does for a take: a line under a long cloud would
+                    // end up below the screen.
+                    // Shrunk rather than cut: the percent is its end.
+                    title: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: BatchProgressLine(select: (passes) => passes.forEntry(entry.id)),
+                    ),
+                    centerTitle: true,
                     actions: [
                       // Settings feed only the menu, so a model install's
                       // progress emits rebuild this button, not the document.

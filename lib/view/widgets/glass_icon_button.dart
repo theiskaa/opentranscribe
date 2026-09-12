@@ -14,12 +14,15 @@ class AppGlassIconButton extends StatelessWidget {
   const AppGlassIconButton({
     required this.icon,
     required this.onTap,
-    this.size = 44,
+    this.size = defaultSize,
     this.iconSize = 18,
     this.color,
     this.semanticLabel,
     super.key,
   });
+
+  /// The bar's control size, which a centered title keeps clear of.
+  static const double defaultSize = 44;
 
   final IconData icon;
   final VoidCallback? onTap;

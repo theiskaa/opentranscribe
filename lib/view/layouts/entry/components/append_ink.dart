@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
 /// The words of [addition] as they will look once they follow [base] in one
@@ -99,4 +101,86 @@ Future<({Float32List points, Size size, double top})?> appendedInkPoints({
   if (data == null) return null;
   final points = sampleInkPoints(data, width: w, height: h, pixelRatio: pixelRatio);
   return (points: points, size: painted.size, top: painted.top);
+}
+
+/// [filler] cut so that, laid after [base] in one paragraph at [width], it
+/// runs to no more than [maxLines] lines of its own, ending where a line
+/// breaks (a whole word, or a character in a script without spaces). All of
+/// it when it fits; empty when nothing does.
+String appendFillerWithin({
+  required String base,
+  required String filler,
+  required double width,
+  required TextStyle style,
+  required TextScaler textScaler,
+  required int maxLines,
+  Locale? locale,
+}) {
+  final head = base.trim();
+  final tail = filler.trim();
+  if (tail.isEmpty || maxLines <= 0) return '';
+  final start = head.isEmpty ? 0 : head.length + 1;
+  final painter = TextPainter(
+    text: TextSpan(text: head.isEmpty ? tail : '$head $tail', style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: textScaler,
+    locale: locale,
+  )..layout(maxWidth: width);
+  try {
+    final lines = painter.computeLineMetrics();
+    final startTop = painter.getOffsetForCaret(TextPosition(offset: start), Rect.zero).dy;
+    var top = 0.0;
+    var first = 0;
+    for (final (i, line) in lines.indexed) {
+      if (startTop < top + line.height - 0.5) {
+        first = i;
+        break;
+      }
+      top += line.height;
+    }
+    final last = first + maxLines - 1;
+    if (last >= lines.length - 1) return tail;
+    var lastTop = top;
+    for (var i = first; i < last; i++) {
+      lastTop += lines[i].height;
+    }
+    final onLast = painter.getPositionForOffset(Offset(width, lastTop + lines[last].height / 2));
+    final end = painter.getLineBoundary(onLast).end - start;
+    return end <= 0 ? '' : tail.substring(0, end).trimRight();
+  } finally {
+    painter.dispose();
+  }
+}
+
+/// The words a take's ink stands for: [liveText] when the live pass heard
+/// any, else about [characters] of [sample]'s words laid after [base], up to
+/// the lines a screen of [screenHeight] holds (past that no one sees ink, and
+/// the landing reshapes it to the real words anyway). Empty with neither.
+String appendPending({
+  required String liveText,
+  required int? characters,
+  required String sample,
+  required String base,
+  required double width,
+  required double screenHeight,
+  required TextStyle style,
+  required TextScaler textScaler,
+  Locale? locale,
+}) {
+  if (liveText.trim().isNotEmpty) return liveText;
+  if (characters == null) return '';
+  final size = textScaler.scale(style.fontSize!);
+  final lines = math.max(1, (screenHeight / (size * (style.height ?? 1))).floor());
+  return appendFillerWithin(
+    base: base,
+    filler: fillerText(
+      sample,
+      math.min(characters, mostCharacters(width: width, fontSize: size, lines: lines)),
+    ),
+    width: width,
+    style: style,
+    textScaler: textScaler,
+    maxLines: lines,
+    locale: locale,
+  );
 }
