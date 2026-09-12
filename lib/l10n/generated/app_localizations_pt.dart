@@ -90,11 +90,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get delete => 'Eliminar';
 
   @override
-  String get homeEmptyHeadline => 'Fale, e fica escrito.';
+  String get homeSetupChangeEngine => 'Alterar motor';
 
   @override
-  String get homeEmptySubtitle =>
-      'Tudo o que diz é transcrito e guardado neste dispositivo. Puxe para baixo para gravar a sua primeira entrada.';
+  String get homeSetupRecord =>
+      'Puxe para baixo, ou toque na forma de onda, para gravar a sua primeira entrada.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return 'Pode gravar já. O texto chega assim que o $model estiver neste iPhone.';
+  }
+
+  @override
+  String get homeSetupFixFirst => 'Resolva o que está indicado acima, ou escolha outro motor.';
 
   @override
   String get homePullToRecord => 'Puxe para gravar';

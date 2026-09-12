@@ -86,10 +86,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get delete => '削除';
 
   @override
-  String get homeEmptyHeadline => '話せば、書き留められる。';
+  String get homeSetupChangeEngine => 'エンジンを変更';
 
   @override
-  String get homeEmptySubtitle => '話した内容はすべて文字起こしされ、この端末内に保存されます。下に引いて最初の録音を始めましょう。';
+  String get homeSetupRecord => '下に引くか波形をタップして、最初の録音を始めましょう。';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return '今すぐ録音できます。$model がこの iPhone に入ると文字起こしされます。';
+  }
+
+  @override
+  String get homeSetupFixFirst => '上に表示された内容を解決するか、別のエンジンを選んでください。';
 
   @override
   String get homePullToRecord => '引いて録音';

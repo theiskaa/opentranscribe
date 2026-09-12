@@ -85,10 +85,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get delete => '删除';
 
   @override
-  String get homeEmptyHeadline => '开口说，即刻成文。';
+  String get homeSetupChangeEngine => '更换引擎';
 
   @override
-  String get homeEmptySubtitle => '你说的每一句都会被转写，并保存在这台设备上。下拉即可录制第一条。';
+  String get homeSetupRecord => '下拉或点按波形，录下你的第一条记录。';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return '现在就可以录制。$model 下载到这台 iPhone 后即会转写。';
+  }
+
+  @override
+  String get homeSetupFixFirst => '请先处理上方提示的问题，或选择其他引擎。';
 
   @override
   String get homePullToRecord => '下拉录制';

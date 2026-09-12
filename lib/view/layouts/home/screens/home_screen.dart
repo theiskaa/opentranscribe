@@ -27,16 +27,16 @@ import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
-import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
-import 'package:opentranscribe/view/widgets/seam_padding.dart';
-import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
-import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
+import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
+import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
+import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/seam_padding.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
 /// the journal scrolling under it. The calendar never hides; the scroll drives
@@ -354,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               final body = state.entries.isEmpty && !state.takePending && writing == null
                   // A scrollable, not a Center: it overscrolls so the pull-to-record
-                  // gesture works with nothing recorded yet, the one way in from here.
+                  // gesture works with nothing recorded yet, beside the record button.
                   ? SingleChildScrollView(
                       controller: _scroll,
                       physics: const AlwaysScrollableScrollPhysics(),

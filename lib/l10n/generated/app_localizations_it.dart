@@ -91,11 +91,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get delete => 'Elimina';
 
   @override
-  String get homeEmptyHeadline => 'Parla, e viene scritto.';
+  String get homeSetupChangeEngine => 'Cambia motore';
 
   @override
-  String get homeEmptySubtitle =>
-      'Tutto ciò che dici viene trascritto e conservato su questo dispositivo. Tira giù per registrare la prima voce.';
+  String get homeSetupRecord => 'Tira giù, o tocca la forma d\'onda, per registrare la prima voce.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return 'Puoi registrare subito. Il testo arriva appena $model è su questo iPhone.';
+  }
+
+  @override
+  String get homeSetupFixFirst => 'Risolvi quanto indicato qui sopra, o scegli un altro motore.';
 
   @override
   String get homePullToRecord => 'Tira per registrare';

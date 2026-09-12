@@ -109,13 +109,26 @@
   "@delete": {
     "description": "Button to delete an entry"
   },
-  "homeEmptyHeadline": "Speak, and it's written down.",
-  "@homeEmptyHeadline": {
-    "description": "Bold empty-state title on home when the journal has no entries"
+  "homeSetupChangeEngine": "Change engine",
+  "@homeSetupChangeEngine": {
+    "description": "The link under the empty journal's Speaking card that opens the engine picker"
   },
-  "homeEmptySubtitle": "Everything you say is transcribed and kept on this device. Pull down to record your first entry.",
-  "@homeEmptySubtitle": {
-    "description": "Soft subtitle under the empty-state title, explaining the app and how to start"
+  "homeSetupRecord": "Pull down, or tap the waveform, to record your first entry.",
+  "@homeSetupRecord": {
+    "description": "The empty journal's last line when recording will work as set"
+  },
+  "homeSetupModelLands": "You can record now. It's written down once {model} is on this iPhone.",
+  "@homeSetupModelLands": {
+    "description": "The empty journal's last line while the model the first entry needs is not downloaded yet",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "homeSetupFixFirst": "Fix what's shown above, or pick another engine.",
+  "@homeSetupFixFirst": {
+    "description": "The empty journal's last line when the first entry could not be written as set"
   },
   "homePullToRecord": "Pull to record",
   "@homePullToRecord": {

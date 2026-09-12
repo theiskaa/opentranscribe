@@ -89,11 +89,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
-  String get homeEmptyHeadline => 'Speak, and it\'s written down.';
+  String get homeSetupChangeEngine => 'Change engine';
 
   @override
-  String get homeEmptySubtitle =>
-      'Everything you say is transcribed and kept on this device. Pull down to record your first entry.';
+  String get homeSetupRecord => 'Pull down, or tap the waveform, to record your first entry.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return 'You can record now. It\'s written down once $model is on this iPhone.';
+  }
+
+  @override
+  String get homeSetupFixFirst => 'Fix what\'s shown above, or pick another engine.';
 
   @override
   String get homePullToRecord => 'Pull to record';

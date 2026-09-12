@@ -252,17 +252,29 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
-  /// Bold empty-state title on home when the journal has no entries
+  /// The link under the empty journal's Speaking card that opens the engine picker
   ///
   /// In en, this message translates to:
-  /// **'Speak, and it\'s written down.'**
-  String get homeEmptyHeadline;
+  /// **'Change engine'**
+  String get homeSetupChangeEngine;
 
-  /// Soft subtitle under the empty-state title, explaining the app and how to start
+  /// The empty journal's last line when recording will work as set
   ///
   /// In en, this message translates to:
-  /// **'Everything you say is transcribed and kept on this device. Pull down to record your first entry.'**
-  String get homeEmptySubtitle;
+  /// **'Pull down, or tap the waveform, to record your first entry.'**
+  String get homeSetupRecord;
+
+  /// The empty journal's last line while the model the first entry needs is not downloaded yet
+  ///
+  /// In en, this message translates to:
+  /// **'You can record now. It\'s written down once {model} is on this iPhone.'**
+  String homeSetupModelLands(String model);
+
+  /// The empty journal's last line when the first entry could not be written as set
+  ///
+  /// In en, this message translates to:
+  /// **'Fix what\'s shown above, or pick another engine.'**
+  String get homeSetupFixFirst;
 
   /// Label beside the waveform hint while pulling the home list down to open the recorder
   ///

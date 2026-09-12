@@ -86,10 +86,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get delete => '삭제';
 
   @override
-  String get homeEmptyHeadline => '말하면, 글로 남습니다.';
+  String get homeSetupChangeEngine => '엔진 변경';
 
   @override
-  String get homeEmptySubtitle => '말하는 모든 내용이 전사되어 이 기기에 저장됩니다. 아래로 당겨 첫 기록을 녹음해 보세요.';
+  String get homeSetupRecord => '아래로 당기거나 파형을 탭해 첫 기록을 녹음해 보세요.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return '지금 녹음할 수 있습니다. $model 모델이 이 iPhone에 준비되면 전사됩니다.';
+  }
+
+  @override
+  String get homeSetupFixFirst => '위에 표시된 문제를 해결하거나 다른 엔진을 고르세요.';
 
   @override
   String get homePullToRecord => '당겨서 녹음';

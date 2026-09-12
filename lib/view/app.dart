@@ -160,8 +160,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             physicalMemoryBytes: Deps.i.physicalMemoryBytes,
           ),
         ),
-        // Root-scoped for the settings screen and the language picker, and
-        // eager: it seeds from synchronous reads and loads unawaited, so its
+        // Root-scoped for the settings screen, the language picker and the
+        // empty journal's setup, and eager: it seeds from synchronous reads and loads unawaited, so its
         // languages are ready before the first recording at no cost here.
         BlocProvider(
           lazy: false,
@@ -172,8 +172,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             models: context.read<ModelsCubit>(),
           ),
         ),
-        // Root-scoped so the choice survives leaving the models screen. Lazy
-        // is fine: nothing needs it before that screen builds, and its
+        // Root-scoped so the choice survives leaving the models screen, and
+        // the empty journal's setup reads the same rows. Lazy is fine: its
         // constructor only snapshots synchronous state.
         BlocProvider(
           create: (_) => EnginesCubit(

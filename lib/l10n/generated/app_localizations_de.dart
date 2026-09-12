@@ -90,11 +90,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get delete => 'Löschen';
 
   @override
-  String get homeEmptyHeadline => 'Sprechen Sie, und es wird notiert.';
+  String get homeSetupChangeEngine => 'Engine ändern';
 
   @override
-  String get homeEmptySubtitle =>
-      'Alles, was Sie sagen, wird transkribiert und auf diesem Gerät behalten. Ziehen Sie nach unten, um Ihren ersten Eintrag aufzunehmen.';
+  String get homeSetupRecord =>
+      'Ziehen Sie nach unten oder tippen Sie auf die Wellenform, um Ihren ersten Eintrag aufzunehmen.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return 'Sie können jetzt aufnehmen. Geschrieben wird, sobald $model auf diesem iPhone ist.';
+  }
+
+  @override
+  String get homeSetupFixFirst =>
+      'Beheben Sie, was oben angezeigt wird, oder wählen Sie eine andere Engine.';
 
   @override
   String get homePullToRecord => 'Zum Aufnehmen ziehen';
