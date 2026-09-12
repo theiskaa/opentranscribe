@@ -29,8 +29,9 @@ String fillerSample({required String localeId, required List<Entry> journal}) {
   final language = languageOf(localeId);
   for (final entry in journal) {
     final tag = entry.effectiveLocaleId;
+    if (tag == null || languageOf(tag) != language) continue;
     final text = entry.readableText?.trim() ?? '';
-    if (tag != null && languageOf(tag) == language && text.length >= _shortestSample) return text;
+    if (text.length >= _shortestSample) return text;
   }
   return switch (language) {
     'ja' => _kanaSample,

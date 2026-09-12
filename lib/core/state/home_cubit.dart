@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/utils/identical_elements.dart';
 
@@ -50,7 +51,7 @@ Set<DateTime> daysWithEntries(List<Entry> entries) {
 /// of them; the calendar navigates rather than filters.
 @immutable
 final class HomeState {
-  HomeState({required this.entries, required this.takePending})
+  HomeState({required this.entries, required this.takePending, this.takeForecast})
     : sections = groupByLocalDay(entries),
       entryDays = daysWithEntries(entries),
       firstEntryDay = earliestEntryDay(entries);
@@ -60,6 +61,9 @@ final class HomeState {
   /// A just-recorded take is being transcribed: its record does not exist yet,
   /// and the list holds its place until it lands.
   final bool takePending;
+
+  /// What the held take is expected to read as, while [takePending] holds.
+  final TakeForecast? takeForecast;
 
   /// Derived once, at construction: home reads these several times per rebuild
   /// while scrolling, and a per-read getter would hand out a fresh [entryDays]
@@ -74,6 +78,7 @@ final class HomeState {
   bool operator ==(Object other) =>
       other is HomeState &&
       other.takePending == takePending &&
+      other.takeForecast == takeForecast &&
       identicalElements(other.entries, entries);
 
   // Length only: == holds across distinct lists with the same elements, so
@@ -101,6 +106,7 @@ class HomeCubit extends Cubit<HomeState> {
   late final StreamSubscription<BatchProgress> _takeSub;
 
   bool _takePending = false;
+  TakeForecast? _takeForecast;
 
   /// The take's pass is over and its record is on its way: the next refresh
   /// carries it (or, for a pass that never landed one, carries nothing), and
@@ -118,7 +124,8 @@ class HomeCubit extends Cubit<HomeState> {
     }
     if (_takePending) return;
     _takePending = true;
-    emit(HomeState(entries: state.entries, takePending: true));
+    _takeForecast = event.forecast;
+    emit(HomeState(entries: state.entries, takePending: true, takeForecast: _takeForecast));
   }
 
   /// Ids removed optimistically whose on-device delete is still in flight. Every
@@ -133,13 +140,18 @@ class HomeCubit extends Cubit<HomeState> {
     if (_takeSettling) {
       _takeSettling = false;
       _takePending = false;
+      _takeForecast = null;
     }
     final visible = _visible();
     // Constructing a HomeState re-derives the day grouping; an unchanged
     // journal should not pay for it. HomeState's own == covers comparers;
     // this return covers the derive cost.
-    if (identicalElements(visible, state.entries) && state.takePending == _takePending) return;
-    emit(HomeState(entries: visible, takePending: _takePending));
+    if (identicalElements(visible, state.entries) &&
+        state.takePending == _takePending &&
+        state.takeForecast == _takeForecast) {
+      return;
+    }
+    emit(HomeState(entries: visible, takePending: _takePending, takeForecast: _takeForecast));
   }
 
   List<Entry> _visible() =>

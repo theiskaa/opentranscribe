@@ -1,11 +1,65 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
+import 'package:opentranscribe/view/widgets/invisible_ink.dart';
+
+/// The rows of a waiting take's cloud, in the shape of the row it becomes
+/// ([EntryRowBody] without a title): about [characters] of [sample]'s words
+/// set as its excerpt at [width], at most [excerptLines] and ellipsized as the
+/// excerpt is, then [meta] as its time line(s) after the row's gap. A right
+/// forecast lands with no change in height.
+List<InkRow> takeCloudRows({
+  required int characters,
+  required String sample,
+  required String meta,
+  required double width,
+  required TextScaler scaler,
+  required int excerptLines,
+}) {
+  final bodySize = scaler.scale(EntryRowBody.excerptStyle.fontSize!);
+  final shown = mostCharacters(width: width, fontSize: bodySize, lines: excerptLines);
+  final excerpt = TextPainter(
+    text: TextSpan(
+      text: fillerText(sample, math.min(characters, shown)),
+      style: EntryRowBody.excerptStyle,
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+    maxLines: excerptLines,
+    ellipsis: '…',
+  )..layout(maxWidth: width);
+  // Unbounded like the row's own time line, which wraps at large text sizes.
+  final time = TextPainter(
+    text: TextSpan(text: meta, style: EntryRowBody.metaStyle),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+  )..layout(maxWidth: width);
+  final rows = <InkRow>[];
+  var top = 0.0;
+  for (final line in excerpt.computeLineMetrics()) {
+    rows.add((top: top, fontSize: bodySize, lineHeight: line.height, measure: line.width));
+    top += line.height;
+  }
+  top = excerpt.height + EntryRowBody.metaGap;
+  final timeSize = scaler.scale(EntryRowBody.metaStyle.fontSize!);
+  for (final line in time.computeLineMetrics()) {
+    rows.add((top: top, fontSize: timeSize, lineHeight: line.height, measure: line.width));
+    top += line.height;
+  }
+  excerpt.dispose();
+  time.dispose();
+  return rows;
+}
 
 /// The take's place in the list while it is being transcribed: a record's rail
 /// and node with a cloud of ink where its words will be. The cloud is not a
@@ -17,9 +71,23 @@ import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 /// on a row that is still assembling would open a screen the reader did not
 /// aim at. The settled row takes over from [EntryRow] on [onWritten].
 class TakeRow extends StatelessWidget {
-  const TakeRow({required this.entry, required this.last, required this.onWritten, super.key});
+  const TakeRow({
+    required this.entry,
+    required this.forecast,
+    required this.sample,
+    required this.last,
+    required this.onWritten,
+    super.key,
+  });
 
   final Entry? entry;
+
+  /// What the take is expected to read as; the cloud takes its shape. Null
+  /// holds a few lines instead.
+  final TakeForecast? forecast;
+
+  /// Words in the take's language to lay the forecast out in ([fillerSample]).
+  final String sample;
 
   /// The day's last living record; see [EntryRow.last].
   final bool last;
@@ -28,8 +96,8 @@ class TakeRow extends StatelessWidget {
   /// back as an ordinary record.
   final VoidCallback onWritten;
 
-  /// How tall the waiting cloud stands, in body lines: a short record's
-  /// excerpt and the meta line under it, so the ink looks like what it becomes.
+  /// How tall the waiting cloud stands without a forecast, in body lines: a
+  /// short record's excerpt and the meta line under it.
   static const int _placeholderLines = 3;
 
   @override
@@ -37,6 +105,9 @@ class TakeRow extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final entry = this.entry;
+    final forecast = this.forecast;
+    final excerptLines = theme.entryList.excerptLines;
+    final locale = localeTag(context);
     return EntryRail(
       last: last,
       leadStyle: entry == null ? AppType.body : EntryRowBody.leadStyleOf(entry),
@@ -48,6 +119,18 @@ class TakeRow extends StatelessWidget {
           color: theme.entryList.excerptColor,
           background: theme.screens.home,
           placeholderLines: _placeholderLines,
+          placeholderRows: forecast == null
+              ? null
+              : (width, scaler) => takeCloudRows(
+                  characters: forecast.characters,
+                  sample: sample,
+                  // The record's own time is stamped when it lands; tabular
+                  // digits make this minute's as wide.
+                  meta: EntryRowBody.metaLine(DateTime.now(), forecast.audio, locale),
+                  width: width,
+                  scaler: scaler,
+                  excerptLines: excerptLines,
+                ),
           onWriteFinished: onWritten,
           child: entry == null
               ? const SizedBox(width: double.infinity)

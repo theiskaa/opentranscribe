@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
@@ -35,6 +36,7 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
 
@@ -873,6 +875,10 @@ class _RecordsList extends StatelessWidget {
     final takeDay = takeAlive ? localDayOf(writing?.createdAt ?? DateTime.now()) : null;
     final takeSection = takeDay == null ? -1 : sectionDays.indexOf(takeDay);
     final takeLeads = takeAlive && takeSection < 0;
+    final takeForecast = state.takeForecast;
+    final takeSample = takeForecast == null
+        ? ''
+        : fillerSample(localeId: takeForecast.localeId, journal: state.entries);
 
     final unseating = unseatingCards(
       cards: cards,
@@ -900,7 +906,14 @@ class _RecordsList extends StatelessWidget {
       children: [
         if (takeAlive && takeLeads) ...[
           _SplitterLabel(day: takeDay!, gapless: true),
-          _TakeSlot(key: const ValueKey('take'), entry: writing, last: true, onWritten: onWritten),
+          _TakeSlot(
+            key: const ValueKey('take'),
+            entry: writing,
+            forecast: takeForecast,
+            sample: takeSample,
+            last: true,
+            onWritten: onWritten,
+          ),
         ],
         for (final (s, section) in sections.indexed) ...[
           for (final (g, day) in ghosts[s].indexed) ...[
@@ -948,6 +961,8 @@ class _RecordsList extends StatelessWidget {
             _TakeSlot(
               key: const ValueKey('take'),
               entry: writing,
+              forecast: takeForecast,
+              sample: takeSample,
               last: allDying(sectionIds[s].where((id) => id != writingId), dyingIds),
               onWritten: onWritten,
             ),
@@ -1006,9 +1021,18 @@ class _RecordsList extends StatelessWidget {
 /// whole life (it keeps its key as it moves from leading the list to sitting
 /// inside its day's section), so the ink that waits is the ink that resolves.
 class _TakeSlot extends StatelessWidget {
-  const _TakeSlot({required this.entry, required this.last, required this.onWritten, super.key});
+  const _TakeSlot({
+    required this.entry,
+    required this.forecast,
+    required this.sample,
+    required this.last,
+    required this.onWritten,
+    super.key,
+  });
 
   final Entry? entry;
+  final TakeForecast? forecast;
+  final String sample;
   final bool last;
   final VoidCallback onWritten;
 
@@ -1016,7 +1040,13 @@ class _TakeSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ArrivalUnfold(
       entrance: true,
-      child: TakeRow(entry: entry, last: last, onWritten: onWritten),
+      child: TakeRow(
+        entry: entry,
+        forecast: forecast,
+        sample: sample,
+        last: last,
+        onWritten: onWritten,
+      ),
     );
   }
 }

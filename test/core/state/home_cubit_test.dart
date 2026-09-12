@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -169,6 +170,37 @@ void main() {
 
       expect(seen, [true, false]);
       expect(cubit.state.entries, hasLength(1));
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('two states that differ only in their forecast are not the same', () {
+      const forecast = TakeForecast(
+        audio: Duration(seconds: 2),
+        speech: Duration(seconds: 1),
+        localeId: 'en-US',
+        characters: 16,
+      );
+      final entries = [entryAt(DateTime(2026, 7, 20))];
+      expect(
+        HomeState(entries: entries, takePending: true, takeForecast: forecast),
+        isNot(HomeState(entries: entries, takePending: true)),
+      );
+    });
+
+    test('the held take carries its forecast, and lets it go with the hold', () async {
+      final cubit = HomeCubit(service: service);
+      final seen = <HomeState>[];
+      final sub = cubit.stream.listen(seen.add);
+
+      await service.startRecording();
+      await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      await pumpEventQueue();
+
+      expect(seen.first.takeForecast?.audio, const Duration(seconds: 2));
+      expect(cubit.state.takeForecast, isNull);
       await sub.cancel();
       await cubit.close();
     });

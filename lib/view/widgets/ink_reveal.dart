@@ -71,6 +71,8 @@ class InkReveal extends StatefulWidget {
   /// The placeholder cloud's own lines at the width this widget gets and the
   /// reader's text scale, in place of [placeholderLines] (which still stand in
   /// when it lays out none); the cloud stands exactly as tall as the rows.
+  /// Laid out once per wait, and used even when text is on screen: going
+  /// pending then means other words are coming, not these.
   final InkRowsBuilder? placeholderRows;
 
   /// Fired once when a write-on actually begins (or is skipped under Reduce
@@ -166,7 +168,9 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     _arrivalQueued = false;
     _done = false;
     _quick = false;
-    final prepared = hadText && _capture() || _preparePlaceholder();
+    // A cloud shaped by its caller waits for new words, never the old ones.
+    final dissolves = hadText && widget.placeholderRows == null;
+    final prepared = dissolves && _capture() || _preparePlaceholder();
     if (!prepared) return;
     setState(() => _shimmering = true);
     _clock

@@ -83,6 +83,19 @@ class EntryRowBody extends StatelessWidget {
   static TextStyle leadStyleOf(Entry entry) =>
       entry.title != null ? AppType.headline : AppType.body;
 
+  // Shared with a waiting take's cloud, which must stand exactly this tall.
+  static const TextStyle excerptStyle = AppType.body;
+  static const double metaGap = AppSpacing.xs;
+
+  /// The time line at the body's line height, set here rather than inherited
+  /// from the app's default text style, so a cloud measuring it agrees.
+  static final TextStyle metaStyle = AppType.digits(
+    AppType.footnote,
+  ).copyWith(height: AppType.body.height);
+
+  static String metaLine(DateTime at, Duration length, String locale) =>
+      '${formatTime(at, locale)} · ${formatDurationCompact(length)}';
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.entryList;
@@ -106,15 +119,14 @@ class EntryRowBody extends StatelessWidget {
           excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
           maxLines: tokens.excerptLines,
           overflow: TextOverflow.ellipsis,
-          style: AppType.body.copyWith(
+          style: excerptStyle.copyWith(
             color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: metaGap),
         Text(
-          '${formatTime(entry.createdAt, localeTag(context))} · '
-          '${formatDurationCompact(entry.duration)}',
-          style: AppType.digits(AppType.footnote).copyWith(color: tokens.metaColor),
+          metaLine(entry.createdAt, entry.duration, localeTag(context)),
+          style: metaStyle.copyWith(color: tokens.metaColor),
         ),
       ],
     );
