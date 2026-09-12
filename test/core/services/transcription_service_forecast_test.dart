@@ -4,12 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+
+class _BrokenPace extends SpeakingPace {
+  _BrokenPace(LocalService storage) : super(storage: storage);
+
+  @override
+  Future<void> learn(String localeId, {required int characters, required Duration speech}) =>
+      throw StateError('storage gone');
+}
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -24,7 +33,7 @@ void main() {
   var wall = fixedClock;
   var idCounter = 0;
 
-  TranscriptionService build(TranscriptionEngine engine) {
+  TranscriptionService build(TranscriptionEngine engine, {SpeakingPace? pace}) {
     idCounter = 0;
     return TranscriptionService(
       recorder: recorder,
@@ -38,6 +47,7 @@ void main() {
       monotonic: () => now,
       idGenerator: () => 'id-${idCounter++}',
       fileDeleter: (f) async => f.deleteSync(),
+      pace: pace,
     );
   }
 
@@ -281,6 +291,130 @@ void main() {
       await svc.startRecording();
       await svc.dispose();
       expect(recorder.levelController.hasListener, isFalse);
+    });
+  });
+
+  group('the pace', () {
+    final learnedFromTake = nextPace(null, observed: 100 / 4, starting: 16);
+
+    Future<SpeakingPace> afterTake(
+      TranscriptionEngine Function(FakeAudioRecorder recorder) engine, {
+      int speaking = 40,
+      String? secondLanguage,
+      bool continuing = false,
+      bool live = false,
+    }) async {
+      recorder = FakeAudioRecorder(
+        recordingsDir: dir.path,
+        path: 'tail.m4a',
+        duration: const Duration(seconds: 10),
+      );
+      final svc = build(engine(recorder), pace: SpeakingPace(storage: storage));
+      await svc.startRecording(continuing: continuing ? store.read('base') : null);
+      if (secondLanguage != null) {
+        wall = wall.add(const Duration(seconds: 5));
+        await svc.setSessionLocale(secondLanguage);
+      }
+      if (live) await svc.liveEvents.first;
+      await speak(0.1, 10);
+      await speak(0.8, speaking);
+      await svc.stopRecording();
+      await pumpEventQueue();
+      await svc.dispose();
+      return SpeakingPace(storage: storage);
+    }
+
+    test('learns from a one-language take that landed words', () async {
+      final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100));
+      expect(pace.of('en-US'), closeTo(learnedFromTake, 1e-9));
+    });
+
+    test('learns from a continuation\'s own words, not the entry they grew', () async {
+      await seedBase(
+        transcript: Transcript(
+          fullText: 'y' * 200,
+          segments: [
+            TranscriptSegment(
+              text: 'y' * 200,
+              start: Duration.zero,
+              end: const Duration(seconds: 9),
+            ),
+          ],
+          localeId: 'en-US',
+          engineId: 'fake',
+          createdAt: fixedClock,
+        ),
+      );
+      final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100), continuing: true);
+      expect(pace.of('en-US'), closeTo(learnedFromTake, 1e-9));
+    });
+
+    test('learns nothing from an unheard entry\'s pass over the whole grown file', () async {
+      await seedBase();
+      final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100), continuing: true);
+      expect(pace.of('en-US'), 16);
+    });
+
+    test('learns nothing from a take under three seconds of speech', () async {
+      final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100), speaking: 20);
+      expect(pace.of('en-US'), 16);
+    });
+
+    test('learns nothing from a two-language take, in either language', () async {
+      final pace = await afterTake(
+        (_) => FakeBatchEngine(cannedText: 'x' * 100, supportedLocaleTags: ['en-US', 'ja-JP']),
+        secondLanguage: 'ja-JP',
+      );
+      expect(pace.of('en-US'), 16);
+      expect(pace.of('ja-JP'), 6.5);
+    });
+
+    test('learns nothing from a pass that heard no words', () async {
+      final pace = await afterTake((_) => FakeBatchEngine(cannedText: ''));
+      expect(pace.of('en-US'), 16);
+    });
+
+    test('learns nothing from live words saved in place of a failed pass', () async {
+      final pace = await afterTake(
+        (rec) =>
+            FakeStreamingEngine(cannedText: 'x' * 100, failBatch: true, stopSignal: rec.stopped),
+        live: true,
+      );
+      expect(pace.of('en-US'), 16);
+    });
+
+    test('forecasts the next take at the pace it learned', () async {
+      final learned = SpeakingPace(storage: storage);
+      await learned.learn('en-US', characters: 250, speech: const Duration(seconds: 10));
+      final svc = build(
+        FakeBatchEngine(cannedText: 'words'),
+        pace: SpeakingPace(storage: storage),
+      );
+      final events = <BatchProgress>[];
+      svc.batchProgress.listen(events.add);
+
+      await svc.startRecording();
+      await speak(0.1, 10);
+      await speak(0.8, 10);
+      await svc.stopRecording();
+      await pumpEventQueue();
+
+      expect(events.first.forecast?.characters, learned.of('en-US').round());
+
+      await svc.dispose();
+    });
+
+    test('a pace that cannot learn never costs the take its words', () async {
+      final svc = build(FakeBatchEngine(cannedText: 'x' * 100), pace: _BrokenPace(storage));
+      await svc.startRecording();
+      await speak(0.1, 10);
+      await speak(0.8, 40);
+      final entry = await svc.stopRecording();
+      await pumpEventQueue();
+
+      expect(entry.transcript?.fullText, 'x' * 100);
+
+      await svc.dispose();
     });
   });
 }

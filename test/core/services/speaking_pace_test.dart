@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/services/speaking_pace.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('startingPace', () {
@@ -56,6 +58,73 @@ void main() {
         spans: [(startMs: 0, tag: 'en-US'), (startMs: 20000, tag: 'ja-JP')],
       );
       expect(late, 160);
+    });
+  });
+
+  group('nextPace', () {
+    test('a take moves the pace part of the way toward it', () {
+      expect(nextPace(null, observed: 20, starting: 16), closeTo(17.2, 1e-9));
+      expect(nextPace(17.2, observed: 20, starting: 16), closeTo(18.04, 1e-9));
+    });
+
+    test('takes at one pace draw the pace to it', () {
+      double? pace;
+      for (var i = 0; i < 20; i++) {
+        pace = nextPace(pace, observed: 12, starting: 16);
+      }
+      expect(pace, closeTo(12, 0.01));
+    });
+
+    test('one mangled pass counts as no more than double the start and no less than half', () {
+      expect(nextPace(null, observed: 400, starting: 16), closeTo(16 + 0.3 * 16, 1e-9));
+      expect(nextPace(null, observed: 0.5, starting: 16), closeTo(16 - 0.3 * 8, 1e-9));
+    });
+
+    test('an observed pace that is not finite teaches nothing', () {
+      expect(nextPace(15, observed: double.infinity, starting: 16), 15);
+      expect(nextPace(15, observed: double.nan, starting: 16), 15);
+    });
+  });
+
+  group('SpeakingPace', () {
+    const key = 'test-encryption-key-0123456789ab';
+    late LocalService storage;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      storage = LocalService();
+      await storage.init(legacyKey: key);
+    });
+
+    test('a language no take has taught runs at its starting pace', () {
+      expect(SpeakingPace(storage: storage).of('ja-JP'), 6.5);
+    });
+
+    test('a landed take moves its language, and every region of it', () async {
+      final pace = SpeakingPace(storage: storage);
+      await pace.learn('en-US', characters: 200, speech: const Duration(seconds: 10));
+      expect(pace.of('en-US'), closeTo(17.2, 1e-9));
+      expect(pace.of('en-GB'), closeTo(17.2, 1e-9));
+      expect(pace.of('de-DE'), 16);
+    });
+
+    test('a take under three seconds of speech, or with no words, teaches nothing', () async {
+      final pace = SpeakingPace(storage: storage);
+      await pace.learn('en-US', characters: 100, speech: const Duration(seconds: 2));
+      await pace.learn('en-US', characters: 0, speech: const Duration(seconds: 10));
+      expect(pace.of('en-US'), 16);
+    });
+
+    test('what was learned survives a relaunch', () async {
+      await SpeakingPace(
+        storage: storage,
+      ).learn('ko-KR', characters: 100, speech: const Duration(seconds: 10));
+      expect(SpeakingPace(storage: storage).of('ko-KR'), closeTo(7.5 + 0.3 * 2.5, 1e-9));
+    });
+
+    test('a stored value that cannot be read falls back to the start', () async {
+      await storage.write('transcribe.speakingPace', 'not json');
+      expect(SpeakingPace(storage: storage).of('en-US'), 16);
     });
   });
 }

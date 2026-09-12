@@ -37,6 +37,7 @@ import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:opentranscribe/core/services/support_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
@@ -401,6 +402,7 @@ class Deps {
       store: entryStore,
       composer: PlatformAudioComposer(),
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
+      pace: SpeakingPace(storage: localService),
       keepAudio: () => audioStorageSettings.keepAudio,
       thermalPressure: () => thermalMonitor.underPressure,
     );

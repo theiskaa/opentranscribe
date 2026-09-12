@@ -119,6 +119,7 @@ class TranscriptionService {
     this.localeId = 'en-US',
     this._batchTimeout = const Duration(minutes: 2),
     this._peaksReader,
+    this._pace,
     DateTime Function()? clock,
     String Function()? idGenerator,
     Future<void> Function(File file)? fileDeleter,
@@ -321,6 +322,10 @@ class TranscriptionService {
   /// Null in tests that do not care; the detail screen then backfills on the
   /// first open instead.
   final Future<List<double>> Function(String path)? _peaksReader;
+
+  /// Learns each language's pace from the takes that land, for the forecast
+  /// of the next; null forecasts at the starting pace and learns nothing.
+  final SpeakingPace? _pace;
 
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
@@ -1070,7 +1075,7 @@ class TranscriptionService {
           speech: speech,
           audio: recording.duration,
           spans: spans.isNotEmpty ? spans : [(startMs: 0, tag: openingLocale)],
-          pace: startingPace,
+          pace: _pace?.of ?? startingPace,
         ),
       );
       // A fallen-back tail lands as its own entry, not where its forecast
@@ -1098,6 +1103,14 @@ class TranscriptionService {
           // can be re-transcribed later. Never let a transcription error orphan audio.
           transcript = null;
         }
+        final heard = transcript?.fullText.trim() ?? '';
+        if (kDebugMode) {
+          debugPrint(
+            'forecast: ${forecast.characters} characters over ${forecast.speech} of speech, '
+            'landed ${heard.length}',
+          );
+        }
+        if (spans.length < 2 && heard.isNotEmpty) _learnPace(forecast, heard.length);
         // A take the user watched being written must not settle empty because the
         // engine's file pass failed on audio its live pass understood. The live
         // text stands in (untimed, so no segments), and the audio is kept below
@@ -1211,6 +1224,18 @@ class TranscriptionService {
         if (!settled) _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
       }
     }
+  }
+
+  /// Teaches the pace what a one-language take's words really ran to. Off
+  /// the stop's path: a failed write keeps the move for this session only.
+  void _learnPace(TakeForecast forecast, int characters) {
+    final pace = _pace;
+    if (pace == null) return;
+    unawaited(
+      Future.sync(
+        () => pace.learn(forecast.localeId, characters: characters, speech: forecast.speech),
+      ).catchError((Object _) {}),
+    );
   }
 
   void _emitOutcome(ContinuationOutcome outcome) {
