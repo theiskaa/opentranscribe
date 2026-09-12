@@ -65,6 +65,9 @@ final class ButtonTheme {
     this.height = 52.0,
     this.compactHeight = 36.0,
     this.bandHeight = 32.0,
+    this.bandMinWidth = 116.0,
+    this.bandMaxWidth = 176.0,
+    this.bandMaxShare = 0.45,
     this.radius = AppRadius.pill,
   });
 
@@ -88,6 +91,16 @@ final class ButtonTheme {
   /// A control seated in a card's band under the card's own words, one line
   /// tall, so the band never resizes as the control changes face.
   final double bandHeight;
+
+  /// A band's width floor and ceiling where a list gives every band one width
+  /// beside its row's words.
+  final double bandMinWidth;
+  final double bandMaxWidth;
+
+  /// The most of the screen's width such a band takes, so a narrow phone at
+  /// a large text size still leaves the row's words their room.
+  final double bandMaxShare;
+
   final double radius;
 }
 
@@ -423,6 +436,9 @@ final class SettingsTheme {
     this.iconTileRadius = AppRadius.sm,
     this.iconTileSize = 32.0,
     this.chevronSize = 12.0,
+    this.heroChevronSize = 15.0,
+    this.noteGap = 3.0,
+    this.trailingTargetWidth = 44.0,
     this.dividerInset = 58.0,
     this.rowPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   });
@@ -443,6 +459,17 @@ final class SettingsTheme {
   final double iconTileRadius;
   final double iconTileSize;
   final double chevronSize;
+
+  /// The chevron on a hero card, a size up from a row's.
+  final double heroChevronSize;
+
+  /// Between a name and the note under it, off the spacing scale: xs floats
+  /// the note too far off the name it qualifies.
+  final double noteGap;
+
+  /// A trailing glyph's touch target: the glyph is small, its target is not.
+  final double trailingTargetWidth;
+
   final double dividerInset;
 
   /// Every row's inset, the kit's and any row built to sit among them.
