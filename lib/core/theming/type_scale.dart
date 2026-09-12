@@ -25,6 +25,13 @@ abstract final class AppType {
     fontWeight: FontWeight.w400,
     letterSpacing: -0.08,
   );
+  // A footnote that wraps as a paragraph: a note under a control or a card.
+  static const note = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.08,
+    height: 1.4,
+  );
   static const caption = TextStyle(fontSize: 12, fontWeight: FontWeight.w400);
   static const eyebrow = TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 1.3);
   // A bar title, not a hero: the recorder's readout sits in the top bar, so it

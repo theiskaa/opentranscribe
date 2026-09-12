@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/engine_picker.dart';
+import 'package:opentranscribe/view/widgets/engine_picker.dart';
 
 import '../../support/engine_fixtures.dart';
 

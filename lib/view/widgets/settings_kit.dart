@@ -638,10 +638,7 @@ class SectionInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
-      child: Text(
-        text,
-        style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.4),
-      ),
+      child: Text(text, style: AppType.note.copyWith(color: context.theme.textSecondary)),
     );
   }
 }
@@ -675,7 +672,7 @@ class SectionInfoLink extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(text, style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4)),
+          Text(text, style: AppType.note.copyWith(color: theme.textSecondary)),
           const SizedBox(height: AppSpacing.xs),
           Touchable(
             onTap: onTap,
@@ -703,19 +700,18 @@ class SectionInfoLink extends StatelessWidget {
 
 /// The uppercase group label above a card.
 class SectionLabel extends StatelessWidget {
-  const SectionLabel(this.label, {super.key});
+  const SectionLabel(this.label, {this.top = AppSpacing.xxl, super.key});
 
   final String label;
+
+  /// The breath above the label; less where something above already gives it.
+  final double top;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.sm,
-        top: AppSpacing.xxl,
-        bottom: AppSpacing.sm,
-      ),
+      padding: EdgeInsets.only(left: AppSpacing.sm, top: top, bottom: AppSpacing.sm),
       child: Text(
         label.toUpperCase(),
         style: AppType.eyebrow.copyWith(color: tokens.sectionLabelColor),

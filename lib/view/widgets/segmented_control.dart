@@ -5,7 +5,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-import 'package:opentranscribe/core/utils/platform_caps.dart';
+import 'package:opentranscribe/view/widgets/glass_scope.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The app's segmented control, adaptive like every other native control: the
@@ -45,7 +45,7 @@ class AppSegmentedControl<T> extends StatelessWidget {
       onChanged: onChanged,
       height: height,
     );
-    if (!PlatformCaps.nativeGlass) return drawn;
+    if (!GlassScope.nativeOf(context)) return drawn;
 
     final theme = context.theme;
     final index = segments.indexWhere((s) => s.$1 == selected);

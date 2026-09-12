@@ -7,6 +7,11 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 
+/// Whether [context]'s route is still the top one. Every sheet opener asks
+/// first: two pointers landing on two openers in one frame would otherwise
+/// stack two sheets.
+bool isTopRoute(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
+
 /// A bottom sheet sized to its content, flush to the screen's edges with only
 /// its top corners rounded. It rises, settles, and leaves on
 /// [AppMotion.sheetSpring], seeded with the finger's release velocity so a

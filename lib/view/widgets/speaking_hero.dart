@@ -1,5 +1,9 @@
-import 'package:flutter/widgets.dart';
+import 'dart:async';
 
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -7,18 +11,50 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
+import 'package:opentranscribe/view/widgets/model_failure_sheet.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// The default language as the screen's answer to "what happens when I hit
-/// record": big bare flag, name, and an honest status line naming the engine
-/// that answers. The whole card taps into whatever the screen wires: the
-/// library, or a broken default's story.
+/// The engine the hero's ready line names: by the languages' own engine id,
+/// not the active row, since mid-switch the readiness still describes the
+/// previous engine. Null until the model half agrees ([settled]), so no ready
+/// line lands early.
+String? heroEngineName(
+  List<EngineRowState> engines,
+  SettingsState state, {
+  required bool settled,
+}) => settled
+    ? engines
+          .where((row) => row.descriptor.engineId == state.engineId)
+          .firstOrNull
+          ?.descriptor
+          .displayName
+    : null;
+
+/// The hero's one promise, wherever it shows: when the default is broken its
+/// tap tells that story (with the recovery), otherwise it opens the library.
+void openSpeakingHero(BuildContext context, SettingsState state) {
+  if (!isTopRoute(context)) return;
+  final cubit = context.read<SettingsCubit>();
+  final row = state.defaultLanguage;
+  if (row != null && rowHasFailureStory(row)) {
+    unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
+    return;
+  }
+  unawaited(showLanguageSheet(context, cubit: cubit));
+}
+
+/// The default language as the answer to "what happens when I hit record":
+/// big bare flag, name, and an honest status line naming the engine that
+/// answers. The whole card taps into whatever its host wires.
 class SpeakingHero extends StatelessWidget {
   const SpeakingHero({
     required this.state,

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opentranscribe/core/state/settings_cubit.dart';
-import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:transcriber/transcriber.dart';
 
 void main() {

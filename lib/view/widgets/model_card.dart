@@ -6,15 +6,52 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_actions.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_control.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/model_actions.dart';
+import 'package:opentranscribe/view/widgets/model_control.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
+
+/// What a surface shows of the model half. The two cubits reload apart
+/// across an engine switch, so it shows only once the models describe the
+/// engine the languages do ([languagesEngineId]).
+({bool settled, bool choice, bool acceleration}) modelHalf(
+  ModelsState models, {
+  required String languagesEngineId,
+}) {
+  final settled = models.engineId == languagesEngineId;
+  return (
+    settled: settled,
+    choice: settled && models.offersModelChoice,
+    acceleration: settled && models.offersAcceleration,
+  );
+}
+
+/// The Neural Engine switch as the model card wears it: its state, its line
+/// ([accelerationFootprint]) and what a flip does.
+typedef AccelerationSwitch = ({
+  bool on,
+  ({int bytes, bool uses}) footprint,
+  ValueChanged<bool> onChanged,
+});
+
+/// [AccelerationSwitch] for [models], or null when [shown] is false (an
+/// engine without one, or models describing another engine).
+AccelerationSwitch? accelerationSwitch(
+  BuildContext context,
+  ModelsState models, {
+  required bool shown,
+}) => shown
+    ? (
+        on: models.accelerated,
+        footprint: accelerationFootprint(models.models, on: models.accelerated),
+        onChanged: (on) => setAcceleration(context, on),
+      )
+    : null;
 
 String _qualityWord(AppLocalizations l10n, ModelQuality quality) => switch (quality) {
   ModelQuality.basic => l10n.modelQualityBasic,
@@ -145,7 +182,7 @@ class ModelCard extends StatelessWidget {
 
   /// The Neural Engine switch and its line ([accelerationFootprint]), or null
   /// under an engine without one.
-  final ({bool on, ({int bytes, bool uses}) footprint, ValueChanged<bool> onChanged})? acceleration;
+  final AccelerationSwitch? acceleration;
 
   final VoidCallback onOpen;
 
@@ -248,7 +285,7 @@ class _Face extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           modelTierInfo(l10n, row.option.quality),
-          style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+          style: AppType.note.copyWith(color: theme.textSecondary),
         ),
       ],
     );
@@ -272,7 +309,7 @@ class _Waiting extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final name = row.option.displayName;
     final face = modelRowFace(row);
-    final note = AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4);
+    final note = AppType.note.copyWith(color: theme.textSecondary);
     final Widget? child = switch (face) {
       ModelRowFace.download => AppButton(
         label: l10n.modelDownloadSized(name, formatBytes(row.option.bytes, localeTag(context))),

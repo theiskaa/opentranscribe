@@ -11,10 +11,7 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 
 // What a tap on a model does, shared by the model card, its chips and the
-// model sheet, so each surface words a refusal the same way. Every opener
-// checks the route first: two pointers in one frame must not stack sheets.
-
-bool _onTop(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
+// model sheet, so each surface words a refusal the same way.
 
 /// Starts the model's download, which chooses it once landed. A refusal is a
 /// model a run holds, and the busy words say to wait.
@@ -27,7 +24,7 @@ Future<void> installModel(BuildContext context, ModelRowState row) async {
 /// Makes the model the one runs use. Answers whether the pick was made; a
 /// refused persist still takes for the session and says it will not last.
 Future<bool> useModel(BuildContext context, ModelRowState row) async {
-  if (!_onTop(context)) return false;
+  if (!isTopRoute(context)) return false;
   final l10n = AppLocalizations.of(context)!;
   try {
     await context.read<ModelsCubit>().selectModel(row.option.id);
@@ -45,8 +42,27 @@ Future<bool> useModel(BuildContext context, ModelRowState row) async {
   return true;
 }
 
+/// Turns the Neural Engine on or off. The switch takes for the session
+/// either way; only a refused persist is worth a word.
+Future<void> setAcceleration(BuildContext context, bool on) async {
+  try {
+    await context.read<ModelsCubit>().setAccelerated(on);
+  } catch (_) {
+    if (!context.mounted || !isTopRoute(context)) return;
+    final l10n = AppLocalizations.of(context)!;
+    await showAppSheet<void>(
+      context,
+      builder: (context) => SheetMessage(
+        icon: AppIcons.internaldrive,
+        title: l10n.engineNotSavedTitle,
+        body: l10n.accelerationNotSavedBody,
+      ),
+    );
+  }
+}
+
 Future<void> explainHeavyModel(BuildContext context, ModelRowState row) async {
-  if (!_onTop(context)) return;
+  if (!isTopRoute(context)) return;
   final l10n = AppLocalizations.of(context)!;
   await showAppSheet<void>(
     context,
@@ -62,7 +78,7 @@ Future<void> explainHeavyModel(BuildContext context, ModelRowState row) async {
 /// is really still there: a model that vanished underneath reads as removed
 /// once the reload lands.
 Future<void> confirmRemoveModel(BuildContext context, ModelRowState row) async {
-  if (!_onTop(context)) return;
+  if (!isTopRoute(context)) return;
   final l10n = AppLocalizations.of(context)!;
   final cubit = context.read<ModelsCubit>();
   final held = row.option.bytes + (row.accelerated ? row.option.accelerationBytes : 0);

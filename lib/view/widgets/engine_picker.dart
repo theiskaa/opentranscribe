@@ -59,7 +59,7 @@ String engineNote(AppLocalizations l10n, EngineRowState row) => row.available
 
 /// The engine picker: one segmented control over the engines this build
 /// ships, and under it what the chosen one is. Every engine keeps its
-/// segment, an engine that cannot run here included, and a pick this screen
+/// segment, an engine that cannot run here included, and a pick the app
 /// refuses says why and returns the control to the engine in use.
 class EnginePicker extends StatefulWidget {
   const EnginePicker({required this.rows, super.key});
@@ -76,8 +76,6 @@ class _EnginePickerState extends State<EnginePicker> {
   /// and the answer is the only thing that moves it again.
   String? _pending;
 
-  bool get _onTop => ModalRoute.of(context)?.isCurrent ?? true;
-
   Future<void> _pick(String engineId) async {
     // One ask at a time: a second tap would land on a cubit that drops it and
     // leave the control arguing with the pick already running.
@@ -89,9 +87,7 @@ class _EnginePickerState extends State<EnginePicker> {
     final cubit = context.read<EnginesCubit>();
     setState(() => _pending = engineId);
     try {
-      // Same one-sheet rule as the hero: a second pointer in the same frame
-      // must not stack another sheet.
-      if (!_onTop) return;
+      if (!isTopRoute(context)) return;
       if (!row.available) {
         await showAppSheet<void>(
           context,
@@ -170,10 +166,7 @@ class _EnginePickerState extends State<EnginePicker> {
           child: Padding(
             key: ValueKey((shown.descriptor.engineId, note)),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            child: Text(
-              note,
-              style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
-            ),
+            child: Text(note, style: AppType.note.copyWith(color: theme.textSecondary)),
           ),
         ),
       ],

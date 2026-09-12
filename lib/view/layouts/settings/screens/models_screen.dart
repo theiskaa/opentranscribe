@@ -10,43 +10,25 @@ import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
-import 'package:opentranscribe/view/layouts/settings/components/engine_picker.dart';
-import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_actions.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_card.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_chips.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/engine_picker.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/model_actions.dart';
+import 'package:opentranscribe/view/widgets/model_card.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
+import 'package:opentranscribe/view/widgets/model_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
-import 'package:opentranscribe/view/widgets/sheet_message.dart';
+import 'package:opentranscribe/view/widgets/speaking_hero.dart';
 import 'package:transcriber/transcriber.dart';
-
-/// What the screen shows of the model half. The two cubits reload apart
-/// across an engine switch, so it shows only once the models describe the
-/// engine the languages do ([languagesEngineId]).
-({bool settled, bool choice, bool acceleration}) modelHalf(
-  ModelsState models, {
-  required String languagesEngineId,
-}) {
-  final settled = models.engineId == languagesEngineId;
-  return (
-    settled: settled,
-    choice: settled && models.offersModelChoice,
-    acceleration: settled && models.offersAcceleration,
-  );
-}
 
 /// The transcription screen as an answer to one question, what happens when I
 /// hit record: the engine picker on top, the default language as a hero card
@@ -88,54 +70,6 @@ class _ModelsScreenState extends State<ModelsScreen> {
     );
   }
 
-  /// Whether the screen is still the top route: two pointers landing on two
-  /// sheet-opening surfaces in one frame would otherwise stack two sheets.
-  bool _onTop(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
-
-  /// The switch takes for the session either way; only a refused persist is
-  /// worth a word.
-  Future<void> _setAccelerated(BuildContext context, bool on) async {
-    final cubit = context.read<ModelsCubit>();
-    try {
-      await cubit.setAccelerated(on);
-    } catch (_) {
-      if (!context.mounted || !_onTop(context)) return;
-      final l10n = AppLocalizations.of(context)!;
-      await showAppSheet<void>(
-        context,
-        builder: (context) => SheetMessage(
-          icon: AppIcons.internaldrive,
-          title: l10n.engineNotSavedTitle,
-          body: l10n.accelerationNotSavedBody,
-        ),
-      );
-    }
-  }
-
-  void _openModelSheet(BuildContext context) {
-    if (!_onTop(context)) return;
-    unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>()));
-  }
-
-  void _openLanguageSheet(BuildContext context) {
-    if (!_onTop(context)) return;
-    unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
-  }
-
-  /// The hero keeps its one promise: when the default is broken its tap tells
-  /// that story (with the recovery), otherwise it opens the library. The Add
-  /// chip, wherever the strip shows, stays a library door either way.
-  void _openHero(BuildContext context, SettingsState state) {
-    if (!_onTop(context)) return;
-    final cubit = context.read<SettingsCubit>();
-    final row = state.defaultLanguage;
-    if (row != null && rowHasFailureStory(row)) {
-      unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
-      return;
-    }
-    unawaited(showLanguageSheet(context, cubit: cubit));
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -173,29 +107,20 @@ class _ModelsScreenState extends State<ModelsScreen> {
               // Breath under the bar before the control; sm reads cramped
               // against the frosted edge.
               const SizedBox(height: 10),
-              _Melt(child: EnginePicker(rows: engineRows)),
+              Melt(child: EnginePicker(rows: engineRows)),
               SectionLabel(l10n.transcriptionSpeaking),
-              _Melt(
+              Melt(
                 child: SpeakingHero(
                   state: state,
                   selectedModel: choice ? selectedModel : null,
-                  // By the state's own engine id, not the active row: mid-switch
-                  // the readiness still describes the previous engine. Unnamed
-                  // until the model half agrees, so no ready line lands early.
-                  engineName: settled
-                      ? engineRows
-                            .where((row) => row.descriptor.engineId == state.engineId)
-                            .firstOrNull
-                            ?.descriptor
-                            .displayName
-                      : null,
-                  onTap: () => _openHero(context, state),
+                  engineName: heroEngineName(engineRows, state, settled: settled),
+                  onTap: () => openSpeakingHero(context, state),
                 ),
               ),
               // The label only when something IS also ready; the Add chip
               // stays wherever the strip does, as the library door a broken
               // default's hero (routing to its story) cannot be.
-              _Melt(
+              Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -220,13 +145,13 @@ class _ModelsScreenState extends State<ModelsScreen> {
                             await context.read<SettingsCubit>().setLocale(tag);
                           } catch (_) {}
                         },
-                        onAdd: () => _openLanguageSheet(context),
+                        onAdd: () => openLanguageSheet(context),
                       ),
                     ],
                   ],
                 ),
               ),
-              _Melt(
+              Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -234,17 +159,8 @@ class _ModelsScreenState extends State<ModelsScreen> {
                       SectionLabel(l10n.transcriptionModel),
                       ModelCard(
                         row: selectedModel,
-                        acceleration: acceleration
-                            ? (
-                                on: models.accelerated,
-                                footprint: accelerationFootprint(
-                                  models.models,
-                                  on: models.accelerated,
-                                ),
-                                onChanged: (on) => _setAccelerated(context, on),
-                              )
-                            : null,
-                        onOpen: () => _openModelSheet(context),
+                        acceleration: accelerationSwitch(context, models, shown: acceleration),
+                        onOpen: () => openModelSheet(context),
                       ),
                       // The languages' rule: the label only over chips.
                       AnimatedSwitcher(
@@ -257,14 +173,14 @@ class _ModelsScreenState extends State<ModelsScreen> {
                       ModelChipStrip(
                         rows: modelChips,
                         onPick: (row) => unawaited(useModel(context, row)),
-                        onMore: () => _openModelSheet(context),
+                        onMore: () => openModelSheet(context),
                       ),
                     ],
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              _Melt(
+              Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -297,26 +213,6 @@ class _ModelsScreenState extends State<ModelsScreen> {
   }
 }
 
-/// An engine switch regrows half the screen at once (chips leave, slot lines
-/// and footnotes land, statuses reword); each section rides its own resize
-/// instead of snapping the whole page a frame. Instant under Reduce Motion.
-class _Melt extends StatelessWidget {
-  const _Melt({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final motion = context.theme.motion;
-    return AnimatedSize(
-      duration: context.reduceMotion ? AppMotion.instant : motion.indicator,
-      curve: motion.indicatorCurve,
-      alignment: Alignment.topCenter,
-      child: child,
-    );
-  }
-}
-
 /// Re-transcribe the journal, in the bar where a screen's own action
 /// belongs. A run in flight tints the glyph; its numbers live in the sheet.
 class _RetranscribeAction extends StatelessWidget {
@@ -332,7 +228,7 @@ class _RetranscribeAction extends StatelessWidget {
       color: running ? context.theme.accent : color,
       semanticLabel: AppLocalizations.of(context)!.retranscribeAllTitle,
       onTap: () {
-        if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+        if (!isTopRoute(context)) return;
         unawaited(showRetranscribeSheet(context));
       },
     );

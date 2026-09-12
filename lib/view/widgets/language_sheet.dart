@@ -10,18 +10,24 @@ import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
+import 'package:opentranscribe/view/widgets/model_failure_sheet.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
+
+/// [showLanguageSheet] from a tap, while the route is still on top.
+void openLanguageSheet(BuildContext context) {
+  if (!isTopRoute(context)) return;
+  unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
+}
 
 /// The whole language library in one sheet: Your languages (the kept set;
 /// tapping one makes it the default and closes the sheet, the remove
@@ -283,9 +289,7 @@ class _SheetRow extends StatelessWidget {
   }
 
   Future<void> _tap(BuildContext context) async {
-    // One sheet at a time, like the screen's openers: two pointers landing on
-    // two broken rows in one frame must not stack two failure sheets.
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    if (!isTopRoute(context)) return;
     final cubit = context.read<SettingsCubit>();
     if (rowHasFailureStory(row)) {
       unawaited(showModelFailureSheet(context, cubit: cubit, row: row));

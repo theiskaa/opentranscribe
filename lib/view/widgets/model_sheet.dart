@@ -9,12 +9,12 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_actions.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_card.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_control.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/model_actions.dart';
+import 'package:opentranscribe/view/widgets/model_card.dart';
+import 'package:opentranscribe/view/widgets/model_control.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -30,6 +30,12 @@ Future<void> showModelSheet(BuildContext context, {required ModelsCubit cubit}) 
     inset: AppSpacing.md,
     builder: (context) => BlocProvider.value(value: cubit, child: const _ModelList()),
   );
+}
+
+/// [showModelSheet] from a tap, while the route is still on top.
+void openModelSheet(BuildContext context) {
+  if (!isTopRoute(context)) return;
+  unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>()));
 }
 
 class _ModelList extends StatelessWidget {
@@ -159,7 +165,7 @@ class _SheetRow extends StatelessWidget {
           // beside the control.
           Text(
             modelTierInfo(l10n, row.option.quality),
-            style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+            style: AppType.note.copyWith(color: theme.textSecondary),
           ),
         ],
       ),
@@ -240,7 +246,7 @@ class _FailureLine extends StatelessWidget {
   }
 
   Future<void> _story(BuildContext context) async {
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    if (!isTopRoute(context)) return;
     final l10n = AppLocalizations.of(context)!;
     final (title, body) = modelFailureWords(l10n, row, localeTag: localeTag(context));
     await showAppSheet<void>(
