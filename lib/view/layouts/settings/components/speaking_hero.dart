@@ -83,9 +83,7 @@ class SpeakingHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppType.headline.copyWith(color: theme.text),
                         ),
-                        // 3, off the scale: xs floats the status too far off
-                        // the name it qualifies.
-                        const SizedBox(height: 3),
+                        SizedBox(height: theme.settings.noteGap),
                         // One footnote line always, held by the invisible ruler: a slot
                         // that breathed with the words would shove the name and flag
                         // on every switch.
@@ -115,7 +113,11 @@ class SpeakingHero extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  AppIcon(AppIcons.chevronForward, size: 15, color: theme.textSecondary),
+                  AppIcon(
+                    AppIcons.chevronForward,
+                    size: theme.settings.heroChevronSize,
+                    color: theme.textSecondary,
+                  ),
                 ],
               ),
             ),

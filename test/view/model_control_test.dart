@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/state/models_cubit.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_control.dart';
 import 'package:transcriber/transcriber.dart';
@@ -106,6 +109,71 @@ void main() {
 
       expect(face.fill, 0);
       expect(face.label, '0%');
+    });
+  });
+
+  group('modelControlWidth', () {
+    const bandHeight = 32.0;
+    final label = AppType.footnote.copyWith(fontWeight: FontWeight.w600);
+
+    double width({
+      double floor = 0,
+      double ceiling = double.infinity,
+      TextScaler textScaler = TextScaler.noScaling,
+    }) => modelControlWidth(
+      l10n,
+      bandHeight: bandHeight,
+      floor: floor,
+      ceiling: ceiling,
+      textScaler: textScaler,
+    );
+
+    double measure(String text, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      addTearDown(painter.dispose);
+      return painter.width;
+    }
+
+    test('a floor above every face holds, so every control keeps one width', () {
+      expect(width(floor: 500, ceiling: 600), 500);
+    });
+
+    test('the width stops at the ceiling, leaving the name its room', () {
+      expect(width(ceiling: 10), 10);
+    });
+
+    test('a ceiling under the floor yields the floor rather than failing', () {
+      expect(width(floor: 116, ceiling: 50), 116);
+    });
+
+    test('larger text widens the control', () {
+      expect(width(textScaler: const TextScaler.linear(2)), greaterThan(width()));
+    });
+
+    test('it covers the queued bar beside its open cancel seat', () {
+      final queued =
+          measure(l10n.modelQueued, AppType.digits(label)) +
+          2 * AppSpacing.sm +
+          bandHeight +
+          AppSpacing.sm;
+      expect(width(), greaterThanOrEqualTo(queued));
+    });
+
+    test('it covers the download pill with its glyph at the width the icon font draws it', () {
+      final glyph = measure(
+        String.fromCharCode(AppIcons.icloud.codePoint),
+        TextStyle(
+          inherit: false,
+          fontFamily: AppIcons.icloud.fontFamily,
+          fontSize: ModelControl.glyphSize,
+        ),
+      );
+      final download =
+          measure(l10n.modelDownload, label) + 2 * AppSpacing.md + glyph + AppSpacing.xs;
+      expect(width(), greaterThanOrEqualTo(download));
     });
   });
 }

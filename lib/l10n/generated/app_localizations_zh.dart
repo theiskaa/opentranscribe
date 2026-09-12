@@ -374,9 +374,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcriptionFootnote => '模型只下载一次，并与系统共享。';
 
   @override
-  String get transcriptionEngines => '引擎';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple 最新的引擎，每种语言下载一个模型';
 
   @override
@@ -499,11 +496,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return '点按下载 · $model';
+    return '需要 $model 模型';
   }
 
   @override
   String get transcriptionModelFootnote => '模型只需下载一次，之后留在应用内。';
+
+  @override
+  String get transcriptionAlsoDownloaded => '其他已下载模型';
+
+  @override
+  String get transcriptionMoreModels => '更多模型';
+
+  @override
+  String get transcriptionAllModels => '所有模型';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return '未下载 · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return '下载 $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return '增加 $size，只需准备一次';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return '在此 iPhone 上占用 $size';
+  }
+
+  @override
+  String get modelPreparingNote => '正在为 Neural Engine 做准备。只需一次，需要几分钟。';
+
+  @override
+  String get modelSheetFootnote => '下载的模型准备好后即会使用，并一直留在应用内，直到你将其移除。';
 
   @override
   String get modelNotSavedBody => '无法保存模型选择，重新启动后不会保留。';
@@ -590,11 +622,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => '用 Neural Engine 加速';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return '在 Neural Engine 上运行每个模型的编码器。每个模型需要第二次下载（使用中的模型为 $size），以及一次性的准备，较大的模型需要几分钟。';
-  }
 
   @override
   String get accelerationNotSavedBody => 'Neural Engine 的选择未能保存，重新启动后不会保留。';

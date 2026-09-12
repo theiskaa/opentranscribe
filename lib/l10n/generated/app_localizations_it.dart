@@ -397,9 +397,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'I modelli si scaricano una volta e sono condivisi con il sistema.';
 
   @override
-  String get transcriptionEngines => 'Motori';
-
-  @override
   String get engineBlurbSpeechAnalyzer =>
       'Il motore più recente di Apple, un modello scaricato per lingua';
 
@@ -524,11 +521,48 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return 'Tocca per scaricare · $model';
+    return 'Serve il modello $model';
   }
 
   @override
   String get transcriptionModelFootnote => 'Il modello si scarica una volta e resta nell\'app.';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'Anche scaricati';
+
+  @override
+  String get transcriptionMoreModels => 'Altri modelli';
+
+  @override
+  String get transcriptionAllModels => 'Tutti i modelli';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return 'Non scaricato · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return 'Scarica $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return 'Aggiunge $size, con una preparazione una tantum';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'Occupa $size su questo iPhone';
+  }
+
+  @override
+  String get modelPreparingNote =>
+      'Preparazione per il Neural Engine. Richiede qualche minuto, una volta sola.';
+
+  @override
+  String get modelSheetFootnote =>
+      'Un modello scaricato si usa appena è pronto e resta nell\'app finché non lo rimuovi.';
 
   @override
   String get modelNotSavedBody =>
@@ -622,11 +656,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => 'Più veloce con il Neural Engine';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return 'Esegue l\'encoder di ogni modello sul Neural Engine. Ogni modello richiede un secondo download ($size per quello in uso) e una preparazione una tantum che sui modelli più grandi richiede minuti.';
-  }
 
   @override
   String get accelerationNotSavedBody =>

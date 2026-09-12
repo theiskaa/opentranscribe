@@ -180,10 +180,10 @@ class SelectableRow extends StatelessWidget {
   }
 }
 
-/// A settings row whose whole width toggles a switch: an icon tile, a label,
-/// and the drawn [AppToggle]. The row is the 44pt touch target the 31pt switch
-/// alone would miss; the knob's own tap wins the arena and carries the haptic,
-/// so the row does not double-fire.
+/// A settings row whose whole width toggles a switch: an icon tile, a label
+/// over an optional [note], and the drawn [AppToggle]. The row is the 44pt
+/// touch target the 31pt switch alone would miss; the knob's own tap wins the
+/// arena and carries the haptic, so the row does not double-fire.
 ///
 /// A null [onChanged] disables the row: it stops responding, the label dims, and
 /// the knob draws at half strength - for a toggle whose precondition is not met
@@ -194,11 +194,13 @@ class SettingsToggleRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.note,
     super.key,
   });
 
   final IconData icon;
   final String label;
+  final String? note;
   final bool value;
   final ValueChanged<bool>? onChanged;
 
@@ -227,8 +229,13 @@ class SettingsToggleRow extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: content)),
+              child: _LabelAndNote(
+                note: note,
+                label: Text(label, style: AppType.subhead.copyWith(color: content)),
+              ),
             ),
+            // A wrapping label or note must keep off the knob's edge.
+            const SizedBox(width: AppSpacing.md),
             AppToggle(value: value, onChanged: onChanged, semanticLabel: label),
           ],
         ),
@@ -257,7 +264,7 @@ class _LabelAndNote extends StatelessWidget {
       children: [
         label,
         if (note != null) ...[
-          const SizedBox(height: 3),
+          SizedBox(height: context.theme.settings.noteGap),
           Text(
             note!,
             maxLines: oneLine ? 1 : null,

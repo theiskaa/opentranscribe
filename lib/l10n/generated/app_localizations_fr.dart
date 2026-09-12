@@ -397,9 +397,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les modèles se téléchargent une fois et sont partagés avec le système.';
 
   @override
-  String get transcriptionEngines => 'Moteurs';
-
-  @override
   String get engineBlurbSpeechAnalyzer =>
       'Le moteur le plus récent d\'Apple, un modèle téléchargé par langue';
 
@@ -524,11 +521,48 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return 'Touchez pour télécharger · $model';
+    return 'Nécessite le modèle $model';
   }
 
   @override
   String get transcriptionModelFootnote => 'Le modèle se télécharge une fois et reste dans l\'app.';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'Aussi téléchargés';
+
+  @override
+  String get transcriptionMoreModels => 'Autres modèles';
+
+  @override
+  String get transcriptionAllModels => 'Tous les modèles';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return 'Non téléchargé · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return 'Télécharger $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return 'Ajoute $size, avec une préparation unique';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'Occupe $size sur cet iPhone';
+  }
+
+  @override
+  String get modelPreparingNote =>
+      'Préparation pour le Neural Engine. Cela prend quelques minutes, une seule fois.';
+
+  @override
+  String get modelSheetFootnote =>
+      'Un modèle téléchargé est utilisé dès qu\'il est prêt, et reste dans l\'app jusqu\'à ce que vous le supprimiez.';
 
   @override
   String get modelNotSavedBody =>
@@ -622,11 +656,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => 'Plus rapide avec le Neural Engine';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return 'Exécute l\'encodeur de chaque modèle sur le Neural Engine. Chaque modèle demande un second téléchargement ($size pour celui en cours d\'utilisation) et une préparation unique qui prend quelques minutes sur les grands modèles.';
-  }
 
   @override
   String get accelerationNotSavedBody =>

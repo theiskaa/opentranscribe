@@ -64,4 +64,18 @@ void main() {
       );
     });
   });
+
+  group('languageStripShown', () {
+    test('an engine with a model per language keeps the strip for its Add chip', () {
+      expect(languageStripShown(oneModelForAll: false, heroBroken: false), isTrue);
+    });
+
+    test('under one model for every language the strip steps aside for the hero', () {
+      expect(languageStripShown(oneModelForAll: true, heroBroken: false), isFalse);
+    });
+
+    test('a broken default keeps the strip as the library door its hero is not', () {
+      expect(languageStripShown(oneModelForAll: true, heroBroken: true), isTrue);
+    });
+  });
 }

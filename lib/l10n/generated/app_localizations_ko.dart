@@ -379,9 +379,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcriptionFootnote => '모델은 한 번만 다운로드되며 시스템과 공유됩니다.';
 
   @override
-  String get transcriptionEngines => '엔진';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple의 최신 엔진, 언어마다 모델을 다운로드';
 
   @override
@@ -504,11 +501,46 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return '탭하여 다운로드 · $model';
+    return '$model 모델이 필요합니다';
   }
 
   @override
   String get transcriptionModelFootnote => '모델은 한 번 다운로드하면 앱 안에 남습니다.';
+
+  @override
+  String get transcriptionAlsoDownloaded => '다운로드된 다른 모델';
+
+  @override
+  String get transcriptionMoreModels => '다른 모델';
+
+  @override
+  String get transcriptionAllModels => '모든 모델';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return '다운로드 안 됨 · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return '$model 다운로드 · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return '$size 추가, 준비는 한 번만';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return '이 iPhone에서 $size 사용';
+  }
+
+  @override
+  String get modelPreparingNote => 'Neural Engine용으로 준비하고 있습니다. 처음 한 번만 몇 분 걸립니다.';
+
+  @override
+  String get modelSheetFootnote => '다운로드한 모델은 준비되는 대로 사용되며, 삭제할 때까지 앱 안에 남습니다.';
 
   @override
   String get modelNotSavedBody => '모델 선택을 저장하지 못해 다시 실행하면 유지되지 않습니다.';
@@ -596,11 +628,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => 'Neural Engine으로 더 빠르게';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return '각 모델의 인코더를 Neural Engine에서 실행합니다. 모델마다 두 번째 다운로드(사용 중인 모델은 $size)와 큰 모델에서는 몇 분이 걸리는 1회 준비가 필요합니다.';
-  }
 
   @override
   String get accelerationNotSavedBody => 'Neural Engine 설정을 저장하지 못해 다시 실행하면 사라집니다.';

@@ -15,15 +15,17 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
 import 'package:opentranscribe/view/layouts/settings/components/engine_picker.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_actions.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_card.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_chips.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
 import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
@@ -47,10 +49,12 @@ import 'package:transcriber/transcriber.dart';
 }
 
 /// The transcription screen as an answer to one question, what happens when I
-/// hit record: the default language as a hero card, the other kept languages
-/// as chips (a chip tap makes it the default), the engine picker, and the
-/// footnotes. The whole library lives in the language sheet the hero and the
-/// Add chip open.
+/// hit record: the engine picker on top, the default language as a hero card
+/// over the other kept languages as chips (a chip tap makes it the default),
+/// then under a model choice the model in use as a card over the other
+/// downloaded models as chips, and the footnotes. The language library lives
+/// in the sheet the hero and the Add chip open, the models in the one the
+/// model card and its More chip open.
 class ModelsScreen extends StatefulWidget {
   const ModelsScreen({super.key});
 
@@ -108,6 +112,11 @@ class _ModelsScreenState extends State<ModelsScreen> {
     }
   }
 
+  void _openModelSheet(BuildContext context) {
+    if (!_onTop(context)) return;
+    unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>()));
+  }
+
   void _openLanguageSheet(BuildContext context) {
     if (!_onTop(context)) return;
     unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
@@ -115,7 +124,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
 
   /// The hero keeps its one promise: when the default is broken its tap tells
   /// that story (with the recovery), otherwise it opens the library. The Add
-  /// chip stays a library door either way.
+  /// chip, wherever the strip shows, stays a library door either way.
   void _openHero(BuildContext context, SettingsState state) {
     if (!_onTop(context)) return;
     final cubit = context.read<SettingsCubit>();
@@ -152,16 +161,24 @@ class _ModelsScreenState extends State<ModelsScreen> {
           // whose download failed after reserving) holds a slot too.
           final reserved = state.languages.where((row) => row.reserved).length;
           final chips = chipLanguages(state.languages, oneModelForAll: state.offersModelChoice);
+          final defaultRow = state.defaultLanguage;
+          final strip = languageStripShown(
+            oneModelForAll: state.offersModelChoice,
+            heroBroken: defaultRow != null && rowHasFailureStory(defaultRow),
+          );
+          final selectedModel = models.selectedModel;
+          final modelChips = chipModels(models.models);
           return SettingsList(
             children: [
-              // Breath under the bar before the first label; sm reads cramped
-              // against the frosted edge, md doubles the label's own top pad.
+              // Breath under the bar before the control; sm reads cramped
+              // against the frosted edge.
               const SizedBox(height: 10),
+              _Melt(child: EnginePicker(rows: engineRows)),
               SectionLabel(l10n.transcriptionSpeaking),
               _Melt(
                 child: SpeakingHero(
                   state: state,
-                  selectedModel: choice ? models.selectedModel : null,
+                  selectedModel: choice ? selectedModel : null,
                   // By the state's own engine id, not the active row: mid-switch
                   // the readiness still describes the previous engine. Unnamed
                   // until the model half agrees, so no ready line lands early.
@@ -176,64 +193,77 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 ),
               ),
               // The label only when something IS also ready; the Add chip
-              // stays either way, as the library door a broken default's hero
-              // (routing to its story) cannot be.
+              // stays wherever the strip does, as the library door a broken
+              // default's hero (routing to its story) cannot be.
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Crossfaded, not just resized: AnimatedSize settles the
-                    // child at final geometry immediately, so without the
-                    // fade the label would pop in over the melting gap.
-                    AnimatedSwitcher(
-                      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-                      layoutBuilder: meltStack,
-                      child: chips.isNotEmpty
-                          ? SectionLabel(l10n.transcriptionAlsoReady)
-                          : const SizedBox(height: AppSpacing.xxl),
-                    ),
-                    LanguageChipStrip(
-                      rows: chips,
-                      // Same persist contract as the sheet's row tap: a
-                      // refused write leaves the chip a chip, never an
-                      // unhandled error.
-                      onPick: (tag) async {
-                        try {
-                          await context.read<SettingsCubit>().setLocale(tag);
-                        } catch (_) {}
-                      },
-                      onAdd: () => _openLanguageSheet(context),
-                    ),
-                  ],
-                ),
-              ),
-              SectionLabel(l10n.transcriptionEngines),
-              _Melt(child: EnginePicker(rows: engineRows)),
-              _Melt(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (choice) ...[
-                      SectionLabel(l10n.transcriptionModel),
-                      ModelCards(rows: models.models, accelerated: models.accelerated),
-                    ],
-                    if (acceleration) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      SettingsCard(
-                        children: [
-                          SettingsToggleRow(
-                            icon: AppIcons.sparkles,
-                            label: l10n.transcriptionAcceleration,
-                            value: models.accelerated,
-                            onChanged: (on) => _setAccelerated(context, on),
-                          ),
-                        ],
+                    if (strip) ...[
+                      // Crossfaded, not just resized: AnimatedSize settles the
+                      // child at final geometry immediately, so without the
+                      // fade the label would pop in over the melting gap.
+                      AnimatedSwitcher(
+                        duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                        layoutBuilder: meltStack,
+                        child: chips.isNotEmpty
+                            ? SectionLabel(l10n.transcriptionAlsoReady)
+                            : const SizedBox(height: AppSpacing.xxl),
+                      ),
+                      LanguageChipStrip(
+                        rows: chips,
+                        // Same persist contract as the sheet's row tap: a
+                        // refused write leaves the chip a chip, never an
+                        // unhandled error.
+                        onPick: (tag) async {
+                          try {
+                            await context.read<SettingsCubit>().setLocale(tag);
+                          } catch (_) {}
+                        },
+                        onAdd: () => _openLanguageSheet(context),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              _Melt(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (choice && selectedModel != null) ...[
+                      SectionLabel(l10n.transcriptionModel),
+                      ModelCard(
+                        row: selectedModel,
+                        acceleration: acceleration
+                            ? (
+                                on: models.accelerated,
+                                footprint: accelerationFootprint(
+                                  models.models,
+                                  on: models.accelerated,
+                                ),
+                                onChanged: (on) => _setAccelerated(context, on),
+                              )
+                            : null,
+                        onOpen: () => _openModelSheet(context),
+                      ),
+                      // The languages' rule: the label only over chips.
+                      AnimatedSwitcher(
+                        duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                        layoutBuilder: meltStack,
+                        child: modelChips.isNotEmpty
+                            ? SectionLabel(l10n.transcriptionAlsoDownloaded)
+                            : const SizedBox(height: AppSpacing.md),
+                      ),
+                      ModelChipStrip(
+                        rows: modelChips,
+                        onPick: (row) => unawaited(useModel(context, row)),
+                        onMore: () => _openModelSheet(context),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
               _Melt(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -249,17 +279,9 @@ class _ModelsScreenState extends State<ModelsScreen> {
                           (r) => r.isActive && r.descriptor.engineId == state.engineId,
                         ))
                       SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
-                    if (choice && models.models.any((r) => r.installing))
+                    if (choice &&
+                        chipsNeedDownloadNote(models.models, accelerated: models.accelerated))
                       SectionInfo(l10n.transcriptionDownloadFootnote),
-                    if (acceleration)
-                      SectionInfo(
-                        l10n.transcriptionAccelerationNote(
-                          formatBytes(
-                            models.selectedModel?.option.accelerationBytes ?? 0,
-                            localeTag(context),
-                          ),
-                        ),
-                      ),
                     if (state.offersModelChoice)
                       SectionInfo(l10n.transcriptionModelFootnote)
                     else if (state.managesModels)

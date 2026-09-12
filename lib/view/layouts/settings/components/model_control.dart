@@ -12,7 +12,7 @@ import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:transcriber/transcriber.dart';
 
-/// What a card's control means, folded in priority: a download in flight,
+/// What a model's control means, folded in priority: a download in flight,
 /// then a failure, then too heavy while absent, then present or not.
 enum ModelRowFace { installing, failed, heavy, download, selected, installed }
 
@@ -23,7 +23,7 @@ ModelRowFace modelRowFace(ModelRowState row) {
   return row.selected ? ModelRowFace.selected : ModelRowFace.installed;
 }
 
-/// Whether a card offers its trash: never on the model in use (emptying the
+/// Whether a model offers its trash: never on the model in use (emptying the
 /// seat runs start from is a trap), unless it would not open, when removing
 /// it is the way out.
 bool modelRowRemovable(ModelRowState row) => switch (modelRowFace(row)) {
@@ -47,7 +47,80 @@ bool modelRowRemovable(ModelRowState row) => switch (modelRowFace(row)) {
   return (fill: percent / 100, label: '$percent%');
 }
 
-/// A model card's control: one pill whose fill and words follow the face on
+/// A pill face's words and glyph; the bar faces draw [progressFace] instead.
+({IconData? icon, String text}) _pillWords(AppLocalizations l10n, ModelRowFace face) =>
+    switch (face) {
+      ModelRowFace.download ||
+      ModelRowFace.heavy => (icon: AppIcons.icloud, text: l10n.modelDownload),
+      ModelRowFace.failed => (icon: AppIcons.arrowCounterclockwise, text: l10n.retry),
+      ModelRowFace.installed => (icon: null, text: l10n.modelUse),
+      ModelRowFace.selected => (icon: AppIcons.checkmark, text: l10n.modelInUse),
+      ModelRowFace.installing => throw ArgumentError.value(face, 'face', 'a bar, not a pill'),
+    };
+
+/// The words on every face; a bar's take tabular figures.
+final TextStyle _labelStyle = AppType.footnote.copyWith(fontWeight: FontWeight.w600);
+
+/// The pill's hairline, the default [BorderSide] its decoration draws inside
+/// on every face.
+final double _edgeWidth = const BorderSide().width;
+
+/// The one width a model's control keeps through every face: the widest any
+/// face needs in this locale, clamped to [floor]..[ceiling] (a ceiling under
+/// the floor yields the floor). A pill face is its words, glyph and inset; a
+/// queued or downloading bar is its words in the bar's inset beside the open
+/// cancel seat; the preparing bar has no seat. Measured once, not per face,
+/// so the control holds still as it changes.
+double modelControlWidth(
+  AppLocalizations l10n, {
+  required double bandHeight,
+  required double floor,
+  required double ceiling,
+  TextScaler textScaler = TextScaler.noScaling,
+}) {
+  double measure(String text, TextStyle style, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  // Drawn as unscaled text in the icon font, like AppIcon: a glyph is as
+  // wide as its advance, not its size.
+  double glyph(IconData icon) => measure(
+    String.fromCharCode(icon.codePoint),
+    TextStyle(inherit: false, fontFamily: icon.fontFamily, fontSize: ModelControl.glyphSize),
+    TextScaler.noScaling,
+  );
+
+  double bar(String text) =>
+      measure(text, AppType.digits(_labelStyle), textScaler) + 2 * AppSpacing.sm;
+  final seat = bandHeight + AppSpacing.sm;
+  final needs = [
+    for (final face in [
+      ModelRowFace.download,
+      ModelRowFace.failed,
+      ModelRowFace.installed,
+      ModelRowFace.selected,
+    ])
+      if (_pillWords(l10n, face) case (:final icon, :final text))
+        measure(text, _labelStyle, textScaler) +
+            2 * AppSpacing.md +
+            (icon == null ? 0 : glyph(icon) + AppSpacing.xs),
+    bar(l10n.modelQueued) + seat,
+    bar(progressFace(l10n, queued: false, preparing: false, fraction: 1).label) + seat,
+    bar(l10n.modelPreparing),
+  ];
+  final widest = needs.reduce((a, b) => a > b ? a : b) + 2 * _edgeWidth;
+  return widest.clamp(floor, ceiling < floor ? floor : ceiling);
+}
+
+/// A model's control: one pill whose fill and words follow the face on
 /// the indicator motion, and, while a download runs, the pill IS its progress
 /// bar, filling from the left under a centred percent. The cancel disc rides
 /// beside it in a seat that opens on the same motion, so the bar's width and
@@ -61,6 +134,9 @@ class ModelControl extends StatelessWidget {
     required this.onCancel,
     super.key,
   });
+
+  /// The glyph beside a pill's words.
+  static const double glyphSize = 14;
 
   final ModelRowState row;
   final ModelRowFace face;
@@ -101,8 +177,11 @@ class _Pill extends StatelessWidget {
     final motion = context.motionNow;
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
     final name = row.option.displayName;
+    // The solid fill goes to what fetches: a model already here is one quiet
+    // tap from use, and must not outshout a download in the same list.
     final (fill, border, ink) = switch (face) {
-      ModelRowFace.installed => (button.background, button.background, button.foreground),
+      ModelRowFace.download ||
+      ModelRowFace.failed => (button.background, button.background, button.foreground),
       // The toggle's green already means on.
       ModelRowFace.selected => (
         theme.settings.toggleActive.withValues(alpha: 0.14),
@@ -135,21 +214,9 @@ class _Pill extends StatelessWidget {
         trackInk: button.secondaryForeground,
         fillInk: button.foreground,
       ),
-      ModelRowFace.download || ModelRowFace.heavy => _PillWords(
-        icon: AppIcons.icloud,
-        text: l10n.modelDownload,
+      _ => _PillWords(
+        words: _pillWords(l10n, face),
         ink: face == ModelRowFace.heavy ? theme.textSecondary : ink,
-      ),
-      ModelRowFace.failed => _PillWords(
-        icon: AppIcons.arrowCounterclockwise,
-        text: l10n.retry,
-        ink: ink,
-      ),
-      ModelRowFace.installed => _PillWords(text: l10n.modelUse, ink: ink),
-      ModelRowFace.selected => _PillWords(
-        icon: AppIcons.checkmark,
-        text: l10n.modelInUse,
-        ink: ink,
       ),
     };
     return Semantics(
@@ -259,7 +326,7 @@ class _BarWords extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: AppType.digits(AppType.footnote).copyWith(fontWeight: FontWeight.w600, color: ink),
+          style: AppType.digits(_labelStyle).copyWith(color: ink),
         ),
       ),
     );
@@ -351,7 +418,9 @@ class _CancelButton extends StatelessWidget {
             shape: BoxShape.circle,
             color: theme.danger.withValues(alpha: 0.14),
           ),
-          child: Center(child: AppIcon(AppIcons.xmark, size: 14, color: theme.danger)),
+          child: Center(
+            child: AppIcon(AppIcons.xmark, size: ModelControl.glyphSize, color: theme.danger),
+          ),
         ),
       ),
     );
@@ -360,27 +429,27 @@ class _CancelButton extends StatelessWidget {
 
 /// A pill's words: an optional glyph and the label, in the pill's ink.
 class _PillWords extends StatelessWidget {
-  const _PillWords({required this.text, required this.ink, this.icon});
+  const _PillWords({required this.words, required this.ink});
 
-  final String text;
+  final ({IconData? icon, String text}) words;
   final Color ink;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    final icon = words.icon;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          AppIcon(icon!, size: 14, color: ink),
+          AppIcon(icon, size: ModelControl.glyphSize, color: ink),
           const SizedBox(width: AppSpacing.xs),
         ],
         Flexible(
           child: Text(
-            text,
+            words.text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppType.footnote.copyWith(color: ink, fontWeight: FontWeight.w600),
+            style: _labelStyle.copyWith(color: ink),
           ),
         ),
       ],

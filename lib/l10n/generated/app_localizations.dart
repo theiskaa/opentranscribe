@@ -798,12 +798,6 @@ abstract class AppLocalizations {
   /// **'Models download once and are shared with the system.'**
   String get transcriptionFootnote;
 
-  /// Section label over the engine picker on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'Engines'**
-  String get transcriptionEngines;
-
   /// One-line explanation under the SpeechAnalyzer engine row
   ///
   /// In en, this message translates to:
@@ -1005,7 +999,7 @@ abstract class AppLocalizations {
   /// Hero status line under a one-model engine whose selected model is not downloaded yet
   ///
   /// In en, this message translates to:
-  /// **'Tap to download · {model}'**
+  /// **'Needs the {model} model'**
   String transcriptionHeroNeedsDownload(String model);
 
   /// Footnote under the transcription screen for an engine whose one model serves every language
@@ -1014,37 +1008,91 @@ abstract class AppLocalizations {
   /// **'The model downloads once and stays in the app.'**
   String get transcriptionModelFootnote;
 
+  /// Section label over the chips of the other downloaded models
+  ///
+  /// In en, this message translates to:
+  /// **'Also downloaded'**
+  String get transcriptionAlsoDownloaded;
+
+  /// The chip opening the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'More models'**
+  String get transcriptionMoreModels;
+
+  /// Section label over every model in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'All models'**
+  String get transcriptionAllModels;
+
+  /// The model card's line for a model not on the phone yet, with its size
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded · {size}'**
+  String modelNotDownloaded(String size);
+
+  /// The model card's download button, naming the model and its size
+  ///
+  /// In en, this message translates to:
+  /// **'Download {model} · {size}'**
+  String modelDownloadSized(String model, String size);
+
+  /// The Neural Engine switch's second line while off: what turning it on would fetch for the models on the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Adds {size}, with a one-time setup'**
+  String transcriptionAccelerationSize(String size);
+
+  /// The Neural Engine switch's second line while on: what its second files take on the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Uses {size} on this iPhone'**
+  String transcriptionAccelerationUses(String size);
+
+  /// Under a model's bar while it is prepared for the Neural Engine
+  ///
+  /// In en, this message translates to:
+  /// **'Getting it ready for the Neural Engine. This takes a few minutes, once.'**
+  String get modelPreparingNote;
+
+  /// Footnote under the model sheet's list
+  ///
+  /// In en, this message translates to:
+  /// **'A model you download is used once it\'s ready, and stays in the app until you remove it.'**
+  String get modelSheetFootnote;
+
   /// Sheet body when a model choice could not be persisted
   ///
   /// In en, this message translates to:
   /// **'The model choice couldn\'t be saved and won\'t survive a relaunch.'**
   String get modelNotSavedBody;
 
-  /// Two-line description under the smallest model tier on its card
+  /// What the smallest model tier is for, on its card and in the model sheet
   ///
   /// In en, this message translates to:
   /// **'The smallest and fastest. Rough on names and accents, fine for a quick note.'**
   String get modelTierBasicInfo;
 
-  /// Two-line description under the second model tier on its card
+  /// What the second model tier is for, on its card and in the model sheet
   ///
   /// In en, this message translates to:
   /// **'Quick, with clearer words than the smallest. Good for short notes in a quiet room.'**
   String get modelTierGoodInfo;
 
-  /// Two-line description under the third model tier on its card
+  /// What the third model tier is for, on its card and in the model sheet
   ///
   /// In en, this message translates to:
   /// **'The balance most iPhones want. Accurate for everyday speech in every language.'**
   String get modelTierBetterInfo;
 
-  /// Two-line description under the fourth model tier on its card
+  /// What the fourth model tier is for, on its card and in the model sheet
   ///
   /// In en, this message translates to:
   /// **'Slower and careful. Strong on accents, quiet takes, and long entries.'**
   String get modelTierBestInfo;
 
-  /// Two-line description under the largest model tier on its card
+  /// What the largest model tier is for, on its card and in the model sheet
   ///
   /// In en, this message translates to:
   /// **'The best on offer. Needs a recent iPhone and a little patience per entry.'**
@@ -1062,61 +1110,61 @@ abstract class AppLocalizations {
   /// **'Use'**
   String get modelUse;
 
-  /// Label on the card of the model transcription uses
+  /// Label on the pill of the model transcription uses
   ///
   /// In en, this message translates to:
   /// **'In use'**
   String get modelInUse;
 
-  /// Footnote under the model cards while a model downloads: downloads need the app open, and resume on return
+  /// Under a model's bar while it downloads: downloads need the app open, and resume on return
   ///
   /// In en, this message translates to:
   /// **'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.'**
   String get transcriptionDownloadFootnote;
 
-  /// VoiceOver name of a model card's Download pill
+  /// VoiceOver name of a model's Download pill
   ///
   /// In en, this message translates to:
   /// **'Download {model}'**
   String modelDownloadButton(String model);
 
-  /// VoiceOver name of a model card's Use pill
+  /// VoiceOver name of a model's Use pill
   ///
   /// In en, this message translates to:
   /// **'Use {model}'**
   String modelUseButton(String model);
 
-  /// VoiceOver name of a model card's In use pill
+  /// VoiceOver name of a model's In use pill
   ///
   /// In en, this message translates to:
   /// **'{model} in use'**
   String modelInUseLabel(String model);
 
-  /// VoiceOver name of a model card's Try again pill
+  /// VoiceOver name of a model's Try again pill
   ///
   /// In en, this message translates to:
   /// **'Try downloading {model} again'**
   String modelRetryButton(String model);
 
-  /// VoiceOver name of a model card's download ring, with the percent
+  /// VoiceOver name of a model's download ring, with the percent
   ///
   /// In en, this message translates to:
   /// **'Downloading {model}, {percent}%'**
   String modelDownloadingLabel(String model, int percent);
 
-  /// VoiceOver name of a model card's disabled pill for a model this iPhone cannot hold
+  /// VoiceOver name of a model's disabled pill for a model this iPhone cannot hold
   ///
   /// In en, this message translates to:
   /// **'{model} is too large for this iPhone'**
   String modelTooHeavyLabel(String model);
 
-  /// VoiceOver name of a model card's Cancel action
+  /// VoiceOver name of a model's Cancel action
   ///
   /// In en, this message translates to:
   /// **'Cancel downloading {model}'**
   String modelCancelDownloadButton(String model);
 
-  /// VoiceOver name of a model card's Remove action
+  /// VoiceOver name of a model's Remove action
   ///
   /// In en, this message translates to:
   /// **'Remove {model}'**
@@ -1140,17 +1188,11 @@ abstract class AppLocalizations {
   /// **'Downloading {model} · {percent}%'**
   String takeDownloadingProgress(String model, int percent);
 
-  /// Toggle row under the model cards: run the whisper encoder on the Neural Engine
+  /// Toggle row in the model card: run the whisper encoder on the Neural Engine
   ///
   /// In en, this message translates to:
   /// **'Faster with the Neural Engine'**
   String get transcriptionAcceleration;
-
-  /// Footnote under the acceleration toggle, with the second download's size for the model in use
-  ///
-  /// In en, this message translates to:
-  /// **'Runs each model\'s encoder on the Neural Engine. Every model needs a second download ({size} for the one in use) and a one-time preparation that takes minutes on the larger models.'**
-  String transcriptionAccelerationNote(String size);
 
   /// Sheet body when the acceleration choice failed to persist
   ///
@@ -1158,25 +1200,25 @@ abstract class AppLocalizations {
   /// **'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.'**
   String get accelerationNotSavedBody;
 
-  /// Model card trail while an install unpacks or compiles after its download
+  /// A model's control while an install unpacks or compiles after its download
   ///
   /// In en, this message translates to:
   /// **'Preparing…'**
   String get modelPreparing;
 
-  /// VoiceOver name of a model card's control while the install prepares
+  /// VoiceOver name of a model's control while the install prepares
   ///
   /// In en, this message translates to:
   /// **'Preparing {model}'**
   String modelPreparingLabel(String model);
 
-  /// Model card line while its download waits behind another
+  /// A model's control while its download waits behind another
   ///
   /// In en, this message translates to:
   /// **'In queue'**
   String get modelQueued;
 
-  /// VoiceOver name of a model card's control while its download waits its turn
+  /// VoiceOver name of a model's control while its download waits its turn
   ///
   /// In en, this message translates to:
   /// **'{model} in queue'**

@@ -396,9 +396,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Os modelos são transferidos uma vez e partilhados com o sistema.';
 
   @override
-  String get transcriptionEngines => 'Motores';
-
-  @override
   String get engineBlurbSpeechAnalyzer =>
       'O motor mais recente da Apple, um modelo transferido por idioma';
 
@@ -523,11 +520,48 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return 'Toque para transferir · $model';
+    return 'Precisa do modelo $model';
   }
 
   @override
   String get transcriptionModelFootnote => 'O modelo transfere-se uma vez e fica na app.';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'Também transferidos';
+
+  @override
+  String get transcriptionMoreModels => 'Mais modelos';
+
+  @override
+  String get transcriptionAllModels => 'Todos os modelos';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return 'Não transferido · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return 'Transferir $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return 'Acrescenta $size, com uma preparação única';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'Ocupa $size neste iPhone';
+  }
+
+  @override
+  String get modelPreparingNote =>
+      'A preparar para o Neural Engine. Demora alguns minutos, uma única vez.';
+
+  @override
+  String get modelSheetFootnote =>
+      'Um modelo transferido passa a ser usado assim que estiver pronto, e fica na app até o remover.';
 
   @override
   String get modelNotSavedBody =>
@@ -621,11 +655,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => 'Mais rápido com o Neural Engine';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return 'Executa o codificador de cada modelo no Neural Engine. Cada modelo precisa de uma segunda transferência ($size para o que está em uso) e de uma preparação única que demora minutos nos modelos maiores.';
-  }
 
   @override
   String get accelerationNotSavedBody =>

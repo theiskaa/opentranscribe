@@ -393,9 +393,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionFootnote => 'Models download once and are shared with the system.';
 
   @override
-  String get transcriptionEngines => 'Engines';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple\'s newest engine, a downloaded model per language';
 
   @override
@@ -518,11 +515,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String transcriptionHeroNeedsDownload(String model) {
-    return 'Tap to download · $model';
+    return 'Needs the $model model';
   }
 
   @override
   String get transcriptionModelFootnote => 'The model downloads once and stays in the app.';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'Also downloaded';
+
+  @override
+  String get transcriptionMoreModels => 'More models';
+
+  @override
+  String get transcriptionAllModels => 'All models';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return 'Not downloaded · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return 'Download $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return 'Adds $size, with a one-time setup';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'Uses $size on this iPhone';
+  }
+
+  @override
+  String get modelPreparingNote =>
+      'Getting it ready for the Neural Engine. This takes a few minutes, once.';
+
+  @override
+  String get modelSheetFootnote =>
+      'A model you download is used once it\'s ready, and stays in the app until you remove it.';
 
   @override
   String get modelNotSavedBody =>
@@ -616,11 +650,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcriptionAcceleration => 'Faster with the Neural Engine';
-
-  @override
-  String transcriptionAccelerationNote(String size) {
-    return 'Runs each model\'s encoder on the Neural Engine. Every model needs a second download ($size for the one in use) and a one-time preparation that takes minutes on the larger models.';
-  }
 
   @override
   String get accelerationNotSavedBody =>
