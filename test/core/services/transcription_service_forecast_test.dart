@@ -33,16 +33,22 @@ void main() {
   var wall = fixedClock;
   var idCounter = 0;
 
-  TranscriptionService build(TranscriptionEngine engine, {SpeakingPace? pace}) {
+  TranscriptionService build(
+    TranscriptionEngine engine, {
+    SpeakingPace? pace,
+    FakeAudioComposer? composer,
+  }) {
     idCounter = 0;
     return TranscriptionService(
       recorder: recorder,
       engine: engine,
       store: store,
-      composer: FakeAudioComposer(
-        name: 'merged.m4a',
-        durations: const {'base.m4a': Duration(seconds: 10), 'tail.m4a': Duration(seconds: 2)},
-      ),
+      composer:
+          composer ??
+          FakeAudioComposer(
+            name: 'merged.m4a',
+            durations: const {'base.m4a': Duration(seconds: 10), 'tail.m4a': Duration(seconds: 2)},
+          ),
       clock: () => wall,
       monotonic: () => now,
       idGenerator: () => 'id-${idCounter++}',
@@ -166,6 +172,34 @@ void main() {
 
     await svc.dispose();
   });
+
+  test(
+    'a never-transcribed base whose merge fails gives its take a pass without a forecast',
+    () async {
+      await seedBase();
+      final svc = build(
+        FakeBatchEngine(cannedText: 'tail words'),
+        composer: FakeAudioComposer(throwOnConcatenate: true),
+      );
+      final events = <BatchProgress>[];
+      svc.batchProgress.listen(events.add);
+
+      await svc.startRecording(continuing: store.read('base'));
+      await speak(0.8, 10);
+      final saved = await svc.stopRecording();
+      await pumpEventQueue();
+
+      expect(saved.id, isNot('base'));
+      expect(saved.transcript?.fullText, 'tail words');
+      expect(events, isNotEmpty);
+      expect(
+        events,
+        everyElement(isA<BatchProgress>().having((e) => e.forecast, 'forecast', isNull)),
+      );
+
+      await svc.dispose();
+    },
+  );
 
   test('a re-transcribe carries no forecast', () async {
     final svc = build(FakeBatchEngine(cannedText: 'words'));

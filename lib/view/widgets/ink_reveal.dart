@@ -25,9 +25,10 @@ enum InkPhase {
   write,
 
   /// Work is in flight: the current text dissolves into a living cloud (or a
-  /// placeholder cloud shimmers when there is no text yet) until the caller
-  /// transitions out - to [write] when new words landed, to [settled] when the
-  /// run failed and the old words return.
+  /// placeholder cloud shimmers, when there is no text yet or the caller
+  /// shapes its own with [InkReveal.placeholderRows]) until the caller
+  /// transitions out - to [write] when new words landed, to [settled] when
+  /// the run failed and the old words return.
   pending,
 }
 

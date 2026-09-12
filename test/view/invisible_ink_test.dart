@@ -243,7 +243,7 @@ void main() {
       expect(rowInkPoints(const [(top: 0, fontSize: body, lineHeight: 20, measure: 0)]), isEmpty);
     });
 
-    test('the reflections cloud keeps the exact shape it always had', () {
+    test('the placeholder cloud keeps the exact shape it always had', () {
       final points = placeholderInkPoints(
         width: 300,
         lines: 3,

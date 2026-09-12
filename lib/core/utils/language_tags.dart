@@ -133,6 +133,17 @@ const languagePriority = [
 /// The language part of a locale tag, lowercased: en-US and en-GB are both en.
 String languageOf(String tag) => tag.toLowerCase().split('-').first;
 
+/// The CJK writings, which pace speech and pick filler apart from the rest.
+enum CjkScript { japanese, chinese, korean }
+
+/// The CJK writing [tag]'s language is set in, or null for any other.
+CjkScript? cjkScriptOf(String tag) => switch (languageOf(tag)) {
+  'ja' => CjkScript.japanese,
+  'zh' || 'yue' => CjkScript.chinese,
+  'ko' => CjkScript.korean,
+  _ => null,
+};
+
 /// The supported tag a requested tag should transcribe as: the exact tag when
 /// supported (case-insensitive, in the supported spelling), else a supported
 /// variant of the same language (tr-GE resolves to tr-TR), else null. Only a

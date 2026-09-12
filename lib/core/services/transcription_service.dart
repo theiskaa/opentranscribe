@@ -51,8 +51,9 @@ final class BatchProgress {
   final ModelInstallReason? failure;
 
   /// What the take this pass is over will read as, on every event of a pass
-  /// over a just-recorded take (a fresh one or a continuation's tail); null on
-  /// any other pass.
+  /// over a just-recorded take (a fresh one, or a continuation's tail); null
+  /// on any other pass, the one a take gets after its continuation fell back
+  /// included.
   final TakeForecast? forecast;
 
   @override

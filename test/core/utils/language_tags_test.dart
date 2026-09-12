@@ -62,4 +62,26 @@ void main() {
       expect(languageTagCompare('da-DK', 'da-DK'), 0);
     });
   });
+
+  group('languageOf', () {
+    test('is the language part of a tag, whatever its region or case', () {
+      expect(languageOf('en-US'), 'en');
+      expect(languageOf('PT-br'), 'pt');
+      expect(languageOf('yue'), 'yue');
+    });
+  });
+
+  group('cjkScriptOf', () {
+    test('names the CJK writing a language is set in', () {
+      expect(cjkScriptOf('ja-JP'), CjkScript.japanese);
+      expect(cjkScriptOf('zh-Hant'), CjkScript.chinese);
+      expect(cjkScriptOf('yue'), CjkScript.chinese);
+      expect(cjkScriptOf('ko-KR'), CjkScript.korean);
+    });
+
+    test('names none for any other language', () {
+      expect(cjkScriptOf('en-US'), isNull);
+      expect(cjkScriptOf('ru-RU'), isNull);
+    });
+  });
 }

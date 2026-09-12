@@ -24,7 +24,7 @@ final class TopBarTheme {
     this.largeHeight = 72.0,
     this.fadeTail = 24.0,
     this.backChevronSize = 18.0,
-    this.actionSize = 44.0,
+    this.actionSize = AppSizes.barControl,
   });
 
   final Color background;

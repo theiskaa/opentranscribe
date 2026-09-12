@@ -56,7 +56,8 @@ class AppTopBar extends StatelessWidget {
   final List<Widget> actions;
 
   /// The recorder centers its timer and the entry screen a pass's progress;
-  /// every other title left-aligns.
+  /// every other title left-aligns. A centered title may span the bar, so one
+  /// that can grow long keeps itself clear of the controls ([clearance]).
   final bool centerTitle;
 
   /// Content row height override; defaults to the compact `TopBarTheme.height`.
@@ -99,6 +100,10 @@ class AppTopBar extends StatelessWidget {
   /// Status inset + the large title row, for content padding under title bars.
   static double largeHeightOf(BuildContext context) =>
       MediaQuery.paddingOf(context).top + context.theme.topBar.largeHeight;
+
+  /// The side padding a long centered title takes to clear one bar control
+  /// and its inset.
+  static const double clearance = _edgeInset * 2 + AppSizes.barControl;
 
   @override
   Widget build(BuildContext context) {
@@ -156,14 +161,7 @@ class AppTopBar extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               row,
-              // Clear of one control and its inset on each edge, so a long
-              // centered line never runs under the bar's buttons.
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: _edgeInset * 2 + AppGlassIconButton.defaultSize,
-                ),
-                child: Center(child: titleBlock),
-              ),
+              Center(child: titleBlock),
             ],
           )
         : row;

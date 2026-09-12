@@ -47,7 +47,8 @@ class BatchProgressLine extends StatelessWidget {
         if (text == null) return const SizedBox.shrink();
         return RollingText(
           text: text,
-          style: AppType.footnote.copyWith(color: theme.textSecondary),
+          // Tabular: a ticking percent keeps its width.
+          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
           direction: direction,
           window: theme.motion.subtitleRoll,
           stagger: Duration.zero,

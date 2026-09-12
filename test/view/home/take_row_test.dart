@@ -20,6 +20,8 @@ void main() {
     width: width,
     scaler: scaler,
     excerptLines: 4,
+    bold: false,
+    locale: null,
   );
 
   double settledHeight(

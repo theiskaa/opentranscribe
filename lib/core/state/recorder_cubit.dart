@@ -8,8 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/services/speech_tally.dart';
+import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -45,11 +45,11 @@ class RecorderState {
   /// The raw native reason is debug-logged, never carried in state.
   final bool liveUnavailable;
 
-  /// Whether the microphone has heard real sound this take (input level crossed
-  /// [heardLevel] at least once). This, NOT [liveText], is
-  /// what tells an X-to-discard whether the take is worth keeping: the live
-  /// stream can be blank while real speech was captured, and the batch pass on
-  /// stop reads the audio the live engine could not. Latches true for the take.
+  /// Whether the microphone has heard real sound this take (input level
+  /// crossed [heardLevel] at least once). This, NOT [liveText], is what tells
+  /// an X-to-discard whether the take is worth keeping: the live stream can be
+  /// blank while real speech was captured, and the batch pass on stop reads
+  /// the audio the live engine could not. Latches true for the take.
   final bool heardSound;
 
   /// The language THIS session transcribes in: the app default at start,

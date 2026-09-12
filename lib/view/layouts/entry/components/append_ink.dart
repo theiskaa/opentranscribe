@@ -170,12 +170,15 @@ String appendPending({
   if (liveText.trim().isNotEmpty) return liveText;
   if (characters == null) return '';
   final size = textScaler.scale(style.fontSize!);
-  final lines = math.max(1, (screenHeight / (size * (style.height ?? 1))).floor());
+  final lines = screenLines(screenHeight: screenHeight, style: style, textScaler: textScaler);
   return appendFillerWithin(
     base: base,
-    filler: fillerText(
-      sample,
-      math.min(characters, mostCharacters(width: width, fontSize: size, lines: lines)),
+    filler: forecastFiller(
+      sample: sample,
+      characters: characters,
+      width: width,
+      fontSize: size,
+      lines: lines,
     ),
     width: width,
     style: style,
@@ -183,4 +186,40 @@ String appendPending({
     maxLines: lines,
     locale: locale,
   );
+}
+
+/// How many lines of [style] a screen of [screenHeight] holds: as far as ink
+/// is worth laying out, since nothing past it is seen.
+int screenLines({
+  required double screenHeight,
+  required TextStyle style,
+  required TextScaler textScaler,
+}) =>
+    math.max(1, (screenHeight / (textScaler.scale(style.fontSize!) * (style.height ?? 1))).floor());
+
+/// What a landing does with the take's ink.
+enum AppendLanding {
+  /// The words show at once and the ink goes: nothing grew, the ink never
+  /// formed, or motion is reduced.
+  swap,
+
+  /// The ink already has the landed words' shape: it only dissolves.
+  dissolve,
+
+  /// The ink is repainted in the landed words' shape first, then dissolves.
+  reshape,
+}
+
+/// How a take lands on the words: [grew] when they only gained a tail,
+/// [inkShown] when the ink is up (not faded out), [laidOut] when its layout is
+/// known, and [matches] when the ink was already painted from the landed words.
+AppendLanding appendLanding({
+  required bool grew,
+  required bool inkShown,
+  required bool laidOut,
+  required bool reduceMotion,
+  required bool matches,
+}) {
+  if (!grew || !inkShown || !laidOut || reduceMotion) return AppendLanding.swap;
+  return matches ? AppendLanding.dissolve : AppendLanding.reshape;
 }

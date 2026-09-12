@@ -19,12 +19,11 @@ const Set<String> _alphabetic = {
 /// Characters a second of speech runs to in [localeId], spaces and
 /// punctuation included, before any take has taught it. Rough by script; the
 /// learned pace replaces it.
-double startingPace(String localeId) => switch (languageOf(localeId)) {
-  'ja' => 6.5,
-  'zh' || 'yue' => 5,
-  'ko' => 7.5,
-  final language when _alphabetic.contains(language) => 16,
-  _ => 13,
+double startingPace(String localeId) => switch (cjkScriptOf(localeId)) {
+  CjkScript.japanese => 6.5,
+  CjkScript.chinese => 5,
+  CjkScript.korean => 7.5,
+  null => _alphabetic.contains(languageOf(localeId)) ? 16 : 13,
 };
 
 /// A forecast never promises less than a short word.

@@ -48,4 +48,10 @@ abstract final class AppType {
   /// through this, so the digits are fixed-width.
   static TextStyle digits(TextStyle base) =>
       base.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+
+  /// What Text sets [base] in: Bold Text thickens a paragraph's root style,
+  /// so spans with a weight of their own, and text laid out by hand to match,
+  /// must take it here.
+  static TextStyle boldAware(TextStyle base, {required bool bold}) =>
+      bold ? base.copyWith(fontWeight: FontWeight.bold) : base;
 }

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
@@ -16,8 +14,9 @@ import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 /// The rows of a waiting take's cloud, in the shape of the row it becomes
 /// ([EntryRowBody] without a title): about [characters] of [sample]'s words
 /// set as its excerpt at [width], at most [excerptLines] and ellipsized as the
-/// excerpt is, then [meta] as its time line(s) after the row's gap. A right
-/// forecast lands with no change in height.
+/// excerpt is, then [meta] as its time line(s) after the row's gap, in
+/// [bold] and [locale] as the row's text will be. A right forecast lands with
+/// no change in height.
 List<InkRow> takeCloudRows({
   required int characters,
   required String sample,
@@ -25,24 +24,36 @@ List<InkRow> takeCloudRows({
   required double width,
   required TextScaler scaler,
   required int excerptLines,
+  required bool bold,
+  required Locale? locale,
 }) {
   final bodySize = scaler.scale(EntryRowBody.excerptStyle.fontSize!);
-  final shown = mostCharacters(width: width, fontSize: bodySize, lines: excerptLines);
   final excerpt = TextPainter(
     text: TextSpan(
-      text: fillerText(sample, math.min(characters, shown)),
-      style: EntryRowBody.excerptStyle,
+      text: forecastFiller(
+        sample: sample,
+        characters: characters,
+        width: width,
+        fontSize: bodySize,
+        lines: excerptLines,
+      ),
+      style: AppType.boldAware(EntryRowBody.excerptStyle, bold: bold),
     ),
     textDirection: TextDirection.ltr,
     textScaler: scaler,
     maxLines: excerptLines,
     ellipsis: '…',
+    locale: locale,
   )..layout(maxWidth: width);
   // Unbounded like the row's own time line, which wraps at large text sizes.
   final time = TextPainter(
-    text: TextSpan(text: meta, style: EntryRowBody.metaStyle),
+    text: TextSpan(
+      text: meta,
+      style: AppType.boldAware(EntryRowBody.metaStyle, bold: bold),
+    ),
     textDirection: TextDirection.ltr,
     textScaler: scaler,
+    locale: locale,
   )..layout(maxWidth: width);
   final rows = <InkRow>[];
   var top = 0.0;
@@ -82,8 +93,8 @@ class TakeRow extends StatelessWidget {
 
   final Entry? entry;
 
-  /// What the take is expected to read as; the cloud takes its shape. Null
-  /// holds a few lines instead.
+  /// What the take is expected to read as; the cloud takes its shape. Every
+  /// fresh take's pass carries one; null holds a few lines, defensively.
   final TakeForecast? forecast;
 
   /// Words in the take's language to lay the forecast out in ([fillerSample]).
@@ -107,7 +118,9 @@ class TakeRow extends StatelessWidget {
     final entry = this.entry;
     final forecast = this.forecast;
     final excerptLines = theme.entryList.excerptLines;
-    final locale = localeTag(context);
+    final tag = localeTag(context);
+    final bold = MediaQuery.boldTextOf(context);
+    final locale = Localizations.maybeLocaleOf(context);
     return EntryRail(
       last: last,
       leadStyle: entry == null ? AppType.body : EntryRowBody.leadStyleOf(entry),
@@ -126,10 +139,12 @@ class TakeRow extends StatelessWidget {
                   sample: sample,
                   // The record's own time is stamped when it lands; tabular
                   // digits make this minute's as wide.
-                  meta: EntryRowBody.metaLine(DateTime.now(), forecast.audio, locale),
+                  meta: EntryRowBody.metaLine(DateTime.now(), forecast.audio, tag),
                   width: width,
                   scaler: scaler,
                   excerptLines: excerptLines,
+                  bold: bold,
+                  locale: locale,
                 ),
           onWriteFinished: onWritten,
           child: entry == null

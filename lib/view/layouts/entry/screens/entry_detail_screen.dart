@@ -635,32 +635,11 @@ class _DetailViewState extends State<_DetailView> {
                                 ),
                               )
                             else
-                              // The take's live words stay on the recorder cubit
-                              // until its stop settles; only the transcript
-                              // follows them.
-                              BlocSelector<RecorderCubit, RecorderState, String>(
-                                selector: (recorder) => continuing ? recorder.liveText : '',
-                                builder: (context, pending) =>
-                                    BlocSelector<
-                                      BatchProgressCubit,
-                                      BatchProgressState,
-                                      TakeForecast?
-                                    >(
-                                      selector: (passes) => passes.forEntry(entry.id)?.forecast,
-                                      builder: (context, forecast) => TranscriptView(
-                                        entry: entry,
-                                        busy: busy,
-                                        appending: continuing,
-                                        pendingText: pending,
-                                        forecast: forecast,
-                                        sample: forecast == null
-                                            ? ''
-                                            : fillerSample(
-                                                localeId: forecast.localeId,
-                                                journal: [entry, ...state.entries],
-                                              ),
-                                      ),
-                                    ),
+                              _TranscriptBody(
+                                entry: entry,
+                                journal: state.entries,
+                                busy: busy,
+                                continuing: continuing,
                               ),
                           ],
                         ),
@@ -673,13 +652,14 @@ class _DetailViewState extends State<_DetailView> {
                   left: 0,
                   right: 0,
                   child: AppTopBar(
-                    // Where a pass on this entry says how far it is, as home's
-                    // bar does for a take: a line under a long cloud would
-                    // end up below the screen.
-                    // Shrunk rather than cut: the percent is its end.
-                    title: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: BatchProgressLine(select: (passes) => passes.forEntry(entry.id)),
+                    // A pass's progress, as home's bar shows a take's: under a
+                    // long cloud it would sit below the screen. Shrunk to fit.
+                    title: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppTopBar.clearance),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: BatchProgressLine(select: (passes) => passes.forEntry(entry.id)),
+                      ),
                     ),
                     centerTitle: true,
                     actions: [
@@ -993,6 +973,43 @@ class _TitleFieldState extends State<_TitleField> {
       textInputAction: TextInputAction.done,
       maxLines: null,
       onSubmitted: (_) => widget.focusNode.unfocus(),
+    );
+  }
+}
+
+/// The transcript, fed what a take adding to it has so far: the live words,
+/// which stay on the recorder cubit until its stop settles, and the pass's
+/// forecast with words to lay it out in.
+class _TranscriptBody extends StatelessWidget {
+  const _TranscriptBody({
+    required this.entry,
+    required this.journal,
+    required this.busy,
+    required this.continuing,
+  });
+
+  final Entry entry;
+  final List<Entry> journal;
+  final bool busy;
+  final bool continuing;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = context.select<RecorderCubit, String>(
+      (recorder) => continuing ? recorder.state.liveText : '',
+    );
+    final forecast = context.select<BatchProgressCubit, TakeForecast?>(
+      (passes) => passes.state.forEntry(entry.id)?.forecast,
+    );
+    return TranscriptView(
+      entry: entry,
+      busy: busy,
+      appending: continuing,
+      pendingText: pending,
+      forecast: forecast,
+      sample: forecast == null
+          ? ''
+          : fillerSample(localeId: forecast.localeId, journal: [entry, ...journal]),
     );
   }
 }

@@ -15,9 +15,31 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:transcriber/transcriber.dart';
+
+/// What an appending view holds of its take's forecast, and the words to lay
+/// it out in.
+typedef HeldForecast = ({TakeForecast? forecast, String sample});
+
+const HeldForecast noForecast = (forecast: null, sample: '');
+
+/// The [held] forecast after the view's next inputs: the newest one that
+/// came with its sample, kept through the pass's done (which clears it
+/// upstream before the merge lands), and nothing once the take is not
+/// [appending].
+HeldForecast heldForecast(
+  HeldForecast held, {
+  required bool appending,
+  required TakeForecast? incoming,
+  required String sample,
+}) {
+  if (!appending) return noForecast;
+  if (incoming == null) return held;
+  return (forecast: incoming, sample: sample);
+}
 
 /// The transcript body. Where the transcript carries timings, the segment under
 /// the playhead is MARKED (never the rest dimmed, and never on a hand-edited
@@ -97,16 +119,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     _appendEase = CurvedAnimation(parent: _append, curve: Curves.easeInOut);
   }
 
-  bool _openedAppending = false;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Opened on an entry already growing (back into it mid-pass): its ink has
-    // to show from the start, as it would have from the take's own start.
-    if (_openedAppending || !widget.appending) return;
-    _openedAppending = true;
-    if (context.reduceMotion) return;
+    // An entry growing with its ink hidden (opened mid-pass, or motion turned
+    // back on mid-take) shows it, as it would have from the take's start.
+    if (!widget.appending || context.reduceMotion || _landing) return;
+    if (_append.value != 1 || _append.isAnimating) return;
     _append.value = 0;
     _runClock();
   }
@@ -126,13 +145,19 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   bool _appendPainting = false;
   int _appendJob = 0;
 
+  /// Where the words lay out while a take is appended, for a landing with no
+  /// ink to reshape.
+  _AppendLayout? _appendLayout;
+
   /// A landing whose ink is being reshaped before it dissolves.
   bool _landing = false;
 
-  /// The take's forecast, held while it is appended: the pass's done clears
-  /// it upstream before the merge lands.
-  late TakeForecast? _forecast = widget.appending ? widget.forecast : null;
-  late String _sample = _forecast == null ? '' : widget.sample;
+  late HeldForecast _held = heldForecast(
+    noForecast,
+    appending: widget.appending,
+    incoming: widget.forecast,
+    sample: widget.sample,
+  );
   String _pending = '';
   _PendingKey? _pendingFor;
 
@@ -158,21 +183,19 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   @override
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
-    if (!widget.appending) {
-      _forecast = null;
-      _sample = '';
-    } else if (widget.forecast != null) {
-      // Held together: the sample follows the forecast upstream and clears
-      // with it at the pass's done, before the merge lands.
-      _forecast = widget.forecast;
-      _sample = widget.sample;
-    }
+    _held = heldForecast(
+      _held,
+      appending: widget.appending,
+      incoming: widget.forecast,
+      sample: widget.sample,
+    );
 
     if (!old.appending && widget.appending) {
       // A take starting inside the last landing's fade: setting the value
       // cancels that ticker without its whenComplete, so clear here.
       _tailStart = null;
       _tailIndex = null;
+      _landing = false;
       _releaseAppendInk();
       if (!context.reduceMotion) {
         _append.value = 0;
@@ -229,24 +252,51 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // Only words added after the old ones fade in as a tail; a landing that
     // replaced the text (a whole-file pass) just swaps.
     final grew = after.length > before.length && after.startsWith(before);
-    final layout = _appendFor;
-    if (!grew || _append.value != 0 || _appendPoints == null || layout == null) {
+    final layout = _appendLayout;
+    final landed = grew ? after.substring(before.length).trim() : '';
+    final move = appendLanding(
+      grew: grew,
+      inkShown: _append.value == 0,
+      laidOut: layout != null,
+      reduceMotion: context.reduceMotion,
+      matches: _appendPoints != null && landed == _appendFor?.pending.trim(),
+    );
+    if (move == AppendLanding.swap) {
       _swapAppend();
       return;
     }
     _tailStart = before.length;
     _tailIndex = old.transcript?.segments.length ?? 0;
     _landing = true;
-    // The words that landed may differ from the live ones the ink was shaped
-    // by: reshape first, then dissolve, so the ink never blinks mid-fade.
-    final landed = after.substring(before.length).trim();
-    if (landed == layout.pending.trim()) {
+    if (move == AppendLanding.dissolve) {
       _dissolveAppend();
       return;
     }
-    final key = (base: before, pending: landed, width: layout.width, scaler: layout.scaler);
+    // The words that landed differ from the ones the ink was shaped by:
+    // reshape first, then dissolve, so the ink never blinks mid-fade. A
+    // screen of them is all the ink anyone sees.
+    final style = AppType.boldAware(AppType.body, bold: layout!.bold);
+    final shown = appendFillerWithin(
+      base: before,
+      filler: landed,
+      width: layout.width,
+      style: style,
+      textScaler: layout.scaler,
+      maxLines: screenLines(
+        screenHeight: MediaQuery.sizeOf(context).height,
+        style: style,
+        textScaler: layout.scaler,
+      ),
+    );
+    final key = (base: before, pending: shown, layout: layout);
     _appendWanted = null;
-    unawaited(_paintAppendInk(key).then((ready) => ready ? _dissolveAppend() : _swapAppend()));
+    unawaited(
+      _paintAppendInk(key).then((ready) {
+        // A new take started meanwhile owns the ink now.
+        if (!_landing) return;
+        ready ? _dissolveAppend() : _swapAppend();
+      }),
+    );
   }
 
   /// No dissolve to run: the words show at once and the ink goes.
@@ -283,25 +333,32 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   }
 
   void _releaseAppendInk() {
+    _dropAppendInk();
+    _appendLayout = null;
+    if (_phase != _Phase.shimmer) _clock.stop();
+  }
+
+  /// Forgets the painted ink (and any paint in flight) but keeps the shimmer
+  /// clock: more words may come.
+  void _dropAppendInk() {
     _appendJob++;
     _appendPoints = null;
     _appendSize = null;
     _appendFor = null;
     _appendWanted = null;
     _appendPainting = false;
-    if (_phase != _Phase.shimmer) _clock.stop();
   }
 
   /// Ink that is [pending] laid out after the words on screen; one paint in
-  /// flight at a time, the newest ask painted when it lands.
-  void _ensureAppendInk(String pending, double width, TextScaler scaler) {
-    if (pending.trim().isEmpty) return;
-    final key = (
-      base: _paragraphText(widget.entry),
-      pending: pending,
-      width: width,
-      scaler: scaler,
-    );
+  /// flight at a time, the newest ask painted when it lands. Empty [pending]
+  /// drops any ink and paints nothing.
+  void _ensureAppendInk(String pending, _AppendLayout layout) {
+    _appendLayout = layout;
+    if (pending.trim().isEmpty) {
+      if (_appendFor != null) _dropAppendInk();
+      return;
+    }
+    final key = (base: _paragraphText(widget.entry), pending: pending, layout: layout);
     if (_appendFor == key || _appendWanted == key) return;
     if (_appendPainting) {
       _appendWanted = key;
@@ -316,8 +373,8 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final base = _paragraphText(widget.entry);
     final key = (
       live: widget.pendingText,
-      forecast: _forecast,
-      sample: _sample,
+      forecast: _held.forecast,
+      sample: _held.sample,
       base: base,
       width: width,
       scaler: scaler,
@@ -328,21 +385,16 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     _pendingFor = key;
     return _pending = appendPending(
       liveText: widget.pendingText,
-      characters: _forecast?.characters,
-      sample: _sample,
+      characters: _held.forecast?.characters,
+      sample: _held.sample,
       base: base,
       width: width,
       screenHeight: screen,
-      style: _inkStyle(bold: bold),
+      style: AppType.boldAware(AppType.body, bold: bold),
       textScaler: scaler,
       locale: Localizations.maybeLocaleOf(context),
     );
   }
-
-  /// What Text sets the body in: Bold Text thickens it, so ink and the cut
-  /// laid out by hand must too.
-  static TextStyle _inkStyle({required bool bold}) =>
-      bold ? AppType.body.copyWith(fontWeight: FontWeight.bold) : AppType.body;
 
   /// Paints the words and samples their ink; a newer request or a release in
   /// flight drops the result. Answers whether the ink landed.
@@ -350,15 +402,14 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final job = ++_appendJob;
     _appendPainting = true;
     _appendFor = key;
-    final bold = MediaQuery.boldTextOf(context);
     ({Float32List points, Size size, double top})? ink;
     try {
       ink = await appendedInkPoints(
         base: key.base,
         addition: key.pending,
-        width: key.width,
-        style: _inkStyle(bold: bold),
-        textScaler: key.scaler,
+        width: key.layout.width,
+        style: AppType.boldAware(AppType.body, bold: key.layout.bold),
+        textScaler: key.layout.scaler,
         pixelRatio: MediaQuery.devicePixelRatioOf(context),
         color: context.themeNow.player.segmentColor,
         locale: Localizations.maybeLocaleOf(context),
@@ -565,7 +616,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         var pending = '';
         if (widget.appending && constraints.hasBoundedWidth && constraints.maxWidth > 0) {
           pending = _pendingAt(constraints.maxWidth, scaler, bold: bold, screen: screen);
-          _ensureAppendInk(pending, constraints.maxWidth, scaler);
+          _ensureAppendInk(pending, (width: constraints.maxWidth, scaler: scaler, bold: bold));
         }
         final points = _appendPoints;
         final size = _appendSize;
@@ -630,12 +681,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // An entry not reading as its transcript renders plain: the timings name
     // the engine's words, and the mark would light text the audio never said.
     final tailStart = _tailStart;
+    // One weight in every branch: spans set their own, so Text's Bold Text
+    // never reaches them.
+    final body = AppType.boldAware(AppType.body, bold: MediaQuery.boldTextOf(context));
     if (inking) {
       // The words about to land hold their room, unseen, so the ink over
       // them sits exactly where they will.
-      // In the ink's own style, so under Bold Text the words it sits on wrap
-      // as it was laid out.
-      final style = _inkStyle(bold: MediaQuery.boldTextOf(context)).copyWith(color: theme.text);
+      final style = body.copyWith(color: theme.text);
       final shown = _paragraphText(widget.entry);
       final reserved = pending.trim();
       return RepaintBoundary(
@@ -659,11 +711,11 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       if (tailStart == null || tailStart >= text.length) {
         return RepaintBoundary(
           key: _textKey,
-          child: Text(text, style: AppType.body.copyWith(color: theme.text)),
+          child: Text(text, style: body.copyWith(color: theme.text)),
         );
       }
       // The landed words fade in after the old ones, in one paragraph.
-      final style = AppType.body.copyWith(color: theme.text);
+      final style = body.copyWith(color: theme.text);
       return RepaintBoundary(
         key: _textKey,
         child: AnimatedBuilder(
@@ -703,7 +755,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
                   for (final (i, segment) in segments.indexed)
                     TextSpan(
                       text: i == segments.length - 1 ? segment.text : '${segment.text} ',
-                      style: AppType.body.copyWith(
+                      style: body.copyWith(
                         // The landed words fade in where the ink stood.
                         color: tailIndex != null && i >= tailIndex
                             ? theme.player.segmentColor.withValues(alpha: _appendEase.value)
@@ -778,7 +830,9 @@ class _TranscriptEmpty extends StatelessWidget {
   }
 }
 
-typedef _AppendKey = ({String base, String pending, double width, TextScaler scaler});
+typedef _AppendLayout = ({double width, TextScaler scaler, bool bold});
+
+typedef _AppendKey = ({String base, String pending, _AppendLayout layout});
 
 typedef _PendingKey = ({
   String live,

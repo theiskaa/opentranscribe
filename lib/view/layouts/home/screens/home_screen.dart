@@ -550,7 +550,6 @@ class _HomeChromeState extends State<_HomeChrome> {
           direction: _direction,
         ),
       ),
-      // Quieter than the title: every changed character moves together, fast.
       // While a take is being saved the line is its progress instead, since
       // the entry lands only once its pass does.
       subtitle: BatchProgressLine(

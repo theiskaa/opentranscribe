@@ -123,4 +123,55 @@ void main() {
       expect(pending(characters: null), '');
     });
   });
+
+  group('screenLines', () {
+    test('counts the lines of the style a screen holds, at the reader\'s scale', () {
+      expect(screenLines(screenHeight: 240, style: style, textScaler: TextScaler.noScaling), 10);
+      expect(
+        screenLines(screenHeight: 240, style: style, textScaler: const TextScaler.linear(2)),
+        5,
+      );
+    });
+
+    test('a screen too short for a line still holds one', () {
+      expect(screenLines(screenHeight: 4, style: style, textScaler: TextScaler.noScaling), 1);
+    });
+  });
+
+  group('appendLanding', () {
+    AppendLanding landing({
+      bool grew = true,
+      bool inkShown = true,
+      bool laidOut = true,
+      bool reduceMotion = false,
+      bool matches = false,
+    }) => appendLanding(
+      grew: grew,
+      inkShown: inkShown,
+      laidOut: laidOut,
+      reduceMotion: reduceMotion,
+      matches: matches,
+    );
+
+    test('ink already shaped like the landed words only dissolves', () {
+      expect(landing(matches: true), AppendLanding.dissolve);
+    });
+
+    test('ink shaped like other words, or none painted, is reshaped first', () {
+      expect(landing(), AppendLanding.reshape);
+    });
+
+    test('words that did not grow by a tail swap in at once', () {
+      expect(landing(grew: false, matches: true), AppendLanding.swap);
+    });
+
+    test('with the ink never shown or never laid out there is nothing to fade', () {
+      expect(landing(inkShown: false), AppendLanding.swap);
+      expect(landing(laidOut: false), AppendLanding.swap);
+    });
+
+    test('under Reduce Motion the words swap in', () {
+      expect(landing(reduceMotion: true, matches: true), AppendLanding.swap);
+    });
+  });
 }

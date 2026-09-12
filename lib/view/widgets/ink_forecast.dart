@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
@@ -33,20 +35,20 @@ String fillerSample({required String localeId, required List<Entry> journal}) {
     final text = entry.readableText?.trim() ?? '';
     if (text.length >= _shortestSample) return text;
   }
-  return switch (language) {
-    'ja' => _kanaSample,
-    'zh' || 'yue' => _hanSample,
-    'ko' => _hangulSample,
-    _ => _latinSample,
+  return switch (cjkScriptOf(localeId)) {
+    CjkScript.japanese => _kanaSample,
+    CjkScript.chinese => _hanSample,
+    CjkScript.korean => _hangulSample,
+    null => _latinSample,
   };
 }
 
 /// About [characters] of [sample]'s words, cycled as often as it takes and
 /// ending on a whole word (a word too long to be one is cut at the length); a
 /// sample in a script written without spaces (Japanese, Chinese, Thai) is
-/// cycled by character. Empty when the sample has no words. A caller clamps
-/// [characters] to what it can show ([mostCharacters]), and keeps the filler
-/// out of the semantics tree.
+/// cycled by character. Empty when the sample has no words. Surfaces go
+/// through [forecastFiller], which clamps [characters] to what they show; the
+/// filler stays out of the semantics tree.
 String fillerText(String sample, int characters) {
   final trimmed = sample.trim();
   if (trimmed.isEmpty || characters <= 0) return '';
@@ -65,6 +67,19 @@ String fillerText(String sample, int characters) {
 
 /// Past this, a run of letters is a link or a laugh, not a word to wrap on.
 const int _longestWord = 24;
+
+/// About [characters] of [sample]'s words, but never more than [lines] of
+/// [fontSize] text can hold at [width]: the filler a surface lays out.
+String forecastFiller({
+  required String sample,
+  required int characters,
+  required double width,
+  required double fontSize,
+  required int lines,
+}) => fillerText(
+  sample,
+  math.min(characters, mostCharacters(width: width, fontSize: fontSize, lines: lines)),
+);
 
 /// The most characters [lines] of [fontSize] text can hold at [width]: the
 /// narrowest glyphs are about a quarter of the size wide. A bound, so filler
