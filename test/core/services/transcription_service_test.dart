@@ -936,6 +936,172 @@ void main() {
     expect(entry.languageSpans, hasLength(2), reason: 'the mix is kept for a capable engine');
   });
 
+  test(
+    'an interrupted mixed take is saved with its picks, never waiting on a read of its voice',
+    () async {
+      var now = DateTime.utc(2026, 3, 4, 12);
+      final held = Completer<void>();
+      final recorder = FakeAudioRecorder(duration: const Duration(seconds: 6));
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: recorder,
+        engine: FakeBatchEngine(),
+        store: store,
+        activity: _HeldAudioActivity(held.future),
+        clock: () => now,
+        idGenerator: () => 'id-0',
+      );
+      svc.localeId = 'en-US';
+      final saved = svc.autoFinalized.first;
+
+      await svc.startRecording();
+      now = now.add(const Duration(seconds: 3));
+      await svc.setSessionLocale('fr-FR');
+      recorder.interrupt();
+      final entry = await saved;
+
+      expect(entry.languageSpans?.last.startMs, 3000);
+      held.complete();
+      await svc.dispose();
+    },
+  );
+
+  group('with a voice probe', () {
+    Future<(Entry, FakeBatchEngine)> probedTake({
+      required List<VoicedRange> voice,
+      required List<(Duration, String)> picks,
+      required Duration length,
+      String Function(String locale)? words,
+    }) async {
+      var now = DateTime.utc(2026, 3, 4, 12);
+      final engine = FakeBatchEngine()
+        ..transcriptBuilder = (locale, start, end) =>
+            words?.call(locale) ?? locale.split('-').first;
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(duration: length),
+        engine: engine,
+        store: store,
+        activity: FakeAudioActivity(ranges: voice),
+        clock: () => now,
+        idGenerator: () => 'id-0',
+      );
+      svc.localeId = 'en-US';
+      await svc.startRecording();
+      var at = Duration.zero;
+      for (final (pick, tag) in picks) {
+        now = now.add(pick - at);
+        at = pick;
+        await svc.setSessionLocale(tag);
+      }
+      now = now.add(length - at);
+      final entry = await svc.stopRecording();
+      await svc.dispose();
+      return (entry, engine);
+    }
+
+    test(
+      'a switch picked two seconds into the next language cuts at the pause before it',
+      () async {
+        final (entry, engine) = await probedTake(
+          voice: const [
+            (start: Duration(milliseconds: 800), end: Duration(milliseconds: 9500)),
+            (start: Duration(milliseconds: 12040), end: Duration(seconds: 21)),
+          ],
+          picks: [(const Duration(seconds: 14), 'fr-FR')],
+          length: const Duration(seconds: 22),
+        );
+
+        expect(engine.batchCalls.last.start, const Duration(milliseconds: 10770));
+        expect(entry.languageSpans, const [
+          LanguageSpan(startMs: 0, localeId: 'en-US'),
+          LanguageSpan(startMs: 10770, localeId: 'fr-FR'),
+        ]);
+      },
+    );
+
+    test('a span that held no voice folds out of the spans the entry keeps', () async {
+      final (entry, _) = await probedTake(
+        voice: const [
+          (start: Duration.zero, end: Duration(seconds: 3)),
+          (start: Duration(seconds: 6), end: Duration(seconds: 9)),
+        ],
+        picks: [(const Duration(seconds: 3), 'fr-FR'), (const Duration(seconds: 6), 'en-US')],
+        length: const Duration(seconds: 9),
+        words: (locale) => locale == 'fr-FR' ? '' : 'en',
+      );
+
+      expect(entry.transcript?.fullText, 'en en');
+      expect(entry.languageSpans, isNull);
+      expect(entry.recordedLocaleId, 'en-US');
+    });
+
+    test('a span that heard nothing over a voice keeps its language for a better pass', () async {
+      final (entry, _) = await probedTake(
+        voice: const [(start: Duration.zero, end: Duration(seconds: 9))],
+        picks: [(const Duration(seconds: 3), 'fr-FR')],
+        length: const Duration(seconds: 9),
+        words: (locale) => locale == 'fr-FR' ? '' : 'en',
+      );
+
+      expect(entry.languageSpans?.map((span) => span.localeId), ['en-US', 'fr-FR']);
+    });
+
+    test('a take that heard no words is in the language its voice was in', () async {
+      final (entry, _) = await probedTake(
+        voice: const [(start: Duration(seconds: 3), end: Duration(seconds: 9))],
+        picks: [(const Duration(seconds: 3), 'fr-FR')],
+        length: const Duration(seconds: 9),
+        words: (_) => '',
+      );
+
+      expect(entry.transcript?.localeId, 'fr-FR');
+      expect(entry.recordedLocaleId, 'fr-FR');
+      expect(entry.languageSpans, isNull);
+    });
+
+    test(
+      'a re-transcription hears the saved spans where they are, never cutting them again',
+      () async {
+        final engine = FakeBatchEngine()
+          ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+        final svc = TranscriptionService(
+          composer: FakeAudioComposer(),
+          recorder: FakeAudioRecorder(),
+          engine: engine,
+          store: store,
+          activity: FakeAudioActivity(
+            ranges: const [
+              (start: Duration.zero, end: Duration(seconds: 3)),
+              (start: Duration(seconds: 5), end: Duration(seconds: 10)),
+            ],
+          ),
+          clock: () => fixedClock,
+          idGenerator: () => 'id-0',
+        );
+        final entry = Entry(
+          id: 'mix',
+          createdAt: fixedClock,
+          audioPath: '/tmp/x.m4a',
+          duration: const Duration(seconds: 10),
+          recordedLocaleId: 'en-US',
+          languageSpans: const [
+            LanguageSpan(startMs: 0, localeId: 'en-US'),
+            LanguageSpan(startMs: 3500, localeId: 'fr-FR'),
+          ],
+        );
+        await store.save(entry);
+
+        final heard = await svc.retranscribe(entry);
+
+        expect(heard.transcript?.fullText, 'en [fr] fr');
+        expect(heard.languageSpans, entry.languageSpans);
+        expect(engine.batchCalls.last.start, const Duration(milliseconds: 3500));
+        await svc.dispose();
+      },
+    );
+  });
+
   test('a span whose run fails is heard once more and the mix still lands', () async {
     var frenchRuns = 0;
     final engine = FakeBatchEngine()
@@ -3853,5 +4019,17 @@ class _HungSpanEngine extends FakeBatchEngine {
     }
     batchCalls.add((localeId: localeId, start: start, end: end));
     return Completer<Transcript>().future;
+  }
+}
+
+class _HeldAudioActivity implements AudioActivity {
+  _HeldAudioActivity(this._held);
+
+  final Future<void> _held;
+
+  @override
+  Future<List<VoicedRange>?> voiced(File audio, {Duration? start, Duration? end}) async {
+    await _held;
+    return const [];
   }
 }

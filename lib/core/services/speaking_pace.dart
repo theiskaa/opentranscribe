@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/services/language_seams.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 
 /// Languages written in an alphabet with spaces between words (Latin,
@@ -36,7 +37,7 @@ const int _shortestWord = 4;
 int forecastCharacters({
   required Duration speech,
   required Duration audio,
-  required List<({int startMs, String tag})> spans,
+  required List<TakeSpan> spans,
   required double Function(String localeId) pace,
 }) {
   assert(spans.isNotEmpty, 'a take has at least its opening span');

@@ -320,11 +320,12 @@ class Deps {
     // Whisper reports the right model from the first frame; an id the catalog
     // dropped reads as unset.
     final storedWhisperModel = engineSettings.modelIdFor(WhisperEngine.engineId);
+    final audioActivity = PlatformAudioActivity();
     final whisperEngine = WhisperEngine(
       modelsDir: modelsDir ?? Directory('${Directory.systemTemp.path}/models'),
       fetcher: PinnedHostFetcher(allowedHostSuffixes: WhisperHosts.redirectSuffixes),
       decoder: PlatformPcmDecoder(),
-      activity: PlatformAudioActivity(),
+      activity: audioActivity,
       runtime: FfiWhisperRuntime(
         threads: () => min(
           thermalMonitor.underPressure ? _whisperHotThreads : _whisperThreads,
@@ -404,6 +405,7 @@ class Deps {
       composer: PlatformAudioComposer(),
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
       pace: SpeakingPace(storage: localService),
+      activity: audioActivity,
       keepAudio: () => audioStorageSettings.keepAudio,
       thermalPressure: () => thermalMonitor.underPressure,
     );

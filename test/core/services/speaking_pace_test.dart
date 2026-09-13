@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/services/language_seams.dart';
 import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,7 +28,7 @@ void main() {
   group('forecastCharacters', () {
     int forecast(
       Duration speech, {
-      List<({int startMs, String tag})> spans = const [(startMs: 0, tag: 'en-US')],
+      List<TakeSpan> spans = const [(startMs: 0, tag: 'en-US')],
       Duration audio = const Duration(seconds: 10),
     }) => forecastCharacters(speech: speech, audio: audio, spans: spans, pace: startingPace);
 

@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/language_seams.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:opentranscribe/core/services/speech_tally.dart';
@@ -83,6 +84,9 @@ final class BatchProgress {
   );
 }
 
+/// A pass's words, and the spans they keep, silent ones folded away.
+typedef _HeardPass = ({Transcript transcript, List<TakeSpan> spans});
+
 typedef _BatchReport =
     void Function(
       BatchStep step,
@@ -121,6 +125,7 @@ class TranscriptionService {
     this._batchTimeout = const Duration(minutes: 2),
     this._peaksReader,
     this._pace,
+    this._activity,
     DateTime Function()? clock,
     String Function()? idGenerator,
     Future<void> Function(File file)? fileDeleter,
@@ -323,6 +328,11 @@ class TranscriptionService {
   /// of the next; null forecasts at the starting pace and learns nothing.
   final SpeakingPace? _pace;
 
+  /// Where a take holds a voice: a mixed take's switches move to the quiet
+  /// around them, and its silent spans fold away. Null keeps the picks and
+  /// every span.
+  final AudioActivity? _activity;
+
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
@@ -431,7 +441,7 @@ class TranscriptionService {
   /// The current session's language spans, ascending by audio time. Seeded at
   /// start with one span at 0; [setSessionLocale] appends. More than one span
   /// means a mixed-language take, batched span by span on stop.
-  List<({int startMs, String tag})> _sessionSpans = [];
+  List<TakeSpan> _sessionSpans = [];
 
   /// Live text heard this session, retained ONLY to salvage a take whose
   /// settling batch yields nothing: the batch stays the source of truth, but a
@@ -1104,24 +1114,32 @@ class TranscriptionService {
         ),
         heard: liveText,
       );
+      // The spans the entry keeps: the picks cut once, here, on the take's own
+      // audio (a saved cut is never cut again, and a continuation's join is
+      // never taken for a pick), then folded by the pass that lands.
+      // A take saved without its pass (an interruption, the app's end) keeps
+      // its picks: the read of its voice must not stand between it and the
+      // save the process may not live to finish.
+      var takeSpans = transcribe ? await _cutTake(recording, spans) : spans;
       // A fallen-back tail lands as its own entry, not where its forecast
       // would draw, so its pass carries none.
       Future<void> batchTail({bool forecasting = true}) async {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
-          transcript = await _reporting(
+          final pass = await _reporting(
             continuation?.id,
             forecast: forecasting ? forecast : null,
-            (report) => spans.length > 1
-                ? _segmentedBatch(_engine, audioFile, recording.duration, spans, report: report)
-                : _batch(
-                    _engine,
-                    audioFile,
-                    recording.duration,
-                    localeId: sessionLocale,
-                    report: report,
-                  ),
+            (report) => _hear(
+              _engine,
+              audioFile,
+              recording.duration,
+              takeSpans,
+              localeId: sessionLocale,
+              report: report,
+            ),
           );
+          transcript = pass.transcript;
+          takeSpans = pass.spans;
           // A first-use model install may have piggybacked on this pass.
           _notifyModelStateChanged();
         } catch (_) {
@@ -1159,7 +1177,7 @@ class TranscriptionService {
           baseStored,
           recording,
           tail: transcript,
-          spans: spans,
+          spans: takeSpans,
           sessionLocale: sessionLocale,
           transcribe: transcribe,
           salvaged: salvaged,
@@ -1195,10 +1213,8 @@ class TranscriptionService {
         // still know what language it is in when transcribed later. A mixed
         // take's recording language is its FIRST span's, and its spans are
         // kept so a later (re-)transcription can rebuild the mix.
-        recordedLocaleId: spans.isNotEmpty ? spans.first.tag : sessionLocale,
-        languageSpans: spans.length > 1
-            ? [for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag)]
-            : null,
+        recordedLocaleId: takeSpans.isNotEmpty ? takeSpans.first.tag : sessionLocale,
+        languageSpans: _entrySpans(takeSpans),
       );
       try {
         await _store.save(entry);
@@ -1252,6 +1268,16 @@ class TranscriptionService {
     }
   }
 
+  /// [spans] as an entry keeps them: none for a take in one language.
+  static List<LanguageSpan>? _entrySpans(List<TakeSpan> spans) => spans.length > 1
+      ? [for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag)]
+      : null;
+
+  /// An entry's kept spans as a pass takes them; none when it has none.
+  static List<TakeSpan> _passSpans(List<LanguageSpan>? spans) => [
+    for (final span in spans ?? const <LanguageSpan>[]) (startMs: span.startMs, tag: span.localeId),
+  ];
+
   /// Teaches the pace what a one-language take's words really ran to. Off
   /// the stop's path: a failed write keeps the move for this session only.
   void _learnPace(TakeForecast forecast, int characters) {
@@ -1287,7 +1313,7 @@ class TranscriptionService {
     Entry? stored,
     Recording recording, {
     required Transcript? tail,
-    required List<({int startMs, String tag})> spans,
+    required List<TakeSpan> spans,
     required String? sessionLocale,
     required bool transcribe,
     required bool salvaged,
@@ -1314,21 +1340,27 @@ class TranscriptionService {
             offset: file.offset,
             tail: tailSpans,
           )
-        : (tailSpans.length > 1 ? tailSpans : null);
+        : _entrySpans(spans);
     // Never heard: the stitch has nothing to grow, so the merged file gets the
     // pass the base was owed. A failure leaves it untranscribed, as it was.
     Transcript? whole;
+    var wholeSpans = newSpans;
     if (stored.transcript == null && transcribe) {
       try {
         final audio = File(file.path);
-        whole = await _reporting(
+        final pass = await _reporting(
           stored.id,
-          (report) => newSpans != null
-              ? _segmentedBatch(_engine, audio, file.duration, [
-                  for (final span in newSpans) (startMs: span.startMs, tag: span.localeId),
-                ], report: report)
-              : _batch(_engine, audio, file.duration, localeId: baseLocale, report: report),
+          (report) => _hear(
+            _engine,
+            audio,
+            file.duration,
+            _passSpans(newSpans),
+            localeId: baseLocale,
+            report: report,
+          ),
         );
+        whole = pass.transcript;
+        wholeSpans = _entrySpans(pass.spans);
       } catch (_) {
         whole = null;
       }
@@ -1342,7 +1374,7 @@ class TranscriptionService {
       if (baseHadAudio) await _dropMerge(file.path);
       return const _FellBack(ContinuationFallback.deleted);
     }
-    var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(newSpans);
+    var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(wholeSpans);
     var additionUntranscribed = false;
     var wordsLanded = false;
     var usedSalvage = salvaged;
@@ -2123,16 +2155,19 @@ class TranscriptionService {
     // A mixed-language take re-transcribes span by span, rebuilding the mix,
     // UNLESS the caller chose a language explicitly: the user's correction
     // flattens the whole take into that one language on purpose.
-    final spans = entry.languageSpans;
-    final transcript = await _reporting(entry.id, (report) {
-      if (localeId == null && spans != null && spans.length > 1) {
-        return _segmentedBatch(engine, audioFile, entry.duration, [
-          for (final span in spans) (startMs: span.startMs, tag: span.localeId),
-        ], report: report);
-      }
-      final locale = localeId ?? entry.effectiveLocaleId ?? serviceLocaleId;
-      return _batch(engine, audioFile, entry.duration, localeId: locale, report: report);
-    });
+    final mix = localeId == null ? _passSpans(entry.languageSpans) : const <TakeSpan>[];
+    final pass = await _reporting(
+      entry.id,
+      (report) => _hear(
+        engine,
+        audioFile,
+        entry.duration,
+        mix,
+        localeId: localeId ?? entry.effectiveLocaleId ?? serviceLocaleId,
+        report: report,
+      ),
+    );
+    final transcript = pass.transcript;
     // A first-use model install may have piggybacked on this pass.
     _notifyModelStateChanged();
     // The batch pass can run minutes; the user may have deleted the entry or
@@ -2149,7 +2184,12 @@ class TranscriptionService {
     // landing something). A repeat re-transcription never deletes; bulk
     // reclaim is explicit only.
     final hadWords = stored.transcript != null && stored.transcript!.fullText.trim().isNotEmpty;
-    final retranscribed = stored.withTranscript(transcript);
+    // A pass over the mix keeps the spans it was heard in; one language
+    // chosen on purpose leaves them for a later rebuild. The language the
+    // recording was made in stays as it was recorded.
+    final retranscribed = mix.length > 1
+        ? stored.withTranscript(transcript).withLanguageSpans(_entrySpans(pass.spans))
+        : stored.withTranscript(transcript);
     // The words this landing replaces go into history; a first transcription
     // of an untouched entry replaces nothing and pushes nothing. Two more
     // silences: a landing that heard NOTHING pushes no empty head, and a
@@ -2553,21 +2593,39 @@ class TranscriptionService {
     }
   }
 
-  /// Batches a mixed-language take span by span and merges the results: texts
-  /// joined with a `[fr]`-style marker where the language changes, segment
-  /// timings offset to file time, the first spoken span's language as the
-  /// transcript's. An engine that cannot slice ([RangeUnsupported]) gets one
-  /// flattened pass in the first span's language instead: a flattened
-  /// transcript beats an untranscribed entry there, and the persisted spans
-  /// let a re-transcription rebuild the mix on a capable engine later. Any
-  /// other failure fails the take rather than flattening it, since a pass
-  /// forced into one language hands the others back translated; a span whose
-  /// run failed gets one more try first.
-  Future<Transcript> _segmentedBatch(
+  /// A pass over [file]: span by span when [spans] hold more than one
+  /// language ([_segmentedBatch]), else one pass in [localeId] answering the
+  /// spans as they came.
+  Future<_HeardPass> _hear(
     TranscriptionEngine engine,
     File file,
     Duration duration,
-    List<({int startMs, String tag})> spans, {
+    List<TakeSpan> spans, {
+    required String? localeId,
+    _BatchReport? report,
+  }) async {
+    if (spans.length > 1) return _segmentedBatch(engine, file, duration, spans, report: report);
+    final transcript = await _batch(engine, file, duration, localeId: localeId, report: report);
+    return (transcript: transcript, spans: spans);
+  }
+
+  /// Batches a mixed-language take span by span and merges the results: texts
+  /// joined with a `[fr]`-style marker where the language changes, segment
+  /// timings offset to file time, the first spoken span's language as the
+  /// transcript's. The spans answered are [spans] with every span that landed
+  /// no words over no voice folded away ([_foldSilent]), what the entry keeps;
+  /// a flattened pass answers them as they are. An engine that cannot slice
+  /// ([RangeUnsupported]) gets one flattened pass in the first span's language
+  /// instead: a flattened transcript beats an untranscribed entry there, and
+  /// the persisted spans let a re-transcription rebuild the mix on a capable
+  /// engine later. Any other failure fails the take rather than flattening it,
+  /// since a pass forced into one language hands the others back translated;
+  /// a span whose run failed gets one more try first.
+  Future<_HeardPass> _segmentedBatch(
+    TranscriptionEngine engine,
+    File file,
+    Duration duration,
+    List<TakeSpan> spans, {
     _BatchReport? report,
   }) async {
     final generation = _cancelGeneration;
@@ -2670,18 +2728,84 @@ class TranscriptionService {
           );
         }
       }
-      return Transcript(
+      // Folded before the fallback language: a take that heard no words is
+      // in the language its voice was in, not the silence it opened with.
+      final folded = await _foldSilent(file, duration, spans, parts);
+      final transcript = Transcript(
         fullText: buffer.toString(),
         segments: segments,
-        localeId: firstSpokenTag ?? spans.first.tag,
+        localeId: firstSpokenTag ?? folded.first.tag,
         engineId: engine.id,
         createdAt: _clock(),
       );
+      return (transcript: transcript, spans: folded);
     } on RangeUnsupported catch (e) {
       if (generation != _cancelGeneration) rethrow;
       if (kDebugMode) debugPrint('flattened to ${spans.first.tag}: $e');
-      return _batch(engine, file, duration, localeId: spans.first.tag, report: along(0, 1));
+      final flat = await _batch(
+        engine,
+        file,
+        duration,
+        localeId: spans.first.tag,
+        report: along(0, 1),
+      );
+      return (transcript: flat, spans: spans);
     }
+  }
+
+  /// [picks] with every switch moved to the quiet around it ([seamCut]), from
+  /// one read of where the whole take holds a voice; the picks as they are
+  /// without a probe, or when it cannot tell.
+  Future<List<TakeSpan>> _cutTake(Recording recording, List<TakeSpan> picks) async {
+    final activity = _activity;
+    if (activity == null || picks.length < 2) return picks;
+    final List<VoicedRange>? voiced;
+    try {
+      voiced = await activity.voiced(File(await _resolveAudioPath(recording.path)));
+    } catch (_) {
+      return picks;
+    }
+    final cut = [picks.first];
+    for (var i = 1; i < picks.length; i++) {
+      final pick = Duration(milliseconds: picks[i].startMs);
+      final window = seamWindow(
+        pick: pick,
+        previous: i > 1 ? Duration(milliseconds: picks[i - 1].startMs) : null,
+        next: i + 1 < picks.length ? Duration(milliseconds: picks[i + 1].startMs) : null,
+        length: recording.duration,
+      );
+      final at = seamCut(pick: pick, voiced: voiced, window: window, length: recording.duration);
+      if (kDebugMode) {
+        debugPrint('seam ${picks[i].tag}: picked ${pick.inMilliseconds}, cut ${at.inMilliseconds}');
+      }
+      cut.add((startMs: at.inMilliseconds, tag: picks[i].tag));
+    }
+    return cut;
+  }
+
+  /// [spans] without those whose [parts] landed no words over audio the probe
+  /// finds no voice in ([foldSilentSpans]); a span that heard nothing over a
+  /// voice keeps its language for a better pass.
+  Future<List<TakeSpan>> _foldSilent(
+    File file,
+    Duration length,
+    List<TakeSpan> spans,
+    List<Transcript> parts,
+  ) async {
+    final activity = _activity;
+    if (activity == null) return spans;
+    final silent = <int>{};
+    for (var i = 0; i < spans.length; i++) {
+      if (parts[i].fullText.trim().isNotEmpty) continue;
+      final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : length;
+      final voiced = await activity.voiced(
+        file,
+        start: Duration(milliseconds: spans[i].startMs),
+        end: end,
+      );
+      if (voiced != null && voiced.isEmpty) silent.add(i);
+    }
+    return foldSilentSpans(spans, silent);
   }
 
   /// A span's pass, run once more when it throws [TranscriptionFailed]; never

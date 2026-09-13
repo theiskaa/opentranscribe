@@ -133,6 +133,93 @@ void main() {
     await svc.dispose();
   });
 
+  test(
+    'a mixed take recorded onto an entry keeps its switch at the pause, offset past the base',
+    () async {
+      await seedBase(transcript: heard('first thoughts'));
+      var now = fixedClock;
+      recorder = FakeAudioRecorder(
+        recordingsDir: dir.path,
+        path: 'tail.m4a',
+        duration: const Duration(seconds: 6),
+      );
+      final engine = FakeBatchEngine()
+        ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+      final svc = TranscriptionService(
+        recorder: recorder,
+        engine: engine,
+        store: store,
+        composer: composer,
+        activity: FakeAudioActivity(
+          ranges: const [
+            (start: Duration.zero, end: Duration(seconds: 2)),
+            (start: Duration(seconds: 4), end: Duration(seconds: 6)),
+          ],
+        ),
+        clock: () => now,
+        idGenerator: () => 'id-${idCounter++}',
+        fileDeleter: (f) async => f.deleteSync(),
+      );
+
+      await svc.startRecording(continuing: store.read('base'));
+      now = now.add(const Duration(milliseconds: 3600));
+      await svc.setSessionLocale('fr-FR');
+      now = now.add(const Duration(milliseconds: 2400));
+      final landed = await svc.stopRecording();
+
+      expect(landed.transcript?.fullText, 'first thoughts en [fr] fr');
+      expect(landed.languageSpans, [
+        const LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: baseDuration.inMilliseconds + 3000, localeId: 'fr-FR'),
+      ]);
+
+      await svc.dispose();
+    },
+  );
+
+  test('an unheard entry grown by a mixed take keeps the take\'s cut past the join', () async {
+    await seedBase();
+    var now = fixedClock;
+    recorder = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'tail.m4a',
+      duration: const Duration(seconds: 6),
+    );
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = TranscriptionService(
+      recorder: recorder,
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(
+        name: 'merged.m4a',
+        durations: const {'base.m4a': baseDuration, 'tail.m4a': Duration(seconds: 6)},
+      ),
+      activity: FakeAudioActivity(
+        ranges: const [
+          (start: Duration.zero, end: Duration(seconds: 2)),
+          (start: Duration(seconds: 4), end: Duration(seconds: 6)),
+        ],
+      ),
+      clock: () => now,
+      idGenerator: () => 'id-${idCounter++}',
+      fileDeleter: (f) async => f.deleteSync(),
+    );
+
+    await svc.startRecording(continuing: store.read('base'));
+    now = now.add(const Duration(milliseconds: 3600));
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(const Duration(milliseconds: 2400));
+    final landed = await svc.stopRecording();
+
+    expect(landed.languageSpans, [
+      const LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: baseDuration.inMilliseconds + 3000, localeId: 'fr-FR'),
+    ]);
+
+    await svc.dispose();
+  });
+
   test('the old base file and the tail are removed once the record points at the merge', () async {
     await seedBase(transcript: heard('a'));
     final svc = build(FakeBatchEngine(cannedText: 'b'));
