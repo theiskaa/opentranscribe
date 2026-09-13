@@ -283,6 +283,7 @@ abstract class _AppleChannelEngine implements StreamingTranscriptionEngine, Canc
       ),
       'reservation_cap' => ReservationCapReached(_stringList(extras?['reservedTags']), message),
       'file_missing' => RecordingMissing(message),
+      'range_unsupported' => RangeUnsupported(message),
       _ => TranscriptionFailed(message),
     };
   }

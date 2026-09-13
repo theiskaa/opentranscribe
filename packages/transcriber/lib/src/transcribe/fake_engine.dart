@@ -264,8 +264,8 @@ class FakeBatchEngine implements TranscriptionEngine, CancellableBatchEngine {
   /// Builds per-call text when set; falls back to [cannedText].
   String Function(String localeId, Duration? start, Duration? end)? transcriptBuilder;
 
-  /// Fails only RANGED calls, the shape of an engine that cannot slice
-  /// (pre-26), for fallback tests.
+  /// Fails only ranged calls with [RangeUnsupported], the shape of the
+  /// classic dictation engine, for fallback tests.
   bool failRanged = false;
 
   /// How many times [cancelBatches] was called, for the timeout-cancel test.
@@ -289,7 +289,7 @@ class FakeBatchEngine implements TranscriptionEngine, CancellableBatchEngine {
     if (throwGeneric) throw StateError('generic engine failure');
     if (failBatch) throw const TranscriptionFailed('fake batch failure');
     if (failRanged && (start != null || end != null)) {
-      throw const TranscriptionFailed('ranged transcription unavailable');
+      throw const RangeUnsupported('ranged transcription unavailable');
     }
     final text = transcriptBuilder?.call(localeId, start, end) ?? cannedText;
     return _cannedTranscript(text, localeId, id, _clock());

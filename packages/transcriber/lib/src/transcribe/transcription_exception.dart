@@ -75,6 +75,12 @@ class TranscriptionFailed extends TranscriptionException {
   const TranscriptionFailed([super.message]);
 }
 
+/// The engine cannot transcribe a slice of a file, only the whole of it. Its
+/// own type because it is the one failure a whole-file pass can answer.
+class RangeUnsupported extends TranscriptionException {
+  const RangeUnsupported([super.message]);
+}
+
 /// The audio a transcription was asked for is not there. Its own type because
 /// no retry can fix it.
 class RecordingMissing extends TranscriptionException {

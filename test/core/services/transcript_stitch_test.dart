@@ -149,7 +149,7 @@ void main() {
       expect(seamMarker(stored: stored, tailLocaleId: 'en-GB'), isFalse);
     });
 
-    test('a mixed base is judged by its last span, not its first language', () {
+    test('a mixed base is judged by its last marker, not its first language', () {
       final mixed = entry(transcript: transcript('hello [fr] bonjour')).withLanguageSpans(const [
         LanguageSpan(startMs: 0, localeId: 'en-US'),
         LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
@@ -157,6 +157,33 @@ void main() {
 
       expect(seamMarker(stored: mixed, tailLocaleId: 'fr-FR'), isFalse);
       expect(seamMarker(stored: mixed, tailLocaleId: 'en-US'), isTrue);
+    });
+
+    test('a base whose last span heard nothing is judged by its last words', () {
+      final silentEnd = entry(transcript: transcript('hello there')).withLanguageSpans(const [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+      ]);
+
+      expect(seamMarker(stored: silentEnd, tailLocaleId: 'en-US'), isFalse);
+      expect(seamMarker(stored: silentEnd, tailLocaleId: 'fr-FR'), isTrue);
+    });
+
+    test('a base never heard is judged by its last span', () {
+      final unheard = entry().withLanguageSpans(const [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+      ]);
+
+      expect(seamMarker(stored: unheard, tailLocaleId: 'fr-FR'), isFalse);
+      expect(seamMarker(stored: unheard, tailLocaleId: 'en-US'), isTrue);
+    });
+
+    test('brackets inside a word are not a marker', () {
+      final bracketed = entry(transcript: transcript('see note[fr] here'));
+
+      expect(seamMarker(stored: bracketed, tailLocaleId: 'en-US'), isFalse);
+      expect(seamMarker(stored: bracketed, tailLocaleId: 'fr-FR'), isTrue);
     });
 
     test('an entry of unknown language earns no marker', () {

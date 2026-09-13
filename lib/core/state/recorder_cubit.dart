@@ -161,11 +161,30 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// tick used to vanish from the take's clock forever.
   DateTime? _runStart;
 
-  /// Text committed by earlier language spans of THIS take, ending with the
-  /// current span's `[fr]`-style marker. The live stream restarts on a
-  /// language switch and its events only carry the new span, so the prefix is
-  /// what keeps everything already spoken on screen.
+  /// Words committed by earlier language spans of THIS take, markers between
+  /// them. The live stream restarts on a language switch and its events only
+  /// carry the new span, so the prefix is what keeps everything already spoken
+  /// on screen.
   String _livePrefix = '';
+
+  /// The language the prefix's last words were in.
+  String? _prefixTag;
+
+  /// The running span's own words, as its latest event had them.
+  String _spanText = '';
+
+  /// The take's live words: the prefix, then the running span's, marked
+  /// only where their language differs from the words before them, as the
+  /// settled transcript is.
+  String get _liveWords {
+    final tag = _prefixTag;
+    return appendText(
+      _livePrefix,
+      _spanText,
+      marker: tag != null && languageDiffers(tag, state.localeId),
+      tag: state.localeId,
+    );
+  }
 
   /// An interruption (a phone call) ends the capture natively and the service
   /// saves the entry itself. Without this the screen would keep counting into
@@ -249,7 +268,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _liveSub = _service.liveEvents.listen(
       (event) {
         if (!isClosed) {
-          emit(state.copyWith(liveText: _livePrefix + event.text, liveUnavailable: false));
+          _spanText = event.text;
+          emit(state.copyWith(liveText: _liveWords, liveUnavailable: false));
         }
       },
       // A live failure never tears down the take: the batch pass on stop is the
@@ -455,18 +475,21 @@ class RecorderCubit extends Cubit<RecorderState> {
   }
 
   /// Re-languages the current take (see [TranscriptionService.setSessionLocale]).
-  /// Nothing already on screen is thrown away: the prior text commits into the
-  /// prefix with the NEW language's `[fr]`-style marker, and the restarted
-  /// stream appends after it. No marker when nothing was said yet; there is
-  /// nothing to separate.
+  /// Nothing already on screen is thrown away: the running span's words
+  /// commit into the prefix, and the restarted stream appends after them,
+  /// with the new language's `[fr]`-style marker once its first words arrive
+  /// and only when it differs from the language the last words were in.
   Future<void> setLanguage(String tag) async {
     if (!state.isBusy) return;
     // A pick during the start round-trip, even of the default, outranks the
     // entry's language the probe may still answer with.
     if (_startInFlight != null) _pickedDuringStart = true;
     if (state.localeId == tag) return;
-    final prior = state.liveText.trim();
-    _livePrefix = prior.isEmpty ? '' : '$prior ${languageMarker(tag)} ';
+    if (_spanText.trim().isNotEmpty) {
+      _livePrefix = _liveWords;
+      _prefixTag = state.localeId;
+    }
+    _spanText = '';
     emit(state.copyWith(localeId: tag, liveText: _livePrefix));
     try {
       // A switch tapped while the sheet is still rising races the start
@@ -576,6 +599,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer = null;
     _pickedDuringStart = false;
     _livePrefix = '';
+    _prefixTag = null;
+    _spanText = '';
     _elapsedBase = Duration.zero;
     _runStart = null;
     unawaited(_liveSub?.cancel());
@@ -588,6 +613,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer?.cancel();
     _timer = null;
     _livePrefix = '';
+    _prefixTag = null;
+    _spanText = '';
     _elapsedBase = Duration.zero;
     _runStart = null;
     await _liveSub?.cancel();

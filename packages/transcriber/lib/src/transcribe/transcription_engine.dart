@@ -184,9 +184,10 @@ abstract interface class TranscriptionEngine {
   /// Transcribes a kept audio file, or just the [start]..[end] slice of it
   /// (null bounds = the file's own edges). Ranges are what let a session
   /// spoken in several languages batch each span with its own model. An
-  /// engine that cannot honor a range must FAIL the call, never silently
-  /// transcribe the whole file: callers fall back on failure, and a whole
-  /// file answered as a slice would duplicate text across spans. Segment
+  /// engine that cannot honor a range must FAIL the call with
+  /// `RangeUnsupported`, never silently transcribe the whole file: callers
+  /// fall back to one whole pass on that failure alone, and a whole file
+  /// answered as a slice would duplicate text across spans. Segment
   /// timings in the result are relative to the SLICE; the caller offsets.
   Future<Transcript> transcribeFile(
     File audio, {

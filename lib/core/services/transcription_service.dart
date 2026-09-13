@@ -279,6 +279,12 @@ class TranscriptionService {
   String localeId;
 
   final Duration _batchTimeout;
+
+  /// Thrown when a pass outlives its budget, and matched by identity so a
+  /// timed-out span is not run again: a second wait would only double a hung
+  /// run.
+  static const _timedOut = TranscriptionFailed('transcription timed out');
+
   final DateTime Function() _clock;
   final String Function() _newId;
 
@@ -438,10 +444,29 @@ class TranscriptionService {
   String _sessionLiveCommitted = '';
   String _sessionLiveCurrent = '';
 
-  String get _sessionLiveText => [
-    _sessionLiveCommitted,
-    _sessionLiveCurrent,
-  ].where((part) => part.trim().isNotEmpty).join(' ');
+  /// The language of the committed text's last words, and of its first: a
+  /// switch is marked in the live text as a span-by-span pass marks it, and a
+  /// salvaged take is stamped with the language it was first spoken in.
+  String? _sessionLiveLastTag;
+  String? _sessionLiveFirstTag;
+
+  String get _sessionLiveText {
+    final last = _sessionLiveLastTag;
+    final current = _sessionLocaleId ?? '';
+    return appendText(
+      _sessionLiveCommitted,
+      _sessionLiveCurrent,
+      marker: last != null && languageDiffers(last, current),
+      tag: current,
+    );
+  }
+
+  void _clearSessionLive() {
+    _sessionLiveCommitted = '';
+    _sessionLiveCurrent = '';
+    _sessionLiveLastTag = null;
+    _sessionLiveFirstTag = null;
+  }
 
   /// The opening span's start round-trip window. A language chosen before any
   /// audio (the queued switch that fires the instant start() resolves) can read
@@ -788,8 +813,7 @@ class TranscriptionService {
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = sessionTag;
       _sessionSpans = [(startMs: 0, tag: sessionTag)];
-      _sessionLiveCommitted = '';
-      _sessionLiveCurrent = '';
+      _clearSessionLive();
       _audioMsAccumulated = 0;
       _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
@@ -865,15 +889,19 @@ class TranscriptionService {
   /// Re-languages the CURRENT session from this moment on: a new language
   /// span begins at the current audio time, the settling batch will run each
   /// span in its own language, and the live stream restarts in [tag] (its
-  /// text so far was UI-only; the batch is the source of truth, so nothing
-  /// already spoken is lost). Session-only by design: the app default is
+  /// words so far commit to the salvage text; the batch stays the source of
+  /// truth, so nothing already spoken is lost). Session-only by design: the app default is
   /// TranscriptionSettings' job, and a one-take language change must not
   /// silently rewrite it. A no-op when idle.
   Future<void> setSessionLocale(String tag) async {
     if (!_recording || _sessionLocaleId == tag) return;
-    // Note: _liveGeneration is bumped only per-recording (startRecording), not
-    // here. Within-take correctness of the restart below rests on the engine's
-    // session token dropping the old stream's late events, not on that gate.
+    // The running stream's words commit under the language they were heard in.
+    if (_sessionLiveCurrent.trim().isNotEmpty) {
+      _sessionLiveCommitted = _sessionLiveText;
+      _sessionLiveLastTag = _sessionLocaleId;
+      _sessionLiveFirstTag ??= _sessionLocaleId;
+    }
+    _sessionLiveCurrent = '';
     _sessionLocaleId = tag;
     final nowMs = _audioNowMs;
     final spans = _sessionSpans;
@@ -897,13 +925,14 @@ class TranscriptionService {
     if (engine is! StreamingTranscriptionEngine) return;
     final liveSub = _liveSub;
     _liveSub = null;
+    // Note: _liveGeneration is bumped only per-recording (startRecording), not
+    // here. Within-take correctness of this restart rests on the engine's
+    // session token dropping the old stream's late events, not on that gate.
     // NOT awaited: a live stream mid-session has no next event to resume a
     // cancel on, so awaiting could wedge the switch. Ordering is safe by
     // contract: [StreamingTranscriptionEngine.transcribeLive] promises a new
     // listen works while the old stream's teardown is still completing.
     unawaited(liveSub?.cancel());
-    _sessionLiveCommitted = _sessionLiveText;
-    _sessionLiveCurrent = '';
     _liveSub = _subscribeLive(engine, tag);
   }
 
@@ -1043,10 +1072,11 @@ class TranscriptionService {
       unawaited(liveSub?.cancel().catchError((_) {}));
 
       var liveText = '';
+      String? liveLocale;
       if (_liveGeneration == liveGeneration) {
         liveText = _sessionLiveText.trim();
-        _sessionLiveCommitted = '';
-        _sessionLiveCurrent = '';
+        liveLocale = _sessionLiveFirstTag ?? sessionLocale;
+        _clearSessionLive();
       }
 
       // The recording reference is a filename; resolve it to an absolute path to open
@@ -1057,7 +1087,7 @@ class TranscriptionService {
       Transcript salvage() => Transcript(
         fullText: liveText,
         segments: const [],
-        localeId: openingLocale,
+        localeId: liveLocale ?? openingLocale,
         engineId: _engine.id,
         createdAt: _clock(),
       );
@@ -1579,8 +1609,7 @@ class TranscriptionService {
     _levelSub = null;
     _tally = null;
     _sessionLocaleId = null;
-    _sessionLiveCommitted = '';
-    _sessionLiveCurrent = '';
+    _clearSessionLive();
     final continuation = _continuation;
     _continuation = null;
     if (continuation != null && forRestart) {
@@ -2473,7 +2502,7 @@ class TranscriptionService {
           } else {
             unawaited(_abortEngine(engine));
           }
-          throw const TranscriptionFailed('transcription timed out');
+          throw _timedOut;
         },
       );
     }
@@ -2525,13 +2554,15 @@ class TranscriptionService {
   }
 
   /// Batches a mixed-language take span by span and merges the results: texts
-  /// joined with a `[fr]`-style marker at each switch, segment timings offset
-  /// to file time, the first span's language as the transcript's. Any span
-  /// failing (an engine that cannot slice, pre-26) falls the WHOLE take back
-  /// to one flattened pass in the first span's language: a flattened
-  /// transcript beats an untranscribed entry, and the persisted spans let a
-  /// re-transcription rebuild the mix on a capable engine later. A model
-  /// failure under an engine with one model for every language is final.
+  /// joined with a `[fr]`-style marker where the language changes, segment
+  /// timings offset to file time, the first spoken span's language as the
+  /// transcript's. An engine that cannot slice ([RangeUnsupported]) gets one
+  /// flattened pass in the first span's language instead: a flattened
+  /// transcript beats an untranscribed entry there, and the persisted spans
+  /// let a re-transcription rebuild the mix on a capable engine later. Any
+  /// other failure fails the take rather than flattening it, since a pass
+  /// forced into one language hands the others back translated; a span whose
+  /// run failed gets one more try first.
   Future<Transcript> _segmentedBatch(
     TranscriptionEngine engine,
     File file,
@@ -2540,6 +2571,25 @@ class TranscriptionService {
     _BatchReport? report,
   }) async {
     final generation = _cancelGeneration;
+    // A span's run is its length's share of the line, the download ahead of
+    // it is not. Each run climbs from 0: a retried span, or the flattened pass
+    // after spans that ran, must not take the line back down.
+    var reached = 0.0;
+    _BatchReport? along(double from, double share) => report == null
+        ? null
+        : (step, fraction, {modelId, modelName, preparing = false}) {
+            if (step == BatchStep.transcribing) {
+              final at = from + fraction * share;
+              if (at > reached) reached = at;
+            }
+            report(
+              step,
+              step == BatchStep.transcribing ? reached : fraction,
+              modelId: modelId,
+              modelName: modelName,
+              preparing: preparing,
+            );
+          };
     try {
       final parts = <Transcript>[];
       for (var i = 0; i < spans.length; i++) {
@@ -2548,30 +2598,22 @@ class TranscriptionService {
         final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
         final stop = end ?? duration;
         final spanLength = stop - start;
-        // Each span's run is its length's share of the whole; the download
-        // ahead of the first is not.
         final whole = duration.inMilliseconds;
         final from = whole == 0 ? 0.0 : start.inMilliseconds / whole;
         final share = whole == 0 ? 0.0 : spanLength.inMilliseconds / whole;
         final trace = 'span ${spans[i].tag} ${start.inMilliseconds}..${stop.inMilliseconds}';
         final Transcript part;
         try {
-          part = await _batch(
-            engine,
-            file,
-            spanLength.isNegative ? Duration.zero : spanLength,
-            localeId: spans[i].tag,
-            start: start,
-            end: end,
-            report: report == null
-                ? null
-                : (step, fraction, {modelId, modelName, preparing = false}) => report(
-                    step,
-                    step == BatchStep.transcribing ? from + fraction * share : fraction,
-                    modelId: modelId,
-                    modelName: modelName,
-                    preparing: preparing,
-                  ),
+          part = await _spanPass(
+            () => _batch(
+              engine,
+              file,
+              spanLength.isNegative ? Duration.zero : spanLength,
+              localeId: spans[i].tag,
+              start: start,
+              end: end,
+              report: along(from, share),
+            ),
           );
         } catch (e) {
           if (kDebugMode) debugPrint('$trace: failed $e');
@@ -2590,25 +2632,32 @@ class TranscriptionService {
       }
       final buffer = StringBuffer();
       final segments = <TranscriptSegment>[];
-      // The transcript's language is the first SPOKEN span's: a take whose
-      // opening span held only silence is, effectively, the later language.
       String? firstSpokenTag;
+      String? lastSpokenTag;
       for (var i = 0; i < parts.length; i++) {
         final offset = Duration(milliseconds: spans[i].startMs);
         final text = parts[i].fullText.trim();
-        if (text.isNotEmpty) firstSpokenTag ??= spans[i].tag;
-        // A silent span earns neither text nor a marker; the first spoken
-        // span earns no marker either (nothing before it to separate).
-        if (text.isNotEmpty && buffer.isEmpty) {
+        // A silent span earns neither text nor a marker, and a marker is
+        // judged against the last words: nothing before the first to
+        // separate, and no turn back to a language that never left.
+        if (text.isNotEmpty) {
+          final tag = spans[i].tag;
+          final before = lastSpokenTag;
+          if (before != null) {
+            if (languageDiffers(before, tag)) {
+              final marker = languageMarker(tag);
+              buffer.write(' $marker');
+              // The marker also rides as its own zero-length segment at the
+              // switch instant: the transcript VIEW renders segments (not
+              // fullText), so without this the reader would never see where
+              // the language turned, and tapping it seeks to that moment.
+              segments.add(TranscriptSegment(text: marker, start: offset, end: offset));
+            }
+            buffer.write(' ');
+          }
           buffer.write(text);
-        } else if (text.isNotEmpty) {
-          final marker = languageMarker(spans[i].tag);
-          buffer.write(' $marker $text');
-          // The marker also rides as its own zero-length segment at the
-          // switch instant: the transcript VIEW renders segments (not
-          // fullText), so without this the reader would never see where the
-          // language turned - and tapping it seeks to that moment.
-          segments.add(TranscriptSegment(text: marker, start: offset, end: offset));
+          firstSpokenTag ??= tag;
+          lastSpokenTag = tag;
         }
         for (final segment in parts[i].segments) {
           segments.add(
@@ -2628,13 +2677,22 @@ class TranscriptionService {
         engineId: engine.id,
         createdAt: _clock(),
       );
-    } on TranscriptionException catch (e) {
+    } on RangeUnsupported catch (e) {
       if (generation != _cancelGeneration) rethrow;
-      // One model serves every span, so a flattened pass would fail on it
-      // again, and fetch it again after a download that did not verify.
-      if (e is ModelInstallFailed && engine is ModelChoiceEngine) rethrow;
       if (kDebugMode) debugPrint('flattened to ${spans.first.tag}: $e');
-      return _batch(engine, file, duration, localeId: spans.first.tag, report: report);
+      return _batch(engine, file, duration, localeId: spans.first.tag, report: along(0, 1));
+    }
+  }
+
+  /// A span's pass, run once more when it throws [TranscriptionFailed]; never
+  /// after a cancel or [_timedOut].
+  Future<Transcript> _spanPass(Future<Transcript> Function() run) async {
+    final generation = _cancelGeneration;
+    try {
+      return await run();
+    } on TranscriptionFailed catch (e) {
+      if (identical(e, _timedOut) || generation != _cancelGeneration) rethrow;
+      return run();
     }
   }
 

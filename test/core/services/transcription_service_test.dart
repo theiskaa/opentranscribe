@@ -295,22 +295,55 @@ void main() {
     await svc.dispose();
   });
 
-  test('a mid-take language switch keeps the earlier live words in the salvage', () async {
-    final svc = build(
-      (rec) =>
-          FakeStreamingEngine(cannedText: 'span words', failBatch: true, stopSignal: rec.stopped),
+  test(
+    'a switch at the take\'s first instant keeps the words heard before it in the salvage',
+    () async {
+      final svc = build(
+        (rec) =>
+            FakeStreamingEngine(cannedText: 'span words', failBatch: true, stopSignal: rec.stopped),
+      );
+
+      await svc.startRecording();
+      await svc.liveEvents.first;
+      await Future<void>.delayed(Duration.zero);
+      await svc.setSessionLocale('de-DE');
+      await svc.liveEvents.first;
+      await Future<void>.delayed(Duration.zero);
+      final entry = await svc.stopRecording();
+
+      expect(entry.transcript?.fullText, 'span words [de] span words');
+      expect(entry.transcript?.localeId, 'en-US');
+
+      await svc.dispose();
+    },
+  );
+
+  test('a salvaged mixed take marks its switches and keeps its first spoken language', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = _ManualSalvageEngine();
+    final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: FakeAudioRecorder(),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
     );
+    svc.localeId = 'en-US';
 
     await svc.startRecording();
-    await svc.liveEvents.first;
+    now = now.add(const Duration(seconds: 3));
+    await svc.setSessionLocale('fr-FR');
+    engine.controllers[1].add(const TranscriptEvent(text: 'bonjour', isFinal: false));
     await Future<void>.delayed(Duration.zero);
-    await svc.setSessionLocale('de-DE');
-    await svc.liveEvents.first;
+    now = now.add(const Duration(seconds: 3));
+    await svc.setSessionLocale('en-US');
+    engine.controllers[2].add(const TranscriptEvent(text: 'hello', isFinal: false));
     await Future<void>.delayed(Duration.zero);
     final entry = await svc.stopRecording();
 
-    expect(entry.transcript?.fullText, 'span words span words');
-    expect(entry.transcript?.localeId, entry.recordedLocaleId);
+    expect(entry.transcript?.fullText, 'bonjour [en] hello');
+    expect(entry.transcript?.localeId, 'fr-FR');
 
     await svc.dispose();
   });
@@ -864,31 +897,176 @@ void main() {
     await svc.dispose();
   });
 
-  test('an engine that cannot slice flattens the take to the first language', () async {
+  Future<Entry> mixedTake(
+    TranscriptionEngine engine,
+    List<String> tags, {
+    Duration batchTimeout = const Duration(minutes: 2),
+  }) async {
     var now = DateTime.utc(2026, 3, 4, 12);
-    final engine = FakeBatchEngine()
-      ..failRanged = true
-      ..transcriptBuilder = (locale, start, end) => 'whole-$locale';
     final svc = TranscriptionService(
       composer: FakeAudioComposer(),
       recorder: FakeAudioRecorder(),
       engine: engine,
       store: store,
+      batchTimeout: batchTimeout,
       clock: () => now,
       idGenerator: () => 'id-0',
     );
+    svc.localeId = tags.first;
+    await svc.startRecording();
+    for (final tag in tags.skip(1)) {
+      now = now.add(const Duration(seconds: 3));
+      await svc.setSessionLocale(tag);
+    }
+    now = now.add(const Duration(seconds: 3));
+    final entry = await svc.stopRecording();
+    await svc.dispose();
+    return entry;
+  }
+
+  test('an engine that cannot slice flattens the take to the first language', () async {
+    final engine = FakeBatchEngine()
+      ..failRanged = true
+      ..transcriptBuilder = (locale, start, end) => 'whole-$locale';
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR']);
+
+    expect(entry.transcript?.fullText, 'whole-en-US');
+    expect(entry.transcript?.localeId, 'en-US', reason: 'flattened to the FIRST language');
+    expect(entry.languageSpans, hasLength(2), reason: 'the mix is kept for a capable engine');
+  });
+
+  test('a span whose run fails is heard once more and the mix still lands', () async {
+    var frenchRuns = 0;
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) {
+        if (locale == 'fr-FR' && frenchRuns++ == 0) throw const TranscriptionFailed('run failed');
+        return locale.split('-').first;
+      };
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR']);
+
+    expect(entry.transcript?.fullText, 'en [fr] fr');
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR', 'fr-FR']);
+  });
+
+  test('a span failing twice lands the take untranscribed, never translated', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) {
+        if (locale == 'fr-FR') throw const TranscriptionFailed('run failed');
+        return locale.split('-').first;
+      };
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR']);
+
+    expect(entry.transcript, isNull);
+    expect(entry.audioPath, isNotNull);
+    expect(entry.languageSpans, hasLength(2));
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR', 'fr-FR']);
+  });
+
+  test('a flattened pass after spans that ran never takes the progress line back down', () async {
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) {
+        if (locale == 'fr-FR') throw const RangeUnsupported('this span cannot be sliced');
+        return locale.split('-').first;
+      };
+    final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: FakeAudioRecorder(duration: const Duration(seconds: 6)),
+      engine: engine,
+      store: store,
+      clock: () => now,
+      idGenerator: () => 'id-0',
+    );
+    final fractions = <double>[];
+    svc.batchProgress.listen((event) {
+      if (event.step == BatchStep.transcribing) fractions.add(event.fraction);
+    });
     svc.localeId = 'en-US';
 
     await svc.startRecording();
     now = now.add(const Duration(seconds: 3));
     await svc.setSessionLocale('fr-FR');
-    final entry = await svc.stopRecording();
+    now = now.add(const Duration(seconds: 3));
+    await svc.stopRecording();
+    await pumpEventQueue();
 
-    expect(entry.transcript?.fullText, 'whole-en-US');
-    expect(entry.transcript?.localeId, 'en-US', reason: 'flattened to the FIRST language');
-    expect(entry.languageSpans, hasLength(2), reason: 'the mix is kept for a capable engine');
-
+    expect(fractions, [0.0, 0.5]);
     await svc.dispose();
+  });
+
+  test('a span that timed out is not waited out a second time', () async {
+    final engine = _HungSpanEngine('fr-FR');
+
+    final entry = await mixedTake(engine, [
+      'en-US',
+      'fr-FR',
+    ], batchTimeout: const Duration(milliseconds: 10));
+
+    expect(entry.transcript, isNull);
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR']);
+  });
+
+  test('a model that will not install fails the take without a second try', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) {
+        if (locale == 'fr-FR') throw const ModelInstallFailed('offline');
+        return locale.split('-').first;
+      };
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR']);
+
+    expect(entry.transcript, isNull);
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR']);
+  });
+
+  test('a span in a language the engine refuses fails the take without a second try', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) {
+        if (locale == 'yue-HK') throw const OnDeviceUnavailable('unsupported: yue-HK');
+        return locale.split('-').first;
+      };
+
+    final entry = await mixedTake(engine, ['en-US', 'yue-HK']);
+
+    expect(entry.transcript, isNull);
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'yue-HK']);
+  });
+
+  test('a switch within one language writes no marker', () async {
+    final engine = FakeBatchEngine()..transcriptBuilder = (locale, start, end) => locale;
+
+    final entry = await mixedTake(engine, ['en-GB', 'en-US']);
+
+    expect(entry.transcript?.fullText, 'en-GB en-US');
+    expect(entry.transcript?.segments.map((s) => s.text), ['en-GB', 'en-US']);
+  });
+
+  test('a silent span between two of the same language writes no marker', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) => locale == 'fr-FR' ? '' : 'en';
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR', 'en-US']);
+
+    expect(entry.transcript?.fullText, 'en en');
+    expect(entry.transcript?.segments.map((s) => s.text).where((t) => t.isNotEmpty), ['en', 'en']);
+  });
+
+  test('a change of language after a silent span is marked against the words before it', () async {
+    final engine = FakeBatchEngine()
+      ..transcriptBuilder = (locale, start, end) =>
+          locale == 'fr-FR' ? '' : locale.split('-').first;
+
+    final entry = await mixedTake(engine, ['en-US', 'fr-FR', 'de-DE']);
+
+    expect(entry.transcript?.fullText, 'en [de] de');
+    expect(entry.transcript?.segments.map((s) => s.text).where((t) => t.isNotEmpty), [
+      'en',
+      '[de]',
+      'de',
+    ]);
   });
 
   test('retranscribe rebuilds the mix from spans; an explicit override flattens', () async {
@@ -3655,5 +3833,25 @@ class _ManualLiveEngine implements StreamingTranscriptionEngine {
     final controller = StreamController<TranscriptEvent>();
     controllers.add(controller);
     return controller.stream;
+  }
+}
+
+class _HungSpanEngine extends FakeBatchEngine {
+  _HungSpanEngine(this.hungLocale);
+
+  final String hungLocale;
+
+  @override
+  Future<Transcript> transcribeFile(
+    File audio, {
+    required String localeId,
+    Duration? start,
+    Duration? end,
+  }) {
+    if (localeId != hungLocale) {
+      return super.transcribeFile(audio, localeId: localeId, start: start, end: end);
+    }
+    batchCalls.add((localeId: localeId, start: start, end: end));
+    return Completer<Transcript>().future;
   }
 }
