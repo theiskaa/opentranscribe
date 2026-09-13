@@ -745,6 +745,15 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
   }
 
+  private func voicedRanges(
+    path: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
+    onDecodeQueue(result) {
+      let ranges = try AudioDecode.voicedRanges(path: path, startMs: startMs, endMs: endMs)
+      return ["ranges": ranges.map { $0 as Any } ?? NSNull()]
+    }
+  }
+
   private func pcmLength(path: String, result: @escaping FlutterResult) {
     onDecodeQueue(result) { ["ms": try AudioDecode.lengthMs(path: path)] }
   }
@@ -855,7 +864,7 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
       }
     case "physicalMemory":
       result(Int(ProcessInfo.processInfo.physicalMemory))
-    case "decodePcm":
+    case "decodePcm", "voicedRanges":
       let args = call.arguments as? [String: Any]
       let startMs = args?["startMs"] as? Int
       let endMs = args?["endMs"] as? Int
@@ -865,7 +874,11 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         result(FlutterError(code: "bad_args", message: "path and integer bounds", details: nil))
         return
       }
-      decodePcm(path: path, startMs: startMs, endMs: endMs, result: result)
+      if call.method == "decodePcm" {
+        decodePcm(path: path, startMs: startMs, endMs: endMs, result: result)
+      } else {
+        voicedRanges(path: path, startMs: startMs, endMs: endMs, result: result)
+      }
     case "pcmLength":
       guard let path = (call.arguments as? [String: Any])?["path"] as? String, !path.isEmpty
       else {

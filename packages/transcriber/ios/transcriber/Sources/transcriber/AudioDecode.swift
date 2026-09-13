@@ -4,12 +4,14 @@ import TranscriberCore
 
 /// Decodes a slice of a kept recording into what an on-device model reads:
 /// 16 kHz mono Float32 samples, raw with no header, under Application
-/// Support/scratch. Constraints the rest relies on:
+/// Support/scratch, or reads where the slice holds a voice without writing
+/// anything. Constraints the rest relies on:
 /// - The input is opened for reading only.
-/// - A slice that would hold no frames fails typed rather than answering silence.
-/// - The output exists only once complete; a failed decode removes it.
+/// - A decode of a slice that would hold no frames fails typed rather than
+///   answering silence; the voice of such a slice is none.
+/// - A decode's output exists only once complete; a failed decode removes it.
 /// - The caller deletes the output; nothing here sweeps the scratch directory.
-/// - Decodes are serialized on [queue].
+/// - Decodes and voice reads are serialized on [queue].
 enum AudioDecode {
   static let queue = DispatchQueue(label: "transcriber.decode", qos: .userInitiated)
   static let sampleRate: Double = 16_000
@@ -75,18 +77,29 @@ enum AudioDecode {
     return input
   }
 
-  static func decodePcm(path: String, startMs: Int?, endMs: Int?) throws -> Outcome {
-    let fm = FileManager.default
+  /// What a model reads: 16 kHz mono Float32.
+  private static let outFormat = AVAudioFormat(
+    commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)
+
+  /// The input opened and its slice resolved, or nil for a slice holding no
+  /// frames.
+  private static func sliced(path: String, startMs: Int?, endMs: Int?) throws -> (
+    input: AVAudioFile, slice: PcmSlice, outFormat: AVAudioFormat
+  )? {
     let input = try open(path: path)
-    let inFormat = input.processingFormat
     guard
       let slice = pcmSlice(
-        startMs: startMs, endMs: endMs, sampleRate: inFormat.sampleRate, length: input.length)
+        startMs: startMs, endMs: endMs, sampleRate: input.processingFormat.sampleRate,
+        length: input.length)
+    else { return nil }
+    guard let outFormat else { throw DecodeError.writeFailed("no output format") }
+    return (input, slice, outFormat)
+  }
+
+  static func decodePcm(path: String, startMs: Int?, endMs: Int?) throws -> Outcome {
+    let fm = FileManager.default
+    guard let (input, slice, outFormat) = try sliced(path: path, startMs: startMs, endMs: endMs)
     else { throw DecodeError.empty }
-    guard
-      let outFormat = AVAudioFormat(
-        commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)
-    else { throw DecodeError.writeFailed("no output format") }
 
     let out = try scratchDirectory().appendingPathComponent("otr-\(UUID().uuidString).pcm")
     guard fm.createFile(atPath: out.path, contents: nil) else {
@@ -95,7 +108,13 @@ enum AudioDecode {
     do {
       let handle = try FileHandle(forWritingTo: out)
       defer { try? handle.close() }
-      let frames = try write(input, slice: slice, as: outFormat, to: handle)
+      let frames = try decode(input, slice: slice, as: outFormat) { samples in
+        do {
+          try handle.write(contentsOf: Data(buffer: samples))
+        } catch {
+          throw DecodeError.writeFailed("write failed: \(error)")
+        }
+      }
       return Outcome(path: out.path, frames: frames)
     } catch {
       try? fm.removeItem(at: out)
@@ -103,8 +122,26 @@ enum AudioDecode {
     }
   }
 
-  private static func write(
-    _ input: AVAudioFile, slice: PcmSlice, as outFormat: AVAudioFormat, to handle: FileHandle
+  /// Where the slice holds a voice ([voicedRuns] over its 16 kHz samples), in
+  /// milliseconds of the input and inside the slice, or nil when the levels
+  /// cannot say. A slice holding no frames holds no voice.
+  static func voicedRanges(path: String, startMs: Int?, endMs: Int?) throws -> [[Int]]? {
+    guard let (input, slice, outFormat) = try sliced(path: path, startMs: startMs, endMs: endMs)
+    else { return [] }
+    var levels = FrameLevels(sampleRate: sampleRate)
+    _ = try decode(input, slice: slice, as: outFormat) { levels.add($0) }
+    let rate = input.processingFormat.sampleRate
+    let offset = Int((Double(slice.start) / rate * 1000).rounded())
+    let end = Int((Double(slice.end) / rate * 1000).rounded())
+    return voicedRuns(levels: levels.finish(), frameMs: levels.frameMs)?.map {
+      [offset + $0.startMs, min(offset + $0.endMs, end)]
+    }
+  }
+
+  /// The slice converted to [outFormat], handed to [sink] a buffer at a time.
+  private static func decode(
+    _ input: AVAudioFile, slice: PcmSlice, as outFormat: AVAudioFormat,
+    to sink: (UnsafeBufferPointer<Float>) throws -> Void
   ) throws -> Int {
     let inFormat = input.processingFormat
     input.framePosition = slice.start
@@ -124,12 +161,7 @@ enum AudioDecode {
     }
     func emit(_ buffer: AVAudioPCMBuffer) throws {
       guard buffer.frameLength > 0, let channel = buffer.floatChannelData?[0] else { return }
-      let bytes = Int(buffer.frameLength) * MemoryLayout<Float>.size
-      do {
-        try handle.write(contentsOf: Data(bytes: channel, count: bytes))
-      } catch {
-        throw DecodeError.writeFailed("write failed: \(error)")
-      }
+      try sink(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
       written += Int(buffer.frameLength)
     }
 

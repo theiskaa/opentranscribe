@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:transcriber/src/audio/audio_activity.dart';
 import 'package:transcriber/src/transcribe/install_wait.dart';
 import 'package:transcriber/src/transcribe/transcript.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
 import 'package:transcriber/src/whisper/model_fetcher.dart';
 import 'package:transcriber/src/whisper/pcm_decoder.dart';
+import 'package:transcriber/src/whisper/voiced_segments.dart';
 import 'package:transcriber/src/whisper/whisper_catalog.dart';
 import 'package:transcriber/src/whisper/whisper_runtime.dart';
 import 'package:transcriber/src/whisper/zip_extract.dart';
@@ -28,6 +30,12 @@ import 'package:transcriber/src/whisper/zip_extract.dart';
 ///
 /// Acceleration is whisper.cpp's Core ML encoder, unpacked beside the model
 /// and compiled by a first load.
+///
+/// Whisper pads every slice to its 30 s window and fills silence with words
+/// nobody said ("Thank you.", "..."), so a run keeps only segments with
+/// letters or digits that start inside the slice, their ends clamped to it
+/// ([keepVoiced]). With an [AudioActivity], a slice the probe finds silent
+/// runs nothing and lands no words, and segments far from any voice go too.
 class WhisperEngine
     implements
         TranscriptionEngine,
@@ -43,6 +51,7 @@ class WhisperEngine
     required this._fetcher,
     required this._decoder,
     required this._runtime,
+    this._activity,
     String initialModelId = whisperDefaultModelId,
     this.canAccelerate = false,
     bool initiallyAccelerated = false,
@@ -68,6 +77,7 @@ class WhisperEngine
   final ModelFetcher _fetcher;
   final PcmDecoder _decoder;
   final WhisperRuntime _runtime;
+  final AudioActivity? _activity;
   final DateTime Function() _clock;
 
   late String _selectedId;
@@ -218,8 +228,6 @@ class WhisperEngine
         await _installFirstUse(model);
       }
       if (generation != _generation) throw _cancelled;
-      final session = await _sessionFor(model);
-      if (generation != _generation) throw _cancelled;
       final Duration total;
       try {
         total = await _decoder.length(audio);
@@ -229,28 +237,44 @@ class WhisperEngine
       final from = start ?? Duration.zero;
       final to = end ?? total;
       if (to <= from) return _transcript(const [], localeId);
+      final sliceEnd = to < total ? to : total;
+      // Before the load: a slice with no voice costs no model.
+      final voiced = await _activity?.voiced(audio, start: from, end: sliceEnd);
+      if (generation != _generation) throw _cancelled;
+      if (voiced != null && voiced.isEmpty) return _transcript(const [], localeId);
+      final session = await _sessionFor(model);
+      if (generation != _generation) throw _cancelled;
+      final List<WhisperSegment> heard;
       if (to - from <= chunkLength) {
-        final heard = await _hear(
+        heard =
+            await _hear(
+              session,
+              audio,
+              language: language,
+              start: start,
+              end: end,
+              generation: generation,
+              onProgress: onProgress,
+            ) ??
+            const [];
+      } else {
+        heard = await _hearInChunks(
           session,
           audio,
           language: language,
-          start: start,
-          end: end,
+          from: from,
+          to: sliceEnd,
           generation: generation,
           onProgress: onProgress,
         );
-        return _transcript(heard ?? const [], localeId);
       }
-      final segments = await _hearInChunks(
-        session,
-        audio,
-        language: language,
-        from: from,
-        to: to < total ? to : total,
-        generation: generation,
-        onProgress: onProgress,
+      final voicedInSlice = voiced == null
+          ? null
+          : [for (final range in voiced) (start: range.start - from, end: range.end - from)];
+      return _transcript(
+        keepVoiced(heard, voiced: voicedInSlice, length: sliceEnd - from),
+        localeId,
       );
-      return _transcript(segments, localeId);
     } finally {
       _running = false;
       _runningModelId = null;

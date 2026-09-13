@@ -324,6 +324,7 @@ class Deps {
       modelsDir: modelsDir ?? Directory('${Directory.systemTemp.path}/models'),
       fetcher: PinnedHostFetcher(allowedHostSuffixes: WhisperHosts.redirectSuffixes),
       decoder: PlatformPcmDecoder(),
+      activity: PlatformAudioActivity(),
       runtime: FfiWhisperRuntime(
         threads: () => min(
           thermalMonitor.underPressure ? _whisperHotThreads : _whisperThreads,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:transcriber/src/audio/fake_audio_activity.dart';
 import 'package:transcriber/src/transcribe/transcription_engine.dart';
 import 'package:transcriber/src/transcribe/transcription_exception.dart';
 import 'package:transcriber/src/whisper/fake_model_fetcher.dart';
@@ -362,13 +363,13 @@ void main() {
       await install(e);
 
       final run = e.transcribeFile(audio, localeId: 'en-US');
-      await until(() => runtime.loads.isNotEmpty);
       await pumpEventQueue();
       await e.cancelBatches();
       gate.complete();
 
       await expectLater(run, throwsA(isA<TranscriptionFailed>()));
       expect(decoder.calls, isEmpty);
+      expect(runtime.loads, isEmpty);
     });
 
     test('a cancel with nothing in flight is harmless and later runs land', () async {
@@ -458,13 +459,8 @@ void main() {
         (minute * 9, minute * 19),
         (minute * 18, minute * 25),
       ]);
-      expect(transcript.segments.map((s) => s.text), ['whole', 'whole', 'whole', 'cut']);
-      expect(transcript.segments.map((s) => s.start), [
-        Duration.zero,
-        minute * 9,
-        minute * 18,
-        minute * 27,
-      ]);
+      expect(transcript.segments.map((s) => s.text), ['whole', 'whole', 'whole']);
+      expect(transcript.segments.map((s) => s.start), [Duration.zero, minute * 9, minute * 18]);
       expect(transcript.segments[1].end, minute * 17);
     });
 
@@ -558,8 +554,39 @@ void main() {
       );
 
       expect(slices(), [(minute * 30, minute * 40), (minute * 39, minute * 45)]);
-      expect(transcript.segments.map((s) => s.start), [Duration.zero, minute * 9, minute * 18]);
+      expect(transcript.segments.map((s) => s.start), [Duration.zero, minute * 9]);
+      expect(transcript.segments.last.end, minute * 15);
     });
+
+    test(
+      'a long slice drops each chunk\'s words far from the voice, on the slice\'s clock',
+      () async {
+        runtime.segments = cut;
+        decoder = FakePcmDecoder(
+          scratch: Directory('${root.path}/scratch'),
+          fileDuration: minute * 60,
+          framesPerSecond: 4,
+        );
+        final e = WhisperEngine(
+          modelsDir: models,
+          fetcher: fetcher,
+          decoder: decoder,
+          runtime: runtime,
+          activity: FakeAudioActivity(ranges: [(start: minute * 39, end: minute * 40)]),
+          clock: () => DateTime.utc(2026, 9, 6),
+        );
+        await install(e);
+
+        final transcript = await e.transcribeFile(
+          audio,
+          localeId: 'en-US',
+          start: minute * 30,
+          end: minute * 45,
+        );
+
+        expect(transcript.segments.map((s) => s.start), [minute * 9]);
+      },
+    );
 
     test('a slice no longer than a chunk is decoded exactly as asked', () async {
       final e = longEngine(minute * 60);
@@ -597,14 +624,7 @@ void main() {
           (minute * 10, minute * 20),
           (minute * 20, minute * 25),
         ]);
-        expect(transcript.segments.map((s) => s.text), [
-          'real',
-          'ghost',
-          'real',
-          'ghost',
-          'real',
-          'ghost',
-        ]);
+        expect(transcript.segments.map((s) => s.text), ['real', 'ghost', 'real', 'ghost', 'real']);
       },
     );
 
@@ -1481,6 +1501,110 @@ void main() {
       expect(await e.removeLanguage(localeId: 'en-US'), isFalse);
       expect((await e.reservationInfo()).max, 0);
       expect(await e.installedModels(), {whisperDefaultModelId});
+    });
+  });
+
+  group('voice activity', () {
+    const words = WhisperSegment(
+      text: ' the words',
+      start: Duration(milliseconds: 500),
+      end: Duration(seconds: 2),
+      confidence: 0.9,
+    );
+    const thanks = WhisperSegment(
+      text: ' Thank you.',
+      start: Duration(seconds: 6),
+      end: Duration(seconds: 8),
+      confidence: 0.7,
+    );
+
+    WhisperEngine engineWith(FakeAudioActivity activity) => WhisperEngine(
+      modelsDir: models,
+      fetcher: fetcher,
+      decoder: FakePcmDecoder(
+        scratch: Directory('${root.path}/scratch'),
+        fileDuration: const Duration(seconds: 10),
+      ),
+      runtime: runtime,
+      activity: activity,
+      clock: () => DateTime.utc(2026, 9, 6),
+    );
+
+    test('a slice with no voice runs nothing, loads no model and lands no words', () async {
+      runtime.segments = const [thanks];
+      final e = engineWith(FakeAudioActivity());
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'fr-FR');
+
+      expect(transcript.fullText, isEmpty);
+      expect(runtime.runs, isEmpty);
+      expect(runtime.loads, isEmpty);
+    });
+
+    test('a single short word is still heard', () async {
+      runtime.segments = const [
+        WhisperSegment(
+          text: ' No.',
+          start: Duration(seconds: 1),
+          end: Duration(milliseconds: 1200),
+          confidence: 0.8,
+        ),
+      ];
+      final e = engineWith(
+        FakeAudioActivity(
+          ranges: const [(start: Duration(seconds: 1), end: Duration(milliseconds: 1200))],
+        ),
+      );
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(transcript.fullText, 'No.');
+    });
+
+    test('what whisper writes into the silence around a voice is dropped', () async {
+      runtime.segments = const [words, thanks];
+      final e = engineWith(
+        FakeAudioActivity(
+          ranges: const [(start: Duration(milliseconds: 400), end: Duration(seconds: 2))],
+        ),
+      );
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(transcript.fullText, 'the words');
+    });
+
+    test('a slice is asked about its own bounds, and its voice read on its own clock', () async {
+      runtime.segments = const [words, thanks];
+      final activity = FakeAudioActivity(
+        ranges: const [(start: Duration(seconds: 7), end: Duration(seconds: 9))],
+      );
+      final e = engineWith(activity);
+      await install(e);
+
+      final transcript = await e.transcribeFile(
+        audio,
+        localeId: 'en-US',
+        start: const Duration(seconds: 1),
+        end: const Duration(seconds: 12),
+      );
+
+      expect(activity.calls.single.start, const Duration(seconds: 1));
+      expect(activity.calls.single.end, const Duration(seconds: 10));
+      expect(transcript.fullText, 'Thank you.');
+    });
+
+    test('a probe that cannot tell keeps every word', () async {
+      runtime.segments = const [words, thanks];
+      final e = engineWith(FakeAudioActivity(ranges: null));
+      await install(e);
+
+      final transcript = await e.transcribeFile(audio, localeId: 'en-US');
+
+      expect(transcript.fullText, 'the words Thank you.');
     });
   });
 }

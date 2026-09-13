@@ -6,9 +6,11 @@
 /// from `package:transcriber/testing.dart`.
 library;
 
+export 'src/audio/audio_activity.dart';
 export 'src/audio/audio_composer.dart';
 export 'src/audio/audio_player.dart';
 export 'src/audio/audio_recorder.dart';
+export 'src/audio/platform_audio_activity.dart';
 export 'src/audio/platform_audio_composer.dart';
 export 'src/audio/platform_audio_player.dart';
 export 'src/audio/platform_audio_recorder.dart';
