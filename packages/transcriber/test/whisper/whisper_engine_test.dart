@@ -598,7 +598,7 @@ void main() {
     });
 
     test(
-      'a tail stamped past the chunk is kept and the next chunk starts at the boundary',
+      'a segment stamped past its chunk is dropped and the next chunk starts at the boundary',
       () async {
         runtime.segments = const [
           WhisperSegment(
@@ -624,7 +624,7 @@ void main() {
           (minute * 10, minute * 20),
           (minute * 20, minute * 25),
         ]);
-        expect(transcript.segments.map((s) => s.text), ['real', 'ghost', 'real', 'ghost', 'real']);
+        expect(transcript.segments.map((s) => s.text), ['real', 'real', 'real']);
       },
     );
 

@@ -33,9 +33,10 @@ import 'package:transcriber/src/whisper/zip_extract.dart';
 ///
 /// Whisper pads every slice to its 30 s window and fills silence with words
 /// nobody said ("Thank you.", "..."), so a run keeps only segments with
-/// letters or digits that start inside the slice, their ends clamped to it
-/// ([keepVoiced]). With an [AudioActivity], a slice the probe finds silent
-/// runs nothing and lands no words, and segments far from any voice go too.
+/// letters or digits that start inside the slice (and inside the chunk a
+/// long slice runs in), their ends clamped to it ([keepVoiced]). With an
+/// [AudioActivity], a slice the probe finds silent runs nothing and lands no
+/// words, and segments far from any voice go too.
 class WhisperEngine
     implements
         TranscriptionEngine,
@@ -389,17 +390,20 @@ class WhisperEngine
               },
       );
       if (heard == null) break;
-      var kept = heard;
+      // Past the chunk's end is its padding; the next chunk hears that audio.
+      var kept = [
+        for (final s in heard)
+          if (s.start < length) s,
+      ];
       var next = chunkEnd;
       // A last segment running into the boundary may be cut by it; the next
       // chunk starts where it began, so the words are heard whole once.
-      final last = heard.lastOrNull;
+      final last = kept.lastOrNull;
       if (chunkEnd < to &&
           last != null &&
           last.start > Duration.zero &&
-          last.start < length &&
           last.end >= length - _tailMargin) {
-        kept = heard.sublist(0, heard.length - 1);
+        kept = kept.sublist(0, kept.length - 1);
         next = cursor + last.start;
       }
       final offset = cursor - from;
