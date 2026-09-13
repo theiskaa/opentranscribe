@@ -126,9 +126,7 @@ class TranscriptionService {
     Future<void> Function(File file)? fileDeleter,
     bool Function()? keepAudio,
     bool Function()? thermalPressure,
-    Duration Function()? monotonic,
   }) : _clock = clock ?? DateTime.now,
-       _monotonic = monotonic ?? _stopwatch(),
        _newId = idGenerator ?? _defaultId,
        _deleteFile = fileDeleter ?? _deleteFileDefault,
        _keepAudio = keepAudio ?? _keepAudioDefault,
@@ -303,15 +301,6 @@ class TranscriptionService {
   final bool Function() _thermalPressure;
 
   static bool _noThermalPressure() => false;
-
-  /// Stamps the take's level windows; monotonic, so a wall clock change
-  /// mid-take cannot stretch or fold its speech time.
-  final Duration Function() _monotonic;
-
-  static Duration Function() _stopwatch() {
-    final watch = Stopwatch()..start();
-    return () => watch.elapsed;
-  }
 
   /// The current take's speech time, fed by its level windows from start to
   /// stop; claimed by the finalize with the rest of the session.
@@ -780,10 +769,7 @@ class TranscriptionService {
       // Before start(), like the status: the first words' windows count too.
       final tally = SpeechTally();
       _tally = tally;
-      _levelSub = _recorder.level.listen(
-        (level) => tally.add(level, _monotonic()),
-        onError: (Object _) {},
-      );
+      _levelSub = _recorder.level.listen(tally.add, onError: (Object _) {});
       try {
         await _recorder.start();
       } catch (_) {
@@ -1075,7 +1061,7 @@ class TranscriptionService {
         engineId: _engine.id,
         createdAt: _clock(),
       );
-      late final speech = tally?.speech ?? Duration.zero;
+      late final speech = tally?.speechOf(recording.duration) ?? Duration.zero;
       late final forecast = TakeForecast(
         audio: recording.duration,
         speech: speech,
@@ -1086,6 +1072,7 @@ class TranscriptionService {
           spans: spans.isNotEmpty ? spans : [(startMs: 0, tag: openingLocale)],
           pace: _pace?.of ?? startingPace,
         ),
+        heard: liveText,
       );
       // A fallen-back tail lands as its own entry, not where its forecast
       // would draw, so its pass carries none.

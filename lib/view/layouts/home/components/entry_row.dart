@@ -115,19 +115,43 @@ class EntryRowBody extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
         ],
+        EntryRowWords(
+          excerpt: excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
+          muted: excerpt.isEmpty,
+          meta: metaLine(entry.createdAt, entry.duration, localeTag(context)),
+        ),
+      ],
+    );
+  }
+}
+
+/// A record's excerpt and time line, in [EntryRowBody]'s styles: shared with a
+/// take's heard words, which stand in the row's shape until its record lands.
+class EntryRowWords extends StatelessWidget {
+  const EntryRowWords({required this.excerpt, required this.meta, this.muted = false, super.key});
+
+  final String excerpt;
+  final String meta;
+
+  /// The excerpt is a note about the words rather than the words.
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.entryList;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
-          excerpt.isEmpty ? l10n.entryUntranscribed : excerpt,
+          excerpt,
           maxLines: tokens.excerptLines,
           overflow: TextOverflow.ellipsis,
-          style: excerptStyle.copyWith(
-            color: excerpt.isEmpty ? tokens.metaColor : tokens.excerptColor,
+          style: EntryRowBody.excerptStyle.copyWith(
+            color: muted ? tokens.metaColor : tokens.excerptColor,
           ),
         ),
-        const SizedBox(height: metaGap),
-        Text(
-          metaLine(entry.createdAt, entry.duration, localeTag(context)),
-          style: metaStyle.copyWith(color: tokens.metaColor),
-        ),
+        const SizedBox(height: EntryRowBody.metaGap),
+        Text(meta, style: EntryRowBody.metaStyle.copyWith(color: tokens.metaColor)),
       ],
     );
   }

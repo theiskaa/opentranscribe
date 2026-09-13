@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
@@ -75,6 +76,35 @@ void main() {
 
   test('larger text needs more lines for the same words', () {
     expect(rows(11, scaler: const TextScaler.linear(2)).length, greaterThan(rows(11).length));
+  });
+
+  group('takeSlotForecast', () {
+    const heard = TakeForecast(
+      audio: Duration(seconds: 4),
+      speech: Duration(seconds: 3),
+      localeId: 'en-US',
+      characters: 42,
+      heard: 'the words it heard',
+    );
+    const next = TakeForecast(
+      audio: Duration(seconds: 9),
+      speech: Duration(seconds: 7),
+      localeId: 'fr-FR',
+      characters: 98,
+    );
+
+    test('a pending take shows by its own pass\'s forecast', () {
+      expect(takeSlotForecast(null, pending: true, incoming: heard, writing: false), heard);
+      expect(takeSlotForecast(heard, pending: true, incoming: next, writing: false), next);
+    });
+
+    test('the forecast outlasts the hold while its record is handed in', () {
+      expect(takeSlotForecast(heard, pending: false, incoming: null, writing: true), heard);
+    });
+
+    test('once the record is in, nothing is held', () {
+      expect(takeSlotForecast(heard, pending: false, incoming: null, writing: false), isNull);
+    });
   });
 
   test('every line of words runs no further than the row', () {

@@ -67,18 +67,18 @@ class TranscriptView extends StatefulWidget {
   final Entry entry;
   final bool busy;
 
-  /// A take is being added to this entry: the words stay readable and ink
-  /// shaped like [pendingText] (or, with no live words, like [forecast])
-  /// shimmers under them until the landing, when it resolves into the words
-  /// that arrived.
+  /// A take is being added to this entry: the words stay readable, and the
+  /// take's own words follow them as its live pass hears them. Without live
+  /// words, ink shaped like its [forecast] shimmers there instead until the
+  /// landing, when it resolves into the words that arrived.
   final bool appending;
 
-  /// What the take's live pass heard, so the ink under the words is as many
-  /// lines as the words about to land.
+  /// What the take's live pass heard, shown after the words until the pass's
+  /// own land.
   final String pendingText;
 
-  /// What the take is expected to read as, from its pass; with no live words
-  /// (an engine without a live pass) the ink is laid out from this instead.
+  /// What the take is expected to read as, from its pass: the live words it
+  /// heard, or with none (an engine without a live pass) the ink's shape.
   final TakeForecast? forecast;
 
   /// Words in the take's language to lay the [forecast] out in
@@ -127,7 +127,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     if (!widget.appending || context.reduceMotion || _landing) return;
     if (_append.value != 1 || _append.isAnimating) return;
     _append.value = 0;
-    _runClock();
   }
 
   late _Phase _phase = widget.busy ? _Phase.loading : _Phase.content;
@@ -183,6 +182,8 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   @override
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
+    // Read before the hold lets go: the landing clears both.
+    final heard = _heard(old.pendingText);
     _held = heldForecast(
       _held,
       appending: widget.appending,
@@ -197,12 +198,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       _tailIndex = null;
       _landing = false;
       _releaseAppendInk();
-      if (!context.reduceMotion) {
-        _append.value = 0;
-        _runClock();
-      }
+      if (!context.reduceMotion) _append.value = 0;
     } else if (old.appending && !widget.appending) {
-      _landAppend(old.entry);
+      _landAppend(old.entry, heard: heard.isNotEmpty);
     }
 
     if (!old.busy && widget.busy) {
@@ -245,8 +243,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   }
 
   /// The take landed: its words fade in where the ink was, and the ink shrinks
-  /// away. Nothing new (a silent take, a fallback) just drops the ink.
-  void _landAppend(Entry old) {
+  /// away. Words landing where the [heard] live words stood, or nothing new (a
+  /// silent take, a fallback), just swap in.
+  void _landAppend(Entry old, {required bool heard}) {
     final before = _paragraphText(old);
     final after = _paragraphText(widget.entry);
     // Only words added after the old ones fade in as a tail; a landing that
@@ -256,6 +255,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final landed = grew ? after.substring(before.length).trim() : '';
     final move = appendLanding(
       grew: grew,
+      heard: heard,
       inkShown: _append.value == 0,
       laidOut: layout != null,
       reduceMotion: context.reduceMotion,
@@ -367,12 +367,18 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     unawaited(_paintAppendInk(key));
   }
 
+  /// The words the take's live pass heard: the recorder's [pendingText]
+  /// while it is up, then the held forecast's.
+  String _heard(String pendingText) {
+    final live = pendingText.trim();
+    return live.isNotEmpty ? live : _held.forecast?.heard.trim() ?? '';
+  }
+
   /// [appendPending], kept until what it depends on changes: it lays the
   /// entry's words out, and the layout runs every frame of the append.
   String _pendingAt(double width, TextScaler scaler, {required bool bold, required double screen}) {
     final base = _paragraphText(widget.entry);
     final key = (
-      live: widget.pendingText,
       forecast: _held.forecast,
       sample: _held.sample,
       base: base,
@@ -384,7 +390,6 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     if (key == _pendingFor) return _pending;
     _pendingFor = key;
     return _pending = appendPending(
-      liveText: widget.pendingText,
       characters: _held.forecast?.characters,
       sample: _held.sample,
       base: base,
@@ -425,6 +430,8 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       unawaited(_paintAppendInk(wanted));
     }
     if (ink == null) return false;
+    // The clock runs only under ink there is to draw: live words need none.
+    _runClock();
     setState(() {
       _appendPoints = ink!.points;
       _appendSize = ink.size;
@@ -597,6 +604,16 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final loading = _phase == _Phase.loading;
     final trailing = widget.appending || _append.isAnimating || _landing;
     if (!trailing) return _BodySwitch(loading: loading, child: _content(context));
+    final heard = widget.appending ? _heard(widget.pendingText) : '';
+    if (heard.isNotEmpty) {
+      // The live pass already wrote them: no ink stands in for words on hand.
+      return SelectionContainer.disabled(
+        child: _BodySwitch(
+          loading: loading,
+          child: _content(context, heard: heard),
+        ),
+      );
+    }
     if (context.reduceMotion) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -664,12 +681,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     );
   }
 
-  Widget _content(BuildContext context, {String pending = ''}) {
+  Widget _content(BuildContext context, {String pending = '', String heard = ''}) {
     final theme = context.theme;
     final transcript = widget.entry.transcript;
     final text = widget.entry.readableText?.trim() ?? '';
     final inking = widget.appending && pending.trim().isNotEmpty && !context.reduceMotion;
-    if (text.isEmpty && !inking) {
+    final hearing = heard.isNotEmpty;
+    if (text.isEmpty && !inking && !hearing) {
       // Two different silences: never transcribed (the action lives in the
       // screen's bottom CTA) versus transcribed and empty (no speech, no action).
       return _TranscriptEmpty(untranscribed: transcript == null);
@@ -684,12 +702,12 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // One weight in every branch: spans set their own, so Text's Bold Text
     // never reaches them.
     final body = AppType.boldAware(AppType.body, bold: MediaQuery.boldTextOf(context));
-    if (inking) {
-      // The words about to land hold their room, unseen, so the ink over
-      // them sits exactly where they will.
+    if (hearing || inking) {
+      // Heard words follow the entry's as they are. Ink's words hold their
+      // room unseen, so the ink over them sits exactly where they will.
       final style = body.copyWith(color: theme.text);
       final shown = _paragraphText(widget.entry);
-      final reserved = pending.trim();
+      final tail = hearing ? heard : pending.trim();
       return RepaintBoundary(
         key: _textKey,
         child: Text.rich(
@@ -697,13 +715,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
             children: [
               TextSpan(text: shown, style: style),
               TextSpan(
-                text: shown.isEmpty ? reserved : ' $reserved',
-                style: style.copyWith(color: theme.text.withValues(alpha: 0)),
+                text: shown.isEmpty ? tail : ' $tail',
+                style: hearing ? style : style.copyWith(color: theme.text.withValues(alpha: 0)),
               ),
             ],
           ),
-          // The reserve may be filler: only the words on screen are read out.
-          semanticsLabel: shown,
+          // Ink's reserve may be filler: only the words on screen are read out.
+          semanticsLabel: hearing ? null : shown,
         ),
       );
     }
@@ -835,7 +853,6 @@ typedef _AppendLayout = ({double width, TextScaler scaler, bool bold});
 typedef _AppendKey = ({String base, String pending, _AppendLayout layout});
 
 typedef _PendingKey = ({
-  String live,
   TakeForecast? forecast,
   String sample,
   String base,

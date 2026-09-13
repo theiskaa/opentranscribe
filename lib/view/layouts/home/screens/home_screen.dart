@@ -80,6 +80,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// rows meanwhile so it is never in two places at once.
   String? _writingId;
 
+  /// The take's forecast, kept through its record's handoff: the cubit lets
+  /// it go with the hold, and the heard words stand until the record is in.
+  TakeForecast? _takeForecast;
+
   /// The same ledger for calendar days: a day that arrived while home was up
   /// unfolds its splitter along with its first row, so the section's whole
   /// lead-in glides open instead of jumping in at full height.
@@ -269,6 +273,12 @@ class _HomeScreenState extends State<HomeScreen> {
           // A record deleted mid-write leaves nothing to hand back.
           if (!_seenEntryIds!.contains(_writingId)) _writingId = null;
           final writing = _writingId == null ? null : entryById(state.entries, _writingId!);
+          _takeForecast = takeSlotForecast(
+            _takeForecast,
+            pending: state.takePending,
+            incoming: state.takeForecast,
+            writing: writing != null,
+          );
           // The adopted record's day is not an arrival: the take's slot has
           // been standing under that title since its pass began.
           final newDays = newEntryDays(_seenDays, state.entryDays);
@@ -371,6 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       enteredEntries: _enteredEntries,
                       enteredDays: _enteredDays,
                       takePending: state.takePending,
+                      takeForecast: _takeForecast,
                       writing: writing,
                       onWritten: () {
                         if (mounted) setState(() => _writingId = null);
@@ -771,6 +782,7 @@ class _RecordsList extends StatelessWidget {
     required this.enteredEntries,
     required this.enteredDays,
     required this.takePending,
+    required this.takeForecast,
     required this.writing,
     required this.onWritten,
     required this.departingDays,
@@ -808,6 +820,9 @@ class _RecordsList extends StatelessWidget {
 
   /// A take is being transcribed and holds a place at the top of its day.
   final bool takePending;
+
+  /// What the take's slot shows by ([takeSlotForecast]).
+  final TakeForecast? takeForecast;
 
   /// The record the take's slot is writing on, once it has landed. The list
   /// leaves it out of its own rows while the slot has it.
@@ -865,7 +880,7 @@ class _RecordsList extends StatelessWidget {
     final takeDay = takeAlive ? localDayOf(writing?.createdAt ?? DateTime.now()) : null;
     final takeSection = takeDay == null ? -1 : sectionDays.indexOf(takeDay);
     final takeLeads = takeAlive && takeSection < 0;
-    final takeForecast = state.takeForecast;
+    final takeForecast = this.takeForecast;
     final takeSample = takeForecast == null
         ? ''
         : fillerSample(localeId: takeForecast.localeId, journal: state.entries);

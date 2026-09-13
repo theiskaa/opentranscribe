@@ -4,146 +4,78 @@ import 'package:opentranscribe/core/services/speech_tally.dart';
 void main() {
   const window = Duration(milliseconds: 100);
 
-  SpeechTally trace(List<double> levels, {Duration step = window, Duration from = Duration.zero}) {
+  SpeechTally trace(List<double> levels) {
     final tally = SpeechTally();
-    var at = from;
-    for (final level in levels) {
-      tally.add(level, at);
-      at += step;
-    }
+    levels.forEach(tally.add);
     return tally;
   }
+
+  Duration speech(List<double> levels) => trace(levels).speechOf(window * levels.length);
 
   List<double> run(double level, int windows) => List.filled(windows, level);
 
   test('no windows at all is no speech', () {
-    expect(SpeechTally().speech, Duration.zero);
+    expect(SpeechTally().speechOf(const Duration(seconds: 5)), Duration.zero);
   });
 
   test('a take of room tone is no speech', () {
-    expect(trace(run(0.2, 50)).speech, Duration.zero);
+    expect(speech(run(0.2, 50)), Duration.zero);
   });
 
   test('steady speech after a quiet lead-in counts only the talking', () {
-    final tally = trace([...run(0.1, 20), ...run(0.8, 30)]);
-    expect(tally.speech, const Duration(seconds: 3));
+    expect(speech([...run(0.1, 20), ...run(0.8, 30)]), const Duration(seconds: 3));
   });
 
-  test('the short gaps between words count as speech', () {
+  test('the gaps between words and a breath between sentences count as talking', () {
     final words = [
       ...run(0.1, 10),
-      for (var i = 0; i < 5; i++) ...[...run(0.8, 4), ...run(0.1, 2)],
+      for (var i = 0; i < 5; i++) ...[...run(0.8, 4), ...run(0.1, 6)],
+      ...run(0.8, 4),
     ];
-    expect(trace(words).speech, const Duration(milliseconds: 2800));
+    expect(speech(words), const Duration(milliseconds: 5400));
   });
 
-  test('a pause of a second between sentences does not count', () {
-    final tally = trace([...run(0.1, 10), ...run(0.8, 10), ...run(0.1, 10), ...run(0.8, 10)]);
-    expect(tally.speech, const Duration(seconds: 2));
+  test('soft syllables under the bar between louder ones still count', () {
+    final murmur = [
+      ...run(0.1, 20),
+      for (var i = 0; i < 10; i++) ...[0.8, 0.2, 0.2],
+    ];
+    expect(speech(murmur), const Duration(milliseconds: 2800));
   });
 
-  test('a gap in the windows, a pause or an interruption, adds no time of its own', () {
-    final tally = SpeechTally();
-    var at = Duration.zero;
-    for (final level in [...run(0.1, 10), ...run(0.8, 10)]) {
-      tally.add(level, at);
-      at += window;
-    }
-    at += const Duration(minutes: 5);
-    for (final level in run(0.8, 10)) {
-      tally.add(level, at);
-      at += window;
-    }
-    expect(tally.speech, const Duration(seconds: 2));
+  test('a silence of two seconds or more between stretches does not count', () {
+    final levels = [...run(0.1, 10), ...run(0.8, 10), ...run(0.1, 20), ...run(0.8, 10)];
+    expect(speech(levels), const Duration(seconds: 2));
   });
 
-  test('a noisy room raises the bar above its own floor', () {
-    final cafe = trace([...run(0.5, 20), ...run(0.55, 20), ...run(0.8, 10)]);
-    expect(cafe.speech, const Duration(seconds: 1));
-  });
-
-  test('quiet speech in a silent room still clears the heard threshold', () {
-    final tally = trace([...run(0.0, 20), ...run(0.35, 10)]);
-    expect(tally.speech, const Duration(seconds: 1));
+  test('a silence just under two seconds is still talking', () {
+    final levels = [...run(0.1, 10), ...run(0.8, 10), ...run(0.1, 19), ...run(0.8, 10)];
+    expect(speech(levels), const Duration(milliseconds: 3900));
   });
 
   test('a short quiet run after the last word is not counted', () {
+    expect(speech([...run(0.1, 10), ...run(0.8, 10), ...run(0.1, 5)]), const Duration(seconds: 1));
+  });
+
+  test('each window is the take\'s length over its window count, however they arrived', () {
+    final tally = trace([...run(0.1, 10), ...run(0.8, 10)]);
+    expect(tally.speechOf(const Duration(seconds: 6)), const Duration(seconds: 3));
+  });
+
+  test('a noisy room raises the bar above its own floor', () {
     expect(
-      trace([...run(0.1, 10), ...run(0.8, 10), ...run(0.1, 2)]).speech,
+      speech([...run(0.5, 20), ...run(0.55, 20), ...run(0.8, 10)]),
       const Duration(seconds: 1),
     );
   });
 
-  test('a quiet run of exactly the bridge length is a pause, not a word gap', () {
-    final tally = trace([...run(0.1, 10), ...run(0.8, 5), ...run(0.1, 3), ...run(0.8, 5)]);
-    expect(tally.speech, const Duration(seconds: 1));
+  test('quiet speech in a silent room still clears the heard threshold', () {
+    expect(speech([...run(0.0, 20), ...run(0.35, 10)]), const Duration(seconds: 1));
   });
 
-  test('a window stamped before the last one breaks the bridge', () {
-    final tally = SpeechTally()
-      ..add(0.1, Duration.zero)
-      ..add(0.1, window)
-      ..add(0.8, window * 2)
-      ..add(0.1, window * 3)
-      ..add(0.8, window * 2);
-    expect(tally.speech, window * 2);
-  });
-
-  test('windows delivered in the same instant each count their slice', () {
-    final tally = SpeechTally()
-      ..add(0.1, Duration.zero)
-      ..add(0.1, window)
-      ..add(0.8, window * 2)
-      ..add(0.1, window * 3)
-      ..add(0.1, window * 3)
-      ..add(0.8, window * 4);
-    expect(tally.speech, window * 4);
-  });
-
-  test('a headset mic\'s slower windows count their full length', () {
-    final tally = trace([
-      ...run(0.1, 10),
-      ...run(0.8, 10),
-    ], step: const Duration(milliseconds: 300));
-    expect(tally.speech, const Duration(seconds: 3));
-  });
-
-  test('a stall that delivers windows in a burst loses none of them', () {
-    final tally = SpeechTally();
-    var at = Duration.zero;
-    void add(double level, Duration after) {
-      at += after;
-      tally.add(level, at);
-    }
-
-    for (var i = 0; i < 10; i++) {
-      add(0.1, window);
-    }
-    for (var i = 0; i < 5; i++) {
-      add(0.8, window);
-    }
-    add(0.8, window * 5);
-    for (var i = 0; i < 4; i++) {
-      add(0.8, Duration.zero);
-    }
-    for (var i = 0; i < 5; i++) {
-      add(0.8, window);
-    }
-    expect(tally.speech, window * 15);
-  });
-
-  test('a pause breaks the bridge even when the windows run on', () {
-    final tally = SpeechTally();
-    var at = Duration.zero;
-    for (final level in [...run(0.1, 10), ...run(0.8, 5), ...run(0.1, 1)]) {
-      tally.add(level, at);
-      at += window;
-    }
-    tally.markBreak();
-    for (final level in run(0.8, 5)) {
-      tally.add(level, at);
-      at += window;
-    }
-    expect(tally.speech, const Duration(seconds: 1));
+  test('a pause ends the stretch even when the windows run on', () {
+    final tally = trace([...run(0.1, 10), ...run(0.8, 5), ...run(0.1, 1)])..markBreak();
+    run(0.8, 5).forEach(tally.add);
+    expect(tally.speechOf(window * 21), const Duration(seconds: 1));
   });
 }

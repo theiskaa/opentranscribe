@@ -152,12 +152,11 @@ String appendFillerWithin({
   }
 }
 
-/// The words a take's ink stands for: [liveText] when the live pass heard
-/// any, else about [characters] of [sample]'s words laid after [base], up to
-/// the lines a screen of [screenHeight] holds (past that no one sees ink, and
-/// the landing reshapes it to the real words anyway). Empty with neither.
+/// The words a take's ink stands for: about [characters] of [sample]'s words
+/// laid after [base], up to the lines a screen of [screenHeight] holds (past
+/// that no one sees ink, and the landing reshapes it to the real words
+/// anyway). Empty without a forecast.
 String appendPending({
-  required String liveText,
   required int? characters,
   required String sample,
   required String base,
@@ -167,7 +166,6 @@ String appendPending({
   required TextScaler textScaler,
   Locale? locale,
 }) {
-  if (liveText.trim().isNotEmpty) return liveText;
   if (characters == null) return '';
   final size = textScaler.scale(style.fontSize!);
   final lines = screenLines(screenHeight: screenHeight, style: style, textScaler: textScaler);
@@ -200,7 +198,7 @@ int screenLines({
 /// What a landing does with the take's ink.
 enum AppendLanding {
   /// The words show at once and the ink goes: nothing grew, the ink never
-  /// formed, or motion is reduced.
+  /// formed, the live words already stood there, or motion is reduced.
   swap,
 
   /// The ink already has the landed words' shape: it only dissolves.
@@ -211,15 +209,17 @@ enum AppendLanding {
 }
 
 /// How a take lands on the words: [grew] when they only gained a tail,
-/// [inkShown] when the ink is up (not faded out), [laidOut] when its layout is
-/// known, and [matches] when the ink was already painted from the landed words.
+/// [heard] when its live words were showing in the tail's place, [inkShown]
+/// when the ink is up (not faded out), [laidOut] when its layout is known, and
+/// [matches] when the ink was already painted from the landed words.
 AppendLanding appendLanding({
   required bool grew,
+  required bool heard,
   required bool inkShown,
   required bool laidOut,
   required bool reduceMotion,
   required bool matches,
 }) {
-  if (!grew || !inkShown || !laidOut || reduceMotion) return AppendLanding.swap;
+  if (!grew || heard || !inkShown || !laidOut || reduceMotion) return AppendLanding.swap;
   return matches ? AppendLanding.dissolve : AppendLanding.reshape;
 }

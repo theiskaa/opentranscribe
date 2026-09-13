@@ -16,14 +16,15 @@ const Set<String> _alphabetic = {
 };
 // dart format on
 
-/// Characters a second of speech runs to in [localeId], spaces and
-/// punctuation included, before any take has taught it. Rough by script; the
-/// learned pace replaces it.
+/// Characters a second of speech runs to in [localeId] (speech as
+/// [SpeechTally] counts it, short pauses included), spaces and punctuation
+/// too, before any take has taught it. Rough by script; the learned pace
+/// replaces it.
 double startingPace(String localeId) => switch (cjkScriptOf(localeId)) {
-  CjkScript.japanese => 6.5,
-  CjkScript.chinese => 5,
-  CjkScript.korean => 7.5,
-  null => _alphabetic.contains(languageOf(localeId)) ? 16 : 13,
+  CjkScript.japanese => 6,
+  CjkScript.chinese => 4.5,
+  CjkScript.korean => 7,
+  null => _alphabetic.contains(languageOf(localeId)) ? 14 : 12,
 };
 
 /// A forecast never promises less than a short word.
@@ -70,7 +71,11 @@ class SpeakingPace {
 
   final LocalService _storage;
 
-  static const _key = 'transcribe.speakingPace';
+  static const _key = 'transcribe.speechPace';
+
+  /// Paces learned when speech counted no pause at all: far faster than
+  /// speech counts now, they would forecast every take too long.
+  static const _retiredKey = 'transcribe.speakingPace';
 
   /// Under this much speech a word more or less swings the ratio.
   static const Duration _shortestLesson = Duration(seconds: 3);
@@ -80,6 +85,9 @@ class SpeakingPace {
   Map<String, double> get _learned => _paces ??= _read();
 
   Map<String, double> _read() {
+    if (_storage.containsKey(_retiredKey)) {
+      _storage.delete(_retiredKey).ignore();
+    }
     try {
       return _storage.readJson(
             _key,

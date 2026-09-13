@@ -29,7 +29,6 @@ void main() {
   late EntryStore store;
   late Directory dir;
   late FakeAudioRecorder recorder;
-  var now = Duration.zero;
   var wall = fixedClock;
   var idCounter = 0;
 
@@ -50,16 +49,20 @@ void main() {
             durations: const {'base.m4a': Duration(seconds: 10), 'tail.m4a': Duration(seconds: 2)},
           ),
       clock: () => wall,
-      monotonic: () => now,
       idGenerator: () => 'id-${idCounter++}',
       fileDeleter: (f) async => f.deleteSync(),
       pace: pace,
     );
   }
 
+  void recordTakeOf(int windows) => recorder = FakeAudioRecorder(
+    recordingsDir: dir.path,
+    path: 'tail.m4a',
+    duration: window * windows,
+  );
+
   Future<void> speak(double level, int windows) async {
     for (var i = 0; i < windows; i++) {
-      now += window;
       recorder.levelController.add(level);
       await pumpEventQueue();
     }
@@ -87,7 +90,6 @@ void main() {
     File('${dir.path}/base.m4a').writeAsStringSync('base');
     File('${dir.path}/tail.m4a').writeAsStringSync('tail');
     recorder = FakeAudioRecorder(recordingsDir: dir.path, path: 'tail.m4a');
-    now = Duration.zero;
     wall = fixedClock;
   });
 
@@ -96,6 +98,7 @@ void main() {
   });
 
   test('every event of a fresh take\'s pass carries its forecast', () async {
+    recordTakeOf(30);
     final svc = build(FakeBatchEngine(cannedText: 'hello there'));
     final events = <BatchProgress>[];
     svc.batchProgress.listen(events.add);
@@ -111,7 +114,8 @@ void main() {
     expect(forecast.audio, recorder.duration);
     expect(forecast.speech, const Duration(seconds: 2));
     expect(forecast.localeId, 'en-US');
-    expect(forecast.characters, 32);
+    expect(forecast.characters, 28);
+    expect(forecast.heard, isEmpty);
     expect(
       events,
       everyElement(
@@ -120,6 +124,21 @@ void main() {
             .having((e) => e.entryId, 'entryId', isNull),
       ),
     );
+
+    await svc.dispose();
+  });
+
+  test('a live take\'s forecast carries the words its live pass heard', () async {
+    final svc = build(FakeStreamingEngine(cannedText: 'heard live', stopSignal: recorder.stopped));
+    final events = <BatchProgress>[];
+    svc.batchProgress.listen(events.add);
+
+    await svc.startRecording();
+    await svc.liveEvents.firstWhere((event) => event.text == 'heard live');
+    await svc.stopRecording();
+    await pumpEventQueue();
+
+    expect(events.first.forecast?.heard, 'heard live');
 
     await svc.dispose();
   });
@@ -136,6 +155,7 @@ void main() {
         createdAt: fixedClock,
       ),
     );
+    recordTakeOf(15);
     final svc = build(FakeBatchEngine(cannedText: 'after'));
     final events = <BatchProgress>[];
     svc.batchProgress.listen(events.add);
@@ -221,6 +241,7 @@ void main() {
   });
 
   test('a cancelled take\'s speech never reaches the next take\'s forecast', () async {
+    recordTakeOf(15);
     final svc = build(FakeBatchEngine(cannedText: 'words'));
     final events = <BatchProgress>[];
     svc.batchProgress.listen(events.add);
@@ -240,6 +261,7 @@ void main() {
   });
 
   test('a paused stretch adds nothing to the speech time', () async {
+    recordTakeOf(30);
     final svc = build(FakeBatchEngine(cannedText: 'words'));
     final events = <BatchProgress>[];
     svc.batchProgress.listen(events.add);
@@ -248,7 +270,6 @@ void main() {
     await speak(0.1, 10);
     await speak(0.8, 10);
     await svc.pauseRecording();
-    now += const Duration(minutes: 3);
     await svc.resumeRecording();
     await speak(0.8, 10);
     await svc.stopRecording();
@@ -260,11 +281,7 @@ void main() {
   });
 
   test('a two-language take forecasts each span at its own pace', () async {
-    recorder = FakeAudioRecorder(
-      recordingsDir: dir.path,
-      path: 'tail.m4a',
-      duration: const Duration(seconds: 10),
-    );
+    recordTakeOf(100);
     final svc = build(
       FakeBatchEngine(cannedText: 'words', supportedLocaleTags: ['en-US', 'ja-JP']),
     );
@@ -274,12 +291,12 @@ void main() {
     await svc.startRecording();
     wall = wall.add(const Duration(seconds: 5));
     await svc.setSessionLocale('ja-JP');
-    await speak(0.1, 10);
-    await speak(0.8, 20);
+    await speak(0.1, 50);
+    await speak(0.8, 50);
     await svc.stopRecording();
     await pumpEventQueue();
 
-    expect(events.first.forecast?.characters, 23);
+    expect(events.first.forecast?.characters, 50);
     expect(events.first.forecast?.localeId, 'en-US');
 
     await svc.dispose();
@@ -329,7 +346,7 @@ void main() {
   });
 
   group('the pace', () {
-    final learnedFromTake = nextPace(null, observed: 100 / 4, starting: 16);
+    final learnedFromTake = nextPace(null, observed: 100 / 4, starting: 14);
 
     Future<SpeakingPace> afterTake(
       TranscriptionEngine Function(FakeAudioRecorder recorder) engine, {
@@ -338,11 +355,7 @@ void main() {
       bool continuing = false,
       bool live = false,
     }) async {
-      recorder = FakeAudioRecorder(
-        recordingsDir: dir.path,
-        path: 'tail.m4a',
-        duration: const Duration(seconds: 10),
-      );
+      recordTakeOf(10 + speaking);
       final svc = build(engine(recorder), pace: SpeakingPace(storage: storage));
       await svc.startRecording(continuing: continuing ? store.read('base') : null);
       if (secondLanguage != null) {
@@ -386,12 +399,12 @@ void main() {
     test('learns nothing from an unheard entry\'s pass over the whole grown file', () async {
       await seedBase();
       final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100), continuing: true);
-      expect(pace.of('en-US'), 16);
+      expect(pace.of('en-US'), 14);
     });
 
     test('learns nothing from a take under three seconds of speech', () async {
       final pace = await afterTake((_) => FakeBatchEngine(cannedText: 'x' * 100), speaking: 20);
-      expect(pace.of('en-US'), 16);
+      expect(pace.of('en-US'), 14);
     });
 
     test('learns nothing from a two-language take, in either language', () async {
@@ -399,13 +412,13 @@ void main() {
         (_) => FakeBatchEngine(cannedText: 'x' * 100, supportedLocaleTags: ['en-US', 'ja-JP']),
         secondLanguage: 'ja-JP',
       );
-      expect(pace.of('en-US'), 16);
-      expect(pace.of('ja-JP'), 6.5);
+      expect(pace.of('en-US'), 14);
+      expect(pace.of('ja-JP'), 6);
     });
 
     test('learns nothing from a pass that heard no words', () async {
       final pace = await afterTake((_) => FakeBatchEngine(cannedText: ''));
-      expect(pace.of('en-US'), 16);
+      expect(pace.of('en-US'), 14);
     });
 
     test('learns nothing from live words saved in place of a failed pass', () async {
@@ -414,7 +427,7 @@ void main() {
             FakeStreamingEngine(cannedText: 'x' * 100, failBatch: true, stopSignal: rec.stopped),
         live: true,
       );
-      expect(pace.of('en-US'), 16);
+      expect(pace.of('en-US'), 14);
     });
 
     test('forecasts the next take at the pace it learned', () async {

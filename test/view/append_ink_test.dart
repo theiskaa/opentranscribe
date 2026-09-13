@@ -96,8 +96,7 @@ void main() {
   group('appendPending', () {
     final words = List.filled(200, 'bbbb').join(' ');
 
-    String pending({String live = '', int? characters = 400}) => appendPending(
-      liveText: live,
+    String pending({int? characters = 400}) => appendPending(
       characters: characters,
       sample: words,
       base: 'aaaa',
@@ -107,11 +106,7 @@ void main() {
       textScaler: TextScaler.noScaling,
     );
 
-    test('words the live pass heard stand for themselves, forecast or not', () {
-      expect(pending(live: 'heard words'), 'heard words');
-    });
-
-    test('with no live words the forecast is laid out, a screen of lines at most', () {
+    test('the forecast is laid out, a screen of lines at most', () {
       expect(pending(), 'bbbb bbbb bbbb bbbb bbbb');
     });
 
@@ -119,7 +114,7 @@ void main() {
       expect(pending(characters: 9), 'bbbb bbbb');
     });
 
-    test('with neither live words nor a forecast there is nothing to ink', () {
+    test('without a forecast there is nothing to ink', () {
       expect(pending(characters: null), '');
     });
   });
@@ -141,12 +136,14 @@ void main() {
   group('appendLanding', () {
     AppendLanding landing({
       bool grew = true,
+      bool heard = false,
       bool inkShown = true,
       bool laidOut = true,
       bool reduceMotion = false,
       bool matches = false,
     }) => appendLanding(
       grew: grew,
+      heard: heard,
       inkShown: inkShown,
       laidOut: laidOut,
       reduceMotion: reduceMotion,
@@ -168,6 +165,10 @@ void main() {
     test('with the ink never shown or never laid out there is nothing to fade', () {
       expect(landing(inkShown: false), AppendLanding.swap);
       expect(landing(laidOut: false), AppendLanding.swap);
+    });
+
+    test('words landing where the live words already stood swap in, with no ink to fade', () {
+      expect(landing(heard: true, matches: true), AppendLanding.swap);
     });
 
     test('under Reduce Motion the words swap in', () {

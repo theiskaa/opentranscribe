@@ -995,8 +995,11 @@ class _TranscriptBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Only this entry's own take: a fresh one started from a system surface
+    // meanwhile owns the recorder, and its words are not this entry's.
     final pending = context.select<RecorderCubit, String>(
-      (recorder) => continuing ? recorder.state.liveText : '',
+      (recorder) =>
+          continuing && recorder.state.continuing?.id == entry.id ? recorder.state.liveText : '',
     );
     final forecast = context.select<BatchProgressCubit, TakeForecast?>(
       (passes) => passes.state.forEntry(entry.id)?.forecast,

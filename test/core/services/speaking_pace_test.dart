@@ -6,21 +6,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   group('startingPace', () {
     test('alphabetic languages share one pace, whatever the region', () {
-      expect(startingPace('en-US'), 16);
-      expect(startingPace('en-GB'), 16);
-      expect(startingPace('ru-RU'), 16);
-      expect(startingPace('el'), 16);
+      expect(startingPace('en-US'), 14);
+      expect(startingPace('en-GB'), 14);
+      expect(startingPace('ru-RU'), 14);
+      expect(startingPace('el'), 14);
     });
 
     test('languages written in characters run to fewer of them a second', () {
-      expect(startingPace('ja-JP'), 6.5);
-      expect(startingPace('zh-Hans'), 5);
-      expect(startingPace('yue'), 5);
-      expect(startingPace('ko-KR'), 7.5);
+      expect(startingPace('ja-JP'), 6);
+      expect(startingPace('zh-Hans'), 4.5);
+      expect(startingPace('yue'), 4.5);
+      expect(startingPace('ko-KR'), 7);
     });
 
     test('a language without a known script starts in the middle', () {
-      expect(startingPace('th-TH'), 13);
+      expect(startingPace('th-TH'), 12);
     });
   });
 
@@ -32,8 +32,8 @@ void main() {
     }) => forecastCharacters(speech: speech, audio: audio, spans: spans, pace: startingPace);
 
     test('speech time times the language pace', () {
-      expect(forecast(const Duration(seconds: 10)), 160);
-      expect(forecast(const Duration(seconds: 10), spans: [(startMs: 0, tag: 'ja-JP')]), 65);
+      expect(forecast(const Duration(seconds: 10)), 140);
+      expect(forecast(const Duration(seconds: 10), spans: [(startMs: 0, tag: 'ja-JP')]), 60);
     });
 
     test('a silent take still forecasts a short word', () {
@@ -45,11 +45,11 @@ void main() {
         const Duration(seconds: 10),
         spans: [(startMs: 0, tag: 'en-US'), (startMs: 5000, tag: 'ja-JP')],
       );
-      expect(mixed, 113);
+      expect(mixed, 100);
     });
 
     test('a take with no audio length runs at its opening span\'s pace', () {
-      expect(forecast(const Duration(seconds: 10), audio: Duration.zero), 160);
+      expect(forecast(const Duration(seconds: 10), audio: Duration.zero), 140);
     });
 
     test('a span starting past the end of the audio adds nothing', () {
@@ -57,7 +57,7 @@ void main() {
         const Duration(seconds: 10),
         spans: [(startMs: 0, tag: 'en-US'), (startMs: 20000, tag: 'ja-JP')],
       );
-      expect(late, 160);
+      expect(late, 140);
     });
   });
 
@@ -97,34 +97,41 @@ void main() {
     });
 
     test('a language no take has taught runs at its starting pace', () {
-      expect(SpeakingPace(storage: storage).of('ja-JP'), 6.5);
+      expect(SpeakingPace(storage: storage).of('ja-JP'), 6);
     });
 
     test('a landed take moves its language, and every region of it', () async {
       final pace = SpeakingPace(storage: storage);
       await pace.learn('en-US', characters: 200, speech: const Duration(seconds: 10));
-      expect(pace.of('en-US'), closeTo(17.2, 1e-9));
-      expect(pace.of('en-GB'), closeTo(17.2, 1e-9));
-      expect(pace.of('de-DE'), 16);
+      expect(pace.of('en-US'), closeTo(15.8, 1e-9));
+      expect(pace.of('en-GB'), closeTo(15.8, 1e-9));
+      expect(pace.of('de-DE'), 14);
     });
 
     test('a take under three seconds of speech, or with no words, teaches nothing', () async {
       final pace = SpeakingPace(storage: storage);
       await pace.learn('en-US', characters: 100, speech: const Duration(seconds: 2));
       await pace.learn('en-US', characters: 0, speech: const Duration(seconds: 10));
-      expect(pace.of('en-US'), 16);
+      expect(pace.of('en-US'), 14);
     });
 
     test('what was learned survives a relaunch', () async {
       await SpeakingPace(
         storage: storage,
       ).learn('ko-KR', characters: 100, speech: const Duration(seconds: 10));
-      expect(SpeakingPace(storage: storage).of('ko-KR'), closeTo(7.5 + 0.3 * 2.5, 1e-9));
+      expect(SpeakingPace(storage: storage).of('ko-KR'), closeTo(7 + 0.3 * 3, 1e-9));
     });
 
     test('a stored value that cannot be read falls back to the start', () async {
-      await storage.write('transcribe.speakingPace', 'not json');
-      expect(SpeakingPace(storage: storage).of('en-US'), 16);
+      await storage.write('transcribe.speechPace', 'not json');
+      expect(SpeakingPace(storage: storage).of('en-US'), 14);
+    });
+
+    test('a pace learned when speech counted no pauses is let go, not read', () async {
+      await storage.writeJson('transcribe.speakingPace', {'en': 30.0});
+      expect(SpeakingPace(storage: storage).of('en-US'), 14);
+      await pumpEventQueue();
+      expect(storage.containsKey('transcribe.speakingPace'), isFalse);
     });
   });
 }

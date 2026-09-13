@@ -72,15 +72,29 @@ List<InkRow> takeCloudRows({
   return rows;
 }
 
+/// The forecast a take's slot shows by: the pass's own while it runs, the
+/// [held] one through its record's handoff ([writing]), and none after.
+TakeForecast? takeSlotForecast(
+  TakeForecast? held, {
+  required bool pending,
+  required TakeForecast? incoming,
+  required bool writing,
+}) {
+  if (pending) return incoming;
+  return writing ? held : null;
+}
+
 /// The take's place in the list while it is being transcribed: a record's rail
-/// and node with a cloud of ink where its words will be. The cloud is not a
-/// stand-in that gets swapped out; when the record lands it resolves INTO the
-/// row, so the wait and the arrival are one movement.
+/// and node with the words its live pass heard, or, under an engine without
+/// one, a cloud of ink where its words will be. The cloud is not a stand-in
+/// that gets swapped out; when the record lands it resolves INTO the row, so
+/// the wait and the arrival are one movement. Heard words are already the
+/// take's: its record simply takes their place.
 ///
 /// [entry] is null until the record lands. The row is not tappable either way:
-/// while the cloud is up there is nothing to open, and a tap landing mid-write
-/// on a row that is still assembling would open a screen the reader did not
-/// aim at. The settled row takes over from [EntryRow] on [onWritten].
+/// while the take is pending there is nothing to open, and a tap landing
+/// mid-write on a row that is still assembling would open a screen the reader
+/// did not aim at. The settled row takes over from [EntryRow] on [onWritten].
 class TakeRow extends StatelessWidget {
   const TakeRow({
     required this.entry,
@@ -93,8 +107,9 @@ class TakeRow extends StatelessWidget {
 
   final Entry? entry;
 
-  /// What the take is expected to read as; the cloud takes its shape. Every
-  /// fresh take's pass carries one; null holds a few lines, defensively.
+  /// What the take is expected to read as: its heard words stand in the row,
+  /// and without any the cloud takes the forecast's shape. Every fresh take's
+  /// pass carries one; null holds a few lines of cloud, defensively.
   final TakeForecast? forecast;
 
   /// Words in the take's language to lay the forecast out in ([fillerSample]).
@@ -113,20 +128,32 @@ class TakeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final l10n = AppLocalizations.of(context)!;
     final entry = this.entry;
     final forecast = this.forecast;
-    final excerptLines = theme.entryList.excerptLines;
+    final leadStyle = entry == null ? AppType.body : EntryRowBody.leadStyleOf(entry);
     final tag = localeTag(context);
+    // The record's own time is stamped when it lands; tabular digits make
+    // this minute's as wide.
+    String meta(TakeForecast take) => EntryRowBody.metaLine(DateTime.now(), take.audio, tag);
+    final heard = forecast?.heard.trim() ?? '';
+    if (forecast != null && heard.isNotEmpty) {
+      return EntryRail(
+        last: last,
+        leadStyle: leadStyle,
+        child: entry == null
+            ? EntryRowWords(excerpt: heard, meta: meta(forecast))
+            : _Written(entry: entry, onWritten: onWritten),
+      );
+    }
+    final theme = context.theme;
     final bold = MediaQuery.boldTextOf(context);
     final locale = Localizations.maybeLocaleOf(context);
     return EntryRail(
       last: last,
-      leadStyle: entry == null ? AppType.body : EntryRowBody.leadStyleOf(entry),
+      leadStyle: leadStyle,
       child: Semantics(
         // The cloud says nothing on its own; the settled row reads itself out.
-        label: entry == null ? l10n.takeTranscribing : null,
+        label: entry == null ? AppLocalizations.of(context)!.takeTranscribing : null,
         child: InkReveal(
           phase: entry == null ? InkPhase.pending : InkPhase.write,
           color: theme.entryList.excerptColor,
@@ -137,12 +164,10 @@ class TakeRow extends StatelessWidget {
               : (width, scaler) => takeCloudRows(
                   characters: forecast.characters,
                   sample: sample,
-                  // The record's own time is stamped when it lands; tabular
-                  // digits make this minute's as wide.
-                  meta: EntryRowBody.metaLine(DateTime.now(), forecast.audio, tag),
+                  meta: meta(forecast),
                   width: width,
                   scaler: scaler,
-                  excerptLines: excerptLines,
+                  excerptLines: theme.entryList.excerptLines,
                   bold: bold,
                   locale: locale,
                 ),
@@ -154,4 +179,29 @@ class TakeRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The landed record in the heard words' place, handed back to the list once
+/// it has drawn.
+class _Written extends StatefulWidget {
+  const _Written({required this.entry, required this.onWritten});
+
+  final Entry entry;
+  final VoidCallback onWritten;
+
+  @override
+  State<_Written> createState() => _WrittenState();
+}
+
+class _WrittenState extends State<_Written> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onWritten();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => EntryRowBody(entry: widget.entry);
 }
