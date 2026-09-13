@@ -1120,24 +1120,45 @@ class TranscriptionService {
       // A take saved without its pass (an interruption, the app's end) keeps
       // its picks: the read of its voice must not stand between it and the
       // save the process may not live to finish.
-      var takeSpans = transcribe ? await _cutTake(recording, spans) : spans;
+      final cut = transcribe ? await _cutTake(recording, spans) : null;
+      var takeSpans = cut?.spans ?? spans;
+      // Once, before whichever pass hears the take first.
+      var seamsWalked = false;
+      Future<void> walk(File audioFile, _BatchReport? report) async {
+        final voiced = cut?.voiced;
+        if (seamsWalked || cut == null || voiced == null) return;
+        seamsWalked = true;
+        try {
+          takeSpans = await _walkSeams(
+            audioFile,
+            voiced,
+            cuts: takeSpans,
+            windows: cut.windows,
+            report: report,
+          );
+        } catch (_) {
+          // The cuts stand.
+        }
+      }
+
       // A fallen-back tail lands as its own entry, not where its forecast
       // would draw, so its pass carries none.
       Future<void> batchTail({bool forecasting = true}) async {
         try {
           final audioFile = File(await _resolveAudioPath(recording.path));
-          final pass = await _reporting(
-            continuation?.id,
-            forecast: forecasting ? forecast : null,
-            (report) => _hear(
+          final pass = await _reporting(continuation?.id, forecast: forecasting ? forecast : null, (
+            report,
+          ) async {
+            await walk(audioFile, report);
+            return _hear(
               _engine,
               audioFile,
               recording.duration,
               takeSpans,
               localeId: sessionLocale,
               report: report,
-            ),
-          );
+            );
+          });
           transcript = pass.transcript;
           takeSpans = pass.spans;
           // A first-use model install may have piggybacked on this pass.
@@ -1170,6 +1191,15 @@ class TranscriptionService {
       final baseStored = continuation == null ? null : _store.read(continuation.id);
       final baseUnheard = baseStored != null && baseStored.transcript == null;
       if (transcribe && !baseUnheard) await batchTail();
+      // The merged file's pass hears the cuts as they are, so they are walked
+      // here, on the take's own audio, before the join.
+      if (transcribe && baseUnheard) {
+        try {
+          await walk(File(await _resolveAudioPath(recording.path)), null);
+        } catch (_) {
+          // No file to walk: the cuts stand.
+        }
+      }
 
       ContinuationFallback? fallback;
       if (continuation != null) {
@@ -2550,7 +2580,7 @@ class TranscriptionService {
     return paced ? _inPacedTurn(run) : run();
   }
 
-  Future<Transcript> _inPacedTurn(Future<Transcript> Function() run) {
+  Future<T> _inPacedTurn<T>(Future<T> Function() run) {
     final generation = _cancelGeneration;
     final turn = _pacedTurn.then((_) {
       if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
@@ -2754,18 +2784,25 @@ class TranscriptionService {
   }
 
   /// [picks] with every switch moved to the quiet around it ([seamCut]), from
-  /// one read of where the whole take holds a voice; the picks as they are
-  /// without a probe, or when it cannot tell.
-  Future<List<TakeSpan>> _cutTake(Recording recording, List<TakeSpan> picks) async {
+  /// one read of where the whole take holds a voice, answered with that read
+  /// and each switch's window (index for index, the first span's unused);
+  /// the picks as they are without a probe, or when it cannot tell.
+  Future<({List<TakeSpan> spans, List<VoicedRange>? voiced, List<TakeWindow> windows})> _cutTake(
+    Recording recording,
+    List<TakeSpan> picks,
+  ) async {
     final activity = _activity;
-    if (activity == null || picks.length < 2) return picks;
+    if (activity == null || picks.length < 2) {
+      return (spans: picks, voiced: null, windows: const <TakeWindow>[]);
+    }
     final List<VoicedRange>? voiced;
     try {
       voiced = await activity.voiced(File(await _resolveAudioPath(recording.path)));
     } catch (_) {
-      return picks;
+      return (spans: picks, voiced: null, windows: const <TakeWindow>[]);
     }
     final cut = [picks.first];
+    final windows = <TakeWindow>[(start: Duration.zero, end: Duration.zero)];
     for (var i = 1; i < picks.length; i++) {
       final pick = Duration(milliseconds: picks[i].startMs);
       final window = seamWindow(
@@ -2774,13 +2811,83 @@ class TranscriptionService {
         next: i + 1 < picks.length ? Duration(milliseconds: picks[i + 1].startMs) : null,
         length: recording.duration,
       );
+      windows.add(window);
       final at = seamCut(pick: pick, voiced: voiced, window: window, length: recording.duration);
       if (kDebugMode) {
         debugPrint('seam ${picks[i].tag}: picked ${pick.inMilliseconds}, cut ${at.inMilliseconds}');
       }
       cut.add((startMs: at.inMilliseconds, tag: picks[i].tag));
     }
-    return cut;
+    return (spans: cut, voiced: voiced, windows: windows);
+  }
+
+  /// [cuts] with each switch walked past the speech that belongs to the other
+  /// side of it ([walkSeam]) inside its window, asked of an engine that can
+  /// tell two languages apart; the cuts as they are under any other, or
+  /// without its model on the device, or once it outlasts the batch timeout (a
+  /// stuck engine must not hold the take from its save; the switches walked by
+  /// then keep their walk). Under a paced engine the walk takes one turn, as a
+  /// pass does; with [report], it is announced like one.
+  Future<List<TakeSpan>> _walkSeams(
+    File file,
+    List<VoicedRange> voiced, {
+    required List<TakeSpan> cuts,
+    required List<TakeWindow> windows,
+    _BatchReport? report,
+  }) async {
+    final engine = _engine;
+    if (engine is! LanguageOddsEngine || cuts.length < 2) return cuts;
+    if (!await isModelInstalled(localeId: cuts.first.tag)) return cuts;
+    report?.call(BatchStep.transcribing, 0);
+    final walked = [cuts.first];
+    // Set by the timeout: a walk given up on asks nothing more, or its
+    // questions would slot in between the pass's own runs.
+    var abandoned = false;
+    Future<List<TakeSpan>> walkAll() async {
+      for (var i = 1; i < cuts.length && !abandoned; i++) {
+        final old = cuts[i - 1].tag;
+        final now = cuts[i].tag;
+        final cut = Duration(milliseconds: cuts[i].startMs);
+        if (!languageDiffers(old, now)) {
+          walked.add(cuts[i]);
+          continue;
+        }
+        final at = await walkSeam(
+          cut: cut,
+          voiced: voiced,
+          window: windows[i],
+          newOdds: (stretch) async {
+            if (abandoned) return null;
+            try {
+              final heard = await engine.languageOdds(
+                file,
+                start: stretch.start,
+                end: stretch.end,
+                among: [old, now],
+              );
+              // All zero: the stretch could not be read.
+              if (heard.values.every((odds) => odds <= 0)) return null;
+              return heard[now];
+            } catch (_) {
+              return null;
+            }
+          },
+        );
+        if (kDebugMode && at != cut) {
+          debugPrint('walk $now: cut ${cut.inMilliseconds}, walked ${at.inMilliseconds}');
+        }
+        if (!abandoned) walked.add((startMs: at.inMilliseconds, tag: now));
+      }
+      return walked;
+    }
+
+    List<TakeSpan> soFar() {
+      abandoned = true;
+      return [...walked, ...cuts.skip(walked.length)];
+    }
+
+    Future<List<TakeSpan>> bounded() => walkAll().timeout(_batchTimeout, onTimeout: soFar);
+    return engine is PacedBatchEngine ? _inPacedTurn(bounded) : bounded();
   }
 
   /// [spans] without those whose [parts] landed no words over audio the probe

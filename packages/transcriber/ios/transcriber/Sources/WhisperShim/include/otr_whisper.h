@@ -56,6 +56,20 @@ OTR_API int32_t otr_whisper_segment(
     int64_t *t1_cs,
     float *confidence);
 
+// Scores how likely 16 kHz mono samples are spoken in each of n_codes whisper
+// language codes, renormalized over them into odds_out (summing to 1, or all
+// 0 when none is known). A code unknown to whisper or without a token in this
+// model scores 0. Only the first 30 s of the samples count. Transcribes
+// nothing; runs one encoder pass, which cannot be aborted.
+OTR_API int32_t otr_whisper_detect(
+    otr_whisper *w,
+    const float *samples,
+    int32_t count,
+    int32_t n_threads,
+    const char *const *codes,
+    int32_t n_codes,
+    float *odds_out);
+
 #ifdef __cplusplus
 }
 #endif

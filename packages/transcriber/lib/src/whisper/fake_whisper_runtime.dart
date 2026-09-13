@@ -13,12 +13,13 @@ final class RunCall {
 }
 
 /// Deterministic [WhisperRuntime] for tests. Every run answers [segments]
-/// after replaying [progressSteps] to its listener; [gate] holds a run open
-/// so a test can abort or interleave; [closeGate] holds a close open;
-/// [loadGate] holds a load open, and a [failLoad] answers after it, as the
-/// real worker does; [failRun] fails a run typed; all are mutable so a test
-/// flips them between runs. Records loads, runs, closes, aborts and
-/// disposes, so a caller's session handling can be asserted.
+/// after replaying [progressSteps] to its listener; [gate] holds a run or a
+/// detect open so a test can abort or interleave; [closeGate] holds a close
+/// open; [loadGate] holds a load open, and a [failLoad] answers after it, as
+/// the real worker does; [failRun] fails a run or a detect typed; all are
+/// mutable so a test flips them between runs. Records loads, runs, detects,
+/// closes, aborts and disposes, so a caller's session handling can be
+/// asserted.
 class FakeWhisperRuntime implements WhisperRuntime {
   FakeWhisperRuntime({
     this.segments = const [
@@ -38,6 +39,13 @@ class FakeWhisperRuntime implements WhisperRuntime {
   });
 
   List<WhisperSegment> segments;
+
+  /// What [WhisperSession.detect] answers per whisper code, renormalized
+  /// over the codes asked; a code missing here scores nothing.
+  Map<String, double> odds = const {};
+
+  /// Every detect as the fake saw it: the pcm read and the codes asked.
+  final List<({String pcmPath, List<String> codes})> detects = [];
   bool failLoad;
   bool failRun;
 
@@ -110,6 +118,20 @@ class FakeWhisperSession implements WhisperSession {
       throw const WhisperRuntimeException(WhisperRuntimeError.runFailed, 'fake');
     }
     return _runtime.segments;
+  }
+
+  @override
+  Future<List<double>> detect(File pcm, {required List<String> codes}) async {
+    if (closed) throw StateError('session closed');
+    _runtime.detects.add((pcmPath: pcm.path, codes: codes));
+    final held = _runtime.gate;
+    if (held != null) await held;
+    if (_runtime.failRun) {
+      throw const WhisperRuntimeException(WhisperRuntimeError.runFailed, 'fake');
+    }
+    final raw = [for (final code in codes) _runtime.odds[code] ?? 0.0];
+    final sum = raw.fold(0.0, (a, b) => a + b);
+    return [for (final value in raw) sum > 0 ? value / sum : 0.0];
   }
 
   @override

@@ -1607,4 +1607,115 @@ void main() {
       expect(transcript.fullText, 'the words Thank you.');
     });
   });
+
+  group('language odds', () {
+    test('answers the model\'s odds for the languages asked, from the slice asked', () async {
+      runtime.odds = const {'en': 0.2, 'fr': 0.6, 'de': 0.2};
+      final e = engine();
+      await install(e);
+
+      final odds = await e.languageOdds(
+        audio,
+        start: const Duration(seconds: 12),
+        end: const Duration(seconds: 14),
+        among: ['en-US', 'fr-FR'],
+      );
+
+      expect(odds['en-US'], closeTo(0.25, 1e-9));
+      expect(odds['fr-FR'], closeTo(0.75, 1e-9));
+      expect(runtime.detects.single.codes, ['en', 'fr']);
+      expect(decoder.calls.single.start, const Duration(seconds: 12));
+      expect(decoder.calls.single.end, const Duration(seconds: 14));
+      expect(runtime.runs, isEmpty);
+    });
+
+    test('a language the model has no token for is refused, never asked as another', () async {
+      final e = engine();
+      await install(e);
+
+      await expectLater(
+        e.languageOdds(
+          audio,
+          start: Duration.zero,
+          end: const Duration(seconds: 2),
+          among: ['en-US', 'yue-HK'],
+        ),
+        throwsA(isA<OnDeviceUnavailable>()),
+      );
+      expect(runtime.detects, isEmpty);
+    });
+
+    test('a model not on the device is never fetched for a question', () async {
+      final e = engine();
+
+      await expectLater(
+        e.languageOdds(
+          audio,
+          start: Duration.zero,
+          end: const Duration(seconds: 2),
+          among: ['en-US', 'fr-FR'],
+        ),
+        throwsA(isA<OnDeviceUnavailable>()),
+      );
+      expect(fetcher.calls, isEmpty);
+    });
+
+    test('a slice with no audio answers nothing for every language', () async {
+      final e = engine();
+      await install(e);
+      decoder.throwOnDecode = PcmDecodeFailed.empty;
+
+      final odds = await e.languageOdds(
+        audio,
+        start: const Duration(minutes: 5),
+        end: const Duration(minutes: 6),
+        among: ['en-US', 'fr-FR'],
+      );
+
+      expect(odds, {'en-US': 0.0, 'fr-FR': 0.0});
+      expect(runtime.detects, isEmpty);
+    });
+
+    test('a cancel fails a question already running', () async {
+      runtime.odds = const {'en': 1};
+      final e = engine();
+      await install(e);
+      final gate = Completer<void>();
+      runtime.gate = gate.future;
+      final question = e.languageOdds(
+        audio,
+        start: Duration.zero,
+        end: const Duration(seconds: 2),
+        among: ['en-US', 'fr-FR'],
+      );
+      await until(() => runtime.detects.isNotEmpty);
+
+      await e.cancelBatches();
+      gate.complete();
+
+      await expectLater(question, throwsA(isA<TranscriptionFailed>()));
+    });
+
+    test('a cancel drops a question still waiting its turn', () async {
+      final e = engine();
+      await install(e);
+      final gate = Completer<void>();
+      runtime.gate = gate.future;
+      final run = e.transcribeFile(audio, localeId: 'en-US');
+      await until(() => runtime.runs.isNotEmpty);
+      final question = e.languageOdds(
+        audio,
+        start: Duration.zero,
+        end: const Duration(seconds: 2),
+        among: ['en-US', 'fr-FR'],
+      );
+
+      await e.cancelBatches();
+      gate.complete();
+
+      await expectLater(run, throwsA(isA<TranscriptionFailed>()));
+      await expectLater(question, throwsA(isA<TranscriptionFailed>()));
+      expect(runtime.detects, isEmpty);
+    });
+  });
 }

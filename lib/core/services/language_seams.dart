@@ -104,11 +104,7 @@ Duration seamCut({
     return Duration.zero;
   }
 
-  Duration middle(TakeWindow gap) {
-    final start = gap.start < window.start ? window.start : gap.start;
-    final end = gap.end > window.end ? window.end : gap.end;
-    return start + (end - start) ~/ 2;
-  }
+  Duration middle(TakeWindow gap) => _middleWithin(gap.start, gap.end, window);
 
   int score(TakeWindow gap) =>
       extent(gap).inMicroseconds - away(gap).inMicroseconds ~/ seamDistanceDivisor;
@@ -143,6 +139,77 @@ Duration seamCut({
       if (extent(q.gap) >= seamWordBreak && away(q.gap) <= seamReach) q.gap,
   ]..sort((a, b) => away(a).compareTo(away(b)));
   return breaks.isEmpty ? pick : middle(breaks.first);
+}
+
+/// Past this much of the new language's odds, a stretch is heard as the new
+/// language; under its complement, as the old.
+const double walkSure = 0.85;
+
+/// A stretch shorter than this is too little to tell two languages apart.
+const Duration walkShortest = Duration(milliseconds: 1500);
+
+/// How many stretches a cut may walk past, each way.
+const int walkSteps = 3;
+
+/// Where a switch cut at [cut] really belongs, asking [newOdds] how likely a
+/// stretch of speech is in the new language (null when it cannot tell). A
+/// pause says where a cut may go, not which side the words belong to: a
+/// sentence before [cut] heard in the new language moves the cut back past
+/// it, and one after [cut] heard in the old language moves it forward (back
+/// first; forward only when it stayed), up to [walkSteps] stretches each way
+/// and never out of [window].
+///
+/// Stretches are the take's voice ([voiced], take-wide) split at pauses of
+/// [seamPause] or more; one shorter than [walkShortest], or an answer short
+/// of [walkSure], stops the walk. A cut inside a stretch stays.
+Future<Duration> walkSeam({
+  required Duration cut,
+  required List<VoicedRange> voiced,
+  required TakeWindow window,
+  required Future<double?> Function(TakeWindow stretch) newOdds,
+}) async {
+  final stretches = <TakeWindow>[];
+  for (final range in voiced) {
+    final last = stretches.lastOrNull;
+    if (last != null && range.start - last.end < seamPause) {
+      stretches[stretches.length - 1] = (start: last.start, end: range.end);
+    } else {
+      stretches.add((start: range.start, end: range.end));
+    }
+  }
+  if (stretches.any((s) => s.start < cut && cut < s.end)) return cut;
+  var next = stretches.indexWhere((s) => s.start >= cut);
+  if (next < 0) next = stretches.length;
+
+  Duration between(Duration from, Duration to) => _middleWithin(from, to, window);
+
+  bool readable(TakeWindow s) =>
+      s.end - s.start >= walkShortest && s.start >= window.start && s.end <= window.end;
+
+  var at = cut;
+  for (var i = next - 1, steps = 0; i >= 0 && steps < walkSteps; i--, steps++) {
+    final stretch = stretches[i];
+    if (!readable(stretch)) break;
+    final odds = await newOdds(stretch);
+    if (odds == null || odds < walkSure) break;
+    at = between(i > 0 ? stretches[i - 1].end : window.start, stretch.start);
+  }
+  if (at != cut) return at;
+  for (var i = next, steps = 0; i < stretches.length && steps < walkSteps; i++, steps++) {
+    final stretch = stretches[i];
+    if (!readable(stretch)) break;
+    final odds = await newOdds(stretch);
+    if (odds == null || odds > 1 - walkSure) break;
+    at = between(stretch.end, i + 1 < stretches.length ? stretches[i + 1].start : window.end);
+  }
+  return at;
+}
+
+/// The middle of [from]..[to] as far as it lies inside [window].
+Duration _middleWithin(Duration from, Duration to, TakeWindow window) {
+  final start = from < window.start ? window.start : from;
+  final end = to > window.end ? window.end : to;
+  return start + (end - start) ~/ 2;
 }
 
 /// [spans] without those at [silent] indices (spans found to hold no voice),

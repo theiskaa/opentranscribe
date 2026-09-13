@@ -45,7 +45,8 @@ class WhisperEngine
         PacedBatchEngine,
         ReleasableEngine,
         ProgressBatchEngine,
-        AcceleratedModelEngine {
+        AcceleratedModelEngine,
+        LanguageOddsEngine {
   WhisperEngine({
     required this._modelsDir,
     required this._fetcher,
@@ -177,6 +178,68 @@ class WhisperEngine
     Duration? end,
   }) => _enqueue(audio, localeId: localeId, start: start, end: end, onProgress: onProgress);
 
+  @override
+  Future<Map<String, double>> languageOdds(
+    File audio, {
+    required Duration start,
+    required Duration end,
+    required List<String> among,
+  }) async {
+    final model = _model(_selectedId);
+    final codes = [
+      for (final tag in among) _codeFor(tag) ?? (throw OnDeviceUnavailable('unsupported: $tag')),
+    ];
+    return _queued(
+      model,
+      (generation) => _odds(audio, model, among, codes, start, end, generation),
+    );
+  }
+
+  /// [body] in its turn on the run chain, holding [model] meanwhile; a cancel
+  /// before the turn comes shows in the generation it is handed.
+  Future<T> _queued<T>(WhisperModel model, Future<T> Function(int generation) body) {
+    final generation = _generation;
+    _holding[model.id] = (_holding[model.id] ?? 0) + 1;
+    final run = _batches.then((_) => body(generation));
+    // The chain only sequences; one failure must not poison every later run.
+    _batches = run.then((_) {}, onError: (Object _) {});
+    return run.whenComplete(() => _decrement(_holding, model.id));
+  }
+
+  Future<Map<String, double>> _odds(
+    File audio,
+    WhisperModel model,
+    List<String> among,
+    List<String> codes,
+    Duration start,
+    Duration end,
+    int generation,
+  ) async {
+    if (generation != _generation) throw _cancelled;
+    _running = true;
+    _runningModelId = model.id;
+    try {
+      await _removals[model.id]?.future;
+      // A question about a stretch never pays for a download.
+      if (!await _installed(model)) throw const OnDeviceUnavailable('model not installed');
+      if (generation != _generation) throw _cancelled;
+      final session = await _sessionFor(model);
+      final odds = await _onSlice(
+        session,
+        audio,
+        start: start,
+        end: end,
+        generation: generation,
+        use: (pcm) => session.detect(pcm, codes: codes),
+      );
+      // A detect cannot be aborted, so a cancel during one shows only here.
+      if (generation != _generation) throw _cancelled;
+      return {for (final (i, tag) in among.indexed) tag: odds?[i] ?? 0};
+    } finally {
+      await _runEnded(model);
+    }
+  }
+
   Future<Transcript> _enqueue(
     File audio, {
     required String localeId,
@@ -188,14 +251,11 @@ class WhisperEngine
     final model = _model(_selectedId);
     final language = _codeFor(localeId);
     if (language == null) throw OnDeviceUnavailable('unsupported: $localeId');
-    final generation = _generation;
-    _holding[model.id] = (_holding[model.id] ?? 0) + 1;
-    final run = _batches.then(
-      (_) => _transcribe(audio, model, localeId, language, start, end, generation, onProgress),
+    return _queued(
+      model,
+      (generation) =>
+          _transcribe(audio, model, localeId, language, start, end, generation, onProgress),
     );
-    // The chain only sequences; one failure must not poison every later run.
-    _batches = run.then((_) {}, onError: (Object _) {});
-    return run.whenComplete(() => _decrement(_holding, model.id));
   }
 
   static void _decrement(Map<String, int> counts, String id) {
@@ -276,14 +336,18 @@ class WhisperEngine
         localeId,
       );
     } finally {
-      _running = false;
-      _runningModelId = null;
-      // The encoder a turn-off left for this run goes now; one an install is
-      // fetching is that install's to drop.
-      if (!_accelerated && !_installing.containsKey(model.id) && await _acceleratedFor(model)) {
-        await _closeSession();
-        await _deleteEncoder(model);
-      }
+      await _runEnded(model);
+    }
+  }
+
+  Future<void> _runEnded(WhisperModel model) async {
+    _running = false;
+    _runningModelId = null;
+    // The encoder a turn-off left for this run goes now; one an install is
+    // fetching is that install's to drop.
+    if (!_accelerated && !_installing.containsKey(model.id) && await _acceleratedFor(model)) {
+      await _closeSession();
+      await _deleteEncoder(model);
     }
   }
 
@@ -354,8 +418,7 @@ class WhisperEngine
     return segments;
   }
 
-  /// One decoded slice through whisper, its scratch file deleted after. Null
-  /// for a slice holding no audio: past the file's end, or empty.
+  /// [_onSlice] running whisper in [language].
   Future<List<WhisperSegment>?> _hear(
     WhisperSession session,
     File audio, {
@@ -364,6 +427,24 @@ class WhisperEngine
     required Duration? end,
     required int generation,
     void Function(double fraction)? onProgress,
+  }) => _onSlice(
+    session,
+    audio,
+    start: start,
+    end: end,
+    generation: generation,
+    use: (pcm) => session.run(pcm, language: language, onProgress: onProgress),
+  );
+
+  /// [use] over one decoded slice, its scratch file deleted after. Null for a
+  /// slice holding no audio: past the file's end, or empty.
+  Future<T?> _onSlice<T>(
+    WhisperSession session,
+    File audio, {
+    required Duration? start,
+    required Duration? end,
+    required int generation,
+    required Future<T> Function(File pcm) use,
   }) async {
     // Checked before the decode too: a cancel between chunks must not pay
     // for another ten minutes of it.
@@ -381,7 +462,7 @@ class WhisperEngine
     }
     try {
       if (generation != _generation) throw _cancelled;
-      return await session.run(decoded.file, language: language, onProgress: onProgress);
+      return await use(decoded.file);
     } on WhisperRuntimeException catch (e) {
       throw switch (e.error) {
         WhisperRuntimeError.aborted => _cancelled,

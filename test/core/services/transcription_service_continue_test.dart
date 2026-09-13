@@ -11,6 +11,7 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+import '../../support/fake_odds_engine.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -216,6 +217,53 @@ void main() {
       const LanguageSpan(startMs: 0, localeId: 'en-US'),
       LanguageSpan(startMs: baseDuration.inMilliseconds + 3000, localeId: 'fr-FR'),
     ]);
+
+    await svc.dispose();
+  });
+
+  test('an unheard entry grown by a mixed take is walked on the take\'s own audio', () async {
+    await seedBase();
+    var now = fixedClock;
+    recorder = FakeAudioRecorder(
+      recordingsDir: dir.path,
+      path: 'tail.m4a',
+      duration: const Duration(seconds: 6),
+    );
+    final engine = FakeOddsEngine(
+      secondOdds: (start) => start >= const Duration(milliseconds: 2500) ? 0.99 : 0.01,
+    )..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final svc = TranscriptionService(
+      recorder: recorder,
+      engine: engine,
+      store: store,
+      composer: FakeAudioComposer(
+        name: 'merged.m4a',
+        durations: const {'base.m4a': baseDuration, 'tail.m4a': Duration(seconds: 6)},
+      ),
+      activity: FakeAudioActivity(
+        ranges: const [
+          (start: Duration.zero, end: Duration(seconds: 2)),
+          (start: Duration(milliseconds: 2500), end: Duration(seconds: 4)),
+          (start: Duration(seconds: 5), end: Duration(seconds: 6)),
+        ],
+      ),
+      clock: () => now,
+      idGenerator: () => 'id-${idCounter++}',
+      fileDeleter: (f) async => f.deleteSync(),
+    );
+
+    await svc.startRecording(continuing: store.read('base'));
+    now = now.add(const Duration(milliseconds: 4500));
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(const Duration(milliseconds: 1500));
+    final landed = await svc.stopRecording();
+
+    expect(
+      landed.languageSpans?.last,
+      LanguageSpan(startMs: baseDuration.inMilliseconds + 2250, localeId: 'fr-FR'),
+    );
+    expect(engine.asked, isNotEmpty);
+    expect(engine.asked.every((question) => question.path.endsWith('tail.m4a')), isTrue);
 
     await svc.dispose();
   });

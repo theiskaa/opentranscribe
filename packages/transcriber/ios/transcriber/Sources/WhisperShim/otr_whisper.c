@@ -48,6 +48,13 @@ static void otr_progress(
   if (out != NULL) *out = (int32_t)progress;
 }
 
+// The language tokens this model carries. whisper maps a language to
+// sot + 1 + id with no bounds check, so one past them would silently become
+// the task token instead.
+static int otr_language_count(otr_whisper *w) {
+  return whisper_model_n_vocab(w->ctx) - OTR_TEXT_VOCAB - whisper_is_multilingual(w->ctx);
+}
+
 OTR_KEEP const char *otr_whisper_version(void) { return whisper_version(); }
 
 OTR_KEEP otr_whisper *otr_whisper_open(const char *model_path, int32_t use_gpu) {
@@ -87,11 +94,8 @@ OTR_KEEP int32_t otr_whisper_run(
   const char *lang = (language == NULL || language[0] == '\0') ? "auto" : language;
   if (strcmp(lang, "auto") != 0) {
     const int lang_id = whisper_lang_id(lang);
-    // whisper maps a language to sot + 1 + id with no bounds check, so a
-    // language past this model's own token count would silently become the
-    // task token instead (Cantonese on a pre-v3 model).
-    const int n_langs = whisper_model_n_vocab(w->ctx) - OTR_TEXT_VOCAB - whisper_is_multilingual(w->ctx);
-    if (lang_id < 0 || lang_id >= n_langs) return OTR_BAD_ARGS;
+    // Refused past this model's tokens: Cantonese on a pre-v3 model.
+    if (lang_id < 0 || lang_id >= otr_language_count(w)) return OTR_BAD_ARGS;
   }
   if (otr_abort((void *)abort_flag)) return OTR_ABORTED;
 
@@ -113,6 +117,39 @@ OTR_KEEP int32_t otr_whisper_run(
 
   int rc = whisper_full(w->ctx, params, samples, count);
   if (rc != 0) return otr_abort((void *)abort_flag) ? OTR_ABORTED : OTR_FAILED;
+  return OTR_OK;
+}
+
+OTR_KEEP int32_t otr_whisper_detect(
+    otr_whisper *w,
+    const float *samples,
+    int32_t count,
+    int32_t n_threads,
+    const char *const *codes,
+    int32_t n_codes,
+    float *odds_out) {
+  if (w == NULL || samples == NULL || count <= 0 || n_threads <= 0 || codes == NULL ||
+      n_codes <= 0 || odds_out == NULL) {
+    return OTR_BAD_ARGS;
+  }
+  if (whisper_pcm_to_mel(w->ctx, samples, count, n_threads) != 0) return OTR_FAILED;
+  float *probs = calloc((size_t)whisper_lang_max_id() + 1, sizeof(float));
+  if (probs == NULL) return OTR_FAILED;
+  if (whisper_lang_auto_detect(w->ctx, 0, n_threads, probs) < 0) {
+    free(probs);
+    return OTR_FAILED;
+  }
+  const int n_langs = otr_language_count(w);
+  double sum = 0;
+  for (int32_t i = 0; i < n_codes; i++) {
+    const int id = codes[i] == NULL ? -1 : whisper_lang_id(codes[i]);
+    odds_out[i] = id >= 0 && id < n_langs ? probs[id] : 0.0f;
+    sum += odds_out[i];
+  }
+  for (int32_t i = 0; i < n_codes; i++) {
+    odds_out[i] = sum > 0 ? (float)(odds_out[i] / sum) : 0.0f;
+  }
+  free(probs);
   return OTR_OK;
 }
 

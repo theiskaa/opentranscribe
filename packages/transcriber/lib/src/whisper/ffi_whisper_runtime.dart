@@ -146,6 +146,12 @@ class _FfiSession implements WhisperSession {
   }
 
   @override
+  Future<List<double>> detect(File pcm, {required List<String> codes}) {
+    if (_closing != null) throw StateError('session closed');
+    return _runtime._ask<List<double>>(_Detect(pcm.path, codes, _runtime._threads()));
+  }
+
+  @override
   void abort() {
     if (_closing == null) _abort.value = 1;
   }
@@ -185,6 +191,14 @@ final class _Run extends _Request {
   final int progressAddress;
 }
 
+final class _Detect extends _Request {
+  const _Detect(this.pcmPath, this.codes, this.threads);
+
+  final String pcmPath;
+  final List<String> codes;
+  final int threads;
+}
+
 final class _Close extends _Request {
   const _Close();
 }
@@ -214,6 +228,11 @@ void _workerMain(SendPort home) {
           :final progressAddress,
         ) =>
           worker.run(pcmPath, language, threads, abortAddress, progressAddress),
+        _Detect(:final pcmPath, :final codes, :final threads) => worker.detect(
+          pcmPath,
+          codes,
+          threads,
+        ),
         _Close() => worker.close(),
       };
     } catch (e) {
@@ -248,22 +267,35 @@ class _Worker {
     return null;
   }
 
-  Object run(String pcmPath, String language, int threads, int abortAddress, int progressAddress) {
-    if (context == nullptr) return const _Failure(WhisperRuntimeError.badArgs, 'no model loaded');
+  /// [pcmPath]'s samples, read straight into native memory: a long take is
+  /// many megabytes and must not sit in the Dart heap as well. Null for an
+  /// empty file; the caller frees the pointer.
+  (Pointer<Float>, int)? _readSamples(String pcmPath) {
     final file = File(pcmPath);
     final count = file.lengthSync() ~/ sizeOf<Float>();
-    if (count == 0) return const <WhisperSegment>[];
+    if (count == 0) return null;
     final samples = calloc<Float>(count);
-    final cLanguage = language.toNativeUtf8();
     try {
-      // Read straight into native memory: a long take is many megabytes and
-      // must not sit in the Dart heap as well.
       final raf = file.openSync();
       try {
         raf.readIntoSync(samples.asTypedList(count).buffer.asUint8List(0, count * sizeOf<Float>()));
       } finally {
         raf.closeSync();
       }
+    } catch (_) {
+      calloc.free(samples);
+      rethrow;
+    }
+    return (samples, count);
+  }
+
+  Object run(String pcmPath, String language, int threads, int abortAddress, int progressAddress) {
+    if (context == nullptr) return const _Failure(WhisperRuntimeError.badArgs, 'no model loaded');
+    final read = _readSamples(pcmPath);
+    if (read == null) return const <WhisperSegment>[];
+    final (samples, count) = read;
+    final cLanguage = language.toNativeUtf8();
+    try {
       final rc = shim.run(
         context,
         samples,
@@ -280,6 +312,33 @@ class _Worker {
     } finally {
       calloc.free(samples);
       calloc.free(cLanguage);
+    }
+  }
+
+  Object detect(String pcmPath, List<String> codes, int threads) {
+    if (context == nullptr) return const _Failure(WhisperRuntimeError.badArgs, 'no model loaded');
+    final read = codes.isEmpty ? null : _readSamples(pcmPath);
+    if (read == null) return List<double>.filled(codes.length, 0);
+    final (samples, count) = read;
+    final names = calloc<Pointer<Utf8>>(codes.length);
+    final odds = calloc<Float>(codes.length);
+    try {
+      for (var i = 0; i < codes.length; i++) {
+        names[i] = codes[i].toNativeUtf8();
+      }
+      final rc = shim.detect(context, samples, count, threads, names, codes.length, odds);
+      if (rc == WhisperShimCode.badArgs) {
+        return const _Failure(WhisperRuntimeError.badArgs, 'detect');
+      }
+      if (rc != WhisperShimCode.ok) return _Failure(WhisperRuntimeError.runFailed, 'code $rc');
+      return [for (var i = 0; i < codes.length; i++) odds[i]];
+    } finally {
+      for (var i = 0; i < codes.length; i++) {
+        if (names[i] != nullptr) calloc.free(names[i]);
+      }
+      calloc.free(names);
+      calloc.free(odds);
+      calloc.free(samples);
     }
   }
 

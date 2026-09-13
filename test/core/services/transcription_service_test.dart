@@ -11,6 +11,7 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+import '../../support/fake_odds_engine.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -965,6 +966,111 @@ void main() {
       await svc.dispose();
     },
   );
+
+  group('the language walk', () {
+    const lateFrench = [
+      (start: Duration(milliseconds: 800), end: Duration(milliseconds: 9500)),
+      (start: Duration(milliseconds: 12040), end: Duration(seconds: 14)),
+      (start: Duration(seconds: 16), end: Duration(seconds: 21)),
+    ];
+
+    Future<Entry> walkedTake(
+      TranscriptionEngine engine, {
+      List<VoicedRange> voice = lateFrench,
+      Duration pick = const Duration(seconds: 15),
+      Duration length = const Duration(seconds: 22),
+      Duration batchTimeout = const Duration(minutes: 2),
+    }) async {
+      var now = DateTime.utc(2026, 3, 4, 12);
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(duration: length),
+        engine: engine,
+        store: store,
+        batchTimeout: batchTimeout,
+        activity: FakeAudioActivity(ranges: voice),
+        clock: () => now,
+        idGenerator: () => 'id-0',
+      );
+      svc.localeId = 'en-US';
+      await svc.startRecording();
+      now = now.add(pick);
+      await svc.setSessionLocale('fr-FR');
+      now = now.add(length - pick);
+      final entry = await svc.stopRecording();
+      await svc.dispose();
+      return entry;
+    }
+
+    test(
+      'french said before the pick is heard as french, the switch walked back to where it began',
+      () async {
+        final engine = FakeOddsEngine(
+          secondOdds: (start) => start >= const Duration(seconds: 12) ? 0.99 : 0.01,
+        );
+
+        final entry = await walkedTake(engine);
+
+        expect(entry.languageSpans?.last, const LanguageSpan(startMs: 10770, localeId: 'fr-FR'));
+        expect(engine.batchCalls.last.start, const Duration(milliseconds: 10770));
+        expect(engine.asked.first.start, const Duration(milliseconds: 12040));
+        expect(engine.asked.first.end, const Duration(seconds: 14));
+      },
+    );
+
+    test(
+      'english finished after the pick is heard as english, the switch walked past it',
+      () async {
+        final engine = FakeOddsEngine(
+          secondOdds: (start) => start >= const Duration(milliseconds: 9400) ? 0.99 : 0.01,
+        );
+
+        final entry = await walkedTake(
+          engine,
+          voice: const [
+            (start: Duration.zero, end: Duration(seconds: 5)),
+            (start: Duration(milliseconds: 6500), end: Duration(seconds: 9)),
+            (start: Duration(milliseconds: 9400), end: Duration(seconds: 15)),
+          ],
+          pick: const Duration(milliseconds: 6300),
+          length: const Duration(seconds: 16),
+        );
+
+        expect(entry.languageSpans?.last.startMs, 9150);
+      },
+    );
+
+    test('a model not on the device asks nothing, and the switch stays at its pause', () async {
+      final engine = FakeManagedOddsEngine();
+
+      final entry = await walkedTake(engine);
+
+      expect(engine.asked, isEmpty);
+      expect(entry.languageSpans?.last.startMs, 15000);
+    });
+
+    test('an answer that fails leaves the switch at its pause', () async {
+      final failing = FakeOddsEngine(
+        secondOdds: (_) => throw const TranscriptionFailed('run failed'),
+      );
+
+      expect((await walkedTake(failing)).languageSpans?.last.startMs, 15000);
+    });
+
+    test('an answer that cannot tell either language leaves the switch at its pause', () async {
+      final unreadable = FakeOddsEngine(unreadable: true);
+
+      expect((await walkedTake(unreadable)).languageSpans?.last.startMs, 15000);
+    });
+
+    test('a walk that outlasts the batch timeout leaves the switch at its pause', () async {
+      final stuck = FakeOddsEngine(secondOdds: (_) => 0.99, hold: Completer<void>().future);
+
+      final entry = await walkedTake(stuck, batchTimeout: const Duration(milliseconds: 50));
+
+      expect(entry.languageSpans?.last.startMs, 15000);
+    });
+  });
 
   group('with a voice probe', () {
     Future<(Entry, FakeBatchEngine)> probedTake({

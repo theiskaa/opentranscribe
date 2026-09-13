@@ -114,6 +114,75 @@ void main() {
     });
   });
 
+  group('walkSeam', () {
+    const window = (start: Duration(seconds: 6), end: Duration(seconds: 17));
+
+    Future<Duration> walk(
+      int cut,
+      List<VoicedRange> voiced,
+      double? Function(TakeWindow stretch) odds, {
+      TakeWindow w = window,
+    }) => walkSeam(
+      cut: ms(cut),
+      voiced: voiced,
+      window: w,
+      newOdds: (stretch) async => odds(stretch),
+    );
+
+    double frenchFrom(TakeWindow stretch, int fromMs) => stretch.start >= ms(fromMs) ? 0.99 : 0.01;
+
+    test(
+      'a sentence said in the new language before the pick takes the cut back past it',
+      () async {
+        final take = [voice(800, 9500), voice(12040, 14000), voice(14500, 20000)];
+        expect(await walk(14250, take, (s) => frenchFrom(s, 12000)), ms(10770));
+      },
+    );
+
+    test('a sentence finished in the old language after the pick takes the cut past it', () async {
+      const early = (start: Duration.zero, end: Duration(seconds: 11));
+      final take = [voice(0, 5000), voice(5400, 8000), voice(10000, 15000)];
+      expect(await walk(5200, take, (s) => frenchFrom(s, 10000), w: early), ms(9000));
+    });
+
+    test('a cut already between the languages stays', () async {
+      final take = [voice(800, 9500), voice(12040, 17000)];
+      expect(await walk(10770, take, (s) => frenchFrom(s, 12000)), ms(10770));
+    });
+
+    test('a stretch too short to tell apart stops the walk', () async {
+      final short = [voice(800, 9500), voice(12040, 13000), voice(13500, 20000)];
+      expect(await walk(13250, short, (s) => frenchFrom(s, 12000)), ms(13250));
+    });
+
+    test('odds short of sure stop the walk', () async {
+      final take = [voice(800, 9500), voice(12040, 14000), voice(14500, 20000)];
+      expect(await walk(14250, take, (s) => 0.6), ms(14250));
+    });
+
+    test('no answer stops the walk', () async {
+      final take = [voice(800, 9500), voice(12040, 14000), voice(14500, 20000)];
+      expect(await walk(14250, take, (s) => null), ms(14250));
+    });
+
+    test('the walk passes three stretches at most', () async {
+      const wide = (start: Duration.zero, end: Duration(seconds: 30));
+      final many = [for (var i = 0; i < 6; i++) voice(i * 4000, i * 4000 + 3000)];
+      expect(await walk(23500, many, (s) => 0.99, w: wide), ms(11500));
+    });
+
+    test('the walk never reads a stretch that runs out of its window', () async {
+      final take = [voice(800, 9500), voice(12040, 14000), voice(14500, 20000)];
+      const tight = (start: Duration(milliseconds: 12500), end: Duration(seconds: 17));
+      expect(await walk(14250, take, (s) => 0.99, w: tight), ms(14250));
+    });
+
+    test('a cut inside a stretch of speech stays', () async {
+      final take = [voice(800, 20000)];
+      expect(await walk(10000, take, (s) => 0.99), ms(10000));
+    });
+  });
+
   group('foldSilentSpans', () {
     test('a silent span in the middle folds into the span before it', () {
       final spans = [

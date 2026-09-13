@@ -344,6 +344,23 @@ abstract interface class ProgressBatchEngine implements TranscriptionEngine {
   });
 }
 
+/// An engine that can tell which of a few languages a stretch of a kept file
+/// is spoken in, without transcribing it: how a mixed-language take finds
+/// which side of a pause its words belong to. Guarantees: [languageOdds]
+/// answers every tag of [among] with the odds that [start]..[end] is spoken in
+/// it, over [among] alone (summing to 1, or all 0 for a stretch it cannot
+/// read); a tag the engine cannot run throws `OnDeviceUnavailable`; it never
+/// downloads a model, throwing instead when none is there; a batch cancel
+/// fails it, one waiting its turn or already running.
+abstract interface class LanguageOddsEngine implements TranscriptionEngine {
+  Future<Map<String, double>> languageOdds(
+    File audio, {
+    required Duration start,
+    required Duration end,
+    required List<String> among,
+  });
+}
+
 /// A [ModelChoiceEngine] whose models run faster with a second on-device
 /// file each (whisper's Core ML encoder on the Neural Engine). The choice is
 /// a preference the app persists and hands back through [setAccelerated].

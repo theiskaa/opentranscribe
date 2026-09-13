@@ -57,6 +57,27 @@ typedef WhisperShimSegmentDart =
       Pointer<Float> confidence,
     );
 
+typedef _DetectNative =
+    Int32 Function(
+      Pointer<Void> w,
+      Pointer<Float> samples,
+      Int32 count,
+      Int32 threads,
+      Pointer<Pointer<Utf8>> codes,
+      Int32 codeCount,
+      Pointer<Float> oddsOut,
+    );
+typedef WhisperShimDetectDart =
+    int Function(
+      Pointer<Void> w,
+      Pointer<Float> samples,
+      int count,
+      int threads,
+      Pointer<Pointer<Utf8>> codes,
+      int codeCount,
+      Pointer<Float> oddsOut,
+    );
+
 /// Hand-written bindings for otr_whisper.h, the flat C surface the transcriber
 /// plugin compiles over whisper.cpp. Symbols resolve lazily from the process
 /// image by default, so a build that left the shim out fails at first use
@@ -81,6 +102,9 @@ final class WhisperShim {
       .lookupFunction<_SegmentCountNative, WhisperShimSegmentCountDart>('otr_whisper_n_segments');
   late final WhisperShimSegmentDart segment = _library
       .lookupFunction<_SegmentNative, WhisperShimSegmentDart>('otr_whisper_segment');
+
+  late final WhisperShimDetectDart detect = _library
+      .lookupFunction<_DetectNative, WhisperShimDetectDart>('otr_whisper_detect');
 
   String version() => _version().toDartString();
 }
