@@ -464,8 +464,9 @@ class ModelsCubit extends Cubit<ModelsState> {
   }
 
   /// A batch pass on a model's row: its download painted as it runs, landed
-  /// when that pass's run starts (whatever model the run names, since the
-  /// choice may have moved meanwhile), and the failure its done carries put
+  /// when that pass's run starts, the step that names a model (whichever it
+  /// names, since the choice may have moved meanwhile; a step naming none
+  /// says nothing about the download), and the failure its done carries put
   /// on the model it names. A pass that landed proves its model opens, so a
   /// standing loadFailed there goes. A picker-started download owns its row.
   void _onPass(BatchProgress event) {
@@ -487,7 +488,7 @@ class ModelsCubit extends Cubit<ModelsState> {
           ),
         );
       case BatchStep.transcribing:
-        if (!ours) return;
+        if (!ours || id == null) return;
         _pass = null;
         _land(pass.modelId, (row) => row.copyWith(clearInstall: true, installed: true));
       case BatchStep.done:

@@ -11,7 +11,9 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+import '../../support/fake_drowned_activity.dart';
 import '../../support/fake_odds_engine.dart';
+import '../../support/fake_span_engines.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -898,32 +900,51 @@ void main() {
     await svc.dispose();
   });
 
-  Future<Entry> mixedTake(
-    TranscriptionEngine engine,
-    List<String> tags, {
+  Future<Entry> recordTake(
+    TranscriptionEngine engine, {
+    required List<(Duration, String)> picks,
+    String opening = 'en-US',
+    Duration? length,
+    AudioActivity? activity,
     Duration batchTimeout = const Duration(minutes: 2),
+    List<BatchProgress>? events,
   }) async {
     var now = DateTime.utc(2026, 3, 4, 12);
     final svc = TranscriptionService(
       composer: FakeAudioComposer(),
-      recorder: FakeAudioRecorder(),
+      recorder: length == null ? FakeAudioRecorder() : FakeAudioRecorder(duration: length),
       engine: engine,
       store: store,
       batchTimeout: batchTimeout,
+      activity: activity,
       clock: () => now,
       idGenerator: () => 'id-0',
     );
-    svc.localeId = tags.first;
+    if (events != null) svc.batchProgress.listen(events.add);
+    svc.localeId = opening;
     await svc.startRecording();
-    for (final tag in tags.skip(1)) {
-      now = now.add(const Duration(seconds: 3));
+    var at = Duration.zero;
+    for (final (pick, tag) in picks) {
+      now = now.add(pick - at);
+      at = pick;
       await svc.setSessionLocale(tag);
     }
-    now = now.add(const Duration(seconds: 3));
+    now = now.add(length == null ? const Duration(seconds: 3) : length - at);
     final entry = await svc.stopRecording();
     await svc.dispose();
     return entry;
   }
+
+  Future<Entry> mixedTake(
+    TranscriptionEngine engine,
+    List<String> tags, {
+    Duration batchTimeout = const Duration(minutes: 2),
+  }) => recordTake(
+    engine,
+    opening: tags.first,
+    picks: [for (final (i, tag) in tags.skip(1).indexed) (Duration(seconds: 3 * (i + 1)), tag)],
+    batchTimeout: batchTimeout,
+  );
 
   test('an engine that cannot slice flattens the take to the first language', () async {
     final engine = FakeBatchEngine()
@@ -948,7 +969,7 @@ void main() {
         recorder: recorder,
         engine: FakeBatchEngine(),
         store: store,
-        activity: _HeldAudioActivity(held.future),
+        activity: FakeAudioActivity(hold: held.future),
         clock: () => now,
         idGenerator: () => 'id-0',
       );
@@ -980,27 +1001,13 @@ void main() {
       Duration pick = const Duration(seconds: 15),
       Duration length = const Duration(seconds: 22),
       Duration batchTimeout = const Duration(minutes: 2),
-    }) async {
-      var now = DateTime.utc(2026, 3, 4, 12);
-      final svc = TranscriptionService(
-        composer: FakeAudioComposer(),
-        recorder: FakeAudioRecorder(duration: length),
-        engine: engine,
-        store: store,
-        batchTimeout: batchTimeout,
-        activity: FakeAudioActivity(ranges: voice),
-        clock: () => now,
-        idGenerator: () => 'id-0',
-      );
-      svc.localeId = 'en-US';
-      await svc.startRecording();
-      now = now.add(pick);
-      await svc.setSessionLocale('fr-FR');
-      now = now.add(length - pick);
-      final entry = await svc.stopRecording();
-      await svc.dispose();
-      return entry;
-    }
+    }) => recordTake(
+      engine,
+      picks: [(pick, 'fr-FR')],
+      length: length,
+      activity: FakeAudioActivity(ranges: voice),
+      batchTimeout: batchTimeout,
+    );
 
     test(
       'french said before the pick is heard as french, the switch walked back to where it began',
@@ -1070,52 +1077,69 @@ void main() {
 
       expect(entry.languageSpans?.last.startMs, 15000);
     });
+
+    test('under a paced engine the walk waits its turn behind a pass already running', () async {
+      final running = Completer<void>();
+      final engine = FakePacedOddsEngine(
+        secondOdds: (start) => start >= const Duration(seconds: 12) ? 0.99 : 0.01,
+      )..runGate = running.future;
+      var now = DateTime.utc(2026, 3, 4, 12);
+      idCounter = 0;
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(duration: const Duration(seconds: 22)),
+        engine: engine,
+        store: store,
+        activity: FakeAudioActivity(ranges: lateFrench),
+        clock: () => now,
+        idGenerator: () => 'id-${idCounter++}',
+      );
+      final earlier = Entry(
+        id: 'earlier',
+        createdAt: fixedClock,
+        audioPath: '/tmp/earlier.m4a',
+        duration: const Duration(seconds: 5),
+        recordedLocaleId: 'en-US',
+      );
+      await store.save(earlier);
+      final retranscribing = svc.retranscribe(earlier);
+      await pumpEventQueue();
+      svc.localeId = 'en-US';
+      await svc.startRecording();
+      now = now.add(const Duration(seconds: 15));
+      await svc.setSessionLocale('fr-FR');
+      now = now.add(const Duration(seconds: 7));
+      final stopped = svc.stopRecording();
+      await pumpEventQueue();
+
+      expect(engine.asked, isEmpty);
+
+      running.complete();
+      await retranscribing;
+      final entry = await stopped;
+
+      expect(engine.asked, isNotEmpty);
+      expect(entry.languageSpans?.last.startMs, 10770);
+      await svc.dispose();
+    });
   });
 
   group('with a voice probe', () {
-    Future<(Entry, FakeBatchEngine)> probedTake({
-      required List<VoicedRange> voice,
-      required List<(Duration, String)> picks,
-      required Duration length,
-      String Function(String locale)? words,
-    }) async {
-      var now = DateTime.utc(2026, 3, 4, 12);
-      final engine = FakeBatchEngine()
-        ..transcriptBuilder = (locale, start, end) =>
-            words?.call(locale) ?? locale.split('-').first;
-      final svc = TranscriptionService(
-        composer: FakeAudioComposer(),
-        recorder: FakeAudioRecorder(duration: length),
-        engine: engine,
-        store: store,
-        activity: FakeAudioActivity(ranges: voice),
-        clock: () => now,
-        idGenerator: () => 'id-0',
-      );
-      svc.localeId = 'en-US';
-      await svc.startRecording();
-      var at = Duration.zero;
-      for (final (pick, tag) in picks) {
-        now = now.add(pick - at);
-        at = pick;
-        await svc.setSessionLocale(tag);
-      }
-      now = now.add(length - at);
-      final entry = await svc.stopRecording();
-      await svc.dispose();
-      return (entry, engine);
-    }
-
     test(
       'a switch picked two seconds into the next language cuts at the pause before it',
       () async {
-        final (entry, engine) = await probedTake(
-          voice: const [
-            (start: Duration(milliseconds: 800), end: Duration(milliseconds: 9500)),
-            (start: Duration(milliseconds: 12040), end: Duration(seconds: 21)),
-          ],
+        final engine = languageNamed();
+
+        final entry = await recordTake(
+          engine,
           picks: [(const Duration(seconds: 14), 'fr-FR')],
           length: const Duration(seconds: 22),
+          activity: FakeAudioActivity(
+            ranges: const [
+              (start: Duration(milliseconds: 800), end: Duration(milliseconds: 9500)),
+              (start: Duration(milliseconds: 12040), end: Duration(seconds: 21)),
+            ],
+          ),
         );
 
         expect(engine.batchCalls.last.start, const Duration(milliseconds: 10770));
@@ -1127,14 +1151,18 @@ void main() {
     );
 
     test('a span that held no voice folds out of the spans the entry keeps', () async {
-      final (entry, _) = await probedTake(
-        voice: const [
+      final activity = FakeAudioActivity(
+        ranges: const [
           (start: Duration.zero, end: Duration(seconds: 3)),
           (start: Duration(seconds: 6), end: Duration(seconds: 9)),
         ],
+      );
+
+      final entry = await recordTake(
+        languageNamed((locale) => locale == 'fr-FR' ? '' : 'en'),
         picks: [(const Duration(seconds: 3), 'fr-FR'), (const Duration(seconds: 6), 'en-US')],
         length: const Duration(seconds: 9),
-        words: (locale) => locale == 'fr-FR' ? '' : 'en',
+        activity: activity,
       );
 
       expect(entry.transcript?.fullText, 'en en');
@@ -1142,23 +1170,53 @@ void main() {
       expect(entry.recordedLocaleId, 'en-US');
     });
 
-    test('a span that heard nothing over a voice keeps its language for a better pass', () async {
-      final (entry, _) = await probedTake(
-        voice: const [(start: Duration.zero, end: Duration(seconds: 9))],
-        picks: [(const Duration(seconds: 3), 'fr-FR')],
-        length: const Duration(seconds: 9),
-        words: (locale) => locale == 'fr-FR' ? '' : 'en',
-      );
+    test(
+      'a span that heard nothing over a voice keeps its language on the take\'s read alone',
+      () async {
+        final activity = FakeAudioActivity(
+          ranges: const [(start: Duration.zero, end: Duration(seconds: 9))],
+        );
 
-      expect(entry.languageSpans?.map((span) => span.localeId), ['en-US', 'fr-FR']);
-    });
+        final entry = await recordTake(
+          languageNamed((locale) => locale == 'fr-FR' ? '' : 'en'),
+          picks: [(const Duration(seconds: 3), 'fr-FR')],
+          length: const Duration(seconds: 9),
+          activity: activity,
+        );
+
+        expect(entry.languageSpans?.map((span) => span.localeId), ['en-US', 'fr-FR']);
+        expect(activity.calls, hasLength(1));
+      },
+    );
+
+    test(
+      'a quiet span the take\'s read missed keeps its language when its own read cannot tell',
+      () async {
+        final activity = FakeDrownedActivity(const [
+          (start: Duration.zero, end: Duration(seconds: 3)),
+        ]);
+
+        final entry = await recordTake(
+          languageNamed((locale) => locale == 'fr-FR' ? '' : 'en'),
+          picks: [(const Duration(seconds: 3), 'fr-FR')],
+          length: const Duration(seconds: 9),
+          activity: activity,
+        );
+
+        expect(entry.languageSpans?.map((span) => span.localeId), ['en-US', 'fr-FR']);
+        expect(activity.calls, hasLength(2));
+        expect(activity.calls.last.end, const Duration(seconds: 9));
+      },
+    );
 
     test('a take that heard no words is in the language its voice was in', () async {
-      final (entry, _) = await probedTake(
-        voice: const [(start: Duration(seconds: 3), end: Duration(seconds: 9))],
+      final entry = await recordTake(
+        languageNamed((_) => ''),
         picks: [(const Duration(seconds: 3), 'fr-FR')],
         length: const Duration(seconds: 9),
-        words: (_) => '',
+        activity: FakeAudioActivity(
+          ranges: const [(start: Duration(seconds: 3), end: Duration(seconds: 9))],
+        ),
       );
 
       expect(entry.transcript?.localeId, 'fr-FR');
@@ -1166,11 +1224,47 @@ void main() {
       expect(entry.languageSpans, isNull);
     });
 
+    test('a mixed take shows as transcribing while its voice is still being read', () async {
+      final held = Completer<void>();
+      final activity = FakeAudioActivity(
+        ranges: const [(start: Duration.zero, end: Duration(seconds: 6))],
+        hold: held.future,
+      );
+      final events = <BatchProgress>[];
+
+      final taking = recordTake(
+        languageNamed(),
+        picks: [(const Duration(seconds: 3), 'fr-FR')],
+        length: const Duration(seconds: 6),
+        activity: activity,
+        events: events,
+      );
+      await pumpEventQueue();
+
+      expect(activity.calls, hasLength(1));
+      expect(events.map((event) => (event.entryId, event.step)), [(null, BatchStep.transcribing)]);
+      expect(events.single.forecast, isNotNull);
+      held.complete();
+      await taking;
+    });
+
+    test('a read of the voice that never answers leaves the switch at the pick', () async {
+      final entry = await recordTake(
+        languageNamed(),
+        picks: [(const Duration(seconds: 3), 'fr-FR')],
+        length: const Duration(seconds: 6),
+        activity: FakeAudioActivity(hold: Completer<void>().future),
+        batchTimeout: const Duration(milliseconds: 50),
+      );
+
+      expect(entry.languageSpans?.last.startMs, 3000);
+      expect(entry.transcript?.fullText, 'en [fr] fr');
+    });
+
     test(
       'a re-transcription hears the saved spans where they are, never cutting them again',
       () async {
-        final engine = FakeBatchEngine()
-          ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+        final engine = languageNamed();
         final svc = TranscriptionService(
           composer: FakeAudioComposer(),
           recorder: FakeAudioRecorder(),
@@ -1198,11 +1292,48 @@ void main() {
         );
         await store.save(entry);
 
-        final heard = await svc.retranscribe(entry);
+        final landed = await svc.retranscribe(entry);
 
-        expect(heard.transcript?.fullText, 'en [fr] fr');
-        expect(heard.languageSpans, entry.languageSpans);
+        expect(landed.transcript?.fullText, 'en [fr] fr');
+        expect(landed.languageSpans, entry.languageSpans);
         expect(engine.batchCalls.last.start, const Duration(milliseconds: 3500));
+        await svc.dispose();
+      },
+    );
+
+    test(
+      'a re-transcription folds away a span that held no voice, the recording\'s language kept',
+      () async {
+        final svc = TranscriptionService(
+          composer: FakeAudioComposer(),
+          recorder: FakeAudioRecorder(),
+          engine: languageNamed((locale) => locale == 'en-US' ? '' : 'fr'),
+          store: store,
+          activity: FakeAudioActivity(
+            ranges: const [(start: Duration(seconds: 4), end: Duration(seconds: 10))],
+          ),
+          clock: () => fixedClock,
+          idGenerator: () => 'id-0',
+        );
+        final entry = Entry(
+          id: 'mix',
+          createdAt: fixedClock,
+          audioPath: '/tmp/x.m4a',
+          duration: const Duration(seconds: 10),
+          recordedLocaleId: 'en-US',
+          languageSpans: const [
+            LanguageSpan(startMs: 0, localeId: 'en-US'),
+            LanguageSpan(startMs: 3500, localeId: 'fr-FR'),
+          ],
+        );
+        await store.save(entry);
+
+        final landed = await svc.retranscribe(entry);
+
+        expect(landed.transcript?.fullText, 'fr');
+        expect(landed.transcript?.localeId, 'fr-FR');
+        expect(landed.languageSpans, isNull);
+        expect(landed.recordedLocaleId, 'en-US');
         await svc.dispose();
       },
     );
@@ -1237,11 +1368,12 @@ void main() {
     expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR', 'fr-FR']);
   });
 
-  test('a flattened pass after spans that ran never takes the progress line back down', () async {
+  test('a retried span never takes the progress line back down', () async {
     var now = DateTime.utc(2026, 3, 4, 12);
-    final engine = FakeBatchEngine()
+    var frenchRuns = 0;
+    final engine = FakeProgressEngine()
       ..transcriptBuilder = (locale, start, end) {
-        if (locale == 'fr-FR') throw const RangeUnsupported('this span cannot be sliced');
+        if (locale == 'fr-FR' && frenchRuns++ == 0) throw const TranscriptionFailed('run failed');
         return locale.split('-').first;
       };
     final svc = TranscriptionService(
@@ -1265,12 +1397,13 @@ void main() {
     await svc.stopRecording();
     await pumpEventQueue();
 
-    expect(fractions, [0.0, 0.5]);
+    expect(fractions, [0.0, 0.25, 0.5, 0.75]);
+    expect(engine.batchCalls.map((call) => call.localeId), ['en-US', 'fr-FR', 'fr-FR']);
     await svc.dispose();
   });
 
   test('a span that timed out is not waited out a second time', () async {
-    final engine = _HungSpanEngine('fr-FR');
+    final engine = FakeHungSpanEngine('fr-FR');
 
     final entry = await mixedTake(engine, [
       'en-US',
@@ -1342,8 +1475,7 @@ void main() {
   });
 
   test('retranscribe rebuilds the mix from spans; an explicit override flattens', () async {
-    final engine = FakeBatchEngine()
-      ..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+    final engine = languageNamed();
     final svc = build((_) => engine);
     final entry = Entry(
       id: 'mix',
@@ -4105,37 +4237,5 @@ class _ManualLiveEngine implements StreamingTranscriptionEngine {
     final controller = StreamController<TranscriptEvent>();
     controllers.add(controller);
     return controller.stream;
-  }
-}
-
-class _HungSpanEngine extends FakeBatchEngine {
-  _HungSpanEngine(this.hungLocale);
-
-  final String hungLocale;
-
-  @override
-  Future<Transcript> transcribeFile(
-    File audio, {
-    required String localeId,
-    Duration? start,
-    Duration? end,
-  }) {
-    if (localeId != hungLocale) {
-      return super.transcribeFile(audio, localeId: localeId, start: start, end: end);
-    }
-    batchCalls.add((localeId: localeId, start: start, end: end));
-    return Completer<Transcript>().future;
-  }
-}
-
-class _HeldAudioActivity implements AudioActivity {
-  _HeldAudioActivity(this._held);
-
-  final Future<void> _held;
-
-  @override
-  Future<List<VoicedRange>?> voiced(File audio, {Duration? start, Duration? end}) async {
-    await _held;
-    return const [];
   }
 }

@@ -88,7 +88,7 @@ TakeForecast? takeSlotForecast(
 /// and node with the words its live pass heard, or, under an engine without
 /// one, a cloud of ink where its words will be. The cloud is not a stand-in
 /// that gets swapped out; when the record lands it resolves INTO the row, so
-/// the wait and the arrival are one movement. Heard words are already the
+/// the wait and the arrival are one movement. Live words are already the
 /// take's: its record simply takes their place.
 ///
 /// [entry] is null until the record lands. The row is not tappable either way:
@@ -107,7 +107,7 @@ class TakeRow extends StatelessWidget {
 
   final Entry? entry;
 
-  /// What the take is expected to read as: its heard words stand in the row,
+  /// What the take is expected to read as: its live words stand in the row,
   /// and without any the cloud takes the forecast's shape. Every fresh take's
   /// pass carries one; null holds a few lines of cloud, defensively.
   final TakeForecast? forecast;
@@ -135,13 +135,13 @@ class TakeRow extends StatelessWidget {
     // The record's own time is stamped when it lands; tabular digits make
     // this minute's as wide.
     String meta(TakeForecast take) => EntryRowBody.metaLine(DateTime.now(), take.audio, tag);
-    final heard = forecast?.heard.trim() ?? '';
-    if (forecast != null && heard.isNotEmpty) {
+    final liveWords = forecast?.liveWords.trim() ?? '';
+    if (forecast != null && liveWords.isNotEmpty) {
       return EntryRail(
         last: last,
         leadStyle: leadStyle,
         child: entry == null
-            ? EntryRowWords(excerpt: heard, meta: meta(forecast))
+            ? EntryRowWords(excerpt: liveWords, meta: meta(forecast))
             : _Written(entry: entry, onWritten: onWritten),
       );
     }
@@ -181,7 +181,7 @@ class TakeRow extends StatelessWidget {
   }
 }
 
-/// The landed record in the heard words' place, handed back to the list once
+/// The landed record in the live words' place, handed back to the list once
 /// it has drawn.
 class _Written extends StatefulWidget {
   const _Written({required this.entry, required this.onWritten});

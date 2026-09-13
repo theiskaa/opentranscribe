@@ -74,7 +74,7 @@ class TranscriptView extends StatefulWidget {
   final bool appending;
 
   /// What the take's live pass heard, shown after the words until the pass's
-  /// own land.
+  /// own words land.
   final String pendingText;
 
   /// What the take is expected to read as, from its pass: the live words it
@@ -183,7 +183,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   void didUpdateWidget(TranscriptView old) {
     super.didUpdateWidget(old);
     // Read before the hold lets go: the landing clears both.
-    final heard = _heard(old.pendingText);
+    final liveWords = _liveWords(old.pendingText);
     _held = heldForecast(
       _held,
       appending: widget.appending,
@@ -200,7 +200,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       _releaseAppendInk();
       if (!context.reduceMotion) _append.value = 0;
     } else if (old.appending && !widget.appending) {
-      _landAppend(old.entry, heard: heard.isNotEmpty);
+      _landAppend(old.entry, liveShown: liveWords.isNotEmpty);
     }
 
     if (!old.busy && widget.busy) {
@@ -243,9 +243,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
   }
 
   /// The take landed: its words fade in where the ink was, and the ink shrinks
-  /// away. Words landing where the [heard] live words stood, or nothing new (a
-  /// silent take, a fallback), just swap in.
-  void _landAppend(Entry old, {required bool heard}) {
+  /// away. Words landing where live words stood ([liveShown]), or nothing
+  /// new (a silent take, a fallback), just swap in.
+  void _landAppend(Entry old, {required bool liveShown}) {
     final before = _paragraphText(old);
     final after = _paragraphText(widget.entry);
     // Only words added after the old ones fade in as a tail; a landing that
@@ -255,7 +255,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final landed = grew ? after.substring(before.length).trim() : '';
     final move = appendLanding(
       grew: grew,
-      heard: heard,
+      liveShown: liveShown,
       inkShown: _append.value == 0,
       laidOut: layout != null,
       reduceMotion: context.reduceMotion,
@@ -369,9 +369,9 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
 
   /// The words the take's live pass heard: the recorder's [pendingText]
   /// while it is up, then the held forecast's.
-  String _heard(String pendingText) {
+  String _liveWords(String pendingText) {
     final live = pendingText.trim();
-    return live.isNotEmpty ? live : _held.forecast?.heard.trim() ?? '';
+    return live.isNotEmpty ? live : _held.forecast?.liveWords.trim() ?? '';
   }
 
   /// [appendPending], kept until what it depends on changes: it lays the
@@ -604,13 +604,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final loading = _phase == _Phase.loading;
     final trailing = widget.appending || _append.isAnimating || _landing;
     if (!trailing) return _BodySwitch(loading: loading, child: _content(context));
-    final heard = widget.appending ? _heard(widget.pendingText) : '';
-    if (heard.isNotEmpty) {
+    final liveWords = widget.appending ? _liveWords(widget.pendingText) : '';
+    if (liveWords.isNotEmpty) {
       // The live pass already wrote them: no ink stands in for words on hand.
       return SelectionContainer.disabled(
         child: _BodySwitch(
           loading: loading,
-          child: _content(context, heard: heard),
+          child: _content(context, liveWords: liveWords),
         ),
       );
     }
@@ -681,13 +681,13 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     );
   }
 
-  Widget _content(BuildContext context, {String pending = '', String heard = ''}) {
+  Widget _content(BuildContext context, {String pending = '', String liveWords = ''}) {
     final theme = context.theme;
     final transcript = widget.entry.transcript;
     final text = widget.entry.readableText?.trim() ?? '';
     final inking = widget.appending && pending.trim().isNotEmpty && !context.reduceMotion;
-    final hearing = heard.isNotEmpty;
-    if (text.isEmpty && !inking && !hearing) {
+    final live = liveWords.isNotEmpty;
+    if (text.isEmpty && !inking && !live) {
       // Two different silences: never transcribed (the action lives in the
       // screen's bottom CTA) versus transcribed and empty (no speech, no action).
       return _TranscriptEmpty(untranscribed: transcript == null);
@@ -702,12 +702,12 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // One weight in every branch: spans set their own, so Text's Bold Text
     // never reaches them.
     final body = AppType.boldAware(AppType.body, bold: MediaQuery.boldTextOf(context));
-    if (hearing || inking) {
-      // Heard words follow the entry's as they are. Ink's words hold their
+    if (live || inking) {
+      // Live words follow the entry's as they are. Ink's words hold their
       // room unseen, so the ink over them sits exactly where they will.
       final style = body.copyWith(color: theme.text);
       final shown = _paragraphText(widget.entry);
-      final tail = hearing ? heard : pending.trim();
+      final tail = live ? liveWords : pending.trim();
       return RepaintBoundary(
         key: _textKey,
         child: Text.rich(
@@ -716,12 +716,12 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
               TextSpan(text: shown, style: style),
               TextSpan(
                 text: shown.isEmpty ? tail : ' $tail',
-                style: hearing ? style : style.copyWith(color: theme.text.withValues(alpha: 0)),
+                style: live ? style : style.copyWith(color: theme.text.withValues(alpha: 0)),
               ),
             ],
           ),
           // Ink's reserve may be filler: only the words on screen are read out.
-          semanticsLabel: hearing ? null : shown,
+          semanticsLabel: live ? null : shown,
         ),
       );
     }

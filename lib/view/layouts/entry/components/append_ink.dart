@@ -209,17 +209,17 @@ enum AppendLanding {
 }
 
 /// How a take lands on the words: [grew] when they only gained a tail,
-/// [heard] when its live words were showing in the tail's place, [inkShown]
+/// [liveShown] when its live words stood in the tail's place, [inkShown]
 /// when the ink is up (not faded out), [laidOut] when its layout is known, and
 /// [matches] when the ink was already painted from the landed words.
 AppendLanding appendLanding({
   required bool grew,
-  required bool heard,
+  required bool liveShown,
   required bool inkShown,
   required bool laidOut,
   required bool reduceMotion,
   required bool matches,
 }) {
-  if (!grew || heard || !inkShown || !laidOut || reduceMotion) return AppendLanding.swap;
+  if (!grew || liveShown || !inkShown || !laidOut || reduceMotion) return AppendLanding.swap;
   return matches ? AppendLanding.dissolve : AppendLanding.reshape;
 }

@@ -9,7 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/speech_tally.dart';
-import 'package:opentranscribe/core/services/transcript_stitch.dart';
+import 'package:opentranscribe/core/services/live_words.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -161,30 +161,9 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// tick used to vanish from the take's clock forever.
   DateTime? _runStart;
 
-  /// Words committed by earlier language spans of THIS take, markers between
-  /// them. The live stream restarts on a language switch and its events only
-  /// carry the new span, so the prefix is what keeps everything already spoken
-  /// on screen.
-  String _livePrefix = '';
-
-  /// The language the prefix's last words were in.
-  String? _prefixTag;
-
-  /// The running span's own words, as its latest event had them.
-  String _spanText = '';
-
-  /// The take's live words: the prefix, then the running span's, marked
-  /// only where their language differs from the words before them, as the
-  /// settled transcript is.
-  String get _liveWords {
-    final tag = _prefixTag;
-    return appendText(
-      _livePrefix,
-      _spanText,
-      marker: tag != null && languageDiffers(tag, state.localeId),
-      tag: state.localeId,
-    );
-  }
+  /// This take's live words, kept across its language switches so
+  /// everything already spoken stays on screen.
+  final LiveWords _liveWords = LiveWords();
 
   /// An interruption (a phone call) ends the capture natively and the service
   /// saves the entry itself. Without this the screen would keep counting into
@@ -268,8 +247,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _liveSub = _service.liveEvents.listen(
       (event) {
         if (!isClosed) {
-          _spanText = event.text;
-          emit(state.copyWith(liveText: _liveWords, liveUnavailable: false));
+          _liveWords.update(event.text);
+          emit(state.copyWith(liveText: _liveWords.text(state.localeId), liveUnavailable: false));
         }
       },
       // A live failure never tears down the take: the batch pass on stop is the
@@ -475,8 +454,8 @@ class RecorderCubit extends Cubit<RecorderState> {
   }
 
   /// Re-languages the current take (see [TranscriptionService.setSessionLocale]).
-  /// Nothing already on screen is thrown away: the running span's words
-  /// commit into the prefix, and the restarted stream appends after them,
+  /// Nothing already on screen is thrown away: the running span's words are
+  /// kept ([LiveWords]), and the restarted stream appends after them,
   /// with the new language's `[fr]`-style marker once its first words arrive
   /// and only when it differs from the language the last words were in.
   Future<void> setLanguage(String tag) async {
@@ -485,12 +464,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     // entry's language the probe may still answer with.
     if (_startInFlight != null) _pickedDuringStart = true;
     if (state.localeId == tag) return;
-    if (_spanText.trim().isNotEmpty) {
-      _livePrefix = _liveWords;
-      _prefixTag = state.localeId;
-    }
-    _spanText = '';
-    emit(state.copyWith(localeId: tag, liveText: _livePrefix));
+    _liveWords.commit(state.localeId);
+    emit(state.copyWith(localeId: tag, liveText: _liveWords.text(tag)));
     try {
       // A switch tapped while the sheet is still rising races the start
       // round-trip; wait it out like pause() does. Without this the service
@@ -587,7 +562,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     });
   }
 
-  /// Clears any per-run state a previous take left in flight (timer, prefix,
+  /// Clears any per-run state a previous take left in flight (timer, live words,
   /// clock, live/level subscriptions), so nothing leaks into the next take.
   /// Synchronous on purpose: [start] must reset and emit its claim with no async
   /// gap, or two rapid starts (and a switch or pause racing the start round-trip)
@@ -598,9 +573,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer?.cancel();
     _timer = null;
     _pickedDuringStart = false;
-    _livePrefix = '';
-    _prefixTag = null;
-    _spanText = '';
+    _liveWords.clear();
     _elapsedBase = Duration.zero;
     _runStart = null;
     unawaited(_liveSub?.cancel());
@@ -612,9 +585,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   Future<void> _teardown() async {
     _timer?.cancel();
     _timer = null;
-    _livePrefix = '';
-    _prefixTag = null;
-    _spanText = '';
+    _liveWords.clear();
     _elapsedBase = Duration.zero;
     _runStart = null;
     await _liveSub?.cancel();

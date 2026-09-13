@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/services/language_seams.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,13 +28,19 @@ void main() {
   group('forecastCharacters', () {
     int forecast(
       Duration speech, {
-      List<TakeSpan> spans = const [(startMs: 0, tag: 'en-US')],
+      List<LanguageSpan> spans = const [LanguageSpan(startMs: 0, localeId: 'en-US')],
       Duration audio = const Duration(seconds: 10),
     }) => forecastCharacters(speech: speech, audio: audio, spans: spans, pace: startingPace);
 
     test('speech time times the language pace', () {
       expect(forecast(const Duration(seconds: 10)), 140);
-      expect(forecast(const Duration(seconds: 10), spans: [(startMs: 0, tag: 'ja-JP')]), 60);
+      expect(
+        forecast(
+          const Duration(seconds: 10),
+          spans: const [LanguageSpan(startMs: 0, localeId: 'ja-JP')],
+        ),
+        60,
+      );
     });
 
     test('a silent take still forecasts a short word', () {
@@ -44,7 +50,10 @@ void main() {
     test('a two-language take shares its speech by each span of audio', () {
       final mixed = forecast(
         const Duration(seconds: 10),
-        spans: [(startMs: 0, tag: 'en-US'), (startMs: 5000, tag: 'ja-JP')],
+        spans: const [
+          LanguageSpan(startMs: 0, localeId: 'en-US'),
+          LanguageSpan(startMs: 5000, localeId: 'ja-JP'),
+        ],
       );
       expect(mixed, 100);
     });
@@ -56,7 +65,10 @@ void main() {
     test('a span starting past the end of the audio adds nothing', () {
       final late = forecast(
         const Duration(seconds: 10),
-        spans: [(startMs: 0, tag: 'en-US'), (startMs: 20000, tag: 'ja-JP')],
+        spans: const [
+          LanguageSpan(startMs: 0, localeId: 'en-US'),
+          LanguageSpan(startMs: 20000, localeId: 'ja-JP'),
+        ],
       );
       expect(late, 140);
     });

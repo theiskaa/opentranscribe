@@ -169,6 +169,32 @@ void main() {
       expect(seamMarker(stored: silentEnd, tailLocaleId: 'fr-FR'), isTrue);
     });
 
+    test('a take re-heard in one chosen language is judged by it, whatever its spans', () {
+      final corrected =
+          entry(
+            transcript: Transcript(
+              fullText: 'hello world',
+              segments: const [
+                TranscriptSegment(text: 'hello', start: Duration.zero, end: Duration(seconds: 1)),
+                TranscriptSegment(
+                  text: 'world',
+                  start: Duration(seconds: 6),
+                  end: Duration(seconds: 7),
+                ),
+              ],
+              localeId: 'en-US',
+              engineId: 'whisper.cpp',
+              createdAt: now,
+            ),
+          ).withLanguageSpans(const [
+            LanguageSpan(startMs: 0, localeId: 'en-US'),
+            LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+          ]);
+
+      expect(seamMarker(stored: corrected, tailLocaleId: 'en-US'), isFalse);
+      expect(seamMarker(stored: corrected, tailLocaleId: 'fr-FR'), isTrue);
+    });
+
     test('a base never heard is judged by its last span', () {
       final unheard = entry().withLanguageSpans(const [
         LanguageSpan(startMs: 0, localeId: 'en-US'),

@@ -136,14 +136,14 @@ void main() {
   group('appendLanding', () {
     AppendLanding landing({
       bool grew = true,
-      bool heard = false,
+      bool liveShown = false,
       bool inkShown = true,
       bool laidOut = true,
       bool reduceMotion = false,
       bool matches = false,
     }) => appendLanding(
       grew: grew,
-      heard: heard,
+      liveShown: liveShown,
       inkShown: inkShown,
       laidOut: laidOut,
       reduceMotion: reduceMotion,
@@ -168,7 +168,7 @@ void main() {
     });
 
     test('words landing where the live words already stood swap in, with no ink to fade', () {
-      expect(landing(heard: true, matches: true), AppendLanding.swap);
+      expect(landing(liveShown: true, matches: true), AppendLanding.swap);
     });
 
     test('under Reduce Motion the words swap in', () {

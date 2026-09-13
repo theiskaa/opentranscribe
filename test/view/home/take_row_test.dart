@@ -79,12 +79,12 @@ void main() {
   });
 
   group('takeSlotForecast', () {
-    const heard = TakeForecast(
+    const live = TakeForecast(
       audio: Duration(seconds: 4),
       speech: Duration(seconds: 3),
       localeId: 'en-US',
       characters: 42,
-      heard: 'the words it heard',
+      liveWords: 'the words it heard',
     );
     const next = TakeForecast(
       audio: Duration(seconds: 9),
@@ -94,16 +94,16 @@ void main() {
     );
 
     test('a pending take shows by its own pass\'s forecast', () {
-      expect(takeSlotForecast(null, pending: true, incoming: heard, writing: false), heard);
-      expect(takeSlotForecast(heard, pending: true, incoming: next, writing: false), next);
+      expect(takeSlotForecast(null, pending: true, incoming: live, writing: false), live);
+      expect(takeSlotForecast(live, pending: true, incoming: next, writing: false), next);
     });
 
     test('the forecast outlasts the hold while its record is handed in', () {
-      expect(takeSlotForecast(heard, pending: false, incoming: null, writing: true), heard);
+      expect(takeSlotForecast(live, pending: false, incoming: null, writing: true), live);
     });
 
     test('once the record is in, nothing is held', () {
-      expect(takeSlotForecast(heard, pending: false, incoming: null, writing: false), isNull);
+      expect(takeSlotForecast(live, pending: false, incoming: null, writing: false), isNull);
     });
   });
 

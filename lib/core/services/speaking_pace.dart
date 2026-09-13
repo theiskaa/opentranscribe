@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:opentranscribe/core/app/local_service.dart';
-import 'package:opentranscribe/core/services/language_seams.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 
 /// Languages written in an alphabet with spaces between words (Latin,
@@ -37,18 +37,18 @@ const int _shortestWord = 4;
 int forecastCharacters({
   required Duration speech,
   required Duration audio,
-  required List<TakeSpan> spans,
+  required List<LanguageSpan> spans,
   required double Function(String localeId) pace,
 }) {
   assert(spans.isNotEmpty, 'a take has at least its opening span');
   final seconds = speech.inMicroseconds / Duration.microsecondsPerSecond;
   final total = audio.inMilliseconds;
-  if (total <= 0) return math.max(_shortestWord, (seconds * pace(spans.first.tag)).round());
+  if (total <= 0) return math.max(_shortestWord, (seconds * pace(spans.first.localeId)).round());
   var characters = 0.0;
   for (var i = 0; i < spans.length; i++) {
     final end = i + 1 < spans.length ? spans[i + 1].startMs : total;
     final share = (math.min(end, total) - math.min(spans[i].startMs, total)) / total;
-    characters += seconds * share * pace(spans[i].tag);
+    characters += seconds * share * pace(spans[i].localeId);
   }
   return math.max(_shortestWord, characters.round());
 }
@@ -74,8 +74,8 @@ class SpeakingPace {
 
   static const _key = 'transcribe.speechPace';
 
-  /// Paces learned when speech counted no pause at all: far faster than
-  /// speech counts now, they would forecast every take too long.
+  /// Paces measured over speech with every pause left out: read against
+  /// [SpeechTally]'s speech, they would forecast every take too long.
   static const _retiredKey = 'transcribe.speakingPace';
 
   /// Under this much speech a word more or less swings the ratio.

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/language_seams.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -145,6 +146,17 @@ void main() {
       expect(await walk(5200, take, (s) => frenchFrom(s, 10000), w: early), ms(9000));
     });
 
+    test('a cut walked back is never walked forward too', () async {
+      final take = [voice(800, 9500), voice(12040, 14000), voice(14500, 16800)];
+      final asked = <TakeWindow>[];
+      final walked = await walk(14250, take, (s) {
+        asked.add(s);
+        return s.start >= ms(14500) ? 0.01 : 0.99;
+      });
+      expect(walked, ms(10770));
+      expect(asked.every((s) => s.start < ms(14250)), isTrue);
+    });
+
     test('a cut already between the languages stays', () async {
       final take = [voice(800, 9500), voice(12040, 17000)];
       expect(await walk(10770, take, (s) => frenchFrom(s, 12000)), ms(10770));
@@ -185,33 +197,39 @@ void main() {
 
   group('foldSilentSpans', () {
     test('a silent span in the middle folds into the span before it', () {
-      final spans = [
-        (startMs: 0, tag: 'en-US'),
-        (startMs: 4000, tag: 'fr-FR'),
-        (startMs: 8000, tag: 'de-DE'),
+      const spans = [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+        LanguageSpan(startMs: 8000, localeId: 'de-DE'),
       ];
-      expect(foldSilentSpans(spans, {1}), [
-        (startMs: 0, tag: 'en-US'),
-        (startMs: 8000, tag: 'de-DE'),
+      expect(foldSilentSpans(spans, {1}), const [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 8000, localeId: 'de-DE'),
       ]);
     });
 
     test('neighbors in one language merge once the silence between them goes', () {
-      final spans = [
-        (startMs: 0, tag: 'en-US'),
-        (startMs: 4000, tag: 'fr-FR'),
-        (startMs: 8000, tag: 'en-US'),
+      const spans = [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 4000, localeId: 'fr-FR'),
+        LanguageSpan(startMs: 8000, localeId: 'en-US'),
       ];
-      expect(foldSilentSpans(spans, {1}), [(startMs: 0, tag: 'en-US')]);
+      expect(foldSilentSpans(spans, {1}), const [LanguageSpan(startMs: 0, localeId: 'en-US')]);
     });
 
     test('a silent opening span leaves the take to the first span that spoke', () {
-      final spans = [(startMs: 0, tag: 'en-US'), (startMs: 3000, tag: 'fr-FR')];
-      expect(foldSilentSpans(spans, {0}), [(startMs: 0, tag: 'fr-FR')]);
+      const spans = [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 3000, localeId: 'fr-FR'),
+      ];
+      expect(foldSilentSpans(spans, {0}), const [LanguageSpan(startMs: 0, localeId: 'fr-FR')]);
     });
 
     test('a take with every span silent keeps its spans', () {
-      final spans = [(startMs: 0, tag: 'en-US'), (startMs: 3000, tag: 'fr-FR')];
+      const spans = [
+        LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: 3000, localeId: 'fr-FR'),
+      ];
       expect(foldSilentSpans(spans, {0, 1}), spans);
     });
   });

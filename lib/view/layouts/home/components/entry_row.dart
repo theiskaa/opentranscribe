@@ -126,7 +126,7 @@ class EntryRowBody extends StatelessWidget {
 }
 
 /// A record's excerpt and time line, in [EntryRowBody]'s styles: shared with a
-/// take's heard words, which stand in the row's shape until its record lands.
+/// take's live words, which stand in the row's shape until its record lands.
 class EntryRowWords extends StatelessWidget {
   const EntryRowWords({required this.excerpt, required this.meta, this.muted = false, super.key});
 

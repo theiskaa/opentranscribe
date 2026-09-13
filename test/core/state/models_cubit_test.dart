@@ -646,6 +646,43 @@ void main() {
     await stop;
   });
 
+  test('another take\'s step naming no model leaves a painted download alone', () async {
+    engine.installed.clear();
+    engine.installSteps = [0.4];
+    final gate = Completer<void>();
+    engine.installGate = gate.future;
+    final held = Completer<void>();
+    var now = DateTime.utc(2026, 3, 4, 12);
+    final scoped = TranscriptionService(
+      recorder: FakeAudioRecorder(duration: const Duration(seconds: 6)),
+      engine: engine,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+      activity: FakeAudioActivity(hold: held.future),
+      clock: () => now,
+    );
+    addTearDown(scoped.dispose);
+    final cubit = buildFor(scoped);
+    await Future<void>.delayed(Duration.zero);
+
+    await scoped.startRecording();
+    final first = scoped.stopRecording();
+    await pumpEventQueue();
+    await scoped.startRecording();
+    now = now.add(const Duration(seconds: 3));
+    await scoped.setSessionLocale('de-DE');
+    now = now.add(const Duration(seconds: 3));
+    final second = scoped.stopRecording();
+    await pumpEventQueue();
+
+    expect(rowOf(cubit, 'small').installFraction, 0.4);
+    expect(rowOf(cubit, 'small').installed, isFalse);
+    gate.complete();
+    held.complete();
+    await first;
+    await second;
+  });
+
   test('closing the cubit mid model install cancels the download', () async {
     engine.installed.clear();
     final gate = Completer<void>();

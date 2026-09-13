@@ -127,9 +127,11 @@ final class Entry {
 
   /// The transcription language in effect when this was RECORDED, so an entry
   /// saved untranscribed (an interruption, a failed first pass) still knows
-  /// what language it is in when transcribed later. Null on entries from
-  /// before this field and on recovered orphans, whose language is honestly
-  /// unknown.
+  /// what language it is in when transcribed later. A take that switched
+  /// language is stamped with the first span its save's pass kept: a span
+  /// that held no voice was never the take's language. Set at the save only;
+  /// a later pass leaves it. Null on entries from before this field and on
+  /// recovered orphans, whose language is honestly unknown.
   final String? recordedLocaleId;
 
   /// The recording's amplitude envelope, quantized to 0..255, computed ONCE

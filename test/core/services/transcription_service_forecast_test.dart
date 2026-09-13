@@ -115,7 +115,7 @@ void main() {
     expect(forecast.speech, const Duration(seconds: 2));
     expect(forecast.localeId, 'en-US');
     expect(forecast.characters, 28);
-    expect(forecast.heard, isEmpty);
+    expect(forecast.liveWords, isEmpty);
     expect(
       events,
       everyElement(
@@ -138,7 +138,7 @@ void main() {
     await svc.stopRecording();
     await pumpEventQueue();
 
-    expect(events.first.forecast?.heard, 'heard live');
+    expect(events.first.forecast?.liveWords, 'heard live');
 
     await svc.dispose();
   });

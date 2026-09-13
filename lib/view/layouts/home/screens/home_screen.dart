@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _writingId;
 
   /// The take's forecast, kept through its record's handoff: the cubit lets
-  /// it go with the hold, and the heard words stand until the record is in.
+  /// it go with the hold, and the live words stand until the record is in.
   TakeForecast? _takeForecast;
 
   /// The same ledger for calendar days: a day that arrived while home was up
