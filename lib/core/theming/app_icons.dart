@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The app's icon set: Apple SF Symbols served from a vendored 43-glyph subset
+/// The app's icon set: Apple SF Symbols served from a vendored 44-glyph subset
 /// font (`assets/icons/sficons.ttf`, cut from the flutter_sficon package's
 /// Apache-2.0 distribution). iOS-only app, per Apple's symbol terms. Regenerate
 /// the subset to add a glyph; do not add icons from other sets. A constants
@@ -11,6 +11,9 @@ abstract final class AppIcons {
 
   /// SF Symbol `apple.logo`.
   static const IconData appleLogo = IconData(0x1008FA, fontFamily: _family);
+
+  /// SF Symbol `arrow.down.circle` (a download, the App Store's mark).
+  static const IconData arrowDownCircle = IconData(0x100078, fontFamily: _family);
 
   /// SF Symbol `arrow.counterclockwise`.
   static const IconData arrowCounterclockwise = IconData(0x100149, fontFamily: _family);
@@ -143,6 +146,7 @@ abstract final class AppIcons {
   static String sfSymbolName(IconData icon) =>
       const {
         0x1008FA: 'apple.logo',
+        0x100078: 'arrow.down.circle',
         0x100149: 'arrow.counterclockwise',
         0x10012F: 'arrow.up.right',
         0x1002D9: 'bell',

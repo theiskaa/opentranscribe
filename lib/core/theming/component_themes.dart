@@ -432,10 +432,11 @@ final class SettingsTheme {
     required this.dividerColor,
     required this.sectionLabelColor,
     required this.toggleActive,
+    required this.storageShades,
     this.cardRadius = AppRadius.card,
     this.iconTileRadius = AppRadius.sm,
     this.iconTileSize = 32.0,
-    this.chevronSize = 12.0,
+    this.chevronSize = 14.0,
     this.heroChevronSize = 15.0,
     this.noteGap = 3.0,
     this.trailingTargetWidth = 44.0,
@@ -455,6 +456,12 @@ final class SettingsTheme {
   final Color dividerColor;
   final Color sectionLabelColor;
   final Color toggleActive;
+
+  /// The storage bar's kinds, strongest first: the share a clear frees, kept
+  /// audio not transcribed yet, then downloaded models. Ink at falling weight,
+  /// so the one hue in the app stays the switch's.
+  final ({Color clearable, Color kept, Color models}) storageShades;
+
   final double cardRadius;
   final double iconTileRadius;
   final double iconTileSize;
