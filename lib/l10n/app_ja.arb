@@ -120,6 +120,8 @@
   "engineBlurbSpeechAnalyzer": "Apple の最新エンジン。言語ごとにモデルをダウンロード",
   "engineBlurbDictation": "iOS キーボードの音声入力を支える認識エンジン",
   "engineBlurbWhisper": "whisper.cpp で動くオープンモデル、1 回のダウンロードで全言語に対応",
+  "engineNoteLive": "{blurb}。話しているあいだに文字が表示されます。",
+  "engineNoteAfterStop": "{blurb}。話し終えてから文字になります。",
   "engineUnavailableNote": "この iPhone では利用できません",
   "engineUnavailableTitle": "この iPhone では利用できません",
   "engineUnavailableBody": "{engine} には iOS 26 と新しい iPhone が必要です。録音には、この iPhone で使えるエンジンが引き続き使われます。",

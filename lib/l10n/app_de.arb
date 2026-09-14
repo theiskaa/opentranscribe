@@ -120,6 +120,8 @@
   "engineBlurbSpeechAnalyzer": "Apples neueste Engine, ein geladenes Modell pro Sprache",
   "engineBlurbDictation": "Die Erkennung hinter dem Diktieren der iOS-Tastatur",
   "engineBlurbWhisper": "Ein offenes Modell auf whisper.cpp, ein Download für alle Sprachen",
+  "engineNoteLive": "{blurb}. Zeigt Ihre Worte, während Sie sprechen.",
+  "engineNoteAfterStop": "{blurb}. Schreibt Ihre Worte, sobald Sie aufhören.",
   "engineUnavailableNote": "Auf diesem iPhone nicht verfügbar",
   "engineUnavailableTitle": "Auf diesem iPhone nicht verfügbar",
   "engineUnavailableBody": "{engine} benötigt iOS 26 und ein neueres iPhone. Aufnahmen nutzen weiter die Engine, die hier funktioniert.",

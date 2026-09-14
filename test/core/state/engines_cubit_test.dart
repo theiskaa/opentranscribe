@@ -130,6 +130,29 @@ void main() {
     expect(cubit.state.rows.last.isActive, isFalse);
   });
 
+  test('a streaming engine row says its words show as they are spoken', () {
+    final rows = build().state.rows;
+    expect(rows.firstWhere((r) => r.descriptor.engineId == speech.id).live, isTrue);
+    expect(rows.firstWhere((r) => r.descriptor.engineId == dictation.id).live, isTrue);
+  });
+
+  test('a batch engine row says its words land only once the take stops', () {
+    final batch = FakeBatchEngine();
+    final cubit = EnginesCubit(
+      registry: [entry(speech, available: true), entry(batch, available: true, order: 1)],
+      service: service,
+      engineSettings: EngineSettings(storage: storage),
+      transcriptionSettings: TranscriptionSettings(
+        storage: storage,
+        service: service,
+        deviceTag: () => 'en-US',
+      ),
+    );
+    addTearDown(cubit.close);
+
+    expect(cubit.state.rows.firstWhere((r) => r.descriptor.engineId == batch.id).live, isFalse);
+  });
+
   test('rows follow the display order, not the preference order auto resolves', () {
     final cubit = build(speechOrder: 1, dictationOrder: 0);
 

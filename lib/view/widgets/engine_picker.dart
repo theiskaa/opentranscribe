@@ -28,9 +28,10 @@ EngineRowState shownRow(List<EngineRowState> rows, {String? pending}) {
   return rows.first;
 }
 
-/// The line under the control: what this engine is, or why it cannot run here.
+/// The line under the control: what this engine is and whether it shows your
+/// words as you speak, or why it cannot run here.
 String engineNote(AppLocalizations l10n, EngineRowState row) => row.available
-    ? row.descriptor.blurb(l10n)
+    ? (row.live ? l10n.engineNoteLive : l10n.engineNoteAfterStop)(row.descriptor.blurb(l10n))
     // Exhaustive on purpose: a new unavailability kind must fail to compile
     // until it is worded, never silently borrow this one's words.
     : switch (row.unavailability!) {

@@ -396,6 +396,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get engineBlurbWhisper => 'whisper.cpp 기반의 공개 모델, 한 번의 다운로드로 모든 언어 지원';
 
   @override
+  String engineNoteLive(String blurb) {
+    return '$blurb. 말하는 동안 글자가 표시됩니다.';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb. 말을 마친 뒤 글자로 옮깁니다.';
+  }
+
+  @override
   String get engineUnavailableNote => '이 iPhone에서는 사용할 수 없음';
 
   @override

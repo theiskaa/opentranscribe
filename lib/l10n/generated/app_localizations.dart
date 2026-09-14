@@ -828,6 +828,18 @@ abstract class AppLocalizations {
   /// **'An open model on whisper.cpp, one download for every language'**
   String get engineBlurbWhisper;
 
+  /// Note under the engine control (transcription screen and home setup): the engine's description, then that words appear while recording
+  ///
+  /// In en, this message translates to:
+  /// **'{blurb}. Shows your words as you speak.'**
+  String engineNoteLive(String blurb);
+
+  /// Note under the engine control (transcription screen and home setup): the engine's description, then that words land only once the take stops
+  ///
+  /// In en, this message translates to:
+  /// **'{blurb}. Writes your words after you stop.'**
+  String engineNoteAfterStop(String blurb);
+
   /// Quiet note under a dimmed engine row this device cannot run
   ///
   /// In en, this message translates to:

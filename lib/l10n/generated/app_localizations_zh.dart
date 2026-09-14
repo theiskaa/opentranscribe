@@ -391,6 +391,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get engineBlurbWhisper => '基于 whisper.cpp 的开放模型，一次下载即可支持所有语言';
 
   @override
+  String engineNoteLive(String blurb) {
+    return '$blurb。说话时实时显示文字。';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb。停下后才写出文字。';
+  }
+
+  @override
   String get engineUnavailableNote => '此 iPhone 上不可用';
 
   @override

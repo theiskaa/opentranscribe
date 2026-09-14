@@ -120,6 +120,8 @@
   "engineBlurbSpeechAnalyzer": "Apple 最新的引擎，每种语言下载一个模型",
   "engineBlurbDictation": "iOS 键盘听写背后的识别引擎",
   "engineBlurbWhisper": "基于 whisper.cpp 的开放模型，一次下载即可支持所有语言",
+  "engineNoteLive": "{blurb}。说话时实时显示文字。",
+  "engineNoteAfterStop": "{blurb}。停下后才写出文字。",
   "engineUnavailableNote": "此 iPhone 上不可用",
   "engineUnavailableTitle": "此 iPhone 上不可用",
   "engineUnavailableBody": "{engine} 需要 iOS 26 和更新的 iPhone。录音将继续使用此设备可用的引擎。",

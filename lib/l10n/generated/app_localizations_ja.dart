@@ -395,6 +395,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get engineBlurbWhisper => 'whisper.cpp で動くオープンモデル、1 回のダウンロードで全言語に対応';
 
   @override
+  String engineNoteLive(String blurb) {
+    return '$blurb。話しているあいだに文字が表示されます。';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb。話し終えてから文字になります。';
+  }
+
+  @override
   String get engineUnavailableNote => 'この iPhone では利用できません';
 
   @override

@@ -120,6 +120,8 @@
   "engineBlurbSpeechAnalyzer": "Apple의 최신 엔진, 언어마다 모델을 다운로드",
   "engineBlurbDictation": "iOS 키보드 받아쓰기에 쓰이는 인식 엔진",
   "engineBlurbWhisper": "whisper.cpp 기반의 공개 모델, 한 번의 다운로드로 모든 언어 지원",
+  "engineNoteLive": "{blurb}. 말하는 동안 글자가 표시됩니다.",
+  "engineNoteAfterStop": "{blurb}. 말을 마친 뒤 글자로 옮깁니다.",
   "engineUnavailableNote": "이 iPhone에서는 사용할 수 없음",
   "engineUnavailableTitle": "이 iPhone에서는 사용할 수 없음",
   "engineUnavailableBody": "{engine}은(는) iOS 26과 최신 iPhone이 필요합니다. 녹음은 사용 가능한 엔진으로 계속됩니다.",

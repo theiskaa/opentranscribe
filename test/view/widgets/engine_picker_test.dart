@@ -15,11 +15,13 @@ void main() {
     bool active = false,
     bool available = true,
     EngineUnavailability? unavailability,
+    bool live = false,
   }) => EngineRowState(
     descriptor: engineDescriptor(id, displayName: id.toUpperCase(), blurb: (_) => 'what $id is'),
     available: available,
     isActive: active,
     unavailability: unavailability,
+    live: live,
   );
 
   group('shownRow', () {
@@ -49,8 +51,12 @@ void main() {
   });
 
   group('engineNote', () {
-    test('an engine that runs here says what it is', () {
-      expect(engineNote(l10n, row('a')), 'what a is');
+    test('an engine that streams adds that your words show as you speak', () {
+      expect(engineNote(l10n, row('a', live: true)), l10n.engineNoteLive('what a is'));
+    });
+
+    test('a batch engine says what it is and that your words come after you stop', () {
+      expect(engineNote(l10n, row('a')), l10n.engineNoteAfterStop('what a is'));
     });
 
     test('an engine the device is too old for says so instead', () {

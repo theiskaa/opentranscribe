@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// One engine as the picker renders it.
 @immutable
@@ -16,12 +17,17 @@ final class EngineRowState {
     required this.available,
     required this.isActive,
     this.unavailability,
+    this.live = false,
   });
 
   final EngineDescriptor descriptor;
   final bool available;
   final bool isActive;
   final EngineUnavailability? unavailability;
+
+  /// Whether the engine shows words as they are spoken, rather than writing
+  /// them once the take stops.
+  final bool live;
 }
 
 /// The picker's answer to a tap, for the surface to word (or ignore). [busy]
@@ -71,6 +77,7 @@ class EnginesCubit extends Cubit<EnginesState> {
             available: entry.available,
             isActive: entry.descriptor.engineId == activeId,
             unavailability: entry.unavailability,
+            live: entry.engine is StreamingTranscriptionEngine,
           ),
         ),
     ];

@@ -541,6 +541,26 @@
   "@engineBlurbWhisper": {
     "description": "One-line explanation under the Whisper engine row"
   },
+  "engineNoteLive": "{blurb}. Shows your words as you speak.",
+  "@engineNoteLive": {
+    "description": "Note under the engine control (transcription screen and home setup): the engine's description, then that words appear while recording",
+    "placeholders": {
+      "blurb": {
+        "type": "String",
+        "example": "Apple's newest engine, a downloaded model per language"
+      }
+    }
+  },
+  "engineNoteAfterStop": "{blurb}. Writes your words after you stop.",
+  "@engineNoteAfterStop": {
+    "description": "Note under the engine control (transcription screen and home setup): the engine's description, then that words land only once the take stops",
+    "placeholders": {
+      "blurb": {
+        "type": "String",
+        "example": "An open model on whisper.cpp, one download for every language"
+      }
+    }
+  },
   "engineUnavailableNote": "Not available on this iPhone",
   "@engineUnavailableNote": {
     "description": "Quiet note under a dimmed engine row this device cannot run"
