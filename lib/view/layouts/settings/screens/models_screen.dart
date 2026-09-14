@@ -31,6 +31,35 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/speaking_hero.dart';
 import 'package:transcriber/transcriber.dart';
 
+/// An engine's two halves: its languages and its models.
+typedef EngineHalves = ({SettingsState languages, ModelsState models});
+
+/// What the pane for [engineId] draws. Each half is live when its cubit
+/// describes that engine, else the half last seen settled for it ([seen]);
+/// nothing until both are known, so a pane never pairs one engine's
+/// languages with another's models, nor drops a section mid-switch to grow
+/// it back. It takes touches only while its models are live, since the
+/// model card acts on that cubit: with its languages live too, or, for the
+/// engine in use, after a languages load that failed and left them behind.
+({EngineHalves? halves, bool live}) enginePaneFace({
+  required String engineId,
+  required bool active,
+  required SettingsState languages,
+  required ModelsState models,
+  required EngineHalves? seen,
+}) {
+  final languagesHere = languages.engineId == engineId;
+  final modelsHere = models.engineId == engineId;
+  final shownLanguages = languagesHere ? languages : seen?.languages;
+  final shownModels = modelsHere ? models : seen?.models;
+  return (
+    halves: shownLanguages == null || shownModels == null
+        ? null
+        : (languages: shownLanguages, models: shownModels),
+    live: modelsHere && (languagesHere || (active && languages.loadFailed)),
+  );
+}
+
 /// The transcription screen as an answer to one question, what happens when I
 /// hit record: the default language as a hero card above the engines, then
 /// the engine control over a pane per engine that slides with it. The
@@ -51,7 +80,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
   /// before its engine loads shows what it held rather than an empty page.
   /// Only ever a picture: its pane takes no touches until its engine is the
   /// one in use.
-  final Map<String, _EngineHalves> _seen = {};
+  final Map<String, EngineHalves> _seen = {};
 
   @override
   void initState() {
@@ -114,13 +143,14 @@ class _ModelsScreenState extends State<ModelsScreen> {
                 bleed: SettingsList.gutter,
                 paneBuilder: (context, row) {
                   final engineId = row.descriptor.engineId;
-                  final current = state.engineId == engineId;
-                  // A load that failed after a switch still describes the
-                  // engine before it; the engine in use keeps its own last
-                  // picture, touchable, rather than a dead pane.
-                  final live = current || (row.isActive && state.loadFailed);
-                  final seen = current ? (languages: state, models: models) : _seen[engineId];
-                  return _EnginePane(row: row, halves: seen, live: live);
+                  final face = enginePaneFace(
+                    engineId: engineId,
+                    active: row.isActive,
+                    languages: state,
+                    models: models,
+                    seen: _seen[engineId],
+                  );
+                  return _EnginePane(row: row, halves: face.halves, live: face.live);
                 },
               ),
             ],
@@ -139,7 +169,7 @@ class _EnginePane extends StatelessWidget {
   const _EnginePane({required this.row, required this.halves, required this.live});
 
   final EngineRowState row;
-  final _EngineHalves? halves;
+  final EngineHalves? halves;
   final bool live;
 
   @override
@@ -153,10 +183,16 @@ class _EnginePane extends StatelessWidget {
         if (!row.available) ...[
           const SizedBox(height: AppSpacing.md),
           SectionInfo(engineUnavailableBody(l10n, row)),
-        ] else if (seen != null)
-          IgnorePointer(
-            ignoring: !live,
-            child: _EngineSections(state: seen.languages, models: seen.models),
+        ] else
+          // The sections arrive once both halves are known; the pane grows to
+          // them instead of shoving the page below a frame.
+          Melt(
+            child: seen == null
+                ? const SizedBox(width: double.infinity)
+                : IgnorePointer(
+                    ignoring: !live,
+                    child: _EngineSections(state: seen.languages, models: seen.models),
+                  ),
           ),
       ],
     );
@@ -281,9 +317,6 @@ class _EngineSections extends StatelessWidget {
     );
   }
 }
-
-/// An engine's two halves: its languages and its models.
-typedef _EngineHalves = ({SettingsState languages, ModelsState models});
 
 /// Re-transcribe the journal, in the bar where a screen's own action
 /// belongs. A run in flight tints the glyph; its numbers live in the sheet.
