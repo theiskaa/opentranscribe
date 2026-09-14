@@ -113,14 +113,14 @@ DI is a **typed composition root**, `Deps` in `core/app/deps.dart`. No service l
 
 Capture, speech, playback, and reflection Swift lives in the plugin packages and registers through `GeneratedPluginRegistrant`. Each plugin is a `MethodChannel` for control plus `EventChannel`s for streams:
 
-- `AudioCapture.swift`, `AudioCompose.swift` and `AudioDecode.swift` (`packages/transcriber`): `transcriber/audio` (capture, `concatenate`, `decodePcm`), `/audio/status`, `/audio/level`
+- `AudioCapture.swift`, `AudioCompose.swift` and `AudioDecode.swift` (`packages/transcriber`): `transcriber/audio` (capture, `concatenate`, `decodePcm`, `voicedRanges`), `/audio/status`, `/audio/level`
 - `SpeechEngine.swift` (`packages/transcriber`): `transcriber/speech`, `/speech/events`, `/speech/model`
 - `AudioPlayer.swift` (`packages/transcriber`): `transcriber/player`, `/player/state`
 - `ReflectionEngine.swift` (`packages/reflections`): `reflections/reflect`
 
 App-only Swift stays under `ios/Runner/`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`: notifications, the storage key, share export, the splash hand-off, intent actions, the StoreKit support store (`opentranscribe/support` plus its event channel), and the thermal monitor (`opentranscribe/thermal` plus its event channel, wrapped by `core/utils/thermal.dart`). The Live Activity is `ios/Runner/RecordingLiveActivity.swift` driving the widget extension in `ios/RecorderActivity/`, over the attributes shared in `ios/Shared/`; it is fed capture status through `TranscriberPlugin.recordingStatusObserver`, set in `AppDelegate`.
 
-Channels are only ever touched from a wrapper (`PlatformAudioRecorder`, `PlatformAudioComposer`, `PlatformPcmDecoder`, `PlatformAudioPlayer`, `AppleSpeechEngine`, and the app-level `SupportStore`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes. The whisper.cpp shim (`WhisperShim` in `packages/transcriber`, compiled over the prebuilt `whisper.xcframework` that `tool/whisper/fetch.sh` fetches) is reached only through `dart:ffi` inside the package, the same way.
+Channels are only ever touched from a wrapper (`PlatformAudioRecorder`, `PlatformAudioComposer`, `PlatformPcmDecoder`, `PlatformAudioActivity`, `PlatformModelStorage`, `PlatformAudioPlayer`, `AppleSpeechEngine`, and the app-level `SupportStore`), never from `view/`. Those wrappers take their channels as constructor arguments so tests can inject fakes. The whisper.cpp shim (`WhisperShim` in `packages/transcriber`, compiled over the prebuilt `whisper.xcframework` that `tool/whisper/fetch.sh` fetches) is reached only through `dart:ffi` inside the package, the same way.
 
 ## Commands
 

@@ -21,7 +21,7 @@ export const FEATURES = [
     label: "Record",
     title: "Talk. It writes it down.",
     body: "Tap once and talk. A live transcript appears while you speak, and when you stop, the full recording is transcribed on the device before it lands on home.",
-    foot: "Apple speech models are downloaded once per language, or one Whisper model serves them all and run entirely on the handset. Airplane mode changes nothing.",
+    foot: "Apple speech models are downloaded once per language, or one Whisper model serves them all. Either way they run entirely on the handset, and airplane mode changes nothing.",
     shot: "/shots/recording@2x.png",
     cap: "Recording with live text",
   },
