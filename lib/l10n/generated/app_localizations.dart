@@ -1032,6 +1032,12 @@ abstract class AppLocalizations {
   /// **'More models'**
   String get transcriptionMoreModels;
 
+  /// Model sheet section over the models downloaded or downloading, like Your languages
+  ///
+  /// In en, this message translates to:
+  /// **'Your models'**
+  String get transcriptionYourModels;
+
   /// Section label over every model in the model sheet
   ///
   /// In en, this message translates to:

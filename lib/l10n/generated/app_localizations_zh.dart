@@ -517,6 +517,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcriptionMoreModels => '更多模型';
 
   @override
+  String get transcriptionYourModels => '我的模型';
+
+  @override
   String get transcriptionAllModels => '所有模型';
 
   @override

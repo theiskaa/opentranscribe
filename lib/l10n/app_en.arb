@@ -740,6 +740,10 @@
   "@transcriptionMoreModels": {
     "description": "The chip opening the model sheet"
   },
+  "transcriptionYourModels": "Your models",
+  "@transcriptionYourModels": {
+    "description": "Model sheet section over the models downloaded or downloading, like Your languages"
+  },
   "transcriptionAllModels": "All models",
   "@transcriptionAllModels": {
     "description": "Section label over every model in the model sheet"

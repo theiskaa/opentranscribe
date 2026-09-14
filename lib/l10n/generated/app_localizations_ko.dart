@@ -522,6 +522,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcriptionMoreModels => '다른 모델';
 
   @override
+  String get transcriptionYourModels => '내 모델';
+
+  @override
   String get transcriptionAllModels => '모든 모델';
 
   @override

@@ -154,6 +154,7 @@
   "transcriptionModelFootnote": "모델은 한 번 다운로드하면 앱 안에 남습니다.",
   "transcriptionAlsoDownloaded": "다운로드된 다른 모델",
   "transcriptionMoreModels": "다른 모델",
+  "transcriptionYourModels": "내 모델",
   "transcriptionAllModels": "모든 모델",
   "modelNotDownloaded": "다운로드 안 됨 · {size}",
   "modelDownloadSized": "{model} 다운로드 · {size}",

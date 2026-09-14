@@ -535,6 +535,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionMoreModels => 'More models';
 
   @override
+  String get transcriptionYourModels => 'Your models';
+
+  @override
   String get transcriptionAllModels => 'All models';
 
   @override

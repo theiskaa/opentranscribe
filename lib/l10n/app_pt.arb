@@ -154,6 +154,7 @@
   "transcriptionModelFootnote": "O modelo transfere-se uma vez e fica na app.",
   "transcriptionAlsoDownloaded": "Também transferidos",
   "transcriptionMoreModels": "Mais modelos",
+  "transcriptionYourModels": "Os seus modelos",
   "transcriptionAllModels": "Todos os modelos",
   "modelNotDownloaded": "Não transferido · {size}",
   "modelDownloadSized": "Transferir {model} · {size}",

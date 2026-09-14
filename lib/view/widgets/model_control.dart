@@ -61,65 +61,6 @@ bool modelRowRemovable(ModelRowState row) => switch (modelRowFace(row)) {
 /// The words on every face; a bar's take tabular figures.
 final TextStyle _labelStyle = AppType.footnote.copyWith(fontWeight: FontWeight.w600);
 
-/// The pill's hairline, the default [BorderSide] its decoration draws inside
-/// on every face.
-final double _edgeWidth = const BorderSide().width;
-
-/// The one width a model's control keeps through every face: the widest any
-/// face needs in this locale, clamped to [floor]..[ceiling] (a ceiling under
-/// the floor yields the floor). A pill face is its words, glyph and inset; a
-/// queued or downloading bar is its words in the bar's inset beside the open
-/// cancel seat; the preparing bar has no seat. Measured once, not per face,
-/// so the control holds still as it changes.
-double modelControlWidth(
-  AppLocalizations l10n, {
-  required double bandHeight,
-  required double floor,
-  required double ceiling,
-  TextScaler textScaler = TextScaler.noScaling,
-}) {
-  double measure(String text, TextStyle style, TextScaler scaler) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      textScaler: scaler,
-      maxLines: 1,
-    )..layout();
-    final width = painter.width;
-    painter.dispose();
-    return width;
-  }
-
-  // Drawn as unscaled text in the icon font, like AppIcon: a glyph is as
-  // wide as its advance, not its size.
-  double glyph(IconData icon) => measure(
-    String.fromCharCode(icon.codePoint),
-    TextStyle(inherit: false, fontFamily: icon.fontFamily, fontSize: ModelControl.glyphSize),
-    TextScaler.noScaling,
-  );
-
-  double bar(String text) =>
-      measure(text, AppType.digits(_labelStyle), textScaler) + 2 * AppSpacing.sm;
-  final seat = bandHeight + AppSpacing.sm;
-  final needs = [
-    for (final face in [
-      ModelRowFace.download,
-      ModelRowFace.failed,
-      ModelRowFace.installed,
-      ModelRowFace.selected,
-    ])
-      if (_pillWords(l10n, face) case (:final icon, :final text))
-        measure(text, _labelStyle, textScaler) +
-            2 * AppSpacing.md +
-            (icon == null ? 0 : glyph(icon) + AppSpacing.xs),
-    bar(l10n.modelQueued) + seat,
-    bar(progressFace(l10n, queued: false, preparing: false, fraction: 1).label) + seat,
-    bar(l10n.modelPreparing),
-  ];
-  final widest = needs.reduce((a, b) => a > b ? a : b) + 2 * _edgeWidth;
-  return widest.clamp(floor, ceiling < floor ? floor : ceiling);
-}
-
 /// A model's control: one pill whose fill and words follow the face on
 /// the indicator motion, and, while a download runs, the pill IS its progress
 /// bar, filling from the left under a centred percent. The cancel disc rides
@@ -136,7 +77,7 @@ class ModelControl extends StatelessWidget {
   });
 
   /// The glyph beside a pill's words.
-  static const double glyphSize = 14;
+  static const double _glyphSize = 14;
 
   final ModelRowState row;
   final ModelRowFace face;
@@ -419,7 +360,7 @@ class _CancelButton extends StatelessWidget {
             color: theme.danger.withValues(alpha: 0.14),
           ),
           child: Center(
-            child: AppIcon(AppIcons.xmark, size: ModelControl.glyphSize, color: theme.danger),
+            child: AppIcon(AppIcons.xmark, size: ModelControl._glyphSize, color: theme.danger),
           ),
         ),
       ),
@@ -441,7 +382,7 @@ class _PillWords extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          AppIcon(icon, size: ModelControl.glyphSize, color: ink),
+          AppIcon(icon, size: ModelControl._glyphSize, color: ink),
           const SizedBox(width: AppSpacing.xs),
         ],
         Flexible(
