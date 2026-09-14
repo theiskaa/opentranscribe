@@ -504,9 +504,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cacheModels => 'モデル';
 
   @override
-  String get cacheModelsInfo => 'ダウンロードしたモデルは「文字起こし」画面で管理します。';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return '$model モデルが必要です';
   }
@@ -807,29 +804,47 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCache => 'キャッシュ';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音');
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => '解放可能';
-
-  @override
-  String get cacheReclaimableInfo => '文字起こし済み、削除可能';
-
-  @override
-  String get cacheUsageInfo => '文字起こし済みエントリーの音声は削除できます。テキストは残ります。文字起こしされていない録音には決して触れません。';
-
-  @override
   String get cacheKeepAudio => '音声を保持';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'オフにすると、文字起こしが成功した録音はその時点で削除されます。該当エントリーはテキストのみになり、再生も、将来のより良いエンジンでの再文字起こしもできません。';
+  String get cacheOnThisPhone => 'この iPhone 内';
 
   @override
-  String get cacheClear => '文字起こし済み音声を削除';
+  String get cacheTranscribedAudio => '文字起こし済みの録音';
+
+  @override
+  String get cachePendingAudio => '文字起こし前の録音';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件');
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · 「文字起こし」で管理';
+  }
+
+  @override
+  String get cacheClearAction => '削除';
+
+  @override
+  String cacheFreed(String size) {
+    return '$sizeを解放';
+  }
+
+  @override
+  String get cacheNothingToClear => '削除するものはありません';
+
+  @override
+  String get cacheKeepOnNote => '再生と後からの再文字起こしのために保持します。';
+
+  @override
+  String get cacheKeepOffNote => '文字起こし後に削除されます。エントリーのテキストは残ります。';
+
+  @override
+  String get cachePendingNote => '文字起こし前の録音は、この設定に関係なく削除されません。';
 
   @override
   String get cacheClearTitle => '文字起こし済み音声を削除しますか？';

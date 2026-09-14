@@ -524,9 +524,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cacheModels => 'Modelos';
 
   @override
-  String get cacheModelsInfo => 'Os modelos transferidos são geridos no ecrã Transcrição.';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return 'Precisa do modelo $model';
   }
@@ -848,35 +845,53 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsCache => 'Cache';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count gravações',
-      one: '$count gravação',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => 'Recuperável';
-
-  @override
-  String get cacheReclaimableInfo => 'Transcrito, pode ser apagado';
-
-  @override
-  String get cacheUsageInfo =>
-      'O áudio das entradas transcritas pode ser apagado; o texto fica. Gravações ainda não transcritas nunca são tocadas.';
-
-  @override
   String get cacheKeepAudio => 'Manter áudio';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'Desligado, cada gravação é apagada assim que a transcrição é concluída. Essas entradas ficam só com texto: sem reprodução e sem nova transcrição por um motor melhor.';
+  String get cacheOnThisPhone => 'Neste iPhone';
 
   @override
-  String get cacheClear => 'Apagar áudio transcrito';
+  String get cacheTranscribedAudio => 'Gravações transcritas';
+
+  @override
+  String get cachePendingAudio => 'Ainda não transcritas';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entradas',
+      one: '$count entrada',
+    );
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · Geridos em Transcrição';
+  }
+
+  @override
+  String get cacheClearAction => 'Apagar';
+
+  @override
+  String cacheFreed(String size) {
+    return '$size libertados';
+  }
+
+  @override
+  String get cacheNothingToClear => 'Nada para apagar';
+
+  @override
+  String get cacheKeepOnNote => 'Guardado para ouvir e voltar a transcrever mais tarde.';
+
+  @override
+  String get cacheKeepOffNote => 'Apagado depois de transcrito. A entrada mantém o texto.';
+
+  @override
+  String get cachePendingNote =>
+      'As gravações ainda não transcritas nunca são apagadas, seja qual for esta definição.';
 
   @override
   String get cacheClearTitle => 'Apagar áudio transcrito?';

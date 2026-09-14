@@ -505,9 +505,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cacheModels => '모델';
 
   @override
-  String get cacheModelsInfo => '다운로드한 모델은 받아쓰기 화면에서 관리합니다.';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return '$model 모델이 필요합니다';
   }
@@ -808,29 +805,47 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsCache => '캐시';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개');
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => '확보 가능';
-
-  @override
-  String get cacheReclaimableInfo => '전사됨, 지워도 안전';
-
-  @override
-  String get cacheUsageInfo => '전사된 항목의 오디오는 지울 수 있으며 텍스트는 남습니다. 아직 전사되지 않은 녹음은 절대 건드리지 않습니다.';
-
-  @override
   String get cacheKeepAudio => '오디오 보관';
 
   @override
-  String get cacheKeepAudioInfo =>
-      '끄면 전사가 성공한 녹음은 즉시 삭제됩니다. 해당 항목은 텍스트만 남아 재생할 수 없고, 나중에 더 나은 엔진으로 다시 전사할 수도 없습니다.';
+  String get cacheOnThisPhone => '이 iPhone에 저장됨';
 
   @override
-  String get cacheClear => '전사된 오디오 지우기';
+  String get cacheTranscribedAudio => '전사된 녹음';
+
+  @override
+  String get cachePendingAudio => '아직 전사되지 않음';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count개 항목');
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · 전사에서 관리';
+  }
+
+  @override
+  String get cacheClearAction => '지우기';
+
+  @override
+  String cacheFreed(String size) {
+    return '$size 확보됨';
+  }
+
+  @override
+  String get cacheNothingToClear => '지울 항목 없음';
+
+  @override
+  String get cacheKeepOnNote => '재생하고 나중에 다시 전사할 수 있도록 보관합니다.';
+
+  @override
+  String get cacheKeepOffNote => '전사 후 삭제됩니다. 항목의 텍스트는 남습니다.';
+
+  @override
+  String get cachePendingNote => '아직 전사되지 않은 녹음은 이 설정과 관계없이 지워지지 않습니다.';
 
   @override
   String get cacheClearTitle => '전사된 오디오를 지울까요?';

@@ -518,9 +518,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheModels => 'Models';
 
   @override
-  String get cacheModelsInfo => 'Downloaded models are managed on the Transcription screen.';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return 'Needs the $model model';
   }
@@ -839,35 +836,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCache => 'Cache';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count recordings',
-      one: '1 recording',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => 'Reclaimable';
-
-  @override
-  String get cacheReclaimableInfo => 'Transcribed, safe to clear';
-
-  @override
-  String get cacheUsageInfo =>
-      'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.';
-
-  @override
   String get cacheKeepAudio => 'Keep audio';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.';
+  String get cacheOnThisPhone => 'On this iPhone';
 
   @override
-  String get cacheClear => 'Clear transcribed audio';
+  String get cacheTranscribedAudio => 'Transcribed recordings';
+
+  @override
+  String get cachePendingAudio => 'Not transcribed yet';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+    );
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · Managed in Transcription';
+  }
+
+  @override
+  String get cacheClearAction => 'Clear';
+
+  @override
+  String cacheFreed(String size) {
+    return 'Freed $size';
+  }
+
+  @override
+  String get cacheNothingToClear => 'Nothing to clear';
+
+  @override
+  String get cacheKeepOnNote => 'Kept for playback and re-transcribing later.';
+
+  @override
+  String get cacheKeepOffNote => 'Deleted once transcribed. The entry keeps its text.';
+
+  @override
+  String get cachePendingNote =>
+      'Recordings not transcribed yet are never cleared, whichever way this is set.';
 
   @override
   String get cacheClearTitle => 'Clear transcribed audio?';

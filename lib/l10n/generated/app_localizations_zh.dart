@@ -500,9 +500,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheModels => '模型';
 
   @override
-  String get cacheModelsInfo => '已下载的模型在“转写”页面管理。';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return '需要 $model 模型';
   }
@@ -800,28 +797,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCache => '缓存';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 个录音');
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => '可释放';
-
-  @override
-  String get cacheReclaimableInfo => '已转写，可安全清除';
-
-  @override
-  String get cacheUsageInfo => '已转写条目的音频可以清除，文字会保留。尚未转写的录音绝不会被触碰。';
-
-  @override
   String get cacheKeepAudio => '保留音频';
 
   @override
-  String get cacheKeepAudioInfo => '关闭后，录音在转写成功后即被删除。这类条目仅剩文字：无法回放，也无法日后用更好的引擎重新转写。';
+  String get cacheOnThisPhone => '此 iPhone 上';
 
   @override
-  String get cacheClear => '清除已转写音频';
+  String get cacheTranscribedAudio => '已转写的录音';
+
+  @override
+  String get cachePendingAudio => '尚未转写';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条');
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · 在“转写”中管理';
+  }
+
+  @override
+  String get cacheClearAction => '清除';
+
+  @override
+  String cacheFreed(String size) {
+    return '已释放 $size';
+  }
+
+  @override
+  String get cacheNothingToClear => '没有可清除的内容';
+
+  @override
+  String get cacheKeepOnNote => '保留以便回放和日后重新转写。';
+
+  @override
+  String get cacheKeepOffNote => '转写后删除。条目保留文字。';
+
+  @override
+  String get cachePendingNote => '尚未转写的录音无论此项如何设置都不会被清除。';
 
   @override
   String get cacheClearTitle => '清除已转写音频？';

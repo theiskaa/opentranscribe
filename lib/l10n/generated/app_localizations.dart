@@ -996,17 +996,11 @@ abstract class AppLocalizations {
   /// **'Free up {size} on this iPhone, then try again.'**
   String modelFailNoSpaceBody(String size);
 
-  /// Fact row label on the Cache screen for downloaded model files
+  /// Storage row label on the Cache screen for downloaded model files
   ///
   /// In en, this message translates to:
   /// **'Models'**
   String get cacheModels;
-
-  /// Explanation under the models fact row on the Cache screen
-  ///
-  /// In en, this message translates to:
-  /// **'Downloaded models are managed on the Transcription screen.'**
-  String get cacheModelsInfo;
 
   /// Hero status line under a one-model engine whose selected model is not downloaded yet
   ///
@@ -1524,47 +1518,77 @@ abstract class AppLocalizations {
   /// **'Cache'**
   String get settingsCache;
 
-  /// Storage card subline: how many entries keep audio
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 recording} other {{count} recordings}}'**
-  String cacheRecordingsCount(int count);
-
-  /// Storage card row: audio held by already-transcribed entries, freeable via the clear action
-  ///
-  /// In en, this message translates to:
-  /// **'Reclaimable'**
-  String get cacheReclaimable;
-
-  /// Subline under the reclaimable row saying why this share is safe to delete
-  ///
-  /// In en, this message translates to:
-  /// **'Transcribed, safe to clear'**
-  String get cacheReclaimableInfo;
-
-  /// Help paragraph under the usage card
-  ///
-  /// In en, this message translates to:
-  /// **'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.'**
-  String get cacheUsageInfo;
-
   /// Toggle row label: whether recordings survive a successful transcription
   ///
   /// In en, this message translates to:
   /// **'Keep audio'**
   String get cacheKeepAudio;
 
-  /// Help paragraph under the keep-audio toggle stating the consequence
+  /// Storage card eyebrow over the total the app keeps on the phone
   ///
   /// In en, this message translates to:
-  /// **'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.'**
-  String get cacheKeepAudioInfo;
+  /// **'On this iPhone'**
+  String get cacheOnThisPhone;
 
-  /// Destructive action row that opens the clear confirmation sheet
+  /// Storage row: audio of entries already transcribed, the share a clear frees
   ///
   /// In en, this message translates to:
-  /// **'Clear transcribed audio'**
-  String get cacheClear;
+  /// **'Transcribed recordings'**
+  String get cacheTranscribedAudio;
+
+  /// Storage row: audio of entries not transcribed yet, never cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Not transcribed yet'**
+  String get cachePendingAudio;
+
+  /// Storage row's second line: a kind's size and how many entries hold it
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · {count, plural, one {1 entry} other {{count} entries}}'**
+  String cacheKindLine(String size, int count);
+
+  /// Storage models row's second line: their size, and that the Transcription screen manages them
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · Managed in Transcription'**
+  String cacheModelsLine(String size);
+
+  /// Pill on the transcribed recordings row that clears their audio after a confirm
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get cacheClearAction;
+
+  /// Where the clear pill was, once a clear lands: how much it freed
+  ///
+  /// In en, this message translates to:
+  /// **'Freed {size}'**
+  String cacheFreed(String size);
+
+  /// Where the clear pill was, when no transcribed audio is kept
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to clear'**
+  String get cacheNothingToClear;
+
+  /// Keep audio switch's note while on: what keeping a recording is for
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for playback and re-transcribing later.'**
+  String get cacheKeepOnNote;
+
+  /// Keep audio switch's note while off: what happens to each new recording
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted once transcribed. The entry keeps its text.'**
+  String get cacheKeepOffNote;
+
+  /// Footnote under the keep audio switch: untranscribed recordings are never cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings not transcribed yet are never cleared, whichever way this is set.'**
+  String get cachePendingNote;
 
   /// Title of the clear confirmation sheet
   ///

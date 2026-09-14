@@ -526,9 +526,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cacheModels => 'Modèles';
 
   @override
-  String get cacheModelsInfo => 'Les modèles téléchargés se gèrent depuis l\'écran Transcription.';
-
-  @override
   String transcriptionHeroNeedsDownload(String model) {
     return 'Nécessite le modèle $model';
   }
@@ -852,35 +849,53 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsCache => 'Cache';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count enregistrements',
-      one: '$count enregistrement',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => 'Récupérable';
-
-  @override
-  String get cacheReclaimableInfo => 'Transcrit, peut être effacé';
-
-  @override
-  String get cacheUsageInfo =>
-      'L\'audio des entrées transcrites peut être effacé ; le texte reste. Les enregistrements pas encore transcrits ne sont jamais touchés.';
-
-  @override
   String get cacheKeepAudio => 'Conserver l\'audio';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'Si désactivé, chaque enregistrement est supprimé dès que sa transcription réussit. Ces entrées sont texte seul : pas de lecture, pas de retranscription par un meilleur moteur plus tard.';
+  String get cacheOnThisPhone => 'Sur cet iPhone';
 
   @override
-  String get cacheClear => 'Effacer l\'audio transcrit';
+  String get cacheTranscribedAudio => 'Enregistrements transcrits';
+
+  @override
+  String get cachePendingAudio => 'Pas encore transcrits';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entrées',
+      one: '$count entrée',
+    );
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · Gérés dans Transcription';
+  }
+
+  @override
+  String get cacheClearAction => 'Effacer';
+
+  @override
+  String cacheFreed(String size) {
+    return '$size libérés';
+  }
+
+  @override
+  String get cacheNothingToClear => 'Rien à effacer';
+
+  @override
+  String get cacheKeepOnNote => 'Conservé pour la lecture et une nouvelle transcription plus tard.';
+
+  @override
+  String get cacheKeepOffNote => 'Supprimé une fois transcrit. L\'entrée garde son texte.';
+
+  @override
+  String get cachePendingNote =>
+      'Les enregistrements pas encore transcrits ne sont jamais effacés, quel que soit ce réglage.';
 
   @override
   String get cacheClearTitle => 'Effacer l\'audio transcrit ?';
