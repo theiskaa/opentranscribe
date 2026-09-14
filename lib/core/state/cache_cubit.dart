@@ -7,7 +7,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 
 @immutable
 final class CacheState {
-  const CacheState({this.usage, this.modelBytes, this.clearing = false});
+  const CacheState({this.usage, this.modelBytes, this.clearing = false, this.freedBytes});
 
   /// Null while the first sweep is still running; the screen shows a quiet
   /// placeholder rather than zeros that would read as "nothing stored".
@@ -21,11 +21,18 @@ final class CacheState {
   /// disable in place instead of double-firing.
   final bool clearing;
 
-  CacheState copyWith({AudioUsage? usage, int? modelBytes, bool? clearing}) => CacheState(
-    usage: usage ?? this.usage,
-    modelBytes: modelBytes ?? this.modelBytes,
-    clearing: clearing ?? this.clearing,
-  );
+  /// What this screen's last clear freed, for the completion it shows; null
+  /// until a clear lands. Kept through re-measures: the screen shows it only
+  /// while nothing is reclaimable again.
+  final int? freedBytes;
+
+  CacheState copyWith({AudioUsage? usage, int? modelBytes, bool? clearing, int? freedBytes}) =>
+      CacheState(
+        usage: usage ?? this.usage,
+        modelBytes: modelBytes ?? this.modelBytes,
+        clearing: clearing ?? this.clearing,
+        freedBytes: freedBytes ?? this.freedBytes,
+      );
 }
 
 /// Drives the Cache screen: what the kept recordings occupy and the one bulk
@@ -88,18 +95,23 @@ class CacheCubit extends Cubit<CacheState> {
   /// reclaimable or a clear is already running.
   Future<void> clear() async {
     if (isClosed || state.clearing) return;
+    final before = state.usage?.reclaimableBytes ?? 0;
     emit(state.copyWith(clearing: true));
     try {
       await _service.purgeTranscribedAudio();
       final generation = ++_measureGeneration;
       final usage = await _service.audioUsage();
       if (isClosed) return;
+      // Measured, not counted by the purge, whose count is approximate.
+      final freed = before - usage.reclaimableBytes;
+      final freedBytes = freed > 0 ? freed : 0;
       if (generation != _measureGeneration) {
-        // A newer measure owns the numbers; only release the button.
-        emit(state.copyWith(clearing: false));
+        // A newer measure owns the numbers; release the button and keep what
+        // was freed.
+        emit(state.copyWith(clearing: false, freedBytes: freedBytes));
         return;
       }
-      emit(CacheState(usage: usage, modelBytes: state.modelBytes));
+      emit(state.copyWith(usage: usage, clearing: false, freedBytes: freedBytes));
     } catch (e) {
       // Best effort: the numbers on screen stay; a reopen re-measures.
       if (kDebugMode) debugPrint('cache: clear failed: $e');

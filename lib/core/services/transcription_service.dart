@@ -391,6 +391,11 @@ class TranscriptionService {
   bool get _captureActive => _recording || _starting || _finalizingCaptures > 0;
   bool get _captureBusy => _captureActive || _finalizing != null;
 
+  /// Whether a take holds the engine: recording, starting, or finalizing.
+  /// [useEngine] refuses while this is true (and while the bulk run runs), so
+  /// a surface can refuse a switch before it moves anything.
+  bool get takeInFlight => _captureBusy;
+
   /// User-initiated re-transcriptions in flight (the detail screen's action).
   /// The bulk hard cancel kills EVERY batch on the engine, so it is also
   /// forbidden while one of these runs: a bulk cancel must never be what

@@ -228,6 +228,44 @@ void main() {
     await run;
   });
 
+  test('nothing refuses a switch while nothing holds the engine', () {
+    expect(build().refusal, isNull);
+  });
+
+  test('a take in flight refuses a switch before any pick is tried', () async {
+    final cubit = build();
+    await service.startRecording();
+
+    expect(cubit.refusal, EnginePickOutcome.busy);
+
+    await service.stopRecording();
+    await pumpEventQueue();
+    expect(cubit.refusal, isNull);
+  });
+
+  test('a bulk re-transcribe refuses a switch before any pick is tried', () async {
+    final cubit = build();
+    final gate = Completer<void>();
+    expect(service.useEngine(FakeBatchEngine(gate: gate.future)), isTrue);
+    await service.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'kept',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: '/audio/kept.m4a',
+          duration: const Duration(seconds: 3),
+        ),
+      ),
+    ]);
+    final run = service.retranscribeAll.start();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.refusal, EnginePickOutcome.retranscribing);
+
+    gate.complete();
+    await run;
+  });
+
   test('a failed persist reverts the switch and rethrows', () async {
     final cubit = build(engineSettings: EngineSettings(storage: _FailingWrites()));
 

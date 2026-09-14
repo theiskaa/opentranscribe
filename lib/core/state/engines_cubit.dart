@@ -92,6 +92,16 @@ class EnginesCubit extends Cubit<EnginesState> {
     return null;
   }
 
+  /// Why a switch would be refused right now, [EnginePickOutcome.retranscribing]
+  /// or [EnginePickOutcome.busy], else null. Asked before a gesture commits,
+  /// so a refused switch resists instead of moving and snapping back; [pick]
+  /// still decides, since the answer can change before it runs.
+  EnginePickOutcome? get refusal {
+    if (_service.retranscribeAll.isRunning) return EnginePickOutcome.retranscribing;
+    if (_service.takeInFlight) return EnginePickOutcome.busy;
+    return null;
+  }
+
   /// One pick at a time: a second tap racing the first's persist could
   /// otherwise interleave, and the loser's revert would clobber the winner's
   /// completed switch.
@@ -128,7 +138,7 @@ class EnginesCubit extends Cubit<EnginesState> {
       return EnginePickOutcome.unchanged;
     }
     final previous = _entry(_service.engineId);
-    if (_service.retranscribeAll.isRunning) return EnginePickOutcome.retranscribing;
+    if (refusal case final refused?) return refused;
     if (!_service.useEngine(entry.engine)) return EnginePickOutcome.busy;
     try {
       await _engineSettings.setEngineId(engineId);
