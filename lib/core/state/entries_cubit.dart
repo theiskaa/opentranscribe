@@ -19,6 +19,9 @@ enum EntriesError {
   onDeviceUnavailable,
   recordingMissing,
   modelInstallFailed,
+
+  /// The model is on the phone, whole, and the engine could not open it.
+  modelLoadFailed,
   reservationCap,
 
   /// A continuation merged its audio but the new part's words did not land.
@@ -26,7 +29,20 @@ enum EntriesError {
 
   /// A continuation could not land and the take became its own entry.
   savedSeparately,
-  generic,
+  generic;
+
+  /// Whether a second pass may clear it, so its surface offers a retry. A take
+  /// kept apart, a recording that is gone, and a model that will not open (its
+  /// fix is on the Transcription screen) are only acknowledged.
+  bool get retryable => switch (this) {
+    permissionDenied ||
+    onDeviceUnavailable ||
+    modelInstallFailed ||
+    reservationCap ||
+    additionUntranscribed ||
+    generic => true,
+    recordingMissing || modelLoadFailed || savedSeparately => false,
+  };
 }
 
 /// One action's failure, pinned to the entry it happened to. Scoped so a
@@ -335,6 +351,7 @@ class EntriesCubit extends Cubit<EntriesState> {
       PermissionDenied() => EntriesError.permissionDenied,
       OnDeviceUnavailable() => EntriesError.onDeviceUnavailable,
       RecordingMissing() => EntriesError.recordingMissing,
+      ModelInstallFailed(reason: ModelInstallReason.loadFailed) => EntriesError.modelLoadFailed,
       ModelInstallFailed() => EntriesError.modelInstallFailed,
       // Its own kind: the fix is removing a language, not checking the network.
       ReservationCapReached() => EntriesError.reservationCap,

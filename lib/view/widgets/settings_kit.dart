@@ -20,14 +20,18 @@ class SettingsList extends StatelessWidget {
 
   final List<Widget> children;
 
+  /// The list's side inset, which content that reaches to the screen's edge
+  /// must bleed back through.
+  static const double gutter = AppSpacing.md;
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: EdgeInsets.fromLTRB(
-        AppSpacing.md,
+        gutter,
         // Tighter than the standard breath: settings sits closer under the bar.
         AppScaffold.topPaddingOf(context) - AppSpacing.md,
-        AppSpacing.md,
+        gutter,
         MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
       ),
       children: children,
@@ -39,9 +43,13 @@ class SettingsList extends StatelessWidget {
 /// dividers. Rows are whatever widgets the caller passes (a [SelectableRow], a
 /// custom row).
 class SettingsCard extends StatelessWidget {
-  const SettingsCard({required this.children, super.key});
+  const SettingsCard({required this.children, this.dividerInset, super.key});
 
   final List<Widget> children;
+
+  /// Where the dividers start, for rows that lead with no tile; null lines
+  /// them up past the tile.
+  final double? dividerInset;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +62,10 @@ class SettingsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (final (i, child) in children.indexed) ...[if (i > 0) const SettingsDivider(), child],
+          for (final (i, child) in children.indexed) ...[
+            if (i > 0) SettingsDivider(inset: dividerInset),
+            child,
+          ],
         ],
       ),
     );
@@ -65,13 +76,16 @@ class SettingsCard extends StatelessWidget {
 /// that reveals itself can carry its own leading divider and fold it away with
 /// the row (see [AnimatedReveal]).
 class SettingsDivider extends StatelessWidget {
-  const SettingsDivider({super.key});
+  const SettingsDivider({this.inset, super.key});
+
+  /// Null starts past a row's tile, like every kit row.
+  final double? inset;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Padding(
-      padding: EdgeInsets.only(left: tokens.dividerInset),
+      padding: EdgeInsets.only(left: inset ?? tokens.dividerInset),
       child: Container(height: 1, color: tokens.dividerColor),
     );
   }
@@ -131,20 +145,11 @@ class SelectableRow extends StatelessWidget {
             if (flag != null || leading != null) ...[
               // The tile stays neutral whatever the selection: the check and
               // the label weight carry it, so every row's tile matches.
-              Container(
-                width: tokens.iconTileSize,
-                height: tokens.iconTileSize,
-                alignment: Alignment.center,
-                decoration: SuperellipseDecoration(
-                  borderRadius: tokens.iconTileRadius,
-                  color: tokens.iconTileBackground,
-                ),
-                child: leading ?? LocaleFlag(flag!, size: 18),
-              ),
+              SettingsIconTile(child: leading ?? LocaleFlag(flag!, size: 18)),
               const SizedBox(width: AppSpacing.md),
             ],
             Expanded(
-              child: _LabelAndNote(
+              child: SettingsLabelAndNote(
                 note: note,
                 // One line each: a wrapped row would break showAppDropdown's
                 // fixed row estimate and misplace the popup.
@@ -180,10 +185,34 @@ class SelectableRow extends StatelessWidget {
   }
 }
 
-/// A settings row whose whole width toggles a switch: an icon tile, a label,
-/// and the drawn [AppToggle]. The row is the 44pt touch target the 31pt switch
-/// alone would miss; the knob's own tap wins the arena and carries the haptic,
-/// so the row does not double-fire.
+/// The square a settings row leads with: a glyph, a flag, or a drawn mark on
+/// the neutral tile, or on [color] for a row that must not read as neutral.
+class SettingsIconTile extends StatelessWidget {
+  const SettingsIconTile({required this.child, this.color, super.key});
+
+  final Widget child;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.theme.settings;
+    return Container(
+      width: tokens.iconTileSize,
+      height: tokens.iconTileSize,
+      alignment: Alignment.center,
+      decoration: SuperellipseDecoration(
+        borderRadius: tokens.iconTileRadius,
+        color: color ?? tokens.iconTileBackground,
+      ),
+      child: child,
+    );
+  }
+}
+
+/// A settings row whose whole width toggles a switch: an icon tile, a label
+/// over an optional [note], and the drawn [AppToggle]. The row is the 44pt
+/// touch target the 31pt switch alone would miss; the knob's own tap wins the
+/// arena and carries the haptic, so the row does not double-fire.
 ///
 /// A null [onChanged] disables the row: it stops responding, the label dims, and
 /// the knob draws at half strength - for a toggle whose precondition is not met
@@ -194,11 +223,13 @@ class SettingsToggleRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.note,
     super.key,
   });
 
   final IconData icon;
   final String label;
+  final String? note;
   final bool value;
   final ValueChanged<bool>? onChanged;
 
@@ -215,20 +246,16 @@ class SettingsToggleRow extends StatelessWidget {
         padding: tokens.rowPadding,
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: tokens.iconTileBackground,
-              ),
-              child: AppIcon(icon, size: 16, color: content),
-            ),
+            SettingsIconTile(child: AppIcon(icon, size: 16, color: content)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(label, style: AppType.subhead.copyWith(color: content)),
+              child: SettingsLabelAndNote(
+                note: note,
+                label: Text(label, style: AppType.subhead.copyWith(color: content)),
+              ),
             ),
+            // A wrapping label or note must keep off the knob's edge.
+            const SizedBox(width: AppSpacing.md),
             AppToggle(value: value, onChanged: onChanged, semanticLabel: label),
           ],
         ),
@@ -239,15 +266,24 @@ class SettingsToggleRow extends StatelessWidget {
 
 /// A row's name over its quiet second line, the one stack every settings row
 /// puts in its middle column.
-class _LabelAndNote extends StatelessWidget {
-  const _LabelAndNote({required this.label, required this.note, this.oneLine = false});
+class SettingsLabelAndNote extends StatelessWidget {
+  const SettingsLabelAndNote({
+    required this.label,
+    required this.note,
+    this.oneLine = false,
+    this.tabular = false,
+    super.key,
+  });
 
   final Widget label;
   final String? note;
 
   /// Clips the note to one line, for a row inside a popup measured by a fixed
-  /// row height.
+  /// row height, or a line of figures that must not wrap.
   final bool oneLine;
+
+  /// Figures in the note line up across rows.
+  final bool tabular;
 
   @override
   Widget build(BuildContext context) {
@@ -257,12 +293,15 @@ class _LabelAndNote extends StatelessWidget {
       children: [
         label,
         if (note != null) ...[
-          const SizedBox(height: 3),
+          SizedBox(height: context.theme.settings.noteGap),
           Text(
             note!,
             maxLines: oneLine ? 1 : null,
             overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
-            style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.3),
+            style: (tabular ? AppType.digits(AppType.footnote) : AppType.footnote).copyWith(
+              color: context.theme.textSecondary,
+              height: 1.3,
+            ),
           ),
         ],
       ],
@@ -318,19 +357,13 @@ class SettingsActionRow extends StatelessWidget {
         padding: tokens.rowPadding,
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: tint == null ? tokens.iconTileBackground : tint!.withValues(alpha: 0.14),
-              ),
+            SettingsIconTile(
+              color: tint?.withValues(alpha: 0.14),
               child: leading ?? AppIcon(icon!, size: 16, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: _LabelAndNote(
+              child: SettingsLabelAndNote(
                 note: note,
                 label: Text(label, style: AppType.subhead.copyWith(color: theme.text)),
               ),
@@ -339,7 +372,7 @@ class SettingsActionRow extends StatelessWidget {
               Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
               const SizedBox(width: AppSpacing.xs),
             ],
-            AppIcon(AppIcons.chevronForward, size: 14, color: theme.textSecondary),
+            AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: theme.textSecondary),
           ],
         ),
       ),
@@ -387,16 +420,8 @@ class SettingsBusyRow extends StatelessWidget {
         padding: tokens.rowPadding,
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: enabled && tint != null
-                    ? tint!.withValues(alpha: 0.14)
-                    : tokens.iconTileBackground,
-              ),
+            SettingsIconTile(
+              color: enabled ? tint?.withValues(alpha: 0.14) : null,
               child: AppIcon(icon, size: 16, color: enabled ? accent : theme.textSecondary),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -631,10 +656,7 @@ class SectionInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
-      child: Text(
-        text,
-        style: AppType.footnote.copyWith(color: context.theme.textSecondary, height: 1.4),
-      ),
+      child: Text(text, style: AppType.note.copyWith(color: context.theme.textSecondary)),
     );
   }
 }
@@ -668,7 +690,7 @@ class SectionInfoLink extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(text, style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4)),
+          Text(text, style: AppType.note.copyWith(color: theme.textSecondary)),
           const SizedBox(height: AppSpacing.xs),
           Touchable(
             onTap: onTap,
@@ -696,19 +718,18 @@ class SectionInfoLink extends StatelessWidget {
 
 /// The uppercase group label above a card.
 class SectionLabel extends StatelessWidget {
-  const SectionLabel(this.label, {super.key});
+  const SectionLabel(this.label, {this.top = AppSpacing.xxl, super.key});
 
   final String label;
+
+  /// The breath above the label; less where something above already gives it.
+  final double top;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.sm,
-        top: AppSpacing.xxl,
-        bottom: AppSpacing.sm,
-      ),
+      padding: EdgeInsets.only(left: AppSpacing.sm, top: top, bottom: AppSpacing.sm),
       child: Text(
         label.toUpperCase(),
         style: AppType.eyebrow.copyWith(color: tokens.sectionLabelColor),

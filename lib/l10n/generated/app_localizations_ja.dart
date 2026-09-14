@@ -86,10 +86,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get delete => '削除';
 
   @override
-  String get homeEmptyHeadline => '話せば、書き留められる。';
+  String get homeSetupChangeEngine => 'エンジンを変更';
 
   @override
-  String get homeEmptySubtitle => '話した内容はすべて文字起こしされ、この端末内に保存されます。下に引いて最初の録音を始めましょう。';
+  String get homeSetupRecord => '下に引くか波形をタップして、最初の録音を始めましょう。';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return '今すぐ録音できます。$model がこの iPhone に入ると文字起こしされます。';
+  }
+
+  @override
+  String get homeSetupFixFirst => '上に表示された内容を解決するか、別のエンジンを選んでください。';
 
   @override
   String get homePullToRecord => '引いて録音';
@@ -153,6 +161,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'この言語の音声モデルを取得できませんでした。接続と空き容量を確認するか、「モデル」で言語を管理してください。';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'モデルはダウンロードされましたが、この iPhone で開けませんでした。「文字起こし」画面で別のモデルを選び、このモデルを削除してから、もう一度ダウンロードしてください。';
+
+  @override
   String get transcribeErrorPermission => '「設定」App で opentranscribe の音声認識を許可してから、もう一度お試しください。';
 
   @override
@@ -178,6 +190,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => '言語モデルを取得できませんでした';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'モデルを開けませんでした';
+
+  @override
   String get transcribeErrorLabelCapReached => '言語の上限に達しました';
 
   @override
@@ -194,6 +209,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'モデルをダウンロードできませんでした';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'モデルを開けませんでした';
 
   @override
   String get transcribeErrorTitleCapReached => '言語の上限に達しました';
@@ -368,13 +386,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcriptionFootnote => 'モデルは一度だけダウンロードされ、システムと共有されます。';
 
   @override
-  String get transcriptionEngines => 'エンジン';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple の最新エンジン。言語ごとにモデルをダウンロード';
 
   @override
   String get engineBlurbDictation => 'iOS キーボードの音声入力を支える認識エンジン';
+
+  @override
+  String get engineBlurbWhisper => 'whisper.cpp で動くオープンモデル、1 回のダウンロードで全言語に対応';
+
+  @override
+  String engineNoteLive(String blurb) {
+    return '$blurb。話しているあいだに文字が表示されます。';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb。話し終えてから文字になります。';
+  }
 
   @override
   String get engineUnavailableNote => 'この iPhone では利用できません';
@@ -385,6 +413,253 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String engineUnavailableBody(String engine) {
     return '$engine には iOS 26 と新しい iPhone が必要です。録音には、この iPhone で使えるエンジンが引き続き使われます。';
+  }
+
+  @override
+  String get engineStorageUnavailableNote => 'ストレージを現在利用できません';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine はこの起動時にモデルの保存先にアクセスできませんでした。アプリを再起動してもう一度お試しください。';
+  }
+
+  @override
+  String get transcriptionModel => 'モデル';
+
+  @override
+  String get modelQualityBasic => '基本';
+
+  @override
+  String get modelQualityGood => '良い';
+
+  @override
+  String get modelQualityBetter => 'より良い';
+
+  @override
+  String get modelQualityBest => '最良';
+
+  @override
+  String get modelQualityTop => '最高';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => 'この iPhone には大きすぎます';
+
+  @override
+  String get modelTooHeavyTitle => 'この iPhone には大きすぎます';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model にはこの iPhone 以上のメモリが必要です。より小さいモデルを選んでください。';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return '$model を削除しますか？';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return '$size が空きます。いつでも再ダウンロードできます。';
+  }
+
+  @override
+  String get modelRemoveConfirm => '削除';
+
+  @override
+  String get modelBusyTitle => 'モデルは使用中';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model は現在文字起こし中です。終わってからもう一度お試しください。';
+  }
+
+  @override
+  String get modelFailOfflineTitle => '接続できませんでした';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return '$model のダウンロードには接続が必要です。アプリで接続が必要なのはこれだけです。接続してからもう一度お試しください。';
+  }
+
+  @override
+  String get modelFailRejectedTitle => 'ダウンロードを検証できませんでした';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return '$model のファイルが想定と一致しなかったため破棄しました。もう一度お試しください。';
+  }
+
+  @override
+  String get modelFailLoadTitle => '開けませんでした';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model はダウンロードされましたが、この iPhone で開けませんでした。もう一度お試しになると再ダウンロードします。または削除してください。';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => '空き容量が足りません';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return 'この iPhone で $size の空きを確保してから、もう一度お試しください。';
+  }
+
+  @override
+  String get cacheModels => 'モデル';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return '$model モデルが必要です';
+  }
+
+  @override
+  String get transcriptionModelFootnote => 'モデルは一度ダウンロードすればアプリ内に残ります。';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'ダウンロード済みのモデル';
+
+  @override
+  String get transcriptionMoreModels => 'ほかのモデル';
+
+  @override
+  String get transcriptionAllModels => 'すべてのモデル';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return '未ダウンロード · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return '$model をダウンロード · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return '$size を追加、準備は一度だけ';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'この iPhone で $size を使用';
+  }
+
+  @override
+  String get modelPreparingNote => 'Neural Engine 用に準備しています。初回だけ数分かかります。';
+
+  @override
+  String get modelSheetFootnote => 'ダウンロードしたモデルは準備ができ次第使われ、削除するまでアプリ内に残ります。';
+
+  @override
+  String get modelNotSavedBody => 'モデルの選択を保存できず、再起動後には残りません。';
+
+  @override
+  String get modelTierBasicInfo => '最小で最速。名前や訛りには弱く、手早いメモ向き。';
+
+  @override
+  String get modelTierGoodInfo => '速く、最小モデルより言葉が明瞭。静かな場所での短いメモに。';
+
+  @override
+  String get modelTierBetterInfo => '多くの iPhone に合うバランス。あらゆる言語の日常的な話し言葉を正確に。';
+
+  @override
+  String get modelTierBestInfo => '遅いが丁寧。訛り、小声の録音、長い記録に強い。';
+
+  @override
+  String get modelTierTopInfo => '最高峰のモデル。新しめの iPhone と、記録ごとに少しの辛抱が必要。';
+
+  @override
+  String get modelDownload => 'ダウンロード';
+
+  @override
+  String get modelUse => '使う';
+
+  @override
+  String get modelInUse => '使用中';
+
+  @override
+  String get transcriptionDownloadFootnote =>
+      'ダウンロードはアプリを開いている間だけ進みます。アプリを離れても、戻ったときに止まったところから再開します。';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '$model をダウンロード';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '$model を使用';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model を使用中';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '$model のダウンロードを再試行';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '$model をダウンロード中、$percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model はこの iPhone には大きすぎます';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return '$model のダウンロードをキャンセル';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '$model を削除';
+  }
+
+  @override
+  String get takeTranscribing => '文字起こし中';
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return '文字起こし中 · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '$model をダウンロード中 · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Neural Engine で高速化';
+
+  @override
+  String get accelerationNotSavedBody => 'Neural Engine の設定を保存できず、再起動後には残りません。';
+
+  @override
+  String get modelPreparing => '準備中…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '$model を準備中';
+  }
+
+  @override
+  String get modelQueued => '待機中';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model は待機中';
   }
 
   @override
@@ -536,29 +811,47 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCache => 'キャッシュ';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音');
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => '解放可能';
-
-  @override
-  String get cacheReclaimableInfo => '文字起こし済み、削除可能';
-
-  @override
-  String get cacheUsageInfo => '文字起こし済みエントリーの音声は削除できます。テキストは残ります。文字起こしされていない録音には決して触れません。';
-
-  @override
   String get cacheKeepAudio => '音声を保持';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'オフにすると、文字起こしが成功した録音はその時点で削除されます。該当エントリーはテキストのみになり、再生も、将来のより良いエンジンでの再文字起こしもできません。';
+  String get cacheOnThisPhone => 'この iPhone 内';
 
   @override
-  String get cacheClear => '文字起こし済み音声を削除';
+  String get cacheTranscribedAudio => '文字起こし済みの録音';
+
+  @override
+  String get cachePendingAudio => '文字起こし前の録音';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件');
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · 「文字起こし」で管理';
+  }
+
+  @override
+  String get cacheClearAction => '削除';
+
+  @override
+  String cacheFreed(String size) {
+    return '$sizeを解放';
+  }
+
+  @override
+  String get cacheNothingToClear => '削除するものはありません';
+
+  @override
+  String get cacheKeepOnNote => '再生と後からの再文字起こしのために保持します。';
+
+  @override
+  String get cacheKeepOffNote => '文字起こし後に削除されます。エントリーのテキストは残ります。';
+
+  @override
+  String get cachePendingNote => '文字起こし前の録音は、この設定に関係なく削除されません。';
 
   @override
   String get cacheClearTitle => '文字起こし済み音声を削除しますか？';

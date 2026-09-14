@@ -39,6 +39,11 @@ Future<bool> showTranscribeErrorSheet(BuildContext context, EntriesError kind) a
     l10n.transcribeErrorTitleModelInstall,
     l10n.transcribeErrorModelInstall,
   ),
+  EntriesError.modelLoadFailed => (
+    AppIcons.internaldrive,
+    l10n.transcribeErrorTitleModelLoad,
+    l10n.transcribeErrorModelLoad,
+  ),
   EntriesError.reservationCap => (
     AppIcons.globe,
     l10n.transcribeErrorTitleCapReached,
@@ -71,12 +76,12 @@ class _ErrorContent extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final (icon, title, body) = _story(kind, l10n);
 
-    // The action names the fix: a whole-file re-hear for a lost addition,
-    // nothing to retry for a take kept apart or a recording that is gone.
-    final (label, retry) = switch (kind) {
-      EntriesError.additionUntranscribed => (l10n.retranscribe, true),
-      EntriesError.savedSeparately || EntriesError.recordingMissing => (l10n.done, false),
-      _ => (l10n.retry, true),
+    // The action names the fix: a whole-file re-hear for a lost addition.
+    final retry = kind.retryable;
+    final label = switch (kind) {
+      _ when !retry => l10n.done,
+      EntriesError.additionUntranscribed => l10n.retranscribe,
+      _ => l10n.retry,
     };
     return SheetMessage(
       icon: icon,

@@ -90,6 +90,8 @@ final class AppMotion {
     this.swipePopMinScale = 0.85,
     this.swipePopSpring = const SpringDescription(mass: 1, stiffness: 480, damping: 22),
     this.swipeExit = const Duration(milliseconds: 350),
+    this.paneSpring = const SpringDescription(mass: 1, stiffness: 322, damping: 36),
+    this.storageSpring = const SpringDescription(mass: 1, stiffness: 110, damping: 21),
   });
 
   final Duration entrance;
@@ -281,4 +283,14 @@ final class AppMotion {
   /// and only then is the subject actually removed - so the removal lands on
   /// an already-empty slot instead of cutting the row out mid-frame.
   final Duration swipeExit;
+
+  /// The engine pages and the control's thumb settling after a tap or a
+  /// released swipe, seeded with the finger's velocity. Apple's damping 1.0 at
+  /// a 0.35s response: a control that answers a flick, never overshooting.
+  final SpringDescription paneSpring;
+
+  /// The storage bar and its numbers moving to a new measure, a clear's drain
+  /// most of all: one spring for both, so the bar and the figures never part.
+  /// Slower than [paneSpring] (0.6s response) so the space can be seen going.
+  final SpringDescription storageSpring;
 }

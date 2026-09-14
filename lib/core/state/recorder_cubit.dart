@@ -8,7 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
-import 'package:opentranscribe/core/services/transcript_stitch.dart';
+import 'package:opentranscribe/core/services/speech_tally.dart';
+import 'package:opentranscribe/core/services/live_words.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -44,11 +45,11 @@ class RecorderState {
   /// The raw native reason is debug-logged, never carried in state.
   final bool liveUnavailable;
 
-  /// Whether the microphone has heard real sound this take (input level crossed
-  /// [RecorderCubit._kHeardThreshold] at least once). This, NOT [liveText], is
-  /// what tells an X-to-discard whether the take is worth keeping: the live
-  /// stream can be blank while real speech was captured, and the batch pass on
-  /// stop reads the audio the live engine could not. Latches true for the take.
+  /// Whether the microphone has heard real sound this take (input level
+  /// crossed [heardLevel] at least once). This, NOT [liveText], is what tells
+  /// an X-to-discard whether the take is worth keeping: the live stream can be
+  /// blank while real speech was captured, and the batch pass on stop reads
+  /// the audio the live engine could not. Latches true for the take.
   final bool heardSound;
 
   /// The language THIS session transcribes in: the app default at start,
@@ -145,12 +146,6 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// mic hears real sound, independent of whether the live engine transcribed it.
   StreamSubscription<double>? _levelSub;
 
-  /// Input level (0..1, native `(dBFS + 60) / 60`) above which the take counts as
-  /// having heard real sound: digital silence sits near 0, quiet room tone near
-  /// 0.2, and any spoken word peaks well above this. Set to clear the room floor
-  /// without ever missing speech - discarding a real take is the failure to avoid.
-  static const double _kHeardThreshold = 0.3;
-
   /// How long a continuation waits to learn whether its entry's language is
   /// ready before opening in the default; a hung probe must not hold the
   /// microphone closed.
@@ -166,11 +161,9 @@ class RecorderCubit extends Cubit<RecorderState> {
   /// tick used to vanish from the take's clock forever.
   DateTime? _runStart;
 
-  /// Text committed by earlier language spans of THIS take, ending with the
-  /// current span's `[fr]`-style marker. The live stream restarts on a
-  /// language switch and its events only carry the new span, so the prefix is
-  /// what keeps everything already spoken on screen.
-  String _livePrefix = '';
+  /// This take's live words, kept across its language switches so
+  /// everything already spoken stays on screen.
+  final LiveWords _liveWords = LiveWords();
 
   /// An interruption (a phone call) ends the capture natively and the service
   /// saves the entry itself. Without this the screen would keep counting into
@@ -254,7 +247,8 @@ class RecorderCubit extends Cubit<RecorderState> {
     _liveSub = _service.liveEvents.listen(
       (event) {
         if (!isClosed) {
-          emit(state.copyWith(liveText: _livePrefix + event.text, liveUnavailable: false));
+          _liveWords.update(event.text);
+          emit(state.copyWith(liveText: _liveWords.text(state.localeId), liveUnavailable: false));
         }
       },
       // A live failure never tears down the take: the batch pass on stop is the
@@ -268,7 +262,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     _levelSub = _service.inputLevel.listen((level) {
       // Latch once: this is what an X-to-discard consults, so it must not depend
       // on the live transcript, which can be blank over real speech.
-      if (!state.heardSound && level >= _kHeardThreshold && !isClosed) {
+      if (!state.heardSound && level >= heardLevel && !isClosed) {
         emit(state.copyWith(heardSound: true));
       }
     });
@@ -460,19 +454,18 @@ class RecorderCubit extends Cubit<RecorderState> {
   }
 
   /// Re-languages the current take (see [TranscriptionService.setSessionLocale]).
-  /// Nothing already on screen is thrown away: the prior text commits into the
-  /// prefix with the NEW language's `[fr]`-style marker, and the restarted
-  /// stream appends after it. No marker when nothing was said yet; there is
-  /// nothing to separate.
+  /// Nothing already on screen is thrown away: the running span's words are
+  /// kept ([LiveWords]), and the restarted stream appends after them,
+  /// with the new language's `[fr]`-style marker once its first words arrive
+  /// and only when it differs from the language the last words were in.
   Future<void> setLanguage(String tag) async {
     if (!state.isBusy) return;
     // A pick during the start round-trip, even of the default, outranks the
     // entry's language the probe may still answer with.
     if (_startInFlight != null) _pickedDuringStart = true;
     if (state.localeId == tag) return;
-    final prior = state.liveText.trim();
-    _livePrefix = prior.isEmpty ? '' : '$prior ${languageMarker(tag)} ';
-    emit(state.copyWith(localeId: tag, liveText: _livePrefix));
+    _liveWords.commit(state.localeId);
+    emit(state.copyWith(localeId: tag, liveText: _liveWords.text(tag)));
     try {
       // A switch tapped while the sheet is still rising races the start
       // round-trip; wait it out like pause() does. Without this the service
@@ -569,7 +562,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     });
   }
 
-  /// Clears any per-run state a previous take left in flight (timer, prefix,
+  /// Clears any per-run state a previous take left in flight (timer, live words,
   /// clock, live/level subscriptions), so nothing leaks into the next take.
   /// Synchronous on purpose: [start] must reset and emit its claim with no async
   /// gap, or two rapid starts (and a switch or pause racing the start round-trip)
@@ -580,7 +573,7 @@ class RecorderCubit extends Cubit<RecorderState> {
     _timer?.cancel();
     _timer = null;
     _pickedDuringStart = false;
-    _livePrefix = '';
+    _liveWords.clear();
     _elapsedBase = Duration.zero;
     _runStart = null;
     unawaited(_liveSub?.cancel());
@@ -592,7 +585,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   Future<void> _teardown() async {
     _timer?.cancel();
     _timer = null;
-    _livePrefix = '';
+    _liveWords.clear();
     _elapsedBase = Duration.zero;
     _runStart = null;
     await _liveSub?.cancel();

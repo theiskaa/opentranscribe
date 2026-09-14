@@ -109,13 +109,26 @@
   "@delete": {
     "description": "Button to delete an entry"
   },
-  "homeEmptyHeadline": "Speak, and it's written down.",
-  "@homeEmptyHeadline": {
-    "description": "Bold empty-state title on home when the journal has no entries"
+  "homeSetupChangeEngine": "Change engine",
+  "@homeSetupChangeEngine": {
+    "description": "The link under the empty journal's Speaking card that opens the engine picker"
   },
-  "homeEmptySubtitle": "Everything you say is transcribed and kept on this device. Pull down to record your first entry.",
-  "@homeEmptySubtitle": {
-    "description": "Soft subtitle under the empty-state title, explaining the app and how to start"
+  "homeSetupRecord": "Pull down, or tap the waveform, to record your first entry.",
+  "@homeSetupRecord": {
+    "description": "The empty journal's last line when recording will work as set"
+  },
+  "homeSetupModelLands": "You can record now. It's written down once {model} is on this iPhone.",
+  "@homeSetupModelLands": {
+    "description": "The empty journal's last line while the model the first entry needs is not downloaded yet",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "homeSetupFixFirst": "Fix what's shown above, or pick another engine.",
+  "@homeSetupFixFirst": {
+    "description": "The empty journal's last line when the first entry could not be written as set"
   },
   "homePullToRecord": "Pull to record",
   "@homePullToRecord": {
@@ -197,6 +210,10 @@
   "@transcribeErrorModelInstall": {
     "description": "Notice when the on-device model download fails during transcription"
   },
+  "transcribeErrorModelLoad": "The model downloaded but couldn't be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.",
+  "@transcribeErrorModelLoad": {
+    "description": "Notice when the model is present but could not be opened during transcription"
+  },
   "transcribeErrorPermission": "Allow speech recognition for opentranscribe in the Settings app, then try again.",
   "@transcribeErrorPermission": {
     "description": "Notice when speech recognition permission is denied"
@@ -229,6 +246,10 @@
   "@transcribeErrorLabelModelInstall": {
     "description": "Short label on the inline error indicator when the model download failed"
   },
+  "transcribeErrorLabelModelLoad": "Couldn't open the model",
+  "@transcribeErrorLabelModelLoad": {
+    "description": "Short label on the inline error indicator when the model could not be opened"
+  },
   "transcribeErrorLabelCapReached": "Language limit reached",
   "@transcribeErrorLabelCapReached": {
     "description": "Short label on the inline error indicator when the language cap is full"
@@ -252,6 +273,10 @@
   "transcribeErrorTitleModelInstall": "Couldn't download the model",
   "@transcribeErrorTitleModelInstall": {
     "description": "Details-sheet title when the model download failed"
+  },
+  "transcribeErrorTitleModelLoad": "Couldn't open the model",
+  "@transcribeErrorTitleModelLoad": {
+    "description": "Details-sheet title when the model could not be opened"
   },
   "transcribeErrorTitleCapReached": "Language limit reached",
   "@transcribeErrorTitleCapReached": {
@@ -504,10 +529,6 @@
   "@transcriptionFootnote": {
     "description": "The one footnote under the transcription screen"
   },
-  "transcriptionEngines": "Engines",
-  "@transcriptionEngines": {
-    "description": "Section label over the engine picker on the models screen"
-  },
   "engineBlurbSpeechAnalyzer": "Apple's newest engine, a downloaded model per language",
   "@engineBlurbSpeechAnalyzer": {
     "description": "One-line explanation under the SpeechAnalyzer engine row"
@@ -515,6 +536,30 @@
   "engineBlurbDictation": "The recognizer behind iOS keyboard dictation",
   "@engineBlurbDictation": {
     "description": "One-line explanation under the Dictation engine row"
+  },
+  "engineBlurbWhisper": "An open model on whisper.cpp, one download for every language",
+  "@engineBlurbWhisper": {
+    "description": "One-line explanation under the Whisper engine row"
+  },
+  "engineNoteLive": "{blurb}. Shows your words as you speak.",
+  "@engineNoteLive": {
+    "description": "Note under the engine control (transcription screen and home setup): the engine's description, then that words appear while recording",
+    "placeholders": {
+      "blurb": {
+        "type": "String",
+        "example": "Apple's newest engine, a downloaded model per language"
+      }
+    }
+  },
+  "engineNoteAfterStop": "{blurb}. Writes your words after you stop.",
+  "@engineNoteAfterStop": {
+    "description": "Note under the engine control (transcription screen and home setup): the engine's description, then that words land only once the take stops",
+    "placeholders": {
+      "blurb": {
+        "type": "String",
+        "example": "An open model on whisper.cpp, one download for every language"
+      }
+    }
   },
   "engineUnavailableNote": "Not available on this iPhone",
   "@engineUnavailableNote": {
@@ -529,6 +574,409 @@
     "description": "Sheet body for an engine this device cannot run",
     "placeholders": {
       "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "engineStorageUnavailableNote": "Storage unavailable right now",
+  "@engineStorageUnavailableNote": {
+    "description": "Quiet note under a dimmed engine row whose model storage could not be reached this launch"
+  },
+  "engineStorageUnavailableBody": "{engine} couldn't reach its model storage on this launch. Relaunch to try again.",
+  "@engineStorageUnavailableBody": {
+    "description": "Sheet body for an engine whose model storage could not be reached this launch",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionModel": "Model",
+  "@transcriptionModel": {
+    "description": "Section label over the model card on the models screen, under an engine that offers a choice of models"
+  },
+  "modelQualityBasic": "Basic",
+  "@modelQualityBasic": {
+    "description": "Quality word for the first (smallest) model tier"
+  },
+  "modelQualityGood": "Good",
+  "@modelQualityGood": {
+    "description": "Quality word for the second model tier"
+  },
+  "modelQualityBetter": "Better",
+  "@modelQualityBetter": {
+    "description": "Quality word for the third model tier"
+  },
+  "modelQualityBest": "Best",
+  "@modelQualityBest": {
+    "description": "Quality word for the fourth model tier"
+  },
+  "modelQualityTop": "Top",
+  "@modelQualityTop": {
+    "description": "Quality word for the fifth (largest) model tier"
+  },
+  "modelSizeAndQuality": "{size} · {quality}",
+  "@modelSizeAndQuality": {
+    "description": "Note under a model row: its download size and quality word",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "quality": {
+        "type": "String"
+      }
+    }
+  },
+  "modelTooHeavyNote": "Too large for this iPhone",
+  "@modelTooHeavyNote": {
+    "description": "Quiet note under a dimmed model row this phone cannot hold in memory"
+  },
+  "modelTooHeavyTitle": "Too large for this iPhone",
+  "@modelTooHeavyTitle": {
+    "description": "Sheet title for a model this phone cannot hold in memory"
+  },
+  "modelTooHeavyBody": "{model} needs more memory than this iPhone has. Pick a smaller model.",
+  "@modelTooHeavyBody": {
+    "description": "Sheet body for a model this phone cannot hold in memory",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveTitle": "Remove {model}?",
+  "@modelRemoveTitle": {
+    "description": "Confirm sheet title before deleting a downloaded model",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveBody": "Frees {size}. You can download it again anytime.",
+  "@modelRemoveBody": {
+    "description": "Confirm sheet body before deleting a downloaded model",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveConfirm": "Remove",
+  "@modelRemoveConfirm": {
+    "description": "Confirm button deleting a downloaded model"
+  },
+  "modelBusyTitle": "Model in use",
+  "@modelBusyTitle": {
+    "description": "Sheet title when a model cannot be removed because a transcription holds it"
+  },
+  "modelBusyBody": "{model} is transcribing right now. Try again when it finishes.",
+  "@modelBusyBody": {
+    "description": "Sheet body when a model cannot be removed because a transcription holds it",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailOfflineTitle": "Couldn't connect",
+  "@modelFailOfflineTitle": {
+    "description": "Sheet title for a model download that failed for lack of a connection"
+  },
+  "modelFailOfflineBody": "Downloading {model} needs a connection. Nothing else in the app ever does. Connect, then try again.",
+  "@modelFailOfflineBody": {
+    "description": "Sheet body for a model download that failed for lack of a connection",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailRejectedTitle": "Download didn't verify",
+  "@modelFailRejectedTitle": {
+    "description": "Sheet title for a model download that did not verify"
+  },
+  "modelFailRejectedBody": "The {model} file didn't match what was expected, so it was discarded. Try again.",
+  "@modelFailRejectedBody": {
+    "description": "Sheet body for a model download that did not verify",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailLoadTitle": "Couldn't open",
+  "@modelFailLoadTitle": {
+    "description": "Card title for a model that downloaded but could not be opened"
+  },
+  "modelFailLoadBody": "{model} downloaded but couldn't be opened on this iPhone. Try again to download it afresh, or remove it.",
+  "@modelFailLoadBody": {
+    "description": "Card body for a model that downloaded but could not be opened",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailNoSpaceTitle": "Not enough space",
+  "@modelFailNoSpaceTitle": {
+    "description": "Sheet title for a model download that failed for lack of space"
+  },
+  "modelFailNoSpaceBody": "Free up {size} on this iPhone, then try again.",
+  "@modelFailNoSpaceBody": {
+    "description": "Sheet body for a model download that failed for lack of space",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheModels": "Models",
+  "@cacheModels": {
+    "description": "Storage row label on the Cache screen for downloaded model files"
+  },
+  "transcriptionHeroNeedsDownload": "Needs the {model} model",
+  "@transcriptionHeroNeedsDownload": {
+    "description": "Hero status line under a one-model engine whose selected model is not downloaded yet",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionModelFootnote": "The model downloads once and stays in the app.",
+  "@transcriptionModelFootnote": {
+    "description": "Footnote under the transcription screen for an engine whose one model serves every language"
+  },
+  "transcriptionAlsoDownloaded": "Also downloaded",
+  "@transcriptionAlsoDownloaded": {
+    "description": "Section label over the chips of the other downloaded models"
+  },
+  "transcriptionMoreModels": "More models",
+  "@transcriptionMoreModels": {
+    "description": "The chip opening the model sheet"
+  },
+  "transcriptionAllModels": "All models",
+  "@transcriptionAllModels": {
+    "description": "Section label over every model in the model sheet"
+  },
+  "modelNotDownloaded": "Not downloaded · {size}",
+  "@modelNotDownloaded": {
+    "description": "The model card's line for a model not on the phone yet, with its size",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDownloadSized": "Download {model} · {size}",
+  "@modelDownloadSized": {
+    "description": "The model card's download button, naming the model and its size",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionAccelerationSize": "Adds {size}, with a one-time setup",
+  "@transcriptionAccelerationSize": {
+    "description": "The Neural Engine switch's second line while off: what turning it on would fetch for the models on the phone",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptionAccelerationUses": "Uses {size} on this iPhone",
+  "@transcriptionAccelerationUses": {
+    "description": "The Neural Engine switch's second line while on: what its second files take on the phone",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "modelPreparingNote": "Getting it ready for the Neural Engine. This takes a few minutes, once.",
+  "@modelPreparingNote": {
+    "description": "Under a model's bar while it is prepared for the Neural Engine"
+  },
+  "modelSheetFootnote": "A model you download is used once it's ready, and stays in the app until you remove it.",
+  "@modelSheetFootnote": {
+    "description": "Footnote under the model sheet's list"
+  },
+  "modelNotSavedBody": "The model choice couldn't be saved and won't survive a relaunch.",
+  "@modelNotSavedBody": {
+    "description": "Sheet body when a model choice could not be persisted"
+  },
+  "modelTierBasicInfo": "The smallest and fastest. Rough on names and accents, fine for a quick note.",
+  "@modelTierBasicInfo": {
+    "description": "What the smallest model tier is for, on its card and in the model sheet"
+  },
+  "modelTierGoodInfo": "Quick, with clearer words than the smallest. Good for short notes in a quiet room.",
+  "@modelTierGoodInfo": {
+    "description": "What the second model tier is for, on its card and in the model sheet"
+  },
+  "modelTierBetterInfo": "The balance most iPhones want. Accurate for everyday speech in every language.",
+  "@modelTierBetterInfo": {
+    "description": "What the third model tier is for, on its card and in the model sheet"
+  },
+  "modelTierBestInfo": "Slower and careful. Strong on accents, quiet takes, and long entries.",
+  "@modelTierBestInfo": {
+    "description": "What the fourth model tier is for, on its card and in the model sheet"
+  },
+  "modelTierTopInfo": "The best on offer. Needs a recent iPhone and a little patience per entry.",
+  "@modelTierTopInfo": {
+    "description": "What the largest model tier is for, on its card and in the model sheet"
+  },
+  "modelDownload": "Download",
+  "@modelDownload": {
+    "description": "Button starting a model download"
+  },
+  "modelUse": "Use",
+  "@modelUse": {
+    "description": "Button that makes a downloaded model the one transcription uses"
+  },
+  "modelInUse": "In use",
+  "@modelInUse": {
+    "description": "Label on the pill of the model transcription uses"
+  },
+  "transcriptionDownloadFootnote": "Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.",
+  "@transcriptionDownloadFootnote": {
+    "description": "Under a model's bar while it downloads: downloads need the app open, and resume on return"
+  },
+  "modelDownloadButton": "Download {model}",
+  "@modelDownloadButton": {
+    "description": "VoiceOver name of a model's Download pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelUseButton": "Use {model}",
+  "@modelUseButton": {
+    "description": "VoiceOver name of a model's Use pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelInUseLabel": "{model} in use",
+  "@modelInUseLabel": {
+    "description": "VoiceOver name of a model's In use pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRetryButton": "Try downloading {model} again",
+  "@modelRetryButton": {
+    "description": "VoiceOver name of a model's Try again pill",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDownloadingLabel": "Downloading {model}, {percent}%",
+  "@modelDownloadingLabel": {
+    "description": "VoiceOver name of a model's download ring, with the percent",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "modelTooHeavyLabel": "{model} is too large for this iPhone",
+  "@modelTooHeavyLabel": {
+    "description": "VoiceOver name of a model's disabled pill for a model this iPhone cannot hold",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelCancelDownloadButton": "Cancel downloading {model}",
+  "@modelCancelDownloadButton": {
+    "description": "VoiceOver name of a model's Cancel action",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelRemoveButton": "Remove {model}",
+  "@modelRemoveButton": {
+    "description": "VoiceOver name of a model's Remove action",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "takeTranscribing": "Transcribing",
+  "@takeTranscribing": {
+    "description": "Line while an entry transcribes and the engine has not reported how far it is; also the accessible name of the take's row while its cloud shimmers"
+  },
+  "takeTranscribingProgress": "Transcribing · {percent}%",
+  "@takeTranscribingProgress": {
+    "description": "Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "takeDownloadingProgress": "Downloading {model} · {percent}%",
+  "@takeDownloadingProgress": {
+    "description": "Progress line while the model a transcription needs downloads first",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "transcriptionAcceleration": "Faster with the Neural Engine",
+  "@transcriptionAcceleration": {
+    "description": "Toggle row in the model card: run the whisper encoder on the Neural Engine"
+  },
+  "accelerationNotSavedBody": "The Neural Engine choice couldn't be saved and won't survive a relaunch.",
+  "@accelerationNotSavedBody": {
+    "description": "Sheet body when the acceleration choice failed to persist"
+  },
+  "modelPreparing": "Preparing…",
+  "@modelPreparing": {
+    "description": "A model's control while an install unpacks or compiles after its download"
+  },
+  "modelPreparingLabel": "Preparing {model}",
+  "@modelPreparingLabel": {
+    "description": "VoiceOver name of a model's control while the install prepares",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelQueued": "In queue",
+  "@modelQueued": {
+    "description": "A model's control while its download waits behind another"
+  },
+  "modelQueuedLabel": "{model} in queue",
+  "@modelQueuedLabel": {
+    "description": "VoiceOver name of a model's control while its download waits its turn",
+    "placeholders": {
+      "model": {
         "type": "String"
       }
     }
@@ -731,38 +1179,74 @@
   "@settingsCache": {
     "description": "Menu row and section label of the cache screen (audio storage usage and cleanup)"
   },
-  "cacheRecordingsCount": "{count, plural, one {1 recording} other {{count} recordings}}",
-  "@cacheRecordingsCount": {
-    "description": "Storage card subline: how many entries keep audio",
+  "cacheKeepAudio": "Keep audio",
+  "@cacheKeepAudio": {
+    "description": "Toggle row label: whether recordings survive a successful transcription"
+  },
+  "cacheOnThisPhone": "On this iPhone",
+  "@cacheOnThisPhone": {
+    "description": "Storage card eyebrow over the total the app keeps on the phone"
+  },
+  "cacheTranscribedAudio": "Transcribed recordings",
+  "@cacheTranscribedAudio": {
+    "description": "Storage row: audio of entries already transcribed, the share a clear frees"
+  },
+  "cachePendingAudio": "Not transcribed yet",
+  "@cachePendingAudio": {
+    "description": "Storage row: audio of entries not transcribed yet, never cleared"
+  },
+  "cacheKindLine": "{size} · {count, plural, one {1 entry} other {{count} entries}}",
+  "@cacheKindLine": {
+    "description": "Storage row's second line: a kind's size and how many entries hold it",
     "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "212.4 MB"
+      },
       "count": {
         "type": "int"
       }
     }
   },
-  "cacheReclaimable": "Reclaimable",
-  "@cacheReclaimable": {
-    "description": "Storage card row: audio held by already-transcribed entries, freeable via the clear action"
+  "cacheModelsLine": "{size} · Managed in Transcription",
+  "@cacheModelsLine": {
+    "description": "Storage models row's second line: their size, and that the Transcription screen manages them",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "249.8 MB"
+      }
+    }
   },
-  "cacheReclaimableInfo": "Transcribed, safe to clear",
-  "@cacheReclaimableInfo": {
-    "description": "Subline under the reclaimable row saying why this share is safe to delete"
+  "cacheClearAction": "Clear",
+  "@cacheClearAction": {
+    "description": "Pill on the transcribed recordings row that clears their audio after a confirm"
   },
-  "cacheUsageInfo": "Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.",
-  "@cacheUsageInfo": {
-    "description": "Help paragraph under the usage card"
+  "cacheFreed": "Freed {size}",
+  "@cacheFreed": {
+    "description": "Where the clear pill was, once a clear lands: how much it freed",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "212.4 MB"
+      }
+    }
   },
-  "cacheKeepAudio": "Keep audio",
-  "@cacheKeepAudio": {
-    "description": "Toggle row label: whether recordings survive a successful transcription"
+  "cacheNothingToClear": "Nothing to clear",
+  "@cacheNothingToClear": {
+    "description": "Where the clear pill was, when no transcribed audio is kept"
   },
-  "cacheKeepAudioInfo": "When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.",
-  "@cacheKeepAudioInfo": {
-    "description": "Help paragraph under the keep-audio toggle stating the consequence"
+  "cacheKeepOnNote": "Kept for playback and re-transcribing later.",
+  "@cacheKeepOnNote": {
+    "description": "Keep audio switch's note while on: what keeping a recording is for"
   },
-  "cacheClear": "Clear transcribed audio",
-  "@cacheClear": {
-    "description": "Destructive action row that opens the clear confirmation sheet"
+  "cacheKeepOffNote": "Deleted once transcribed. The entry keeps its text.",
+  "@cacheKeepOffNote": {
+    "description": "Keep audio switch's note while off: what happens to each new recording"
+  },
+  "cachePendingNote": "Recordings not transcribed yet are never cleared, whichever way this is set.",
+  "@cachePendingNote": {
+    "description": "Footnote under the keep audio switch: untranscribed recordings are never cleared"
   },
   "cacheClearTitle": "Clear transcribed audio?",
   "@cacheClearTitle": {

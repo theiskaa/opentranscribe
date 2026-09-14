@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/services/audio_storage_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/utils/language_tags.dart';
 import 'package:transcriber/transcriber.dart';
 
@@ -94,6 +95,7 @@ final class SettingsState {
     this.localeId = '',
     this.engineId = '',
     this.managesModels = false,
+    this.offersModelChoice = false,
     this.supportedLocales = const [],
     this.languages = const [],
     this.reservationMax = 0,
@@ -114,6 +116,11 @@ final class SettingsState {
   /// (an unready language's story), never off [reservationMax], which only
   /// gates affordances.
   final bool managesModels;
+
+  /// Whether that engine offers a choice of models, one serving every
+  /// language: the language surfaces keep only the default as yours, and it
+  /// wears the selected model's download.
+  final bool offersModelChoice;
 
   /// True when the phone's language has no on-device model in any variant and
   /// the current default equals the derived fallback, so a surface can say why
@@ -175,6 +182,7 @@ final class SettingsState {
     String? localeId,
     String? engineId,
     bool? managesModels,
+    bool? offersModelChoice,
     List<String>? supportedLocales,
     List<LanguageModelState>? languages,
     int? reservationMax,
@@ -186,6 +194,7 @@ final class SettingsState {
     localeId: localeId ?? this.localeId,
     engineId: engineId ?? this.engineId,
     managesModels: managesModels ?? this.managesModels,
+    offersModelChoice: offersModelChoice ?? this.offersModelChoice,
     supportedLocales: supportedLocales ?? this.supportedLocales,
     languages: languages ?? this.languages,
     reservationMax: reservationMax ?? this.reservationMax,
@@ -197,49 +206,56 @@ final class SettingsState {
 }
 
 /// Drives the settings surfaces over the idle backbone: the default language,
-/// per-language model state and installs, and the backup preference. Theme
+/// per-language model state and installs, and the backup preference. The
+/// model choice is [ModelsCubit]'s; this one only mirrors its download onto
+/// the default language and hands it the language surfaces' install. Theme
 /// mode and app language live elsewhere (ThemeCubit, AppLanguage).
-// ignore_for_file: prefer_initializing_formals
-// The fields are private (a cubit owns its collaborators) and the constructor
-// must call super(state), so initializing formals do not apply.
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit({
-    required TranscriptionService service,
-    required TranscriptionSettings transcription,
-    required AudioStorageSettings audioStorage,
-  }) : _service = service,
-       _transcription = transcription,
-       _audioStorage = audioStorage,
-       // Seeded from the synchronous holders rather than defaulted: [load] needs
-       // four channel round trips to answer, and a Cache screen that renders
-       // "keep audio on" for a second before flipping itself off is telling the
-       // user their setting is something it is not.
-       super(
+    required this._service,
+    required this._transcription,
+    required this._audioStorage,
+    required this._models,
+  }) : super(
+         // Seeded from the synchronous holders rather than defaulted: [load]
+         // needs several channel round trips to answer, and a Cache screen that
+         // renders "keep audio on" for a second before flipping itself off is
+         // telling the user their setting is something it is not.
          SettingsState(
-           localeId: transcription.localeId,
-           engineId: service.engineId,
-           managesModels: service.managesModels,
-           backupExcluded: audioStorage.backupExcluded,
-           keepAudio: audioStorage.keepAudio,
+           localeId: _transcription.localeId,
+           engineId: _service.engineId,
+           managesModels: _service.managesModels,
+           offersModelChoice: _service.offersModelChoice,
+           backupExcluded: _audioStorage.backupExcluded,
+           keepAudio: _audioStorage.keepAudio,
          ),
        ) {
     // A first-use install piggybacking on a transcription, or a removal, must
     // reach this surface without the user re-entering settings.
     _modelSub = _service.modelStateChanged.listen((_) => load());
+    // Under one model for every language the default row wears the model's
+    // download, which the models cubit owns.
+    _mirrorSub = _models.stream.listen((models) {
+      if (isClosed || !_service.offersModelChoice) return;
+      if (state.defaultLanguage?.installFraction == models.selectedModel?.installFraction) return;
+      emit(state.copyWith(languages: _mirrorSelectedModel(state.languages)));
+    });
     unawaited(load());
   }
 
   final TranscriptionService _service;
   final TranscriptionSettings _transcription;
   final AudioStorageSettings _audioStorage;
+  final ModelsCubit _models;
 
   // One in-flight install per tag: the single-flight guard AND the marker for
   // which rows keep their fraction across a load() rebuild.
   final Map<String, StreamSubscription<ModelInstallProgress>> _installSubs = {};
   StreamSubscription<void>? _modelSub;
+  StreamSubscription<ModelsState>? _mirrorSub;
   int _loadGeneration = 0;
 
-  /// Rebuilds every language row. Cheap by design: three list calls plus ONE
+  /// Rebuilds every language row. Cheap by design: list calls plus ONE
   /// fine-grained probe for the default row (whose readiness the pre-merge
   /// screens render); other rows derive from list membership, and a surface
   /// that shows one can refine it via [refreshLanguage]. In-flight download
@@ -339,8 +355,9 @@ class SettingsCubit extends Cubit<SettingsState> {
         localeId: localeId,
         engineId: _service.engineId,
         managesModels: _service.managesModels,
+        offersModelChoice: _service.offersModelChoice,
         supportedLocales: supported,
-        languages: rows,
+        languages: _mirrorSelectedModel(rows),
         reservationMax: reservations.max,
         backupExcluded: _audioStorage.backupExcluded,
         keepAudio: _audioStorage.keepAudio,
@@ -394,6 +411,12 @@ class SettingsCubit extends Cubit<SettingsState> {
   void install([String? tag]) {
     final target = tag ?? state.localeId;
     if (target.isEmpty || _installSubs.containsKey(target)) return;
+    // One model serves every language: the download is the selected model's,
+    // tracked on its row and mirrored onto the default's.
+    if (_service.offersModelChoice) {
+      unawaited(_models.installSelected());
+      return;
+    }
     _patchRow(target, (row) => row.copyWith(installFraction: 0, clearFailure: true));
     _installSubs[target] = _service
         .installModel(localeId: target)
@@ -407,6 +430,7 @@ class SettingsCubit extends Cubit<SettingsState> {
             _patchRow(target, (row) => row.copyWith(clearInstall: true));
             unawaited(load());
           },
+          cancelOnError: true,
           onError: (Object error) {
             _installSubs.remove(target);
             _patchRow(
@@ -419,6 +443,19 @@ class SettingsCubit extends Cubit<SettingsState> {
             unawaited(load());
           },
         );
+  }
+
+  /// Under one model for every language the default row's download is the
+  /// selected model's, so its fraction is that row's.
+  List<LanguageModelState> _mirrorSelectedModel(List<LanguageModelState> languages) {
+    if (!_service.offersModelChoice) return languages;
+    final fraction = _models.state.selectedModel?.installFraction;
+    return [
+      for (final row in languages)
+        row.isDefault
+            ? row.copyWith(installFraction: fraction, clearInstall: fraction == null)
+            : row,
+    ];
   }
 
   /// Removes a language: releases this app's claim on its model. Removing the
@@ -537,8 +574,9 @@ class SettingsCubit extends Cubit<SettingsState> {
   @override
   Future<void> close() async {
     await _modelSub?.cancel();
+    await _mirrorSub?.cancel();
     // Over a copy: an install's onDone firing during these awaits removes its
-    // own tag from the live map, which would invalidate this iteration. A
+    // own key from the live map, which would invalidate this iteration. A
     // rejecting cancel must not abort the close and leak the cubit open.
     for (final sub in List.of(_installSubs.values)) {
       await sub.cancel().catchError((_) {});

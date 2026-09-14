@@ -6,17 +6,17 @@ import { GITHUB_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "OpenTranscribe collects no data. Recording, transcription, and storage all happen on the device, with no network access.",
+    "OpenTranscribe collects no data. Recording, transcription, and storage all happen on the device; its one connection downloads a Whisper model you choose and sends nothing.",
   alternates: { canonical: "/privacy" },
 };
 
-const UPDATED = "August 13, 2026";
+const UPDATED = "September 6, 2026";
 
 const SECTIONS = [
   {
-    head: "No network",
+    head: "One connection",
     body: [
-      "The app has no networking code. It creates no accounts, contacts no servers, and includes no analytics, advertising, or crash-reporting SDKs. It functions identically with no internet connection.",
+      "The app's only networking code downloads a Whisper speech model when you choose one, from a single pinned host, and sends nothing. It creates no accounts, contacts no other servers, and includes no analytics, advertising, or crash-reporting SDKs. Everything else functions identically with no internet connection.",
       "The optional supporter purchase goes through Apple's StoreKit: the operating system talks to the App Store, no journal content is in that conversation, and only the act of buying needs a connection.",
     ],
   },

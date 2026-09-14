@@ -69,3 +69,6 @@ internal/
 # CI-generated signing artifacts (Codemagic writes these during the build)
 ios/ExportOptions.plist
 ios/Runner/export_options.plist
+
+# Coverage residue of swift test and flutter test.
+*.profraw

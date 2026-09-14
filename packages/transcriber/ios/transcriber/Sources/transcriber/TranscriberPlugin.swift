@@ -13,5 +13,6 @@ public class TranscriberPlugin: NSObject, FlutterPlugin {
     AudioRecorderPlugin.register(with: registrar)
     SpeechEnginePlugin.register(with: registrar)
     AudioPlayerPlugin.register(with: registrar)
+    WhisperShimLink.retain()
   }
 }

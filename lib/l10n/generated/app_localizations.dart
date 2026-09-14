@@ -252,17 +252,29 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
-  /// Bold empty-state title on home when the journal has no entries
+  /// The link under the empty journal's Speaking card that opens the engine picker
   ///
   /// In en, this message translates to:
-  /// **'Speak, and it\'s written down.'**
-  String get homeEmptyHeadline;
+  /// **'Change engine'**
+  String get homeSetupChangeEngine;
 
-  /// Soft subtitle under the empty-state title, explaining the app and how to start
+  /// The empty journal's last line when recording will work as set
   ///
   /// In en, this message translates to:
-  /// **'Everything you say is transcribed and kept on this device. Pull down to record your first entry.'**
-  String get homeEmptySubtitle;
+  /// **'Pull down, or tap the waveform, to record your first entry.'**
+  String get homeSetupRecord;
+
+  /// The empty journal's last line while the model the first entry needs is not downloaded yet
+  ///
+  /// In en, this message translates to:
+  /// **'You can record now. It\'s written down once {model} is on this iPhone.'**
+  String homeSetupModelLands(String model);
+
+  /// The empty journal's last line when the first entry could not be written as set
+  ///
+  /// In en, this message translates to:
+  /// **'Fix what\'s shown above, or pick another engine.'**
+  String get homeSetupFixFirst;
 
   /// Label beside the waveform hint while pulling the home list down to open the recorder
   ///
@@ -384,6 +396,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.'**
   String get transcribeErrorModelInstall;
 
+  /// Notice when the model is present but could not be opened during transcription
+  ///
+  /// In en, this message translates to:
+  /// **'The model downloaded but couldn\'t be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.'**
+  String get transcribeErrorModelLoad;
+
   /// Notice when speech recognition permission is denied
   ///
   /// In en, this message translates to:
@@ -432,6 +450,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t get the language model'**
   String get transcribeErrorLabelModelInstall;
 
+  /// Short label on the inline error indicator when the model could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the model'**
+  String get transcribeErrorLabelModelLoad;
+
   /// Short label on the inline error indicator when the language cap is full
   ///
   /// In en, this message translates to:
@@ -467,6 +491,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t download the model'**
   String get transcribeErrorTitleModelInstall;
+
+  /// Details-sheet title when the model could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the model'**
+  String get transcribeErrorTitleModelLoad;
 
   /// Details-sheet title when the language cap is full
   ///
@@ -780,12 +810,6 @@ abstract class AppLocalizations {
   /// **'Models download once and are shared with the system.'**
   String get transcriptionFootnote;
 
-  /// Section label over the engine picker on the models screen
-  ///
-  /// In en, this message translates to:
-  /// **'Engines'**
-  String get transcriptionEngines;
-
   /// One-line explanation under the SpeechAnalyzer engine row
   ///
   /// In en, this message translates to:
@@ -797,6 +821,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The recognizer behind iOS keyboard dictation'**
   String get engineBlurbDictation;
+
+  /// One-line explanation under the Whisper engine row
+  ///
+  /// In en, this message translates to:
+  /// **'An open model on whisper.cpp, one download for every language'**
+  String get engineBlurbWhisper;
+
+  /// Note under the engine control (transcription screen and home setup): the engine's description, then that words appear while recording
+  ///
+  /// In en, this message translates to:
+  /// **'{blurb}. Shows your words as you speak.'**
+  String engineNoteLive(String blurb);
+
+  /// Note under the engine control (transcription screen and home setup): the engine's description, then that words land only once the take stops
+  ///
+  /// In en, this message translates to:
+  /// **'{blurb}. Writes your words after you stop.'**
+  String engineNoteAfterStop(String blurb);
 
   /// Quiet note under a dimmed engine row this device cannot run
   ///
@@ -815,6 +857,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{engine} needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.'**
   String engineUnavailableBody(String engine);
+
+  /// Quiet note under a dimmed engine row whose model storage could not be reached this launch
+  ///
+  /// In en, this message translates to:
+  /// **'Storage unavailable right now'**
+  String get engineStorageUnavailableNote;
+
+  /// Sheet body for an engine whose model storage could not be reached this launch
+  ///
+  /// In en, this message translates to:
+  /// **'{engine} couldn\'t reach its model storage on this launch. Relaunch to try again.'**
+  String engineStorageUnavailableBody(String engine);
+
+  /// Section label over the model card on the models screen, under an engine that offers a choice of models
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get transcriptionModel;
+
+  /// Quality word for the first (smallest) model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Basic'**
+  String get modelQualityBasic;
+
+  /// Quality word for the second model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get modelQualityGood;
+
+  /// Quality word for the third model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Better'**
+  String get modelQualityBetter;
+
+  /// Quality word for the fourth model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get modelQualityBest;
+
+  /// Quality word for the fifth (largest) model tier
+  ///
+  /// In en, this message translates to:
+  /// **'Top'**
+  String get modelQualityTop;
+
+  /// Note under a model row: its download size and quality word
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · {quality}'**
+  String modelSizeAndQuality(String size, String quality);
+
+  /// Quiet note under a dimmed model row this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'Too large for this iPhone'**
+  String get modelTooHeavyNote;
+
+  /// Sheet title for a model this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'Too large for this iPhone'**
+  String get modelTooHeavyTitle;
+
+  /// Sheet body for a model this phone cannot hold in memory
+  ///
+  /// In en, this message translates to:
+  /// **'{model} needs more memory than this iPhone has. Pick a smaller model.'**
+  String modelTooHeavyBody(String model);
+
+  /// Confirm sheet title before deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {model}?'**
+  String modelRemoveTitle(String model);
+
+  /// Confirm sheet body before deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Frees {size}. You can download it again anytime.'**
+  String modelRemoveBody(String size);
+
+  /// Confirm button deleting a downloaded model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get modelRemoveConfirm;
+
+  /// Sheet title when a model cannot be removed because a transcription holds it
+  ///
+  /// In en, this message translates to:
+  /// **'Model in use'**
+  String get modelBusyTitle;
+
+  /// Sheet body when a model cannot be removed because a transcription holds it
+  ///
+  /// In en, this message translates to:
+  /// **'{model} is transcribing right now. Try again when it finishes.'**
+  String modelBusyBody(String model);
+
+  /// Sheet title for a model download that failed for lack of a connection
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t connect'**
+  String get modelFailOfflineTitle;
+
+  /// Sheet body for a model download that failed for lack of a connection
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model} needs a connection. Nothing else in the app ever does. Connect, then try again.'**
+  String modelFailOfflineBody(String model);
+
+  /// Sheet title for a model download that did not verify
+  ///
+  /// In en, this message translates to:
+  /// **'Download didn\'t verify'**
+  String get modelFailRejectedTitle;
+
+  /// Sheet body for a model download that did not verify
+  ///
+  /// In en, this message translates to:
+  /// **'The {model} file didn\'t match what was expected, so it was discarded. Try again.'**
+  String modelFailRejectedBody(String model);
+
+  /// Card title for a model that downloaded but could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open'**
+  String get modelFailLoadTitle;
+
+  /// Card body for a model that downloaded but could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'{model} downloaded but couldn\'t be opened on this iPhone. Try again to download it afresh, or remove it.'**
+  String modelFailLoadBody(String model);
+
+  /// Sheet title for a model download that failed for lack of space
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space'**
+  String get modelFailNoSpaceTitle;
+
+  /// Sheet body for a model download that failed for lack of space
+  ///
+  /// In en, this message translates to:
+  /// **'Free up {size} on this iPhone, then try again.'**
+  String modelFailNoSpaceBody(String size);
+
+  /// Storage row label on the Cache screen for downloaded model files
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get cacheModels;
+
+  /// Hero status line under a one-model engine whose selected model is not downloaded yet
+  ///
+  /// In en, this message translates to:
+  /// **'Needs the {model} model'**
+  String transcriptionHeroNeedsDownload(String model);
+
+  /// Footnote under the transcription screen for an engine whose one model serves every language
+  ///
+  /// In en, this message translates to:
+  /// **'The model downloads once and stays in the app.'**
+  String get transcriptionModelFootnote;
+
+  /// Section label over the chips of the other downloaded models
+  ///
+  /// In en, this message translates to:
+  /// **'Also downloaded'**
+  String get transcriptionAlsoDownloaded;
+
+  /// The chip opening the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'More models'**
+  String get transcriptionMoreModels;
+
+  /// Section label over every model in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'All models'**
+  String get transcriptionAllModels;
+
+  /// The model card's line for a model not on the phone yet, with its size
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded · {size}'**
+  String modelNotDownloaded(String size);
+
+  /// The model card's download button, naming the model and its size
+  ///
+  /// In en, this message translates to:
+  /// **'Download {model} · {size}'**
+  String modelDownloadSized(String model, String size);
+
+  /// The Neural Engine switch's second line while off: what turning it on would fetch for the models on the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Adds {size}, with a one-time setup'**
+  String transcriptionAccelerationSize(String size);
+
+  /// The Neural Engine switch's second line while on: what its second files take on the phone
+  ///
+  /// In en, this message translates to:
+  /// **'Uses {size} on this iPhone'**
+  String transcriptionAccelerationUses(String size);
+
+  /// Under a model's bar while it is prepared for the Neural Engine
+  ///
+  /// In en, this message translates to:
+  /// **'Getting it ready for the Neural Engine. This takes a few minutes, once.'**
+  String get modelPreparingNote;
+
+  /// Footnote under the model sheet's list
+  ///
+  /// In en, this message translates to:
+  /// **'A model you download is used once it\'s ready, and stays in the app until you remove it.'**
+  String get modelSheetFootnote;
+
+  /// Sheet body when a model choice could not be persisted
+  ///
+  /// In en, this message translates to:
+  /// **'The model choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get modelNotSavedBody;
+
+  /// What the smallest model tier is for, on its card and in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'The smallest and fastest. Rough on names and accents, fine for a quick note.'**
+  String get modelTierBasicInfo;
+
+  /// What the second model tier is for, on its card and in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Quick, with clearer words than the smallest. Good for short notes in a quiet room.'**
+  String get modelTierGoodInfo;
+
+  /// What the third model tier is for, on its card and in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'The balance most iPhones want. Accurate for everyday speech in every language.'**
+  String get modelTierBetterInfo;
+
+  /// What the fourth model tier is for, on its card and in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Slower and careful. Strong on accents, quiet takes, and long entries.'**
+  String get modelTierBestInfo;
+
+  /// What the largest model tier is for, on its card and in the model sheet
+  ///
+  /// In en, this message translates to:
+  /// **'The best on offer. Needs a recent iPhone and a little patience per entry.'**
+  String get modelTierTopInfo;
+
+  /// Button starting a model download
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get modelDownload;
+
+  /// Button that makes a downloaded model the one transcription uses
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get modelUse;
+
+  /// Label on the pill of the model transcription uses
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get modelInUse;
+
+  /// Under a model's bar while it downloads: downloads need the app open, and resume on return
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.'**
+  String get transcriptionDownloadFootnote;
+
+  /// VoiceOver name of a model's Download pill
+  ///
+  /// In en, this message translates to:
+  /// **'Download {model}'**
+  String modelDownloadButton(String model);
+
+  /// VoiceOver name of a model's Use pill
+  ///
+  /// In en, this message translates to:
+  /// **'Use {model}'**
+  String modelUseButton(String model);
+
+  /// VoiceOver name of a model's In use pill
+  ///
+  /// In en, this message translates to:
+  /// **'{model} in use'**
+  String modelInUseLabel(String model);
+
+  /// VoiceOver name of a model's Try again pill
+  ///
+  /// In en, this message translates to:
+  /// **'Try downloading {model} again'**
+  String modelRetryButton(String model);
+
+  /// VoiceOver name of a model's download ring, with the percent
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model}, {percent}%'**
+  String modelDownloadingLabel(String model, int percent);
+
+  /// VoiceOver name of a model's disabled pill for a model this iPhone cannot hold
+  ///
+  /// In en, this message translates to:
+  /// **'{model} is too large for this iPhone'**
+  String modelTooHeavyLabel(String model);
+
+  /// VoiceOver name of a model's Cancel action
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel downloading {model}'**
+  String modelCancelDownloadButton(String model);
+
+  /// VoiceOver name of a model's Remove action
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {model}'**
+  String modelRemoveButton(String model);
+
+  /// Line while an entry transcribes and the engine has not reported how far it is; also the accessible name of the take's row while its cloud shimmers
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing'**
+  String get takeTranscribing;
+
+  /// Progress line while an entry transcribes, under the wait on the entry screen and in home's bar for a take being saved
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing · {percent}%'**
+  String takeTranscribingProgress(int percent);
+
+  /// Progress line while the model a transcription needs downloads first
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model} · {percent}%'**
+  String takeDownloadingProgress(String model, int percent);
+
+  /// Toggle row in the model card: run the whisper encoder on the Neural Engine
+  ///
+  /// In en, this message translates to:
+  /// **'Faster with the Neural Engine'**
+  String get transcriptionAcceleration;
+
+  /// Sheet body when the acceleration choice failed to persist
+  ///
+  /// In en, this message translates to:
+  /// **'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.'**
+  String get accelerationNotSavedBody;
+
+  /// A model's control while an install unpacks or compiles after its download
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing…'**
+  String get modelPreparing;
+
+  /// VoiceOver name of a model's control while the install prepares
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing {model}'**
+  String modelPreparingLabel(String model);
+
+  /// A model's control while its download waits behind another
+  ///
+  /// In en, this message translates to:
+  /// **'In queue'**
+  String get modelQueued;
+
+  /// VoiceOver name of a model's control while its download waits its turn
+  ///
+  /// In en, this message translates to:
+  /// **'{model} in queue'**
+  String modelQueuedLabel(String model);
 
   /// Sheet title when an engine switch is refused mid-take
   ///
@@ -1098,47 +1524,77 @@ abstract class AppLocalizations {
   /// **'Cache'**
   String get settingsCache;
 
-  /// Storage card subline: how many entries keep audio
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 recording} other {{count} recordings}}'**
-  String cacheRecordingsCount(int count);
-
-  /// Storage card row: audio held by already-transcribed entries, freeable via the clear action
-  ///
-  /// In en, this message translates to:
-  /// **'Reclaimable'**
-  String get cacheReclaimable;
-
-  /// Subline under the reclaimable row saying why this share is safe to delete
-  ///
-  /// In en, this message translates to:
-  /// **'Transcribed, safe to clear'**
-  String get cacheReclaimableInfo;
-
-  /// Help paragraph under the usage card
-  ///
-  /// In en, this message translates to:
-  /// **'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.'**
-  String get cacheUsageInfo;
-
   /// Toggle row label: whether recordings survive a successful transcription
   ///
   /// In en, this message translates to:
   /// **'Keep audio'**
   String get cacheKeepAudio;
 
-  /// Help paragraph under the keep-audio toggle stating the consequence
+  /// Storage card eyebrow over the total the app keeps on the phone
   ///
   /// In en, this message translates to:
-  /// **'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.'**
-  String get cacheKeepAudioInfo;
+  /// **'On this iPhone'**
+  String get cacheOnThisPhone;
 
-  /// Destructive action row that opens the clear confirmation sheet
+  /// Storage row: audio of entries already transcribed, the share a clear frees
   ///
   /// In en, this message translates to:
-  /// **'Clear transcribed audio'**
-  String get cacheClear;
+  /// **'Transcribed recordings'**
+  String get cacheTranscribedAudio;
+
+  /// Storage row: audio of entries not transcribed yet, never cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Not transcribed yet'**
+  String get cachePendingAudio;
+
+  /// Storage row's second line: a kind's size and how many entries hold it
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · {count, plural, one {1 entry} other {{count} entries}}'**
+  String cacheKindLine(String size, int count);
+
+  /// Storage models row's second line: their size, and that the Transcription screen manages them
+  ///
+  /// In en, this message translates to:
+  /// **'{size} · Managed in Transcription'**
+  String cacheModelsLine(String size);
+
+  /// Pill on the transcribed recordings row that clears their audio after a confirm
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get cacheClearAction;
+
+  /// Where the clear pill was, once a clear lands: how much it freed
+  ///
+  /// In en, this message translates to:
+  /// **'Freed {size}'**
+  String cacheFreed(String size);
+
+  /// Where the clear pill was, when no transcribed audio is kept
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to clear'**
+  String get cacheNothingToClear;
+
+  /// Keep audio switch's note while on: what keeping a recording is for
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for playback and re-transcribing later.'**
+  String get cacheKeepOnNote;
+
+  /// Keep audio switch's note while off: what happens to each new recording
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted once transcribed. The entry keeps its text.'**
+  String get cacheKeepOffNote;
+
+  /// Footnote under the keep audio switch: untranscribed recordings are never cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings not transcribed yet are never cleared, whichever way this is set.'**
+  String get cachePendingNote;
 
   /// Title of the clear confirmation sheet
   ///

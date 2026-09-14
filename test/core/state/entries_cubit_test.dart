@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
+import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
 
@@ -36,6 +37,17 @@ void main() {
     await service.stopRecording();
     return EntriesCubit(service: service);
   }
+
+  test('a failure no second pass can fix is only acknowledged', () {
+    expect(
+      EntriesError.values.where((kind) => !kind.retryable),
+      unorderedEquals([
+        EntriesError.recordingMissing,
+        EntriesError.modelLoadFailed,
+        EntriesError.savedSeparately,
+      ]),
+    );
+  });
 
   test('seeds from the service so a fresh cubit is never empty', () async {
     final cubit = await seeded();
@@ -378,6 +390,33 @@ void main() {
       await svc.dispose();
     },
   );
+
+  test('a model that will not open is its own failure, apart from a failed download', () async {
+    final storage = LocalService();
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+    final choice = FakeModelChoiceEngine(installed: const {'small'});
+    final svc = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: FakeAudioRecorder(),
+      engine: choice,
+      store: EntryStore(storage),
+    );
+    await svc.startRecording();
+    await svc.stopRecording();
+    final cubit = EntriesCubit(service: svc);
+    final entry = cubit.state.entries.single;
+
+    choice.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.loadFailed);
+    await cubit.retranscribe(entry);
+    expect(cubit.state.errorFor(entry.id), EntriesError.modelLoadFailed);
+
+    choice.failRun = const ModelInstallFailed('fake', reason: ModelInstallReason.offline);
+    await cubit.retranscribe(entry);
+    expect(cubit.state.errorFor(entry.id), EntriesError.modelInstallFailed);
+
+    await cubit.close();
+    await svc.dispose();
+  });
 
   test('a detached discard refreshes the list without a manual load', () async {
     final dir = await Directory.systemTemp.createTemp('otr-cubitdisc');

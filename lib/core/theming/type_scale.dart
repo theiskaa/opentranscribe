@@ -25,6 +25,13 @@ abstract final class AppType {
     fontWeight: FontWeight.w400,
     letterSpacing: -0.08,
   );
+  // A footnote that wraps as a paragraph: a note under a control or a card.
+  static const note = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.08,
+    height: 1.4,
+  );
   static const caption = TextStyle(fontSize: 12, fontWeight: FontWeight.w400);
   static const eyebrow = TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 1.3);
   // A bar title, not a hero: the recorder's readout sits in the top bar, so it
@@ -41,4 +48,10 @@ abstract final class AppType {
   /// through this, so the digits are fixed-width.
   static TextStyle digits(TextStyle base) =>
       base.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+
+  /// What Text sets [base] in: Bold Text thickens a paragraph's root style,
+  /// so spans with a weight of their own, and text laid out by hand to match,
+  /// must take it here.
+  static TextStyle boldAware(TextStyle base, {required bool bold}) =>
+      bold ? base.copyWith(fontWeight: FontWeight.bold) : base;
 }

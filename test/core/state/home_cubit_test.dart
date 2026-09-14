@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -101,13 +102,27 @@ void main() {
     test('sections cover every day with entries, newest first', () async {
       final cubit = HomeCubit(service: service);
       cubit.emit(
-        HomeState(entries: [entryAt(DateTime(2026, 7, 20)), entryAt(DateTime(2026, 7, 23))]),
+        HomeState(
+          entries: [entryAt(DateTime(2026, 7, 20)), entryAt(DateTime(2026, 7, 23))],
+          takePending: false,
+        ),
       );
 
       expect(cubit.state.sections.map((s) => s.day), [
         DateTime(2026, 7, 23),
         DateTime(2026, 7, 20),
       ]);
+
+      await cubit.close();
+    });
+
+    test('a cubit built over a journal whose takes all landed holds no place for one', () async {
+      await service.startRecording();
+      await service.stopRecording();
+      final cubit = HomeCubit(service: service);
+
+      expect(cubit.state.takePending, isFalse);
+      expect(cubit.state.entries, hasLength(1));
 
       await cubit.close();
     });
@@ -138,6 +153,97 @@ void main() {
 
       expect(emits, 0);
       expect(identical(cubit.state, before), isTrue);
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('a take being transcribed holds a place until its record lands', () async {
+      final cubit = HomeCubit(service: service);
+      final seen = <bool>[];
+      final sub = cubit.stream.listen((s) => seen.add(s.takePending));
+
+      await service.startRecording();
+      await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      await pumpEventQueue();
+
+      expect(seen, [true, false]);
+      expect(cubit.state.entries, hasLength(1));
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('two states that differ only in their forecast are not the same', () {
+      const forecast = TakeForecast(
+        audio: Duration(seconds: 2),
+        speech: Duration(seconds: 1),
+        localeId: 'en-US',
+        characters: 16,
+      );
+      final entries = [entryAt(DateTime(2026, 7, 20))];
+      expect(
+        HomeState(entries: entries, takePending: true, takeForecast: forecast),
+        isNot(HomeState(entries: entries, takePending: true)),
+      );
+    });
+
+    test('the held take carries its forecast, and lets it go with the hold', () async {
+      final cubit = HomeCubit(service: service);
+      final seen = <HomeState>[];
+      final sub = cubit.stream.listen(seen.add);
+
+      await service.startRecording();
+      await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      await pumpEventQueue();
+
+      expect(seen.first.takeForecast?.audio, const Duration(seconds: 2));
+      expect(cubit.state.takeForecast, isNull);
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('a refresh while the pass is still running keeps the hold', () async {
+      SharedPreferences.setMockInitialValues({});
+      final storage = LocalService();
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final gate = Completer<void>();
+      final svc = TranscriptionService(
+        composer: FakeAudioComposer(),
+        recorder: FakeAudioRecorder(),
+        engine: FakeBatchEngine(gate: gate.future),
+        store: EntryStore(storage),
+      );
+      final cubit = HomeCubit(service: svc);
+
+      await svc.startRecording();
+      final stopping = svc.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+
+      expect(cubit.state.takePending, isTrue);
+      gate.complete();
+      await stopping;
+      await cubit.close();
+      await svc.dispose();
+    });
+
+    test('a pass over a record that already exists holds no place', () async {
+      final cubit = HomeCubit(service: service);
+      await service.startRecording();
+      final entry = await service.stopRecording();
+      await pumpEventQueue();
+      cubit.load();
+      final seen = <bool>[];
+      final sub = cubit.stream.listen((s) => seen.add(s.takePending));
+
+      await service.retranscribe(entry);
+      await pumpEventQueue();
+      cubit.load();
+
+      expect(seen, isNot(contains(true)));
       await sub.cancel();
       await cubit.close();
     });

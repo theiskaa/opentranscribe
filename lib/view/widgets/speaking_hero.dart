@@ -1,32 +1,73 @@
-import 'package:flutter/widgets.dart';
+import 'dart:async';
 
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
+import 'package:opentranscribe/view/widgets/model_failure_sheet.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// The default language as the screen's answer to "what happens when I hit
-/// record": big bare flag, name, and an honest status line naming the engine
-/// that answers. The whole card taps into whatever the screen wires: the
-/// library, or a broken default's story.
+/// The engine the hero's ready line names: by the languages' own engine id,
+/// not the active row, since mid-switch the readiness still describes the
+/// previous engine. Null until the model half agrees ([settled]), so no ready
+/// line lands early.
+String? heroEngineName(
+  List<EngineRowState> engines,
+  SettingsState state, {
+  required bool settled,
+}) => settled
+    ? engines
+          .where((row) => row.descriptor.engineId == state.engineId)
+          .firstOrNull
+          ?.descriptor
+          .displayName
+    : null;
+
+/// The hero's one promise, wherever it shows: when the default is broken its
+/// tap tells that story (with the recovery), otherwise it opens the library.
+void openSpeakingHero(BuildContext context, SettingsState state) {
+  if (!isTopRoute(context)) return;
+  final cubit = context.read<SettingsCubit>();
+  final row = state.defaultLanguage;
+  if (row != null && rowHasFailureStory(row)) {
+    unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
+    return;
+  }
+  unawaited(showLanguageSheet(context, cubit: cubit));
+}
+
+/// The default language as the answer to "what happens when I hit record":
+/// big bare flag, name, and an honest status line naming the engine that
+/// answers. The whole card taps into whatever its host wires.
 class SpeakingHero extends StatelessWidget {
   const SpeakingHero({
     required this.state,
+    required this.selectedModel,
     required this.engineName,
     required this.onTap,
     super.key,
   });
 
   final SettingsState state;
+
+  /// The model runs use under an engine with a choice, else null.
+  final ModelRowState? selectedModel;
 
   /// Display name of the engine the state's readiness describes; null until
   /// known, and the ready line waits for it.
@@ -78,9 +119,7 @@ class SpeakingHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppType.headline.copyWith(color: theme.text),
                         ),
-                        // 3, off the scale: xs floats the status too far off
-                        // the name it qualifies.
-                        const SizedBox(height: 3),
+                        SizedBox(height: theme.settings.noteGap),
                         // One footnote line always, held by the invisible ruler: a slot
                         // that breathed with the words would shove the name and flag
                         // on every switch.
@@ -110,7 +149,11 @@ class SpeakingHero extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  AppIcon(AppIcons.chevronForward, size: 15, color: theme.textSecondary),
+                  AppIcon(
+                    AppIcons.chevronForward,
+                    size: theme.settings.heroChevronSize,
+                    color: theme.textSecondary,
+                  ),
                 ],
               ),
             ),
@@ -122,9 +165,17 @@ class SpeakingHero extends StatelessWidget {
 
   /// Whatever stands in the way, else ready naming the engine; a running
   /// download takes [_DownloadingLine] instead.
-  String? _statusLine(AppLocalizations l10n, LanguageModelState row) =>
-      modelTroubleLine(l10n, row, managesModels: state.managesModels) ??
-      (engineName == null ? null : l10n.transcriptionHeroReady(engineName!));
+  String? _statusLine(AppLocalizations l10n, LanguageModelState row) {
+    final trouble = modelTroubleLine(l10n, row, managesModels: state.managesModels);
+    if (trouble != null) return trouble;
+    // Under one model for every language the download is the model's, and a
+    // supported language with none on disk is not ready yet.
+    final model = selectedModel;
+    if (model != null && !model.installed) {
+      return l10n.transcriptionHeroNeedsDownload(model.option.displayName);
+    }
+    return engineName == null ? null : l10n.transcriptionHeroReady(engineName!);
+  }
 }
 
 /// "Downloading · 42%", the percent rolling odometer-style as fractions land,

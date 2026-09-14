@@ -85,10 +85,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get delete => '删除';
 
   @override
-  String get homeEmptyHeadline => '开口说，即刻成文。';
+  String get homeSetupChangeEngine => '更换引擎';
 
   @override
-  String get homeEmptySubtitle => '你说的每一句都会被转写，并保存在这台设备上。下拉即可录制第一条。';
+  String get homeSetupRecord => '下拉或点按波形，录下你的第一条记录。';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return '现在就可以录制。$model 下载到这台 iPhone 后即会转写。';
+  }
+
+  @override
+  String get homeSetupFixFirst => '请先处理上方提示的问题，或选择其他引擎。';
 
   @override
   String get homePullToRecord => '下拉录制';
@@ -151,6 +159,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorModelInstall => '无法获取该语言的语音模型。请检查网络连接和可用空间，或在“模型”中管理语言。';
 
   @override
+  String get transcribeErrorModelLoad => '模型已下载，但无法在此 iPhone 上打开。请在“转写”页面选择其他模型，移除此模型，然后重新下载。';
+
+  @override
   String get transcribeErrorPermission => '请在“设置”应用中为 opentranscribe 开启语音识别权限，然后重试。';
 
   @override
@@ -175,6 +186,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => '无法获取语言模型';
 
   @override
+  String get transcribeErrorLabelModelLoad => '无法打开模型';
+
+  @override
   String get transcribeErrorLabelCapReached => '语言数量已达上限';
 
   @override
@@ -191,6 +205,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => '无法下载模型';
+
+  @override
+  String get transcribeErrorTitleModelLoad => '无法打开模型';
 
   @override
   String get transcribeErrorTitleCapReached => '语言数量已达上限';
@@ -365,13 +382,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcriptionFootnote => '模型只下载一次，并与系统共享。';
 
   @override
-  String get transcriptionEngines => '引擎';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple 最新的引擎，每种语言下载一个模型';
 
   @override
   String get engineBlurbDictation => 'iOS 键盘听写背后的识别引擎';
+
+  @override
+  String get engineBlurbWhisper => '基于 whisper.cpp 的开放模型，一次下载即可支持所有语言';
+
+  @override
+  String engineNoteLive(String blurb) {
+    return '$blurb。说话时实时显示文字。';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb。停下后才写出文字。';
+  }
 
   @override
   String get engineUnavailableNote => '此 iPhone 上不可用';
@@ -382,6 +409,252 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String engineUnavailableBody(String engine) {
     return '$engine 需要 iOS 26 和更新的 iPhone。录音将继续使用此设备可用的引擎。';
+  }
+
+  @override
+  String get engineStorageUnavailableNote => '存储暂时不可用';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine 在本次启动时无法访问模型存储。请重新启动应用再试。';
+  }
+
+  @override
+  String get transcriptionModel => '模型';
+
+  @override
+  String get modelQualityBasic => '基础';
+
+  @override
+  String get modelQualityGood => '良好';
+
+  @override
+  String get modelQualityBetter => '更好';
+
+  @override
+  String get modelQualityBest => '最佳';
+
+  @override
+  String get modelQualityTop => '顶级';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => '对这台 iPhone 来说太大';
+
+  @override
+  String get modelTooHeavyTitle => '对这台 iPhone 来说太大';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model 需要的内存超过了这台 iPhone 的容量。请选择更小的模型。';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return '移除 $model？';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return '释放 $size。随时可以重新下载。';
+  }
+
+  @override
+  String get modelRemoveConfirm => '移除';
+
+  @override
+  String get modelBusyTitle => '模型使用中';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model 正在转写。请等它完成后再试。';
+  }
+
+  @override
+  String get modelFailOfflineTitle => '无法连接';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return '下载 $model 需要网络连接。应用中只有这一项需要联网。连接后再试。';
+  }
+
+  @override
+  String get modelFailRejectedTitle => '下载未通过校验';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return '$model 的文件与预期不符，已被丢弃。请再试一次。';
+  }
+
+  @override
+  String get modelFailLoadTitle => '无法打开';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model 已下载，但无法在此 iPhone 上打开。再试一次会重新下载，或将其移除。';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => '空间不足';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return '在这台 iPhone 上腾出 $size 后再试。';
+  }
+
+  @override
+  String get cacheModels => '模型';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return '需要 $model 模型';
+  }
+
+  @override
+  String get transcriptionModelFootnote => '模型只需下载一次，之后留在应用内。';
+
+  @override
+  String get transcriptionAlsoDownloaded => '其他已下载模型';
+
+  @override
+  String get transcriptionMoreModels => '更多模型';
+
+  @override
+  String get transcriptionAllModels => '所有模型';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return '未下载 · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return '下载 $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return '增加 $size，只需准备一次';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return '在此 iPhone 上占用 $size';
+  }
+
+  @override
+  String get modelPreparingNote => '正在为 Neural Engine 做准备。只需一次，需要几分钟。';
+
+  @override
+  String get modelSheetFootnote => '下载的模型准备好后即会使用，并一直留在应用内，直到你将其移除。';
+
+  @override
+  String get modelNotSavedBody => '无法保存模型选择，重新启动后不会保留。';
+
+  @override
+  String get modelTierBasicInfo => '最小最快。对人名和口音不够准确，适合随手记。';
+
+  @override
+  String get modelTierGoodInfo => '快速，词语比最小模型更清晰。适合安静环境下的短笔记。';
+
+  @override
+  String get modelTierBetterInfo => '适合大多数 iPhone 的平衡之选。各种语言的日常说话都能准确转写。';
+
+  @override
+  String get modelTierBestInfo => '更慢也更细致。擅长口音、轻声录音和长条目。';
+
+  @override
+  String get modelTierTopInfo => '最佳模型。需要较新的 iPhone，每条记录多等一会儿。';
+
+  @override
+  String get modelDownload => '下载';
+
+  @override
+  String get modelUse => '使用';
+
+  @override
+  String get modelInUse => '使用中';
+
+  @override
+  String get transcriptionDownloadFootnote => '下载只在应用打开时进行。离开后，回来时会从停下的地方继续。';
+
+  @override
+  String modelDownloadButton(String model) {
+    return '下载 $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return '使用 $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model 使用中';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return '重新下载 $model';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return '正在下载 $model，$percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model 对这台 iPhone 来说太大了';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return '取消下载 $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return '移除 $model';
+  }
+
+  @override
+  String get takeTranscribing => '正在转写';
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return '正在转写 · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return '正在下载 $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => '用 Neural Engine 加速';
+
+  @override
+  String get accelerationNotSavedBody => 'Neural Engine 的选择未能保存，重新启动后不会保留。';
+
+  @override
+  String get modelPreparing => '正在准备…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return '正在准备 $model';
+  }
+
+  @override
+  String get modelQueued => '排队中';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model 排队中';
   }
 
   @override
@@ -531,28 +804,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCache => '缓存';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 个录音');
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => '可释放';
-
-  @override
-  String get cacheReclaimableInfo => '已转写，可安全清除';
-
-  @override
-  String get cacheUsageInfo => '已转写条目的音频可以清除，文字会保留。尚未转写的录音绝不会被触碰。';
-
-  @override
   String get cacheKeepAudio => '保留音频';
 
   @override
-  String get cacheKeepAudioInfo => '关闭后，录音在转写成功后即被删除。这类条目仅剩文字：无法回放，也无法日后用更好的引擎重新转写。';
+  String get cacheOnThisPhone => '此 iPhone 上';
 
   @override
-  String get cacheClear => '清除已转写音频';
+  String get cacheTranscribedAudio => '已转写的录音';
+
+  @override
+  String get cachePendingAudio => '尚未转写';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条');
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · 在“转写”中管理';
+  }
+
+  @override
+  String get cacheClearAction => '清除';
+
+  @override
+  String cacheFreed(String size) {
+    return '已释放 $size';
+  }
+
+  @override
+  String get cacheNothingToClear => '没有可清除的内容';
+
+  @override
+  String get cacheKeepOnNote => '保留以便回放和日后重新转写。';
+
+  @override
+  String get cacheKeepOffNote => '转写后删除。条目保留文字。';
+
+  @override
+  String get cachePendingNote => '尚未转写的录音无论此项如何设置都不会被清除。';
 
   @override
   String get cacheClearTitle => '清除已转写音频？';

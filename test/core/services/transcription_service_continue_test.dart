@@ -11,6 +11,8 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+import '../../support/fake_odds_engine.dart';
+import '../../support/fake_span_engines.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -68,6 +70,8 @@ void main() {
     EntryStore? using,
     bool Function()? keepAudio,
     Future<List<double>> Function(String path)? peaksReader,
+    AudioActivity? activity,
+    DateTime Function()? clock,
   }) {
     idCounter = 0;
     return TranscriptionService(
@@ -75,7 +79,8 @@ void main() {
       engine: engine,
       store: using ?? store,
       composer: composer,
-      clock: () => fixedClock,
+      activity: activity,
+      clock: clock ?? () => fixedClock,
       idGenerator: () => 'id-${idCounter++}',
       keepAudio: keepAudio,
       fileDeleter: (f) async => f.deleteSync(),
@@ -131,6 +136,117 @@ void main() {
     expect(svc.entries().map((e) => e.id), ['base']);
 
     await svc.dispose();
+  });
+
+  Future<Entry> continueMixed(
+    TranscriptionEngine engine, {
+    required List<VoicedRange> voice,
+    required Duration pick,
+    Future<void>? hold,
+    List<BatchProgress>? events,
+  }) async {
+    const take = Duration(seconds: 6);
+    var now = fixedClock;
+    recorder = FakeAudioRecorder(recordingsDir: dir.path, path: 'tail.m4a', duration: take);
+    composer = FakeAudioComposer(
+      name: 'merged.m4a',
+      durations: const {'base.m4a': baseDuration, 'tail.m4a': take},
+    );
+    final svc = build(
+      engine,
+      activity: FakeAudioActivity(ranges: voice, hold: hold),
+      clock: () => now,
+    );
+    if (events != null) svc.batchProgress.listen(events.add);
+    await svc.startRecording(continuing: store.read('base'));
+    now = now.add(pick);
+    await svc.setSessionLocale('fr-FR');
+    now = now.add(take - pick);
+    final landed = await svc.stopRecording();
+    await svc.dispose();
+    return landed;
+  }
+
+  const pausedAtThree = [
+    (start: Duration.zero, end: Duration(seconds: 2)),
+    (start: Duration(seconds: 4), end: Duration(seconds: 6)),
+  ];
+
+  test(
+    'a mixed take recorded onto an entry keeps its switch at the pause, offset past the base',
+    () async {
+      await seedBase(transcript: heard('first thoughts'));
+
+      final landed = await continueMixed(
+        languageNamed(),
+        voice: pausedAtThree,
+        pick: const Duration(milliseconds: 3600),
+      );
+
+      expect(landed.transcript?.fullText, 'first thoughts en [fr] fr');
+      expect(landed.languageSpans, [
+        const LanguageSpan(startMs: 0, localeId: 'en-US'),
+        LanguageSpan(startMs: baseDuration.inMilliseconds + 3000, localeId: 'fr-FR'),
+      ]);
+    },
+  );
+
+  test('an unheard entry grown by a mixed take keeps the take\'s cut past the join', () async {
+    await seedBase();
+
+    final landed = await continueMixed(
+      languageNamed(),
+      voice: pausedAtThree,
+      pick: const Duration(milliseconds: 3600),
+    );
+
+    expect(landed.languageSpans, [
+      const LanguageSpan(startMs: 0, localeId: 'en-US'),
+      LanguageSpan(startMs: baseDuration.inMilliseconds + 3000, localeId: 'fr-FR'),
+    ]);
+  });
+
+  test('an unheard entry grown by a mixed take is walked on the take\'s own audio', () async {
+    await seedBase();
+    final engine = FakeOddsEngine(
+      secondOdds: (start) => start >= const Duration(milliseconds: 2500) ? 0.99 : 0.01,
+    )..transcriptBuilder = (locale, start, end) => locale.split('-').first;
+
+    final landed = await continueMixed(
+      engine,
+      voice: const [
+        (start: Duration.zero, end: Duration(seconds: 2)),
+        (start: Duration(milliseconds: 2500), end: Duration(seconds: 4)),
+        (start: Duration(seconds: 5), end: Duration(seconds: 6)),
+      ],
+      pick: const Duration(milliseconds: 4500),
+    );
+
+    expect(
+      landed.languageSpans?.last,
+      LanguageSpan(startMs: baseDuration.inMilliseconds + 2250, localeId: 'fr-FR'),
+    );
+    expect(engine.asked, isNotEmpty);
+    expect(engine.asked.every((question) => question.path.endsWith('tail.m4a')), isTrue);
+  });
+
+  test('an unheard entry grown by a mixed take shows its pass while the take is read', () async {
+    await seedBase();
+    final held = Completer<void>();
+    final events = <BatchProgress>[];
+
+    final landing = continueMixed(
+      languageNamed(),
+      voice: pausedAtThree,
+      pick: const Duration(seconds: 3),
+      hold: held.future,
+      events: events,
+    );
+    await pumpEventQueue();
+
+    expect(events.map((event) => (event.entryId, event.step)), [('base', BatchStep.transcribing)]);
+    held.complete();
+    await landing;
   });
 
   test('the old base file and the tail are removed once the record points at the merge', () async {
