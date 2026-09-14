@@ -38,6 +38,17 @@ String engineNote(AppLocalizations l10n, EngineRowState row) => row.available
         EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableNote,
       };
 
+/// Why [row]'s engine cannot run here, in full, for an unavailable row.
+String engineUnavailableBody(AppLocalizations l10n, EngineRowState row) =>
+    switch (row.unavailability!) {
+      EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(
+        row.descriptor.displayName,
+      ),
+      EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableBody(
+        row.descriptor.displayName,
+      ),
+    };
+
 /// The sheet a refused pick opens, or null for one that took. [busy] is a
 /// take in flight; [retranscribing] the bulk run, so they word apart.
 ({IconData icon, String title, String body})? refusalMessage(
@@ -56,6 +67,50 @@ String engineNote(AppLocalizations l10n, EngineRowState row) => row.available
   ),
   _ => null,
 };
+
+/// Asks for [engineId] and words what did not take: a refusal, or a switch
+/// whose choice will not survive a relaunch. [onAnswer] runs once the cubit
+/// has answered, before any of that is said.
+Future<void> pickEngine(BuildContext context, String engineId, {VoidCallback? onAnswer}) async {
+  final EnginePickOutcome outcome;
+  try {
+    outcome = await context.read<EnginesCubit>().pick(engineId);
+  } catch (_) {
+    onAnswer?.call();
+    if (context.mounted) await _explainEngineNotSaved(context);
+    return;
+  }
+  onAnswer?.call();
+  if (context.mounted) await explainRefusal(context, outcome);
+}
+
+/// A pick that threw: the switch (or its revert) happened and only the
+/// stored choice is lost. The control already says what is active; this says
+/// it will not hold. Quiet when the screen is no longer on top.
+Future<void> _explainEngineNotSaved(BuildContext context) async {
+  if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+  final l10n = AppLocalizations.of(context)!;
+  await showAppSheet<void>(
+    context,
+    builder: (context) => SheetMessage(
+      icon: AppIcons.internaldrive,
+      title: l10n.engineNotSavedTitle,
+      body: l10n.engineNotSavedBody,
+    ),
+  );
+}
+
+/// The sheet a refused pick opens; nothing for an [outcome] that took, or
+/// when the screen is no longer on top.
+Future<void> explainRefusal(BuildContext context, EnginePickOutcome outcome) async {
+  final refusal = refusalMessage(AppLocalizations.of(context)!, outcome);
+  if (refusal == null || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+  await showAppSheet<void>(
+    context,
+    builder: (context) =>
+        SheetMessage(icon: refusal.icon, title: refusal.title, body: refusal.body),
+  );
+}
 
 /// The engine picker: one segmented control over the engines this build
 /// ships, and under it what the chosen one is. Every engine keeps its
@@ -84,7 +139,6 @@ class _EnginePickerState extends State<EnginePicker> {
     final row = shownRow(rows, pending: engineId);
     if (row.descriptor.engineId != engineId) return;
     final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<EnginesCubit>();
     setState(() => _pending = engineId);
     try {
       if (!isTopRoute(context)) return;
@@ -94,52 +148,16 @@ class _EnginePickerState extends State<EnginePicker> {
           builder: (context) => SheetMessage(
             icon: row.descriptor.logo,
             title: l10n.engineUnavailableTitle,
-            body: _unavailableBody(l10n, row),
+            body: engineUnavailableBody(l10n, row),
           ),
         );
         return;
       }
-      final EnginePickOutcome outcome;
-      try {
-        outcome = await cubit.pick(engineId);
-      } catch (_) {
-        // The switch (or its revert) happened; only the stored choice is
-        // lost. The control already says what is active; this says it will
-        // not hold. Re-checked, not just mounted: the screen may have been
-        // covered or popped during the pick.
-        if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-        await showAppSheet<void>(
-          context,
-          builder: (context) => SheetMessage(
-            icon: AppIcons.internaldrive,
-            title: l10n.engineNotSavedTitle,
-            body: l10n.engineNotSavedBody,
-          ),
-        );
-        return;
-      }
-      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-      final refusal = refusalMessage(l10n, outcome);
-      if (refusal == null) return;
-      await showAppSheet<void>(
-        context,
-        builder: (context) =>
-            SheetMessage(icon: refusal.icon, title: refusal.title, body: refusal.body),
-      );
+      await pickEngine(context, engineId);
     } finally {
       if (mounted) setState(() => _pending = null);
     }
   }
-
-  String _unavailableBody(AppLocalizations l10n, EngineRowState row) =>
-      switch (row.unavailability!) {
-        EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(
-          row.descriptor.displayName,
-        ),
-        EngineUnavailability.storageUnavailable => l10n.engineStorageUnavailableBody(
-          row.descriptor.displayName,
-        ),
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +166,6 @@ class _EnginePickerState extends State<EnginePicker> {
     final rows = widget.rows;
     if (rows.isEmpty) return const SizedBox.shrink();
     final shown = shownRow(rows, pending: _pending);
-    final note = engineNote(l10n, shown);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -163,13 +180,30 @@ class _EnginePickerState extends State<EnginePicker> {
         AnimatedSwitcher(
           duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
           layoutBuilder: meltStack,
-          child: Padding(
-            key: ValueKey((shown.descriptor.engineId, note)),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            child: Text(note, style: AppType.note.copyWith(color: theme.textSecondary)),
+          child: EngineNote(
+            key: ValueKey((shown.descriptor.engineId, engineNote(l10n, shown))),
+            row: shown,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The line under an engine's control: [engineNote], inset like a footnote.
+class EngineNote extends StatelessWidget {
+  const EngineNote({required this.row, super.key});
+
+  final EngineRowState row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: Text(
+        engineNote(AppLocalizations.of(context)!, row),
+        style: AppType.note.copyWith(color: context.theme.textSecondary),
+      ),
     );
   }
 }

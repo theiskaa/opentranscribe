@@ -89,4 +89,20 @@ void main() {
       expect(refusalMessage(l10n, EnginePickOutcome.unavailable), isNull);
     });
   });
+
+  group('engineUnavailableBody', () {
+    test('an engine the device is too old for names itself and what it needs', () {
+      final old = row('a', available: false, unavailability: EngineUnavailability.needsNewerDevice);
+      expect(engineUnavailableBody(l10n, old), l10n.engineUnavailableBody('A'));
+    });
+
+    test('an engine whose storage went missing says to relaunch instead', () {
+      final noStorage = row(
+        'a',
+        available: false,
+        unavailability: EngineUnavailability.storageUnavailable,
+      );
+      expect(engineUnavailableBody(l10n, noStorage), l10n.engineStorageUnavailableBody('A'));
+    });
+  });
 }
