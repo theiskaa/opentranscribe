@@ -153,7 +153,6 @@
   "transcriptionModelFootnote": "モデルは一度ダウンロードすればアプリ内に残ります。",
   "transcriptionAlsoDownloaded": "ダウンロード済みのモデル",
   "transcriptionMoreModels": "ほかのモデル",
-  "transcriptionYourModels": "自分のモデル",
   "transcriptionAllModels": "すべてのモデル",
   "modelNotDownloaded": "未ダウンロード · {size}",
   "modelDownloadSized": "{model} をダウンロード · {size}",

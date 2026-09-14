@@ -153,7 +153,6 @@
   "transcriptionModelFootnote": "模型只需下载一次，之后留在应用内。",
   "transcriptionAlsoDownloaded": "其他已下载模型",
   "transcriptionMoreModels": "更多模型",
-  "transcriptionYourModels": "我的模型",
   "transcriptionAllModels": "所有模型",
   "modelNotDownloaded": "未下载 · {size}",
   "modelDownloadSized": "下载 {model} · {size}",

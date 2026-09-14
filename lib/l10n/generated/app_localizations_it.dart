@@ -538,9 +538,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get transcriptionMoreModels => 'Altri modelli';
 
   @override
-  String get transcriptionYourModels => 'I tuoi modelli';
-
-  @override
   String get transcriptionAllModels => 'Tutti i modelli';
 
   @override

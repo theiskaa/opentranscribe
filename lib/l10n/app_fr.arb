@@ -153,7 +153,6 @@
   "transcriptionModelFootnote": "Le modèle se télécharge une fois et reste dans l'app.",
   "transcriptionAlsoDownloaded": "Aussi téléchargés",
   "transcriptionMoreModels": "Autres modèles",
-  "transcriptionYourModels": "Vos modèles",
   "transcriptionAllModels": "Tous les modèles",
   "modelNotDownloaded": "Non téléchargé · {size}",
   "modelDownloadSized": "Télécharger {model} · {size}",

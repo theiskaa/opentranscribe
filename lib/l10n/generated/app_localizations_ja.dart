@@ -518,9 +518,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcriptionMoreModels => 'ほかのモデル';
 
   @override
-  String get transcriptionYourModels => '自分のモデル';
-
-  @override
   String get transcriptionAllModels => 'すべてのモデル';
 
   @override

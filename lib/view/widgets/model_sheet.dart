@@ -23,12 +23,11 @@ import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// Every model the engine offers, the way the language sheet offers
-/// languages: Your models (the ones here) over All models, each with
-/// its tier and what it is for. A row's tap is its one promise: use a model
-/// that is here (closing the sheet), fetch one that is not, retry one that
-/// failed. Its trailing mark says where it stands, and the trash beside a
-/// kept model is a separate affordance.
+/// Every model the engine offers: the ones here in a card on top, then All
+/// models for the rest, each with its tier and what it is for. A row's tap
+/// is its one promise: use a model that is here (closing the sheet), fetch
+/// one that is not, retry one that failed. Its trailing mark says where it
+/// stands, and the trash beside a kept model is a separate affordance.
 Future<void> showModelSheet(BuildContext context, {required ModelsCubit cubit}) {
   return showAppSheet<void>(
     context,
@@ -44,8 +43,9 @@ void openModelSheet(BuildContext context) {
   unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>()));
 }
 
-/// Whether [row] sits in Your models: only once it is here. A download runs
-/// in its place under All models and moves up when it lands.
+/// Whether [row] sits in the top card, with the models here: only once it is
+/// here. A download runs in its place among the rest and moves up when it
+/// lands.
 bool modelIsYours(ModelRowState row) => row.installed;
 
 /// What stands at the end of a model's row.
@@ -114,17 +114,28 @@ class _ModelList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // A model landing moves up a section; both cards resize on the
-            // way instead of snapping.
+            // The sheet's grabber already gives the top its breath.
+            const SizedBox(height: AppSpacing.xs),
+            // The gap between the cards rides the top one's bottom, so a model
+            // moving between them grows it with the resize instead of jumping.
             Melt(
               child: yours.isEmpty
                   ? const SizedBox(width: double.infinity)
-                  : _Section(label: l10n.transcriptionYourModels, rows: yours, inset: inset),
+                  : Padding(
+                      padding: EdgeInsets.only(bottom: others.isEmpty ? 0 : AppSpacing.xxl),
+                      child: _Card(rows: yours, inset: inset),
+                    ),
             ),
             Melt(
               child: others.isEmpty
                   ? const SizedBox(width: double.infinity)
-                  : _Section(label: l10n.transcriptionAllModels, rows: others, inset: inset),
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SectionLabel(l10n.transcriptionAllModels, top: 0),
+                        _Card(rows: others, inset: inset),
+                      ],
+                    ),
             ),
             const SizedBox(height: AppSpacing.md),
             if (state.models.any((row) => row.installing))
@@ -137,25 +148,18 @@ class _ModelList extends StatelessWidget {
   }
 }
 
-/// A labelled card of model rows.
-class _Section extends StatelessWidget {
-  const _Section({required this.label, required this.rows, required this.inset});
+/// A card of model rows.
+class _Card extends StatelessWidget {
+  const _Card({required this.rows, required this.inset});
 
-  final String label;
   final List<ModelRowState> rows;
   final double inset;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SectionLabel(label),
-        SettingsCard(
-          dividerInset: inset,
-          children: [for (final row in rows) _SheetRow(key: ValueKey(row.option.id), row: row)],
-        ),
-      ],
+    return SettingsCard(
+      dividerInset: inset,
+      children: [for (final row in rows) _SheetRow(key: ValueKey(row.option.id), row: row)],
     );
   }
 }
