@@ -68,7 +68,8 @@ typedef EnginePaneBuilder = Widget Function(BuildContext context, EngineRowState
 /// the settle. While a switch would be refused ([EnginesCubit.refusal]) the
 /// track resists and says why once the finger lifts. An engine that cannot
 /// run here can be looked at, its pane saying why, while the one in use
-/// keeps recording.
+/// keeps recording. It must be the last thing on its screen: a pane taller
+/// than the one it slides to paints past the track until it has left.
 class EngineSwitcher extends StatefulWidget {
   const EngineSwitcher({required this.rows, required this.paneBuilder, this.bleed = 0, super.key});
 
@@ -438,9 +439,11 @@ class _PaneDragRecognizer extends HorizontalDragGestureRecognizer {
       !claimed(event.position) && super.isPointerAllowed(event);
 }
 
-/// The panes side by side, [position] panes along, clipped to the track and
-/// its [bleed]. Its height is [pagerHeight] over the panes' own, so it
-/// follows a swipe and a pane's own growth alike.
+/// The panes side by side, [position] panes along. Its height is
+/// [pagerHeight] over the panes' own, so it follows a swipe and a pane's own
+/// growth alike. It clips only at its sides (and [bleed]): a taller pane
+/// leaving paints its full height rather than being cut at the height the
+/// track eases to, so nothing may sit below the track.
 class _PagerTrack extends MultiChildRenderObjectWidget {
   const _PagerTrack({required this.position, required this.bleed, required super.children});
 
@@ -485,7 +488,11 @@ class _RenderPagerTrack extends RenderBox
 
   final LayerHandle<ClipRectLayer> _clip = LayerHandle<ClipRectLayer>();
 
-  Rect get _window => Rect.fromLTRB(-_bleed, 0, size.width + _bleed, size.height);
+  /// The tallest pane's height, as last laid out.
+  double _tallest = 0;
+
+  Rect get _window =>
+      Rect.fromLTRB(-_bleed, 0, size.width + _bleed, math.max(size.height, _tallest));
 
   @override
   void setupParentData(RenderBox child) {
@@ -526,6 +533,7 @@ class _RenderPagerTrack extends RenderBox
       child = data.nextSibling;
       i++;
     }
+    _tallest = heights.fold(0, math.max);
     size = constraints.constrain(Size(width, pagerHeight(heights, at)));
   }
 
