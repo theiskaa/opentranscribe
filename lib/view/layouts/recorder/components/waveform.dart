@@ -38,13 +38,16 @@ double waveformLevel(double raw) {
 /// [RepaintBoundary]; a sample never rebuilds the screen. Paused: the ticker
 /// stops and bars dim.
 class Waveform extends StatefulWidget {
-  const Waveform({required this.levels, required this.active, super.key});
+  const Waveform({required this.levels, required this.active, this.height, super.key});
 
   /// Normalized input levels (0..1).
   final Stream<double> levels;
 
   /// Whether capture runs right now; false freezes and dims the band.
   final bool active;
+
+  /// The band's height, [RecorderTheme.waveformHeight] when null.
+  final double? height;
 
   @override
   State<Waveform> createState() => _WaveformState();
@@ -165,7 +168,7 @@ class _WaveformState extends State<Waveform> with TickerProviderStateMixin {
     final tokens = context.theme.recorder;
     return RepaintBoundary(
       child: SizedBox(
-        height: tokens.waveformHeight,
+        height: widget.height ?? tokens.waveformHeight,
         child: CustomPaint(
           painter: _WaveformPainter(
             // The fade repaints too: the ticker may already have stopped.
