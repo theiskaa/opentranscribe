@@ -192,8 +192,7 @@ final class AudioCaptureSession {
     try session.setActive(true, options: .notifyOthersOnDeactivation)
 
     let input = engine.inputNode
-    let format = input.outputFormat(forBus: 0)
-    guard format.sampleRate > 0, format.channelCount > 0 else {
+    guard let format = AudioCaptureSession.tapFormat(of: input) else {
       try? session.setActive(false, options: .notifyOthersOnDeactivation)
       throw CaptureError.noInput
     }
@@ -331,12 +330,12 @@ final class AudioCaptureSession {
   /// pre-pause audio is kept and auto-saved.
   func resume() throws {
     guard isRunning, isPaused else { throw CaptureError.notPaused }
-    let input = engine.inputNode.outputFormat(forBus: 0)
+    let input = AudioCaptureSession.tapFormat(of: engine.inputNode)
     lock.lock()
     let fileFormat = audioFile?.processingFormat
     lock.unlock()
     if let fileFormat = fileFormat,
-      input.sampleRate != fileFormat.sampleRate || input.channelCount != fileFormat.channelCount
+      input?.sampleRate != fileFormat.sampleRate || input?.channelCount != fileFormat.channelCount
     {
       teardown()
       onStatus?("interrupted")
@@ -480,6 +479,18 @@ final class AudioCaptureSession {
     }
   }
 
+  /// The format a tap on [input] can take, or nil while there is none. Right
+  /// after a route change the node's output format can still hold the old
+  /// sample rate while the hardware moved, and installTap raises an uncatchable
+  /// exception when the two rates differ.
+  static func tapFormat(of input: AVAudioInputNode) -> AVAudioFormat? {
+    let hardware = input.inputFormat(forBus: 0)
+    let format = input.outputFormat(forBus: 0)
+    guard format.sampleRate > 0, format.channelCount > 0, hardware.sampleRate == format.sampleRate
+    else { return nil }
+    return format
+  }
+
   /// Installs the capture tap: writes every buffer to the kept file, fans it out
   /// to consumers, and aggregates the input level.
   ///
@@ -570,17 +581,15 @@ final class AudioCaptureSession {
       guard let self = self, self.isRunning, !self.isPaused else { return }
 
       let input = self.engine.inputNode
-      let format = input.outputFormat(forBus: 0)
+      let format = AudioCaptureSession.tapFormat(of: input)
       let opened = self.captureFormat
       // The kept file was created for one sample rate and channel count and
       // cannot take anything else, so a format that MOVED ends the take. The
       // audio up to here is real and is kept; carrying on would either throw on
       // every write or silently record nothing.
-      let sameShape =
-        format.sampleRate > 0 && format.channelCount > 0 && opened != nil
-        && format.sampleRate == opened!.sampleRate && format.channelCount == opened!.channelCount
-
-      guard sameShape else {
+      guard let format = format, let opened = opened,
+        format.sampleRate == opened.sampleRate, format.channelCount == opened.channelCount
+      else {
         self.teardown()
         self.onStatus?("interrupted")
         return
