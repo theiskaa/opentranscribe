@@ -5,16 +5,17 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/time_picker_sheet.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// A settings row that shows a time and, on tap, opens the app's own drawn time
-/// picker to change it. The picker commits on tap-outside; [onChanged] fires
-/// only when that lands on a different time, so a dismissal or a no-op reselect
-/// leaves the value untouched. The shown time odometer-rolls to a new value,
-/// like the home date title.
+/// picker to change it. The picker commits however it closes; [onChanged] fires
+/// only when that lands on a different time, so a no-op reselect leaves the
+/// value untouched. The shown time odometer-rolls to a new value, like the home
+/// date title.
 class TimeField extends StatefulWidget {
   const TimeField({
     required this.label,
@@ -52,10 +53,9 @@ class _TimeFieldState extends State<TimeField> {
       DateFormat.Hm(localeTag(context)).format(DateTime(2000, 1, 1, widget.hour, widget.minute));
 
   Future<void> _pick(BuildContext context) async {
+    if (!isTopRoute(context)) return;
     final picked = await showTimePickerSheet(context, hour: widget.hour, minute: widget.minute);
-    // Closing the sheet commits the current time; skip the write when it did not
-    // actually change.
-    if (picked == null || (picked.hour == widget.hour && picked.minute == widget.minute)) return;
+    if (!mounted || (picked.hour == widget.hour && picked.minute == widget.minute)) return;
     widget.onChanged(picked.hour, picked.minute);
   }
 
