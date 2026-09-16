@@ -210,7 +210,7 @@ class _CacheView extends StatelessWidget {
 }
 
 /// The storage story as one card: the total over a bar in three shades, then
-/// a row per shade. The numbers and the bar read one spring
+/// a row per kind, in the bar's order. The numbers and the bar read one spring
 /// ([AppMotion.storageSpring]) from the figures on screen to the new, so a
 /// clear drains its share while the total counts down with it. The first
 /// measure only grows the bar in; its numbers land as they are.
@@ -296,7 +296,6 @@ class _StorageCardState extends State<_StorageCard> with TickerProviderStateMixi
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final locale = localeTag(context);
-    final shades = theme.settings.storageShades;
     return AnimatedBuilder(
       animation: Listenable.merge([_travel, _grow]),
       builder: (context, _) {
@@ -336,19 +335,19 @@ class _StorageCardState extends State<_StorageCard> with TickerProviderStateMixi
             ),
             if (numbers != null) ...[
               _KindRow(
-                shade: shades.clearable,
+                icon: AppIcons.textAlignleft,
                 label: l10n.cacheTranscribedAudio,
                 line: l10n.cacheKindLine(size(numbers.clearable), numbers.clearableCount.round()),
                 trailing: widget.clear,
               ),
               _KindRow(
-                shade: shades.kept,
+                icon: AppIcons.mic,
                 label: l10n.cachePendingAudio,
                 line: l10n.cacheKindLine(size(numbers.kept), numbers.keptCount.round()),
               ),
               if (numbers.models > 0)
                 _KindRow(
-                  shade: shades.models,
+                  icon: AppIcons.internaldrive,
                   label: l10n.cacheModels,
                   line: l10n.cacheModelsLine(size(numbers.models)),
                   onTap: widget.onModels,
@@ -419,24 +418,22 @@ class _StorageBar extends StatelessWidget {
   }
 }
 
-/// One kind of storage: its shade in a tile, its name over its size and
+/// One kind of storage: its glyph in a tile, its name over its size and
 /// count, and what stands beside it; a row with [onTap] leads somewhere.
 class _KindRow extends StatelessWidget {
   const _KindRow({
-    required this.shade,
+    required this.icon,
     required this.label,
     required this.line,
     this.trailing,
     this.onTap,
   });
 
-  final Color shade;
+  final IconData icon;
   final String label;
   final String line;
   final Widget? trailing;
   final VoidCallback? onTap;
-
-  static const double _swatch = 12;
 
   @override
   Widget build(BuildContext context) {
@@ -447,13 +444,7 @@ class _KindRow extends StatelessWidget {
       padding: tokens.rowPadding,
       child: Row(
         children: [
-          SettingsIconTile(
-            child: Container(
-              width: _swatch,
-              height: _swatch,
-              decoration: SuperellipseDecoration(borderRadius: _swatch / 4, color: shade),
-            ),
-          ),
+          SettingsIconTile(child: AppIcon(icon, size: 16, color: theme.text)),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: SettingsLabelAndNote(
