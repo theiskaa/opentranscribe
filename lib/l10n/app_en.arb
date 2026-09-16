@@ -1163,6 +1163,35 @@
   "@onboardingNext": {
     "description": "Button advancing to the next onboarding step"
   },
+  "onboardingEngineTitle": "When should words appear?",
+  "@onboardingEngineTitle": {
+    "description": "Title of the onboarding page that picks when transcribed words appear, which picks the engine"
+  },
+  "onboardingEngineBody": "Everything is written on this phone. You can change it anytime under Transcription in Settings.",
+  "@onboardingEngineBody": {
+    "description": "Body under the onboarding engine page title"
+  },
+  "onboardingEngineAsYouSpeak": "As you speak",
+  "@onboardingEngineAsYouSpeak": {
+    "description": "Segment: an engine that shows words while you record"
+  },
+  "onboardingEngineAfterYouStop": "After you stop",
+  "@onboardingEngineAfterYouStop": {
+    "description": "Segment: an engine that writes words once the recording stops"
+  },
+  "onboardingEngineWrittenBy": "Written by {engine}",
+  "@onboardingEngineWrittenBy": {
+    "description": "Names the engine that writes the words on the onboarding engine page",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingEngineChangeModel": "Change model",
+  "@onboardingEngineChangeModel": {
+    "description": "Link opening the model sheet from the onboarding engine page"
+  },
   "onboardingStart": "Get started",
   "@onboardingStart": {
     "description": "Button finishing onboarding and entering the app"

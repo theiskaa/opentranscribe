@@ -792,6 +792,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingNext => '下一步';
 
   @override
+  String get onboardingEngineTitle => '文字何时出现？';
+
+  @override
+  String get onboardingEngineBody => '所有内容都在这台手机上写出。你可以随时在设置的“转写”中更改。';
+
+  @override
+  String get onboardingEngineAsYouSpeak => '边说边显示';
+
+  @override
+  String get onboardingEngineAfterYouStop => '停止后显示';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return '由 $engine 写出';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => '更换模型';
+
+  @override
   String get onboardingStart => '开始使用';
 
   @override

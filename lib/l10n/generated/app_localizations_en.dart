@@ -830,6 +830,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingNext => 'Next';
 
   @override
+  String get onboardingEngineTitle => 'When should words appear?';
+
+  @override
+  String get onboardingEngineBody =>
+      'Everything is written on this phone. You can change it anytime under Transcription in Settings.';
+
+  @override
+  String get onboardingEngineAsYouSpeak => 'As you speak';
+
+  @override
+  String get onboardingEngineAfterYouStop => 'After you stop';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return 'Written by $engine';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => 'Change model';
+
+  @override
   String get onboardingStart => 'Get started';
 
   @override

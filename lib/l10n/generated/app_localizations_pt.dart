@@ -839,6 +839,27 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingNext => 'Seguinte';
 
   @override
+  String get onboardingEngineTitle => 'Quando devem aparecer as palavras?';
+
+  @override
+  String get onboardingEngineBody =>
+      'Tudo é escrito neste telemóvel. Pode alterar isto a qualquer momento em Transcrição, nas definições.';
+
+  @override
+  String get onboardingEngineAsYouSpeak => 'Enquanto fala';
+
+  @override
+  String get onboardingEngineAfterYouStop => 'Depois de parar';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return 'Escrito por $engine';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => 'Mudar de modelo';
+
+  @override
   String get onboardingStart => 'Começar';
 
   @override

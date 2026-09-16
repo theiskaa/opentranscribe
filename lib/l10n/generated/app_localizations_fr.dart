@@ -843,6 +843,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingNext => 'Suivant';
 
   @override
+  String get onboardingEngineTitle => 'Quand les mots doivent-ils apparaître ?';
+
+  @override
+  String get onboardingEngineBody =>
+      'Tout s\'écrit sur ce téléphone. Vous pouvez le changer à tout moment dans Transcription, dans les réglages.';
+
+  @override
+  String get onboardingEngineAsYouSpeak => 'Pendant que vous parlez';
+
+  @override
+  String get onboardingEngineAfterYouStop => 'Après l\'arrêt';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return 'Écrit par $engine';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => 'Changer de modèle';
+
+  @override
   String get onboardingStart => 'Commencer';
 
   @override

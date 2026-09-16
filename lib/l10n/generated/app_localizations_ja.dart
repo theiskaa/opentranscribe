@@ -799,6 +799,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingNext => '次へ';
 
   @override
+  String get onboardingEngineTitle => '文字はいつ表示しますか？';
+
+  @override
+  String get onboardingEngineBody => 'すべてこのiPhone上で書き起こされます。設定の「文字起こし」でいつでも変更できます。';
+
+  @override
+  String get onboardingEngineAsYouSpeak => '話しながら';
+
+  @override
+  String get onboardingEngineAfterYouStop => '止めたあと';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return '$engineで書き起こし';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => 'モデルを変更';
+
+  @override
   String get onboardingStart => '始める';
 
   @override

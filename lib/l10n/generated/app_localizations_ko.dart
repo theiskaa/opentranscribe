@@ -800,6 +800,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingNext => '다음';
 
   @override
+  String get onboardingEngineTitle => '글자를 언제 보여 줄까요?';
+
+  @override
+  String get onboardingEngineBody => '모든 내용은 이 iPhone에서 작성됩니다. 설정의 전사에서 언제든 바꿀 수 있습니다.';
+
+  @override
+  String get onboardingEngineAsYouSpeak => '말하는 동안';
+
+  @override
+  String get onboardingEngineAfterYouStop => '멈춘 후';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return '$engine이(가) 작성';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => '모델 변경';
+
+  @override
   String get onboardingStart => '시작하기';
 
   @override

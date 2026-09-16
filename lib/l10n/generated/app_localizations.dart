@@ -1500,6 +1500,42 @@ abstract class AppLocalizations {
   /// **'Next'**
   String get onboardingNext;
 
+  /// Title of the onboarding page that picks when transcribed words appear, which picks the engine
+  ///
+  /// In en, this message translates to:
+  /// **'When should words appear?'**
+  String get onboardingEngineTitle;
+
+  /// Body under the onboarding engine page title
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is written on this phone. You can change it anytime under Transcription in Settings.'**
+  String get onboardingEngineBody;
+
+  /// Segment: an engine that shows words while you record
+  ///
+  /// In en, this message translates to:
+  /// **'As you speak'**
+  String get onboardingEngineAsYouSpeak;
+
+  /// Segment: an engine that writes words once the recording stops
+  ///
+  /// In en, this message translates to:
+  /// **'After you stop'**
+  String get onboardingEngineAfterYouStop;
+
+  /// Names the engine that writes the words on the onboarding engine page
+  ///
+  /// In en, this message translates to:
+  /// **'Written by {engine}'**
+  String onboardingEngineWrittenBy(String engine);
+
+  /// Link opening the model sheet from the onboarding engine page
+  ///
+  /// In en, this message translates to:
+  /// **'Change model'**
+  String get onboardingEngineChangeModel;
+
   /// Button finishing onboarding and entering the app
   ///
   /// In en, this message translates to:
