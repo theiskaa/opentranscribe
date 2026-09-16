@@ -16,6 +16,7 @@ A third engine, Whisper, that runs every language from one model you pick, on an
 - The transcription screen: your language sits on top and stays put, and each engine's part slides in under the engine control. Tap an engine, drag the control, or swipe the page. Each engine says whether your words show as you speak or after you stop. While a recording runs the page won't switch, and an engine this iPhone can't run shows why.
 - The model list works like the language list: the models you have, then the rest, each with what it's for. Tap one to use it or to download it; a download shows a ring you tap to stop it, and one you have can be removed there. A model too large for the phone is dimmed.
 - The Cache screen shows what the app keeps as one bar: transcribed recordings, recordings not transcribed yet, and models. Clear sits on the row it frees, and says how much it freed.
+- Onboarding asks when your words should appear, right after the first page: as you speak, or after you stop. It starts on as you speak, a short take plays each answer, and the answer picks the engine. As you speak is SpeechAnalyzer, or Dictation on an iPhone that can't run it; after you stop is Whisper, with its model shown in full and Change model to pick another. The chosen model starts downloading when you tap Next, so it's there by your first entry.
 
 ## 0.4.1 - 2026-09-09
 
