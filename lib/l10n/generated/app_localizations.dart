@@ -768,12 +768,6 @@ abstract class AppLocalizations {
   /// **'Transcription'**
   String get settingsModels;
 
-  /// Section label over the kept languages in the language sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Your languages'**
-  String get transcriptionYourLanguages;
-
   /// Section label over the remaining library in the language sheet
   ///
   /// In en, this message translates to:

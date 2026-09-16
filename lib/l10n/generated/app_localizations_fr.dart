@@ -382,9 +382,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionYourLanguages => 'Vos langues';
-
-  @override
   String get transcriptionAllLanguages => 'Toutes les langues';
 
   @override

@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "无法移除",
   "modelFailRemoveBody": "系统未能释放 {language}。再试一次也没有问题。",
   "settingsModels": "转写",
-  "transcriptionYourLanguages": "我的语言",
   "transcriptionAllLanguages": "所有语言",
   "transcriptionSpeaking": "你说的语言",
   "transcriptionAlsoReady": "其他就绪语言",

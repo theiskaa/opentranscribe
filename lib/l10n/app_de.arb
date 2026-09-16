@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "Entfernen nicht möglich",
   "modelFailRemoveBody": "Das System hat {language} nicht freigegeben. Ein erneuter Versuch ist unbedenklich.",
   "settingsModels": "Transkription",
-  "transcriptionYourLanguages": "Ihre Sprachen",
   "transcriptionAllLanguages": "Alle Sprachen",
   "transcriptionSpeaking": "Gesprochene Sprache",
   "transcriptionAlsoReady": "Ebenfalls bereit",

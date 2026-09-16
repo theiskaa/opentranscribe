@@ -364,9 +364,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsModels => '전사';
 
   @override
-  String get transcriptionYourLanguages => '내 언어';
-
-  @override
   String get transcriptionAllLanguages => '모든 언어';
 
   @override

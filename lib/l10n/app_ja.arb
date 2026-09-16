@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "削除できませんでした",
   "modelFailRemoveBody": "システムが {language} を解放しませんでした。もう一度試しても問題ありません。",
   "settingsModels": "文字起こし",
-  "transcriptionYourLanguages": "自分の言語",
   "transcriptionAllLanguages": "すべての言語",
   "transcriptionSpeaking": "話す言語",
   "transcriptionAlsoReady": "準備済みの言語",

@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "삭제하지 못함",
   "modelFailRemoveBody": "시스템이 {language}을(를) 해제하지 않았습니다. 다시 시도해도 안전합니다.",
   "settingsModels": "전사",
-  "transcriptionYourLanguages": "내 언어",
   "transcriptionAllLanguages": "모든 언어",
   "transcriptionSpeaking": "말하는 언어",
   "transcriptionAlsoReady": "준비된 다른 언어",

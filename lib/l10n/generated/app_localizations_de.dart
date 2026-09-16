@@ -382,9 +382,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsModels => 'Transkription';
 
   @override
-  String get transcriptionYourLanguages => 'Ihre Sprachen';
-
-  @override
   String get transcriptionAllLanguages => 'Alle Sprachen';
 
   @override

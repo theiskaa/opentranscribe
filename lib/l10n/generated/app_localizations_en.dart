@@ -377,9 +377,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionYourLanguages => 'Your languages';
-
-  @override
   String get transcriptionAllLanguages => 'All languages';
 
   @override

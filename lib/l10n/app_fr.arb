@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "Suppression impossible",
   "modelFailRemoveBody": "Le système n'a pas libéré {language}. Réessayer ne pose aucun problème.",
   "settingsModels": "Transcription",
-  "transcriptionYourLanguages": "Vos langues",
   "transcriptionAllLanguages": "Toutes les langues",
   "transcriptionSpeaking": "Langue parlée",
   "transcriptionAlsoReady": "Aussi prêtes",

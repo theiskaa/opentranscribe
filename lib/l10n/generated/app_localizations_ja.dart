@@ -363,9 +363,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsModels => '文字起こし';
 
   @override
-  String get transcriptionYourLanguages => '自分の言語';
-
-  @override
   String get transcriptionAllLanguages => 'すべての言語';
 
   @override

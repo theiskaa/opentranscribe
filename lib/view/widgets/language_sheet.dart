@@ -15,6 +15,7 @@ import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/model_failure_line.dart';
 import 'package:opentranscribe/view/widgets/model_failure_sheet.dart';
 import 'package:opentranscribe/view/widgets/model_failure_story.dart';
@@ -29,8 +30,8 @@ void openLanguageSheet(BuildContext context) {
   unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
 }
 
-/// The whole language library in one sheet: Your languages (the kept set;
-/// tapping one makes it the default and closes the sheet, the remove
+/// The whole language library in one sheet: the kept set in a card on top
+/// (tapping one makes it the default and closes the sheet, the remove
 /// affordance lives here) over All languages (a tap downloads-and-keeps under
 /// a managed engine; under dictation a ready row becomes the default and an
 /// unready one tells the keyboard-settings story).
@@ -112,38 +113,53 @@ class _LanguageList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (yours.isNotEmpty) ...[
-              SectionLabel(l10n.transcriptionYourLanguages),
-              SettingsCard(
-                children: [
-                  for (final row in yours)
-                    _SheetRow(
-                      key: ValueKey(row.tag),
-                      row: row,
-                      managesModels: state.managesModels,
-                      canManage: canManage,
-                      installs: installs(row),
-                      picks: picks(row),
+            // The sheet's grabber already gives the top its breath.
+            const SizedBox(height: AppSpacing.xs),
+            // The gap between the cards rides the top one's bottom, so a language
+            // moving between them grows it with the resize instead of jumping.
+            Melt(
+              child: yours.isEmpty
+                  ? const SizedBox(width: double.infinity)
+                  : Padding(
+                      padding: EdgeInsets.only(bottom: others.isEmpty ? 0 : AppSpacing.xxl),
+                      child: SettingsCard(
+                        children: [
+                          for (final row in yours)
+                            _SheetRow(
+                              key: ValueKey(row.tag),
+                              row: row,
+                              managesModels: state.managesModels,
+                              canManage: canManage,
+                              installs: installs(row),
+                              picks: picks(row),
+                            ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
-            ],
-            if (others.isNotEmpty) ...[
-              SectionLabel(l10n.transcriptionAllLanguages),
-              SettingsCard(
-                children: [
-                  for (final row in others)
-                    _SheetRow(
-                      key: ValueKey(row.tag),
-                      row: row,
-                      managesModels: state.managesModels,
-                      canManage: canManage,
-                      installs: installs(row),
-                      picks: picks(row),
+            ),
+            Melt(
+              child: others.isEmpty
+                  ? const SizedBox(width: double.infinity)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SectionLabel(l10n.transcriptionAllLanguages, top: 0),
+                        SettingsCard(
+                          children: [
+                            for (final row in others)
+                              _SheetRow(
+                                key: ValueKey(row.tag),
+                                row: row,
+                                managesModels: state.managesModels,
+                                canManage: canManage,
+                                installs: installs(row),
+                                picks: picks(row),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                ],
-              ),
-            ],
+            ),
           ],
         );
       },

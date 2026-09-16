@@ -380,9 +380,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsModels => 'Transcrição';
 
   @override
-  String get transcriptionYourLanguages => 'Os seus idiomas';
-
-  @override
   String get transcriptionAllLanguages => 'Todos os idiomas';
 
   @override

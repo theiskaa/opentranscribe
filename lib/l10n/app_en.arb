@@ -496,10 +496,6 @@
   "@settingsModels": {
     "description": "Settings row leading to the models screen (per-language on-device models)"
   },
-  "transcriptionYourLanguages": "Your languages",
-  "@transcriptionYourLanguages": {
-    "description": "Section label over the kept languages in the language sheet"
-  },
   "transcriptionAllLanguages": "All languages",
   "@transcriptionAllLanguages": {
     "description": "Section label over the remaining library in the language sheet"

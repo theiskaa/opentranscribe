@@ -359,9 +359,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsModels => '转写';
 
   @override
-  String get transcriptionYourLanguages => '我的语言';
-
-  @override
   String get transcriptionAllLanguages => '所有语言';
 
   @override

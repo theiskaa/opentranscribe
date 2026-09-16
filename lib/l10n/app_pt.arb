@@ -110,7 +110,6 @@
   "modelFailRemoveTitle": "Não foi possível remover",
   "modelFailRemoveBody": "O sistema não libertou {language}. Tentar de novo é seguro.",
   "settingsModels": "Transcrição",
-  "transcriptionYourLanguages": "Os seus idiomas",
   "transcriptionAllLanguages": "Todos os idiomas",
   "transcriptionSpeaking": "Idioma falado",
   "transcriptionAlsoReady": "Também prontos",
