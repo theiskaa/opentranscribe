@@ -28,19 +28,28 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// is its one promise: use a model that is here (closing the sheet), fetch
 /// one that is not, retry one that failed. Its trailing mark says where it
 /// stands, and the trash beside a kept model is a separate affordance.
-Future<void> showModelSheet(BuildContext context, {required ModelsCubit cubit}) {
+/// [choosing] makes a tap on a model that is not here choose it rather than
+/// fetch it, for a surface that downloads the choice later.
+Future<void> showModelSheet(
+  BuildContext context, {
+  required ModelsCubit cubit,
+  bool choosing = false,
+}) {
   return showAppSheet<void>(
     context,
     // Full-width cards, like the language sheet's.
     inset: AppSpacing.md,
-    builder: (context) => BlocProvider.value(value: cubit, child: const _ModelList()),
+    builder: (context) => BlocProvider.value(
+      value: cubit,
+      child: _ModelList(choosing: choosing),
+    ),
   );
 }
 
 /// [showModelSheet] from a tap, while the route is still on top.
-void openModelSheet(BuildContext context) {
+void openModelSheet(BuildContext context, {bool choosing = false}) {
   if (!isTopRoute(context)) return;
-  unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>()));
+  unawaited(showModelSheet(context, cubit: context.read<ModelsCubit>(), choosing: choosing));
 }
 
 /// Whether [row] sits in the top card, with the models here: only once it is
@@ -93,7 +102,9 @@ String modelSheetLine(AppLocalizations l10n, ModelRowState row, {required String
 }
 
 class _ModelList extends StatelessWidget {
-  const _ModelList();
+  const _ModelList({required this.choosing});
+
+  final bool choosing;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +134,7 @@ class _ModelList extends StatelessWidget {
                   ? const SizedBox(width: double.infinity)
                   : Padding(
                       padding: EdgeInsets.only(bottom: others.isEmpty ? 0 : AppSpacing.xxl),
-                      child: _Card(rows: yours, inset: inset),
+                      child: _Card(rows: yours, inset: inset, choosing: choosing),
                     ),
             ),
             Melt(
@@ -133,7 +144,7 @@ class _ModelList extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         SectionLabel(l10n.transcriptionAllModels, top: 0),
-                        _Card(rows: others, inset: inset),
+                        _Card(rows: others, inset: inset, choosing: choosing),
                       ],
                     ),
             ),
@@ -150,24 +161,29 @@ class _ModelList extends StatelessWidget {
 
 /// A card of model rows.
 class _Card extends StatelessWidget {
-  const _Card({required this.rows, required this.inset});
+  const _Card({required this.rows, required this.inset, required this.choosing});
 
   final List<ModelRowState> rows;
   final double inset;
+  final bool choosing;
 
   @override
   Widget build(BuildContext context) {
     return SettingsCard(
       dividerInset: inset,
-      children: [for (final row in rows) _SheetRow(key: ValueKey(row.option.id), row: row)],
+      children: [
+        for (final row in rows)
+          _SheetRow(key: ValueKey(row.option.id), row: row, choosing: choosing),
+      ],
     );
   }
 }
 
 class _SheetRow extends StatelessWidget {
-  const _SheetRow({required this.row, super.key});
+  const _SheetRow({required this.row, required this.choosing, super.key});
 
   final ModelRowState row;
+  final bool choosing;
 
   @override
   Widget build(BuildContext context) {
@@ -237,14 +253,9 @@ class _SheetRow extends StatelessWidget {
       case ModelRowFace.selected:
         Navigator.of(context).pop();
       case ModelRowFace.installed:
-        // The route is read before the pick: the sheet's elements outlive its
-        // pop through the exit transition, so mounted alone does not say it
-        // is up.
-        final route = ModalRoute.of(context);
-        if (!await useModel(context, row)) return;
-        if (context.mounted && (route?.isCurrent ?? false)) Navigator.of(context).pop();
+        await _use(context);
       case ModelRowFace.download:
-        await installModel(context, row);
+        await (choosing ? _use(context) : installModel(context, row));
       case ModelRowFace.failed:
         await _retry(context);
       case ModelRowFace.heavy:
@@ -252,6 +263,14 @@ class _SheetRow extends StatelessWidget {
       case ModelRowFace.installing:
         return;
     }
+  }
+
+  Future<void> _use(BuildContext context) async {
+    // The route is read before the pick: the sheet's elements outlive its pop
+    // through the exit transition, so mounted alone does not say it is up.
+    final route = ModalRoute.of(context);
+    if (!await useModel(context, row)) return;
+    if (context.mounted && (route?.isCurrent ?? false)) Navigator.of(context).pop();
   }
 
   /// A failed download's story, with the retry as its action.
