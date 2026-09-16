@@ -48,4 +48,40 @@ void main() {
     expect(held, 336);
     expect(heldKeyboardInset(inset: 291, held: held, settled: true), 291);
   });
+
+  test('a drag down on a list at its top pulls the whole sheet down', () {
+    final split = splitSheetDrag(delta: 12, pixels: 0, minScrollExtent: 0, sheetOffset: 0);
+    expect(split.sheet, 12);
+    expect(split.content, 0);
+  });
+
+  test('a drag down on a scrolled list scrolls it to its top before the sheet moves', () {
+    final split = splitSheetDrag(delta: 12, pixels: 5, minScrollExtent: 0, sheetOffset: 0);
+    expect(split.content, 5);
+    expect(split.sheet, 7);
+  });
+
+  test('a drag down deep in a list only scrolls the list', () {
+    final split = splitSheetDrag(delta: 12, pixels: 300, minScrollExtent: 0, sheetOffset: 0);
+    expect(split.content, 12);
+    expect(split.sheet, 0);
+  });
+
+  test('a drag up on a pulled sheet lifts it back to rest before the list scrolls', () {
+    final split = splitSheetDrag(delta: -12, pixels: 0, minScrollExtent: 0, sheetOffset: 5);
+    expect(split.sheet, -5);
+    expect(split.content, -7);
+  });
+
+  test('a drag up on a resting sheet only scrolls the list', () {
+    final split = splitSheetDrag(delta: -12, pixels: 40, minScrollExtent: 0, sheetOffset: 0);
+    expect(split.sheet, 0);
+    expect(split.content, -12);
+  });
+
+  test('a list bounced past its top hands a drag down straight to the sheet', () {
+    final split = splitSheetDrag(delta: 8, pixels: -20, minScrollExtent: 0, sheetOffset: 0);
+    expect(split.sheet, 8);
+    expect(split.content, 0);
+  });
 }
