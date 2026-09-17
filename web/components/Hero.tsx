@@ -9,7 +9,7 @@ import {
   HERO_TITLE,
 } from "@/lib/site";
 import Recorder from "@/components/recorder/Recorder";
-import DitherCorner from "./DitherCorner";
+import HeroHalo from "./HeroHalo";
 import { AppleIcon, GithubIcon } from "./Icons";
 
 function Side({ shot, className }: { shot: (typeof HERO_SIDES)[number]; className: string }) {
@@ -32,10 +32,7 @@ export default function Hero() {
   const [left, right] = HERO_SIDES;
   return (
     <div className="relative overflow-hidden">
-      <DitherCorner
-        from="top"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[640px] w-full"
-      />
+      <HeroHalo />
       <div className="relative mx-auto w-full max-w-frame px-6 pt-28 sm:px-12 sm:pt-36">
         <div className="flex flex-col items-center text-center">
           <h1 className="t-hero max-w-[14em]">{HERO_TITLE}</h1>
