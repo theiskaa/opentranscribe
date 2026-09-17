@@ -115,15 +115,11 @@ export const CLUB = {
 export const ENGINES = {
   title: "Three engines, all on the device.",
   lead: "Pick when your words should appear and the app picks the engine. Every engine has to declare that it runs on the device before the app will load it.",
-  labels: ["Your words appear", "Languages", "What it needs"],
-  switchLabel: "Engine",
   inUseLabel: "In use",
   speaking: {
-    label: "Speaking",
     flag: "🇺🇸",
     language: "English (US)",
     ready: "Ready",
-    alsoLabel: "Also ready",
   },
   alsoReady: [
     { flag: "🇪🇸", name: "Español (ES)" },
@@ -133,38 +129,39 @@ export const ENGINES = {
   cards: [
     {
       id: "speech",
-      tab: "Speech",
       name: "SpeechAnalyzer",
       maker: "Apple",
       mark: "apple",
       note: "Apple's newest engine, a downloaded model per language. Shows your words as you speak.",
       facts: [
-        "As you speak",
-        "One Apple speech model per language, downloaded once and shared with the system",
-        "iOS 26",
+        { icon: "waveform", text: "Words as you speak" },
+        { icon: "globe", text: "A model per language" },
+        { icon: "checkmark", text: "iOS 26" },
       ],
     },
     {
       id: "whisper",
-      tab: "Whisper",
       name: "Whisper",
       maker: "OpenAI, through whisper.cpp",
       mark: "openai",
       note: "An open model on whisper.cpp, one download for every language. Writes your words after you stop.",
       facts: [
-        "After you stop",
-        "One model of five, serving every language it knows, about a hundred",
-        "One model download, the app's only connection",
+        { icon: "textAlignleft", text: "Words after you stop" },
+        { icon: "globe", text: "About a hundred languages" },
+        { icon: "arrowDownCircle", text: "One model download" },
       ],
     },
     {
       id: "dictation",
-      tab: "Dictation",
       name: "Dictation",
       maker: "Apple",
       mark: "apple",
       note: "The recognizer behind iOS keyboard dictation. Shows your words as you speak.",
-      facts: ["As you speak", "The languages iOS dictation knows", "Nothing extra"],
+      facts: [
+        { icon: "waveform", text: "Words as you speak" },
+        { icon: "globe", text: "The languages iOS dictates" },
+        { icon: "checkmark", text: "Nothing to download" },
+      ],
     },
   ],
   models: [
@@ -205,7 +202,7 @@ export const ENGINES = {
     },
   ],
   inUse: "Small",
-  opensOn: "whisper",
+  leads: "whisper",
 } as const;
 
 export const AUDIT = {
