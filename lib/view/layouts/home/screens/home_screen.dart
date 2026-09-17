@@ -903,6 +903,8 @@ class _RecordsList extends StatelessWidget {
 
     return ListView(
       controller: controller,
+      // A journal shorter than the screen must still overscroll for pull-to-record.
+      physics: const AlwaysScrollableScrollPhysics(),
       // Materialize everything: with every splitter measured, calendar taps
       // have exact targets and the title tracker never runs blind. Journal
       // scale keeps this affordable.
