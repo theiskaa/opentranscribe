@@ -37,7 +37,7 @@ function useReducedMotion(): boolean {
 // The app's recorder, playing the take the onboarding plays. Everything on
 // the screen derives from one elapsed time, which only runs while the phone is
 // in view.
-export default function Recorder() {
+export default function Recorder({ controls = true }: { controls?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const band = useRef<WaveformHandle>(null);
   const clock = useRef({ elapsed: 0, lastFrame: 0, lastSample: 0 });
@@ -162,6 +162,7 @@ export default function Recorder() {
         </div>
         <Controls
           paused={paused}
+          inert={!controls}
           onClose={end}
           onRestart={restart}
           onComplete={end}

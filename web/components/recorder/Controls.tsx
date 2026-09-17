@@ -4,15 +4,24 @@ import styles from "./Recorder.module.css";
 
 type Props = {
   paused: boolean;
+  // Out of reach where the page cuts the phone above the row.
+  inert: boolean;
   onClose: () => void;
   onRestart: () => void;
   onTogglePause: () => void;
   onComplete: () => void;
 };
 
-export default function Controls({ paused, onClose, onRestart, onTogglePause, onComplete }: Props) {
+export default function Controls({
+  paused,
+  inert,
+  onClose,
+  onRestart,
+  onTogglePause,
+  onComplete,
+}: Props) {
   return (
-    <div className={styles.controls}>
+    <div className={styles.controls} inert={inert}>
       <Press label="Close" className={styles.control} onTap={onClose}>
         <Glyph name="xmark" size={20} />
       </Press>

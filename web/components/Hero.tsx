@@ -60,7 +60,7 @@ export default function Hero() {
         <div className="hero-stage mt-16 grid h-[480px] grid-cols-[minmax(0,330px)] overflow-hidden sm:h-[540px] items-start justify-center gap-10 lg:grid-cols-[1fr_minmax(0,330px)_1fr]">
           <Side shot={left} className="mt-24 justify-self-end" />
           <div className="mx-auto w-full max-w-[300px] sm:max-w-[330px]">
-            <Recorder />
+            <Recorder controls={false} />
           </div>
           <Side shot={right} className="mt-24 justify-self-start" />
         </div>
