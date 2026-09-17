@@ -7,9 +7,12 @@ const CELL = 4;
 const OPACITY = 0.13;
 const STRETCH = 1.25;
 const FALLOFF = 2.1;
+const TOP_SPREAD = 1.6;
 
 // Mirrors the halo on the app's club sheet.
-export default function DitherCorner({ className = "" }: { className?: string }) {
+type Props = { className?: string; from?: "topRight" | "top" };
+
+export default function DitherCorner({ className = "", from = "topRight" }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -29,7 +32,7 @@ export default function DitherCorner({ className = "" }: { className?: string })
       ctx.fillStyle = INK;
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          const dx = 1 - x / cols;
+          const dx = from === "top" ? (x / cols - 0.5) * TOP_SPREAD : 1 - x / cols;
           const dy = y / rows;
           const level = Math.max(0, 1 - Math.hypot(dx, dy * STRETCH)) ** FALLOFF;
           if (level > (BAYER_8[y & 7][x & 7] + 0.5) / 64) {
@@ -41,7 +44,7 @@ export default function DitherCorner({ className = "" }: { className?: string })
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, []);
+  }, [from]);
 
   return <canvas ref={ref} aria-hidden className={className} />;
 }

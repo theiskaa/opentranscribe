@@ -8,6 +8,11 @@ export const HERO_TITLE = "A voice journal that never leaves your phone.";
 export const HERO_LEAD =
   "Tap once and talk. OpenTranscribe records, transcribes, and reflects entirely on your iPhone. No account, no sync, no telemetry, and it works the same in airplane mode.";
 
+export const HERO_SIDES = [
+  { src: "/shots/home@2x.png", alt: "The week of entries" },
+  { src: "/shots/reflections@2x.png", alt: "A written reflection" },
+] as const;
+
 export const HERO_FACTS = ["Free, every feature", "Open source, MIT licensed", "Data not collected"] as const;
 
 export const SITE_TITLE = "OpenTranscribe: an offline voice journal for iOS";
