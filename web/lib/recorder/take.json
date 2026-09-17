@@ -1,0 +1,370 @@
+{
+ "lengthMs": 42000,
+ "tokens": [
+  "Met",
+  "Lia",
+  "for",
+  "coffee",
+  "and",
+  "we",
+  "ended",
+  "up",
+  "talking",
+  "about",
+  "the",
+  "move",
+  "for",
+  "two",
+  "hours.",
+  "I",
+  "keep",
+  "saying",
+  "I",
+  "want",
+  "a",
+  "smaller",
+  "life",
+  "and",
+  "then",
+  "filling",
+  "every",
+  "evening.",
+  "Walked",
+  "home",
+  "the",
+  "long",
+  "way.",
+  "The",
+  "city",
+  "was",
+  "quiet",
+  "for",
+  "once.",
+  "Then",
+  "I",
+  "sat",
+  "on",
+  "the",
+  "steps",
+  "for",
+  "a",
+  "while",
+  "and",
+  "did",
+  "nothing,",
+  "which",
+  "felt",
+  "like",
+  "the",
+  "point.",
+  "Work",
+  "was",
+  "fine.",
+  "Nobody",
+  "asked",
+  "for",
+  "anything",
+  "I",
+  "could",
+  "not",
+  "give.",
+  "Tomorrow",
+  "I",
+  "want",
+  "to",
+  "call",
+  "Mum",
+  "before",
+  "it",
+  "gets",
+  "late."
+ ],
+ "joiner": " ",
+ "bursts": [
+  {
+   "speakStart": 500.0,
+   "speakEnd": 814.484,
+   "lands": 1033.756,
+   "shown": 1
+  },
+  {
+   "speakStart": 1128.553,
+   "speakEnd": 1678.891,
+   "lands": 1848.729,
+   "shown": 3
+  },
+  {
+   "speakStart": 1987.627,
+   "speakEnd": 2335.065,
+   "lands": 2534.495,
+   "shown": 4
+  },
+  {
+   "speakStart": 2559.242,
+   "speakEnd": 3808.363,
+   "lands": 4085.197,
+   "shown": 8
+  },
+  {
+   "speakStart": 4048.152,
+   "speakEnd": 4702.294,
+   "lands": 5005.196,
+   "shown": 10
+  },
+  {
+   "speakStart": 5041.022,
+   "speakEnd": 5860.19,
+   "lands": 6050.812,
+   "shown": 13
+  },
+  {
+   "speakStart": 6151.244,
+   "speakEnd": 6812.081,
+   "lands": 7006.8,
+   "shown": 15
+  },
+  {
+   "speakStart": 8617.366,
+   "speakEnd": 10202.272,
+   "lands": 10400.988,
+   "shown": 20
+  },
+  {
+   "speakStart": 10568.424,
+   "speakEnd": 11051.821,
+   "lands": 11200.154,
+   "shown": 22
+  },
+  {
+   "speakStart": 11266.542,
+   "speakEnd": 12037.998,
+   "lands": 12296.653,
+   "shown": 25
+  },
+  {
+   "speakStart": 12234.068,
+   "speakEnd": 13033.118,
+   "lands": 13292.812,
+   "shown": 28
+  },
+  {
+   "speakStart": 15014.38,
+   "speakEnd": 15444.905,
+   "lands": 15621.602,
+   "shown": 30
+  },
+  {
+   "speakStart": 15845.201,
+   "speakEnd": 16675.331,
+   "lands": 16824.604,
+   "shown": 33
+  },
+  {
+   "speakStart": 17668.415,
+   "speakEnd": 19050.412,
+   "lands": 19302.95,
+   "shown": 38
+  },
+  {
+   "speakStart": 19350.259,
+   "speakEnd": 19615.593,
+   "lands": 19899.406,
+   "shown": 39
+  },
+  {
+   "speakStart": 21424.875,
+   "speakEnd": 22066.69,
+   "lands": 22366.518,
+   "shown": 41
+  },
+  {
+   "speakStart": 22417.998,
+   "speakEnd": 22695.334,
+   "lands": 22963.465,
+   "shown": 42
+  },
+  {
+   "speakStart": 23010.326,
+   "speakEnd": 23235.017,
+   "lands": 23499.16,
+   "shown": 43
+  },
+  {
+   "speakStart": 23426.536,
+   "speakEnd": 24427.199,
+   "lands": 24596.121,
+   "shown": 46
+  },
+  {
+   "speakStart": 24761.53,
+   "speakEnd": 25237.341,
+   "lands": 25425.352,
+   "shown": 48
+  },
+  {
+   "speakStart": 25470.538,
+   "speakEnd": 26506.201,
+   "lands": 26769.212,
+   "shown": 51
+  },
+  {
+   "speakStart": 26839.453,
+   "speakEnd": 27172.796,
+   "lands": 27462.294,
+   "shown": 52
+  },
+  {
+   "speakStart": 27359.442,
+   "speakEnd": 28027.175,
+   "lands": 28260.789,
+   "shown": 55
+  },
+  {
+   "speakStart": 28302.959,
+   "speakEnd": 28636.372,
+   "lands": 28818.311,
+   "shown": 56
+  },
+  {
+   "speakStart": 30414.214,
+   "speakEnd": 31118.071,
+   "lands": 31309.53,
+   "shown": 58
+  },
+  {
+   "speakStart": 31324.959,
+   "speakEnd": 31613.758,
+   "lands": 31776.123,
+   "shown": 59
+  },
+  {
+   "speakStart": 32897.636,
+   "speakEnd": 34282.463,
+   "lands": 34490.357,
+   "shown": 63
+  },
+  {
+   "speakStart": 34601.474,
+   "speakEnd": 34863.547,
+   "lands": 35092.503,
+   "shown": 64
+  },
+  {
+   "speakStart": 35171.814,
+   "speakEnd": 35480.715,
+   "lands": 35645.158,
+   "shown": 65
+  },
+  {
+   "speakStart": 35783.842,
+   "speakEnd": 36306.547,
+   "lands": 36515.75,
+   "shown": 67
+  },
+  {
+   "speakStart": 37510.013,
+   "speakEnd": 39043.673,
+   "lands": 39264.379,
+   "shown": 72
+  },
+  {
+   "speakStart": 39444.798,
+   "speakEnd": 40587.629,
+   "lands": 40861.785,
+   "shown": 76
+  },
+  {
+   "speakStart": 40839.934,
+   "speakEnd": 41064.109,
+   "lands": 41300.0,
+   "shown": 77
+  }
+ ],
+ "landings": [
+  994.484,
+  1583.722,
+  1858.891,
+  2515.065,
+  3051.522,
+  3363.802,
+  3676.082,
+  3988.362,
+  4555.223,
+  4882.294,
+  5494.078,
+  5767.134,
+  6040.19,
+  6661.662,
+  6992.08,
+  9114.347,
+  9431.328,
+  9748.309,
+  10065.29,
+  10382.271,
+  10990.122,
+  11231.82,
+  11703.694,
+  11960.846,
+  12217.998,
+  12680.418,
+  12946.768,
+  13213.118,
+  15409.642,
+  15624.904,
+  16301.911,
+  16578.621,
+  16855.331,
+  18124.814,
+  18401.213,
+  18677.612,
+  18954.011,
+  19230.41,
+  19795.593,
+  21925.782,
+  22246.689,
+  22875.334,
+  23415.017,
+  23940.09,
+  24273.644,
+  24607.198,
+  25179.435,
+  25417.34,
+  25995.759,
+  26340.98,
+  26686.201,
+  27352.796,
+  27762.019,
+  27984.596,
+  28207.173,
+  28816.372,
+  30946.142,
+  31298.07,
+  31793.758,
+  33423.842,
+  33770.048,
+  34116.254,
+  34462.46,
+  35043.547,
+  35660.715,
+  36225.194,
+  36486.546,
+  37996.745,
+  38303.477,
+  38610.209,
+  38916.941,
+  39223.673,
+  39910.505,
+  40196.212,
+  40481.919,
+  40767.626,
+  41244.109
+ ],
+ "colors": {
+  "timer": "#f5f5f5ff",
+  "waveformBar": "#f5f5f5ff",
+  "waveformBarIdle": "#f5f5f540",
+  "waveformBaseline": "#f5f5f51a",
+  "liveText": "#98989eff",
+  "liveTextFaded": "#98989e95"
+ }
+}
