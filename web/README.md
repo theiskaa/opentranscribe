@@ -20,7 +20,8 @@ pnpm test       # node --test over lib/**/*.test.ts, needs Node 22.6 or newer
 - `lib/site.ts`: links and all copy, section data included. No copy lives in a
   component.
 - `lib/wave.ts`: the waveform mark's path data.
-- `lib/canvas.ts`: the ink colour and the 8x8 Bayer matrix the dither draws with.
+- `lib/canvas.ts` and `lib/dither.ts`: the ink colour, the 8x8 Bayer matrix, and the
+  app's dither maths (threshold, noise, smoothstep) ported function for function.
 - `app/globals.css`: the tokens, the type scale (`t-hero`, `t-display`,
   `t-title`, ...), the shared `panel` and `app-card` surfaces, and the hover and
   press feedback.
@@ -29,7 +30,7 @@ pnpm test       # node --test over lib/**/*.test.ts, needs Node 22.6 or newer
     reflection dimmed beside it. `HeroHalo.tsx` holds the dither to the screen
     and fades it out within a short scroll.
   - `FeaturePanels.tsx`, `Engines.tsx`, `Club.tsx`, `Audit.tsx`: the sections.
-  - `DitherCorner.tsx`: the ordered dither, from the top or the top right.
+  - `DitherCorner.tsx`: the app's breathing ordered dither, from the top or the top right.
   - `Sf.tsx` and `sfGlyphs.ts`: outlines from the app's own icon font.
   - `Nav.tsx`, `Footer.tsx`, `Wordmark.tsx`, `Icons.tsx`, and the changelog and
     license modal (`DocLink.tsx`, `DocModal.tsx`, `Markdown.tsx`).
@@ -59,6 +60,6 @@ Transparent, device-framed PNGs live in `public/shots/` (`recording`, `entry`,
 `reflections`, `home`, `models` at `@2x`), wired in `lib/site.ts`. The club's
 icon art in `public/icons/` is exported from the app's appiconsets.
 
-Nothing on the page moves on its own but the recorder, and nothing enters with
+Nothing on the page moves on its own but the recorder and the slow dither, and nothing enters with
 an animation. Hover and press feedback is deliberately not gated behind
 `prefers-reduced-motion`.

@@ -32,7 +32,7 @@ export default function HeroHalo() {
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[640px]"
+      className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[min(88svh,820px)]"
     >
       <DitherCorner from="top" className="h-full w-full" />
     </div>
