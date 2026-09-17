@@ -8,8 +8,10 @@
 
   --ink: #f5f5f5;
   --ink-2: #98989e;
+  --ink-3: #6c6c72;
+  --raise: #18181a;
+  --surface: #1c1c1e;
 
-  --ease-entrance: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -21,7 +23,7 @@ html {
 body {
   background: var(--canvas);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -38,18 +40,45 @@ button:focus-visible {
 }
 
 @layer components {
-  .t-display {
-    font-size: clamp(34px, 5.5vw, 54px);
+  .t-hero {
+    font-size: clamp(40px, 6.4vw, 76px);
     font-weight: 600;
-    letter-spacing: -0.017em;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-display {
+    font-size: clamp(30px, 4vw, 46px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-price {
+    font-size: 64px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .t-lead {
+    font-size: 19px;
+    line-height: 1.5;
+    letter-spacing: -0.2px;
+  }
+  .t-path {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
   }
   .t-title {
-    font-size: clamp(21px, 2.6vw, 28px);
+    font-size: 24px;
     font-weight: 600;
-    letter-spacing: -0.4px;
-    line-height: 1.3;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
     color: var(--ink);
   }
   .t-body {
@@ -125,6 +154,16 @@ button:focus-visible {
   .btn-ghost:active {
     transform: scale(0.96);
   }
+
+  .panel {
+    border-radius: 28px;
+    background: var(--raise);
+  }
+  .app-card {
+    border-radius: 20px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+  }
 }
 
 .rule-fade {
@@ -132,43 +171,15 @@ button:focus-visible {
   background: linear-gradient(90deg, var(--hairline), transparent);
 }
 
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-entrance), transform 0.7s var(--ease-entrance);
-  will-change: transform, opacity;
-}
-.reveal.in {
-  opacity: 1;
-  transform: none;
-  will-change: auto;
+.engine-thumb {
+  transition: transform 0.28s cubic-bezier(0.3, 1.2, 0.5, 1);
 }
 
-.reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-entrance), transform 0.7s var(--ease-entrance);
+.panel-shot {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
 }
-.reveal-stagger.in > * {
-  opacity: 1;
-  transform: none;
-}
-.reveal-stagger.in > *:nth-child(1) { transition-delay: 0ms; }
-.reveal-stagger.in > *:nth-child(2) { transition-delay: 120ms; }
-.reveal-stagger.in > *:nth-child(3) { transition-delay: 240ms; }
-.reveal-stagger.in > *:nth-child(4) { transition-delay: 360ms; }
-.reveal-stagger.in > *:nth-child(5) { transition-delay: 480ms; }
-.reveal-stagger.in > *:nth-child(6) { transition-delay: 600ms; }
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.boot { opacity: 0; animation: fade-up 0.7s var(--ease-entrance) forwards; }
-.boot-1 { animation-delay: 0.05s; }
-.boot-2 { animation-delay: 0.17s; }
-.boot-3 { animation-delay: 0.29s; }
-.boot-4 { animation-delay: 0.41s; }
 
 @keyframes doc-scrim-in {
   from { opacity: 0; }
@@ -183,15 +194,9 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .boot { animation: none; opacity: 1; }
   .doc-scrim,
   .doc-panel { animation: none; }
+  .engine-thumb { transition: none; }
   .btn:active,
   .btn-ghost:active { transform: none; }
-  .reveal,
-  .reveal-stagger > * {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import {
   SITE_URL,
@@ -7,6 +8,8 @@ import {
   SITE_DESCRIPTION,
   GITHUB_URL,
 } from "@/lib/site";
+
+const sans = Instrument_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -105,7 +108,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={sans.variable}>
       <body>
         <script
           type="application/ld+json"

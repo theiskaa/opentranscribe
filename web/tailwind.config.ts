@@ -11,18 +11,21 @@ const config: Config = {
       colors: {
         canvas: "#111111",
         line: "#2A2A2C",
+        raise: "#18181A",
+        surface: "#1C1C1E",
         ink: {
           DEFAULT: "#F5F5F5",
           2: "#98989E",
+          3: "#6C6C72",
+        },
+        ok: {
+          DEFAULT: "#4ADE80",
+          deep: "#1A7F37",
         },
       },
       maxWidth: {
         frame: "1200px",
         prose: "680px",
-      },
-      transitionTimingFunction: {
-        out: "var(--ease-out)",
-        entrance: "var(--ease-entrance)",
       },
     },
   },

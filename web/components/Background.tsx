@@ -1,20 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { INK, smooth } from "@/lib/canvas";
+import { BAYER_8, INK, smooth } from "@/lib/canvas";
 
 // Ports the app's reflection-card dither. Math mirrors lib/view/widgets/dither.dart.
-const BAYER = [
-  [0, 32, 8, 40, 2, 34, 10, 42],
-  [48, 16, 56, 24, 50, 18, 58, 26],
-  [12, 44, 4, 36, 14, 46, 6, 38],
-  [60, 28, 52, 20, 62, 30, 54, 22],
-  [3, 35, 11, 43, 1, 33, 9, 41],
-  [51, 19, 59, 27, 49, 17, 57, 25],
-  [15, 47, 7, 39, 13, 45, 5, 37],
-  [63, 31, 55, 23, 61, 29, 53, 21],
-];
-
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const hash = (x: number, y: number) => {
   const s = Math.sin(x * 41.31 + y * 289.17) * 43758.5453;
@@ -44,7 +33,7 @@ const fbm = (x: number, y: number) => {
   }
   return sum;
 };
-const threshold = (c: number, r: number) => lerp(BAYER[r % 8][c % 8] / 64, hash(c, r), 0.06);
+const threshold = (c: number, r: number) => lerp(BAYER_8[r % 8][c % 8] / 64, hash(c, r), 0.06);
 const smoothstep = (lo: number, hi: number, v: number) => smooth((v - lo) / (hi - lo));
 
 const CELL = 3;
