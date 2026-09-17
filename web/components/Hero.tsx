@@ -36,7 +36,7 @@ export default function Hero() {
         from="top"
         className="pointer-events-none absolute inset-x-0 top-0 h-[640px] w-full"
       />
-      <div className="relative mx-auto w-full max-w-frame px-6 pb-20 pt-28 sm:px-12 sm:pt-36 lg:pb-24">
+      <div className="relative mx-auto w-full max-w-frame px-6 pt-28 sm:px-12 sm:pt-36">
         <div className="flex flex-col items-center text-center">
           <h1 className="t-hero max-w-[14em]">{HERO_TITLE}</h1>
           <p className="t-lead mt-6 max-w-[52ch] text-ink-2">{HERO_LEAD}</p>
@@ -57,7 +57,7 @@ export default function Hero() {
           </ul>
         </div>
 
-        <div className="mt-16 grid grid-cols-[minmax(0,330px)] items-start justify-center gap-10 lg:grid-cols-[1fr_minmax(0,330px)_1fr]">
+        <div className="hero-stage mt-16 grid h-[480px] grid-cols-[minmax(0,330px)] overflow-hidden sm:h-[540px] items-start justify-center gap-10 lg:grid-cols-[1fr_minmax(0,330px)_1fr]">
           <Side shot={left} className="mt-24 justify-self-end" />
           <div className="mx-auto w-full max-w-[300px] sm:max-w-[330px]">
             <Recorder />
