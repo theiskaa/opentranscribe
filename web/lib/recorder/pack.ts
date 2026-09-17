@@ -1,10 +1,10 @@
-export const CJK_RANGE =
+const CJK_RANGE =
   "\\u3000-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef";
 const CJK_CLOSING = "\\u3001\\u3002\\uff01\\uff0c\\uff1a\\uff1b\\uff1f\\u300d\\u300f\\uff09";
 const WORD = new RegExp(`[${CJK_RANGE}][${CJK_CLOSING}]*|[^\\s${CJK_RANGE}]+`, "g");
 
 export type Words = { words: string[]; glued: boolean[] };
-export type WidthOf = (word: string) => number;
+type WidthOf = (word: string) => number;
 type PackOptions = {
   spaceWidth: number;
   maxWidth: number;
@@ -60,7 +60,7 @@ export function firstDivergence(
   return i;
 }
 
-export function repackFrom(
+function repackFrom(
   lines: readonly number[][],
   from: number,
   words: readonly string[],

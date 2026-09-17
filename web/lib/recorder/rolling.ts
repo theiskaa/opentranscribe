@@ -1,4 +1,4 @@
-export type RollingSlot = { char: string; rolls: boolean };
+type RollingSlot = { char: string; rolls: boolean };
 
 const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 

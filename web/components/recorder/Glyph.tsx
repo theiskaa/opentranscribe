@@ -1,7 +1,7 @@
 import { GLYPHS, GLYPH_EM, GLYPH_LINE } from "./glyphs";
 import styles from "./Recorder.module.css";
 
-export type GlyphName = keyof typeof GLYPHS;
+type GlyphName = keyof typeof GLYPHS;
 
 export default function Glyph({ name, size }: { name: GlyphName; size: number }) {
   const glyph = GLYPHS[name];

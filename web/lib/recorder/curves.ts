@@ -1,5 +1,5 @@
 // Flutter's Cubic: the curve's y where its x is [x], found by bisection.
-export function cubic(x1: number, y1: number, x2: number, y2: number, x: number): number {
+function cubic(x1: number, y1: number, x2: number, y2: number, x: number): number {
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 24; i++) {

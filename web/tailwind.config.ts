@@ -11,8 +11,6 @@ const config: Config = {
       colors: {
         canvas: "#111111",
         line: "#2A2A2C",
-        raise: "#18181A",
-        surface: "#1C1C1E",
         ink: {
           DEFAULT: "#F5F5F5",
           2: "#98989E",

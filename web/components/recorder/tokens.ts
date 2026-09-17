@@ -4,7 +4,6 @@ export const STAGE = { width: 402, columnInset: 40 } as const;
 export const WAVEFORM = {
   barWidth: 3,
   gap: 3,
-  height: 96,
   fade: 48,
   capacity: 256,
   activityMs: 260,
