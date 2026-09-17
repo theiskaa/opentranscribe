@@ -26,7 +26,10 @@ function Files({ files }: { files: readonly string[] }) {
             <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left [direction:rtl]">
               <bdi>{file}</bdi>
             </span>
-            <Sf name="arrowUpRight" className="h-3 w-3 flex-none text-ink-3 group-hover:text-ink" />
+            <Sf
+              name="arrowUpRight"
+              className="nudge h-3 w-3 flex-none text-ink-3 group-hover:text-ink"
+            />
           </a>
         </li>
       ))}

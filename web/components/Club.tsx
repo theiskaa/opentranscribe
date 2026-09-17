@@ -63,7 +63,7 @@ export default function Club() {
                     width={256}
                     height={256}
                     sizes="96px"
-                    className="aspect-square h-auto w-full rounded-[22.37%]"
+                    className="pop aspect-square h-auto w-full rounded-[22.37%]"
                     draggable={false}
                   />
                   <p className={`t-footnote mt-2 ${icon.club ? "text-ink" : ""}`}>{icon.name}</p>
@@ -78,7 +78,7 @@ export default function Club() {
               {CLUB.themes.items.map((theme) => (
                 <li key={theme.name}>
                   <span
-                    className="flex aspect-[4/3] overflow-hidden rounded-[12px] ring-1 ring-line"
+                    className="pop flex aspect-[4/3] overflow-hidden rounded-[12px] ring-1 ring-line"
                     aria-hidden
                   >
                     <Swatch colors={theme.dark} />

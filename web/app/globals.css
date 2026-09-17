@@ -13,6 +13,7 @@
   --surface: #1c1c1e;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.3, 1.45, 0.5, 1);
 }
 
 html {
@@ -123,10 +124,11 @@ button:focus-visible {
     letter-spacing: -0.24px;
     white-space: nowrap;
     box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.16);
-    transition: background-color 0.15s ease, transform 0.15s var(--ease-out);
+    transition: background-color 0.15s ease, transform 0.3s var(--ease-spring);
   }
   .btn:hover {
     background: #ffffff;
+    transform: scale(1.03);
   }
   .btn:active {
     transform: scale(0.96);
@@ -145,9 +147,10 @@ button:focus-visible {
     letter-spacing: -0.24px;
     white-space: nowrap;
     transition: border-color 0.15s ease, background-color 0.15s ease,
-      transform 0.15s var(--ease-out);
+      transform 0.3s var(--ease-spring);
   }
   .btn-ghost:hover {
+    transform: scale(1.03);
     border-color: var(--ink-2);
     background: rgb(245 245 245 / 0.04);
   }
@@ -158,11 +161,19 @@ button:focus-visible {
   .panel {
     border-radius: 28px;
     background: var(--raise);
+    transition: background-color 0.3s ease;
+  }
+  .panel:hover {
+    background: #1b1b1d;
   }
   .app-card {
     border-radius: 20px;
     border: 1px solid var(--hairline);
     background: var(--surface);
+    transition: border-color 0.2s ease;
+  }
+  .app-card:hover {
+    border-color: #3a3a3d;
   }
 }
 
@@ -171,8 +182,48 @@ button:focus-visible {
   background: linear-gradient(90deg, var(--hairline), transparent);
 }
 
-.engine-thumb {
-  transition: transform 0.28s cubic-bezier(0.3, 1.2, 0.5, 1);
+/* Hover answers only. Nothing on the page moves on its own but the recorder. */
+.pop {
+  transition: transform 0.35s var(--ease-spring);
+}
+.panel-shot img {
+  transform-origin: top center;
+  transition: transform 0.5s var(--ease-spring);
+}
+.nudge {
+  transition: transform 0.3s var(--ease-spring);
+}
+@keyframes dot-pulse {
+  0%, 45%, 100% { transform: scale(1); }
+  20% { transform: scale(1.3); }
+}
+.dots i:nth-child(2) { animation-delay: 0.09s; }
+.dots i:nth-child(3) { animation-delay: 0.18s; }
+.dots i:nth-child(4) { animation-delay: 0.27s; }
+.dots i:nth-child(5) { animation-delay: 0.36s; }
+.hero-side {
+  transition: opacity 0.3s ease;
+}
+/* A tap leaves :hover stuck on touch, which would loop the dots unasked. */
+@media (hover: hover) {
+  .pop:hover {
+    transform: scale(1.05);
+  }
+  .panel:hover .panel-shot img {
+    transform: scale(1.04);
+  }
+  .group:hover .nudge {
+    transform: translate(2px, -2px);
+  }
+  .app-card:hover .dots i.on {
+    animation: dot-pulse 1.3s var(--ease-out) infinite;
+  }
+  .hero-side:hover {
+    opacity: 0.8;
+  }
+}
+.pop:active {
+  transform: scale(0.97);
 }
 
 .hero-stage {
@@ -206,7 +257,6 @@ button:focus-visible {
   html { scroll-behavior: auto; }
   .doc-scrim,
   .doc-panel { animation: none; }
-  .engine-thumb { transition: none; }
   .btn:active,
   .btn-ghost:active { transform: none; }
 }

@@ -20,15 +20,15 @@ export default function FeaturePanels() {
             }`}
           >
             <div
-              className={`px-7 pt-8 sm:px-9 sm:pt-9 ${wide ? "md:flex-1 md:self-center md:p-12" : ""}`}
+              className={`px-7 py-8 sm:px-9 sm:pt-9 ${wide ? "md:flex-1 md:self-center md:p-12" : ""}`}
             >
               <h3 className="t-title">{f.title}</h3>
               <p className="t-body mt-3 max-w-[52ch] text-ink-2">{f.body}</p>
               <p className="t-footnote mt-3 max-w-[52ch] text-ink-3">{f.foot}</p>
             </div>
             <div
-              className={`panel-shot mt-8 flex justify-center ${
-                wide ? "h-[340px] md:mt-10 md:h-[400px] md:w-[42%] md:flex-none" : "h-[340px]"
+              className={`panel-shot mt-auto flex justify-center ${
+                wide ? "h-[340px] md:h-[400px] md:w-[42%] md:flex-none md:pt-10" : "h-[340px]"
               }`}
             >
               <Image
