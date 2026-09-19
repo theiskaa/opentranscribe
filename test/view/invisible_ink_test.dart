@@ -190,4 +190,100 @@ void main() {
       expect(points.length ~/ 2, lessThanOrEqualTo(500));
     });
   });
+
+  group('rowInkPoints', () {
+    const body = 17.0;
+    const bodyLine = 24.65;
+
+    test('each row\'s ink stays inside its own line and never runs past its measure', () {
+      const rows = <InkRow>[
+        (top: 0, fontSize: body, lineHeight: bodyLine, measure: 300),
+        (top: bodyLine, fontSize: body, lineHeight: bodyLine, measure: 120),
+        (top: bodyLine * 2 + 4, fontSize: 13, lineHeight: 16, measure: 80),
+      ];
+      final points = rowInkPoints(rows);
+      expect(points, isNotEmpty);
+      for (var i = 0; i < points.length; i += 2) {
+        final row = rows.lastWhere((r) => points[i + 1] >= r.top);
+        expect(points[i], inInclusiveRange(0, row.measure));
+        expect(points[i + 1], lessThan(row.top + row.lineHeight));
+      }
+    });
+
+    test('a short last row ends where its measure says, not across the block', () {
+      final points = rowInkPoints(const [
+        (top: 0, fontSize: body, lineHeight: bodyLine, measure: 300),
+        (top: bodyLine, fontSize: body, lineHeight: bodyLine, measure: 60),
+      ]);
+      var widestLast = 0.0;
+      for (var i = 0; i < points.length; i += 2) {
+        if (points[i + 1] >= bodyLine && points[i] > widestLast) widestLast = points[i];
+      }
+      expect(widestLast, lessThanOrEqualTo(60));
+      expect(widestLast, greaterThan(40));
+    });
+
+    test('a smaller type draws a thinner band of ink', () {
+      double band(double fontSize) {
+        final points = rowInkPoints([(top: 0, fontSize: fontSize, lineHeight: 30, measure: 200)]);
+        var low = double.infinity;
+        var high = 0.0;
+        for (var i = 1; i < points.length; i += 2) {
+          low = points[i] < low ? points[i] : low;
+          high = points[i] > high ? points[i] : high;
+        }
+        return high - low;
+      }
+
+      expect(band(13), lessThan(band(17)));
+    });
+
+    test('a row with no size or no measure draws nothing', () {
+      expect(rowInkPoints(const [(top: 0, fontSize: 0, lineHeight: 20, measure: 200)]), isEmpty);
+      expect(rowInkPoints(const [(top: 0, fontSize: body, lineHeight: 20, measure: 0)]), isEmpty);
+    });
+
+    test('the placeholder cloud keeps the exact shape it always had', () {
+      final points = placeholderInkPoints(
+        width: 300,
+        lines: 3,
+        fontSize: body,
+        lineHeight: bodyLine,
+      );
+      var xs = 0.0;
+      var ys = 0.0;
+      for (var i = 0; i < points.length; i += 2) {
+        xs += points[i];
+        ys += points[i + 1];
+      }
+      expect(points.length, 4162);
+      expect(xs, closeTo(276014.5, 0.1));
+      expect(ys, closeTo(71272.5, 0.1));
+    });
+
+    test('the placeholder lines are rows like any other', () {
+      final rows = placeholderInkRows(width: 300, lines: 3, fontSize: body, lineHeight: bodyLine);
+      expect(
+        placeholderInkPoints(width: 300, lines: 3, fontSize: body, lineHeight: bodyLine),
+        rowInkPoints(rows),
+      );
+      expect(rows.last.measure, lessThan(rows.first.measure));
+    });
+  });
+
+  group('inkRowsHeight', () {
+    test('a cloud stands down to its lowest line\'s bottom', () {
+      expect(
+        inkRowsHeight(const [
+          (top: 0, fontSize: 17, lineHeight: 24, measure: 100),
+          (top: 28, fontSize: 13, lineHeight: 16, measure: 50),
+        ]),
+        44,
+      );
+    });
+
+    test('no rows stand no height', () {
+      expect(inkRowsHeight(const []), 0);
+    });
+  });
 }

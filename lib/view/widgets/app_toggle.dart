@@ -4,7 +4,7 @@ import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
-import 'package:opentranscribe/core/utils/platform_caps.dart';
+import 'package:opentranscribe/view/widgets/glass_scope.dart';
 
 /// The app's switch, adaptive like every other native control: the real iOS
 /// glass switch on iOS 26 (via the vendored [LiquidToggle]) at the system's
@@ -28,7 +28,7 @@ class AppToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final drawn = _DrawnToggle(value: value, onChanged: onChanged, semanticLabel: semanticLabel);
-    if (!PlatformCaps.nativeGlass) return drawn;
+    if (!GlassScope.nativeOf(context)) return drawn;
 
     final theme = context.theme;
     // No haptic around onChanged: UISwitch plays its own on flip, and a

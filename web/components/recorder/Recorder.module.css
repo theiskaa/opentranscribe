@@ -1,0 +1,256 @@
+.phone {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bezel {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The screen under the status bar, measured from the bezel image. One point is
+   the screen's width over 402, so every size below is the app's own. */
+.stage {
+  --pt: calc(89.306cqw / 402);
+  --bg: #111111;
+  --text: #f5f5f5;
+  --text-2: #98989e;
+  --hairline: #2a2a2c;
+  --surface: #1c1c1e;
+  --surface-border: #2a2a2c;
+  position: absolute;
+  left: 5.347%;
+  width: 89.306%;
+  top: 9.428%;
+  height: 88.03%;
+  background: var(--bg);
+  border-radius: 0 0 calc(60 * var(--pt)) calc(60 * var(--pt));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-align: left;
+}
+
+.bar {
+  position: relative;
+  flex: none;
+  height: calc(76 * var(--pt));
+}
+.barRow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(52 * var(--pt));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: calc(12 * var(--pt));
+}
+.title {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(52 * var(--pt));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(2 * var(--pt));
+  pointer-events: none;
+}
+.timer {
+  font-size: calc(17 * var(--pt));
+  font-weight: 400;
+  letter-spacing: calc(-0.2 * var(--pt));
+  line-height: 1.193;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+  transition: opacity 200ms linear;
+}
+.timerPaused {
+  opacity: 0.45;
+}
+.slot {
+  display: inline-block;
+  height: 1.193em;
+  overflow: hidden;
+  vertical-align: top;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+}
+.column > span {
+  height: 1.193em;
+}
+@keyframes rollUp {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+@keyframes rollDown {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
+.rollUp { animation: rollUp 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.rollDown { animation: rollDown 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+
+.stateLine {
+  position: relative;
+  height: calc(11 * 1.3 * var(--pt));
+  font-size: calc(11 * var(--pt));
+  font-weight: 500;
+  letter-spacing: calc(1.3 * var(--pt));
+  line-height: 1.3;
+  color: var(--text-2);
+  text-transform: uppercase;
+  white-space: nowrap;
+  display: flex;
+  justify-content: center;
+}
+.stateWord { animation: fadeIn 200ms linear both; }
+.stateGone {
+  position: absolute;
+  animation: fadeOut 200ms linear both;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+.circle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: calc(1 * var(--pt)) solid var(--surface-border);
+  color: var(--text);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0, 0, 0.58, 1), opacity 120ms cubic-bezier(0, 0, 0.58, 1);
+}
+.circle:focus-visible {
+  outline: calc(2 * var(--pt)) solid var(--text);
+  outline-offset: calc(3 * var(--pt));
+}
+.circle[data-pressed="true"] { opacity: 0.4; transform: scale(0.92); }
+.inert { cursor: default; }
+.barCircle { width: calc(44 * var(--pt)); height: calc(44 * var(--pt)); }
+.control { width: calc(52 * var(--pt)); height: calc(52 * var(--pt)); }
+.complete {
+  background: var(--text);
+  border: none;
+  color: var(--bg);
+}
+.complete[data-pressed="true"] { transform: scale(0.96); }
+.glyph { display: block; fill: currentColor; }
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-inline: calc(40 * var(--pt));
+}
+.spaceTop { flex: 45; }
+.spaceBottom { flex: 42; }
+.band {
+  display: block;
+  width: 100%;
+  height: calc(96 * var(--pt));
+  flex: none;
+}
+.bandGap { height: calc(16 * var(--pt)); flex: none; }
+
+.words {
+  position: relative;
+  flex: none;
+  height: calc(17 * 1.45 * 4 * var(--pt));
+  font-size: calc(17 * var(--pt));
+  letter-spacing: calc(-0.4 * var(--pt));
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.window {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0) 0,
+    rgb(0 0 0 / var(--faded, 0.584)) calc(var(--top, 0) * 50%),
+    #000 calc(var(--top, 0) * 100%),
+    #000 calc(100% - var(--bottom, 0) * 100%),
+    rgb(0 0 0 / 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0) 0,
+    rgb(0 0 0 / var(--faded, 0.584)) calc(var(--top, 0) * 50%),
+    #000 calc(var(--top, 0) * 100%),
+    #000 calc(100% - var(--bottom, 0) * 100%),
+    rgb(0 0 0 / 0) 100%
+  );
+}
+.window::-webkit-scrollbar { display: none; }
+.line {
+  height: 1.45em;
+  white-space: nowrap;
+}
+.word {
+  position: relative;
+  display: inline-block;
+}
+.wordIn { animation: wordIn 180ms cubic-bezier(0, 0, 0.58, 1) both; }
+@keyframes wordIn {
+  from { opacity: 0; transform: translateY(calc(4 * var(--pt))); }
+  to { opacity: 1; transform: none; }
+}
+.wordNew { animation: fadeIn 200ms linear both; }
+.wordOld {
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: fadeOut 200ms linear both;
+}
+.measure {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.controls {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: calc(42 * var(--pt));
+}
+.gapMd { width: calc(12 * var(--pt)); flex: none; }
+.gapXl { width: calc(20 * var(--pt)); flex: none; }
+.seam {
+  width: calc(1 * var(--pt));
+  height: calc(26 * var(--pt));
+  background: var(--hairline);
+  flex: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rollUp, .rollDown, .wordIn { animation: none; }
+  .circle { transition: opacity 120ms cubic-bezier(0, 0, 0.58, 1); }
+  .circle[data-pressed="true"] { transform: none; }
+}

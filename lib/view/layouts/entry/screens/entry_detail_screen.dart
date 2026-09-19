@@ -9,7 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/app/hints.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
@@ -32,10 +34,12 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/hint_callout.dart';
+import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
@@ -631,17 +635,11 @@ class _DetailViewState extends State<_DetailView> {
                                 ),
                               )
                             else
-                              // The take's live words stay on the recorder cubit
-                              // until its stop settles; only the transcript
-                              // follows them.
-                              BlocSelector<RecorderCubit, RecorderState, String>(
-                                selector: (recorder) => continuing ? recorder.liveText : '',
-                                builder: (context, pending) => TranscriptView(
-                                  entry: entry,
-                                  busy: busy,
-                                  appending: continuing,
-                                  pendingText: pending,
-                                ),
+                              _TranscriptBody(
+                                entry: entry,
+                                journal: state.entries,
+                                busy: busy,
+                                continuing: continuing,
                               ),
                           ],
                         ),
@@ -654,6 +652,16 @@ class _DetailViewState extends State<_DetailView> {
                   left: 0,
                   right: 0,
                   child: AppTopBar(
+                    // A pass's progress, as home's bar shows a take's: under a
+                    // long cloud it would sit below the screen. Shrunk to fit.
+                    title: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppTopBar.clearance),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: BatchProgressLine(select: (passes) => passes.forEntry(entry.id)),
+                      ),
+                    ),
+                    centerTitle: true,
                     actions: [
                       // Settings feed only the menu, so a model install's
                       // progress emits rebuild this button, not the document.
@@ -823,9 +831,7 @@ class _BottomDock extends StatelessWidget {
       return;
     }
     // Acknowledged, with no retry to clear it later.
-    if (kind == EntriesError.savedSeparately || kind == EntriesError.recordingMissing) {
-      entries.dismissFailure(entry.id);
-    }
+    if (!kind.retryable) entries.dismissFailure(entry.id);
   }
 
   @override
@@ -870,6 +876,7 @@ String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
   EntriesError.onDeviceUnavailable => l10n.transcribeErrorLabelUnavailable,
   EntriesError.recordingMissing => l10n.transcribeErrorLabelRecordingMissing,
   EntriesError.modelInstallFailed => l10n.transcribeErrorLabelModelInstall,
+  EntriesError.modelLoadFailed => l10n.transcribeErrorLabelModelLoad,
   EntriesError.reservationCap => l10n.transcribeErrorLabelCapReached,
   EntriesError.additionUntranscribed => l10n.continueUntranscribedLabel,
   EntriesError.savedSeparately => l10n.continueSavedSeparatelyLabel,
@@ -966,6 +973,46 @@ class _TitleFieldState extends State<_TitleField> {
       textInputAction: TextInputAction.done,
       maxLines: null,
       onSubmitted: (_) => widget.focusNode.unfocus(),
+    );
+  }
+}
+
+/// The transcript, fed what a take adding to it has so far: the live words,
+/// which stay on the recorder cubit until its stop settles, and the pass's
+/// forecast with words to lay it out in.
+class _TranscriptBody extends StatelessWidget {
+  const _TranscriptBody({
+    required this.entry,
+    required this.journal,
+    required this.busy,
+    required this.continuing,
+  });
+
+  final Entry entry;
+  final List<Entry> journal;
+  final bool busy;
+  final bool continuing;
+
+  @override
+  Widget build(BuildContext context) {
+    // Only this entry's own take: a fresh one started from a system surface
+    // meanwhile owns the recorder, and its words are not this entry's.
+    final pending = context.select<RecorderCubit, String>(
+      (recorder) =>
+          continuing && recorder.state.continuing?.id == entry.id ? recorder.state.liveText : '',
+    );
+    final forecast = context.select<BatchProgressCubit, TakeForecast?>(
+      (passes) => passes.state.forEntry(entry.id)?.forecast,
+    );
+    return TranscriptView(
+      entry: entry,
+      busy: busy,
+      appending: continuing,
+      pendingText: pending,
+      forecast: forecast,
+      sample: forecast == null
+          ? ''
+          : fillerSample(localeId: forecast.localeId, journal: [entry, ...journal]),
     );
   }
 }

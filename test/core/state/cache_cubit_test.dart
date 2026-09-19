@@ -104,6 +104,34 @@ void main() {
     await cubit.close();
   });
 
+  test('a clear records what it freed, measured from the reclaimable share it emptied', () async {
+    await seed();
+    final cubit = CacheCubit(service: service);
+    await pumpEventQueue();
+    expect(cubit.state.freedBytes, isNull);
+
+    await cubit.clear();
+    await pumpEventQueue();
+
+    expect(cubit.state.freedBytes, 5);
+
+    await cubit.close();
+  });
+
+  test('what a clear freed survives the re-measures that follow it', () async {
+    await seed();
+    final cubit = CacheCubit(service: service);
+    await pumpEventQueue();
+
+    await cubit.clear();
+    await cubit.load();
+
+    expect(cubit.state.freedBytes, 5);
+    expect(cubit.state.usage!.reclaimableBytes, 0);
+
+    await cubit.close();
+  });
+
   test('a clear started while one runs is a quiet no-op', () async {
     await seed();
     final cubit = CacheCubit(service: service);
@@ -230,6 +258,22 @@ void main() {
 
     await cubit.close();
     await svc.dispose();
+  });
+
+  test('the sweep measures downloaded models beside the recordings', () async {
+    final cubit = CacheCubit(service: service, modelBytes: () async => 12345);
+    await pumpEventQueue();
+
+    expect(cubit.state.modelBytes, 12345);
+    await cubit.close();
+  });
+
+  test('without a model measure the sweep reports zero model bytes', () async {
+    final cubit = CacheCubit(service: service);
+    await pumpEventQueue();
+
+    expect(cubit.state.modelBytes, 0);
+    await cubit.close();
   });
 }
 

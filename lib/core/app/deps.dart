@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -31,10 +32,12 @@ import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
 import 'package:opentranscribe/core/services/import_service.dart';
+import 'package:opentranscribe/core/services/model_usage.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:opentranscribe/core/services/reflection_store.dart';
+import 'package:opentranscribe/core/services/speaking_pace.dart';
 import 'package:opentranscribe/core/services/support_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
@@ -88,6 +91,7 @@ class Deps {
     required this.reflectionNotifier,
     required this.engineRegistry,
     required this.engineSettings,
+    required this.physicalMemoryBytes,
     required this.exportService,
     required this.importService,
     required this.stagingRegistry,
@@ -169,6 +173,13 @@ class Deps {
   /// registry entry).
   final EngineSettings engineSettings;
 
+  /// The phone's memory, for a surface that dims a model it cannot hold;
+  /// null when the platform could not say.
+  final int? physicalMemoryBytes;
+
+  /// What every engine's downloaded models hold on disk, for the Cache screen.
+  Future<int> modelBytes() => installedModelBytes(engineRegistry.map((e) => e.engine));
+
   /// Stages exports (entry, journal, native archive) and hands them to the
   /// share sheet. Read-only with respect to journal state.
   final ExportService exportService;
@@ -215,6 +226,11 @@ class Deps {
   /// wedged channel lands on the failure screen instead of as a launch kill
   /// with no frame at all.
   static const _channelTimeout = Duration(seconds: 8);
+
+  // Past the performance cores a thread only warms the phone; a phone already
+  // hot gets fewer, from the next run on.
+  static const _whisperThreads = 4;
+  static const _whisperHotThreads = 2;
 
   /// Builds every dependency and installs the singleton. Called once, from
   /// bootstrap, before `runApp`.
@@ -280,6 +296,50 @@ class Deps {
 
     final speechEngine = AppleSpeechEngine();
     final dictationEngine = AppleDictationEngine();
+    final engineSettings = EngineSettings(storage: localService);
+    // Costs the launch a channel listen; whisper's thread count and the bulk
+    // re-transcribe queue read the cached answer.
+    final thermalMonitor = ThermalMonitor()..start();
+    // A models directory the platform cannot provide leaves Whisper
+    // unavailable for this launch; it must not kill a launch on the Apple engines.
+    final modelStorage = PlatformModelStorage();
+    final (modelsDir, physicalMemoryBytes) = await (
+      modelStorage
+          .modelsDirectory()
+          .timeout(_channelTimeout)
+          .then<Directory?>(
+            (dir) => dir,
+            onError: (Object e) {
+              if (kDebugMode) debugPrint('deps: the models directory is unavailable: $e');
+              return null;
+            },
+          ),
+      modelStorage.physicalMemoryBytes().timeout(_channelTimeout, onTimeout: () => null),
+    ).wait;
+    // Restored before the service resolves the active engine, so a launch under
+    // Whisper reports the right model from the first frame; an id the catalog
+    // dropped reads as unset.
+    final storedWhisperModel = engineSettings.modelIdFor(WhisperEngine.engineId);
+    final audioActivity = PlatformAudioActivity();
+    final whisperEngine = WhisperEngine(
+      modelsDir: modelsDir ?? Directory('${Directory.systemTemp.path}/models'),
+      fetcher: PinnedHostFetcher(allowedHostSuffixes: WhisperHosts.redirectSuffixes),
+      decoder: PlatformPcmDecoder(),
+      activity: audioActivity,
+      runtime: FfiWhisperRuntime(
+        threads: () => min(
+          thermalMonitor.underPressure ? _whisperHotThreads : _whisperThreads,
+          Platform.numberOfProcessors,
+        ),
+      ),
+      initialModelId: storedWhisperModel != null && whisperModelById(storedWhisperModel) != null
+          ? storedWhisperModel
+          : whisperDefaultModelId,
+      // The Core ML encoder is an Apple path; another platform runs the
+      // ggml encoder and never offers the switch.
+      canAccelerate: Platform.isIOS,
+      initiallyAccelerated: engineSettings.acceleratedFor(WhisperEngine.engineId),
+    );
     // One availability probe decides the analyzer entry; the native side
     // resolves it once per process behind its own deadline, so a wedged
     // catalog query answers unavailable instead of holding this timeout.
@@ -288,12 +348,13 @@ class Deps {
       onTimeout: () => false,
     );
     // Preference order: the registry's first available entry is the auto
-    // default. A future engine (whisper.cpp) is one more entry here.
+    // default.
     final engineRegistry = <EngineEntry>[
       EngineEntry(
         descriptor: EngineDescriptor(
           engineId: speechEngine.id,
           displayName: 'SpeechAnalyzer',
+          shortName: 'Speech',
           blurb: (l10n) => l10n.engineBlurbSpeechAnalyzer,
           logo: AppIcons.appleLogo,
         ),
@@ -305,14 +366,28 @@ class Deps {
         descriptor: EngineDescriptor(
           engineId: dictationEngine.id,
           displayName: 'Dictation',
+          displayOrder: 2,
           blurb: (l10n) => l10n.engineBlurbDictation,
           logo: AppIcons.appleLogo,
         ),
         engine: dictationEngine,
         available: true,
       ),
+      // Every iPhone runs the smallest model; one too heavy for this phone is
+      // the model card's business, not the engine's.
+      EngineEntry(
+        descriptor: EngineDescriptor(
+          engineId: whisperEngine.id,
+          displayName: 'Whisper',
+          displayOrder: 1,
+          blurb: (l10n) => l10n.engineBlurbWhisper,
+          logo: AppIcons.waveform,
+        ),
+        engine: whisperEngine,
+        available: modelsDir != null,
+        unavailability: modelsDir == null ? EngineUnavailability.storageUnavailable : null,
+      ),
     ];
-    final engineSettings = EngineSettings(storage: localService);
     // Built before the service so a fresh recording's wave shape can be read
     // and persisted at save time (viewing then never re-decodes the file).
     final audioPlayer = PlatformAudioPlayer();
@@ -323,15 +398,14 @@ class Deps {
     // Decrypts the journal on a worker isolate while the rest of init and the
     // first frames run, so home's first read finds the cache built.
     unawaited(_quietly('journal warm', entryStore.warm));
-    // Costs the launch a channel listen; the bulk re-transcribe queue reads
-    // the cached answer between entries.
-    final thermalMonitor = ThermalMonitor()..start();
     final transcriptionService = TranscriptionService(
       recorder: recorder,
       engine: engineSettings.resolveActive(engineRegistry).engine,
       store: entryStore,
       composer: PlatformAudioComposer(),
       peaksReader: (path) => audioPlayer.peaks(path, buckets: AudioPlayer.defaultPeakBuckets),
+      pace: SpeakingPace(storage: localService),
+      activity: audioActivity,
       keepAudio: () => audioStorageSettings.keepAudio,
       thermalPressure: () => thermalMonitor.underPressure,
     );
@@ -430,6 +504,7 @@ class Deps {
       reflectionNotifier: reflectionNotifier,
       engineRegistry: engineRegistry,
       engineSettings: engineSettings,
+      physicalMemoryBytes: physicalMemoryBytes,
       exportService: exportService,
       importService: importService,
       stagingRegistry: stagingRegistry,

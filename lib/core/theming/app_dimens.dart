@@ -11,6 +11,12 @@ abstract final class AppSpacing {
   static const xxxl = 32.0;
 }
 
+/// Fixed control sizes. Not themed, like spacing.
+abstract final class AppSizes {
+  /// A bar's icon control: the glass buttons and the menu button.
+  static const barControl = 44.0;
+}
+
 /// Corner radii. `sm` for icon tiles, `chip` for chips, `card` for cards,
 /// `panel` for hero cards, `pill` for buttons and pills.
 abstract final class AppRadius {

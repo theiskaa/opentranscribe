@@ -8,29 +8,102 @@ library;
 /// a country, so this is convention, not fact (pt reads BR, the variant
 /// engines actually ship).
 const languageHomeRegion = <String, String>{
+  'af': 'ZA',
+  'am': 'ET',
   'ar': 'SA',
+  'as': 'IN',
+  'az': 'AZ',
+  'ba': 'RU',
+  'be': 'BY',
+  'bg': 'BG',
+  'bn': 'BD',
+  'bo': 'CN',
+  'br': 'FR',
+  'bs': 'BA',
+  'ca': 'ES',
+  'cs': 'CZ',
+  'cy': 'GB',
   'da': 'DK',
   'de': 'DE',
+  'el': 'GR',
   'en': 'US',
   'es': 'ES',
+  'et': 'EE',
+  'eu': 'ES',
+  'fa': 'IR',
   'fi': 'FI',
+  'fo': 'FO',
   'fr': 'FR',
+  'gl': 'ES',
+  'gu': 'IN',
+  'ha': 'NG',
+  'haw': 'US',
   'he': 'IL',
   'hi': 'IN',
+  'hr': 'HR',
+  'ht': 'HT',
+  'hu': 'HU',
+  'hy': 'AM',
   'id': 'ID',
+  'is': 'IS',
   'it': 'IT',
   'ja': 'JP',
+  'jv': 'ID',
+  'ka': 'GE',
+  'kk': 'KZ',
+  'km': 'KH',
+  'kn': 'IN',
   'ko': 'KR',
+  'lb': 'LU',
+  'ln': 'CD',
+  'lo': 'LA',
+  'lt': 'LT',
+  'lv': 'LV',
+  'mg': 'MG',
+  'mi': 'NZ',
+  'mk': 'MK',
+  'ml': 'IN',
+  'mn': 'MN',
+  'mr': 'IN',
+  'ms': 'MY',
+  'mt': 'MT',
+  'my': 'MM',
   'nb': 'NO',
+  'ne': 'NP',
   'nl': 'NL',
+  'nn': 'NO',
+  'oc': 'FR',
+  'pa': 'IN',
   'pl': 'PL',
+  'ps': 'AF',
   'pt': 'BR',
+  'ro': 'RO',
   'ru': 'RU',
+  'sa': 'IN',
+  'sd': 'PK',
+  'si': 'LK',
+  'sk': 'SK',
+  'sl': 'SI',
+  'sn': 'ZW',
+  'so': 'SO',
+  'sq': 'AL',
+  'sr': 'RS',
+  'su': 'ID',
   'sv': 'SE',
+  'sw': 'KE',
+  'ta': 'IN',
+  'te': 'IN',
+  'tg': 'TJ',
   'th': 'TH',
+  'tk': 'TM',
+  'tl': 'PH',
   'tr': 'TR',
+  'tt': 'RU',
   'uk': 'UA',
+  'ur': 'PK',
+  'uz': 'UZ',
   'vi': 'VN',
+  'yo': 'NG',
   'yue': 'HK',
   'zh': 'CN',
 };
@@ -57,6 +130,20 @@ const languagePriority = [
   'yue',
 ];
 
+/// The language part of a locale tag, lowercased: en-US and en-GB are both en.
+String languageOf(String tag) => tag.toLowerCase().split('-').first;
+
+/// The CJK writings, which pace speech and pick filler apart from the rest.
+enum CjkScript { japanese, chinese, korean }
+
+/// The CJK writing [tag]'s language is set in, or null for any other.
+CjkScript? cjkScriptOf(String tag) => switch (languageOf(tag)) {
+  'ja' => CjkScript.japanese,
+  'zh' || 'yue' => CjkScript.chinese,
+  'ko' => CjkScript.korean,
+  _ => null,
+};
+
 /// The supported tag a requested tag should transcribe as: the exact tag when
 /// supported (case-insensitive, in the supported spelling), else a supported
 /// variant of the same language (tr-GE resolves to tr-TR), else null. Only a
@@ -68,10 +155,10 @@ String? resolveSupportedTag(String tag, List<String> supported) {
   for (final candidate in supported) {
     if (candidate.toLowerCase() == lower) return candidate;
   }
-  final language = lower.split('-').first;
+  final language = languageOf(lower);
   final variants = [
     for (final candidate in supported)
-      if (candidate.toLowerCase().split('-').first == language) candidate,
+      if (languageOf(candidate) == language) candidate,
   ]..sort();
   if (variants.isEmpty) return null;
   final home = languageHomeRegion[language];
@@ -88,8 +175,8 @@ String? resolveSupportedTag(String tag, List<String> supported) {
 /// in list order, the rest alphabetically by language; within a language the
 /// [languageHomeRegion] variant leads (en-US before en-AU), then alphabetical.
 int languageTagCompare(String a, String b) {
-  final la = a.toLowerCase().split('-').first;
-  final lb = b.toLowerCase().split('-').first;
+  final la = languageOf(a);
+  final lb = languageOf(b);
   if (la != lb) {
     final pa = _priorityOf(la);
     final pb = _priorityOf(lb);

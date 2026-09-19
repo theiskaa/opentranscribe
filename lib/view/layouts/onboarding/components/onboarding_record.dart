@@ -175,8 +175,19 @@ const _wordsPerBurst = 5;
 const _perCharacter = Duration(milliseconds: 95);
 const _charactersPerBurst = 9;
 
-/// The band samples at the recorder's own cadence.
-const _sampleEvery = Duration(milliseconds: 50);
+/// A scene's band samples at the recorder's own cadence.
+const sceneSampleEvery = Duration(milliseconds: 50);
+
+/// A speech-shaped level in the recorder's -60..0 dB window: syllables at
+/// ~4 Hz under a slower word envelope, a little jitter, room tone between.
+double sceneVoiceLevel(Duration at, {required bool speaking}) {
+  final t = at.inMicroseconds / Duration.microsecondsPerSecond;
+  final jitter = math.sin(t * 91.7) * 0.06;
+  if (!speaking) return 0.08 + jitter.abs();
+  final syllable = math.pow(math.sin(t * 2 * math.pi * 4.3), 2).toDouble();
+  final word = 0.55 + 0.45 * math.pow(math.sin(t * 2 * math.pi * 1.1 + 0.4), 2);
+  return (0.24 + 0.6 * syllable * word + jitter).clamp(0.0, 1.0);
+}
 
 class _RecordScene extends StatefulWidget {
   const _RecordScene();
@@ -256,20 +267,9 @@ class _RecordSceneState extends State<_RecordScene> with SingleTickerProviderSta
   }
 
   void _feed(Duration elapsed, bool speaking) {
-    if (elapsed - _lastSample < _sampleEvery) return;
+    if (elapsed - _lastSample < sceneSampleEvery) return;
     _lastSample = elapsed;
-    _levels.add(_voice(elapsed, speaking));
-  }
-
-  /// A speech-shaped level in the recorder's -60..0 dB window: syllables at
-  /// ~4 Hz under a slower word envelope, a little jitter, room tone between.
-  static double _voice(Duration at, bool speaking) {
-    final t = at.inMicroseconds / Duration.microsecondsPerSecond;
-    final jitter = math.sin(t * 91.7) * 0.06;
-    if (!speaking) return 0.08 + jitter.abs();
-    final syllable = math.pow(math.sin(t * 2 * math.pi * 4.3), 2).toDouble();
-    final word = 0.55 + 0.45 * math.pow(math.sin(t * 2 * math.pi * 1.1 + 0.4), 2);
-    return (0.24 + 0.6 * syllable * word + jitter).clamp(0.0, 1.0);
+    _levels.add(sceneVoiceLevel(elapsed, speaking: speaking));
   }
 
   @override

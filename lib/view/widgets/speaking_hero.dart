@@ -1,0 +1,207 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
+import 'package:opentranscribe/core/state/settings_cubit.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
+import 'package:opentranscribe/view/widgets/locale_flag.dart';
+import 'package:opentranscribe/view/widgets/locale_names.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/model_failure_line.dart';
+import 'package:opentranscribe/view/widgets/model_failure_sheet.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
+import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
+
+/// The engine the hero's ready line names: by the languages' own engine id,
+/// not the active row, since mid-switch the readiness still describes the
+/// previous engine. Null until the model half agrees ([settled]), so no ready
+/// line lands early.
+String? heroEngineName(
+  List<EngineRowState> engines,
+  SettingsState state, {
+  required bool settled,
+}) => settled
+    ? engines
+          .where((row) => row.descriptor.engineId == state.engineId)
+          .firstOrNull
+          ?.descriptor
+          .displayName
+    : null;
+
+/// The hero's one promise, wherever it shows: when the default is broken its
+/// tap tells that story (with the recovery), otherwise it opens the library.
+void openSpeakingHero(BuildContext context, SettingsState state) {
+  if (!isTopRoute(context)) return;
+  final cubit = context.read<SettingsCubit>();
+  final row = state.defaultLanguage;
+  if (row != null && rowHasFailureStory(row)) {
+    unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
+    return;
+  }
+  unawaited(showLanguageSheet(context, cubit: cubit));
+}
+
+/// The default language as the answer to "what happens when I hit record":
+/// big bare flag, name, and an honest status line naming the engine that
+/// answers. The whole card taps into whatever its host wires.
+class SpeakingHero extends StatelessWidget {
+  const SpeakingHero({
+    required this.state,
+    required this.selectedModel,
+    required this.engineName,
+    required this.onTap,
+    super.key,
+  });
+
+  final SettingsState state;
+
+  /// The model runs use under an engine with a choice, else null.
+  final ModelRowState? selectedModel;
+
+  /// Display name of the engine the state's readiness describes; null until
+  /// known, and the ready line waits for it.
+  final String? engineName;
+
+  final VoidCallback onTap;
+
+  /// Bare flag in a fixed slot, so the name column stays still across languages.
+  static const double _flagSize = 34;
+  static const double _flagSlot = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    final row = state.defaultLanguage;
+    final tag = row?.tag ?? state.localeId;
+    final crossfade = context.reduceMotion ? Duration.zero : theme.motion.crossfade;
+    final statusLine = row == null || row.installing ? null : _statusLine(l10n, row);
+    return Touchable(
+      onTap: onTap,
+      haptic: true,
+      child: SettingsCard(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            // A chip tap swaps the whole card to another language; the old
+            // face melts into the new instead of teleporting.
+            child: AnimatedSwitcher(
+              duration: crossfade,
+              layoutBuilder: meltStack,
+              child: Row(
+                key: ValueKey(tag),
+                children: [
+                  SizedBox(
+                    width: _flagSlot,
+                    child: LocaleFlag(localeFlag(tag), size: _flagSize),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          localeDisplayName(tag),
+                          // One line always: a wrapping name would break the
+                          // constant card geometry the status ruler holds.
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.headline.copyWith(color: theme.text),
+                        ),
+                        SizedBox(height: theme.settings.noteGap),
+                        // One footnote line always, held by the invisible ruler: a slot
+                        // that breathed with the words would shove the name and flag
+                        // on every switch.
+                        Stack(
+                          children: [
+                            const Opacity(opacity: 0, child: Text(' ', style: AppType.footnote)),
+                            AnimatedSwitcher(
+                              duration: crossfade,
+                              layoutBuilder: meltStack,
+                              child: row == null
+                                  ? const SizedBox.shrink()
+                                  : row.installing
+                                  ? _DownloadingLine(fraction: row.installFraction!)
+                                  : statusLine == null
+                                  ? const SizedBox.shrink()
+                                  : Text(
+                                      statusLine,
+                                      key: ValueKey(statusLine),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppType.footnote.copyWith(color: theme.textSecondary),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AppIcon(
+                    AppIcons.chevronForward,
+                    size: theme.settings.heroChevronSize,
+                    color: theme.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Whatever stands in the way, else ready naming the engine; a running
+  /// download takes [_DownloadingLine] instead.
+  String? _statusLine(AppLocalizations l10n, LanguageModelState row) {
+    final trouble = modelTroubleLine(l10n, row, managesModels: state.managesModels);
+    if (trouble != null) return trouble;
+    // Under one model for every language the download is the model's, and a
+    // supported language with none on disk is not ready yet.
+    final model = selectedModel;
+    if (model != null && !model.installed) {
+      return l10n.transcriptionHeroNeedsDownload(model.option.displayName);
+    }
+    return engineName == null ? null : l10n.transcriptionHeroReady(engineName!);
+  }
+}
+
+/// "Downloading · 42%", the percent rolling odometer-style as fractions land,
+/// so the hero reads the default language's own download without a ring.
+class _DownloadingLine extends StatelessWidget {
+  const _DownloadingLine({required this.fraction});
+
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    final style = AppType.footnote.copyWith(color: theme.textSecondary);
+    final percent = (fraction.clamp(0.0, 1.0) * 100).round();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('${l10n.transcriptionDownloading} · ', style: style),
+        RollingText(
+          text: '$percent%',
+          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+          // Quiet secondary text: every changed digit moves together.
+          stagger: Duration.zero,
+        ),
+      ],
+    );
+  }
+}

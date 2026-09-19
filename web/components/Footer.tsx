@@ -31,7 +31,7 @@ const COLS: { head: string; links: FooterItem[] }[] = [
     head: "Product",
     links: [
       { label: "Download", href: APP_STORE_URL },
-      { label: "How it works", href: "/#record" },
+      { label: "How it works", href: "/#features" },
       { label: "Supporter Club", href: "/#club" },
       { label: "Privacy", href: "/privacy" },
     ],

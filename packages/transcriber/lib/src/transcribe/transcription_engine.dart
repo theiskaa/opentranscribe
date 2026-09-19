@@ -89,20 +89,70 @@ final class ReservationInfo {
 
 /// Progress of an on-device model download: [fraction] complete in [0,1], and
 /// [done] once installed. Engine-neutral: whatever an engine must fetch to run
-/// offline (an Apple asset today, a whisper model later) reports through this.
+/// offline (an Apple asset, a whisper model) reports through this.
+/// [preparing] marks the work after the bytes arrived (unpacking, a one-time
+/// compile) that no fraction measures and no cancel can end.
 @immutable
 final class ModelInstallProgress {
-  const ModelInstallProgress({required this.fraction, required this.done});
+  const ModelInstallProgress({required this.fraction, required this.done, this.preparing = false});
 
   final double fraction;
   final bool done;
+  final bool preparing;
 
   @override
   bool operator ==(Object other) =>
-      other is ModelInstallProgress && other.fraction == fraction && other.done == done;
+      other is ModelInstallProgress &&
+      other.fraction == fraction &&
+      other.done == done &&
+      other.preparing == preparing;
 
   @override
-  int get hashCode => Object.hash(fraction, done);
+  int get hashCode => Object.hash(fraction, done, preparing);
+}
+
+/// How good a downloadable model is, from worst to best, for a picker to word.
+enum ModelQuality { basic, good, better, best, top }
+
+/// One model a [ModelChoiceEngine] can run: what a picker renders. [bytes] is
+/// the download's exact size; [peakMemoryBytes] what a run needs resident
+/// whatever the audio's length, so a surface can dim a model this device
+/// cannot hold. Presentation words belong to the app; the package carries
+/// only the facts.
+@immutable
+final class ModelOption {
+  const ModelOption({
+    required this.id,
+    required this.displayName,
+    required this.bytes,
+    required this.quality,
+    required this.peakMemoryBytes,
+    this.accelerationBytes = 0,
+  });
+
+  final String id;
+  final String displayName;
+  final int bytes;
+  final ModelQuality quality;
+  final int peakMemoryBytes;
+
+  /// The extra download acceleration costs this model; zero for an engine
+  /// without it.
+  final int accelerationBytes;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ModelOption &&
+      other.id == id &&
+      other.displayName == displayName &&
+      other.bytes == bytes &&
+      other.quality == quality &&
+      other.peakMemoryBytes == peakMemoryBytes &&
+      other.accelerationBytes == accelerationBytes;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, displayName, bytes, quality, peakMemoryBytes, accelerationBytes);
 }
 
 /// The one boundary the app talks to. Batch (file -> transcript) is universal: it
@@ -134,9 +184,10 @@ abstract interface class TranscriptionEngine {
   /// Transcribes a kept audio file, or just the [start]..[end] slice of it
   /// (null bounds = the file's own edges). Ranges are what let a session
   /// spoken in several languages batch each span with its own model. An
-  /// engine that cannot honor a range must FAIL the call, never silently
-  /// transcribe the whole file: callers fall back on failure, and a whole
-  /// file answered as a slice would duplicate text across spans. Segment
+  /// engine that cannot honor a range must FAIL the call with
+  /// `RangeUnsupported`, never silently transcribe the whole file: callers
+  /// fall back to one whole pass on that failure alone, and a whole file
+  /// answered as a slice would duplicate text across spans. Segment
   /// timings in the result are relative to the SLICE; the caller offsets.
   Future<Transcript> transcribeFile(
     File audio, {
@@ -147,7 +198,7 @@ abstract interface class TranscriptionEngine {
 }
 
 /// An engine that also produces live partial/final text while capture runs. Apple
-/// Speech implements this; our planned whisper.cpp engine is batch-only. The
+/// Speech implements this; the whisper.cpp engine is batch-only. The
 /// stream emits partials as you speak, then one final event after capture stops.
 /// A degraded engine may emit nothing at all, so consumers must cancel their
 /// subscription when capture ends rather than await the final event as a signal.
@@ -182,8 +233,8 @@ abstract interface class LanguageReadinessEngine implements TranscriptionEngine 
 }
 
 /// An engine whose on-device model is downloaded and managed on the device. Apple
-/// Speech implements this (its language assets); a future whisper.cpp engine would
-/// too (its model file). An engine with no downloadable model does not implement it,
+/// Speech implements this (its language assets) and so does the whisper.cpp
+/// engine (its model file). An engine with no downloadable model does not implement it,
 /// and callers treat that as "always installed". Capability by type, no flag.
 abstract interface class ManagedModelEngine implements TranscriptionEngine {
   /// Whether the model for [localeId] is downloaded, so transcription runs now
@@ -223,4 +274,113 @@ abstract interface class ManagedModelEngine implements TranscriptionEngine {
   /// The platform's language cap and this app's current holdings, for a
   /// management UI to render honestly. Preflight: never throws.
   Future<ReservationInfo> reservationInfo();
+}
+
+/// An engine that offers a choice of models, one of which serves every
+/// language it supports (whisper's tiers). The choice is a preference the app
+/// persists and hands back through [selectModel]; the engine only records it.
+/// [ManagedModelEngine]'s per-language questions answer for the selected
+/// model. An id outside [models] is an [ArgumentError] on every method that
+/// takes one. Capability by type, no flag.
+abstract interface class ModelChoiceEngine implements TranscriptionEngine {
+  /// Every model the engine can run, in the order a picker lists them.
+  List<ModelOption> get models;
+
+  /// The model runs and installs use. Always one of [models]. A run takes
+  /// the choice as it stands when it is asked for and keeps it, so a caller
+  /// reading this just before asking knows the model that runs.
+  String get selectedModelId;
+
+  /// Records the choice. Nothing is downloaded or deleted, and a run already
+  /// asked for keeps its model.
+  Future<void> selectModel(String id);
+
+  /// The ids whose files are present and whole. Preflight: never throws.
+  Future<Set<String>> installedModels();
+
+  /// Downloads one model, streaming progress and ending with a
+  /// [ModelInstallProgress.done] event. Same rules as
+  /// [ManagedModelEngine.installModel]: listen immediately, one install per id,
+  /// overlapping ids serialized by the engine. A no-op stream when the file is
+  /// already present.
+  Stream<ModelInstallProgress> installModelById(String id);
+
+  /// Deletes one model's file. Answers whether a file was deleted; refused
+  /// (false) while a run, queued or in flight, holds the model, or a download
+  /// for it (the model or its acceleration file) runs. The selection is left
+  /// as is, so a removed selected model reads as not installed.
+  Future<bool> removeModel(String id);
+}
+
+/// An engine whose batch pass needs its own time budget: a caller allows
+/// [batchBudget] for a file of that length before treating the run as hung.
+/// Engines without it get the caller's default.
+abstract interface class PacedBatchEngine implements TranscriptionEngine {
+  /// Under a model choice, answers for a run asked for now, on the model it
+  /// would take.
+  Duration batchBudget(Duration audio);
+}
+
+/// An engine holding memory it can give back while idle: a loaded model, a
+/// worker. A caller that switches away calls [release]; a run in flight
+/// fails as cancelled, and the next run loads again. Safe at any time.
+abstract interface class ReleasableEngine implements TranscriptionEngine {
+  Future<void> release();
+}
+
+/// An engine whose batch pass can say how far it is. [transcribeFileWithProgress]
+/// is [TranscriptionEngine.transcribeFile] with a listener: fractions in
+/// `[0, 1]`, in order, never after the future settles, none at all for a run
+/// the engine cannot measure, and not necessarily reaching one: the future's
+/// settling is the end, not a fraction. The plain [transcribeFile] is the
+/// same run with no listener.
+abstract interface class ProgressBatchEngine implements TranscriptionEngine {
+  Future<Transcript> transcribeFileWithProgress(
+    File audio, {
+    required String localeId,
+    required void Function(double fraction) onProgress,
+    Duration? start,
+    Duration? end,
+  });
+}
+
+/// An engine that can tell which of a few languages a stretch of a kept file
+/// is spoken in, without transcribing it: how a mixed-language take finds
+/// which side of a pause its words belong to. Guarantees: [languageOdds]
+/// answers every tag of [among] with the odds that [start]..[end] is spoken in
+/// it, over [among] alone (summing to 1, or all 0 for a stretch it cannot
+/// read); a tag the engine cannot run throws `OnDeviceUnavailable`; it never
+/// downloads a model, throwing instead when none is there; a batch cancel
+/// fails it, one waiting its turn or already running.
+abstract interface class LanguageOddsEngine implements TranscriptionEngine {
+  Future<Map<String, double>> languageOdds(
+    File audio, {
+    required Duration start,
+    required Duration end,
+    required List<String> among,
+  });
+}
+
+/// A [ModelChoiceEngine] whose models run faster with a second on-device
+/// file each (whisper's Core ML encoder on the Neural Engine). The choice is
+/// a preference the app persists and hands back through [setAccelerated].
+/// Guarantees: [canAccelerate] false means the rest is inert (the platform
+/// has no such path); with acceleration on, [ModelChoiceEngine.installModelById]
+/// fetches the extra file too and a run uses it when present; off means no
+/// run uses one: every extra file is deleted, a run in flight keeping its
+/// own until it ends; [installAcceleration] fetches one model's extra file
+/// under the install rules of [installModelById] and ends only once a run
+/// can use it, or at once while the switch is off; [acceleratedModels]
+/// never throws.
+abstract interface class AcceleratedModelEngine implements ModelChoiceEngine {
+  bool get canAccelerate;
+
+  bool get accelerated;
+
+  Future<void> setAccelerated(bool on);
+
+  /// The ids whose extra file is present and whole.
+  Future<Set<String>> acceleratedModels();
+
+  Stream<ModelInstallProgress> installAcceleration(String id);
 }

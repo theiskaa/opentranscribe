@@ -4,11 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/utils/identical_elements.dart';
 
 /// One calendar day's entries, newest first.
 typedef DaySection = ({DateTime day, List<Entry> entries});
+
+/// The calendar day an instant falls on, locally: what the list files a
+/// record under, and what a splitter titles.
+DateTime localDayOf(DateTime at) {
+  final local = at.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
 
 /// Groups entries by their LOCAL calendar day, sections newest first. A day
 /// without entries has no section, which is the splitter-skipping rule: the
@@ -16,9 +24,7 @@ typedef DaySection = ({DateTime day, List<Entry> entries});
 List<DaySection> groupByLocalDay(List<Entry> entries) {
   final byDay = <DateTime, List<Entry>>{};
   for (final entry in entries) {
-    final local = entry.createdAt.toLocal();
-    final day = DateTime(local.year, local.month, local.day);
-    byDay.putIfAbsent(day, () => []).add(entry);
+    byDay.putIfAbsent(localDayOf(entry.createdAt), () => []).add(entry);
   }
   final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
   return [for (final day in days) (day: day, entries: byDay[day]!)];
@@ -29,8 +35,7 @@ List<DaySection> groupByLocalDay(List<Entry> entries) {
 DateTime? earliestEntryDay(List<Entry> entries) {
   DateTime? earliest;
   for (final entry in entries) {
-    final local = entry.createdAt.toLocal();
-    final day = DateTime(local.year, local.month, local.day);
+    final day = localDayOf(entry.createdAt);
     if (earliest == null || day.isBefore(earliest)) earliest = day;
   }
   return earliest;
@@ -39,25 +44,26 @@ DateTime? earliestEntryDay(List<Entry> entries) {
 /// The local days that have at least one entry, for the calendar's enabled
 /// days.
 Set<DateTime> daysWithEntries(List<Entry> entries) {
-  return {
-    for (final entry in entries)
-      () {
-        final local = entry.createdAt.toLocal();
-        return DateTime(local.year, local.month, local.day);
-      }(),
-  };
+  return {for (final entry in entries) localDayOf(entry.createdAt)};
 }
 
 /// The home screen's state: the journal's entries. The list always shows all
 /// of them; the calendar navigates rather than filters.
 @immutable
 final class HomeState {
-  HomeState({required this.entries})
+  HomeState({required this.entries, required this.takePending, this.takeForecast})
     : sections = groupByLocalDay(entries),
       entryDays = daysWithEntries(entries),
       firstEntryDay = earliestEntryDay(entries);
 
   final List<Entry> entries;
+
+  /// A just-recorded take is being transcribed: its record does not exist yet,
+  /// and the list holds its place until it lands.
+  final bool takePending;
+
+  /// What the held take is expected to read as, while [takePending] holds.
+  final TakeForecast? takeForecast;
 
   /// Derived once, at construction: home reads these several times per rebuild
   /// while scrolling, and a per-read getter would hand out a fresh [entryDays]
@@ -69,7 +75,11 @@ final class HomeState {
   // Entries compare by identity (the derived fields follow from them): the
   // store keeps unchanged entries' identity, so a no-op refresh compares equal.
   @override
-  bool operator ==(Object other) => other is HomeState && identicalElements(other.entries, entries);
+  bool operator ==(Object other) =>
+      other is HomeState &&
+      other.takePending == takePending &&
+      other.takeForecast == takeForecast &&
+      identicalElements(other.entries, entries);
 
   // Length only: == holds across distinct lists with the same elements, so
   // the list's own identity hash would break equal-implies-same-hash.
@@ -83,15 +93,40 @@ final class HomeState {
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({required TranscriptionService service})
     : _service = service,
-      super(HomeState(entries: service.entries())) {
+      super(HomeState(entries: service.entries(), takePending: false)) {
     _autoSub = _service.autoFinalized.listen((_) => load(), onError: (Object _) {});
     // Detached discards mutate the store without a navigation to refresh on.
     _changesSub = _service.entriesChanged.listen((_) => load(), onError: (Object _) {});
+    _takeSub = _service.batchProgress.listen(_onBatch, onError: (Object _) {});
   }
 
   final TranscriptionService _service;
   late final StreamSubscription<Entry> _autoSub;
   late final StreamSubscription<void> _changesSub;
+  late final StreamSubscription<BatchProgress> _takeSub;
+
+  bool _takePending = false;
+  TakeForecast? _takeForecast;
+
+  /// The take's pass is over and its record is on its way: the next refresh
+  /// carries it (or, for a pass that never landed one, carries nothing), and
+  /// clearing the hold there is what lets the row take its place in the same
+  /// frame it appears.
+  bool _takeSettling = false;
+
+  /// Only a fresh take holds a place here: a pass over an existing entry
+  /// (a re-transcribe, a continuation) already has a row to report in.
+  void _onBatch(BatchProgress event) {
+    if (isClosed || event.entryId != null) return;
+    if (event.step == BatchStep.done) {
+      _takeSettling = _takePending;
+      return;
+    }
+    if (_takePending) return;
+    _takePending = true;
+    _takeForecast = event.forecast;
+    emit(HomeState(entries: state.entries, takePending: true, takeForecast: _takeForecast));
+  }
 
   /// Ids removed optimistically whose on-device delete is still in flight. Every
   /// emit filters these out, so a concurrent delete's reconcile (or an
@@ -102,12 +137,21 @@ class HomeCubit extends Cubit<HomeState> {
     // Also reached from detached continuations (a recorder sheet's exit); the
     // guard keeps those safe even though this cubit is app-scoped today.
     if (isClosed) return;
+    if (_takeSettling) {
+      _takeSettling = false;
+      _takePending = false;
+      _takeForecast = null;
+    }
     final visible = _visible();
     // Constructing a HomeState re-derives the day grouping; an unchanged
     // journal should not pay for it. HomeState's own == covers comparers;
     // this return covers the derive cost.
-    if (identicalElements(visible, state.entries)) return;
-    emit(HomeState(entries: visible));
+    if (identicalElements(visible, state.entries) &&
+        state.takePending == _takePending &&
+        state.takeForecast == _takeForecast) {
+      return;
+    }
+    emit(HomeState(entries: visible, takePending: _takePending, takeForecast: _takeForecast));
   }
 
   List<Entry> _visible() =>
@@ -137,6 +181,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> close() async {
     await _autoSub.cancel();
     await _changesSub.cancel();
+    await _takeSub.cancel();
     return super.close();
   }
 }

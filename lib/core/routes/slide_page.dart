@@ -132,6 +132,26 @@ class _SlidePageRoute<T> extends PageRoute<T> {
 const double _kBackGestureWidth = 20;
 const double _kMinFlingVelocity = 1; // Screen widths per second.
 
+/// How far in from the leading edge the back swipe claims a drag: the grab
+/// area, widened into the safe-area inset on that side.
+double _backGestureEdgeWidth(BuildContext context) {
+  final edgeInset = switch (Directionality.of(context)) {
+    TextDirection.rtl => MediaQuery.paddingOf(context).right,
+    TextDirection.ltr => MediaQuery.paddingOf(context).left,
+  };
+  return max(edgeInset, _kBackGestureWidth);
+}
+
+/// Whether a drag starting at [global] is the back swipe's. A horizontal
+/// gesture of its own leaves drags starting here to the pop.
+bool inBackGestureEdge(BuildContext context, Offset global) {
+  final edge = _backGestureEdgeWidth(context);
+  return switch (Directionality.of(context)) {
+    TextDirection.ltr => global.dx < edge,
+    TextDirection.rtl => global.dx > MediaQuery.sizeOf(context).width - edge,
+  };
+}
+
 /// A left-edge horizontal-drag detector that drives an interruptible pop.
 ///
 /// Faithful port of Flutter's private `_CupertinoBackGestureDetector` (as of
@@ -210,18 +230,13 @@ class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
 
   @override
   Widget build(BuildContext context) {
-    // Widen the grab area into the notch/safe-area inset on the leading side.
-    final double edgeInset = switch (Directionality.of(context)) {
-      TextDirection.rtl => MediaQuery.paddingOf(context).right,
-      TextDirection.ltr => MediaQuery.paddingOf(context).left,
-    };
     return Stack(
       fit: StackFit.passthrough,
       children: [
         widget.child,
         PositionedDirectional(
           start: 0,
-          width: max(edgeInset, _kBackGestureWidth),
+          width: _backGestureEdgeWidth(context),
           top: 0,
           bottom: 0,
           child: Listener(onPointerDown: _handlePointerDown, behavior: HitTestBehavior.translucent),

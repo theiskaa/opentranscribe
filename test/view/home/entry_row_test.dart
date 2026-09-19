@@ -28,6 +28,30 @@ void main() {
     });
   });
 
+  group('takeArrival (the record a finished take landed as)', () {
+    test('the newest arrival is the take, whatever else arrived with it', () {
+      expect(takeArrival([entry('c'), entry('b'), entry('a')], {'a', 'c'})?.id, 'c');
+    });
+
+    test('a pass that landed nothing adopts nothing', () {
+      expect(takeArrival([entry('a')], const {}), isNull);
+    });
+
+    test('an arrival the list no longer carries adopts nothing', () {
+      expect(takeArrival([entry('a')], {'gone'}), isNull);
+    });
+  });
+
+  group('entryById', () {
+    test('finds the record still in the journal', () {
+      expect(entryById([entry('a'), entry('b')], 'b')?.id, 'b');
+    });
+
+    test('answers null for one that left', () {
+      expect(entryById([entry('a')], 'b'), isNull);
+    });
+  });
+
   group('newEntryDays (the splitter entrance diff)', () {
     test('the first build marks no days', () {
       expect(newEntryDays(null, {DateTime.utc(2026, 8, 3)}), isEmpty);

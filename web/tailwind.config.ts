@@ -14,15 +14,16 @@ const config: Config = {
         ink: {
           DEFAULT: "#F5F5F5",
           2: "#98989E",
+          3: "#6C6C72",
+        },
+        ok: {
+          DEFAULT: "#4ADE80",
+          deep: "#1A7F37",
         },
       },
       maxWidth: {
         frame: "1200px",
         prose: "680px",
-      },
-      transitionTimingFunction: {
-        out: "var(--ease-out)",
-        entrance: "var(--ease-entrance)",
       },
     },
   },

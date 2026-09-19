@@ -192,8 +192,7 @@ final class AudioCaptureSession {
     try session.setActive(true, options: .notifyOthersOnDeactivation)
 
     let input = engine.inputNode
-    let format = input.outputFormat(forBus: 0)
-    guard format.sampleRate > 0, format.channelCount > 0 else {
+    guard let format = AudioCaptureSession.tapFormat(of: input) else {
       try? session.setActive(false, options: .notifyOthersOnDeactivation)
       throw CaptureError.noInput
     }
@@ -331,12 +330,12 @@ final class AudioCaptureSession {
   /// pre-pause audio is kept and auto-saved.
   func resume() throws {
     guard isRunning, isPaused else { throw CaptureError.notPaused }
-    let input = engine.inputNode.outputFormat(forBus: 0)
+    let input = AudioCaptureSession.tapFormat(of: engine.inputNode)
     lock.lock()
     let fileFormat = audioFile?.processingFormat
     lock.unlock()
     if let fileFormat = fileFormat,
-      input.sampleRate != fileFormat.sampleRate || input.channelCount != fileFormat.channelCount
+      input?.sampleRate != fileFormat.sampleRate || input?.channelCount != fileFormat.channelCount
     {
       teardown()
       onStatus?("interrupted")
@@ -480,6 +479,18 @@ final class AudioCaptureSession {
     }
   }
 
+  /// The format a tap on [input] can take, or nil while there is none. Right
+  /// after a route change the node's output format can still hold the old
+  /// sample rate while the hardware moved, and installTap raises an uncatchable
+  /// exception when the two rates differ.
+  static func tapFormat(of input: AVAudioInputNode) -> AVAudioFormat? {
+    let hardware = input.inputFormat(forBus: 0)
+    let format = input.outputFormat(forBus: 0)
+    guard format.sampleRate > 0, format.channelCount > 0, hardware.sampleRate == format.sampleRate
+    else { return nil }
+    return format
+  }
+
   /// Installs the capture tap: writes every buffer to the kept file, fans it out
   /// to consumers, and aggregates the input level.
   ///
@@ -570,17 +581,15 @@ final class AudioCaptureSession {
       guard let self = self, self.isRunning, !self.isPaused else { return }
 
       let input = self.engine.inputNode
-      let format = input.outputFormat(forBus: 0)
+      let format = AudioCaptureSession.tapFormat(of: input)
       let opened = self.captureFormat
       // The kept file was created for one sample rate and channel count and
       // cannot take anything else, so a format that MOVED ends the take. The
       // audio up to here is real and is kept; carrying on would either throw on
       // every write or silently record nothing.
-      let sameShape =
-        format.sampleRate > 0 && format.channelCount > 0 && opened != nil
-        && format.sampleRate == opened!.sampleRate && format.channelCount == opened!.channelCount
-
-      guard sameShape else {
+      guard let format = format, let opened = opened,
+        format.sampleRate == opened.sampleRate, format.channelCount == opened.channelCount
+      else {
         self.teardown()
         self.onStatus?("interrupted")
         return
@@ -736,6 +745,42 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
   }
 
+  private func decodePcm(
+    path: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
+    onDecodeQueue(result) {
+      let outcome = try AudioDecode.decodePcm(path: path, startMs: startMs, endMs: endMs)
+      return ["path": outcome.path, "frames": outcome.frames]
+    }
+  }
+
+  private func voicedRanges(
+    path: String, startMs: Int?, endMs: Int?, result: @escaping FlutterResult
+  ) {
+    onDecodeQueue(result) {
+      let ranges = try AudioDecode.voicedRanges(path: path, startMs: startMs, endMs: endMs)
+      return ["ranges": ranges.map { $0 as Any } ?? NSNull()]
+    }
+  }
+
+  private func pcmLength(path: String, result: @escaping FlutterResult) {
+    onDecodeQueue(result) { ["ms": try AudioDecode.lengthMs(path: path)] }
+  }
+
+  private func onDecodeQueue(_ result: @escaping FlutterResult, _ body: @escaping () throws -> Any) {
+    AudioDecode.queue.async {
+      let reply: Any
+      do {
+        reply = try body()
+      } catch let error as AudioDecode.DecodeError {
+        reply = FlutterError(code: error.code, message: error.errorDescription, details: nil)
+      } catch {
+        reply = FlutterError(code: "decode_failed", message: "\(error)", details: nil)
+      }
+      DispatchQueue.main.async { result(reply) }
+    }
+  }
+
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "ensurePermission":
@@ -820,6 +865,36 @@ final class AudioRecorderPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         return
       }
       concatenate(names: names, result: result)
+    case "modelsDirectory":
+      do {
+        result(try AudioCaptureSession.protectedDirectory(named: "models").path)
+      } catch {
+        result(FlutterError(code: "storage_failed", message: "\(error)", details: nil))
+      }
+    case "physicalMemory":
+      result(Int(ProcessInfo.processInfo.physicalMemory))
+    case "decodePcm", "voicedRanges":
+      let args = call.arguments as? [String: Any]
+      let startMs = args?["startMs"] as? Int
+      let endMs = args?["endMs"] as? Int
+      guard let path = args?["path"] as? String, !path.isEmpty,
+        (args?["startMs"] == nil) == (startMs == nil), (args?["endMs"] == nil) == (endMs == nil)
+      else {
+        result(FlutterError(code: "bad_args", message: "path and integer bounds", details: nil))
+        return
+      }
+      if call.method == "decodePcm" {
+        decodePcm(path: path, startMs: startMs, endMs: endMs, result: result)
+      } else {
+        voicedRanges(path: path, startMs: startMs, endMs: endMs, result: result)
+      }
+    case "pcmLength":
+      guard let path = (call.arguments as? [String: Any])?["path"] as? String, !path.isEmpty
+      else {
+        result(FlutterError(code: "bad_args", message: "path required", details: nil))
+        return
+      }
+      pcmLength(path: path, result: result)
     case "setBackupExcluded":
       do {
         let excluded = (call.arguments as? [String: Any])?["excluded"] as? Bool ?? true

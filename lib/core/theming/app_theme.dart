@@ -18,6 +18,7 @@ final class AppTheme {
     required this.surfaceBorder,
     required this.text,
     required this.textSecondary,
+    required this.dimmedText,
     required this.hairline,
     required this.accent,
     required this.accentPressed,
@@ -92,6 +93,8 @@ final class AppTheme {
       surfaceBorder: surfaceBorder,
       text: text,
       textSecondary: textSecondary,
+      // Faded, but never under 3:1 over the surface it is read on.
+      dimmedText: fadedAtLeast(textSecondary, 0.5, background: surface),
       hairline: hairline,
       accent: accent,
       accentPressed: accentPressed,
@@ -213,6 +216,12 @@ final class AppTheme {
             toggleActive: brightness == Brightness.dark
                 ? const Color(0xFF30D158)
                 : const Color(0xFF34C759),
+            // Low-alpha ink on dark needs a touch more to read at all.
+            storageShades: (
+              clearable: text,
+              kept: text.withValues(alpha: brightness == Brightness.dark ? 0.42 : 0.38),
+              models: text.withValues(alpha: brightness == Brightness.dark ? 0.18 : 0.14),
+            ),
           ),
       navigation:
           navigation ??
@@ -273,6 +282,10 @@ final class AppTheme {
   final Color surfaceBorder;
   final Color text;
   final Color textSecondary;
+
+  /// Quieter than [textSecondary] for a kept but unavailable choice (an engine
+  /// this phone cannot run), yet still read.
+  final Color dimmedText;
   final Color hairline;
 
   /// Ink, not a hue: filled buttons and selection fills.

@@ -4,7 +4,7 @@ Thanks for wanting to help. This covers how to build the app, how the code is ar
 
 ## The one rule
 
-**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app has to keep working with the phone in airplane mode. Most of the architecture below follows from that, and a pull request that adds a network call will be declined.
+**Nothing leaves the phone.** No network calls, no accounts, no analytics, no third-party SDK that phones home. The app has to keep working with the phone in airplane mode. The one carve-out is the model fetcher, which downloads a public Whisper model file the user asked for (a model, or its Neural Engine encoder) from one pinned host and sends nothing; `test/one_rule_test.dart` holds the tree to that one file. Most of the architecture below follows from the rule, and a pull request that adds any other network call will be declined.
 
 Transcription and reflection each run behind a contract, `TranscriptionEngine` and `ReflectionEngine`, with an `onDeviceOnly` gate: the app refuses at construction any engine that answers false, and there is no cloud fallback for either. Only text crosses those boundaries, never audio.
 
@@ -66,7 +66,7 @@ The stack is Flutter with `flutter_bloc` for state, `go_router` for navigation, 
 
 **Dependency injection** is a typed composition root, `Deps` in `core/app/deps.dart`. No service locator, no code generation, no `BuildContext` needed to reach a dependency. Access anything with `Deps.i.<field>`. To add a dependency, give it a typed field on `Deps` and construct it in `Deps.init()`, which runs once before `runApp` and holds only what the first frame cannot be built without. Launch-time repair (reconciling orphaned audio, healing dangling records, the reflection catch-up) belongs in `Deps.launchMaintenance()`, not `init()`: every pass decrypts the whole journal, so it must not run on the frames the user is watching.
 
-**Transcription** sits behind `TranscriptionEngine`. Apple's Speech framework is the first implementation (`SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` below it); whisper.cpp is meant to follow as a second one, with no change to the rest of the app. Streaming and downloadable-model behavior are separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `ManagedModelEngine`), not flags. Live text is painted while you speak and then discarded; the saved transcript is a batch pass over the finished file. Speech models are per-language and on-device, bounded by the cap iOS 26 places on how many one app may hold. `transcription_service.dart` owns the whole entry lifecycle, keeping the recorder, engine, and store private inside it.
+**Transcription** sits behind `TranscriptionEngine`. Three engines implement it: Apple's `SpeechAnalyzer` on iOS 26, `SFSpeechRecognizer` (the system dictation recognizer), and whisper.cpp through a C shim over `dart:ffi`, batch-only, one downloaded model of five serving every language it knows. Streaming, downloadable-model, model-choice, paced-batch, progress-reporting and acceleration behavior are separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `ManagedModelEngine`, `ModelChoiceEngine`, `PacedBatchEngine`, `ReleasableEngine`, `ProgressBatchEngine`, `AcceleratedModelEngine`), not flags. Live text is painted while you speak and then discarded; the saved transcript is a batch pass over the finished file. Apple's speech models are per-language and on-device, bounded by the cap iOS 26 places on how many one app may hold; Whisper's one model serves every language. `transcription_service.dart` owns the whole entry lifecycle, keeping the recorder, engine, and store private inside it.
 
 **Reflection** sits behind `ReflectionEngine`, held to the same on-device gate. It runs on Apple's Foundation Models, writes one note per closed period, and is absent on hardware without Apple Intelligence. An optional notification, scheduled locally, says when a new one is ready.
 
@@ -96,7 +96,7 @@ Unit tests only, under `test/` mirroring `lib/`; each package under `packages/` 
 - No `material.dart` or `cupertino.dart` anywhere in `lib/`. Build on `package:flutter/widgets.dart` and the design system in `view/widgets/`. A test enforces this.
 - No Flutter widget tests.
 - No `get_it`, `injectable`, DI code generation, or context-based wiring. Add a typed field to `Deps`.
-- No network call, analytics, crash reporting, or any SDK that transmits off-device.
+- No network call beyond the model fetcher, no analytics, crash reporting, or any SDK that transmits off-device.
 - Do not couple UI, storage, or services to a concrete engine, and do not let audio bytes cross the engine boundary.
 - Do not call a platform channel from `view/`.
 - No hardcoded user-facing strings, and no literal colors or magic numbers in widgets. Add a token to `core/theming/` and style through `context.theme`.

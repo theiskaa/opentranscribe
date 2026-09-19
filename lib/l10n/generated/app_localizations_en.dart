@@ -89,11 +89,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
-  String get homeEmptyHeadline => 'Speak, and it\'s written down.';
+  String get homeSetupChangeEngine => 'Change engine';
 
   @override
-  String get homeEmptySubtitle =>
-      'Everything you say is transcribed and kept on this device. Pull down to record your first entry.';
+  String get homeSetupRecord => 'Pull down, or tap the waveform, to record your first entry.';
+
+  @override
+  String homeSetupModelLands(String model) {
+    return 'You can record now. It\'s written down once $model is on this iPhone.';
+  }
+
+  @override
+  String get homeSetupFixFirst => 'Fix what\'s shown above, or pick another engine.';
 
   @override
   String get homePullToRecord => 'Pull to record';
@@ -161,6 +168,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t get the speech model for this language. Check your connection and free space, or manage languages under Models.';
 
   @override
+  String get transcribeErrorModelLoad =>
+      'The model downloaded but couldn\'t be opened on this iPhone. On the Transcription screen, pick another model, remove this one, then download it again.';
+
+  @override
   String get transcribeErrorPermission =>
       'Allow speech recognition for opentranscribe in the Settings app, then try again.';
 
@@ -189,6 +200,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcribeErrorLabelModelInstall => 'Couldn\'t get the language model';
 
   @override
+  String get transcribeErrorLabelModelLoad => 'Couldn\'t open the model';
+
+  @override
   String get transcribeErrorLabelCapReached => 'Language limit reached';
 
   @override
@@ -205,6 +219,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcribeErrorTitleModelInstall => 'Couldn\'t download the model';
+
+  @override
+  String get transcribeErrorTitleModelLoad => 'Couldn\'t open the model';
 
   @override
   String get transcribeErrorTitleCapReached => 'Language limit reached';
@@ -360,9 +377,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsModels => 'Transcription';
 
   @override
-  String get transcriptionYourLanguages => 'Your languages';
-
-  @override
   String get transcriptionAllLanguages => 'All languages';
 
   @override
@@ -383,13 +397,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionFootnote => 'Models download once and are shared with the system.';
 
   @override
-  String get transcriptionEngines => 'Engines';
-
-  @override
   String get engineBlurbSpeechAnalyzer => 'Apple\'s newest engine, a downloaded model per language';
 
   @override
   String get engineBlurbDictation => 'The recognizer behind iOS keyboard dictation';
+
+  @override
+  String get engineBlurbWhisper => 'An open model on whisper.cpp, one download for every language';
+
+  @override
+  String engineNoteLive(String blurb) {
+    return '$blurb. Shows your words as you speak.';
+  }
+
+  @override
+  String engineNoteAfterStop(String blurb) {
+    return '$blurb. Writes your words after you stop.';
+  }
 
   @override
   String get engineUnavailableNote => 'Not available on this iPhone';
@@ -400,6 +424,262 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String engineUnavailableBody(String engine) {
     return '$engine needs iOS 26 and a newer iPhone. Recording keeps using the engine that works here.';
+  }
+
+  @override
+  String get engineStorageUnavailableNote => 'Storage unavailable right now';
+
+  @override
+  String engineStorageUnavailableBody(String engine) {
+    return '$engine couldn\'t reach its model storage on this launch. Relaunch to try again.';
+  }
+
+  @override
+  String get transcriptionModel => 'Model';
+
+  @override
+  String get modelQualityBasic => 'Basic';
+
+  @override
+  String get modelQualityGood => 'Good';
+
+  @override
+  String get modelQualityBetter => 'Better';
+
+  @override
+  String get modelQualityBest => 'Best';
+
+  @override
+  String get modelQualityTop => 'Top';
+
+  @override
+  String modelSizeAndQuality(String size, String quality) {
+    return '$size · $quality';
+  }
+
+  @override
+  String get modelTooHeavyNote => 'Too large for this iPhone';
+
+  @override
+  String get modelTooHeavyTitle => 'Too large for this iPhone';
+
+  @override
+  String modelTooHeavyBody(String model) {
+    return '$model needs more memory than this iPhone has. Pick a smaller model.';
+  }
+
+  @override
+  String modelRemoveTitle(String model) {
+    return 'Remove $model?';
+  }
+
+  @override
+  String modelRemoveBody(String size) {
+    return 'Frees $size. You can download it again anytime.';
+  }
+
+  @override
+  String get modelRemoveConfirm => 'Remove';
+
+  @override
+  String get modelBusyTitle => 'Model in use';
+
+  @override
+  String modelBusyBody(String model) {
+    return '$model is transcribing right now. Try again when it finishes.';
+  }
+
+  @override
+  String get modelFailOfflineTitle => 'Couldn\'t connect';
+
+  @override
+  String modelFailOfflineBody(String model) {
+    return 'Downloading $model needs a connection. Nothing else in the app ever does. Connect, then try again.';
+  }
+
+  @override
+  String get modelFailRejectedTitle => 'Download didn\'t verify';
+
+  @override
+  String modelFailRejectedBody(String model) {
+    return 'The $model file didn\'t match what was expected, so it was discarded. Try again.';
+  }
+
+  @override
+  String get modelFailLoadTitle => 'Couldn\'t open';
+
+  @override
+  String modelFailLoadBody(String model) {
+    return '$model downloaded but couldn\'t be opened on this iPhone. Try again to download it afresh, or remove it.';
+  }
+
+  @override
+  String get modelFailNoSpaceTitle => 'Not enough space';
+
+  @override
+  String modelFailNoSpaceBody(String size) {
+    return 'Free up $size on this iPhone, then try again.';
+  }
+
+  @override
+  String get cacheModels => 'Models';
+
+  @override
+  String transcriptionHeroNeedsDownload(String model) {
+    return 'Needs the $model model';
+  }
+
+  @override
+  String get transcriptionModelFootnote => 'The model downloads once and stays in the app.';
+
+  @override
+  String get transcriptionAlsoDownloaded => 'Also downloaded';
+
+  @override
+  String get transcriptionMoreModels => 'More models';
+
+  @override
+  String get transcriptionAllModels => 'All models';
+
+  @override
+  String modelNotDownloaded(String size) {
+    return 'Not downloaded · $size';
+  }
+
+  @override
+  String modelDownloadSized(String model, String size) {
+    return 'Download $model · $size';
+  }
+
+  @override
+  String transcriptionAccelerationSize(String size) {
+    return 'Adds $size, with a one-time setup';
+  }
+
+  @override
+  String transcriptionAccelerationUses(String size) {
+    return 'Uses $size on this iPhone';
+  }
+
+  @override
+  String get modelPreparingNote =>
+      'Getting it ready for the Neural Engine. This takes a few minutes, once.';
+
+  @override
+  String get modelSheetFootnote =>
+      'A model you download is used once it\'s ready, and stays in the app until you remove it.';
+
+  @override
+  String get modelNotSavedBody =>
+      'The model choice couldn\'t be saved and won\'t survive a relaunch.';
+
+  @override
+  String get modelTierBasicInfo =>
+      'The smallest and fastest. Rough on names and accents, fine for a quick note.';
+
+  @override
+  String get modelTierGoodInfo =>
+      'Quick, with clearer words than the smallest. Good for short notes in a quiet room.';
+
+  @override
+  String get modelTierBetterInfo =>
+      'The balance most iPhones want. Accurate for everyday speech in every language.';
+
+  @override
+  String get modelTierBestInfo =>
+      'Slower and careful. Strong on accents, quiet takes, and long entries.';
+
+  @override
+  String get modelTierTopInfo =>
+      'The best on offer. Needs a recent iPhone and a little patience per entry.';
+
+  @override
+  String get modelDownload => 'Download';
+
+  @override
+  String get modelUse => 'Use';
+
+  @override
+  String get modelInUse => 'In use';
+
+  @override
+  String get transcriptionDownloadFootnote =>
+      'Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.';
+
+  @override
+  String modelDownloadButton(String model) {
+    return 'Download $model';
+  }
+
+  @override
+  String modelUseButton(String model) {
+    return 'Use $model';
+  }
+
+  @override
+  String modelInUseLabel(String model) {
+    return '$model in use';
+  }
+
+  @override
+  String modelRetryButton(String model) {
+    return 'Try downloading $model again';
+  }
+
+  @override
+  String modelDownloadingLabel(String model, int percent) {
+    return 'Downloading $model, $percent%';
+  }
+
+  @override
+  String modelTooHeavyLabel(String model) {
+    return '$model is too large for this iPhone';
+  }
+
+  @override
+  String modelCancelDownloadButton(String model) {
+    return 'Cancel downloading $model';
+  }
+
+  @override
+  String modelRemoveButton(String model) {
+    return 'Remove $model';
+  }
+
+  @override
+  String get takeTranscribing => 'Transcribing';
+
+  @override
+  String takeTranscribingProgress(int percent) {
+    return 'Transcribing · $percent%';
+  }
+
+  @override
+  String takeDownloadingProgress(String model, int percent) {
+    return 'Downloading $model · $percent%';
+  }
+
+  @override
+  String get transcriptionAcceleration => 'Faster with the Neural Engine';
+
+  @override
+  String get accelerationNotSavedBody =>
+      'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.';
+
+  @override
+  String get modelPreparing => 'Preparing…';
+
+  @override
+  String modelPreparingLabel(String model) {
+    return 'Preparing $model';
+  }
+
+  @override
+  String get modelQueued => 'In queue';
+
+  @override
+  String modelQueuedLabel(String model) {
+    return '$model in queue';
   }
 
   @override
@@ -550,6 +830,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingNext => 'Next';
 
   @override
+  String get onboardingEngineTitle => 'When should words appear?';
+
+  @override
+  String get onboardingEngineBody =>
+      'Everything is written on this phone. You can change it anytime under Transcription in Settings.';
+
+  @override
+  String get onboardingEngineAsYouSpeak => 'As you speak';
+
+  @override
+  String get onboardingEngineAfterYouStop => 'After you stop';
+
+  @override
+  String onboardingEngineWrittenBy(String engine) {
+    return 'Written by $engine';
+  }
+
+  @override
+  String get onboardingEngineChangeModel => 'Change model';
+
+  @override
   String get onboardingStart => 'Get started';
 
   @override
@@ -560,35 +861,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCache => 'Cache';
 
   @override
-  String cacheRecordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count recordings',
-      one: '1 recording',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get cacheReclaimable => 'Reclaimable';
-
-  @override
-  String get cacheReclaimableInfo => 'Transcribed, safe to clear';
-
-  @override
-  String get cacheUsageInfo =>
-      'Audio of transcribed entries can be cleared; their text stays. Recordings not transcribed yet are never touched.';
-
-  @override
   String get cacheKeepAudio => 'Keep audio';
 
   @override
-  String get cacheKeepAudioInfo =>
-      'When off, each recording is deleted once its transcription succeeds. Such entries are text only: no playback, and no re-transcription by a better engine later.';
+  String get cacheOnThisPhone => 'On this iPhone';
 
   @override
-  String get cacheClear => 'Clear transcribed audio';
+  String get cacheTranscribedAudio => 'Transcribed recordings';
+
+  @override
+  String get cachePendingAudio => 'Not transcribed yet';
+
+  @override
+  String cacheKindLine(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+    );
+    return '$size · $_temp0';
+  }
+
+  @override
+  String cacheModelsLine(String size) {
+    return '$size · Managed in Transcription';
+  }
+
+  @override
+  String get cacheClearAction => 'Clear';
+
+  @override
+  String cacheFreed(String size) {
+    return 'Freed $size';
+  }
+
+  @override
+  String get cacheNothingToClear => 'Nothing to clear';
+
+  @override
+  String get cacheKeepOnNote => 'Kept for playback and re-transcribing later.';
+
+  @override
+  String get cacheKeepOffNote => 'Deleted once transcribed. The entry keeps its text.';
+
+  @override
+  String get cachePendingNote =>
+      'Recordings not transcribed yet are never cleared, whichever way this is set.';
 
   @override
   String get cacheClearTitle => 'Clear transcribed audio?';

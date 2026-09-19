@@ -7,12 +7,15 @@ import 'package:go_router/go_router.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/back_only_physics.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_engine.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_record.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_reflect.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_setup.dart';
@@ -21,7 +24,7 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_ste
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
 
-/// First-launch onboarding: three or four pages over one bottom button, then
+/// First-launch onboarding: four or five pages over one bottom button, then
 /// into the app. Shown once - the router's redirect gates it on
 /// [Onboarding.isDone], and finishing marks it so. The button is the only way
 /// forward, and the last one fires the pending system prompts before entering
@@ -70,6 +73,25 @@ class _OnboardingViewState extends State<_OnboardingView> {
   bool _finishing = false;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_startAsYouSpeak());
+  }
+
+  /// The engine page opens on as you speak, whatever engine was in use.
+  Future<void> _startAsYouSpeak() async {
+    final cubit = context.read<EnginesCubit>();
+    final id = engineForAnswer(cubit.state.rows, WordsWhen.asYouSpeak);
+    if (id == null ||
+        cubit.state.rows.any((row) => row.isActive && row.descriptor.engineId == id)) {
+      return;
+    }
+    try {
+      await cubit.pick(id);
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -91,6 +113,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
   Future<void> _next(List<OnboardingStep> steps, Duration slide) async {
     if (_index < steps.length - 1) {
       _frozen ??= steps;
+      if (steps[_index] == OnboardingStep.engine) unawaited(_fetchChosenModel());
       _goTo(_index + 1, slide);
       return;
     }
@@ -100,6 +123,18 @@ class _OnboardingViewState extends State<_OnboardingView> {
     if (!mounted) return;
     setState(() => _requesting = false);
     unawaited(_finish());
+  }
+
+  /// The chosen model starts downloading as the reader moves on, so it is
+  /// here by the first entry; a failed one is retried by the first take.
+  Future<void> _fetchChosenModel() async {
+    final cubit = context.read<ModelsCubit>();
+    try {
+      // An engine picked a moment ago is not in the rows until they reload.
+      await cubit.load();
+      if (await settleModel(cubit)) await cubit.load();
+      if (downloadsOnLeave(cubit.state)) await cubit.installSelected();
+    } catch (_) {}
   }
 
   /// Dots only ever go back; a forward dot stays inert so the button keeps
@@ -161,6 +196,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
                     for (final step in steps)
                       switch (step) {
                         OnboardingStep.record => const OnboardingRecord(),
+                        OnboardingStep.engine => const OnboardingEngine(),
                         OnboardingStep.reflect => const OnboardingReflect(),
                         OnboardingStep.shape => const OnboardingShape(),
                         OnboardingStep.setup => const OnboardingSetup(),

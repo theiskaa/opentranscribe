@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/engine_registry.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
@@ -16,6 +15,8 @@ import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
 import '../../support/fake_audio_recorder.dart';
+
+import '../../support/engine_fixtures.dart';
 
 class _FailingWrites extends LocalService {
   @override
@@ -67,23 +68,24 @@ void main() {
 
   tearDown(() => service.dispose());
 
-  EngineEntry entry(TranscriptionEngine engine, {required bool available}) => EngineEntry(
-    descriptor: EngineDescriptor(
-      engineId: engine.id,
-      displayName: engine.id,
-      blurb: (_) => engine.id,
-      logo: const IconData(0x21),
-    ),
-    engine: engine,
-    available: available,
-    unavailability: available ? null : EngineUnavailability.needsNewerDevice,
-  );
+  EngineEntry entry(TranscriptionEngine engine, {required bool available, int order = 0}) =>
+      EngineEntry(
+        descriptor: engineDescriptor(engine.id, displayOrder: order),
+        engine: engine,
+        available: available,
+        unavailability: available ? null : EngineUnavailability.needsNewerDevice,
+      );
 
-  EnginesCubit build({bool speechAvailable = true, EngineSettings? engineSettings}) {
+  EnginesCubit build({
+    bool speechAvailable = true,
+    EngineSettings? engineSettings,
+    int speechOrder = 0,
+    int dictationOrder = 1,
+  }) {
     final cubit = EnginesCubit(
       registry: [
-        entry(speech, available: speechAvailable),
-        entry(dictation, available: true),
+        entry(speech, available: speechAvailable, order: speechOrder),
+        entry(dictation, available: true, order: dictationOrder),
       ],
       service: service,
       engineSettings: engineSettings ?? EngineSettings(storage: storage),
@@ -115,7 +117,7 @@ void main() {
     await cubit.close();
   });
 
-  test('rows mirror the registry with the active engine marked', () {
+  test("rows carry each entry's descriptor and availability, the active one marked", () {
     final cubit = build(speechAvailable: false);
 
     expect(cubit.state.rows.map((r) => r.descriptor.engineId), [
@@ -126,6 +128,47 @@ void main() {
     expect(cubit.state.rows.first.unavailability, EngineUnavailability.needsNewerDevice);
     expect(cubit.state.rows.first.isActive, isTrue);
     expect(cubit.state.rows.last.isActive, isFalse);
+  });
+
+  test('a streaming engine row says its words show as they are spoken', () {
+    final rows = build().state.rows;
+    expect(rows.firstWhere((r) => r.descriptor.engineId == speech.id).live, isTrue);
+    expect(rows.firstWhere((r) => r.descriptor.engineId == dictation.id).live, isTrue);
+  });
+
+  test('a batch engine row says its words land only once the take stops', () {
+    final batch = FakeBatchEngine();
+    final cubit = EnginesCubit(
+      registry: [entry(speech, available: true), entry(batch, available: true, order: 1)],
+      service: service,
+      engineSettings: EngineSettings(storage: storage),
+      transcriptionSettings: TranscriptionSettings(
+        storage: storage,
+        service: service,
+        deviceTag: () => 'en-US',
+      ),
+    );
+    addTearDown(cubit.close);
+
+    expect(cubit.state.rows.firstWhere((r) => r.descriptor.engineId == batch.id).live, isFalse);
+  });
+
+  test('rows follow the display order, not the preference order auto resolves', () {
+    final cubit = build(speechOrder: 1, dictationOrder: 0);
+
+    expect(cubit.state.rows.map((r) => r.descriptor.engineId), [
+      'fake.dictation',
+      'fake.streaming',
+    ]);
+  });
+
+  test("engines sharing a display order keep the registry's order between them", () {
+    final cubit = build(speechOrder: 3, dictationOrder: 3);
+
+    expect(cubit.state.rows.map((r) => r.descriptor.engineId), [
+      'fake.streaming',
+      'fake.dictation',
+    ]);
   });
 
   test('pick switches, persists, re-resolves the language, and re-marks rows', () async {
@@ -203,6 +246,44 @@ void main() {
     expect(await cubit.pick('fake.dictation'), EnginePickOutcome.retranscribing);
     expect(service.engineId, 'fake.batch');
     expect(engineSettings.engineId, isNull);
+
+    gate.complete();
+    await run;
+  });
+
+  test('nothing refuses a switch while nothing holds the engine', () {
+    expect(build().refusal, isNull);
+  });
+
+  test('a take in flight refuses a switch before any pick is tried', () async {
+    final cubit = build();
+    await service.startRecording();
+
+    expect(cubit.refusal, EnginePickOutcome.busy);
+
+    await service.stopRecording();
+    await pumpEventQueue();
+    expect(cubit.refusal, isNull);
+  });
+
+  test('a bulk re-transcribe refuses a switch before any pick is tried', () async {
+    final cubit = build();
+    final gate = Completer<void>();
+    expect(service.useEngine(FakeBatchEngine(gate: gate.future)), isTrue);
+    await service.adoptImportedEntries([
+      StagedImportEntry(
+        entry: Entry(
+          id: 'kept',
+          createdAt: DateTime.utc(2026, 3, 4),
+          audioPath: '/audio/kept.m4a',
+          duration: const Duration(seconds: 3),
+        ),
+      ),
+    ]);
+    final run = service.retranscribeAll.start();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.refusal, EnginePickOutcome.retranscribing);
 
     gate.complete();
     await run;
