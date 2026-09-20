@@ -1,9 +1,9 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
+
+import '../../support/engine_fixtures.dart';
 
 void main() {
   test('a running phase always shows the running face', () {
@@ -36,12 +36,7 @@ void main() {
 
   test('the active engine name is the marked row, and empty before rows exist', () {
     EngineRowState row(String id, {required bool active}) => EngineRowState(
-      descriptor: EngineDescriptor(
-        engineId: id,
-        displayName: id.toUpperCase(),
-        blurb: (_) => id,
-        logo: const IconData(0x21),
-      ),
+      descriptor: engineDescriptor(id, displayName: id.toUpperCase()),
       available: true,
       isActive: active,
     );

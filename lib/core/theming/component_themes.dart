@@ -24,7 +24,7 @@ final class TopBarTheme {
     this.largeHeight = 72.0,
     this.fadeTail = 24.0,
     this.backChevronSize = 18.0,
-    this.actionSize = 44.0,
+    this.actionSize = AppSizes.barControl,
   });
 
   final Color background;
@@ -64,6 +64,7 @@ final class ButtonTheme {
     this.disabledOpacity = 0.5,
     this.height = 52.0,
     this.compactHeight = 36.0,
+    this.bandHeight = 32.0,
     this.radius = AppRadius.pill,
   });
 
@@ -83,6 +84,11 @@ final class ButtonTheme {
 
   /// An inline card action, sized to sit inside content rather than end it.
   final double compactHeight;
+
+  /// A control seated in a card's band under the card's own words, one line
+  /// tall, so the band never resizes as the control changes face.
+  final double bandHeight;
+
   final double radius;
 }
 
@@ -414,10 +420,14 @@ final class SettingsTheme {
     required this.dividerColor,
     required this.sectionLabelColor,
     required this.toggleActive,
+    required this.storageShades,
     this.cardRadius = AppRadius.card,
     this.iconTileRadius = AppRadius.sm,
     this.iconTileSize = 32.0,
-    this.chevronSize = 12.0,
+    this.chevronSize = 14.0,
+    this.heroChevronSize = 15.0,
+    this.noteGap = 3.0,
+    this.trailingTargetWidth = 44.0,
     this.dividerInset = 58.0,
     this.rowPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   });
@@ -434,10 +444,27 @@ final class SettingsTheme {
   final Color dividerColor;
   final Color sectionLabelColor;
   final Color toggleActive;
+
+  /// The storage bar's kinds, strongest first: the share a clear frees, kept
+  /// audio not transcribed yet, then downloaded models. Ink at falling weight,
+  /// so the one hue in the app stays the switch's.
+  final ({Color clearable, Color kept, Color models}) storageShades;
+
   final double cardRadius;
   final double iconTileRadius;
   final double iconTileSize;
   final double chevronSize;
+
+  /// The chevron on a hero card, a size up from a row's.
+  final double heroChevronSize;
+
+  /// Between a name and the note under it, off the spacing scale: xs floats
+  /// the note too far off the name it qualifies.
+  final double noteGap;
+
+  /// A trailing glyph's touch target: the glyph is small, its target is not.
+  final double trailingTargetWidth;
+
   final double dividerInset;
 
   /// Every row's inset, the kit's and any row built to sit among them.

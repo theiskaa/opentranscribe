@@ -5,11 +5,106 @@ import 'package:flutter/foundation.dart';
 
 import 'package:opentranscribe/core/export/file_names.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/language_seams.dart';
+import 'package:opentranscribe/core/services/live_words.dart';
 import 'package:opentranscribe/core/services/retranscribe_runner.dart';
+import 'package:opentranscribe/core/services/speaking_pace.dart';
+import 'package:opentranscribe/core/services/speech_tally.dart';
 import 'package:opentranscribe/core/services/transcript_stitch.dart';
 import 'package:opentranscribe/core/utils/word_diff.dart';
 import 'package:transcriber/transcriber.dart';
+
+/// Where a batch pass is: fetching the model it needs first, running, or over.
+enum BatchStep { downloading, transcribing, done }
+
+/// One event of [TranscriptionService.batchProgress]: the entry the pass is
+/// for (null for a take being saved), its step and how far along that step
+/// is. Under an engine with a model choice, the download's events, the run's
+/// start and the done name the model ([modelId], and [modelName] while it
+/// downloads); a pass that waited its turn names its start again when the
+/// choice moved meanwhile. The download says when it is in its [preparing]
+/// tail. The done says whether the pass [landed], and when it failed for its
+/// model, why ([failure]).
+@immutable
+final class BatchProgress {
+  const BatchProgress({
+    required this.entryId,
+    required this.step,
+    required this.fraction,
+    this.modelId,
+    this.modelName,
+    this.preparing = false,
+    this.landed = false,
+    this.failure,
+    this.forecast,
+  });
+
+  final String? entryId;
+  final BatchStep step;
+  final double fraction;
+  final String? modelId;
+  final String? modelName;
+  final bool preparing;
+
+  /// The pass produced a transcript, so the model it names opened.
+  final bool landed;
+  final ModelInstallReason? failure;
+
+  /// What the take this pass is over will read as, on every event of a pass
+  /// over a just-recorded take (a fresh one, or a continuation's tail); null
+  /// on any other pass, the one a take gets after its continuation fell back
+  /// included.
+  final TakeForecast? forecast;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BatchProgress &&
+      other.entryId == entryId &&
+      other.step == step &&
+      other.fraction == fraction &&
+      other.modelId == modelId &&
+      other.modelName == modelName &&
+      other.preparing == preparing &&
+      other.landed == landed &&
+      other.failure == failure &&
+      other.forecast == forecast;
+
+  @override
+  int get hashCode => Object.hash(
+    entryId,
+    step,
+    fraction,
+    modelId,
+    modelName,
+    preparing,
+    landed,
+    failure,
+    forecast,
+  );
+}
+
+/// A pass's words, and the spans they keep, silent ones folded away.
+typedef _PassResult = ({Transcript transcript, List<LanguageSpan> spans});
+
+/// A take's switches where they settled, and where the take holds a voice
+/// (null when it was not read, or could not tell).
+typedef _Seams = ({List<LanguageSpan> spans, List<VoicedRange>? voiced});
+
+/// A take's picks cut at the pauses around them ([seamCut]): the spans, where
+/// the take holds a voice, and the windows the switches could move in:
+/// `windows[i - 1]` for the switch opening `spans[i]`.
+typedef _Cut = ({List<LanguageSpan> spans, List<VoicedRange> voiced, List<TakeWindow> windows});
+
+typedef _BatchReport =
+    void Function(
+      BatchStep step,
+      double fraction, {
+      String? modelId,
+      String? modelName,
+      bool preparing,
+    });
 
 /// Drives the whole loop: capture -> transcribe -> persist, and re-transcribe a
 /// kept recording with any engine. Engine-agnostic: it talks only to the
@@ -39,6 +134,8 @@ class TranscriptionService {
     this.localeId = 'en-US',
     this._batchTimeout = const Duration(minutes: 2),
     this._peaksReader,
+    this._pace,
+    this._activity,
     DateTime Function()? clock,
     String Function()? idGenerator,
     Future<void> Function(File file)? fileDeleter,
@@ -95,6 +192,95 @@ class TranscriptionService {
   /// are different stories).
   bool get managesModels => _engine is ManagedModelEngine;
 
+  /// Whether the active engine offers a choice of models, one of which serves
+  /// every language, for a surface that renders the choice.
+  bool get offersModelChoice => _engine is ModelChoiceEngine;
+
+  /// The models the active engine offers, in picker order; empty for an
+  /// engine without a choice.
+  List<ModelOption> get modelChoices {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.models : const [];
+  }
+
+  /// The model runs and installs use, null for an engine without a choice.
+  String? get selectedModelId {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.selectedModelId : null;
+  }
+
+  /// Records the model choice on the engine and pokes every model surface;
+  /// persisting it is the caller's job. A no-op for an engine without a choice.
+  Future<void> selectModel(String id) async {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) return;
+    await engine.selectModel(id);
+    _notifyModelStateChanged();
+  }
+
+  /// The ids whose files are present and whole; empty for an engine without
+  /// a choice.
+  Future<Set<String>> installedModels() async {
+    final engine = _engine;
+    return engine is ModelChoiceEngine ? engine.installedModels() : const {};
+  }
+
+  /// Downloads one model of the choice, like [installModel]. An engine
+  /// without a choice completes instantly.
+  Stream<ModelInstallProgress> installModelById(String id) {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) {
+      return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+    }
+    return _pokingOnDone(engine.installModelById(id));
+  }
+
+  /// Deletes one model's file. Answers whether one was deleted; false for an
+  /// engine without a choice or a removal the engine refused.
+  Future<bool> removeModel(String id) async {
+    final engine = _engine;
+    if (engine is! ModelChoiceEngine) return false;
+    final removed = await engine.removeModel(id);
+    if (removed) _notifyModelStateChanged();
+    return removed;
+  }
+
+  /// Whether the active engine can run its models faster with a second file
+  /// each, for the surface that offers the switch.
+  bool get offersAcceleration {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine && engine.canAccelerate;
+  }
+
+  /// Whether that switch is on; false for an engine without one.
+  bool get accelerated {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine && engine.accelerated;
+  }
+
+  /// Flips the switch on the engine and pokes every model surface;
+  /// persisting it is the caller's job. A no-op for an engine without one.
+  Future<void> setAccelerated(bool on) async {
+    if (!offersAcceleration) return;
+    await (_engine as AcceleratedModelEngine).setAccelerated(on);
+    _notifyModelStateChanged();
+  }
+
+  /// The ids whose extra file is present; empty for an engine without one.
+  Future<Set<String>> acceleratedModels() async {
+    final engine = _engine;
+    return engine is AcceleratedModelEngine ? engine.acceleratedModels() : const {};
+  }
+
+  /// Fetches one model's extra file, like [installModelById]. An engine
+  /// without acceleration completes instantly.
+  Stream<ModelInstallProgress> installAcceleration(String id) {
+    if (!offersAcceleration) {
+      return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
+    }
+    return _pokingOnDone((_engine as AcceleratedModelEngine).installAcceleration(id));
+  }
+
   /// Whether the active engine answers per-language readiness cheaply and
   /// without side effects, so a list surface may refine every row. A managed
   /// engine answers false: its model status is already the per-language truth.
@@ -108,6 +294,12 @@ class TranscriptionService {
   String localeId;
 
   final Duration _batchTimeout;
+
+  /// Thrown when a pass outlives its budget, and matched by identity so a
+  /// timed-out span is not run again: a second wait would only double a hung
+  /// run.
+  static const _timedOut = TranscriptionFailed('transcription timed out');
+
   final DateTime Function() _clock;
   final String Function() _newId;
 
@@ -131,15 +323,39 @@ class TranscriptionService {
 
   static bool _noThermalPressure() => false;
 
+  /// The current take's speech time, fed by its level windows from start to
+  /// stop; claimed by the finalize with the rest of the session.
+  SpeechTally? _tally;
+  StreamSubscription<double>? _levelSub;
+
   /// Reads an audio file's amplitude envelope (0..1), injected so the service
   /// can persist a new entry's shape at save time without owning a player.
   /// Null in tests that do not care; the detail screen then backfills on the
   /// first open instead.
   final Future<List<double>> Function(String path)? _peaksReader;
 
+  /// Learns each language's pace from the takes that land, for the forecast
+  /// of the next; null forecasts at the starting pace and learns nothing.
+  final SpeakingPace? _pace;
+
+  /// Where a take holds a voice: a mixed take's switches move to the quiet
+  /// around them, and its silent spans fold away. Null keeps the picks and
+  /// every span.
+  final AudioActivity? _activity;
+
   final StreamController<TranscriptEvent> _live = StreamController<TranscriptEvent>.broadcast();
   final StreamController<Entry> _autoFinalized = StreamController<Entry>.broadcast();
   final StreamController<void> _modelStateChanged = StreamController<void>.broadcast();
+  // Ends the pre-installs batches wait on, so a cancel stops them like the run.
+  final Set<Future<void> Function()> _firstUseWaiters = {};
+  // Bumped by an explicit cancel, never by a timeout: what separates a pass
+  // told to stop from one that failed and may fall back.
+  int _cancelGeneration = 0;
+  // A paced engine runs passes one at a time; queueing them here means each
+  // budget counts its own run, never the wait behind another.
+  Future<void> _pacedTurn = Future<void>.value();
+  final StreamController<BatchProgress> _batchProgress =
+      StreamController<BatchProgress>.broadcast();
   final StreamController<void> _entriesChanged = StreamController<void>.broadcast();
   StreamSubscription<TranscriptEvent>? _liveSub;
 
@@ -173,6 +389,12 @@ class TranscriptionService {
   /// cancel is forbidden inside it, so a stop's batch can never queue behind
   /// bulk work or die to a bulk cancel.
   bool get _captureActive => _recording || _starting || _finalizingCaptures > 0;
+  bool get _captureBusy => _captureActive || _finalizing != null;
+
+  /// Whether a take holds the engine: recording, starting, or finalizing.
+  /// [useEngine] refuses while this is true (and while the bulk run runs), so
+  /// a surface can refuse a switch before it moves anything.
+  bool get takeInFlight => _captureBusy;
 
   /// User-initiated re-transcriptions in flight (the detail screen's action).
   /// The bulk hard cancel kills EVERY batch on the engine, so it is also
@@ -234,23 +456,15 @@ class TranscriptionService {
   /// The current session's language spans, ascending by audio time. Seeded at
   /// start with one span at 0; [setSessionLocale] appends. More than one span
   /// means a mixed-language take, batched span by span on stop.
-  List<({int startMs, String tag})> _sessionSpans = [];
+  List<LanguageSpan> _sessionSpans = [];
 
-  /// Live text heard this session, retained ONLY to salvage a take whose
+  /// Live words heard this session, retained ONLY to salvage a take whose
   /// settling batch yields nothing: the batch stays the source of truth, but a
   /// take the user watched being written must not save as an empty entry when
   /// the engine's file pass fails on audio its live pass understood (the
-  /// classic engine does exactly this in some locales). Two parts because a
-  /// mid-take language switch restarts the live stream: [_sessionLiveCommitted]
-  /// holds the finished streams' text, [_sessionLiveCurrent] the running one's
-  /// latest partial.
-  String _sessionLiveCommitted = '';
-  String _sessionLiveCurrent = '';
-
-  String get _sessionLiveText => [
-    _sessionLiveCommitted,
-    _sessionLiveCurrent,
-  ].where((part) => part.trim().isNotEmpty).join(' ');
+  /// classic engine does exactly this in some locales). A salvaged take is
+  /// stamped with the language its live words were first spoken in.
+  final LiveWords _sessionLiveWords = LiveWords();
 
   /// The opening span's start round-trip window. A language chosen before any
   /// audio (the queued switch that fires the instant start() resolves) can read
@@ -356,13 +570,34 @@ class TranscriptionService {
     if (!engine.onDeviceOnly) {
       throw ArgumentError('TranscriptionService requires an on-device engine: ${engine.id}');
     }
-    if (_recording || _starting || _finalizing != null || _finalizingCaptures > 0) return false;
+    if (_captureBusy) return false;
     if (retranscribeAll.isRunning) return false;
     if (identical(engine, _engine)) return true;
+    final previous = _engine;
     _engine = engine;
     _notifyModelStateChanged();
+    // A model the old engine holds in memory has no reader now, unless a
+    // user's re-transcription still runs on it (retranscribe releases then).
+    // Best effort, like every other teardown, so a refusing release cannot
+    // fail a switch.
+    if (_userBatches == 0 && previous is ReleasableEngine) {
+      unawaited(_releaseQuietly(previous));
+    }
     return true;
   }
+
+  /// Gives back the memory the active engine holds while nothing needs it
+  /// (a loaded model, a worker), for the app going to the background. A take,
+  /// a finalize or the bulk run in flight keeps it; the next run loads again.
+  Future<void> releaseIdleEngine() async {
+    if (_captureBusy) return;
+    if (retranscribeAll.isRunning || _userBatches > 0) return;
+    final engine = _engine;
+    if (engine is ReleasableEngine) await _releaseQuietly(engine);
+  }
+
+  Future<void> _releaseQuietly(ReleasableEngine engine) =>
+      engine.release().catchError((Object _) {});
 
   /// The BCP-47 tags the engine can transcribe on-device, for a language picker.
   Future<List<String>> supportedLocales() => _engine.supportedLocales();
@@ -397,6 +632,14 @@ class TranscriptionService {
         : true;
   }
 
+  /// How far each batch pass is, for the surfaces that wait on one: a
+  /// re-transcription or a continuation under its entry, a fresh take under
+  /// none. Every pass ends with its [BatchStep.done] event, landed or failed,
+  /// whose fraction says nothing, and nothing follows it. Fractions arrive
+  /// only from an engine that reports them, and may stop short of one; the
+  /// download step arrives for a first-use install ahead of the run.
+  Stream<BatchProgress> get batchProgress => _batchProgress.stream;
+
   /// Fires after any path that may have changed a model's install state (a
   /// first-use install during transcription, an explicit install, a removal,
   /// or an engine switch and its locale re-resolution), so state layers
@@ -429,11 +672,14 @@ class TranscriptionService {
     if (engine is! ManagedModelEngine) {
       return Stream.value(const ModelInstallProgress(fraction: 1, done: true));
     }
-    return engine.installModel(localeId: localeId ?? this.localeId).map((progress) {
-      if (progress.done) _notifyModelStateChanged();
-      return progress;
-    });
+    return _pokingOnDone(engine.installModel(localeId: localeId ?? this.localeId));
   }
+
+  Stream<ModelInstallProgress> _pokingOnDone(Stream<ModelInstallProgress> install) =>
+      install.map((progress) {
+        if (progress.done) _notifyModelStateChanged();
+        return progress;
+      });
 
   /// The tags whose models are downloaded on this device. An engine with no
   /// downloadable model lists everything it supports (the coarse answer;
@@ -543,11 +789,18 @@ class TranscriptionService {
           _pendingInterruption = true;
         }
       });
+      // Before start(), like the status: the first words' windows count too.
+      final tally = SpeechTally();
+      _tally = tally;
+      _levelSub = _recorder.level.listen(tally.add, onError: (Object _) {});
       try {
         await _recorder.start();
       } catch (_) {
         await _statusSub?.cancel();
         _statusSub = null;
+        await _levelSub?.cancel();
+        _levelSub = null;
+        _tally = null;
         rethrow;
       }
       _recording = true;
@@ -557,9 +810,8 @@ class TranscriptionService {
       // Snapshot the locale for the whole session: live and the stop-path batch
       // must agree even if the setting changes mid-recording.
       _sessionLocaleId = sessionTag;
-      _sessionSpans = [(startMs: 0, tag: sessionTag)];
-      _sessionLiveCommitted = '';
-      _sessionLiveCurrent = '';
+      _sessionSpans = [LanguageSpan(startMs: 0, localeId: sessionTag)];
+      _sessionLiveWords.clear();
       _audioMsAccumulated = 0;
       _audioSegmentStart = _clock();
       // Cleared only after start succeeds: a failed start (mic busy during the very
@@ -620,7 +872,7 @@ class TranscriptionService {
             // Drop it here; the engine still uses it to close its own stream.
             if (event.isFinal) return;
             if (generation != _liveGeneration) return;
-            _sessionLiveCurrent = event.text;
+            _sessionLiveWords.update(event.text);
             if (_live.isClosed) return;
             _live.add(event);
           },
@@ -635,15 +887,13 @@ class TranscriptionService {
   /// Re-languages the CURRENT session from this moment on: a new language
   /// span begins at the current audio time, the settling batch will run each
   /// span in its own language, and the live stream restarts in [tag] (its
-  /// text so far was UI-only; the batch is the source of truth, so nothing
-  /// already spoken is lost). Session-only by design: the app default is
-  /// TranscriptionSettings' job, and a one-take language change must not
-  /// silently rewrite it. A no-op when idle.
+  /// words so far are kept for the salvage; the batch stays the source of
+  /// truth, so nothing already spoken is lost). Session-only by design: the
+  /// app default is TranscriptionSettings' job, and a one-take language
+  /// change must not silently rewrite it. A no-op when idle.
   Future<void> setSessionLocale(String tag) async {
     if (!_recording || _sessionLocaleId == tag) return;
-    // Note: _liveGeneration is bumped only per-recording (startRecording), not
-    // here. Within-take correctness of the restart below rests on the engine's
-    // session token dropping the old stream's late events, not on that gate.
+    _sessionLiveWords.commit(_sessionLocaleId ?? localeId);
     _sessionLocaleId = tag;
     final nowMs = _audioNowMs;
     final spans = _sessionSpans;
@@ -660,20 +910,21 @@ class TranscriptionService {
         (spans.last.startMs == nowMs || (atStart && nowMs <= _spanStartGraceMs));
     var startMs = nowMs;
     if (coalesces) startMs = spans.removeLast().startMs;
-    if (spans.isEmpty || spans.last.tag != tag) {
-      spans.add((startMs: startMs, tag: tag));
+    if (spans.isEmpty || spans.last.localeId != tag) {
+      spans.add(LanguageSpan(startMs: startMs, localeId: tag));
     }
     final engine = _engine;
     if (engine is! StreamingTranscriptionEngine) return;
     final liveSub = _liveSub;
     _liveSub = null;
+    // Note: _liveGeneration is bumped only per-recording (startRecording), not
+    // here. Within-take correctness of this restart rests on the engine's
+    // session token dropping the old stream's late events, not on that gate.
     // NOT awaited: a live stream mid-session has no next event to resume a
     // cancel on, so awaiting could wedge the switch. Ordering is safe by
     // contract: [StreamingTranscriptionEngine.transcribeLive] promises a new
     // listen works while the old stream's teardown is still completing.
     unawaited(liveSub?.cancel());
-    _sessionLiveCommitted = _sessionLiveText;
-    _sessionLiveCurrent = '';
     _liveSub = _subscribeLive(engine, tag);
   }
 
@@ -767,6 +1018,10 @@ class TranscriptionService {
     _liveSub = null;
     final statusSub = _statusSub;
     _statusSub = null;
+    final levelSub = _levelSub;
+    _levelSub = null;
+    final tally = _tally;
+    _tally = null;
     final sessionLocale = _sessionLocaleId;
     final spans = _sessionSpans;
     _sessionSpans = [];
@@ -784,6 +1039,7 @@ class TranscriptionService {
     // deferred read can never absorb another take's words.
     final liveGeneration = _liveGeneration;
     _audioClockPause();
+    final audioClockMs = _audioMsAccumulated;
     try {
       // Inside the try, and still in the same synchronous block as the flips
       // above (nothing between them awaits), so the claim can never leak: a
@@ -791,7 +1047,16 @@ class TranscriptionService {
       // process.
       _finalizingCaptures++;
       await statusSub?.cancel();
+      // Before the stop: the windows it would drop are the reach for stop.
+      await levelSub?.cancel();
       final recording = await _recorder.stop();
+      if (kDebugMode && spans.length > 1) {
+        debugPrint(
+          'spans: ${spans.map((s) => '${s.localeId}@${s.startMs}').join(' ')}; '
+          'clock $audioClockMs ms, file ${recording.duration.inMilliseconds} ms'
+          '${transcribe ? '' : ', ended without a stop'}',
+        );
+      }
       // UI-only; released here (not after the batch) so the next take's live
       // session is not queued behind it. Re-awaited in the finally; a cancel
       // rejection is swallowed on both copies, or this detached one would hit
@@ -799,29 +1064,83 @@ class TranscriptionService {
       unawaited(liveSub?.cancel().catchError((_) {}));
 
       var liveText = '';
+      String? liveLocale;
       if (_liveGeneration == liveGeneration) {
-        liveText = _sessionLiveText.trim();
-        _sessionLiveCommitted = '';
-        _sessionLiveCurrent = '';
+        liveText = _sessionLiveWords.text(sessionLocale ?? localeId).trim();
+        liveLocale = _sessionLiveWords.firstLocaleId ?? sessionLocale;
+        _sessionLiveWords.clear();
       }
 
       // The recording reference is a filename; resolve it to an absolute path to open
       // the file, but persist the reference verbatim so it survives a backup/restore.
+      late final takeFile = _resolveAudioPath(recording.path).then(File.new);
       Transcript? transcript;
       var salvaged = false;
+      final openingLocale = spans.isNotEmpty ? spans.first.localeId : (sessionLocale ?? localeId);
       Transcript salvage() => Transcript(
         fullText: liveText,
         segments: const [],
-        localeId: spans.isNotEmpty ? spans.first.tag : (sessionLocale ?? localeId),
+        localeId: liveLocale ?? openingLocale,
         engineId: _engine.id,
         createdAt: _clock(),
       );
-      Future<void> batchTail() async {
+      late final speech = tally?.speechOf(recording.duration) ?? Duration.zero;
+      late final forecast = TakeForecast(
+        audio: recording.duration,
+        speech: speech,
+        localeId: openingLocale,
+        characters: forecastCharacters(
+          speech: speech,
+          audio: recording.duration,
+          spans: spans.isNotEmpty ? spans : [LanguageSpan(startMs: 0, localeId: openingLocale)],
+          pace: _pace?.of ?? startingPace,
+        ),
+        liveWords: liveText,
+      );
+      // Cut on the take's own audio, never a merged file's, and only by a
+      // pass: a take saved without one keeps its picks rather than wait on a
+      // read the process may not live to finish.
+      var takeSpans = spans;
+      List<VoicedRange>? takeVoiced;
+      Future<void> settle(_BatchReport? report) async {
+        final seamed = await _settleSeams(
+          () => takeFile,
+          recording.duration,
+          spans,
+          report: report,
+        );
+        takeSpans = seamed.spans;
+        takeVoiced = seamed.voiced;
+      }
+
+      // The first pass to ask settles them, within its own report.
+      Future<void>? seams;
+      Future<List<LanguageSpan>> spansNow(_BatchReport? report) async {
+        if (transcribe) await (seams ??= settle(report));
+        return takeSpans;
+      }
+
+      // A fallen-back tail lands as its own entry, not where its forecast
+      // would draw, so its pass carries none.
+      Future<void> batchTail({bool forecasting = true}) async {
         try {
-          final audioFile = File(await _resolveAudioPath(recording.path));
-          transcript = spans.length > 1
-              ? await _segmentedBatch(_engine, audioFile, recording.duration, spans)
-              : await _batch(_engine, audioFile, recording.duration, localeId: sessionLocale);
+          final audioFile = await takeFile;
+          final pass = await _reporting(continuation?.id, forecast: forecasting ? forecast : null, (
+            report,
+          ) async {
+            final seamed = await spansNow(report);
+            return _pass(
+              _engine,
+              audioFile,
+              recording.duration,
+              seamed,
+              localeId: sessionLocale,
+              voiced: takeVoiced,
+              report: report,
+            );
+          });
+          transcript = pass.transcript;
+          takeSpans = pass.spans;
           // A first-use model install may have piggybacked on this pass.
           _notifyModelStateChanged();
         } catch (_) {
@@ -829,6 +1148,14 @@ class TranscriptionService {
           // can be re-transcribed later. Never let a transcription error orphan audio.
           transcript = null;
         }
+        final landed = transcript?.fullText.trim() ?? '';
+        if (kDebugMode) {
+          debugPrint(
+            'forecast: ${forecast.characters} characters over ${forecast.speech} of speech, '
+            'landed ${landed.length}',
+          );
+        }
+        if (spans.length < 2 && landed.isNotEmpty) _learnPace(forecast, landed.length);
         // A take the user watched being written must not settle empty because the
         // engine's file pass failed on audio its live pass understood. The live
         // text stands in (untimed, so no segments), and the audio is kept below
@@ -851,8 +1178,8 @@ class TranscriptionService {
           baseStored,
           recording,
           tail: transcript,
-          spans: spans,
-          sessionLocale: sessionLocale,
+          spans: spansNow,
+          openingLocale: openingLocale,
           transcribe: transcribe,
           salvaged: salvaged,
           salvage: transcribe && liveText.isNotEmpty ? salvage : null,
@@ -870,7 +1197,9 @@ class TranscriptionService {
             // gave the take its pass).
             fallback = reason;
             if (kDebugMode) debugPrint('continuation fell back: ${reason.name}');
-            if (transcribe && baseUnheard && baseStored.audioPath != null) await batchTail();
+            if (transcribe && baseUnheard && baseStored.audioPath != null) {
+              await batchTail(forecasting: false);
+            }
         }
       }
 
@@ -885,10 +1214,8 @@ class TranscriptionService {
         // still know what language it is in when transcribed later. A mixed
         // take's recording language is its FIRST span's, and its spans are
         // kept so a later (re-)transcription can rebuild the mix.
-        recordedLocaleId: spans.isNotEmpty ? spans.first.tag : sessionLocale,
-        languageSpans: spans.length > 1
-            ? [for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag)]
-            : null,
+        recordedLocaleId: takeSpans.isNotEmpty ? takeSpans.first.localeId : sessionLocale,
+        languageSpans: _entrySpans(takeSpans),
       );
       try {
         await _store.save(entry);
@@ -942,6 +1269,22 @@ class TranscriptionService {
     }
   }
 
+  /// [spans] as an entry keeps them: none for a take in one span.
+  static List<LanguageSpan>? _entrySpans(List<LanguageSpan> spans) =>
+      spans.length > 1 ? List.unmodifiable(spans) : null;
+
+  /// Teaches the pace what a one-language take's words really ran to. Off
+  /// the stop's path: a failed write keeps the move for this session only.
+  void _learnPace(TakeForecast forecast, int characters) {
+    final pace = _pace;
+    if (pace == null) return;
+    unawaited(
+      Future.sync(
+        () => pace.learn(forecast.localeId, characters: characters, speech: forecast.speech),
+      ).catchError((Object _) {}),
+    );
+  }
+
   void _emitOutcome(ContinuationOutcome outcome) {
     if (!_continuations.isClosed) _continuations.add(outcome);
   }
@@ -960,13 +1303,15 @@ class TranscriptionService {
   /// Lands a continuation on its base. Never touches the base record or file
   /// before the grown file exists and the record is saved; runs inside the
   /// [_finalizingCaptures] window. Returns a fallback instead of throwing,
-  /// and the caller then files the tail alone.
+  /// and the caller then files the tail alone. [spans] answers the take's
+  /// spans as they stand, settling them first within the report a pass hands
+  /// it; [openingLocale] is the language the take opened in.
   Future<_Landing> _landContinuation(
     Entry? stored,
     Recording recording, {
     required Transcript? tail,
-    required List<({int startMs, String tag})> spans,
-    required String? sessionLocale,
+    required Future<List<LanguageSpan>> Function(_BatchReport? report) spans,
+    required String openingLocale,
     required bool transcribe,
     required bool salvaged,
     required Transcript Function()? salvage,
@@ -977,37 +1322,42 @@ class TranscriptionService {
     final file = await _mergeOrAdopt(basePath, recording);
     if (file == null) return const _FellBack(ContinuationFallback.mergeFailed);
 
-    final tailSpans = [
-      for (final span in spans) LanguageSpan(startMs: span.startMs, localeId: span.tag),
-    ];
-    final tailLocale = tail?.localeId ?? (spans.isNotEmpty ? spans.first.tag : sessionLocale);
+    final tailLocale = tail?.localeId ?? openingLocale;
     // A merged file starts in the base's language; an adopted one IS the take.
-    final baseLocale = baseHadAudio
-        ? stored.effectiveLocaleId ?? tailLocale ?? localeId
-        : tailLocale ?? stored.effectiveLocaleId ?? localeId;
-    final newSpans = baseHadAudio
+    final baseLocale = baseHadAudio ? stored.effectiveLocaleId ?? tailLocale : tailLocale;
+    List<LanguageSpan>? grown(List<LanguageSpan> take) => baseHadAudio
         ? extendSpans(
             base: stored.languageSpans,
             baseLocaleId: baseLocale,
             offset: file.offset,
-            tail: tailSpans,
+            tail: take,
           )
-        : (tailSpans.length > 1 ? tailSpans : null);
+        : _entrySpans(take);
     // Never heard: the stitch has nothing to grow, so the merged file gets the
     // pass the base was owed. A failure leaves it untranscribed, as it was.
     Transcript? whole;
+    List<LanguageSpan>? wholeSpans;
     if (stored.transcript == null && transcribe) {
       try {
         final audio = File(file.path);
-        whole = newSpans != null
-            ? await _segmentedBatch(_engine, audio, file.duration, [
-                for (final span in newSpans) (startMs: span.startMs, tag: span.localeId),
-              ])
-            : await _batch(_engine, audio, file.duration, localeId: baseLocale);
+        final pass = await _reporting(
+          stored.id,
+          (report) async => _pass(
+            _engine,
+            audio,
+            file.duration,
+            grown(await spans(report)) ?? const [],
+            localeId: baseLocale,
+            report: report,
+          ),
+        );
+        whole = pass.transcript;
+        wholeSpans = _entrySpans(pass.spans);
       } catch (_) {
         whole = null;
       }
     }
+    if (whole == null) wholeSpans = grown(await spans(null));
 
     // Re-read after the awaits: a delete, rename or edit landed meanwhile must
     // not be undone by the copy read before the merge. No await from here to
@@ -1017,7 +1367,7 @@ class TranscriptionService {
       if (baseHadAudio) await _dropMerge(file.path);
       return const _FellBack(ContinuationFallback.deleted);
     }
-    var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(newSpans);
+    var updated = fresh.withRecording(file.name, file.duration).withLanguageSpans(wholeSpans);
     var additionUntranscribed = false;
     var wordsLanded = false;
     var usedSalvage = salvaged;
@@ -1027,35 +1377,35 @@ class TranscriptionService {
       // The live words stand in only when the file IS the take: on a merged
       // file they would pass the base's unheard minutes off as heard, and a
       // re-hear would never be queued for them.
-      final wholeHeard = whole != null && whole.fullText.trim().isNotEmpty;
-      Transcript? heard = wholeHeard ? whole : null;
-      if (heard == null && !baseHadAudio && salvage != null) {
-        heard = salvage();
+      final wholeSpoke = whole != null && whole.fullText.trim().isNotEmpty;
+      Transcript? landed = wholeSpoke ? whole : null;
+      if (landed == null && !baseHadAudio && salvage != null) {
+        landed = salvage();
         usedSalvage = true;
       }
-      heard ??= whole;
-      if (heard == null) {
+      landed ??= whole;
+      if (landed == null) {
         additionUntranscribed = true;
       } else if (baseHadAudio || fresh.revisions == null) {
         // The whole file re-heard (or a take with nothing typed before it):
         // the transcript is the pass, and any typed words it replaces go to
         // history as a re-transcription's would.
-        updated = updated.withTranscript(heard);
+        updated = updated.withTranscript(landed);
         final history = _revisionsWithBase(fresh);
-        final heardNothing = heard.fullText.trim().isEmpty;
+        final heardNothing = landed.fullText.trim().isEmpty;
         wordsLanded = !heardNothing;
-        if (history.isNotEmpty && !heardNothing && !sameWords(history.last.text, heard.fullText)) {
-          updated = updated.withRevisions([...history, Revision.ofTranscript(heard)]);
+        if (history.isNotEmpty && !heardNothing && !sameWords(history.last.text, landed.fullText)) {
+          updated = updated.withRevisions([...history, Revision.ofTranscript(landed)]);
         }
       } else {
         // Only the take was heard; the typed words stay and grow.
-        final marker = seamMarker(stored: fresh, tailLocaleId: heard.localeId);
-        updated = updated.withTranscript(heard);
-        wordsLanded = heard.fullText.trim().isNotEmpty;
-        final revisions = continuedRevisions(stored: fresh, tail: heard, marker: marker, now: now);
+        final marker = seamMarker(stored: fresh, tailLocaleId: landed.localeId);
+        updated = updated.withTranscript(landed);
+        wordsLanded = landed.fullText.trim().isNotEmpty;
+        final revisions = continuedRevisions(stored: fresh, tail: landed, marker: marker, now: now);
         if (revisions != null) updated = updated.withRevisions(revisions);
       }
-    } else if (tail == null || tailLocale == null) {
+    } else if (tail == null) {
       additionUntranscribed = true;
     } else {
       final marker = seamMarker(stored: fresh, tailLocaleId: tailLocale);
@@ -1185,6 +1535,7 @@ class TranscriptionService {
     if (_recording) {
       _paused = false;
       _audioSegmentStart = _clock();
+      _tally?.markBreak();
     }
   }
 
@@ -1279,9 +1630,11 @@ class TranscriptionService {
     _liveSub = null;
     final statusSub = _statusSub;
     _statusSub = null;
+    final levelSub = _levelSub;
+    _levelSub = null;
+    _tally = null;
     _sessionLocaleId = null;
-    _sessionLiveCommitted = '';
-    _sessionLiveCurrent = '';
+    _sessionLiveWords.clear();
     final continuation = _continuation;
     _continuation = null;
     if (continuation != null && forRestart) {
@@ -1292,6 +1645,7 @@ class TranscriptionService {
       _emitOutcome(ContinuationDiscarded(baseId: continuation.id));
     }
     await statusSub?.cancel();
+    await levelSub?.cancel();
     try {
       await _recorder.cancel();
     } on CaptureFailed {
@@ -1745,11 +2099,16 @@ class TranscriptionService {
   /// the file twice. An entry with no recording throws [RecordingMissing]:
   /// nothing to re-hear, and no retry can change that.
   Future<Entry> retranscribe(Entry entry, {TranscriptionEngine? using, String? localeId}) async {
+    final engine = using ?? _engine;
     _userBatches++;
     try {
-      return await _retranscribeGuarded(entry, using: using, localeId: localeId);
+      return await _retranscribeGuarded(entry, using: engine, localeId: localeId);
     } finally {
       _userBatches--;
+      // The switch useEngine deferred while this run held its engine.
+      if (_userBatches == 0 && !identical(engine, _engine) && engine is ReleasableEngine) {
+        unawaited(_releaseQuietly(engine));
+      }
     }
   }
 
@@ -1789,16 +2148,21 @@ class TranscriptionService {
     // A mixed-language take re-transcribes span by span, rebuilding the mix,
     // UNLESS the caller chose a language explicitly: the user's correction
     // flattens the whole take into that one language on purpose.
-    final spans = entry.languageSpans;
-    final Transcript transcript;
-    if (localeId == null && spans != null && spans.length > 1) {
-      transcript = await _segmentedBatch(engine, audioFile, entry.duration, [
-        for (final span in spans) (startMs: span.startMs, tag: span.localeId),
-      ]);
-    } else {
-      final locale = localeId ?? entry.effectiveLocaleId ?? serviceLocaleId;
-      transcript = await _batch(engine, audioFile, entry.duration, localeId: locale);
-    }
+    final mix = localeId == null
+        ? entry.languageSpans ?? const <LanguageSpan>[]
+        : const <LanguageSpan>[];
+    final pass = await _reporting(
+      entry.id,
+      (report) => _pass(
+        engine,
+        audioFile,
+        entry.duration,
+        mix,
+        localeId: localeId ?? entry.effectiveLocaleId ?? serviceLocaleId,
+        report: report,
+      ),
+    );
+    final transcript = pass.transcript;
     // A first-use model install may have piggybacked on this pass.
     _notifyModelStateChanged();
     // The batch pass can run minutes; the user may have deleted the entry or
@@ -1815,7 +2179,12 @@ class TranscriptionService {
     // landing something). A repeat re-transcription never deletes; bulk
     // reclaim is explicit only.
     final hadWords = stored.transcript != null && stored.transcript!.fullText.trim().isNotEmpty;
-    final retranscribed = stored.withTranscript(transcript);
+    // A pass over the mix keeps the spans it was heard in; one language
+    // chosen on purpose leaves them for a later rebuild. The language the
+    // recording was made in stays as it was recorded.
+    final retranscribed = mix.length > 1
+        ? stored.withTranscript(transcript).withLanguageSpans(_entrySpans(pass.spans))
+        : stored.withTranscript(transcript);
     // The words this landing replaces go into history; a first transcription
     // of an untouched entry replaces nothing and pushes nothing. Two more
     // silences: a landing that heard NOTHING pushes no empty head, and a
@@ -2014,6 +2383,77 @@ class TranscriptionService {
     return '$dir/$stored';
   }
 
+  /// Runs [body] as one batch pass on [batchProgress] under [entryId]: its
+  /// reports go out as they come, and its done follows however it settles,
+  /// naming the pass's model (the one that failed, when the engine says) and
+  /// whether it landed or why it failed for its model. A report after that
+  /// (a run this side gave up on, still polling) is dropped, so done stays
+  /// the last word; so is one identical to the last, as the download's own
+  /// first word is to the pass naming its model. A [forecast] rides every
+  /// event, the done included.
+  Future<T> _reporting<T>(
+    String? entryId,
+    Future<T> Function(_BatchReport report) body, {
+    TakeForecast? forecast,
+  }) async {
+    var over = false;
+    BatchProgress? last;
+    String? modelIdSeen;
+    void add(BatchProgress event) {
+      if (over || _batchProgress.isClosed || event == last) return;
+      over = event.step == BatchStep.done;
+      last = event;
+      _batchProgress.add(event);
+    }
+
+    void emit(
+      BatchStep step,
+      double fraction, {
+      String? modelId,
+      String? modelName,
+      bool preparing = false,
+    }) {
+      if (modelId != null) modelIdSeen = modelId;
+      add(
+        BatchProgress(
+          entryId: entryId,
+          step: step,
+          fraction: fraction,
+          modelId: modelId,
+          modelName: modelName,
+          preparing: preparing,
+          forecast: forecast,
+        ),
+      );
+    }
+
+    ModelInstallReason? failure;
+    var landed = false;
+    try {
+      final result = await body(emit);
+      landed = true;
+      return result;
+    } on ModelInstallFailed catch (e) {
+      if (e.reason != ModelInstallReason.cancelled) {
+        failure = e.reason ?? ModelInstallReason.rejected;
+      }
+      if (e.modelId case final failed?) modelIdSeen = failed;
+      rethrow;
+    } finally {
+      add(
+        BatchProgress(
+          entryId: entryId,
+          step: BatchStep.done,
+          fraction: 1,
+          modelId: modelIdSeen,
+          landed: landed,
+          failure: modelIdSeen == null ? null : failure,
+          forecast: forecast,
+        ),
+      );
+    }
+  }
+
   Future<Transcript> _batch(
     TranscriptionEngine engine,
     File file,
@@ -2021,83 +2461,251 @@ class TranscriptionService {
     String? localeId,
     Duration? start,
     Duration? end,
-  }) {
-    // Scale the timeout by audio length so a long entry is not cut off, while still
-    // bounding a hung native call.
-    final timeout = _batchTimeout + duration * 2;
-    return engine
-        .transcribeFile(file, localeId: localeId ?? this.localeId, start: start, end: end)
-        .timeout(
-          timeout,
-          onTimeout: () {
-            // The Dart side is giving up; tell the engine so the native task does not
-            // keep holding the recognizer for work nobody will read.
-            unawaited(_cancelEngineBatches(engine));
-            throw const TranscriptionFailed('transcription timed out');
-          },
-        );
+    _BatchReport? report,
+  }) async {
+    final locale = localeId ?? this.localeId;
+    // A choice engine's first-use download can outlast any run budget, so it
+    // lands untimed first, through the same path the picker's install uses.
+    if (engine is ManagedModelEngine && engine is ModelChoiceEngine) {
+      if (!await engine.isModelInstalled(localeId: locale)) {
+        final choice = engine as ModelChoiceEngine;
+        final modelId = choice.selectedModelId;
+        final modelName = choice.models.where((m) => m.id == modelId).firstOrNull?.displayName;
+        // Named before the stream's first word, so a download that fails
+        // before any byte still says which model it was.
+        report?.call(BatchStep.downloading, 0, modelId: modelId, modelName: modelName);
+        try {
+          await _installFirstUse(
+            engine.installModel(localeId: locale),
+            onProgress: (progress) {
+              if (progress.done) return;
+              report?.call(
+                BatchStep.downloading,
+                progress.fraction,
+                modelId: modelId,
+                modelName: modelName,
+                preparing: progress.preparing,
+              );
+            },
+          );
+        } on TranscriptionException {
+          rethrow;
+        } catch (e) {
+          // Outside the taxonomy (a file system error): the download failed all
+          // the same, and the pass's done must say so.
+          throw ModelInstallFailed('$e', reason: ModelInstallReason.rejected);
+        }
+      }
+    }
+    // The run's first word comes with its first window, so the download's
+    // last percent would otherwise linger over a run already going. Reported
+    // by every engine, reporting or not: that a run has started is what the
+    // surfaces holding a place for it wait on.
+    final announced = engine is ModelChoiceEngine ? engine.selectedModelId : null;
+    report?.call(BatchStep.transcribing, 0, modelId: announced);
+    final paced = engine is PacedBatchEngine;
+    Future<Transcript> run() {
+      // A pass that waited its turn runs on the choice as it stands now.
+      if (engine is ModelChoiceEngine && engine.selectedModelId != announced) {
+        report?.call(BatchStep.transcribing, 0, modelId: engine.selectedModelId);
+      }
+      // Scale the timeout by audio length so a long entry is not cut off, while
+      // still bounding a hung native call. An engine that knows its own pace
+      // says so, for the model this run is about to take.
+      final timeout = engine is PacedBatchEngine
+          ? engine.batchBudget(duration)
+          : _batchTimeout + duration * 2;
+      final pass = engine is ProgressBatchEngine && report != null
+          ? engine.transcribeFileWithProgress(
+              file,
+              localeId: locale,
+              start: start,
+              end: end,
+              onProgress: (fraction) => report(BatchStep.transcribing, fraction),
+            )
+          : engine.transcribeFile(file, localeId: locale, start: start, end: end);
+      return pass.timeout(
+        timeout,
+        onTimeout: () {
+          // The Dart side is giving up; tell the engine so the native task does
+          // not keep holding the recognizer for work nobody will read. A paced
+          // engine's run is this pass alone, so the passes behind it keep theirs.
+          if (paced) {
+            if (engine is CancellableBatchEngine) {
+              unawaited((engine as CancellableBatchEngine).cancelBatches());
+            }
+          } else {
+            unawaited(_abortEngine(engine));
+          }
+          throw _timedOut;
+        },
+      );
+    }
+
+    return paced ? _inPacedTurn(run) : run();
   }
 
-  /// Cancels [engine]'s in-flight batch passes, when it supports that.
+  Future<T> _inPacedTurn<T>(Future<T> Function() run) {
+    final generation = _cancelGeneration;
+    final turn = _pacedTurn.then((_) {
+      if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
+      return run();
+    });
+    _pacedTurn = turn.then((_) {}, onError: (Object _) {});
+    return turn;
+  }
+
+  /// Waits for a first-use download; [_cancelEngineBatches] ends it.
+  Future<void> _installFirstUse(
+    Stream<ModelInstallProgress> install, {
+    void Function(ModelInstallProgress progress)? onProgress,
+  }) {
+    final wait = InstallWait(
+      _pokingOnDone(install),
+      cancelled: const TranscriptionFailed('cancelled'),
+      onProgress: onProgress,
+    );
+    final cancel = wait.cancel;
+    _firstUseWaiters.add(cancel);
+    return wait.done.whenComplete(() => _firstUseWaiters.remove(cancel));
+  }
+
+  /// Cancels [engine]'s in-flight batch passes, when it supports that, and
+  /// the first-use download a batch may be waiting on.
   /// CancellableBatchEngine does not extend TranscriptionEngine, so `is`
   /// alone cannot promote; the cast makes the member visible.
-  Future<void> _cancelEngineBatches(TranscriptionEngine engine) async {
+  Future<void> _cancelEngineBatches(TranscriptionEngine engine) {
+    _cancelGeneration++;
+    return _abortEngine(engine);
+  }
+
+  Future<void> _abortEngine(TranscriptionEngine engine) async {
+    for (final cancel in _firstUseWaiters.toList()) {
+      await cancel();
+    }
     if (engine is CancellableBatchEngine) {
       await (engine as CancellableBatchEngine).cancelBatches();
     }
   }
 
-  /// Batches a mixed-language take span by span and merges the results: texts
-  /// joined with a `[fr]`-style marker at each switch, segment timings offset
-  /// to file time, the first span's language as the transcript's. Any span
-  /// failing (an engine that cannot slice, pre-26) falls the WHOLE take back
-  /// to one flattened pass in the first span's language: a flattened
-  /// transcript beats an untranscribed entry, and the persisted spans let a
-  /// re-transcription rebuild the mix on a capable engine later.
-  Future<Transcript> _segmentedBatch(
+  /// A pass over [file]: span by span when there are several [spans]
+  /// ([_segmentedBatch]), else one pass in [localeId] answering the spans as
+  /// they came. [voiced] is where [file] holds a voice, when already read.
+  Future<_PassResult> _pass(
     TranscriptionEngine engine,
     File file,
     Duration duration,
-    List<({int startMs, String tag})> spans,
-  ) async {
+    List<LanguageSpan> spans, {
+    required String? localeId,
+    List<VoicedRange>? voiced,
+    _BatchReport? report,
+  }) async {
+    if (spans.length > 1) {
+      return _segmentedBatch(engine, file, duration, spans, voiced: voiced, report: report);
+    }
+    final transcript = await _batch(engine, file, duration, localeId: localeId, report: report);
+    return (transcript: transcript, spans: spans);
+  }
+
+  /// Batches a mixed-language take span by span and merges the results: texts
+  /// joined with a `[fr]`-style marker where the language changes, segment
+  /// timings offset to file time, the first spoken span's language as the
+  /// transcript's. The spans answered are [spans] with every span that landed
+  /// no words over no voice folded away ([_foldSilent]), what the entry keeps;
+  /// a flattened pass answers them as they are. An engine that cannot slice
+  /// ([RangeUnsupported]) gets one flattened pass in the first span's language
+  /// instead: a flattened transcript beats an untranscribed entry there, and
+  /// the persisted spans let a re-transcription rebuild the mix on a capable
+  /// engine later. Any other failure fails the take rather than flattening it,
+  /// since a pass forced into one language hands the others back translated;
+  /// a span whose run failed gets one more try first.
+  Future<_PassResult> _segmentedBatch(
+    TranscriptionEngine engine,
+    File file,
+    Duration duration,
+    List<LanguageSpan> spans, {
+    List<VoicedRange>? voiced,
+    _BatchReport? report,
+  }) async {
+    final generation = _cancelGeneration;
+    // A span's run is its length's share of the line, the download ahead of
+    // it is not. Each run climbs from 0: a retried span must not take the
+    // line back down.
+    var reached = 0.0;
+    _BatchReport? along(double from, double share) => report == null
+        ? null
+        : (step, fraction, {modelId, modelName, preparing = false}) {
+            if (step == BatchStep.transcribing) {
+              final at = from + fraction * share;
+              if (at > reached) reached = at;
+            }
+            report(
+              step,
+              step == BatchStep.transcribing ? reached : fraction,
+              modelId: modelId,
+              modelName: modelName,
+              preparing: preparing,
+            );
+          };
     try {
       final parts = <Transcript>[];
       for (var i = 0; i < spans.length; i++) {
+        if (generation != _cancelGeneration) throw const TranscriptionFailed('cancelled');
         final start = Duration(milliseconds: spans[i].startMs);
         final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : null;
-        final spanLength = (end ?? duration) - start;
-        parts.add(
-          await _batch(
-            engine,
-            file,
-            spanLength.isNegative ? Duration.zero : spanLength,
-            localeId: spans[i].tag,
-            start: start,
-            end: end,
-          ),
-        );
+        final stop = end ?? duration;
+        final spanLength = stop - start;
+        final whole = duration.inMilliseconds;
+        final from = whole == 0 ? 0.0 : start.inMilliseconds / whole;
+        final share = whole == 0 ? 0.0 : spanLength.inMilliseconds / whole;
+        final Transcript part;
+        try {
+          part = await _spanPass(
+            () => _batch(
+              engine,
+              file,
+              spanLength.isNegative ? Duration.zero : spanLength,
+              localeId: spans[i].localeId,
+              start: start,
+              end: end,
+              report: along(from, share),
+            ),
+          );
+        } catch (e) {
+          _traceSpanFailed(spans[i], start, stop, e);
+          rethrow;
+        }
+        _traceSpan(spans[i], start, stop, part);
+        parts.add(part);
       }
       final buffer = StringBuffer();
       final segments = <TranscriptSegment>[];
-      // The transcript's language is the first SPOKEN span's: a take whose
-      // opening span held only silence is, effectively, the later language.
       String? firstSpokenTag;
+      String? lastSpokenTag;
       for (var i = 0; i < parts.length; i++) {
         final offset = Duration(milliseconds: spans[i].startMs);
         final text = parts[i].fullText.trim();
-        if (text.isNotEmpty) firstSpokenTag ??= spans[i].tag;
-        // A silent span earns neither text nor a marker; the first spoken
-        // span earns no marker either (nothing before it to separate).
-        if (text.isNotEmpty && buffer.isEmpty) {
+        // A silent span earns neither text nor a marker, and a marker is
+        // judged against the last words: nothing before the first to
+        // separate, and no turn back to a language that never left.
+        if (text.isNotEmpty) {
+          final tag = spans[i].localeId;
+          final before = lastSpokenTag;
+          if (before != null) {
+            if (languageDiffers(before, tag)) {
+              final marker = languageMarker(tag);
+              buffer.write(' $marker');
+              // The marker also rides as its own zero-length segment at the
+              // switch instant: the transcript VIEW renders segments (not
+              // fullText), so without this the reader would never see where
+              // the language turned, and tapping it seeks to that moment.
+              segments.add(TranscriptSegment(text: marker, start: offset, end: offset));
+            }
+            buffer.write(' ');
+          }
           buffer.write(text);
-        } else if (text.isNotEmpty) {
-          final marker = languageMarker(spans[i].tag);
-          buffer.write(' $marker $text');
-          // The marker also rides as its own zero-length segment at the
-          // switch instant: the transcript VIEW renders segments (not
-          // fullText), so without this the reader would never see where the
-          // language turned - and tapping it seeks to that moment.
-          segments.add(TranscriptSegment(text: marker, start: offset, end: offset));
+          firstSpokenTag ??= tag;
+          lastSpokenTag = tag;
         }
         for (final segment in parts[i].segments) {
           segments.add(
@@ -2110,15 +2718,234 @@ class TranscriptionService {
           );
         }
       }
-      return Transcript(
+      // Folded before the fallback language: a take that heard no words is
+      // in the language its voice was in, not the silence it opened with.
+      final folded = await _foldSilent(file, duration, spans, parts, voiced: voiced);
+      final transcript = Transcript(
         fullText: buffer.toString(),
         segments: segments,
-        localeId: firstSpokenTag ?? spans.first.tag,
+        localeId: firstSpokenTag ?? folded.first.localeId,
         engineId: engine.id,
         createdAt: _clock(),
       );
-    } on TranscriptionException {
-      return _batch(engine, file, duration, localeId: spans.first.tag);
+      return (transcript: transcript, spans: folded);
+    } on RangeUnsupported catch (e) {
+      if (generation != _cancelGeneration) rethrow;
+      if (kDebugMode) debugPrint('flattened to ${spans.first.localeId}: $e');
+      final flat = await _batch(
+        engine,
+        file,
+        duration,
+        localeId: spans.first.localeId,
+        report: along(0, 1),
+      );
+      return (transcript: flat, spans: spans);
+    }
+  }
+
+  /// Prints what a span's pass landed, in debug builds.
+  static void _traceSpan(LanguageSpan span, Duration start, Duration stop, Transcript part) {
+    if (!kDebugMode) return;
+    final words = part.segments.isEmpty
+        ? ''
+        : ', words ${(start + part.segments.first.start).inMilliseconds}'
+              '..${(start + part.segments.last.end).inMilliseconds} ms';
+    debugPrint(
+      '${_spanName(span, start, stop)}: ${part.segments.length} segments, '
+      '${part.fullText.trim().length} chars$words',
+    );
+  }
+
+  /// Prints how a span's pass failed, in debug builds.
+  static void _traceSpanFailed(LanguageSpan span, Duration start, Duration stop, Object failure) {
+    if (kDebugMode) debugPrint('${_spanName(span, start, stop)}: failed $failure');
+  }
+
+  static String _spanName(LanguageSpan span, Duration start, Duration stop) =>
+      'span ${span.localeId} ${start.inMilliseconds}..${stop.inMilliseconds}';
+
+  /// [picks] with every switch cut at the quiet around it ([seamCut]) from
+  /// one read of where the take in [audio] holds a voice, then walked past the
+  /// speech that belongs to the other side of it ([_walkSeams]), answered
+  /// with that read. With [report], the read is announced as the start of the
+  /// pass it comes before, so a take waiting on it already shows. Never
+  /// throws: the picks stand when the take cannot be read, the cuts when the
+  /// walk fails.
+  Future<_Seams> _settleSeams(
+    Future<File> Function() audio,
+    Duration length,
+    List<LanguageSpan> picks, {
+    _BatchReport? report,
+  }) async {
+    final activity = _activity;
+    if (activity == null || picks.length < 2) return (spans: picks, voiced: null);
+    report?.call(BatchStep.transcribing, 0);
+    final File file;
+    try {
+      file = await audio();
+    } catch (_) {
+      return (spans: picks, voiced: null);
+    }
+    final cut = await _cutTake(activity, file, length, picks);
+    if (cut == null) return (spans: picks, voiced: null);
+    try {
+      return (spans: await _walkSeams(file, cut), voiced: cut.voiced);
+    } catch (_) {
+      return (spans: cut.spans, voiced: cut.voiced);
+    }
+  }
+
+  /// [picks] with every switch moved to the quiet around it ([seamCut]), from
+  /// one read of where the whole take in [file] holds a voice; null when the
+  /// read cannot tell.
+  Future<_Cut?> _cutTake(
+    AudioActivity activity,
+    File file,
+    Duration length,
+    List<LanguageSpan> picks,
+  ) async {
+    final voiced = await _voicedIn(activity, file);
+    if (voiced == null) return null;
+    final spans = [picks.first];
+    final windows = <TakeWindow>[];
+    for (var i = 1; i < picks.length; i++) {
+      final pick = Duration(milliseconds: picks[i].startMs);
+      final window = seamWindow(
+        pick: pick,
+        previous: i > 1 ? Duration(milliseconds: picks[i - 1].startMs) : null,
+        next: i + 1 < picks.length ? Duration(milliseconds: picks[i + 1].startMs) : null,
+        length: length,
+      );
+      windows.add(window);
+      final at = seamCut(pick: pick, voiced: voiced, window: window, length: length);
+      if (kDebugMode) {
+        debugPrint(
+          'seam ${picks[i].localeId}: picked ${pick.inMilliseconds}, cut ${at.inMilliseconds}',
+        );
+      }
+      spans.add(LanguageSpan(startMs: at.inMilliseconds, localeId: picks[i].localeId));
+    }
+    return (spans: spans, voiced: voiced, windows: windows);
+  }
+
+  /// Where [file] holds a voice ([AudioActivity.voiced]), read as a probe
+  /// that cannot tell once it outlasts the batch timeout: a stuck read must
+  /// not hold a take from its save. A failed read cannot tell either.
+  Future<List<VoicedRange>?> _voicedIn(
+    AudioActivity activity,
+    File file, {
+    Duration? start,
+    Duration? end,
+  }) async {
+    try {
+      return await activity
+          .voiced(file, start: start, end: end)
+          .timeout(_batchTimeout, onTimeout: () => null);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// [cut]'s spans with each switch walked past the speech that belongs to
+  /// the other side of it ([walkSeam]) inside its window, asked of an engine
+  /// that can tell two languages apart; the cuts as they are under any other,
+  /// or without its model on the device, or once it outlasts the batch
+  /// timeout (a stuck engine must not hold the take from its save; the
+  /// switches walked by then keep their walk). Under a paced engine the walk
+  /// takes one turn, as a pass does.
+  Future<List<LanguageSpan>> _walkSeams(File file, _Cut cut) async {
+    final engine = _engine;
+    final cuts = cut.spans;
+    if (engine is! LanguageOddsEngine || cuts.length < 2) return cuts;
+    if (!await isModelInstalled(localeId: cuts.first.localeId)) return cuts;
+    final walked = [cuts.first];
+    // Set by the timeout: a walk given up on asks nothing more, or its
+    // questions would slot in between the pass's own runs.
+    var abandoned = false;
+    Future<List<LanguageSpan>> walkAll() async {
+      for (var i = 1; i < cuts.length && !abandoned; i++) {
+        final old = cuts[i - 1].localeId;
+        final now = cuts[i].localeId;
+        final at = Duration(milliseconds: cuts[i].startMs);
+        if (!languageDiffers(old, now)) {
+          walked.add(cuts[i]);
+          continue;
+        }
+        final to = await walkSeam(
+          cut: at,
+          voiced: cut.voiced,
+          window: cut.windows[i - 1],
+          newOdds: (stretch) async {
+            if (abandoned) return null;
+            try {
+              final odds = await engine.languageOdds(
+                file,
+                start: stretch.start,
+                end: stretch.end,
+                among: [old, now],
+              );
+              // All zero: the stretch could not be read.
+              if (odds.values.every((value) => value <= 0)) return null;
+              return odds[now];
+            } catch (_) {
+              return null;
+            }
+          },
+        );
+        if (kDebugMode && to != at) {
+          debugPrint('walk $now: cut ${at.inMilliseconds}, walked ${to.inMilliseconds}');
+        }
+        if (!abandoned) walked.add(LanguageSpan(startMs: to.inMilliseconds, localeId: now));
+      }
+      return walked;
+    }
+
+    List<LanguageSpan> soFar() {
+      abandoned = true;
+      return [...walked, ...cuts.skip(walked.length)];
+    }
+
+    Future<List<LanguageSpan>> bounded() => walkAll().timeout(_batchTimeout, onTimeout: soFar);
+    return engine is PacedBatchEngine ? _inPacedTurn(bounded) : bounded();
+  }
+
+  /// [spans] without those whose [parts] landed no words over audio with no
+  /// voice ([foldSilentSpans]), each asked on its own; a span that heard
+  /// nothing over a voice keeps its language for a better pass. The whole
+  /// file's read ([voiced], when made) only spares a span it heard a voice
+  /// in: a quiet voice a loud take drowns can still stand out in its span.
+  Future<List<LanguageSpan>> _foldSilent(
+    File file,
+    Duration length,
+    List<LanguageSpan> spans,
+    List<Transcript> parts, {
+    List<VoicedRange>? voiced,
+  }) async {
+    final activity = _activity;
+    if (activity == null) return spans;
+    final silent = <int>{};
+    for (var i = 0; i < spans.length; i++) {
+      if (parts[i].fullText.trim().isNotEmpty) continue;
+      final start = Duration(milliseconds: spans[i].startMs);
+      final end = i + 1 < spans.length ? Duration(milliseconds: spans[i + 1].startMs) : length;
+      if (voiced != null && voiced.any((range) => range.start < end && range.end > start)) {
+        continue;
+      }
+      final inSpan = await _voicedIn(activity, file, start: start, end: end);
+      if (inSpan != null && inSpan.isEmpty) silent.add(i);
+    }
+    return foldSilentSpans(spans, silent);
+  }
+
+  /// A span's pass, run once more when it throws [TranscriptionFailed]; never
+  /// after a cancel or [_timedOut].
+  Future<Transcript> _spanPass(Future<Transcript> Function() run) async {
+    final generation = _cancelGeneration;
+    try {
+      return await run();
+    } on TranscriptionFailed catch (e) {
+      if (identical(e, _timedOut) || generation != _cancelGeneration) rethrow;
+      return run();
     }
   }
 
@@ -2233,9 +3060,12 @@ class TranscriptionService {
     _liveSub = null;
     await _statusSub?.cancel();
     _statusSub = null;
+    await _levelSub?.cancel();
+    _levelSub = null;
     await _live.close();
     await _autoFinalized.close();
     await _modelStateChanged.close();
+    await _batchProgress.close();
     await _entriesChanged.close();
     await _continuations.close();
   }

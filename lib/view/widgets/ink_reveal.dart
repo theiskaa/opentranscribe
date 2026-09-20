@@ -10,6 +10,10 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
+/// Lays a placeholder cloud's lines out at [width] and the reader's text
+/// scale.
+typedef InkRowsBuilder = List<InkRow> Function(double width, TextScaler scaler);
+
 /// What the caller wants the text to be doing.
 enum InkPhase {
   /// The child renders plain; no tickers run.
@@ -21,9 +25,10 @@ enum InkPhase {
   write,
 
   /// Work is in flight: the current text dissolves into a living cloud (or a
-  /// placeholder cloud shimmers when there is no text yet) until the caller
-  /// transitions out - to [write] when new words landed, to [settled] when the
-  /// run failed and the old words return.
+  /// placeholder cloud shimmers, when there is no text yet or the caller
+  /// shapes its own with [InkReveal.placeholderRows]) until the caller
+  /// transitions out - to [write] when new words landed, to [settled] when
+  /// the run failed and the old words return.
   pending,
 }
 
@@ -45,7 +50,9 @@ class InkReveal extends StatefulWidget {
     required this.color,
     required this.background,
     this.placeholderLines = 4,
+    this.placeholderRows,
     this.onWriteStarted,
+    this.onWriteFinished,
     super.key,
   });
 
@@ -62,9 +69,20 @@ class InkReveal extends StatefulWidget {
   /// text to dissolve.
   final int placeholderLines;
 
+  /// The placeholder cloud's own lines at the width this widget gets and the
+  /// reader's text scale, in place of [placeholderLines] (which still stand in
+  /// when it lays out none); the cloud stands exactly as tall as the rows.
+  /// Laid out once per wait, and used even when text is on screen: going
+  /// pending then means other words are coming, not these.
+  final InkRowsBuilder? placeholderRows;
+
   /// Fired once when a write-on actually begins (or is skipped under Reduce
   /// Motion), so the caller can mark its replay ledger.
   final VoidCallback? onWriteStarted;
+
+  /// Fired once the words are fully written and this widget renders them
+  /// plain, so a caller holding the child's place can hand it back.
+  final VoidCallback? onWriteFinished;
 
   @override
   State<InkReveal> createState() => _InkRevealState();
@@ -151,7 +169,9 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     _arrivalQueued = false;
     _done = false;
     _quick = false;
-    final prepared = hadText && _capture() || _preparePlaceholder();
+    // A cloud shaped by its caller waits for new words, never the old ones.
+    final dissolves = hadText && widget.placeholderRows == null;
+    final prepared = dissolves && _capture() || _preparePlaceholder();
     if (!prepared) return;
     setState(() => _shimmering = true);
     _clock
@@ -168,6 +188,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
       // words simply render plain.
       setState(() => _done = true);
       _markStarted();
+      _markFinished();
       return;
     }
     _arrivalQueued = true;
@@ -206,6 +227,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
         _done = true;
       });
       _stopShimmer();
+      _markFinished();
     });
   }
 
@@ -218,6 +240,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
       // No usable frame: arrive with a plain fade instead of a blank page.
       setState(() => _done = true);
       _markStarted();
+      _markFinished();
       return;
     }
     setState(() => _shimmering = true);
@@ -255,19 +278,26 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     if (box is! RenderBox || !box.hasSize) return false;
     final width = box.size.width;
     if (width <= 0) return false;
-    const style = AppType.body;
     // The reader's text scale sizes the cloud like the text it stands for.
-    final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize!);
-    final lineHeight = fontSize * style.height!;
+    final scaler = MediaQuery.textScalerOf(context);
+    final built = widget.placeholderRows?.call(width, scaler);
+    final rows = built == null || built.isEmpty ? _placeholderLines(width, scaler) : built;
+    if (rows.isEmpty) return false;
     _releaseInk();
-    _inkPoints = placeholderInkPoints(
+    _inkPoints = rowInkPoints(rows);
+    _inkSize = Size(width, inkRowsHeight(rows));
+    return true;
+  }
+
+  List<InkRow> _placeholderLines(double width, TextScaler scaler) {
+    const style = AppType.body;
+    final fontSize = scaler.scale(style.fontSize!);
+    return placeholderInkRows(
       width: width,
       lines: widget.placeholderLines,
       fontSize: fontSize,
-      lineHeight: lineHeight,
+      lineHeight: fontSize * style.height!,
     );
-    _inkSize = Size(width, widget.placeholderLines * lineHeight);
-    return true;
   }
 
   void _markStarted() {
@@ -277,6 +307,14 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     // inside a build/transition callback.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) started();
+    });
+  }
+
+  void _markFinished() {
+    final finished = widget.onWriteFinished;
+    if (finished == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) finished();
     });
   }
 
@@ -365,6 +403,7 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
         if (mounted && !_done) {
           setState(() => _done = true);
           _markStarted();
+          _markFinished();
         }
       });
     }

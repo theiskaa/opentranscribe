@@ -133,7 +133,7 @@ class _DisabledCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxs),
             Text(
               l10n.reflectionsDisabledBody,
-              style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.4),
+              style: AppType.note.copyWith(color: theme.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
             AppButton(

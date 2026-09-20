@@ -210,7 +210,7 @@ class AppMenuButton extends StatelessWidget {
     required this.items,
     this.onSelected,
     this.onSelectedId,
-    this.size = 44,
+    this.size = AppSizes.barControl,
     this.iconSize = 20,
     this.color,
     this.semanticLabel,

@@ -1,11 +1,11 @@
 # transcriber
 
-Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is four contracts: `AudioRecorder`, `AudioComposer`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, downloadable-model behavior, and side-effect-free per-language readiness as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`, `LanguageReadinessEngine`). `AppleSpeechEngine` is the shipped `SpeechAnalyzer` implementation (iOS 26); `AppleDictationEngine` is the classic `SFSpeechRecognizer` one, the engine behind iOS dictation.
+Audio capture, playback, and on-device transcription for Flutter on iOS. The app-facing surface is four contracts: `AudioRecorder`, `AudioComposer`, `AudioPlayer`, and `TranscriptionEngine`, with streaming, batch cancellation, downloadable-model behavior, and side-effect-free per-language readiness as separate interfaces an engine may also implement (`StreamingTranscriptionEngine`, `CancellableBatchEngine`, `ManagedModelEngine`, `LanguageReadinessEngine`). `AppleSpeechEngine` is the shipped `SpeechAnalyzer` implementation (iOS 26); `AppleDictationEngine` is the classic `SFSpeechRecognizer` one, the engine behind iOS dictation; `WhisperEngine` is whisper.cpp, batch-only, one downloaded model of a catalog serving every language it knows (`ModelChoiceEngine`, `PacedBatchEngine`, `ReleasableEngine`, `ProgressBatchEngine` for the run's percent, and `AcceleratedModelEngine` for the Core ML encoder it can fetch beside a model and run on the Neural Engine).
 
 Guarantees a caller may rely on:
 
-- `TranscriptionEngine.onDeviceOnly` states whether an engine keeps audio on the device. Both `AppleSpeechEngine` and `AppleDictationEngine` force on-device recognition and answer true, and nothing in this package opens a network connection.
-- Both engines share one live-event transport over `transcriber/speech/events`, and live session tokens are unique across them; every engine-answering channel call names its engine, so the native side routes explicitly.
+- `TranscriptionEngine.onDeviceOnly` states whether an engine keeps audio on the device. All three engines force on-device recognition and answer true. The one connection this package opens is `PinnedHostFetcher` in `lib/src/whisper/model_fetcher.dart`: it downloads a catalog file the caller asked for (a model, or its zipped Core ML encoder) from one pinned host (redirects only onto that host's CDN), resumes a `.part` with a Range request, retries a transfer that broke after bytes arrived (only breaks in a row that deliver nothing count towards offline), verifies the sha256 before the file counts as installed, and sends nothing.
+- Both Apple engines share one live-event transport over `transcriber/speech/events`, and live session tokens are unique across them; every engine-answering channel call names its engine, so the native side routes explicitly.
 - Audio buffers never cross the platform channel. Capture and recognition share one native session; only paths, durations, levels, statuses, and text reach Dart.
 - Recording and playback share the audio session and never overlap. Starting a capture stops live playback with a terminal event, and `AudioPlayer.play` throws `busy_recording` while a capture runs.
 - Recordings land in the app's Application Support under iOS data protection (`completeUnlessOpen`), excluded from backup by default; `AudioRecorder.setBackupExcluded` flips that for the whole directory.
@@ -17,6 +17,9 @@ The channels, one Swift class per channel family, all internal to the package (t
 | --- | --- | --- |
 | `PlatformAudioRecorder` | `transcriber/audio` | `transcriber/audio/status`, `transcriber/audio/level` |
 | `PlatformAudioComposer` | `transcriber/audio` (`concatenate`) | |
+| `PlatformPcmDecoder` | `transcriber/audio` (`decodePcm`, `pcmLength`) | |
+| `PlatformAudioActivity` | `transcriber/audio` (`voicedRanges`) | |
+| `PlatformModelStorage` | `transcriber/audio` (`modelsDirectory`, `physicalMemory`) | |
 | `AppleSpeechEngine`, `AppleDictationEngine` | `transcriber/speech` | `transcriber/speech/events`, `transcriber/speech/model` |
 | `PlatformAudioPlayer` | `transcriber/player` | `transcriber/player/state` |
 
@@ -26,7 +29,17 @@ A host app provides `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsage
 
 `TranscriberPlugin.recordingStatusObserver` is an optional native hook: capture status strings (`recording`, `paused`, `interrupted`, `stopped`) delivered after Dart's own status sink, for surfaces the package must not know about. opentranscribe drives its Live Activity with it.
 
-`package:transcriber/testing.dart` exports `FakeStreamingEngine`, `FakeBatchEngine`, `FakeManagedEngine`, `FakeDictationEngine`, and `FakeOffDeviceEngine` for tests that need an engine without a device.
+`package:transcriber/testing.dart` exports `FakeStreamingEngine`, `FakeBatchEngine`, `FakeManagedEngine`, `FakeDictationEngine`, `FakeOffDeviceEngine`, `FakeModelChoiceEngine`, `FakeAudioComposer`, `FakeAudioActivity`, `FakePcmDecoder`, `FakeModelFetcher`, and `FakeWhisperRuntime` for tests that need any of the contracts without a device.
+
+`PcmDecoder` (`PlatformPcmDecoder`, riding the recorder's channel as `decodePcm`) decodes a slice of a kept recording into raw 16 kHz mono 32-bit float samples under `Application Support/scratch`, for an engine that reads samples from a file. The slice is bounded in the input's own time, a slice holding no frames fails as `decode_empty` rather than answering silence, and the caller deletes the output. `length` answers the input's duration from its header. `WhisperEngine` runs audio longer than `chunkLength` (ten minutes) as one slice at a time, re-hearing a last segment that runs into the boundary, so a run of any length holds ten minutes of samples at most. The frame math is `pcmSlice` in `ios/transcriber/Core`.
+
+`AudioActivity` (`PlatformAudioActivity`, riding the recorder's channel as `voicedRanges`) answers where a slice of a kept recording holds a voice, judged against the recording's own quiet, so it works in a noisy room as in a silent one. Only times cross the channel. It never throws and answers null when it cannot tell, so a caller never drops words the probe could not see. `WhisperEngine` skips a slice it finds silent, which keeps whisper from inventing words over silence.
+
+`WhisperEngine` (`lib/src/whisper/`) is the whisper.cpp engine. Its collaborators are contracts with fakes beside them: `ModelFetcher` (the download), `PcmDecoder` (the slice of a kept recording as 16 kHz mono float samples), `AudioActivity` (optional, where the slice holds a voice), `ModelStorage` (the models directory and the phone's memory), and `WhisperRuntime` (inference). `FfiWhisperRuntime` runs the shim on one worker isolate that owns the whisper context, so a run blocks nothing else and a cancel reaches it through an abort flag in native memory. `whisper_catalog.dart` holds the five models (file, size, sha256, a peak memory figure and a batch budget factor set by hand) and the 100-language table in whisper's token order with the BCP-47 tag each resolves to (every model carries the first 99; the large-v3 family adds Cantonese); `tool/whisper/catalog.sh` in the host app is the only source of the sizes and hashes. A model counts as installed when its file's length matches the catalog; the hash was verified at download.
+
+`WhisperShim` binds `ios/transcriber/Sources/WhisperShim/include/otr_whisper.h`, a flat C surface over whisper.cpp compiled into this package against the prebuilt `whisper.xcframework`. The binary is never in the checkout: run `tool/whisper/fetch.sh` in the host app once before an iOS build; it pins the release tag and the zip hash. `TranscriberPlugin.register` references the shim so the linker keeps its object file, the host app's Release configuration keeps global symbols through the strip step, and Dart resolves them from the process image. The shim runs whisper on the GPU on a device and on the CPU in the simulator, whose Metal driver traps on a model's buffers.
+
+An Android build inherits the engine, the fetcher, the catalog and the runtime unchanged; it needs the shim compiled through the plugin's CMake, a MediaCodec `PcmDecoder`, an `AudioActivity` and a `ModelStorage` behind the same channel methods, and the plugin's capture, compose and playback half.
 
 The classic recognizer hands out only its current utterance, and resets that
 hypothesis after a pause of about two seconds. `UtteranceStitcher` rebuilds the

@@ -17,6 +17,7 @@ private enum SpeechErrorCode: String {
   case onDeviceUnavailable = "on_device_unavailable"
   case fileMissing = "file_missing"
   case transcribeError = "transcribe_error"
+  case rangeUnsupported = "range_unsupported"
   case modelInstallFailed = "model_install_failed"
   case reservationCap = "reservation_cap"
   case badArgs = "bad_args"
@@ -1434,7 +1435,7 @@ final class SpeechEnginePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   ) {
     if startMs != nil || endMs != nil {
       result(
-        SpeechErrorCode.transcribeError.error("ranged transcription needs the analyzer engine"))
+        SpeechErrorCode.rangeUnsupported.error("ranged transcription needs the analyzer engine"))
       return
     }
     transcribeFileClassic(path: path, localeId: localeId, result: result)

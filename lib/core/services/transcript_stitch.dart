@@ -9,14 +9,28 @@ String languageMarker(String tag) => '[${tag.split('-').first}]';
 bool languageDiffers(String a, String b) => a.split('-').first != b.split('-').first;
 
 /// Whether a take in [tailLocaleId] needs a marker after [stored]: judged
-/// against the language spoken at the END of the base (its last span), not the
-/// transcript's, which names the first spoken language. Unknown base language
-/// means no marker. Decided once and handed to both stitches, so the head and
-/// the transcript can never disagree on the seam.
+/// against the language the base's last words are in, as a span-by-span pass
+/// judges its own switches. Unknown base language means no marker. Decided
+/// once and handed to both stitches, so the head and the transcript can never
+/// disagree on the seam.
 bool seamMarker({required Entry stored, required String tailLocaleId}) {
-  final atEnd = stored.languageSpans?.last.localeId ?? stored.effectiveLocaleId;
+  final atEnd = _lastSpokenLanguage(stored);
   return atEnd != null && languageDiffers(tailLocaleId, atEnd);
 }
+
+/// The language [entry]'s last words are in, as a tag or a bare subtag: its
+/// transcript's last marker, else the transcript's own language (no marker,
+/// one language throughout); an entry never heard goes by its last span. A
+/// span that heard nothing wrote no marker, so it never counts.
+String? _lastSpokenLanguage(Entry entry) {
+  final transcript = entry.transcript;
+  if (transcript == null) return entry.languageSpans?.last.localeId ?? entry.recordedLocaleId;
+  return _marker.allMatches(transcript.fullText).lastOrNull?.group(1) ?? transcript.localeId;
+}
+
+/// A [languageMarker] standing alone between words, as every join writes it;
+/// brackets inside a word are not one.
+final RegExp _marker = RegExp(r'(?<=^|\s)\[([a-z]{2,3})\](?=\s|$)');
 
 /// [base] followed by [addition], single-spaced, with a language marker between
 /// them when [marker] is set. Both sides are trimmed; either side blank yields

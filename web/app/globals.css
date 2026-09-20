@@ -8,9 +8,11 @@
 
   --ink: #f5f5f5;
   --ink-2: #98989e;
+  --raise: #18181a;
+  --surface: #1c1c1e;
 
-  --ease-entrance: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.3, 1.45, 0.5, 1);
 }
 
 html {
@@ -19,9 +21,8 @@ html {
 }
 
 body {
-  background: var(--canvas);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -38,18 +39,45 @@ button:focus-visible {
 }
 
 @layer components {
-  .t-display {
-    font-size: clamp(34px, 5.5vw, 54px);
+  .t-hero {
+    font-size: clamp(40px, 6.4vw, 76px);
     font-weight: 600;
-    letter-spacing: -0.017em;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-display {
+    font-size: clamp(30px, 4vw, 46px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-price {
+    font-size: 64px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .t-lead {
+    font-size: 19px;
+    line-height: 1.5;
+    letter-spacing: -0.2px;
+  }
+  .t-path {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
   }
   .t-title {
-    font-size: clamp(21px, 2.6vw, 28px);
+    font-size: 24px;
     font-weight: 600;
-    letter-spacing: -0.4px;
-    line-height: 1.3;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
     color: var(--ink);
   }
   .t-body {
@@ -94,10 +122,11 @@ button:focus-visible {
     letter-spacing: -0.24px;
     white-space: nowrap;
     box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.16);
-    transition: background-color 0.15s ease, transform 0.15s var(--ease-out);
+    transition: background-color 0.15s ease, transform 0.3s var(--ease-spring);
   }
   .btn:hover {
     background: #ffffff;
+    transform: scale(1.03);
   }
   .btn:active {
     transform: scale(0.96);
@@ -116,14 +145,33 @@ button:focus-visible {
     letter-spacing: -0.24px;
     white-space: nowrap;
     transition: border-color 0.15s ease, background-color 0.15s ease,
-      transform 0.15s var(--ease-out);
+      transform 0.3s var(--ease-spring);
   }
   .btn-ghost:hover {
+    transform: scale(1.03);
     border-color: var(--ink-2);
     background: rgb(245 245 245 / 0.04);
   }
   .btn-ghost:active {
     transform: scale(0.96);
+  }
+
+  .panel {
+    border-radius: 28px;
+    background: var(--raise);
+    transition: background-color 0.3s ease;
+  }
+  .panel:hover {
+    background: #1b1b1d;
+  }
+  .app-card {
+    border-radius: 20px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    transition: border-color 0.2s ease;
+  }
+  .app-card:hover {
+    border-color: #3a3a3d;
   }
 }
 
@@ -132,43 +180,65 @@ button:focus-visible {
   background: linear-gradient(90deg, var(--hairline), transparent);
 }
 
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-entrance), transform 0.7s var(--ease-entrance);
-  will-change: transform, opacity;
+/* Hover answers only. Nothing on the page moves on its own but the recorder. */
+.pop {
+  transition: transform 0.35s var(--ease-spring);
 }
-.reveal.in {
-  opacity: 1;
-  transform: none;
-  will-change: auto;
+.panel-shot img {
+  transform-origin: top center;
+  transition: transform 0.5s var(--ease-spring);
+}
+.nudge {
+  transition: transform 0.3s var(--ease-spring);
+}
+@keyframes dot-pulse {
+  0%, 45%, 100% { transform: scale(1); }
+  20% { transform: scale(1.3); }
+}
+.dots i:nth-child(2) { animation-delay: 0.09s; }
+.dots i:nth-child(3) { animation-delay: 0.18s; }
+.dots i:nth-child(4) { animation-delay: 0.27s; }
+.dots i:nth-child(5) { animation-delay: 0.36s; }
+.hero-side {
+  transition: opacity 0.3s ease;
+}
+/* A tap leaves :hover stuck on touch, which would loop the dots unasked. */
+@media (hover: hover) {
+  .pop:hover {
+    transform: scale(1.05);
+  }
+  .panel:hover .panel-shot img {
+    transform: scale(1.04);
+  }
+  .group:hover .nudge {
+    transform: translate(2px, -2px);
+  }
+  .app-card:hover .dots i.on {
+    animation: dot-pulse 1.3s var(--ease-out) infinite;
+  }
+  .hero-side:hover {
+    opacity: 0.8;
+  }
+}
+.pop:active {
+  transform: scale(0.97);
 }
 
-.reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-entrance), transform 0.7s var(--ease-entrance);
+.hero-stage {
+  -webkit-mask-image: linear-gradient(#000 74%, transparent);
+  mask-image: linear-gradient(#000 74%, transparent);
 }
-.reveal-stagger.in > * {
-  opacity: 1;
-  transform: none;
-}
-.reveal-stagger.in > *:nth-child(1) { transition-delay: 0ms; }
-.reveal-stagger.in > *:nth-child(2) { transition-delay: 120ms; }
-.reveal-stagger.in > *:nth-child(3) { transition-delay: 240ms; }
-.reveal-stagger.in > *:nth-child(4) { transition-delay: 360ms; }
-.reveal-stagger.in > *:nth-child(5) { transition-delay: 480ms; }
-.reveal-stagger.in > *:nth-child(6) { transition-delay: 600ms; }
 
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+.hero-side {
+  -webkit-mask-image: linear-gradient(#000 45%, transparent 92%);
+  mask-image: linear-gradient(#000 45%, transparent 92%);
 }
-.boot { opacity: 0; animation: fade-up 0.7s var(--ease-entrance) forwards; }
-.boot-1 { animation-delay: 0.05s; }
-.boot-2 { animation-delay: 0.17s; }
-.boot-3 { animation-delay: 0.29s; }
-.boot-4 { animation-delay: 0.41s; }
+
+.panel-shot {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
 
 @keyframes doc-scrim-in {
   from { opacity: 0; }
@@ -183,15 +253,8 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .boot { animation: none; opacity: 1; }
   .doc-scrim,
   .doc-panel { animation: none; }
   .btn:active,
   .btn-ghost:active { transform: none; }
-  .reveal,
-  .reveal-stagger > * {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
 }

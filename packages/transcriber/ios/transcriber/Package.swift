@@ -16,11 +16,19 @@ let package = Package(
         .package(name: "TranscriberCore", path: "Core")
     ],
     targets: [
+        // Fetched by tool/whisper/fetch.sh; never in the checkout.
+        .binaryTarget(name: "whisper", path: "whisper.xcframework"),
+        .target(
+            name: "WhisperShim",
+            dependencies: ["whisper"],
+            publicHeadersPath: "include"
+        ),
         .target(
             name: "transcriber",
             dependencies: [
                 .product(name: "FlutterFramework", package: "FlutterFramework"),
-                .product(name: "TranscriberCore", package: "TranscriberCore")
+                .product(name: "TranscriberCore", package: "TranscriberCore"),
+                "WhisperShim"
             ]
         )
     ]

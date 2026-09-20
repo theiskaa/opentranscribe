@@ -34,17 +34,32 @@ class CaptureFailed extends TranscriptionException {
   String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
 }
 
-/// The engine's on-device model could not be downloaded or installed. Distinct from
-/// [TranscriptionFailed]: almost always transient (network), with a different retry
-/// story than a broken transcription. [assetStatus] is the asset's state just
-/// before the attempt, when the engine could report it: a stuck download, a
-/// language the platform has no asset for, and an ordinary network failure all
-/// deserve different words in the UI.
+/// The engine's on-device model could not be downloaded, installed, or opened.
+/// Distinct from [TranscriptionFailed]: a download failure is almost always
+/// transient (network), and a model that will not open wants a fresh file,
+/// both a different retry story than a broken transcription. [assetStatus] is
+/// the asset's state just before the attempt, when the engine could report it:
+/// a stuck download, a language the platform has no asset for, and an
+/// ordinary network failure all deserve different words in the UI.
 class ModelInstallFailed extends TranscriptionException {
-  const ModelInstallFailed([super.message, this.assetStatus]);
+  const ModelInstallFailed(super.message, {this.assetStatus, this.reason, this.modelId});
 
   final ModelAssetStatus? assetStatus;
+
+  /// Why the model did not arrive or would not open, when the engine fetches
+  /// its own model.
+  final ModelInstallReason? reason;
+
+  /// The model that failed, when the engine names it; one with a choice of
+  /// models does on every failure of its own.
+  final String? modelId;
 }
+
+/// The ways a model file download fails, each deserving its own words: no
+/// connection, a file that did not verify or a server that refused, no room
+/// on the device, or the user's own cancel.
+/// [loadFailed] is a whole, verified file the runtime could not open.
+enum ModelInstallReason { offline, rejected, noSpace, cancelled, loadFailed }
 
 /// The platform's per-app language cap is full: installing another language
 /// needs one of [reservedTags] removed first. Its own type because the fix is
@@ -60,6 +75,12 @@ class TranscriptionFailed extends TranscriptionException {
   const TranscriptionFailed([super.message]);
 }
 
+/// The engine cannot transcribe a slice of a file, only the whole of it. Its
+/// own type because it is the one failure a whole-file pass can answer.
+class RangeUnsupported extends TranscriptionException {
+  const RangeUnsupported([super.message]);
+}
+
 /// The audio a transcription was asked for is not there. Its own type because
 /// no retry can fix it.
 class RecordingMissing extends TranscriptionException {
@@ -71,6 +92,25 @@ class RecordingMissing extends TranscriptionException {
 /// branch; every case leaves the inputs untouched and nothing partial behind.
 class AudioComposeFailed extends TranscriptionException {
   const AudioComposeFailed([super.message, this.code]);
+
+  final String? code;
+
+  @override
+  String toString() => code == null ? super.toString() : '${super.toString()} ($code)';
+}
+
+/// A slice of kept audio could not be decoded for an engine that reads samples
+/// from a file. [code] carries the native reason (a missing or unreadable
+/// input, a slice holding no frames, a write failure); every case leaves the
+/// input untouched and nothing partial behind.
+class PcmDecodeFailed extends TranscriptionException {
+  const PcmDecodeFailed([super.message, this.code]);
+
+  // The native codes; must match AudioDecode.swift.
+  static const missing = 'decode_missing';
+  static const unreadable = 'decode_unreadable';
+  static const empty = 'decode_empty';
+  static const failed = 'decode_failed';
 
   final String? code;
 

@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
+import 'package:transcriber/transcriber.dart';
 
 /// One engine as the picker renders it.
 @immutable
@@ -16,12 +17,17 @@ final class EngineRowState {
     required this.available,
     required this.isActive,
     this.unavailability,
+    this.live = false,
   });
 
   final EngineDescriptor descriptor;
   final bool available;
   final bool isActive;
   final EngineUnavailability? unavailability;
+
+  /// Whether the engine shows words as they are spoken, rather than writing
+  /// them once the take stops.
+  final bool live;
 }
 
 /// The picker's answer to a tap, for the surface to word (or ignore). [busy]
@@ -35,10 +41,12 @@ final class EnginesState {
   final List<EngineRowState> rows;
 }
 
-/// Drives the engine picker over the registry: one row per shipped engine in
-/// registry order, the active one marked. Picking swaps the service's engine,
-/// persists the choice, and re-resolves the language default against the new
-/// engine; an engine this device cannot run is never switched to.
+/// Drives the engine picker over the registry: one row per shipped engine,
+/// ordered by the descriptor's `displayOrder` because the registry's own
+/// order is preference order, with the active engine marked. Picking swaps
+/// the service's engine, persists the choice, and re-resolves the language
+/// default against the new engine; an engine this device cannot run is never
+/// switched to.
 // ignore_for_file: prefer_initializing_formals
 // Public parameters assigned to private fields, matching the sibling cubits'
 // constructor shape.
@@ -59,15 +67,28 @@ class EnginesCubit extends Cubit<EnginesState> {
   final EngineSettings _engineSettings;
   final TranscriptionSettings _transcriptionSettings;
 
-  static List<EngineRowState> _rows(List<EngineEntry> registry, String activeId) => [
-    for (final entry in registry)
-      EngineRowState(
-        descriptor: entry.descriptor,
-        available: entry.available,
-        isActive: entry.descriptor.engineId == activeId,
-        unavailability: entry.unavailability,
-      ),
-  ];
+  static List<EngineRowState> _rows(List<EngineEntry> registry, String activeId) {
+    final ranked = [
+      for (final (index, entry) in registry.indexed)
+        (
+          index,
+          EngineRowState(
+            descriptor: entry.descriptor,
+            available: entry.available,
+            isActive: entry.descriptor.engineId == activeId,
+            unavailability: entry.unavailability,
+            live: entry.engine is StreamingTranscriptionEngine,
+          ),
+        ),
+    ];
+    // Registry position breaks a tie, so the order is total however the
+    // descriptors are written.
+    ranked.sort((a, b) {
+      final byOrder = a.$2.descriptor.displayOrder.compareTo(b.$2.descriptor.displayOrder);
+      return byOrder != 0 ? byOrder : a.$1.compareTo(b.$1);
+    });
+    return [for (final (_, row) in ranked) row];
+  }
 
   EnginesState _derive() => EnginesState(rows: _rows(_registry, _service.engineId));
 
@@ -75,6 +96,16 @@ class EnginesCubit extends Cubit<EnginesState> {
     for (final entry in _registry) {
       if (entry.descriptor.engineId == engineId) return entry;
     }
+    return null;
+  }
+
+  /// Why a switch would be refused right now, [EnginePickOutcome.retranscribing]
+  /// or [EnginePickOutcome.busy], else null. Asked before a gesture commits,
+  /// so a refused switch resists instead of moving and snapping back; [pick]
+  /// still decides, since the answer can change before it runs.
+  EnginePickOutcome? get refusal {
+    if (_service.retranscribeAll.isRunning) return EnginePickOutcome.retranscribing;
+    if (_service.takeInFlight) return EnginePickOutcome.busy;
     return null;
   }
 
@@ -114,7 +145,7 @@ class EnginesCubit extends Cubit<EnginesState> {
       return EnginePickOutcome.unchanged;
     }
     final previous = _entry(_service.engineId);
-    if (_service.retranscribeAll.isRunning) return EnginePickOutcome.retranscribing;
+    if (refusal case final refused?) return refused;
     if (!_service.useEngine(entry.engine)) return EnginePickOutcome.busy;
     try {
       await _engineSettings.setEngineId(engineId);

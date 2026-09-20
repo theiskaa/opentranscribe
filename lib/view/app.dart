@@ -7,9 +7,11 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
+import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
@@ -100,6 +102,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       unawaited(Deps.i.transcriptionService.finalizeActiveCapture());
       return;
     }
+    // A loaded model is the largest thing the app holds; in the background it
+    // would be the first reason to be killed, and it reloads in seconds.
+    if (state == AppLifecycleState.paused) {
+      unawaited(Deps.i.transcriptionService.releaseIdleEngine());
+      return;
+    }
     if (state != AppLifecycleState.resumed) return;
     // First, ahead of the maintenance passes below: `unawaited` still runs a
     // call's synchronous prefix inline, and a tap waiting on the lock screen
@@ -141,23 +149,31 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // Root-scoped so a bulk run outlives the sheet that started it.
         BlocProvider(create: (_) => RetranscribeCubit(service: Deps.i.transcriptionService)),
         BlocProvider(create: (_) => HomeCubit(service: Deps.i.transcriptionService)),
-        // Root-scoped so the settings screen and the language picker (separate
-        // routes) share one instance. The exception to the rule above: its
-        // constructor seeds from three synchronous settings reads and then
-        // fires an UNAWAITED load, so building it here costs this frame
-        // microseconds rather than a journal decrypt, and its language list is
-        // ready before the first recording instead of populating under the
-        // user's eyes.
+        // Root-scoped: home's bar and the entry screen read the same passes.
+        BlocProvider(create: (_) => BatchProgressCubit(service: Deps.i.transcriptionService)),
+        // Eager, ahead of the settings cubit below that reads it at once.
         BlocProvider(
           lazy: false,
-          create: (_) => SettingsCubit(
+          create: (_) => ModelsCubit(
+            service: Deps.i.transcriptionService,
+            engineSettings: Deps.i.engineSettings,
+            physicalMemoryBytes: Deps.i.physicalMemoryBytes,
+          ),
+        ),
+        // Root-scoped for the settings screen, the language picker and the
+        // empty journal's setup, and eager: it seeds from synchronous reads and loads unawaited, so its
+        // languages are ready before the first recording at no cost here.
+        BlocProvider(
+          lazy: false,
+          create: (context) => SettingsCubit(
             service: Deps.i.transcriptionService,
             transcription: Deps.i.transcriptionSettings,
             audioStorage: Deps.i.audioStorageSettings,
+            models: context.read<ModelsCubit>(),
           ),
         ),
-        // Root-scoped so the choice survives leaving the models screen. Lazy
-        // is fine: nothing needs it before that screen builds, and its
+        // Root-scoped so the choice survives leaving the models screen, and
+        // the empty journal's setup reads the same rows. Lazy is fine: its
         // constructor only snapshots synchronous state.
         BlocProvider(
           create: (_) => EnginesCubit(

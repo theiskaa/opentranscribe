@@ -136,12 +136,9 @@ void main() {
     expect(cubit.state.liveText, 'hello world');
 
     await cubit.setLanguage('fr-FR');
-    // Nothing spoken so far is thrown away: it commits with the new marker
-    // (the restarted stream's first partials may already have flowed).
     expect(cubit.state.localeId, 'fr-FR');
-    expect(cubit.state.liveText, startsWith('hello world [fr]'));
+    expect(cubit.state.liveText, 'hello world');
 
-    // The restarted stream appends AFTER the committed prefix.
     await Future<void>.delayed(Duration.zero);
     expect(cubit.state.liveText, 'hello world [fr] hello world');
 
@@ -149,6 +146,59 @@ void main() {
     await cubit.restart();
     await Future<void>.delayed(Duration.zero);
     expect(cubit.state.liveText.contains('['), isFalse);
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a language that heard nothing before the switch back marks nothing', () async {
+    final rec = FakeAudioRecorder();
+    final service = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: rec,
+      engine: FakeStreamingEngine(
+        cannedText: 'hello world',
+        stopSignal: rec.stopped,
+        supportedLocaleTags: const ['en-US', 'fr-FR'],
+      ),
+      store: store,
+    );
+    final cubit = RecorderCubit(service: service);
+
+    await cubit.start();
+    await Future<void>.delayed(Duration.zero);
+    await cubit.setLanguage('fr-FR');
+    await cubit.setLanguage('en-US');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.liveText, 'hello world hello world');
+
+    await cubit.stop();
+    await cubit.close();
+    await service.dispose();
+  });
+
+  test('a switch within one language marks nothing in the live words', () async {
+    final rec = FakeAudioRecorder();
+    final service = TranscriptionService(
+      composer: FakeAudioComposer(),
+      recorder: rec,
+      engine: FakeStreamingEngine(
+        cannedText: 'hello world',
+        stopSignal: rec.stopped,
+        supportedLocaleTags: const ['en-US', 'en-GB'],
+      ),
+      store: store,
+    );
+    final cubit = RecorderCubit(service: service);
+
+    await cubit.start();
+    await Future<void>.delayed(Duration.zero);
+    await cubit.setLanguage('en-GB');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.liveText, 'hello world hello world');
 
     await cubit.stop();
     await cubit.close();

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -14,7 +15,7 @@ class AppGlassIconButton extends StatelessWidget {
   const AppGlassIconButton({
     required this.icon,
     required this.onTap,
-    this.size = 44,
+    this.size = AppSizes.barControl,
     this.iconSize = 18,
     this.color,
     this.semanticLabel,

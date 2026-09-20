@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+
+/// Whether [context]'s route is still the top one. Every sheet opener asks
+/// first: two pointers landing on two openers in one frame would otherwise
+/// stack two sheets.
+bool isTopRoute(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
 
 /// A bottom sheet sized to its content, flush to the screen's edges with only
 /// its top corners rounded. It rises, settles, and leaves on
@@ -75,6 +81,109 @@ double heldKeyboardInset({required double inset, required double held, required 
 bool settleArmed({required double inset, required double held, required double previous}) =>
     inset < held && inset <= previous;
 
+/// How one drag step of [delta] pixels (positive toward the bottom edge)
+/// splits between the panel and the content scrolled [pixels] into it, with
+/// the panel dragged [sheetOffset] pixels down from rest. A drag down scrolls
+/// the content back to its top first and then carries the panel; a drag up
+/// returns the panel to rest first and then scrolls the content. The two
+/// parts always sum to [delta].
+({double sheet, double content}) splitSheetDrag({
+  required double delta,
+  required double pixels,
+  required double minScrollExtent,
+  required double sheetOffset,
+}) {
+  if (delta > 0) {
+    final content = math.min(delta, math.max(0.0, pixels - minScrollExtent));
+    return (sheet: delta - content, content: content);
+  }
+  final sheet = math.max(delta, -math.max(0.0, sheetOffset));
+  return (sheet: sheet, content: delta - sheet);
+}
+
+/// The panel as the content's scroll position sees it.
+abstract interface class _SheetDrag {
+  /// How far the panel sits below rest, in pixels.
+  double get offset;
+
+  void dragBy(double delta);
+
+  /// The finger left a drag that moved the panel, at [velocity] pixels per
+  /// second toward the bottom edge.
+  void release(double velocity);
+}
+
+class _SheetScrollController extends ScrollController {
+  _SheetScrollController(this.sheet);
+
+  final _SheetDrag sheet;
+
+  @override
+  ScrollPosition createScrollPosition(
+    ScrollPhysics physics,
+    ScrollContext context,
+    ScrollPosition? oldPosition,
+  ) => _SheetScrollPosition(
+    sheet: sheet,
+    physics: physics,
+    context: context,
+    oldPosition: oldPosition,
+  );
+}
+
+/// Hands each drag step to the panel or the content by [splitSheetDrag], so
+/// a list at its top pulls the sheet down instead of bouncing, and a pulled
+/// sheet goes back up before the list scrolls.
+class _SheetScrollPosition extends ScrollPositionWithSingleContext {
+  _SheetScrollPosition({
+    required this.sheet,
+    required super.physics,
+    required super.context,
+    super.oldPosition,
+  });
+
+  final _SheetDrag sheet;
+
+  /// Whether the running drag has moved the panel, so its release is the
+  /// panel's to settle rather than a fling of the content.
+  bool _movedSheet = false;
+
+  @override
+  Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
+    _movedSheet = false;
+    return super.drag(details, dragCancelCallback);
+  }
+
+  @override
+  void applyUserOffset(double delta) {
+    final split = splitSheetDrag(
+      delta: delta,
+      pixels: pixels,
+      minScrollExtent: minScrollExtent,
+      sheetOffset: sheet.offset,
+    );
+    if (split.sheet != 0) {
+      _movedSheet = true;
+      sheet.dragBy(split.sheet);
+    }
+    if (split.content != 0) super.applyUserOffset(split.content);
+  }
+
+  @override
+  void goBallistic(double velocity) {
+    final moved = _movedSheet;
+    _movedSheet = false;
+    if (moved && sheet.offset > 0) {
+      // The scroll velocity counts toward the content's end; the panel's
+      // counts toward the bottom edge.
+      sheet.release(-velocity);
+      super.goBallistic(0);
+      return;
+    }
+    super.goBallistic(velocity);
+  }
+}
+
 class _SheetBody extends StatefulWidget {
   const _SheetBody({
     required this.builder,
@@ -100,13 +209,16 @@ class _SheetBody extends StatefulWidget {
   State<_SheetBody> createState() => _SheetBodyState();
 }
 
-class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMixin {
+class _SheetBodyState extends State<_SheetBody>
+    with SingleTickerProviderStateMixin
+    implements _SheetDrag {
   /// Vertical offset in fractions of the panel's own height: 0 resting, 1
   /// fully offscreen. Fractions, because the panel's height is unknown until
   /// layout and the entrance must start before the first frame.
   late final AnimationController _frac;
 
   final GlobalKey _panel = GlobalKey();
+  late final ScrollController _scroll = _SheetScrollController(this);
   Animation<double>? _routeAnimation;
   bool _entered = false;
   bool _leaving = false;
@@ -161,17 +273,21 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
 
   double? get _height => _panel.currentContext?.size?.height;
 
-  void _onDragUpdate(DragUpdateDetails d) {
+  @override
+  double get offset => _frac.value * (_height ?? 0);
+
+  @override
+  void dragBy(double delta) {
     final height = _height;
     if (_leaving || height == null) return;
-    _frac.value = (_frac.value + d.primaryDelta! / height).clamp(0.0, double.infinity);
+    _frac.value = (_frac.value + delta / height).clamp(0.0, double.infinity);
   }
 
-  void _onDragEnd(DragEndDetails d) {
+  @override
+  void release(double velocity) {
     final height = _height;
     if (_leaving || height == null) return;
     final sheet = context.themeNow.sheet;
-    final velocity = d.primaryVelocity ?? 0;
     if (_frac.value * height > sheet.dismissDrag || velocity > sheet.flingVelocity) {
       // Pop now so the scrim fades while the sheet springs away at the
       // finger's speed: one gesture, both layers leaving together.
@@ -204,6 +320,7 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
   void dispose() {
     _settleDrop?.cancel();
     _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _scroll.dispose();
     _frac.dispose();
     super.dispose();
   }
@@ -236,8 +353,8 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
         builder: (context, child) =>
             FractionalTranslation(translation: Offset(0, _frac.value), child: child),
         child: GestureDetector(
-          onVerticalDragUpdate: _onDragUpdate,
-          onVerticalDragEnd: _onDragEnd,
+          onVerticalDragUpdate: (d) => dragBy(d.primaryDelta!),
+          onVerticalDragEnd: (d) => release(d.primaryVelocity ?? 0),
           child: ConstrainedBox(
             key: _panel,
             constraints: BoxConstraints(
@@ -282,6 +399,7 @@ class _SheetBodyState extends State<_SheetBody> with SingleTickerProviderStateMi
                         ),
                         Flexible(
                           child: SingleChildScrollView(
+                            controller: _scroll,
                             padding: EdgeInsets.fromLTRB(
                               widget.inset,
                               AppSpacing.xxl,

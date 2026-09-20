@@ -187,29 +187,61 @@ int _linesFor(double characters, double width, double fontSize) {
   return (characters / charsPerLine).ceil().clamp(1, _kMaxInkRows);
 }
 
-/// Lays believable lines of ink for text that does not exist yet: word-length
-/// blocks with gaps, a full measure on every line but the last (which ends
-/// mid-air the way a paragraph does), thinned so the field has glyph texture
-/// rather than reading as solid bars. Deterministic: the same block always
-/// shimmers the same shape.
+/// One line of placeholder ink: the top of its line box, the text size and
+/// line height it stands for, and how far across its words run.
+typedef InkRow = ({double top, double fontSize, double lineHeight, double measure});
+
+/// Believable lines for text that does not exist yet: a full measure on every
+/// line but the last, which ends mid-air the way a paragraph does.
+List<InkRow> placeholderInkRows({
+  required double width,
+  required int lines,
+  required double fontSize,
+  required double lineHeight,
+}) => [
+  for (var line = 0; line < lines; line++)
+    (
+      top: line * lineHeight,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      measure: line == lines - 1
+          ? width * (0.35 + 0.4 * _rand(line, 11))
+          : width * (0.94 + 0.06 * _rand(line, 12)),
+    ),
+];
+
+/// The ink of [placeholderInkRows].
 Float32List placeholderInkPoints({
   required double width,
   required int lines,
   required double fontSize,
   required double lineHeight,
   int maxPoints = kMaxInkPoints,
-}) {
+}) => rowInkPoints(
+  placeholderInkRows(width: width, lines: lines, fontSize: fontSize, lineHeight: lineHeight),
+  maxPoints: maxPoints,
+);
+
+/// How tall a cloud of [rows] stands: down to its lowest line's bottom.
+double inkRowsHeight(List<InkRow> rows) =>
+    rows.fold(0, (height, row) => math.max(height, row.top + row.lineHeight));
+
+/// Word-length blocks of ink with gaps along each of [rows], each row's words
+/// running exactly to its measure, thinned so the field has glyph texture
+/// rather than reading as solid bars. Deterministic: the same rows always
+/// shimmer the same shape.
+Float32List rowInkPoints(List<InkRow> rows, {int maxPoints = kMaxInkPoints}) {
   const step = 0.9; // the sampled-text grid spacing, so density matches
-  final inkHeight = fontSize * _kInkHeightEm;
-  final gap = fontSize * 0.45;
   final points = <double>[];
   var index = 0;
-  for (var line = 0; line < lines; line++) {
-    final top = line * lineHeight + (lineHeight - inkHeight) / 2;
-    final last = line == lines - 1;
-    final measure = last
-        ? width * (0.35 + 0.4 * _rand(line, 11))
-        : width * (0.94 + 0.06 * _rand(line, 12));
+  for (final (line, row) in rows.indexed) {
+    final fontSize = row.fontSize;
+    // A row no text could set would never advance its words.
+    if (!(fontSize > 0) || !row.measure.isFinite) continue;
+    final inkHeight = fontSize * _kInkHeightEm;
+    final gap = fontSize * 0.45;
+    final top = row.top + (row.lineHeight - inkHeight) / 2;
+    final measure = row.measure;
     var x = 0.0;
     var word = 0;
     while (x < measure) {

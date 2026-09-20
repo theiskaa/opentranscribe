@@ -4,34 +4,70 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/models/engine_descriptor.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
+import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/core/state/retranscribe_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/engine_switcher.dart';
 import 'package:opentranscribe/view/layouts/settings/components/language_chips.dart';
-import 'package:opentranscribe/view/layouts/settings/components/language_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/model_failure_story.dart';
+import 'package:opentranscribe/view/layouts/settings/components/model_chips.dart';
 import 'package:opentranscribe/view/layouts/settings/components/retranscribe_sheet.dart';
-import 'package:opentranscribe/view/layouts/settings/components/speaking_hero.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/engine_picker.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
+import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/model_actions.dart';
+import 'package:opentranscribe/view/widgets/model_card.dart';
+import 'package:opentranscribe/view/widgets/model_failure_story.dart';
+import 'package:opentranscribe/view/widgets/model_sheet.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
-import 'package:opentranscribe/view/widgets/sheet_message.dart';
+import 'package:opentranscribe/view/widgets/speaking_hero.dart';
 import 'package:transcriber/transcriber.dart';
 
+/// An engine's two halves: its languages and its models.
+typedef EngineHalves = ({SettingsState languages, ModelsState models});
+
+/// What the pane for [engineId] draws. Each half is live when its cubit
+/// describes that engine, else the half last seen settled for it ([seen]);
+/// nothing until both are known, so a pane never pairs one engine's
+/// languages with another's models, nor drops a section mid-switch to grow
+/// it back. It takes touches only while its models are live, since the
+/// model card acts on that cubit: with its languages live too, or, for the
+/// engine in use, after a languages load that failed and left them behind.
+({EngineHalves? halves, bool live}) enginePaneFace({
+  required String engineId,
+  required bool active,
+  required SettingsState languages,
+  required ModelsState models,
+  required EngineHalves? seen,
+}) {
+  final languagesHere = languages.engineId == engineId;
+  final modelsHere = models.engineId == engineId;
+  final shownLanguages = languagesHere ? languages : seen?.languages;
+  final shownModels = modelsHere ? models : seen?.models;
+  return (
+    halves: shownLanguages == null || shownModels == null
+        ? null
+        : (languages: shownLanguages, models: shownModels),
+    live: modelsHere && (languagesHere || (active && languages.loadFailed)),
+  );
+}
+
 /// The transcription screen as an answer to one question, what happens when I
-/// hit record: the default language as a hero card, the other kept languages
-/// as chips (a chip tap makes it the default), the engine picker, and the
-/// footnotes. The whole library lives in the language sheet the hero and the
-/// Add chip open.
+/// hit record: the default language as a hero card above the engines, then
+/// the engine control over a pane per engine that slides with it. The
+/// engine in use's pane holds its other kept languages as chips (a chip tap
+/// makes it the default), the model in use as a card over the other
+/// downloaded models as chips where the engine offers a choice, and the
+/// footnotes. The language library lives in the sheet the hero and the Add
+/// chip open, the models in the one the model card and its More chip open.
 class ModelsScreen extends StatefulWidget {
   const ModelsScreen({super.key});
 
@@ -40,6 +76,12 @@ class ModelsScreen extends StatefulWidget {
 }
 
 class _ModelsScreenState extends State<ModelsScreen> {
+  /// Each engine's two halves as last seen settled, so a pane swiped in
+  /// before its engine loads shows what it held rather than an empty page.
+  /// Only ever a picture: its pane takes no touches until its engine is the
+  /// one in use.
+  final Map<String, EngineHalves> _seen = {};
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +92,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
     // model the system quietly removed. Bounded by the reservation cap; a
     // non-managed engine's whole-list refinement rides load() itself.
     final cubit = context.read<SettingsCubit>();
+    unawaited(context.read<ModelsCubit>().load());
     unawaited(
       cubit.load().then((_) {
         // Only where a reservation concept exists (max > 0): platforms without
@@ -64,129 +107,51 @@ class _ModelsScreenState extends State<ModelsScreen> {
     );
   }
 
-  /// Whether the screen is still the top route: two pointers landing on two
-  /// sheet-opening surfaces in one frame would otherwise stack two sheets.
-  bool _onTop(BuildContext context) => ModalRoute.of(context)?.isCurrent ?? true;
-
-  void _openLanguageSheet(BuildContext context) {
-    if (!_onTop(context)) return;
-    unawaited(showLanguageSheet(context, cubit: context.read<SettingsCubit>()));
-  }
-
-  /// The hero keeps its one promise: when the default is broken its tap tells
-  /// that story (with the recovery), otherwise it opens the library. The Add
-  /// chip stays a library door either way.
-  void _openHero(BuildContext context, SettingsState state) {
-    if (!_onTop(context)) return;
-    final cubit = context.read<SettingsCubit>();
-    final row = state.defaultLanguage;
-    if (row != null && rowHasFailureStory(row)) {
-      unawaited(showModelFailureSheet(context, cubit: cubit, row: row));
-      return;
-    }
-    unawaited(showLanguageSheet(context, cubit: cubit));
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final engineRows = context.watch<EnginesCubit>().state.rows;
+    final models = context.watch<ModelsCubit>().state;
 
     return AppScaffold(
       background: theme.screens.settings,
       onBack: () => context.pop(),
+      actions: [_RetranscribeAction(color: theme.topBar.iconColor)],
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
-          // Managing (install affordances, the slot count) exists only where
-          // a real reservation concept does; max 0 also covers the
-          // could-not-answer degrade, where offering actions would be lying.
-          final canManage = state.reservationMax > 0;
-          // Reservations, not ready models: a language mid-download (or one
-          // whose download failed after reserving) holds a slot too.
-          final reserved = state.languages.where((row) => row.reserved).length;
-          final chips = chipLanguages(state.languages);
+          final (:settled, :choice, acceleration: _) = modelHalf(
+            models,
+            languagesEngineId: state.engineId,
+          );
+          // Kept for later frames only, so no rebuild is owed.
+          if (settled) _seen[state.engineId] = (languages: state, models: models);
           return SettingsList(
             children: [
-              // Breath under the bar before the first label; sm reads cramped
-              // against the frosted edge, md doubles the label's own top pad.
-              const SizedBox(height: 10),
-              SectionLabel(l10n.transcriptionSpeaking),
-              _Melt(
+              SectionLabel(l10n.transcriptionSpeaking, top: AppSpacing.xs),
+              Melt(
                 child: SpeakingHero(
                   state: state,
-                  // By the state's own engine id, not the active row: mid-switch
-                  // the readiness still describes the previous engine.
-                  engineName: engineRows
-                      .where((row) => row.descriptor.engineId == state.engineId)
-                      .firstOrNull
-                      ?.descriptor
-                      .displayName,
-                  onTap: () => _openHero(context, state),
+                  selectedModel: choice ? models.selectedModel : null,
+                  engineName: heroEngineName(engineRows, state, settled: settled),
+                  onTap: () => openSpeakingHero(context, state),
                 ),
               ),
-              // The label only when something IS also ready; the Add chip
-              // stays either way, as the library door a broken default's hero
-              // (routing to its story) cannot be.
-              _Melt(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Crossfaded, not just resized: AnimatedSize settles the
-                    // child at final geometry immediately, so without the
-                    // fade the label would pop in over the melting gap.
-                    AnimatedSwitcher(
-                      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-                      layoutBuilder: meltStack,
-                      child: chips.isNotEmpty
-                          ? SectionLabel(l10n.transcriptionAlsoReady)
-                          : const SizedBox(height: AppSpacing.xxl),
-                    ),
-                    LanguageChipStrip(
-                      rows: chips,
-                      // Same persist contract as the sheet's row tap: a
-                      // refused write leaves the chip a chip, never an
-                      // unhandled error.
-                      onPick: (tag) async {
-                        try {
-                          await context.read<SettingsCubit>().setLocale(tag);
-                        } catch (_) {}
-                      },
-                      onAdd: () => _openLanguageSheet(context),
-                    ),
-                  ],
-                ),
-              ),
-              SectionLabel(l10n.transcriptionEngines),
-              _Melt(
-                child: SettingsCard(
-                  children: [
-                    for (final engineRow in engineRows)
-                      _EngineRow(key: ValueKey(engineRow.descriptor.engineId), row: engineRow),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const SettingsCard(children: [_RetranscribeRow()]),
-              const SizedBox(height: AppSpacing.md),
-              _Melt(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (state.deviceLanguageUnsupported)
-                      SectionInfo(
-                        l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
-                      ),
-                    // Only on settled frames: mid-switch the count still describes
-                    // the previous engine while the picker marks the new one.
-                    if (canManage &&
-                        engineRows.any(
-                          (r) => r.isActive && r.descriptor.engineId == state.engineId,
-                        ))
-                      SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
-                    if (state.managesModels) SectionInfo(l10n.transcriptionFootnote),
-                  ],
-                ),
+              const SizedBox(height: AppSpacing.lg),
+              EngineSwitcher(
+                rows: engineRows,
+                bleed: SettingsList.gutter,
+                paneBuilder: (context, row) {
+                  final engineId = row.descriptor.engineId;
+                  final face = enginePaneFace(
+                    engineId: engineId,
+                    active: row.isActive,
+                    languages: state,
+                    models: models,
+                    seen: _seen[engineId],
+                  );
+                  return _EnginePane(row: row, halves: face.halves, live: face.live);
+                },
               ),
             ],
           );
@@ -196,139 +161,181 @@ class _ModelsScreenState extends State<ModelsScreen> {
   }
 }
 
-/// An engine switch regrows half the screen at once (chips leave, slot lines
-/// and footnotes land, statuses reword); each section rides its own resize
-/// instead of snapping the whole page a frame. Instant under Reduce Motion.
-class _Melt extends StatelessWidget {
-  const _Melt({required this.child});
+/// One engine's pane: what the engine is, then, once its halves are known,
+/// its other ready languages, its model, and the footnotes; or, for an
+/// engine that cannot run here, why. A pane that is not [live] is a picture
+/// of the last time its engine was in use and takes no touches.
+class _EnginePane extends StatelessWidget {
+  const _EnginePane({required this.row, required this.halves, required this.live});
 
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final motion = context.theme.motion;
-    return AnimatedSize(
-      duration: context.reduceMotion ? AppMotion.instant : motion.indicator,
-      curve: motion.indicatorCurve,
-      alignment: Alignment.topCenter,
-      child: child,
-    );
-  }
-}
-
-/// Seated under the picker because the picker defines it: everything the
-/// active engine has not heard.
-class _RetranscribeRow extends StatelessWidget {
-  const _RetranscribeRow();
+  final EngineRowState row;
+  final EngineHalves? halves;
+  final bool live;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final state = context.watch<RetranscribeCubit>().state;
-    return SettingsBusyRow(
-      icon: AppIcons.arrowCounterclockwise,
-      label: l10n.retranscribeAllTitle,
-      busy: state.isRunning,
-      detail: state.runnable > 0 ? '${state.runnable}' : null,
-      onTap: () {
-        if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
-        unawaited(showRetranscribeSheet(context));
-      },
+    final seen = halves;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EngineNote(row: row),
+        if (!row.available) ...[
+          const SizedBox(height: AppSpacing.md),
+          SectionInfo(engineUnavailableBody(l10n, row)),
+        ] else
+          // The sections arrive once both halves are known; the pane grows to
+          // them instead of shoving the page below a frame.
+          Melt(
+            child: seen == null
+                ? const SizedBox(width: double.infinity)
+                : IgnorePointer(
+                    ignoring: !live,
+                    child: _EngineSections(state: seen.languages, models: seen.models),
+                  ),
+          ),
+      ],
     );
   }
 }
 
-/// One engine as the picker offers it: logo chip, name, the active marker, and
-/// a quiet second line (the descriptor's blurb, or why a dimmed one cannot run
-/// here). Tapping switches; tapping a dimmed row opens the fuller story
-/// instead, and a switch refused mid-take says so.
-class _EngineRow extends StatelessWidget {
-  const _EngineRow({required this.row, super.key});
+/// The sections under an engine's note: its other ready languages as chips,
+/// its model card and chips where it offers a choice, and the footnotes.
+class _EngineSections extends StatelessWidget {
+  const _EngineSections({required this.state, required this.models});
 
-  final EngineRowState row;
+  final SettingsState state;
+  final ModelsState models;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    return SelectableRow(
-      label: row.descriptor.displayName,
-      leading: AppIcon(
-        row.descriptor.logo,
-        size: 18,
-        color: row.available ? theme.text : theme.textSecondary,
-      ),
-      selected: row.isActive,
-      dimmed: !row.available,
-      note: row.available ? row.descriptor.blurb(l10n) : _unavailableNote(l10n),
-      onTap: () => _tap(context),
+    // Managing (install affordances, the slot count) exists only where a real
+    // reservation concept does; max 0 also covers the could-not-answer
+    // degrade, where offering actions would be lying.
+    final canManage = state.reservationMax > 0;
+    final (settled: _, :choice, :acceleration) = modelHalf(
+      models,
+      languagesEngineId: state.engineId,
+    );
+    // Reservations, not ready models: a language mid-download (or one whose
+    // download failed after reserving) holds a slot too.
+    final reserved = state.languages.where((row) => row.reserved).length;
+    final chips = chipLanguages(state.languages, oneModelForAll: state.offersModelChoice);
+    final defaultRow = state.defaultLanguage;
+    final strip = languageStripShown(
+      oneModelForAll: state.offersModelChoice,
+      heroBroken: defaultRow != null && rowHasFailureStory(defaultRow),
+    );
+    final selectedModel = models.selectedModel;
+    final modelChips = chipModels(models.models);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // The label only when something IS also ready; the Add chip stays
+        // wherever the strip does, as the library door a broken default's
+        // hero (routing to its story) cannot be.
+        Melt(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (strip) ...[
+                // Crossfaded, not just resized: AnimatedSize settles the child
+                // at final geometry immediately, so without the fade the label
+                // would pop in over the melting gap.
+                AnimatedSwitcher(
+                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                  layoutBuilder: meltStack,
+                  child: chips.isNotEmpty
+                      ? SectionLabel(l10n.transcriptionAlsoReady)
+                      : const SizedBox(height: AppSpacing.xxl),
+                ),
+                LanguageChipStrip(
+                  rows: chips,
+                  // Same persist contract as the sheet's row tap: a refused
+                  // write leaves the chip a chip, never an unhandled error.
+                  onPick: (tag) async {
+                    try {
+                      await context.read<SettingsCubit>().setLocale(tag);
+                    } catch (_) {}
+                  },
+                  onAdd: () => openLanguageSheet(context),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Melt(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (choice && selectedModel != null) ...[
+                SectionLabel(l10n.transcriptionModel),
+                ModelCard(
+                  row: selectedModel,
+                  acceleration: accelerationSwitch(context, models, shown: acceleration),
+                  onOpen: () => openModelSheet(context),
+                ),
+                // The languages' rule: the label only over chips.
+                AnimatedSwitcher(
+                  duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                  layoutBuilder: meltStack,
+                  child: modelChips.isNotEmpty
+                      ? SectionLabel(l10n.transcriptionAlsoDownloaded)
+                      : const SizedBox(height: AppSpacing.md),
+                ),
+                ModelChipStrip(
+                  rows: modelChips,
+                  onPick: (row) => unawaited(useModel(context, row)),
+                  onMore: () => openModelSheet(context),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Melt(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (state.deviceLanguageUnsupported)
+                SectionInfo(
+                  l10n.transcriptionDeviceLanguageFallback(localeDisplayName(state.localeId)),
+                ),
+              if (canManage) SectionInfo(l10n.transcriptionCap(reserved, state.reservationMax)),
+              if (choice && chipsNeedDownloadNote(models.models, accelerated: models.accelerated))
+                SectionInfo(l10n.transcriptionDownloadFootnote),
+              if (state.offersModelChoice)
+                SectionInfo(l10n.transcriptionModelFootnote)
+              else if (state.managesModels)
+                SectionInfo(l10n.transcriptionFootnote),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
 
-  // Exhaustive on purpose: a new unavailability kind must fail to compile
-  // until it is worded, never silently borrow this one's words.
-  String _unavailableNote(AppLocalizations l10n) => switch (row.unavailability!) {
-    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableNote,
-  };
+/// Re-transcribe the journal, in the bar where a screen's own action
+/// belongs. A run in flight tints the glyph; its numbers live in the sheet.
+class _RetranscribeAction extends StatelessWidget {
+  const _RetranscribeAction({required this.color});
 
-  String _unavailableBody(AppLocalizations l10n) => switch (row.unavailability!) {
-    EngineUnavailability.needsNewerDevice => l10n.engineUnavailableBody(row.descriptor.displayName),
-  };
+  final Color color;
 
-  Future<void> _tap(BuildContext context) async {
-    // Same one-sheet rule as the hero: a second pointer in the same frame
-    // must not stack another sheet.
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
-    final l10n = AppLocalizations.of(context)!;
-    if (!row.available) {
-      await showAppSheet<void>(
-        context,
-        builder: (context) => SheetMessage(
-          icon: row.descriptor.logo,
-          title: l10n.engineUnavailableTitle,
-          body: _unavailableBody(l10n),
-        ),
-      );
-      return;
-    }
-    final EnginePickOutcome outcome;
-    try {
-      outcome = await context.read<EnginesCubit>().pick(row.descriptor.engineId);
-    } catch (_) {
-      // The switch (or its revert) happened; only the stored choice is lost.
-      // The rows above already say what is active; this says it will not hold.
-      // Re-checked, not just mounted: the screen may have been covered or
-      // popped during the pick, and this sheet belongs on it alone.
-      if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-      await showAppSheet<void>(
-        context,
-        builder: (context) => SheetMessage(
-          icon: AppIcons.internaldrive,
-          title: l10n.engineNotSavedTitle,
-          body: l10n.engineNotSavedBody,
-        ),
-      );
-      return;
-    }
-    if (!context.mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
-    final refusal = switch (outcome) {
-      EnginePickOutcome.busy => (
-        icon: AppIcons.micFill,
-        title: l10n.engineBusyTitle,
-        body: l10n.engineBusyBody,
-      ),
-      EnginePickOutcome.retranscribing => (
-        icon: AppIcons.arrowCounterclockwise,
-        title: l10n.engineRetranscribingTitle,
-        body: l10n.engineRetranscribingBody,
-      ),
-      _ => null,
-    };
-    if (refusal == null) return;
-    await showAppSheet<void>(
-      context,
-      builder: (context) =>
-          SheetMessage(icon: refusal.icon, title: refusal.title, body: refusal.body),
+  @override
+  Widget build(BuildContext context) {
+    final running = context.watch<RetranscribeCubit>().state.isRunning;
+    return AppGlassIconButton(
+      icon: AppIcons.arrowCounterclockwise,
+      color: running ? context.theme.accent : color,
+      semanticLabel: AppLocalizations.of(context)!.retranscribeAllTitle,
+      onTap: () {
+        if (!isTopRoute(context)) return;
+        unawaited(showRetranscribeSheet(context));
+      },
     );
   }
 }

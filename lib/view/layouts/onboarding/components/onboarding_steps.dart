@@ -1,13 +1,15 @@
 import 'package:reflections/reflections.dart';
 
 /// The pages of onboarding, in order.
-enum OnboardingStep { record, reflect, shape, setup }
+enum OnboardingStep { record, engine, reflect, shape, setup }
 
-/// The flow for this device: the reflections page only where the hardware
-/// could run them. The last step is always [OnboardingStep.setup], whose
-/// button fires the permission prompts on the way in.
+/// The flow for this device: the engine page right after the take, the
+/// reflections page only where the hardware could run them. The last step is
+/// always [OnboardingStep.setup], whose button fires the permission prompts on
+/// the way in.
 List<OnboardingStep> onboardingSteps({required bool canReflect}) => [
   OnboardingStep.record,
+  OnboardingStep.engine,
   if (canReflect) OnboardingStep.reflect,
   OnboardingStep.shape,
   OnboardingStep.setup,

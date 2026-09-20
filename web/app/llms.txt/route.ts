@@ -7,7 +7,7 @@ export function GET() {
 
 > ${SITE_TAGLINE} You speak, it transcribes on the device, and nothing ever leaves the phone.
 
-OpenTranscribe is an open source voice journal for iOS. It records audio natively, shows a live transcript while you speak, and transcribes the full recording on the device when you stop. Apple Intelligence reads the entries and writes a short reflection for every day, week, and month, entirely on the device. There is no network layer in the app: no requests, no sockets, no third-party SDKs, no analytics, and no accounts. It works the same in airplane mode. Entries are stored encrypted on the phone. Under SpeechAnalyzer the models are downloaded once per language, under Dictation the system's own dictation models serve, and recognition runs entirely on the handset either way. Raw audio is kept by default so an entry can be transcribed again later by a better engine, and with keeping off each recording is deleted after its first transcription. Transcripts can be edited in place, with a revision history that keeps every prior version. The whole journal backs up to one passphrase-sealed archive file and restores from it. A lock screen control, a widget, and Siri through App Intents start a recording without opening the app.
+OpenTranscribe is an open source voice journal for iOS. It records audio natively, shows a live transcript while you speak, and transcribes the full recording on the device when you stop. Apple Intelligence reads the entries and writes a short reflection for every day, week, and month, entirely on the device. The app's one connection downloads a Whisper speech model you choose, from a single pinned host, and sends nothing; there are no other requests, no third-party SDKs, no analytics, and no accounts. Everything else works the same in airplane mode. Entries are stored encrypted on the phone. Under SpeechAnalyzer the models are downloaded once per language, under Dictation the system's own dictation models serve, and under Whisper one downloaded model of five (Tiny to Large Turbo) serves every language on any iPhone; recognition runs entirely on the handset whichever engine you pick. Raw audio is kept by default so an entry can be transcribed again later by a better engine, and with keeping off each recording is deleted after its first transcription. Transcripts can be edited in place, with a revision history that keeps every prior version. The whole journal backs up to one passphrase-sealed archive file and restores from it. A lock screen control, a widget, and Siri through App Intents start a recording without opening the app.
 
 ## Links
 
@@ -15,6 +15,7 @@ OpenTranscribe is an open source voice journal for iOS. It records audio nativel
 - App Store: ${APP_STORE_URL}
 - How it works: ${SITE_URL}/#record
 - Reflections: ${SITE_URL}/#reflections
+- Engines: ${SITE_URL}/#engines
 - OpenTranscribe Club: ${SITE_URL}/#club
 - Privacy, as enforced by the code: ${SITE_URL}/privacy
 - Changelog: ${GITHUB_URL}/blob/main/CHANGELOG.md
@@ -25,18 +26,18 @@ OpenTranscribe is an open source voice journal for iOS. It records audio nativel
 ## Facts
 
 - Platform: iOS only, built with Flutter
-- Transcription: on-device, engine-agnostic; the app refuses any engine that does not declare it runs on the device. Two engines ship, SpeechAnalyzer (iOS 26) and Dictation (the classic recognizer), switchable in the app
+- Transcription: on-device, engine-agnostic; the app refuses any engine that does not declare it runs on the device. Three engines ship, SpeechAnalyzer (iOS 26), Dictation (the classic recognizer), and Whisper (whisper.cpp, one downloaded model for every language it carries; every model knows the same 99, Large Turbo adds Cantonese), switchable in the app
 - Reflections: written by on-device Apple Intelligence for each day, week, and month; silence is a valid result
 - Audio: recordings stay in the native capture layer; only file paths, durations, levels, and text cross into the app
 - Storage: entries encrypted at rest on the phone
 - Backup: one archive file restores the whole journal, sealed with a passphrase by default; free, never behind the paywall
 - Exports: the journal as Markdown, Obsidian notes, or a standalone website, free for everyone
 - Re-transcribe all: a bulk run that lets a newer engine re-hear the whole journal, free for everyone
-- Club: a one-time purchase that supports the app ($25 in the US; the price follows the App Store region). It unlocks looks only: theme families today, app icons on the way. Direct StoreKit, no purchase SDK, no account, no server
+- Club: a one-time purchase that supports the app ($25 in the US; the price follows the App Store region). It unlocks looks only: theme families and three alternate app icons (Signal, Lines, Dots). Direct StoreKit, no purchase SDK, no account, no server
 - Editing: transcripts edit in place, with a restorable revision history
 - Continue: record more onto a saved entry; the audio merges into the kept recording on the device and the transcript grows to match
 - Quick start: lock screen control, widget row, Siri and Shortcuts through App Intents
-- Network: none; the app ships without networking code
+- Network: one connection, the download of a Whisper model you choose (and its Neural Engine encoder, if you switch that on), from one pinned host, sending nothing; no other networking code
 - License: MIT
 - Distribution: App Store, iPhone, iOS 17 or newer
 `;

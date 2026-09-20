@@ -3,18 +3,20 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_ste
 import 'package:reflections/reflections.dart';
 
 void main() {
-  test('eligible hardware gets the reflections page second', () {
+  test('eligible hardware gets the engine page second and the reflections page third', () {
     expect(onboardingSteps(canReflect: true), [
       OnboardingStep.record,
+      OnboardingStep.engine,
       OnboardingStep.reflect,
       OnboardingStep.shape,
       OnboardingStep.setup,
     ]);
   });
 
-  test('other hardware skips it and the flow is three pages, set-up still last', () {
+  test('other hardware skips reflections and the flow is four pages, set-up still last', () {
     expect(onboardingSteps(canReflect: false), [
       OnboardingStep.record,
+      OnboardingStep.engine,
       OnboardingStep.shape,
       OnboardingStep.setup,
     ]);

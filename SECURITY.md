@@ -1,6 +1,6 @@
 # Security Policy
 
-opentranscribe is a private, offline voice journal. It records audio, transcribes and reflects on it on-device, and stores everything locally. It makes no network calls and has no server, no account, and no analytics. The bugs that matter most here are the ones that would send data off the device or expose the journal on it. Reports are appreciated.
+opentranscribe is a private, offline voice journal. It records audio, transcribes and reflects on it on-device, and stores everything locally. Its one network call is the download of a Whisper model you ask for, from a pinned host; it has no server, no account, and no analytics. The bugs that matter most here are the ones that would send data off the device or expose the journal on it. Reports are appreciated.
 
 ## Reporting a vulnerability
 
@@ -22,19 +22,19 @@ Please give a reasonable window to investigate and address the issue before any 
 
 A few design choices define what security means here:
 
-- **Nothing leaves the device.** The app has no network layer and is meant to work with the phone in airplane mode. Recording, transcription, reflection, and storage all happen on-device. Any code path, dependency, or SDK that opens a network connection or transmits data off-device is a bug, and the most serious kind in this app. The supporter purchase goes through StoreKit: the OS talks to the App Store, no journal content is in that conversation, and entitlements are verified on-device.
+- **Nothing leaves the device.** The app opens one kind of connection: the model fetcher in `packages/transcriber`, pinned to one host and allowlisted by test, downloads a public Whisper model file you asked for (a model, or its Neural Engine encoder when you switch that on) and sends nothing. Everything else works with the phone in airplane mode. Recording, transcription, reflection, and storage all happen on-device. Any code path, dependency, or SDK that opens a network connection or transmits data off-device is a bug, and the most serious kind in this app. The supporter purchase goes through StoreKit: the OS talks to the App Store, no journal content is in that conversation, and entitlements are verified on-device.
 - **Your data lives on your device.** Audio and transcripts are stored in the app's own on-device storage. Entries and settings are encrypted at rest with AES-256-GCM through `LocalService`, under a random 32-byte key generated on first launch and held in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`). That key never appears in the binary and never leaves the device. Records written before the device key existed migrate to the new format in place at launch. `STORAGE_KEY`, a build-time secret, remains only to read and migrate those pre-migration records.
-- **The engines are on-device and swappable.** Transcription runs on Apple's Speech framework, reached through a platform channel, and a vendored whisper.cpp engine may follow. Reflection runs on Apple's Foundation Models, on-device, with no Private Cloud Compute fallback. Both live in app-owned plugin packages, `packages/transcriber` and `packages/reflections`, behind contracts that refuse an engine which does not declare itself on-device, and neither uploads audio.
+- **The engines are on-device and swappable.** Transcription runs on Apple's Speech framework, reached through a platform channel, or on whisper.cpp, a prebuilt binary fetched at build time by pinned release tag and hash and reached through a C shim over `dart:ffi`, batch-only. Reflection runs on Apple's Foundation Models, on-device, with no Private Cloud Compute fallback. Both live in app-owned plugin packages, `packages/transcriber` and `packages/reflections`, behind contracts that refuse an engine which does not declare itself on-device, and neither uploads audio.
 
 ## Areas of particular interest
 
 The surfaces where a vulnerability would matter most:
 
-- **Anything that reaches the network.** A direct or transitive dependency, a platform-channel call, or any code that opens a socket, resolves a host, or sends telemetry. A confirmed off-device transmission is the most serious report this project can get.
+- **Anything that reaches the network beyond the model fetcher**, or the fetcher reaching anything but its pinned host or sending anything at all: a direct or transitive dependency, a platform-channel call, or any code that opens a socket, resolves a host, or sends telemetry. A confirmed off-device transmission is the most serious report this project can get.
 - **Data at rest.** How audio files and transcripts are written and protected on the device, file permissions and iOS Data Protection settings, and the `LocalService` encryption and its key handling.
-- **The native bridge.** The platform-channel code in `packages/transcriber` and `packages/reflections` between Dart and the native Speech and Foundation Models frameworks (and later the vendored whisper.cpp), including audio buffer handling and any memory safety in native code.
+- **The native bridge.** The platform-channel code in `packages/transcriber` and `packages/reflections` between Dart and the native Speech and Foundation Models frameworks, and the C shim over whisper.cpp, including audio buffer handling and any memory safety in native code.
 - **Untrusted-input parsers.** Audio and any imported or exported data decoded by the app or the transcription engine. A crash, an out-of-bounds read, or unbounded memory growth on crafted input is in scope.
-- **The supply chain.** A pub dependency or a future vendored engine that introduces a network call, telemetry, or unexpected data collection.
+- **The supply chain.** A pub dependency, or the pinned whisper.cpp binary `tool/whisper/fetch.sh` fetches, introducing a network call, telemetry, or unexpected data collection.
 
 ## What is not a vulnerability
 

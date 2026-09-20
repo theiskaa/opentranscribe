@@ -86,6 +86,7 @@ void main() {
       await expectCode('model_install_failed', isA<ModelInstallFailed>());
       await expectCode('reservation_cap', isA<ReservationCapReached>());
       await expectCode('file_missing', isA<RecordingMissing>());
+      await expectCode('range_unsupported', isA<RangeUnsupported>());
       await expectCode('transcribe_error', isA<TranscriptionFailed>());
       await expectCode('bad_args', isA<TranscriptionFailed>());
     });
