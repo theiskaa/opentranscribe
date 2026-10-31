@@ -2,7 +2,7 @@
 
 All notable changes to opentranscribe are documented here. Each release section below is what ships as the GitHub Release notes.
 
-## 0.5.0 - Unreleased
+## 0.5.0 - 2026-09-25
 
 A third engine, Whisper, that runs every language from one model you pick, on any iPhone.
 
