@@ -55,6 +55,7 @@ class LanguageChipStrip extends StatelessWidget {
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final row in rows)
           StripChip(
@@ -74,7 +75,7 @@ class LanguageChipStrip extends StatelessWidget {
                   ),
                 ),
                 if (row.installing) ...[
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: StripChip.innerGap),
                   StripChipProgress(fraction: row.installFraction!),
                 ],
               ],

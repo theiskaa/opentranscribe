@@ -56,8 +56,7 @@ class _AppearanceView extends StatelessWidget {
       actions: [_ModeMenu(color: theme.topBar.iconColor)],
       child: SettingsList(
         children: [
-          const SizedBox(height: 10),
-          SectionLabel(l10n.appearanceIconSection),
+          SectionLabel(l10n.appearanceIconSection, top: 0),
           const _IconGroup(),
           SectionLabel(l10n.settingsTheme),
           _FamilyGroup(families: AppThemeFamily.all),
@@ -97,8 +96,6 @@ class _ModeMenu extends StatelessWidget {
     final state = cubit.state;
     return AppMenuButton(
       icon: state.wantDark ? AppIcons.moonFill : AppIcons.sunMax,
-      // The sun and moon ink fatter than the ellipsis the size was tuned for.
-      iconSize: 16,
       color: color,
       items: [
         for (final mode in _modes)

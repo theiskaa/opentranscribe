@@ -172,7 +172,7 @@ class _Facts extends StatelessWidget {
         ],
         if (note != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(note!, style: AppType.footnote.copyWith(color: theme.textSecondary, height: 1.5)),
+          Text(note!, style: AppType.note.copyWith(color: theme.textSecondary)),
         ],
       ],
     );

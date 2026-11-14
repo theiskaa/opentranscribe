@@ -25,22 +25,23 @@ class StripChip extends StatelessWidget {
   /// Between a chip's parts, off the spacing scale on purpose: sm reads airy.
   static const double innerGap = 6;
 
-  /// Off the spacing scale on purpose: md-tall chips read as buttons.
-  static const double _verticalPad = 9;
-
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Touchable(
       onTap: onTap,
       haptic: onTap != null,
+      // One height for every chip whatever it holds (a flag's line is taller
+      // than a word's); a minimum, so larger text still grows it.
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: _verticalPad),
+        constraints: const BoxConstraints(minHeight: AppSizes.chip),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         decoration: SuperellipseDecoration(
           borderRadius: AppRadius.chip,
           color: tokens.cardBackground,
         ),
-        child: child,
+        // Hugs its content sideways; a bare alignment would fill the strip.
+        child: Center(widthFactor: 1, child: child),
       ),
     );
   }

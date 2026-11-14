@@ -394,7 +394,8 @@ class _PerksCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionLabel(l10n.supportUnlocksSection),
+        // After the notes' own md, so the break comes to the usual xxl.
+        SectionLabel(l10n.supportUnlocksSection, top: AppSpacing.xxl - AppSpacing.md),
         SettingsCard(
           children: [
             SettingsActionRow(
@@ -478,7 +479,7 @@ class _FooterNote extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final template = l10n.supportFooter(_privacyToken, _termsToken);
-    final base = AppType.footnote.copyWith(color: theme.textSecondary, height: 1.5);
+    final base = AppType.note.copyWith(color: theme.textSecondary);
     final link = base.copyWith(color: theme.accent, fontWeight: FontWeight.w600);
     final spans = <InlineSpan>[];
     var start = 0;

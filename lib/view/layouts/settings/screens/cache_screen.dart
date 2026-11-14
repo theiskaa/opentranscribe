@@ -160,7 +160,6 @@ class _CacheView extends StatelessWidget {
       onBack: () => context.pop(),
       child: SettingsList(
         children: [
-          const SizedBox(height: AppSpacing.sm),
           // The rows landing with the first measure, and the models row
           // coming or going, resize the card instead of snapping it.
           Melt(
@@ -444,7 +443,9 @@ class _KindRow extends StatelessWidget {
       padding: tokens.rowPadding,
       child: Row(
         children: [
-          SettingsIconTile(child: AppIcon(icon, size: 16, color: theme.text)),
+          SettingsIconTile(
+            child: AppIcon(icon, size: AppIconSize.tile, color: theme.text),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: SettingsLabelAndNote(
@@ -455,7 +456,7 @@ class _KindRow extends StatelessWidget {
           ),
           if (trailing != null) ...[const SizedBox(width: AppSpacing.md), trailing!],
           if (tap != null)
-            AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: theme.textSecondary),
+            AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: tokens.chevronColor),
         ],
       ),
     );
@@ -480,11 +481,15 @@ class _ClearSeat extends StatelessWidget {
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
     final Widget seat = switch (face) {
       ClearFace.clear => _ClearPill(label: l10n.cacheClearAction, onTap: onClear),
-      ClearFace.clearing => AppSpinner(size: 16, color: theme.textSecondary),
+      ClearFace.clearing => AppSpinner(size: AppIconSize.tile, color: theme.textSecondary),
       ClearFace.freed => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIcon(AppIcons.checkmark, size: 14, color: theme.settings.toggleActive),
+          AppIcon(
+            AppIcons.checkmark,
+            size: AppIconSize.accessory,
+            color: theme.settings.toggleActive,
+          ),
           const SizedBox(width: AppSpacing.xs),
           Text(
             l10n.cacheFreed(formatBytes(freedBytes, localeTag(context))),

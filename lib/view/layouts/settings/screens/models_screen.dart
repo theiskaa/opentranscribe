@@ -128,7 +128,7 @@ class _ModelsScreenState extends State<ModelsScreen> {
           if (settled) _seen[state.engineId] = (languages: state, models: models);
           return SettingsList(
             children: [
-              SectionLabel(l10n.transcriptionSpeaking, top: AppSpacing.xs),
+              SectionLabel(l10n.transcriptionSpeaking, top: 0),
               Melt(
                 child: SpeakingHero(
                   state: state,
@@ -247,9 +247,10 @@ class _EngineSections extends StatelessWidget {
                 AnimatedSwitcher(
                   duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
                   layoutBuilder: meltStack,
+                  // A lone Add hangs off the card above it, as the models' does.
                   child: chips.isNotEmpty
                       ? SectionLabel(l10n.transcriptionAlsoReady)
-                      : const SizedBox(height: AppSpacing.xxl),
+                      : const SizedBox(height: AppSpacing.md),
                 ),
                 LanguageChipStrip(
                   rows: chips,
@@ -294,7 +295,8 @@ class _EngineSections extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        // The gap every settings screen leaves above its footnotes.
+        const SizedBox(height: AppSpacing.md),
         Melt(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

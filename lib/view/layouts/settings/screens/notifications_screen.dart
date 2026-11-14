@@ -14,6 +14,7 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/layouts/settings/components/strip_chip.dart';
 import 'package:opentranscribe/view/widgets/animated_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
@@ -93,7 +94,6 @@ class _NotificationsView extends StatelessWidget {
       onBack: () => context.pop(),
       child: SettingsList(
         children: [
-          const SizedBox(height: 10),
           if (periods.isNotEmpty)
             SettingsCard(
               children: [
@@ -125,7 +125,10 @@ class _NotificationsView extends StatelessWidget {
                             const _PeriodChips(),
                           ],
                           const SettingsDivider(),
+                          // Options under the switch: indented to its label,
+                          // where their hairlines already start.
                           TimeField(
+                            indented: true,
                             label: l10n.notifyTime,
                             hour: state.hour,
                             minute: state.minute,
@@ -193,8 +196,16 @@ class _PeriodChips extends StatelessWidget {
     final cubit = context.read<NotificationsCubit>();
     final state = context.watch<NotificationsCubit>().state;
 
+    final tokens = context.theme.settings;
+    // The chips take [_PeriodChip.reach] of the row's inset into their own hit
+    // areas, so each is a full target while the row draws exactly as before.
+    const reach = _PeriodChip.reach;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: tokens.rowPadding.copyWith(
+        left: tokens.dividerInset,
+        top: tokens.rowPadding.top - reach,
+        bottom: tokens.rowPadding.bottom - reach,
+      ),
       child: Row(
         children: [
           for (final (i, period) in state.shownPeriods.indexed) ...[
@@ -216,8 +227,8 @@ class _PeriodChips extends StatelessWidget {
   }
 }
 
-/// One period chip, drawn in the app's own shapes: a superellipse tile (the
-/// icon tiles' curvature, not a generic stadium tag) carrying the period's
+/// One period chip, drawn in the app's own shapes: a superellipse chip (the
+/// strip chips' height and curvature, not a generic stadium tag) carrying the period's
 /// calendar glyph and its name. Selected is the toggle-on language - a solid
 /// accent fill with ink-on-accent content - so on and off read at a glance
 /// with no checkmark clutter; fill and content lerp on one clock so nothing
@@ -229,11 +240,12 @@ class _PeriodChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const double _height = 36;
-
   /// The mid-transition breath: how far the chip swells as a flip passes
   /// halfway, zero again by the time it settles.
   static const double _pulse = 0.03;
+
+  /// How far the hit area reaches past the chip, above and below.
+  static const double reach = (AppSizes.minTarget - AppSizes.chip) / 2;
 
   @override
   Widget build(BuildContext context) {
@@ -245,43 +257,54 @@ class _PeriodChip extends StatelessWidget {
       onTap: onTap,
       haptic: true,
       pressedScale: theme.motion.pressIconScale,
-      child: TweenAnimationBuilder<double>(
-        // begin == end: a chip mounts already wearing its state (the reveal
-        // re-mounts the row on every master flip, and that must not replay
-        // every seeded chip filling in); only a real toggle animates,
-        // retargeting from wherever the value currently is.
-        tween: Tween(begin: target, end: target),
-        duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-        curve: Curves.easeInOutCubic,
-        builder: (context, t, _) {
-          final fill = Color.lerp(tokens.iconTileBackground, theme.accent, t)!;
-          final content = Color.lerp(theme.textSecondary, theme.onAccent, t)!;
-          return Transform.scale(
-            scale: 1 + _pulse * math.sin(math.pi * t),
-            child: Container(
-              height: _height,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(borderRadius: tokens.iconTileRadius, color: fill),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                // Baseline, not box-centre: the glyph is a Text like the label,
-                // and SF glyphs are drawn to sit against type on a shared
-                // baseline - centring their line boxes leaves the calendar
-                // riding high of the label's optical middle.
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  AppIcon(_icon, size: 12, color: content),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    _label(AppLocalizations.of(context)!),
-                    style: AppType.footnote.copyWith(color: content, fontWeight: FontWeight.w600),
-                  ),
-                ],
+      // Out to a full target; the row gives up this much of its inset.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: reach),
+        child: TweenAnimationBuilder<double>(
+          // begin == end: a chip mounts already wearing its state (the reveal
+          // re-mounts the row on every master flip, and that must not replay
+          // every seeded chip filling in); only a real toggle animates,
+          // retargeting from wherever the value currently is.
+          tween: Tween(begin: target, end: target),
+          duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+          curve: Curves.easeInOutCubic,
+          builder: (context, t, _) {
+            final fill = Color.lerp(tokens.iconTileBackground, theme.accent, t)!;
+            final content = Color.lerp(theme.textSecondary, theme.onAccent, t)!;
+            return Transform.scale(
+              scale: 1 + _pulse * math.sin(math.pi * t),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: AppSizes.chip),
+                alignment: Alignment.center,
+                decoration: SuperellipseDecoration(borderRadius: AppRadius.chip, color: fill),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  // Baseline, not box-centre: the glyph is a Text like the label,
+                  // and SF glyphs are drawn to sit against type on a shared
+                  // baseline - centring their line boxes leaves the calendar
+                  // riding high of the label's optical middle.
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    AppIcon(_icon, size: 12, color: content),
+                    const SizedBox(width: StripChip.innerGap),
+                    Flexible(
+                      child: Text(
+                        _label(AppLocalizations.of(context)!),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.footnote.copyWith(
+                          color: content,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

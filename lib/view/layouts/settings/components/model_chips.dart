@@ -47,6 +47,7 @@ class ModelChipStrip extends StatelessWidget {
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final row in rows)
           StripChip(
@@ -67,7 +68,7 @@ class ModelChipStrip extends StatelessWidget {
                   style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
                 ),
                 if (row.installing) ...[
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: StripChip.innerGap),
                   StripChipProgress(fraction: row.installFraction!, preparing: row.preparing),
                 ],
               ],

@@ -170,7 +170,7 @@ class _BackupViewState extends State<_BackupView> {
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 l10n.importConfirmCounts(probe.counts!.entries, probe.counts!.audio),
-                style: AppType.subhead.copyWith(color: context.theme.textSecondary, height: 1.5),
+                style: AppType.subheadParagraph.copyWith(color: context.theme.textSecondary),
               ),
             ),
         ],
@@ -241,7 +241,7 @@ class _BackupViewState extends State<_BackupView> {
       context,
       builder: (context) {
         final theme = context.theme;
-        final detail = AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5);
+        final detail = AppType.subheadParagraph.copyWith(color: theme.textSecondary);
         // The detail lines stand alone rather than being space-joined onto
         // the body: ja and zh sentences take no separator.
         return SheetMessage(
@@ -302,8 +302,8 @@ class _BackupViewState extends State<_BackupView> {
         child: Stack(
           children: [
             SettingsList(
+              clearsFab: true,
               children: [
-                const SizedBox(height: 10),
                 SectionInfo(_intro(l10n, locale, state.measure)),
                 SettingsCard(
                   children: [
@@ -332,7 +332,6 @@ class _BackupViewState extends State<_BackupView> {
                       ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.md),
                 SectionLabel(l10n.backupExportSection),
                 SettingsCard(
                   children: [
@@ -374,8 +373,8 @@ class _BackupViewState extends State<_BackupView> {
             // app does; it is the one action here that picks a file from
             // beyond the journal.
             Positioned(
-              right: AppSpacing.xl,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+              right: GlassFab.floatInset,
+              bottom: AppScaffold.bottomControlOf(context),
               child: _RestoreFab(
                 busy: state.busy == BackupBusy.importing,
                 onTap: () {
