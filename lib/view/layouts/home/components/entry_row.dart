@@ -181,7 +181,11 @@ class EntryRail extends StatelessWidget {
           nodeColor: tokens.nodeColor,
           railWidth: tokens.railWidth,
           nodeSize: tokens.nodeSize,
-          nodeCenter: _firstLineCenter(leadStyle),
+          nodeCenter: railNodeCenter(
+            leadStyle,
+            ambient: DefaultTextStyle.of(context).style,
+            scaler: MediaQuery.textScalerOf(context),
+          ),
         ),
         // [last] FLIPS on a neighbor's delete or arrival, and the rail is
         // painted through this gap, so the line closes with it.
@@ -199,12 +203,14 @@ class EntryRail extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Where the node sits: the optical middle of the row's FIRST line, so it
-  /// marks that line rather than floating beside the block. Derived from the
-  /// style the row actually leads with - a title sits higher than an excerpt,
-  /// because its line box is tighter.
-  static double _firstLineCenter(TextStyle style) => style.fontSize! * (style.height ?? 1.2) / 2;
+/// Where a rail's node sits: the middle of the row's FIRST line, so it marks
+/// that line rather than floating beside the block. The line is as tall as the
+/// style [Text] really sets, [ambient] filling a height the lead style leaves
+/// open, and even leading puts the glyphs at its middle.
+double railNodeCenter(TextStyle lead, {required TextStyle ambient, required TextScaler scaler}) {
+  return scaler.scale(lead.fontSize!) * AppType.lineHeightOf(lead, ambient) / 2;
 }
 
 /// The ids that ARRIVED between two home builds: entries present now that the

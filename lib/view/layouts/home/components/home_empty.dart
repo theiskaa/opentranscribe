@@ -16,12 +16,7 @@ class HomeEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       // Cards on the settings inset; the bottom clears the floating record button.
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        MediaQuery.paddingOf(context).bottom + AppSpacing.xxxl + GlassFab.size,
-      ),
+      padding: EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, GlassFab.clearanceOf(context)),
       // Drawn controls: this page scrolls under home's drawn bar fade.
       child: const GlassScope(native: false, child: HomeSetup()),
     );

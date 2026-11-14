@@ -182,6 +182,19 @@ class _WavePlayerState extends State<WavePlayer> {
   }
 }
 
+/// How many bars a wave of [width] draws, and the distance between their
+/// centres: whole bars at least [gap] apart, spread so the run fills the
+/// width exactly and the gap to whatever sits beside it never drifts.
+({int bars, double step}) waveRun(double width, {required double bar, required double gap}) {
+  final bars = ((width + gap) / (bar + gap)).floor();
+  if (bars <= 0) return (bars: 0, step: 0);
+  return (bars: bars, step: bars > 1 ? (width - bar) / (bars - 1) : 0);
+}
+
+/// A speed as the chip writes it: 1×, not 1.0×; 1.25× keeps its quarter.
+String rateLabel(double rate) =>
+    '${rate == rate.roundToDouble() ? rate.toStringAsFixed(0) : '$rate'}×';
+
 /// Playback speed as the number itself. Cycles rather than opening a menu;
 /// normal is never more than three taps away. Off normal it darkens to full ink.
 class _RateChip extends StatelessWidget {
@@ -193,22 +206,32 @@ class _RateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    // 1x, not 1.0x; 1.25x keeps its quarter.
-    final label = rate == rate.roundToDouble() ? rate.toStringAsFixed(0) : '$rate';
+    final style = AppType.digits(
+      AppType.callout,
+    ).copyWith(color: rate == 1 ? theme.textSecondary : theme.text, height: 1);
     return Touchable(
       onTap: onTap,
       pressedScale: theme.motion.pressIconScale,
       haptic: true,
-      child: SizedBox(
-        // Tap target is the row's height, not the glyph's.
-        height: theme.player.controlSize,
-        child: Center(
-          child: Text(
-            '$label×',
-            style: AppType.digits(
-              AppType.callout,
-            ).copyWith(color: rate == 1 ? theme.textSecondary : theme.text, height: 1),
-          ),
+      // Every speed laid out, only the current one shown: the slot is the
+      // widest's width, so a tap never resizes the wave beside it.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: AppSizes.minTarget,
+          minHeight: theme.player.controlSize,
+        ),
+        child: Stack(
+          alignment: AlignmentDirectional.centerEnd,
+          children: [
+            for (final option in playbackRates)
+              Visibility(
+                visible: option == rate,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: Text(rateLabel(option), style: style),
+              ),
+          ],
         ),
       ),
     );
@@ -297,8 +320,7 @@ class _WavePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final step = tokens.waveBarWidth + tokens.waveGap;
-    final bars = ((size.width + tokens.waveGap) / step).floor();
+    final (:bars, :step) = waveRun(size.width, bar: tokens.waveBarWidth, gap: tokens.waveGap);
     if (bars <= 0) return;
     final shape = shapeFor(bars);
     final mid = size.height / 2;
@@ -317,7 +339,9 @@ class _WavePainter extends CustomPainter {
       // the leading edge dissolves instead of snapping colour whole.
       final fill = (boundary - i).clamp(0.0, 1.0);
       paint.color = Color.lerp(tokens.waveRemaining, tokens.progress, fill)!;
-      canvas.drawLine(Offset(x, mid - height / 2), Offset(x, mid + height / 2), paint);
+      // Round caps add half a bar at each end, so the line is that much short.
+      final reach = math.max((height - tokens.waveBarWidth) / 2, _dotReach);
+      canvas.drawLine(Offset(x, mid - reach), Offset(x, mid + reach), paint);
       x += step;
     }
   }
@@ -329,3 +353,7 @@ class _WavePainter extends CustomPainter {
       old.shapeFor != shapeFor ||
       old.tokens != tokens;
 }
+
+/// A floor bar's half-length: never zero, since a renderer may drop a
+/// zero-length line where its round caps should still draw a dot.
+const double _dotReach = 0.01;

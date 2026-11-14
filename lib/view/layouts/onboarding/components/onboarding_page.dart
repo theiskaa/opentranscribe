@@ -20,15 +20,18 @@ class OnboardingPage extends StatelessWidget {
   /// How far down the room the title line sits, as a fraction of its height.
   static const _titleLine = 0.22;
 
+  /// The page's side inset, which the button under every page shares.
+  static const gutter = AppSpacing.xxl;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          AppSpacing.xxl,
+          gutter,
           constraints.maxHeight * _titleLine,
-          AppSpacing.xxl,
+          gutter,
           AppSpacing.xl,
         ),
         child: Column(
@@ -36,7 +39,7 @@ class OnboardingPage extends StatelessWidget {
           children: [
             Text(title, style: AppType.display2.copyWith(color: theme.text)),
             const SizedBox(height: AppSpacing.sm),
-            Text(body, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.4)),
+            Text(body, style: AppType.subheadParagraph.copyWith(color: theme.textSecondary)),
             const SizedBox(height: AppSpacing.xxxl),
             scene,
           ],

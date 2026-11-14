@@ -16,6 +16,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/back_only_physics.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_engine.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_page.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_record.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_reflect.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_setup.dart';
@@ -208,7 +209,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
             PageIndicator(count: steps.length, index: _index, onTap: (i) => _back(i, slide)),
             const SizedBox(height: AppSpacing.lg),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: OnboardingPage.gutter),
               child: AppButton(
                 label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
                 isLoading: _requesting || _finishing,

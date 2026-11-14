@@ -137,7 +137,7 @@ class _EntryExportSheetBodyState extends State<_EntryExportSheetBody> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             shareFailureLine(l10n, _failure!),
-            style: AppType.footnote.copyWith(color: theme.danger),
+            style: AppType.note.copyWith(color: theme.danger),
           ),
         ],
       ],

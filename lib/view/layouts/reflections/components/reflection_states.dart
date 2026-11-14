@@ -67,9 +67,9 @@ import 'package:reflections/reflections.dart';
   ),
 };
 
-/// The editorial page's content: a display title over a line of writing, the
-/// same first-page-of-the-journal voice as home's empty state. The scroll and
-/// padding belong to the caller.
+/// The editorial page's content: a title over a line of writing, the title in
+/// the pager's own range-title style so nothing resizes when a reflection
+/// lands. The scroll and padding belong to the caller.
 class ReflectionEditorialBody extends StatelessWidget {
   const ReflectionEditorialBody({required this.copy, super.key});
 
@@ -82,9 +82,9 @@ class ReflectionEditorialBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppType.display.copyWith(color: theme.text)),
+        Text(title, style: AppType.display2.copyWith(color: theme.text)),
         const SizedBox(height: AppSpacing.md),
-        Text(body, style: AppType.body.copyWith(color: theme.textSecondary, height: 1.4)),
+        Text(body, style: AppType.body.copyWith(color: theme.textSecondary)),
       ],
     );
   }
@@ -119,7 +119,7 @@ class ReflectionPlaceholder extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        Text(body, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.4)),
+        Text(body, style: AppType.subheadParagraph.copyWith(color: theme.textSecondary)),
       ],
     );
   }

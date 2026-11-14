@@ -292,8 +292,9 @@ class _WaveformPainter extends CustomPainter {
       final x = size.width - (visible - i) * step - shift + step;
       if (x < 0 || x > size.width) continue;
       paint.color = barColor.withValues(alpha: barColor.a * _edge(x, size.width));
-      final half = math.max(barWidth / 2, sample * mid);
-      canvas.drawLine(Offset(x, mid - half), Offset(x, mid + half), paint);
+      // Round caps add half a bar at each end, so the line is that much short.
+      final reach = math.max(math.max(barWidth / 2, sample * mid) - barWidth / 2, _dotReach);
+      canvas.drawLine(Offset(x, mid - reach), Offset(x, mid + reach), paint);
     }
   }
 
@@ -306,3 +307,7 @@ class _WaveformPainter extends CustomPainter {
       oldDelegate.idleColor != idleColor ||
       oldDelegate.baselineColor != baselineColor;
 }
+
+/// A floor bar's half-length: never zero, since a renderer may drop a
+/// zero-length line where its round caps should still draw a dot.
+const double _dotReach = 0.01;

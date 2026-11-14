@@ -120,7 +120,7 @@ class _ReflectionsScreenState extends State<ReflectionsScreen> {
 
 /// Where the capsule rests above the screen's bottom edge. Shared with the
 /// pages' bottom inset, so the text always clears the seat.
-double _capsuleSeat(BuildContext context) => MediaQuery.paddingOf(context).bottom + AppSpacing.xl;
+double _capsuleSeat(BuildContext context) => AppScaffold.bottomControlOf(context);
 
 /// The pager body: owns the controller, the viewed page, and the reveal ledger
 /// (which pages already wrote themselves on this visit).
@@ -1067,10 +1067,7 @@ class _PageBody extends StatelessWidget {
               length: length,
             ),
             onWriteStarted: onWriteStarted,
-            child: Text(
-              reflection?.text ?? '',
-              style: AppType.body.copyWith(color: theme.text, height: 1.45),
-            ),
+            child: Text(reflection?.text ?? '', style: AppType.body.copyWith(color: theme.text)),
           ),
           // The reading meta rides under the settled words; while a
           // regenerate is in flight it would date the dissolving text, so
@@ -1118,12 +1115,14 @@ class _Editorial extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The pager's own seat for its title, so the title holds still when the
+    // first reflection replaces this page.
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        AppScaffold.topPaddingOf(context) + AppSpacing.xxxl,
-        AppSpacing.xxxl,
-        AppSpacing.xxl,
+        AppTopBar.heightOf(context) + context.theme.topBar.fadeTail,
+        AppSpacing.xl,
+        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
       ),
       children: [ReflectionEditorialBody(copy: copy)],
     );

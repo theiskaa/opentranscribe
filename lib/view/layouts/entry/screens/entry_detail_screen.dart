@@ -29,6 +29,7 @@ import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcript_view.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
+import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/error_pill.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
@@ -525,9 +526,12 @@ class _DetailViewState extends State<_DetailView> {
             : (error != null ? theme.errorPill.height : 0.0) +
                   (error != null && showCta ? AppSpacing.md : 0.0) +
                   (showCta ? theme.button.height : 0.0);
-        // Clear the pinned dock when it shows, so the last line can never
-        // hide behind it; otherwise just the home indicator.
-        final restingBottom = dockHeight > 0
+        // Clear the pinned dock when it shows, or the Done disc while editing,
+        // so the last line can never hide behind either; otherwise just the
+        // home indicator. The disc rides the keyboard, which adds itself below.
+        final restingBottom = _editing
+            ? GlassFab.clearanceOf(context)
+            : dockHeight > 0
             ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
             : bottomInset + AppSpacing.xxxl;
         return ColoredBox(
@@ -723,15 +727,17 @@ class _DetailViewState extends State<_DetailView> {
                   ),
                 // The edit mode's save floats where home's record button does,
                 // riding the keyboard; unfocusing commits through the blur
-                // listener. The check runs well under the waveform's 26: its
-                // ink box is wide for its point size.
+                // listener. The check runs well under the disc's own glyph
+                // size: its ink box is wide for its point size.
                 if (_editing)
                   Positioned(
-                    right: AppSpacing.xl,
-                    bottom: (keyboard > 0 ? keyboard : bottomInset) + AppSpacing.xl,
+                    right: GlassFab.floatInset,
+                    // Continuous as the keyboard moves: padding.bottom falls
+                    // to zero by itself as the inset grows.
+                    bottom: keyboard + bottomInset + GlassFab.floatInset,
                     child: GlassFab(
                       icon: AppIcons.checkmark,
-                      iconSize: 18,
+                      iconSize: AppIconSize.bar,
                       semanticLabel: l10n.done,
                       onTap: () {
                         Haptics.light();
@@ -847,7 +853,7 @@ class _BottomDock extends StatelessWidget {
           AppSpacing.xl,
           0,
           AppSpacing.xl,
-          MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+          AppScaffold.bottomControlOf(context),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -72,7 +72,7 @@ class LaunchFailureApp extends StatelessWidget {
                     Text(
                       l10n.launchFailedBody,
                       textAlign: TextAlign.center,
-                      style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
+                      style: AppType.subheadParagraph.copyWith(color: theme.textSecondary),
                     ),
                     // Not in release: a raw Dart error is the fastest thing to
                     // read off a profile build, and the last thing a shipped
@@ -82,7 +82,7 @@ class LaunchFailureApp extends StatelessWidget {
                       Text(
                         '$error',
                         textAlign: TextAlign.center,
-                        style: AppType.footnote.copyWith(color: theme.danger),
+                        style: AppType.note.copyWith(color: theme.danger),
                       ),
                     ],
                   ],

@@ -79,10 +79,7 @@ class _ReflectScene extends StatelessWidget {
                   style: AppType.eyebrow.copyWith(color: theme.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                Text(
-                  l10n.onboardingReflectNote,
-                  style: AppType.body.copyWith(color: theme.text, height: 1.45),
-                ),
+                Text(l10n.onboardingReflectNote, style: AppType.body.copyWith(color: theme.text)),
               ],
             ),
           ),

@@ -1,13 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
-import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/period_children_logic.dart';
-import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/day_face.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The week page's seven days under its title: solid ink = that day holds a
@@ -33,10 +30,13 @@ class DayChipRow extends StatelessWidget {
       height: context.theme.calendar.cellHeight,
       child: Row(
         children: [
-          for (final (index, day) in days.indexed)
+          for (final (index, day) in days.indexed) ...[
+            // Between chips only, so the outer chips meet the column's edges.
+            if (index > 0) SizedBox(width: context.theme.calendar.tileGap),
             Expanded(
               child: _DayChip(day: day, state: states[index], onTap: onDayTap),
             ),
+          ],
         ],
       ),
     );
@@ -78,37 +78,13 @@ class _DayChip extends StatelessWidget {
               onTap(day);
             }
           : null,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: tokens.tileGap / 2),
-        child: DecoratedBox(
-          decoration: SuperellipseDecoration(borderRadius: tokens.tileRadius, color: fill),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                DateFormat.E(localeTag(context)).format(day).substring(0, 1).toUpperCase(),
-                style: AppType.caption.copyWith(color: letterColor),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                '${day.day}',
-                style: AppType.digits(
-                  TextStyle(fontSize: tokens.dayNumberSize, fontWeight: FontWeight.w600),
-                ).copyWith(color: numberColor),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              SizedBox(
-                height: tokens.dotSize,
-                child: state == DayChipState.entries
-                    ? Container(
-                        width: tokens.dotSize,
-                        height: tokens.dotSize,
-                        decoration: BoxDecoration(color: tokens.todayDot, shape: BoxShape.circle),
-                      )
-                    : null,
-              ),
-            ],
-          ),
+      child: DecoratedBox(
+        decoration: SuperellipseDecoration(borderRadius: tokens.tileRadius, color: fill),
+        child: DayFace(
+          day: day,
+          letterColor: letterColor,
+          numberColor: numberColor,
+          dot: state == DayChipState.entries ? tokens.todayDot : null,
         ),
       ),
     );

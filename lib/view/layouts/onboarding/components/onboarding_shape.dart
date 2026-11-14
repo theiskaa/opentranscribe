@@ -57,11 +57,12 @@ class _ShapeScene extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
+        // The gap between the tiles, so the cluster reads as one grid.
+        const SizedBox(height: AppSpacing.sm),
         SettingsCard(
           children: [
             OnboardingRow(
-              leading: AppIcon(AppIcons.lock, size: 16, color: theme.textSecondary),
+              leading: AppIcon(AppIcons.lock, size: AppIconSize.tile, color: theme.textSecondary),
               name: l10n.settingsBackup,
               note: l10n.onboardingBackupLine,
               trailing: const _Passphrase(),
@@ -100,8 +101,9 @@ class _FormatTile extends StatelessWidget {
         color: tokens.cardBackground,
         border: BorderSide(color: picked ? theme.text : tokens.cardBorder),
       ),
+      // The card row's own inset, so each logo lines up with the tile below.
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.all(tokens.rowPadding.left),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

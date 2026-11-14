@@ -20,11 +20,12 @@ import 'package:opentranscribe/view/layouts/recorder/components/continuing_line.
 import 'package:opentranscribe/view/layouts/recorder/components/live_transcript.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/recorder_controls.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/waveform.dart';
-import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_notice.dart';
+import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/empty_state.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 
@@ -192,12 +193,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
                 centerTitle: true,
                 // Nothing but the clock: every way out lives on the control
                 // row. Except when the microphone was refused - that screen has
-                // no control row, so the way out comes back up here, in the
-                // same circle the row would have used.
+                // no control row, so the way out comes back up here, as the
+                // bar control every other screen's way out is.
                 leading: denied
-                    ? AppIconButton(
+                    ? AppGlassIconButton(
                         icon: AppIcons.xmark,
-                        size: theme.topBar.largeHeight - AppSpacing.md,
                         semanticLabel: l10n.recordCloseButton,
                         onTap: () => _close(keepSilence: false),
                       )
@@ -218,13 +218,16 @@ class _RecorderScreenState extends State<RecorderScreen> {
               ),
               if (denied)
                 Expanded(
-                  child: Center(
-                    child: EmptyState(
-                      icon: AppIcons.mic,
-                      title: l10n.recordPermissionTitle,
-                      message: l10n.recordPermissionMessage,
-                      actionLabel: l10n.onboardingOpenSettings,
-                      onAction: () => unawaited(openAppSettings()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                    child: Center(
+                      child: EmptyState(
+                        icon: AppIcons.mic,
+                        title: l10n.recordPermissionTitle,
+                        message: l10n.recordPermissionMessage,
+                        actionLabel: l10n.onboardingOpenSettings,
+                        onAction: () => unawaited(openAppSettings()),
+                      ),
                     ),
                   ),
                 )
@@ -254,32 +257,42 @@ class _RecorderScreenState extends State<RecorderScreen> {
                   child: _LiveText(),
                 ),
                 const Spacer(flex: 42),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: _columnInset),
-                  child: AppNotice(
-                    message: switch (state.error) {
-                      RecorderError.generic => l10n.recordErrorMessage,
-                      RecorderError.entryBusy => l10n.continueEntryBusy,
-                      _ => state.interrupted ? l10n.recordInterruptedSaved : null,
-                    },
-                    onDismiss: () {
-                      final cubit = context.read<RecorderCubit>();
-                      state.error != null ? cubit.clearError() : cubit.clearInterrupted();
-                      // Nothing to record on a refused base: the sheet leaves
-                      // with its notice.
-                      final route = ModalRoute.of(context);
-                      if (state.error == RecorderError.entryBusy &&
-                          route != null &&
-                          route.isCurrent &&
-                          context.canPop()) {
-                        context.pop();
-                      }
-                    },
+                // Eased, not snapped: the spacers above give way to the notice.
+                AnimatedSize(
+                  duration: context.reduceMotion ? AppMotion.instant : theme.motion.expand,
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                    child: AppNotice(
+                      message: switch (state.error) {
+                        RecorderError.generic => l10n.recordErrorMessage,
+                        RecorderError.entryBusy => l10n.continueEntryBusy,
+                        _ => state.interrupted ? l10n.recordInterruptedSaved : null,
+                      },
+                      onDismiss: () {
+                        final cubit = context.read<RecorderCubit>();
+                        state.error != null ? cubit.clearError() : cubit.clearInterrupted();
+                        // Nothing to record on a refused base: the sheet leaves
+                        // with its notice.
+                        final route = ModalRoute.of(context);
+                        if (state.error == RecorderError.entryBusy &&
+                            route != null &&
+                            route.isCurrent &&
+                            context.canPop()) {
+                          context.pop();
+                        }
+                      },
+                    ),
                   ),
                 ),
-                SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.fromLTRB(_columnInset, 0, _columnInset, 42),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    _columnInset,
+                    0,
+                    _columnInset,
+                    AppScaffold.bottomControlOf(context),
+                  ),
                   child: RecorderControls(
                     paused: state.isPaused,
                     saving: saving,
@@ -358,9 +371,9 @@ class _StateLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    // The eyebrow's line box, held whether or not there is a word in it, and
-    // scaled: a fixed height would clip the word at large text sizes.
-    final height = MediaQuery.textScalerOf(context).scale(AppType.eyebrow.fontSize!) * 1.3;
+    // The eyebrow's line as Text sets it, reserved whether or not a word is in it.
+    final lineHeight = AppType.lineHeightOf(AppType.eyebrow, DefaultTextStyle.of(context).style);
+    final height = MediaQuery.textScalerOf(context).scale(AppType.eyebrow.fontSize!) * lineHeight;
     return SizedBox(
       height: height,
       child: AnimatedSwitcher(

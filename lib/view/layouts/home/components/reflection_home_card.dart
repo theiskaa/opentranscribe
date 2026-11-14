@@ -3,12 +3,12 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/app_icons.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/period_math.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
@@ -177,9 +177,10 @@ class ReflectionHomeCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    // Laid out at the glyph's own width, so the gap is exactly sm.
+                    AppIcon(
                       _periodIcon(period),
-                      size: AppType.headline.fontSize,
+                      size: AppType.headline.fontSize!,
                       color: theme.textSecondary,
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -203,7 +204,7 @@ class ReflectionHomeCard extends StatelessWidget {
                     reflection.text!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppType.body.copyWith(color: theme.textSecondary, height: 1.45),
+                    style: AppType.body.copyWith(color: theme.textSecondary),
                   ),
                 ],
               ],
@@ -230,7 +231,7 @@ class _QuietMarker extends StatelessWidget {
     final style = AppType.footnote.copyWith(color: theme.textSecondary);
     return Row(
       children: [
-        Icon(icon, size: AppType.footnote.fontSize, color: theme.textSecondary),
+        AppIcon(icon, size: AppType.footnote.fontSize!, color: theme.textSecondary),
         const SizedBox(width: AppSpacing.sm),
         Flexible(child: Text(label, style: style)),
       ],

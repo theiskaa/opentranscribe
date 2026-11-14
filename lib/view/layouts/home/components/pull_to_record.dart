@@ -255,7 +255,9 @@ class _PullWavePainter extends CustomPainter {
       final local = (progress * 1.4 - i * 0.06).clamp(0.0, 1.0);
       final scrubbed = size.height * kWavePattern[i] * Curves.easeOutCubic.transform(local);
       final h = math.max(barWidth, scrubbed * pullBarSwell(i, now, pullBarAlive(local)));
-      canvas.drawLine(Offset(x, mid - h / 2), Offset(x, mid + h / 2), paint);
+      // Round caps add half a bar at each end, so the line is that much short.
+      final reach = math.max((h - barWidth) / 2, _dotReach);
+      canvas.drawLine(Offset(x, mid - reach), Offset(x, mid + reach), paint);
       x += barWidth + gap;
     }
   }
@@ -264,3 +266,7 @@ class _PullWavePainter extends CustomPainter {
   bool shouldRepaint(_PullWavePainter old) =>
       old.progress != progress || old.color != color || old.barWidth != barWidth || old.gap != gap;
 }
+
+/// A floor bar's half-length: never zero, since a renderer may drop a
+/// zero-length line where its round caps should still draw a dot.
+const double _dotReach = 0.01;

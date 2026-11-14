@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
 /// A settings row without a tap of its own, for a [SettingsCard] on an
 /// onboarding page: the tile, the name over its note, and a seat on the
@@ -35,33 +35,14 @@ class OnboardingRow extends StatelessWidget {
       padding: tokens.rowPadding,
       child: Row(
         children: [
-          Container(
-            width: tokens.iconTileSize,
-            height: tokens.iconTileSize,
-            alignment: Alignment.center,
-            decoration: SuperellipseDecoration(
-              borderRadius: tokens.iconTileRadius,
-              color: tokens.iconTileBackground,
-            ),
-            child: leading,
-          ),
+          SettingsIconTile(child: leading),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: AppType.subhead.copyWith(color: theme.text)),
-                if (note != null) ...[
-                  const SizedBox(height: AppSpacing.xxs),
-                  // One line, so the card never changes shape as seats change.
-                  Text(
-                    note!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.footnote.copyWith(color: theme.textSecondary),
-                  ),
-                ],
-              ],
+            child: SettingsLabelAndNote(
+              label: Text(name, style: AppType.subhead.copyWith(color: theme.text)),
+              note: note,
+              // One line, so the card never changes shape as seats change.
+              oneLine: true,
             ),
           ),
           const SizedBox(width: AppSpacing.md),

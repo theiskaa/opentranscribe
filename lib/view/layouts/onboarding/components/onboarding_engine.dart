@@ -601,14 +601,24 @@ class _FaceTitle extends StatelessWidget {
         AppIcon(icon, size: _glyph, color: theme.textSecondary),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppType.subhead.copyWith(color: theme.text, fontWeight: FontWeight.w600),
+          // The glyph centres; the words share a baseline, a note beside a
+          // subhead.
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.subhead.copyWith(color: theme.text, fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: AppSpacing.sm), trailing!],
+            ],
           ),
         ),
-        if (trailing != null) ...[const SizedBox(width: AppSpacing.sm), trailing!],
       ],
     );
   }

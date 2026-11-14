@@ -1,13 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/week.dart';
-import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/day_face.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The week strip in the home chrome, always visible. The soft border marks
@@ -183,7 +181,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
             for (var i = 0; i < 7; i++) DateTime(start.year, start.month, start.day + i),
           ];
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: _WeekRow(
               days: days,
               entryDays: widget.entryDays,
@@ -221,9 +219,12 @@ class _WeekRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gap = context.theme.calendar.tileGap;
     return Row(
       children: [
-        for (final day in days)
+        for (final (i, day) in days.indexed) ...[
+          // Between tiles only, so the outer tiles meet the column's edges.
+          if (i > 0) SizedBox(width: gap),
           Expanded(
             child: _DayTile(
               day: day,
@@ -233,6 +234,7 @@ class _WeekRow extends StatelessWidget {
               onTap: onTap,
             ),
           ),
+        ],
       ],
     );
   }
@@ -273,47 +275,23 @@ class _DayTile extends StatelessWidget {
 
     return Touchable(
       onTap: enabled ? () => onTap(day) : null,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: tokens.tileGap / 2),
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(end: isCursor ? 1 : 0),
-          duration: theme.motion.crossfade,
-          curve: Curves.easeOut,
-          builder: (context, t, child) => DecoratedBox(
-            decoration: SuperellipseDecoration(
-              borderRadius: tokens.tileRadius,
-              color: restingFill,
-              border: BorderSide(color: Color.lerp(null, tokens.cursorBorder, t)!),
-            ),
-            child: child,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: isCursor ? 1 : 0),
+        duration: theme.motion.crossfade,
+        curve: Curves.easeOut,
+        builder: (context, t, child) => DecoratedBox(
+          decoration: SuperellipseDecoration(
+            borderRadius: tokens.tileRadius,
+            color: restingFill,
+            border: BorderSide(color: Color.lerp(null, tokens.cursorBorder, t)!),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                DateFormat.E(localeTag(context)).format(day).substring(0, 1).toUpperCase(),
-                style: AppType.caption.copyWith(color: letterColor),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                '${day.day}',
-                style: AppType.digits(
-                  TextStyle(fontSize: tokens.dayNumberSize, fontWeight: FontWeight.w600),
-                ).copyWith(color: numberColor),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              SizedBox(
-                height: tokens.dotSize,
-                child: isToday
-                    ? Container(
-                        width: tokens.dotSize,
-                        height: tokens.dotSize,
-                        decoration: BoxDecoration(color: tokens.todayDot, shape: BoxShape.circle),
-                      )
-                    : null,
-              ),
-            ],
-          ),
+          child: child,
+        ),
+        child: DayFace(
+          day: day,
+          letterColor: letterColor,
+          numberColor: numberColor,
+          dot: isToday ? tokens.todayDot : null,
         ),
       ),
     );

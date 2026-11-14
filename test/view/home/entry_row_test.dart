@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 
 Entry entry(String id) =>
@@ -183,6 +185,49 @@ void main() {
     test('no ids means gone, so an untouched leading section still leads', () {
       expect(allDying(const [], {'a'}), isTrue);
       expect(allDying(const [], const {}), isTrue);
+    });
+  });
+
+  group('railNodeCenter (where the node meets the first line)', () {
+    test('a title with no height of its own takes the line height it inherits', () {
+      final center = railNodeCenter(
+        AppType.headline,
+        ambient: AppType.body,
+        scaler: TextScaler.noScaling,
+      );
+      expect(center, closeTo(17 * 1.45 / 2, 1e-9));
+    });
+
+    test('a titled and an untitled row put the node at the same height', () {
+      final titled = railNodeCenter(
+        AppType.headline,
+        ambient: AppType.body,
+        scaler: TextScaler.noScaling,
+      );
+      final untitled = railNodeCenter(
+        AppType.body,
+        ambient: AppType.body,
+        scaler: TextScaler.noScaling,
+      );
+      expect(titled, untitled);
+    });
+
+    test('a lead style with its own height keeps it over the inherited one', () {
+      final center = railNodeCenter(
+        AppType.note,
+        ambient: AppType.body,
+        scaler: TextScaler.noScaling,
+      );
+      expect(center, closeTo(13 * 1.4 / 2, 1e-9));
+    });
+
+    test('larger text moves the node down with the line it marks', () {
+      final center = railNodeCenter(
+        AppType.body,
+        ambient: AppType.body,
+        scaler: const TextScaler.linear(1.5),
+      );
+      expect(center, closeTo(17 * 1.5 * 1.45 / 2, 1e-9));
     });
   });
 }

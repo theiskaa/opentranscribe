@@ -211,7 +211,6 @@ final class CalendarTheme {
     this.tileGap = AppSpacing.xs,
     this.dotSize = 4.0,
     this.cellHeight = 60.0,
-    this.dayNumberSize = 17.0,
   });
 
   final Color weekdayLabelColor;
@@ -258,7 +257,6 @@ final class CalendarTheme {
 
   /// One tile's height, which is the strip's height.
   final double cellHeight;
-  final double dayNumberSize;
 }
 
 /// The records list: hairline-bordered cards under mixed-case day splitters.

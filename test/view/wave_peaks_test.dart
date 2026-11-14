@@ -65,4 +65,38 @@ void main() {
       }
     });
   });
+
+  group('rateLabel', () {
+    test('a whole speed drops its decimal', () {
+      expect(rateLabel(1), '1×');
+      expect(rateLabel(2), '2×');
+    });
+
+    test('a fractional speed keeps its quarter', () {
+      expect(rateLabel(1.25), '1.25×');
+      expect(rateLabel(1.5), '1.5×');
+    });
+  });
+
+  group('waveRun', () {
+    test('the bars fill the width exactly, last bar ending on the edge', () {
+      final (:bars, :step) = waveRun(100, bar: 3, gap: 3);
+      expect(bars, 17);
+      expect(3 / 2 + (bars - 1) * step + 3 / 2, closeTo(100, 1e-9));
+    });
+
+    test('the spread never brings two bars closer than the gap', () {
+      final (:bars, :step) = waveRun(100, bar: 3, gap: 3);
+      expect(step, greaterThanOrEqualTo(6));
+      expect(bars, greaterThan(0));
+    });
+
+    test('one bar has nothing to spread across', () {
+      expect(waveRun(4, bar: 3, gap: 3), (bars: 1, step: 0.0));
+    });
+
+    test('a width too narrow for a bar draws none', () {
+      expect(waveRun(1, bar: 3, gap: 3).bars, 0);
+    });
+  });
 }

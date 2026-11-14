@@ -130,7 +130,7 @@ class _DisabledCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.reflectionsDisabledTitle, style: AppType.subhead.copyWith(color: theme.text)),
-            const SizedBox(height: AppSpacing.xxs),
+            SizedBox(height: theme.settings.noteGap),
             Text(
               l10n.reflectionsDisabledBody,
               style: AppType.note.copyWith(color: theme.textSecondary),

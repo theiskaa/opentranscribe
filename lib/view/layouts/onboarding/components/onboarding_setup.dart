@@ -7,6 +7,7 @@ import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/state/onboarding_cubit.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -67,7 +68,7 @@ class _MicRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) => OnboardingRow(
-        leading: AppIcon(AppIcons.micFill, size: 16, color: theme.textSecondary),
+        leading: AppIcon(AppIcons.micFill, size: AppIconSize.tile, color: theme.textSecondary),
         name: l10n.onboardingMicName,
         note: l10n.onboardingMicReason,
         trailing: _PermissionSeat(
@@ -91,7 +92,7 @@ class _SpeechRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) => OnboardingRow(
-        leading: AppIcon(AppIcons.waveform, size: 16, color: theme.textSecondary),
+        leading: AppIcon(AppIcons.waveform, size: AppIconSize.tile, color: theme.textSecondary),
         name: l10n.onboardingSpeechName,
         note: l10n.onboardingSpeechReason,
         trailing: _PermissionSeat(
@@ -115,7 +116,7 @@ class _RemindersRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) => OnboardingRow(
-        leading: AppIcon(AppIcons.bell, size: 16, color: theme.textSecondary),
+        leading: AppIcon(AppIcons.bell, size: AppIconSize.tile, color: theme.textSecondary),
         name: l10n.onboardingRemindersName,
         note: l10n.onboardingRemindersReason,
         trailing: _PermissionSeat(
@@ -142,7 +143,7 @@ class _ReflectionsRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final on = status == ReflectionAvailabilityStatus.available;
     return OnboardingRow(
-      leading: AppIcon(AppIcons.sevenCalendar, size: 16, color: theme.textSecondary),
+      leading: AppIcon(AppIcons.sevenCalendar, size: AppIconSize.tile, color: theme.textSecondary),
       name: l10n.reflectionsTitle,
       note: switch (status) {
         ReflectionAvailabilityStatus.available => l10n.onboardingReflectionsOn,
@@ -150,7 +151,7 @@ class _ReflectionsRow extends StatelessWidget {
         _ => l10n.onboardingReflectionsOff,
       },
       trailing: on
-          ? AppIcon(AppIcons.checkmark, size: 18, color: theme.accent)
+          ? AppIcon(AppIcons.checkmark, size: AppIconSize.bar, color: theme.accent)
           : const SizedBox.shrink(),
     );
   }
@@ -167,10 +168,10 @@ class _PermissionSeat extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    if (granted) return AppIcon(AppIcons.checkmark, size: 18, color: theme.accent);
+    if (granted) return AppIcon(AppIcons.checkmark, size: AppIconSize.bar, color: theme.accent);
     // theme.text, not textSecondary: the spinner picks its dot color by the
     // tint's luminance, and dark mode's mid-gray secondary picks black dots.
-    if (requesting) return AppSpinner(size: 22, color: theme.text);
+    if (requesting) return AppSpinner(size: AppIconSize.bar, color: theme.text);
     if (denied) {
       // The prompt only ever shows once; a denied permission can be granted
       // only from the system Settings, so send them there.

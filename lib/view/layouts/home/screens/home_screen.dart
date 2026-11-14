@@ -29,10 +29,12 @@ import 'package:opentranscribe/view/layouts/home/components/reflection_home_card
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
+import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
@@ -471,8 +473,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   // A persistent record button floating clear of the home indicator.
                   // Pull-to-record stays; this is the obvious, hard-to-miss way in.
                   Positioned(
-                    right: AppSpacing.xl,
-                    bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+                    right: GlassFab.floatInset,
+                    bottom: AppScaffold.bottomControlOf(context),
                     child: RecordFab(onTap: _openRecorder),
                   ),
                 ],
@@ -586,10 +588,6 @@ class _HomeChromeState extends State<_HomeChrome> {
   }
 }
 
-/// Clearance under the last card so it clears the record button, matching the
-/// recorder screen's bottom inset.
-const double _listBottomInset = 42;
-
 /// One period's reflection slot in the timeline: the editorial card, opening
 /// the reflections pager landed on its period and start, entering with the
 /// app's rise only when it arrived while home was up.
@@ -650,7 +648,8 @@ class _ReflectionCardGroup extends StatelessWidget {
       folded: all,
       child: SeamPadding(
         closing: gapless,
-        padding: EdgeInsets.only(top: gapless ? 0 : AppSpacing.xxl, bottom: AppSpacing.sm),
+        // The splitter's own break: a day reads the same with a card or without.
+        padding: EdgeInsets.only(top: gapless ? 0 : AppSpacing.xxxl, bottom: AppSpacing.sm),
         // Stretch: the cards size to the list's width in the timeline, and a
         // Column would otherwise hand them their intrinsic one.
         child: Column(
@@ -861,9 +860,8 @@ class _RecordsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final sections = state.sections;
 
-    // Nothing floats over the list any more; the tail just clears the home
-    // indicator.
-    final clearance = MediaQuery.paddingOf(context).bottom;
+    // The record button floats over the list's end; the last row clears it.
+    final clearance = GlassFab.clearanceOf(context);
 
     final sectionDays = [for (final section in sections) section.day];
     final sectionIds = [
@@ -909,7 +907,7 @@ class _RecordsList extends StatelessWidget {
       // have exact targets and the title tracker never runs blind. Journal
       // scale keeps this affordable.
       scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
-      padding: EdgeInsets.only(top: topPadding, bottom: clearance + AppSpacing.lg + tail),
+      padding: EdgeInsets.only(top: topPadding, bottom: clearance + tail),
       children: [
         if (takeAlive && takeLeads) ...[
           _SplitterLabel(day: takeDay!, gapless: true),
@@ -1017,7 +1015,6 @@ class _RecordsList extends StatelessWidget {
             onEnd: () => onDepartureEnd(day),
           ),
         ],
-        const SizedBox(height: _listBottomInset),
       ],
     );
   }

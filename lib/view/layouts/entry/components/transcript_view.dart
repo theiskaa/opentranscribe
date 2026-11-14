@@ -514,7 +514,8 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final width = box.size.width;
     if (width <= 0) return false;
     const style = AppType.body;
-    final fontSize = style.fontSize!;
+    // Scaled like the words that replace it, so the reveal lands on the cloud.
+    final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize!);
     final lineHeight = fontSize * style.height!;
     final lines = estimateInkLines(
       audio: widget.entry.duration,
@@ -841,7 +842,7 @@ class _TranscriptEmpty extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           untranscribed ? l10n.entryUntranscribedMessage : l10n.entryNoSpeechMessage,
-          style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.4),
+          style: AppType.subheadParagraph.copyWith(color: theme.textSecondary),
         ),
       ],
     );

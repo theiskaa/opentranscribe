@@ -152,7 +152,7 @@ class _HistoryContentState extends State<_HistoryContent> {
       children: [
         Text(
           l10n.revisionHistoryBody,
-          style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
+          style: AppType.subheadParagraph.copyWith(color: theme.textSecondary),
         ),
         const SizedBox(height: AppSpacing.lg),
         // Every child is KEYED by its revision: a delete shifts every tile
@@ -247,16 +247,35 @@ class _RevisionTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          // A footnote beside a subhead: centring would float it above the
+          // label's baseline.
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(_originLabel(revision, l10n), style: AppType.subhead.copyWith(color: theme.text)),
-            if (current) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                l10n.revisionCurrent,
-                style: AppType.footnote.copyWith(color: theme.textSecondary),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _originLabel(revision, l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.subhead.copyWith(color: theme.text),
+                    ),
+                  ),
+                  if (current) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      l10n.revisionCurrent,
+                      style: AppType.footnote.copyWith(color: theme.textSecondary),
+                    ),
+                  ],
+                ],
               ),
-            ],
-            const Spacer(),
+            ),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               '${shortDateLabel(revision.at.toLocal(), locale)}'
               ' \u00b7 ${formatTime(revision.at, locale)}',
@@ -294,8 +313,10 @@ class _DiffExcerpt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    const style = AppType.footnote;
+    const style = AppType.note;
+    // The root carries the style too, so the measured line is the drawn one.
     final rich = TextSpan(
+      style: style,
       children: [
         for (final span in spans)
           TextSpan(
