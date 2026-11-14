@@ -210,7 +210,11 @@ class ModelCard extends StatelessWidget {
                       // A pick swaps the whole face; the old one melts into
                       // the new like the language card's.
                       child: AnimatedSwitcher(
-                        duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                        // The control's clock: a tap that changes the line and
+                        // the control moves them as one.
+                        duration: context.reduceMotion ? Duration.zero : theme.motion.indicator,
+                        switchInCurve: theme.motion.indicatorCurve,
+                        switchOutCurve: theme.motion.indicatorCurve.flipped,
                         layoutBuilder: meltStack,
                         child: _Face(key: ValueKey((row.option.id, line)), row: row, line: line),
                       ),
@@ -222,7 +226,7 @@ class ModelCard extends StatelessWidget {
                       child: AppIcon(
                         AppIcons.chevronForward,
                         size: theme.settings.heroChevronSize,
-                        color: theme.textSecondary,
+                        color: theme.settings.chevronColor,
                       ),
                     ),
                   ],
@@ -280,7 +284,7 @@ class _Face extends StatelessWidget {
           // Two: "too large for this iPhone" fits no phone on one.
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+          style: AppType.digits(AppType.rowNote).copyWith(color: theme.textSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
@@ -310,35 +314,38 @@ class _Waiting extends StatelessWidget {
     final name = row.option.displayName;
     final face = modelRowFace(row);
     final note = AppType.note.copyWith(color: theme.textSecondary);
+    final motion = context.motionNow;
+    final duration = context.reduceMotion ? Duration.zero : motion.indicator;
+    // Download, its bar and its retry are one control changing face, never a
+    // different one swapped in; the notes around it ease in and out.
     final Widget? child = switch (face) {
-      ModelRowFace.download => AppButton(
-        label: l10n.modelDownloadSized(name, formatBytes(row.option.bytes, localeTag(context))),
-        icon: AppIcons.icloud,
-        onPressed: () => installModel(context, row),
-      ),
-      ModelRowFace.failed => Column(
+      ModelRowFace.download || ModelRowFace.installing || ModelRowFace.failed => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(modelFailureWords(l10n, row, localeTag: localeTag(context)).$2, style: note),
-          const SizedBox(height: AppSpacing.md),
-          AppButton(
-            label: l10n.retry,
-            icon: AppIcons.arrowCounterclockwise,
-            onPressed: () => installModel(context, row),
+          _Note(
+            text: face == ModelRowFace.failed
+                ? modelFailureWords(l10n, row, localeTag: localeTag(context)).$2
+                : null,
+            style: note,
+            gap: const EdgeInsets.only(bottom: AppSpacing.md),
           ),
-        ],
-      ),
-      ModelRowFace.installing => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
           ModelControl(
             row: row,
             face: face,
-            onTap: null,
+            downloadLabel: l10n.modelDownloadSized(
+              name,
+              formatBytes(row.option.bytes, localeTag(context)),
+            ),
+            onTap: face == ModelRowFace.installing ? null : () => installModel(context, row),
             onCancel: () => context.read<ModelsCubit>().cancelModelInstallById(row.option.id),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(modelWaitNote(l10n, row, accelerated: accelerated), style: note),
+          _Note(
+            text: face == ModelRowFace.installing
+                ? modelWaitNote(l10n, row, accelerated: accelerated)
+                : null,
+            style: note,
+            gap: const EdgeInsets.only(top: AppSpacing.sm),
+          ),
         ],
       ),
       ModelRowFace.heavy => Column(
@@ -355,16 +362,90 @@ class _Waiting extends StatelessWidget {
       ),
       ModelRowFace.selected || ModelRowFace.installed => null,
     };
+    // Keyed by kind, not face: the control's own faces change inside it.
+    final kind = switch (face) {
+      ModelRowFace.heavy => 1,
+      ModelRowFace.selected || ModelRowFace.installed => 2,
+      _ => 0,
+    };
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: motion.indicatorCurve,
+      // Flipped, so a leaving face closes on the same curve in time as the
+      // arriving one opens: the two meet frame for frame.
+      switchOutCurve: motion.indicatorCurve.flipped,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SizeTransition(sizeFactor: animation, alignment: Alignment.topCenter, child: child),
+      ),
+      layoutBuilder: (current, previous) =>
+          Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
+      child: KeyedSubtree(
+        key: ValueKey(kind),
+        child: child == null
+            ? const SizedBox(width: double.infinity)
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                child: child,
+              ),
+      ),
+    );
+  }
+}
+
+/// A note beside the control that comes and goes with its face. Its space
+/// and its ink follow one value on the control's own clock, so it opens and
+/// closes with the control, frame for frame, the same way in both directions.
+/// A leaving note keeps its last words while it closes.
+class _Note extends StatefulWidget {
+  const _Note({required this.text, required this.style, required this.gap});
+
+  final String? text;
+  final TextStyle style;
+
+  /// Between the note and the control, held only while there is a note.
+  final EdgeInsets gap;
+
+  @override
+  State<_Note> createState() => _NoteState();
+}
+
+class _NoteState extends State<_Note> {
+  late String? _last = widget.text;
+
+  @override
+  void didUpdateWidget(_Note old) {
+    super.didUpdateWidget(old);
+    if (widget.text != null) _last = widget.text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final motion = context.motionNow;
-    return AnimatedSize(
+    final last = _last;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: widget.text == null ? 0 : 1),
       duration: context.reduceMotion ? Duration.zero : motion.indicator,
       curve: motion.indicatorCurve,
-      alignment: Alignment.topCenter,
-      child: child == null
+      builder: (context, shown, child) => ClipRect(
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: shown,
+          child: Opacity(opacity: shown, child: child),
+        ),
+      ),
+      child: last == null
           ? const SizedBox(width: double.infinity)
           : Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-              child: child,
+              padding: widget.gap,
+              // A note that changes while shown melts into the new words.
+              child: AnimatedSwitcher(
+                duration: context.reduceMotion ? Duration.zero : motion.indicator,
+                switchInCurve: motion.indicatorCurve,
+                switchOutCurve: motion.indicatorCurve.flipped,
+                layoutBuilder: meltStack,
+                child: Text(last, key: ValueKey(last), style: widget.style),
+              ),
             ),
     );
   }

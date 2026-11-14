@@ -48,36 +48,48 @@ bool modelRowRemovable(ModelRowState row) => switch (modelRowFace(row)) {
 }
 
 /// A pill face's words and glyph; the bar faces draw [progressFace] instead.
-({IconData? icon, String text}) _pillWords(AppLocalizations l10n, ModelRowFace face) =>
-    switch (face) {
-      ModelRowFace.download ||
-      ModelRowFace.heavy => (icon: AppIcons.icloud, text: l10n.modelDownload),
-      ModelRowFace.failed => (icon: AppIcons.arrowCounterclockwise, text: l10n.retry),
-      ModelRowFace.installed => (icon: null, text: l10n.modelUse),
-      ModelRowFace.selected => (icon: AppIcons.checkmark, text: l10n.modelInUse),
-      ModelRowFace.installing => throw ArgumentError.value(face, 'face', 'a bar, not a pill'),
-    };
+/// [download] is what the download face says, its size folded in where the
+/// caller has room for it.
+({IconData? icon, String text}) _pillWords(
+  AppLocalizations l10n,
+  ModelRowFace face, {
+  String? download,
+}) => switch (face) {
+  ModelRowFace.download ||
+  ModelRowFace.heavy => (icon: AppIcons.icloud, text: download ?? l10n.modelDownload),
+  ModelRowFace.failed => (icon: AppIcons.arrowCounterclockwise, text: l10n.retry),
+  ModelRowFace.installed => (icon: null, text: l10n.modelUse),
+  ModelRowFace.selected => (icon: AppIcons.checkmark, text: l10n.modelInUse),
+  ModelRowFace.installing => throw ArgumentError.value(face, 'face', 'a bar, not a pill'),
+};
 
-/// The words on every face; a bar's take tabular figures.
-final TextStyle _labelStyle = AppType.footnote.copyWith(fontWeight: FontWeight.w600);
+/// The words on a button face, an [AppButton]'s, so the download face is the
+/// button it replaces.
+final TextStyle _labelStyle = AppType.callout.copyWith(height: 1);
 
-/// A model's control: one pill whose fill and words follow the face on
-/// the indicator motion, and, while a download runs, the pill IS its progress
-/// bar, filling from the left under a centred percent. The cancel disc rides
-/// beside it in a seat that opens on the same motion, so the bar's width and
-/// its words change together. One VoiceOver name carries the face and the
-/// model, the percent folded in.
+/// The words in the slim bar, tabular so the percent never shifts.
+final TextStyle _barStyle = AppType.digits(AppType.footnote.copyWith(fontWeight: FontWeight.w600));
+
+/// A model's control: one pill whose fill, height and words follow the face
+/// on the indicator motion. Asking (Download, Retry) it is an [AppButton] in
+/// size and type; while a download runs it eases down into a slim progress
+/// bar, filling from the left under a centred percent. A tap on Download is
+/// the same pill turning into its bar, never a different control swapped in.
+/// The cancel disc rides beside it in a seat that opens on the same motion,
+/// so the bar's width and its words change together. One VoiceOver name
+/// carries the face and the model, the percent folded in.
 class ModelControl extends StatelessWidget {
   const ModelControl({
     required this.row,
     required this.face,
     required this.onTap,
     required this.onCancel,
+    this.downloadLabel,
     super.key,
   });
 
-  /// The glyph beside a pill's words.
-  static const double _glyphSize = 14;
+  /// The glyph beside a pill's words, an [AppButton]'s.
+  static const double _glyphSize = AppIconSize.bar;
 
   final ModelRowState row;
   final ModelRowFace face;
@@ -86,12 +98,15 @@ class ModelControl extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback onCancel;
 
+  /// The download face's words, when the caller has room for more than one.
+  final String? downloadLabel;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: _Pill(row: row, face: face, onTap: onTap),
+          child: _Pill(row: row, face: face, onTap: onTap, downloadLabel: downloadLabel),
         ),
         _CancelSeat(
           shown: row.cancellable && !row.preparing,
@@ -103,12 +118,22 @@ class ModelControl extends StatelessWidget {
   }
 }
 
+/// The pill's hairline (BorderSide's own width), which the decoration also
+/// insets its content by.
+const double _borderWidth = 1;
+
 class _Pill extends StatelessWidget {
-  const _Pill({required this.row, required this.face, required this.onTap});
+  const _Pill({
+    required this.row,
+    required this.face,
+    required this.onTap,
+    required this.downloadLabel,
+  });
 
   final ModelRowState row;
   final ModelRowFace face;
   final VoidCallback? onTap;
+  final String? downloadLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +143,11 @@ class _Pill extends StatelessWidget {
     final motion = context.motionNow;
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
     final name = row.option.displayName;
+    // An ink face wears the button's sheen and shadow, on AppButton's own
+    // rule (a dark fill only); both fade with the fill as the face changes.
+    final inked =
+        (face == ModelRowFace.download || face == ModelRowFace.failed) &&
+        button.background.computeLuminance() < 0.35;
     // The solid fill goes to what fetches: a model already here is one quiet
     // tap from use, and must not outshout a download in the same list.
     final (fill, border, ink) = switch (face) {
@@ -135,7 +165,8 @@ class _Pill extends StatelessWidget {
       ModelRowFace.installing when row.queued => l10n.modelQueuedLabel(name),
       ModelRowFace.installing when row.preparing => l10n.modelPreparingLabel(name),
       ModelRowFace.installing => l10n.modelDownloadingLabel(name, percentOf(row.installFraction)),
-      ModelRowFace.download => l10n.modelDownloadButton(name),
+      // The words on the button, size included, when it carries them.
+      ModelRowFace.download => downloadLabel ?? l10n.modelDownloadButton(name),
       ModelRowFace.failed => l10n.modelRetryButton(name),
       ModelRowFace.installed => l10n.modelUseButton(name),
       ModelRowFace.selected => l10n.modelInUseLabel(name),
@@ -156,7 +187,7 @@ class _Pill extends StatelessWidget {
         fillInk: button.foreground,
       ),
       _ => _PillWords(
-        words: _pillWords(l10n, face),
+        words: _pillWords(l10n, face, download: downloadLabel),
         ink: face == ModelRowFace.heavy ? theme.textSecondary : ink,
       ),
     };
@@ -170,34 +201,59 @@ class _Pill extends StatelessWidget {
       child: Touchable(
         onTap: onTap,
         haptic: onTap != null,
-        pressedScale: theme.motion.pressIconScale,
+        // AppButton's press: a scale, no dimming.
+        pressedScale: theme.motion.pressScale,
+        pressedOpacity: 1,
         child: AnimatedContainer(
           duration: duration,
           curve: motion.indicatorCurve,
-          height: button.bandHeight,
+          // A button while it asks, a slim bar while it reports: the tap eases
+          // the one down into the other.
+          height: face == ModelRowFace.installing ? button.bandHeight : button.height,
           decoration: SuperellipseDecoration(
-            borderRadius: button.bandHeight / 2,
+            // Clamped to half the height, so a capsule at either size.
+            borderRadius: AppRadius.pill,
             color: fill,
+            shadows: [
+              inked
+                  ? button.shadow
+                  : button.shadow.copyWith(color: button.shadow.color.withValues(alpha: 0)),
+            ],
             border: BorderSide(color: border),
           ),
-          // The words ride the same duration and curve as the fill and the
-          // cancel's seat, so a face change moves as one.
-          child: AnimatedSwitcher(
-            duration: duration,
-            switchInCurve: motion.indicatorCurve,
-            switchOutCurve: motion.indicatorCurve,
-            layoutBuilder: meltStack,
-            child: KeyedSubtree(
-              key: ValueKey(face),
-              // The bar paints its own fill edge to edge; every other face is
-              // words inside the pill's inset.
-              child: face == ModelRowFace.installing
-                  ? content
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Center(child: content),
-                    ),
-            ),
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              // Out over the border the decoration insets content by, so the
+              // sheen starts at the top edge as AppButton's does.
+              Positioned(
+                left: -_borderWidth,
+                top: -_borderWidth,
+                right: -_borderWidth,
+                bottom: -_borderWidth,
+                child: _Sheen(shown: inked, duration: duration, curve: motion.indicatorCurve),
+              ),
+              // The words ride the same duration and curve as the fill and the
+              // cancel's seat, so a face change moves as one.
+              AnimatedSwitcher(
+                duration: duration,
+                switchInCurve: motion.indicatorCurve,
+                switchOutCurve: motion.indicatorCurve.flipped,
+                layoutBuilder: meltStack,
+                child: KeyedSubtree(
+                  key: ValueKey(face),
+                  // The bar paints its own fill edge to edge; every other face
+                  // is words inside the button's own inset.
+                  child: face == ModelRowFace.installing
+                      ? content
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                          child: Center(child: content),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -229,7 +285,7 @@ class _ProgressBar extends StatelessWidget {
       duration: context.reduceMotion ? Duration.zero : theme.motion.indicator,
       curve: theme.motion.indicatorCurve,
       builder: (context, value, _) => ClipPath(
-        clipper: ShapeBorderClipper(shape: Superellipse(radius: theme.button.bandHeight / 2)),
+        clipper: const ShapeBorderClipper(shape: Superellipse(radius: AppRadius.pill)),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -267,7 +323,7 @@ class _BarWords extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: AppType.digits(_labelStyle).copyWith(color: ink),
+          style: _barStyle.copyWith(color: ink),
         ),
       ),
     );
@@ -360,7 +416,7 @@ class _CancelButton extends StatelessWidget {
             color: theme.danger.withValues(alpha: 0.14),
           ),
           child: Center(
-            child: AppIcon(AppIcons.xmark, size: ModelControl._glyphSize, color: theme.danger),
+            child: AppIcon(AppIcons.xmark, size: AppIconSize.accessory, color: theme.danger),
           ),
         ),
       ),
@@ -383,17 +439,54 @@ class _PillWords extends StatelessWidget {
       children: [
         if (icon != null) ...[
           AppIcon(icon, size: ModelControl._glyphSize, color: ink),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
         ],
         Flexible(
           child: Text(
             words.text,
             maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            // Faded at the edge, not cut to an ellipsis: the pill narrows as
+            // the cancel seat opens, and a melting label must not re-break.
+            softWrap: false,
+            overflow: TextOverflow.fade,
             style: _labelStyle.copyWith(color: ink),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The button's sheen over an ink face: a light band down from the top edge,
+/// faded out as the face leaves ink, since a gradient and a flat fill do not
+/// animate into each other.
+class _Sheen extends StatelessWidget {
+  const _Sheen({required this.shown, required this.duration, required this.curve});
+
+  final bool shown;
+  final Duration duration;
+  final Curve curve;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = context.theme.button;
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: shown ? 1 : 0,
+        duration: duration,
+        curve: curve,
+        child: DecoratedBox(
+          decoration: SuperellipseDecoration(
+            borderRadius: AppRadius.pill,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0, 0.25],
+              colors: [button.sheen, button.sheen.withValues(alpha: 0)],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
