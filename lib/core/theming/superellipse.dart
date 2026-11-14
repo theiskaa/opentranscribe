@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/widgets.dart';
 
 /// An iOS-style continuous-corner rectangle. A plain rounded rect changes
@@ -65,6 +67,22 @@ class Superellipse extends ShapeBorder {
     if (side.style == BorderStyle.none || side.width <= 0) return;
     canvas.drawPath(pathFor(rect.deflate(side.width / 2), radius, smoothness), side.toPaint());
   }
+
+  // Between two of these, every part eases; without it ShapeBorder.lerp
+  // falls back to snapping from one to the other halfway through.
+  @override
+  ShapeBorder? lerpFrom(ShapeBorder? a, double t) =>
+      a is Superellipse ? Superellipse.lerp(a, this, t) : super.lerpFrom(a, t);
+
+  @override
+  ShapeBorder? lerpTo(ShapeBorder? b, double t) =>
+      b is Superellipse ? Superellipse.lerp(this, b, t) : super.lerpTo(b, t);
+
+  static Superellipse lerp(Superellipse a, Superellipse b, double t) => Superellipse(
+    radius: lerpDouble(a.radius, b.radius, t)!,
+    smoothness: lerpDouble(a.smoothness, b.smoothness, t)!,
+    side: BorderSide.lerp(a.side, b.side, t),
+  );
 
   @override
   ShapeBorder scale(double t) =>

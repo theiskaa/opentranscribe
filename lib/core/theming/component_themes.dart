@@ -23,7 +23,7 @@ final class TopBarTheme {
     this.height = 52.0,
     this.largeHeight = 72.0,
     this.fadeTail = 24.0,
-    this.backChevronSize = 18.0,
+    this.backChevronSize = AppIconSize.bar,
     this.actionSize = AppSizes.barControl,
   });
 
@@ -62,8 +62,8 @@ final class ButtonTheme {
     required this.secondaryForeground,
     required this.secondaryBorder,
     this.disabledOpacity = 0.5,
-    this.height = 52.0,
-    this.compactHeight = 36.0,
+    this.height = AppSizes.control,
+    this.compactHeight = AppSizes.chip,
     this.bandHeight = 32.0,
     this.radius = AppRadius.pill,
   });
@@ -102,7 +102,7 @@ final class PageIndicatorTheme {
     this.dashHeight = 3.0,
     this.gap = 8.0,
     this.activeBulge = 3.0,
-    this.hitHeight = 44.0,
+    this.hitHeight = AppSizes.minTarget,
   });
 
   final Color active;
@@ -208,7 +208,7 @@ final class CalendarTheme {
     required this.chipInk,
     required this.onChipInk,
     this.tileRadius = 14.0,
-    this.tileGap = 5.0,
+    this.tileGap = AppSpacing.xs,
     this.dotSize = 4.0,
     this.cellHeight = 60.0,
     this.dayNumberSize = 17.0,
@@ -323,7 +323,7 @@ final class RecorderTheme {
     this.waveformGap = 3.0,
     this.waveformHeight = 96.0,
     this.waveformFade = 48.0,
-    this.controlSize = 52.0,
+    this.controlSize = AppSizes.control,
   });
 
   final Color timerColor;
@@ -381,7 +381,7 @@ final class PlayerTheme {
     this.waveBarWidth = 3.0,
     this.waveGap = 3.0,
     this.waveHeight = 40.0,
-    this.controlSize = 40.0,
+    this.controlSize = AppSizes.minTarget,
   });
 
   /// The played part of the wave, and the quiet tone the rest is drawn in. The
@@ -403,7 +403,7 @@ final class PlayerTheme {
   /// The wave's full height, peak to peak.
   final double waveHeight;
 
-  /// The speed chip's tap-target height, matched to the wave's height.
+  /// The speed chip's tap-target height: the smallest a tap may land in.
   final double controlSize;
 }
 
@@ -424,12 +424,14 @@ final class SettingsTheme {
     this.cardRadius = AppRadius.card,
     this.iconTileRadius = AppRadius.sm,
     this.iconTileSize = 32.0,
-    this.chevronSize = 14.0,
+    this.chevronSize = AppIconSize.accessory,
     this.heroChevronSize = 15.0,
     this.noteGap = 3.0,
-    this.trailingTargetWidth = 44.0,
-    this.dividerInset = 58.0,
-    this.rowPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    this.trailingTargetWidth = AppSizes.minTarget,
+    this.rowPadding = const EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.md,
+    ),
   });
 
   final Color cardBackground;
@@ -465,7 +467,8 @@ final class SettingsTheme {
   /// A trailing glyph's touch target: the glyph is small, its target is not.
   final double trailingTargetWidth;
 
-  final double dividerInset;
+  /// Where a row's hairline starts: under its label, past the tile.
+  double get dividerInset => rowPadding.left + iconTileSize + AppSpacing.md;
 
   /// Every row's inset, the kit's and any row built to sit among them.
   final EdgeInsets rowPadding;
@@ -482,8 +485,8 @@ final class ErrorPillTheme {
     required this.dot,
     required this.text,
     required this.chevron,
-    this.height = 46.0,
-    this.radius = AppRadius.chip,
+    this.height = AppSizes.control,
+    this.radius = AppRadius.pill,
     this.dotSize = 8.0,
     this.blinkMinOpacity = 0.25,
     this.shakeTravel = 5.0,
@@ -496,6 +499,8 @@ final class ErrorPillTheme {
   final Color dot;
   final Color text;
   final Color chevron;
+
+  /// The button's height and capsule: the pill sits stacked over one.
   final double height;
   final double radius;
   final double dotSize;
