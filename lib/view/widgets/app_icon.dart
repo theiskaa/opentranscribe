@@ -17,7 +17,9 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    // A private-use codepoint means nothing read aloud: unlabelled, it is
+    // decoration, the way Icon treats itself.
+    final glyph = Text(
       String.fromCharCode(icon.codePoint),
       semanticsLabel: semanticsLabel,
       textScaler: TextScaler.noScaling,
@@ -28,5 +30,6 @@ class AppIcon extends StatelessWidget {
         color: color ?? IconTheme.of(context).color,
       ),
     );
+    return semanticsLabel == null ? ExcludeSemantics(child: glyph) : glyph;
   }
 }

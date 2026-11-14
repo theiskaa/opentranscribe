@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 
 /// One character position in a rolling transition: the character it shows now
 /// and whether it changed from the previous text (unchanged slots hold still).
@@ -110,14 +111,17 @@ class _RollingTextState extends State<RollingText> with SingleTickerProviderStat
   /// only moves prebuilt [TextPainter]s afterwards.
   void _buildSpec(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
-    final key = (_from, widget.text, widget.style, scaler);
+    // Bold Text thickens a Text's root style; this text lays itself out, so it
+    // must take the setting here or its glyphs stay regular beside bold words.
+    final style = AppType.boldAware(widget.style, bold: MediaQuery.boldTextOf(context));
+    final key = (_from, widget.text, style, scaler);
     if (key == _specKey) return;
     _specKey = key;
     _disposeSlots();
 
     final direction = Directionality.of(context);
     TextPainter layout(String text) => TextPainter(
-      text: TextSpan(text: text, style: widget.style),
+      text: TextSpan(text: text, style: style),
       textDirection: direction,
       textScaler: scaler,
     )..layout();

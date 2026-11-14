@@ -34,6 +34,12 @@ class AppScaffold extends StatelessWidget {
   /// it cleanly.
   static double topPaddingOf(BuildContext context) => AppTopBar.heightOf(context) + AppSpacing.lg;
 
+  /// Where a control anchored to the screen's bottom rests: xl above the safe
+  /// area, the same for every one of them (a floating disc, a dock, a capsule,
+  /// the recorder's row).
+  static double bottomControlOf(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom + AppSpacing.xl;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;

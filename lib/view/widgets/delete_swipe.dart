@@ -379,10 +379,18 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
       // left-aligned; only the hit area grows.
       child: SizedBox(width: double.infinity, child: widget.child),
     );
-    final glyph = AppIcon(AppIcons.trash, color: theme.onDanger);
+    final glyph = AppIcon(AppIcons.trash, size: AppIconSize.disc, color: theme.onDanger);
     final label = widget.label == null
         ? null
         : Text(widget.label!, style: AppType.caption.copyWith(color: theme.textSecondary));
+    // The label sits under the disc inside the centred block, lifting the disc
+    // by half the label's slot; the nudge hands that back exactly.
+    final labelNudge = label == null
+        ? 0.0
+        : (AppSpacing.xs +
+                  MediaQuery.textScalerOf(context).scale(AppType.caption.fontSize!) *
+                      AppType.lineHeightOf(AppType.caption, DefaultTextStyle.of(context).style)) /
+              2;
 
     final swipe = GestureDetector(
       // Opaque, not deferToChild: the drag must be caught across the WHOLE row,
@@ -401,7 +409,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
             _width = constraints.maxWidth;
             return Stack(
               clipBehavior: Clip.none,
-              children: [_slidingContent(content), _deleteSurface(theme, glyph, label)],
+              children: [_slidingContent(content), _deleteSurface(theme, glyph, label, labelNudge)],
             );
           },
         ),
@@ -447,7 +455,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
   // The ONE delete surface: a disc that pops in on open, then the SAME shape
   // stretches into a pill as the drag continues (only its width grows; height
   // and the stadium radius hold), not a second layer fading in over it.
-  Widget _deleteSurface(AppTheme theme, Widget glyph, Widget? label) {
+  Widget _deleteSurface(AppTheme theme, Widget glyph, Widget? label, double labelNudge) {
     final AppMotion motion = theme.motion;
     const rightInset = (_kActionWidth - _kBadgeSize) / 2;
     const radius = _kBadgeSize / 2;
@@ -484,10 +492,7 @@ class _DeleteSwipeState extends State<DeleteSwipe> with TickerProviderStateMixin
           return IgnorePointer(
             ignoring: (_reveal.value - 1).abs() > _kSettledEpsilon,
             child: Transform.translate(
-              // A label sits inside the centred block, so it pulls the disc up
-              // toward the row above. Nudge the whole surface down by that much
-              // to re-centre the disc on the row; no label, no nudge.
-              offset: Offset(slideIn, label == null ? 0 : AppSpacing.sm),
+              offset: Offset(slideIn, labelNudge),
               child: Padding(
                 padding: const EdgeInsets.only(right: rightInset),
                 // Relax both axes + centerRight so the pill keeps its natural width

@@ -44,53 +44,61 @@ class _TimeWheels extends StatelessWidget {
   final ValueChanged<int> onMinute;
 
   static const _extent = 42.0;
-  static const _height = 210.0;
-  static const _digitSize = 26.0;
+  // Five rows: the selection and two either side, as the OS picker shows.
+  static const _height = _extent * 5;
   // The selection pill hugs the two wheels rather than spanning the sheet: a
   // full-width band left bare margins on the phone's wider sheet.
-  static const _bandWidth = 240.0;
+  static const _bandWidth = _Wheel.width * 2 + AppSpacing.xxl;
+
+  /// Where the digits stop growing: 28 x 1.4 still fits a 42pt item.
+  static const _maxTextScale = 1.4;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final digits = AppType.digits(AppType.title).copyWith(color: theme.text, fontSize: _digitSize);
-    return SizedBox(
-      height: _height,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: _bandWidth,
-            height: _extent,
-            decoration: SuperellipseDecoration(
-              borderRadius: AppRadius.chip,
-              color: theme.text.withValues(alpha: 0.05),
+    // One line per item, never taller than the item: the OS wheel barely
+    // grows with text size either.
+    final digits = AppType.digits(AppType.display2).copyWith(color: theme.text, height: 1);
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: _maxTextScale,
+      child: SizedBox(
+        height: _height,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: _bandWidth,
+              height: _extent,
+              decoration: SuperellipseDecoration(
+                borderRadius: AppRadius.chip,
+                color: theme.calendar.tileFill,
+              ),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Wheel(
-                count: 24,
-                initial: initial.hour,
-                extent: _extent,
-                style: digits,
-                onChanged: onHour,
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                child: Text(':', style: digits.copyWith(color: theme.textSecondary)),
-              ),
-              _Wheel(
-                count: 60,
-                initial: initial.minute,
-                extent: _extent,
-                style: digits,
-                onChanged: onMinute,
-              ),
-            ],
-          ),
-        ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _Wheel(
+                  count: 24,
+                  initial: initial.hour,
+                  extent: _extent,
+                  style: digits,
+                  onChanged: onHour,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                  child: Text(':', style: digits.copyWith(color: theme.textSecondary)),
+                ),
+                _Wheel(
+                  count: 60,
+                  initial: initial.minute,
+                  extent: _extent,
+                  style: digits,
+                  onChanged: onMinute,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -117,13 +125,13 @@ class _Wheel extends StatefulWidget {
   final TextStyle style;
   final ValueChanged<int> onChanged;
 
+  static const width = 108.0;
+
   @override
   State<_Wheel> createState() => _WheelState();
 }
 
 class _WheelState extends State<_Wheel> {
-  static const _width = 108.0;
-
   late final FixedExtentScrollController _controller = FixedExtentScrollController(
     initialItem: widget.initial,
   );
@@ -145,7 +153,7 @@ class _WheelState extends State<_Wheel> {
   Widget build(BuildContext context) {
     final roll = context.motionNow.indicator;
     return SizedBox(
-      width: _width,
+      width: _Wheel.width,
       child: ListWheelScrollView.useDelegate(
         controller: _controller,
         itemExtent: widget.extent,

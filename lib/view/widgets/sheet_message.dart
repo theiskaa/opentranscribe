@@ -46,7 +46,9 @@ class SheetMessage extends StatelessWidget {
       children: [
         Row(
           children: [
-            CircleTile(child: AppIcon(icon, size: 20, color: theme.textSecondary)),
+            CircleTile(
+              child: AppIcon(icon, size: AppIconSize.disc, color: theme.textSecondary),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -63,7 +65,7 @@ class SheetMessage extends StatelessWidget {
         ),
         if (body != null) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(body!, style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5)),
+          Text(body!, style: AppType.subheadParagraph.copyWith(color: theme.textSecondary)),
         ],
         if (rows.isNotEmpty) ...[const SizedBox(height: AppSpacing.xl), ...rows],
         if (action != null) ...[const SizedBox(height: AppSpacing.xxl), action!],

@@ -16,7 +16,7 @@ class AppGlassIconButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.size = AppSizes.barControl,
-    this.iconSize = 18,
+    this.iconSize = AppIconSize.bar,
     this.color,
     this.semanticLabel,
     super.key,

@@ -2,8 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The floating action disc: home's record button and the entry screen's edit
@@ -17,7 +19,7 @@ class GlassFab extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.semanticLabel,
-    this.iconSize = 26,
+    this.iconSize = AppIconSize.fab,
     super.key,
   });
 
@@ -30,7 +32,15 @@ class GlassFab extends StatelessWidget {
   final VoidCallback? onTap;
   final double iconSize;
 
-  static const double size = 58;
+  static const double size = AppSizes.fab;
+
+  /// How far the disc floats in from the screen's side.
+  static const double floatInset = AppSpacing.xl;
+
+  /// Where content under a floating disc must end so its last line clears
+  /// the disc: the disc's seat, the disc, and a breath above it.
+  static double clearanceOf(BuildContext context) =>
+      AppScaffold.bottomControlOf(context) + size + AppSpacing.md;
 
   @override
   Widget build(BuildContext context) {

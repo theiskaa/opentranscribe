@@ -55,7 +55,7 @@ class _MemberHeart extends StatelessWidget {
     final theme = context.theme;
     final heart = Padding(
       padding: const EdgeInsets.only(left: AppSpacing.sm),
-      child: AppIcon(AppIcons.heartFill, size: 11, color: theme.accent),
+      child: AppIcon(AppIcons.heartFill, size: AppIconSize.badge, color: theme.accent),
     );
     if (context.reduceMotion) return heart;
     return TweenAnimationBuilder<double>(

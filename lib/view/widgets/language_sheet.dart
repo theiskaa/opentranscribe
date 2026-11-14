@@ -7,7 +7,6 @@ import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -200,21 +199,13 @@ class _SheetRow extends StatelessWidget {
       onTap: () => _tap(context),
       haptic: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: tokens.rowPadding,
         child: Row(
           children: [
             Opacity(
               opacity: _unready ? 0.45 : 1,
-              child: Container(
-                width: tokens.iconTileSize,
-                height: tokens.iconTileSize,
-                alignment: Alignment.center,
-                decoration: SuperellipseDecoration(
-                  borderRadius: tokens.iconTileRadius,
-                  color: row.isDefault && !_unready
-                      ? theme.accent.withValues(alpha: 0.14)
-                      : tokens.iconTileBackground,
-                ),
+              child: SettingsIconTile(
+                color: row.isDefault && !_unready ? theme.accent.withValues(alpha: 0.14) : null,
                 child: LocaleFlag(localeFlag(row.tag), size: 18),
               ),
             ),
@@ -224,6 +215,10 @@ class _SheetRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    // A caption beside a subhead: centring would float it
+                    // above the name's baseline.
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Flexible(
                         child: Text(
@@ -248,8 +243,8 @@ class _SheetRow extends StatelessWidget {
                     ],
                   ),
                   if (subLine != null) ...[
-                    const SizedBox(height: 2),
-                    Text(subLine, style: AppType.footnote.copyWith(color: theme.textSecondary)),
+                    SizedBox(height: tokens.noteGap),
+                    Text(subLine, style: AppType.rowNote.copyWith(color: theme.textSecondary)),
                   ],
                 ],
               ),
@@ -273,13 +268,22 @@ class _SheetRow extends StatelessWidget {
   bool get _stuck => row.status == ModelAssetStatus.downloading && !row.installing;
 
   Widget _trailing(BuildContext context, AppTheme theme) {
+    // The tile's height: a one-line row is no taller, and a mark must not grow it.
+    final seat = theme.settings.iconTileSize;
     if (row.installing) {
       final fraction = row.installFraction!;
-      if (fraction <= 0) return AppSpinner(color: theme.text);
-      return ProgressRing(fraction: fraction, size: 20);
+      return RowMarkSeat(
+        height: seat,
+        child: fraction <= 0
+            ? AppSpinner(size: RowMark.circle, color: theme.text)
+            : ProgressRing(fraction: fraction, size: RowMark.circle, strokeWidth: RowMark.stroke),
+      );
     }
     if (row.isDefault && row.isReady) {
-      return AppIcon(AppIcons.checkmark, size: 15, color: theme.settings.toggleActive);
+      return RowMarkSeat(
+        height: seat,
+        child: AppIcon(AppIcons.checkmark, size: RowMark.glyph, color: theme.settings.toggleActive),
+      );
     }
     // Every held slot can be freed here, ready or broken: freeing a slot a
     // broken language holds is the cap-recovery path itself. The default is
@@ -291,17 +295,23 @@ class _SheetRow extends StatelessWidget {
         // fire-and-forget persist; the row's failure stamp tells the story.
         onTap: () => context.read<SettingsCubit>().remove(row.tag).ignore(),
         haptic: true,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-          child: AppIcon(AppIcons.trash, size: 16, color: theme.textSecondary),
+        child: RowMarkSeat(
+          height: seat,
+          child: AppIcon(AppIcons.trash, size: RowMark.glyph, color: theme.textSecondary),
         ),
       );
     }
     if (_installFailed || _stuck) {
-      return AppIcon(AppIcons.arrowCounterclockwise, size: 17, color: theme.accent);
+      return RowMarkSeat(
+        height: seat,
+        child: AppIcon(AppIcons.arrowCounterclockwise, size: RowMark.glyph, color: theme.accent),
+      );
     }
-    if (!installs) return const SizedBox.shrink();
-    return AppIcon(AppIcons.icloud, size: 18, color: theme.accent);
+    if (!installs) return RowMarkSeat(height: seat, child: const SizedBox.shrink());
+    return RowMarkSeat(
+      height: seat,
+      child: AppIcon(AppIcons.arrowDownCircle, size: RowMark.circle, color: theme.accent),
+    );
   }
 
   Future<void> _tap(BuildContext context) async {

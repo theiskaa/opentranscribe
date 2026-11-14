@@ -58,7 +58,7 @@ class EmptyState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: AppType.subhead.copyWith(color: theme.textSecondary, height: 1.5),
+              style: AppType.subheadParagraph.copyWith(color: theme.textSecondary),
             ),
           ],
           if (actionLabel != null) ...[

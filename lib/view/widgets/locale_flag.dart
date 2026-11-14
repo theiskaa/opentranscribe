@@ -23,11 +23,14 @@ class LocaleFlag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Transform.translate(
-        offset: Offset(size * 0.04, -size * 0.05),
+        // Even leading centres the emoji box; the flag art still sits a
+        // touch low and left inside it.
+        offset: Offset(size * 0.04, -size * 0.014),
         child: Text(
           flag,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: size),
+          // Even leading set here, not inherited: the nudge below assumes it.
+          style: TextStyle(fontSize: size, leadingDistribution: TextLeadingDistribution.even),
           textScaler: TextScaler.noScaling,
         ),
       ),

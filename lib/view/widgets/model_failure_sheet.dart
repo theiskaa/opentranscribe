@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
@@ -15,6 +14,7 @@ import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/model_failure_story.dart';
+import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/sheet_message.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -107,11 +107,8 @@ class _FailureContent extends StatelessWidget {
           body: body,
           rows: [
             for (final (index, tag) in evictable.indexed) ...[
-              if (index > 0)
-                Padding(
-                  padding: EdgeInsets.only(left: theme.settings.dividerInset),
-                  child: Container(height: 1, color: theme.settings.dividerColor),
-                ),
+              // Under the label: these rows carry no side padding of their own.
+              if (index > 0) SettingsDivider(inset: theme.settings.iconTileSize + AppSpacing.md),
               _EvictRow(tag: tag, onTap: () => Navigator.of(context).pop(_Evict(tag))),
             ],
           ],
@@ -151,7 +148,6 @@ class _EvictRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final tokens = theme.settings;
     return Touchable(
       onTap: onTap,
       haptic: true,
@@ -159,16 +155,7 @@ class _EvictRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Row(
           children: [
-            Container(
-              width: tokens.iconTileSize,
-              height: tokens.iconTileSize,
-              alignment: Alignment.center,
-              decoration: SuperellipseDecoration(
-                borderRadius: tokens.iconTileRadius,
-                color: tokens.iconTileBackground,
-              ),
-              child: LocaleFlag(localeFlag(tag), size: 18),
-            ),
+            SettingsIconTile(child: LocaleFlag(localeFlag(tag), size: 18)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
@@ -177,7 +164,7 @@ class _EvictRow extends StatelessWidget {
                 style: AppType.subhead.copyWith(color: theme.text),
               ),
             ),
-            AppIcon(AppIcons.trash, size: 18, color: theme.danger),
+            AppIcon(AppIcons.trash, size: RowMark.glyph, color: theme.danger),
           ],
         ),
       ),

@@ -77,7 +77,7 @@ class SpeakingHero extends StatelessWidget {
 
   /// Bare flag in a fixed slot, so the name column stays still across languages.
   static const double _flagSize = 34;
-  static const double _flagSlot = 44;
+  static const double _flagSlot = AppSizes.barControl;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +125,7 @@ class SpeakingHero extends StatelessWidget {
                         // on every switch.
                         Stack(
                           children: [
-                            const Opacity(opacity: 0, child: Text(' ', style: AppType.footnote)),
+                            const Opacity(opacity: 0, child: Text(' ', style: AppType.rowNote)),
                             AnimatedSwitcher(
                               duration: crossfade,
                               layoutBuilder: meltStack,
@@ -140,7 +140,7 @@ class SpeakingHero extends StatelessWidget {
                                       key: ValueKey(statusLine),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppType.footnote.copyWith(color: theme.textSecondary),
+                                      style: AppType.rowNote.copyWith(color: theme.textSecondary),
                                     ),
                             ),
                           ],
@@ -152,7 +152,7 @@ class SpeakingHero extends StatelessWidget {
                   AppIcon(
                     AppIcons.chevronForward,
                     size: theme.settings.heroChevronSize,
-                    color: theme.textSecondary,
+                    color: theme.settings.chevronColor,
                   ),
                 ],
               ),
@@ -189,7 +189,7 @@ class _DownloadingLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
-    final style = AppType.footnote.copyWith(color: theme.textSecondary);
+    final style = AppType.rowNote.copyWith(color: theme.textSecondary);
     final percent = (fraction.clamp(0.0, 1.0) * 100).round();
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -197,7 +197,7 @@ class _DownloadingLine extends StatelessWidget {
         Text('${l10n.transcriptionDownloading} · ', style: style),
         RollingText(
           text: '$percent%',
-          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+          style: AppType.digits(AppType.rowNote).copyWith(color: theme.textSecondary),
           // Quiet secondary text: every changed digit moves together.
           stagger: Duration.zero,
         ),

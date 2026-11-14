@@ -107,7 +107,7 @@ class _ErrorPillState extends State<ErrorPill> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              AppIcon(AppIcons.chevronForward, size: 14, color: tokens.chevron),
+              AppIcon(AppIcons.chevronForward, size: AppIconSize.accessory, color: tokens.chevron),
             ],
           ),
         ),

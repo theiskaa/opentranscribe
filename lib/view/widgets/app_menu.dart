@@ -82,9 +82,13 @@ class AppMenuItem {
 }
 
 /// The menu's own metrics.
-const double _menuWidth = 232;
-const double _rowHeight = 44;
+const double _menuWidth = AppPopup.width;
+const double _rowHeight = AppSizes.minTarget;
 const double _menuGap = AppSpacing.sm;
+
+/// A row's glyph: the native menu's size (its label's), in a fixed column.
+final double _iconSize = AppType.callout.fontSize!;
+const double _iconSlot = AppSpacing.xxl;
 
 /// Opens a menu ANCHORED to [anchor] (a global rect, usually the trigger's own
 /// bounds) and resolves to the chosen index, or null if it was dismissed. It
@@ -180,18 +184,23 @@ class _MenuRow extends StatelessWidget {
               Expanded(
                 child: Text(item.label, style: AppType.callout.copyWith(color: color)),
               ),
-              if (item.iconBytes != null) ...[
+              if (item.iconBytes != null || item.icon != null) ...[
                 const SizedBox(width: AppSpacing.md),
-                Image.memory(
-                  item.iconBytes!,
-                  width: 17,
-                  height: 17,
-                  color: iconColor,
-                  colorBlendMode: BlendMode.srcIn,
+                // A fixed slot, so glyphs of different widths share one column.
+                SizedBox.square(
+                  dimension: _iconSlot,
+                  child: Center(
+                    child: item.iconBytes != null
+                        ? Image.memory(
+                            item.iconBytes!,
+                            width: _iconSize,
+                            height: _iconSize,
+                            color: iconColor,
+                            colorBlendMode: BlendMode.srcIn,
+                          )
+                        : AppIcon(item.icon!, size: _iconSize, color: iconColor),
+                  ),
                 ),
-              ] else if (item.icon != null) ...[
-                const SizedBox(width: AppSpacing.md),
-                AppIcon(item.icon!, size: 17, color: iconColor),
               ],
             ],
           ),
@@ -211,7 +220,7 @@ class AppMenuButton extends StatelessWidget {
     this.onSelected,
     this.onSelectedId,
     this.size = AppSizes.barControl,
-    this.iconSize = 20,
+    this.iconSize = AppIconSize.bar,
     this.color,
     this.semanticLabel,
     super.key,
@@ -255,7 +264,7 @@ class AppMenuButton extends StatelessWidget {
         iconPointSize: iconSize,
         // Sized to the row's own label, not to the symbol's intrinsic size,
         // which UIKit otherwise draws far larger than the words beside it.
-        itemIconPointSize: AppType.callout.fontSize,
+        itemIconPointSize: _iconSize,
         // isDark keeps the glass and its menu in step with the chosen theme
         // family, not just the system appearance.
         isDark: context.theme.brightness == Brightness.dark,

@@ -89,7 +89,7 @@ class _AppNoticeState extends State<AppNotice> {
               child: Text(
                 message,
                 textAlign: TextAlign.center,
-                style: AppType.footnote.copyWith(color: theme.textSecondary),
+                style: AppType.note.copyWith(color: theme.textSecondary),
               ),
             ),
     );

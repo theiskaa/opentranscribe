@@ -106,7 +106,9 @@ class _WaveGlyphPainter extends CustomPainter {
       // hold their shape and only the swell travels through them.
       final full = size.height * kWavePattern[i];
       final h = math.max(barWidth, full * pullBarSwell(i, now, 1));
-      canvas.drawLine(Offset(x, mid - h / 2), Offset(x, mid + h / 2), paint);
+      // Round caps add half a bar at each end, so the line is that much short.
+      final reach = math.max((h - barWidth) / 2, _dotReach);
+      canvas.drawLine(Offset(x, mid - reach), Offset(x, mid + reach), paint);
       x += barWidth + gap;
     }
   }
@@ -115,3 +117,7 @@ class _WaveGlyphPainter extends CustomPainter {
   bool shouldRepaint(_WaveGlyphPainter old) =>
       old.color != color || old.barWidth != barWidth || old.gap != gap;
 }
+
+/// A floor bar's half-length: never zero, since a renderer may drop a
+/// zero-length line where its round caps should still draw a dot.
+const double _dotReach = 0.01;

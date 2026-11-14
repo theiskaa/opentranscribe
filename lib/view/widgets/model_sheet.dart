@@ -228,7 +228,7 @@ class _SheetRow extends StatelessWidget {
                     ),
                     SizedBox(height: theme.settings.noteGap),
                     _Line(row: row),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       modelTierInfo(l10n, row.option.quality),
                       style: AppType.note.copyWith(
@@ -306,7 +306,7 @@ class _Line extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final motion = context.motionNow;
-    final style = AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary);
+    final style = AppType.digits(AppType.rowNote).copyWith(color: theme.textSecondary);
     final counting = row.installing && !row.queued && !row.preparing;
     final line = modelSheetLine(l10n, row, localeTag: localeTag(context));
     return AnimatedSwitcher(
@@ -356,13 +356,6 @@ class _Mark extends StatelessWidget {
 
   final ModelRowState row;
 
-  /// One size for every glyph, so none sits heavier in the column.
-  static const double _glyph = 17;
-
-  /// The download arrow's circle and the stop ring share one diameter, so a
-  /// download reads as that circle filling.
-  static const double _circle = 21;
-
   /// How small a mark shrinks to on its way out, and grows from on its way in.
   static const double _replaceScale = 0.5;
 
@@ -376,31 +369,36 @@ class _Mark extends StatelessWidget {
     final Widget glyph = switch (mark) {
       ModelSheetMark.stop => _StopRing(
         fraction: row.queued ? 0 : row.installFraction ?? 0,
-        size: _circle,
+        size: RowMark.circle,
       ),
-      ModelSheetMark.spinner => AppSpinner(color: theme.text),
+      ModelSheetMark.spinner => AppSpinner(size: RowMark.circle, color: theme.text),
       ModelSheetMark.check => AppIcon(
         AppIcons.checkmark,
-        size: _glyph,
+        size: RowMark.glyph,
         color: theme.settings.toggleActive,
       ),
-      ModelSheetMark.trash => AppIcon(AppIcons.trash, size: _glyph, color: theme.textSecondary),
+      ModelSheetMark.trash => AppIcon(
+        AppIcons.trash,
+        size: RowMark.glyph,
+        color: theme.textSecondary,
+      ),
       ModelSheetMark.retry => AppIcon(
         AppIcons.arrowCounterclockwise,
-        size: _glyph,
+        size: RowMark.glyph,
         color: theme.accent,
       ),
       ModelSheetMark.download => AppIcon(
         AppIcons.arrowDownCircle,
-        size: _circle,
+        size: RowMark.circle,
         color: theme.accent,
       ),
       ModelSheetMark.none => const SizedBox.shrink(),
     };
     // A picture of the row's state, which its words and flags already say.
     final seat = ExcludeSemantics(
-      child: SizedBox.square(
-        dimension: theme.settings.trailingTargetWidth,
+      // A full target: the row's lines stand taller than it.
+      child: RowMarkSeat(
+        height: AppSizes.minTarget,
         child: AnimatedSwitcher(
           duration: context.reduceMotion ? Duration.zero : motion.indicator,
           switchInCurve: motion.indicatorCurve,
@@ -464,8 +462,6 @@ class _StopRing extends StatelessWidget {
   final double fraction;
   final double size;
 
-  static const double _stroke = 2;
-
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -475,7 +471,7 @@ class _StopRing extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          ProgressRing(fraction: fraction, size: size, strokeWidth: _stroke),
+          ProgressRing(fraction: fraction, size: size, strokeWidth: RowMark.stroke),
           Container(
             width: stop,
             height: stop,

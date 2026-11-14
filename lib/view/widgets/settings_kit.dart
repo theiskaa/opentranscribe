@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
@@ -9,6 +12,7 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_spinner.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
+import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -16,13 +20,20 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// bar and clear of the home indicator. One place, so the five screens cannot
 /// drift apart (one used to miss the bottom safe-area inset).
 class SettingsList extends StatelessWidget {
-  const SettingsList({required this.children, super.key});
+  const SettingsList({required this.children, this.clearsFab = false, super.key});
 
   final List<Widget> children;
+
+  /// A disc floats over the list's end, so the last content clears it.
+  final bool clearsFab;
 
   /// The list's side inset, which content that reaches to the screen's edge
   /// must bleed back through.
   static const double gutter = AppSpacing.md;
+
+  /// From under the bar to the first content, whatever it is: a card, a
+  /// label (which then takes no top of its own), a note.
+  static const double lead = AppSpacing.sm;
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +41,11 @@ class SettingsList extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
         gutter,
         // Tighter than the standard breath: settings sits closer under the bar.
-        AppScaffold.topPaddingOf(context) - AppSpacing.md,
+        AppScaffold.topPaddingOf(context) - AppSpacing.md + lead,
         gutter,
-        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+        clearsFab
+            ? GlassFab.clearanceOf(context)
+            : MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
       ),
       children: children,
     );
@@ -91,6 +104,22 @@ class SettingsDivider extends StatelessWidget {
   }
 }
 
+/// A noteless [SelectableRow]'s height, as it lays itself out: its padding
+/// around the taller of the tile and the label. For placement math that must
+/// know a popup's height before it builds.
+double selectableRowHeight(
+  SettingsTheme tokens, {
+  required TextScaler scaler,
+  required double? ambientHeight,
+  required bool tile,
+}) {
+  final label =
+      scaler.scale(AppType.subhead.fontSize!) *
+      AppType.lineHeightOf(AppType.subhead, TextStyle(height: ambientHeight));
+  final content = tile ? math.max(tokens.iconTileSize, label) : label;
+  return content + tokens.rowPadding.vertical;
+}
+
 /// A row you pick from a list, reeed's shape: a tinted chip (a language's flag,
 /// an export format's mark), the choice's own name, and a checkmark on the
 /// current one. The selected row inks and bolds; the rest stay quiet. Tapping
@@ -110,8 +139,8 @@ class SelectableRow extends StatelessWidget {
   final String label;
 
   /// A quiet second line saying what the choice actually is (what an export
-  /// format writes). One line, and only inside a card: it makes the row taller
-  /// than the fixed height showAppDropdown estimates its popup by.
+  /// format writes). One line, and only inside a card: a dropdown places its
+  /// popup by [selectableRowHeight], which counts no note.
   final String? note;
 
   /// The leading chip's flag emoji (see `localeFlag`), or null for a plain
@@ -151,15 +180,19 @@ class SelectableRow extends StatelessWidget {
             Expanded(
               child: SettingsLabelAndNote(
                 note: note,
-                // One line each: a wrapped row would break showAppDropdown's
-                // fixed row estimate and misplace the popup.
+                // One line each: a wrapped row would outgrow the height
+                // selectableRowHeight places a dropdown by.
                 oneLine: true,
                 label: AnimatedDefaultTextStyle(
                   duration: duration,
                   curve: curve,
-                  style: AppType.subhead.copyWith(
-                    color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  // Merged, not replaced: this sets the label's root style, so
+                  // it must keep the line height every other row label has.
+                  style: DefaultTextStyle.of(context).style.merge(
+                    AppType.subhead.copyWith(
+                      color: dimmed ? theme.textSecondary : (active ? theme.accent : theme.text),
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    ),
                   ),
                   child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
@@ -175,7 +208,7 @@ class SelectableRow extends StatelessWidget {
                 scale: active ? 1 : 0.5,
                 duration: duration,
                 curve: curve,
-                child: AppIcon(AppIcons.checkmark, size: 14, color: theme.text),
+                child: AppIcon(AppIcons.checkmark, size: AppIconSize.accessory, color: theme.text),
               ),
             ),
           ],
@@ -183,6 +216,34 @@ class SelectableRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A sheet row's trailing mark: one glyph size for every mark, and one circle
+/// the download arrow and the progress ring share, so a download reads as
+/// that circle filling.
+abstract final class RowMark {
+  static const glyph = AppIconSize.body;
+  static const circle = 21.0;
+  static const stroke = 2.0;
+}
+
+/// The fixed column a sheet row's trailing mark stands in, so marks of any
+/// width line up down the list; a tappable mark fills it as its target. A row
+/// with no mark still holds the column.
+class RowMarkSeat extends StatelessWidget {
+  const RowMarkSeat({required this.child, required this.height, super.key});
+
+  final Widget child;
+
+  /// No taller than the row's own content, so a mark never grows its row.
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: context.theme.settings.trailingTargetWidth,
+    height: height,
+    child: Center(child: child),
+  );
 }
 
 /// The square a settings row leads with: a glyph, a flag, or a drawn mark on
@@ -246,7 +307,9 @@ class SettingsToggleRow extends StatelessWidget {
         padding: tokens.rowPadding,
         child: Row(
           children: [
-            SettingsIconTile(child: AppIcon(icon, size: 16, color: content)),
+            SettingsIconTile(
+              child: AppIcon(icon, size: AppIconSize.tile, color: content),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: SettingsLabelAndNote(
@@ -298,9 +361,8 @@ class SettingsLabelAndNote extends StatelessWidget {
             note!,
             maxLines: oneLine ? 1 : null,
             overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
-            style: (tabular ? AppType.digits(AppType.footnote) : AppType.footnote).copyWith(
+            style: (tabular ? AppType.digits(AppType.rowNote) : AppType.rowNote).copyWith(
               color: context.theme.textSecondary,
-              height: 1.3,
             ),
           ),
         ],
@@ -339,7 +401,7 @@ class SettingsActionRow extends StatelessWidget {
   final VoidCallback onTap;
 
   /// A second line saying what the row leads to. Wraps: unlike [SelectableRow]
-  /// this row never sits in a popup sized by a fixed row height.
+  /// this row never sits in a popup placed by its row height.
   final String? note;
 
   final String? trailing;
@@ -359,7 +421,7 @@ class SettingsActionRow extends StatelessWidget {
           children: [
             SettingsIconTile(
               color: tint?.withValues(alpha: 0.14),
-              child: leading ?? AppIcon(icon!, size: 16, color: accent),
+              child: leading ?? AppIcon(icon!, size: AppIconSize.tile, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -372,7 +434,7 @@ class SettingsActionRow extends StatelessWidget {
               Text(trailing!, style: AppType.subhead.copyWith(color: theme.accent)),
               const SizedBox(width: AppSpacing.xs),
             ],
-            AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: theme.textSecondary),
+            AppIcon(AppIcons.chevronForward, size: tokens.chevronSize, color: tokens.chevronColor),
           ],
         ),
       ),
@@ -422,7 +484,11 @@ class SettingsBusyRow extends StatelessWidget {
           children: [
             SettingsIconTile(
               color: enabled ? tint?.withValues(alpha: 0.14) : null,
-              child: AppIcon(icon, size: 16, color: enabled ? accent : theme.textSecondary),
+              child: AppIcon(
+                icon,
+                size: AppIconSize.tile,
+                color: enabled ? accent : theme.textSecondary,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -431,7 +497,7 @@ class SettingsBusyRow extends StatelessWidget {
             AnimatedSwitcher(
               duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
               child: busy
-                  ? AppSpinner(size: 16, color: theme.textSecondary)
+                  ? AppSpinner(size: AppIconSize.tile, color: theme.textSecondary)
                   : detail != null
                   ? Text(
                       detail!,
@@ -470,6 +536,10 @@ class ThemeFamilyCard extends StatefulWidget {
 
   static const defaultAspectRatio = 92 / 108;
   static const defaultRadius = 16.0;
+
+  /// The corner seat the check and the club's heart share.
+  static const double _badge = 20;
+  static const double _badgeGlyph = AppIconSize.badge;
 
   final String label;
   final bool selected;
@@ -549,6 +619,9 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
               builder: (context, _) {
                 final t = _sel.value;
                 final pop = popCurve.transform(t.clamp(0.0, 1.0));
+                // R - r puts the badge's centre on the corner arc's centre, so the
+                // two curves are concentric whatever the card's radius.
+                final badgeInset = AppRadius.inner(widget.radius, ThemeFamilyCard._badge / 2);
                 return Stack(
                   children: [
                     if (widget.child != null)
@@ -603,23 +676,36 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                       ),
                     if (widget.marked)
                       Positioned(
-                        top: 12,
-                        right: 12,
-                        child: AppIcon(AppIcons.heartFill, size: 11, color: widget.accent),
+                        top: badgeInset,
+                        right: badgeInset,
+                        child: SizedBox.square(
+                          dimension: ThemeFamilyCard._badge,
+                          child: Center(
+                            child: AppIcon(
+                              AppIcons.heartFill,
+                              size: ThemeFamilyCard._badgeGlyph,
+                              color: widget.accent,
+                            ),
+                          ),
+                        ),
                       ),
                     // Checkmark badge in the accent, popping in with overshoot.
                     if (pop > 0)
                       Positioned(
-                        top: 8,
-                        right: 8,
+                        top: badgeInset,
+                        right: badgeInset,
                         child: Transform.scale(
                           scale: pop,
                           child: Container(
-                            width: 20,
-                            height: 20,
+                            width: ThemeFamilyCard._badge,
+                            height: ThemeFamilyCard._badge,
                             decoration: BoxDecoration(color: widget.accent, shape: BoxShape.circle),
                             child: Center(
-                              child: AppIcon(AppIcons.checkmark, size: 11, color: widget.onAccent),
+                              child: AppIcon(
+                                AppIcons.checkmark,
+                                size: ThemeFamilyCard._badgeGlyph,
+                                color: widget.onAccent,
+                              ),
                             ),
                           ),
                         ),
@@ -686,28 +772,32 @@ class SectionInfoLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(text, style: AppType.note.copyWith(color: theme.textSecondary)),
-          const SizedBox(height: AppSpacing.xs),
+          // The gaps around the link are its hit area too: a taller target,
+          // nothing drawn moves.
           Touchable(
             onTap: onTap,
             haptic: true,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  linkLabel,
-                  style: AppType.footnote.copyWith(
-                    color: theme.accent,
-                    fontWeight: FontWeight.w600,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs, bottom: AppSpacing.md),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    linkLabel,
+                    style: AppType.footnote.copyWith(
+                      color: theme.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.xxs),
-                AppIcon(icon, size: 10, color: theme.accent),
-              ],
+                  const SizedBox(width: AppSpacing.xxs),
+                  AppIcon(icon, size: 10, color: theme.accent),
+                ],
+              ),
             ),
           ),
         ],

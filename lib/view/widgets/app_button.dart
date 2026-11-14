@@ -159,8 +159,8 @@ class AppIconButton extends StatelessWidget {
   const AppIconButton({
     required this.icon,
     required this.onTap,
-    this.size = 52,
-    this.iconSize = 20,
+    this.size = AppSizes.control,
+    this.iconSize = AppIconSize.disc,
     this.foreground,
     this.semanticLabel,
     super.key,

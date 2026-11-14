@@ -105,6 +105,9 @@ class AppTopBar extends StatelessWidget {
   /// and its inset.
   static const double clearance = _edgeInset * 2 + AppSizes.barControl;
 
+  /// How far a bar control sits from the screen's edge.
+  static const double edgeInset = _edgeInset;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;

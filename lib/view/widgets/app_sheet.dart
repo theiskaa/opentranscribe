@@ -417,13 +417,15 @@ class _SheetBodyState extends State<_SheetBody>
                             child: widget.builder(context),
                           ),
                         ),
+                        // The footer's own gutter and floor, not the cards':
+                        // its button sits where a message sheet's does.
                         if (widget.footer != null)
                           Padding(
                             padding: EdgeInsets.fromLTRB(
-                              widget.inset,
+                              AppSpacing.xxl,
                               0,
-                              widget.inset,
-                              keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.lg,
+                              AppSpacing.xxl,
+                              keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
                             ),
                             child: widget.footer!(context),
                           ),

@@ -118,10 +118,7 @@ class _HintCalloutState extends State<HintCallout> with SingleTickerProviderStat
                       color: tokens.background,
                       border: border,
                     ),
-                    child: Text(
-                      widget.message,
-                      style: AppType.footnote.copyWith(color: tokens.text),
-                    ),
+                    child: Text(widget.message, style: AppType.note.copyWith(color: tokens.text)),
                   ),
                 ),
                 PositionedDirectional(

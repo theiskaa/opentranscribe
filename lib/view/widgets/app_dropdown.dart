@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/view/widgets/anchored_popup.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
 /// One choice in a dropdown: a selectable row (see [SelectableRow]). [flag] is
@@ -22,14 +24,14 @@ Rect dropdownAnchorRect(GlobalKey key, BuildContext context) {
   final box = key.currentContext?.findRenderObject();
   if (box is RenderBox && box.attached) return box.localToGlobal(Offset.zero) & box.size;
   final screen = MediaQuery.sizeOf(context);
-  return Rect.fromLTWH(screen.width - 60, MediaQuery.paddingOf(context).top, 44, 44);
+  const side = AppSizes.barControl;
+  final left = screen.width - AppTopBar.edgeInset - side;
+  final top = MediaQuery.paddingOf(context).top + (context.theme.topBar.height - side) / 2;
+  return Rect.fromLTWH(left, top, side, side);
 }
 
-/// The dropdown's own metrics. The row estimate mirrors [SelectableRow]'s
-/// intrinsics (12px vertical padding around a 32px chip) for placement math;
-/// actual layout stays intrinsic.
-const double _width = 264;
-const double _rowEstimate = 56;
+/// The dropdown's own metrics.
+const double _width = AppPopup.width;
 const double _gap = AppSpacing.sm;
 
 /// Opens a selection dropdown ANCHORED to [anchor] (the tapped control's
@@ -58,21 +60,32 @@ class _DropdownBody extends StatefulWidget {
 }
 
 class _DropdownBodyState extends State<_DropdownBody> {
-  late final ScrollController _scroll;
+  ScrollController? _scrollOrNull;
+  ScrollController get _scroll => _scrollOrNull!;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     // A long list opens AT the selection, not at the top of the alphabet.
     final selected = widget.items.indexWhere((item) => item.selected);
-    _scroll = ScrollController(
-      initialScrollOffset: selected <= 0 ? 0 : (selected - 2) * _rowEstimate,
+    _scrollOrNull ??= ScrollController(
+      initialScrollOffset: selected <= 0 ? 0 : (selected - 2) * _rowHeight(context, widget.items),
     );
   }
 
+  /// One row's height, exactly as [SelectableRow] lays it out: a dropdown's
+  /// rows are all flagged or all plain.
+  static double _rowHeight(BuildContext context, List<AppDropdownItem> items) =>
+      selectableRowHeight(
+        context.theme.settings,
+        scaler: MediaQuery.textScalerOf(context),
+        ambientHeight: DefaultTextStyle.of(context).style.height,
+        tile: items.any((item) => item.flag != null),
+      );
+
   @override
   void dispose() {
-    _scroll.dispose();
+    _scrollOrNull?.dispose();
     super.dispose();
   }
 
@@ -81,7 +94,7 @@ class _DropdownBodyState extends State<_DropdownBody> {
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
 
-    final natural = widget.items.length * _rowEstimate + AppSpacing.sm * 2;
+    final natural = widget.items.length * _rowHeight(context, widget.items) + AppSpacing.sm * 2;
     final below = widget.anchor.bottom + _gap;
     final roomBelow = screen.height - insets.bottom - AppSpacing.md - below;
     final roomAbove = widget.anchor.top - _gap - insets.top - AppSpacing.md;
