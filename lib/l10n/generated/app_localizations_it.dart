@@ -94,6 +94,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get homeSetupChangeEngine => 'Cambia motore';
 
   @override
+  String get homeDetailEmptyTitle => 'Il tuo diario inizia qui';
+
+  @override
+  String get homeDetailEmptyBody => 'Tocca la forma d’onda per registrare una voce.';
+
+  @override
   String get homeSetupRecord => 'Tira giù, o tocca la forma d\'onda, per registrare la prima voce.';
 
   @override

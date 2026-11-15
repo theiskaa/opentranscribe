@@ -34,14 +34,23 @@ Future<T?> showAnchoredPopup<T>(
 }) {
   // One-shot read: this runs from tap handlers, where select is illegal.
   final motion = context.motionNow;
-  final reduceMotion = context.reduceMotion;
+  final reduceMotion =
+      context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false;
+  final source = context.getInheritedWidgetOfExactType<PaneScope>();
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,
     barrierLabel: '',
     barrierColor: const Color(0x00000000),
     transitionDuration: motion.indicator,
-    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    pageBuilder: (context, animation, secondaryAnimation) => source == null
+        ? Builder(builder: builder)
+        : PaneScope(
+            pane: source.pane,
+            detailRoot: false,
+            touch: source.touch,
+            child: Builder(builder: builder),
+          ),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: motion.indicatorCurve);
       if (reduceMotion) return FadeTransition(opacity: curved, child: child);
@@ -52,7 +61,7 @@ Future<T?> showAnchoredPopup<T>(
             anchor: anchor,
             modal: PaneLayoutScope.maybeOf(context)?.cover == true
                 ? Offset.zero & MediaQuery.sizeOf(context)
-                : modalRectOf(context),
+                : modalRectOf(context, sourcePane: source?.touch),
             window: MediaQuery.sizeOf(context),
           ),
           scale: Tween<double>(begin: 0.88, end: 1).animate(curved),

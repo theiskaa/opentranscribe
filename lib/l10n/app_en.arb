@@ -113,6 +113,14 @@
   "@homeSetupChangeEngine": {
     "description": "The link under the empty journal's Speaking card that opens the engine picker"
   },
+  "homeDetailEmptyTitle": "Your journal starts here",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "Tap the waveform to record an entry.",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "Pull down, or tap the waveform, to record your first entry.",
   "@homeSetupRecord": {
     "description": "The empty journal's last line when recording will work as set"

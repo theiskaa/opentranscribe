@@ -88,6 +88,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeSetupChangeEngine => '更换引擎';
 
   @override
+  String get homeDetailEmptyTitle => '从这里开始写日记';
+
+  @override
+  String get homeDetailEmptyBody => '轻点波形，录制一篇日记。';
+
+  @override
   String get homeSetupRecord => '下拉或点按波形，录下你的第一条记录。';
 
   @override

@@ -3,8 +3,29 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+
+bool journalColumnEnabled({required PaneLayout layout, required bool cover}) =>
+    !cover && layout.sideColumn != null;
+
+({Rect record, Rect settings, Rect detail}) journalColumnSlots(SideColumn column) {
+  final slots = sideColumnSlots(column.upperSlot, const [
+    Size.square(AppSizes.fab),
+    Size.square(AppSizes.barControl),
+  ]);
+  return (
+    record: slots.first,
+    settings: slots.last,
+    detail: Rect.fromLTRB(
+      column.upperSlot.left,
+      slots.last.bottom,
+      column.upperSlot.right,
+      column.upperSlot.bottom,
+    ),
+  );
+}
 
 List<Rect> sideColumnSlots(Rect slot, List<Size> controls, {bool bottom = false}) {
   final result = <Rect>[];

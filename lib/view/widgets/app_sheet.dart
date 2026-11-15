@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
@@ -38,7 +39,9 @@ Future<T?> showAppSheet<T>(
 }) {
   final motion = context.motionNow;
   final barrier = context.themeNow.barrier;
-  final reduce = context.reduceMotion;
+  final reduce =
+      context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false;
+  final sourcePane = context.getInheritedWidgetOfExactType<PaneScope>()?.touch;
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,
@@ -50,12 +53,14 @@ Future<T?> showAppSheet<T>(
     transitionDuration: motion.sheetScrim,
     pageBuilder: (context, animation, secondaryAnimation) => ModalFrame(
       capWidth: AppDuo.closedContentWidth,
+      sourcePane: sourcePane,
       child: _SheetBody(
         builder: builder,
         inset: inset,
         backdrop: backdrop,
         footer: footer,
         tall: tall,
+        sourcePane: sourcePane,
       ),
     ),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
@@ -202,6 +207,7 @@ class _SheetBody extends StatefulWidget {
     this.backdrop,
     this.footer,
     this.tall = false,
+    this.sourcePane,
   });
 
   final WidgetBuilder builder;
@@ -210,6 +216,7 @@ class _SheetBody extends StatefulWidget {
 
   final WidgetBuilder? footer;
   final bool tall;
+  final PaneTouch? sourcePane;
 
   /// Horizontal breathing room around the content. Message sheets read best
   /// at the default; a sheet of full-width cards tightens it so the cards
@@ -341,6 +348,12 @@ class _SheetBodyState extends State<_SheetBody>
     final sheet = context.theme.sheet;
     final radius = BorderRadius.vertical(top: Radius.circular(sheet.radius));
     final screenHeight = MediaQuery.sizeOf(context).height;
+    final paneSheet =
+        sheetPaneRect(
+          layout: PaneLayoutScope.maybeOf(context)?.layout,
+          source: widget.sourcePane,
+        ) !=
+        null;
     // No framework scaffold insets for the IME here, so a sheet holding a
     // text field must clear the keyboard itself.
     final inset = MediaQuery.viewInsetsOf(context).bottom;
@@ -356,6 +369,11 @@ class _SheetBodyState extends State<_SheetBody>
     );
     _watchDrop(inset);
     final keyboard = _heldKeyboard;
+    final maxHeight = math.min(
+      paneSheet ? screenHeight - MediaQuery.paddingOf(context).top : screenHeight,
+      screenHeight * (widget.tall ? sheet.tallMaxHeightFraction : sheet.maxHeightFraction) +
+          keyboard,
+    );
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -374,12 +392,7 @@ class _SheetBodyState extends State<_SheetBody>
               // fill then covers the gap the IME's animation curve would
               // otherwise open under it. The visible part above the
               // keyboard is still capped at the fraction.
-              maxHeight: math.min(
-                screenHeight,
-                screenHeight *
-                        (widget.tall ? sheet.tallMaxHeightFraction : sheet.maxHeightFraction) +
-                    keyboard,
-              ),
+              maxHeight: maxHeight,
             ),
             child: Container(
               width: double.infinity,
@@ -425,15 +438,29 @@ class _SheetBodyState extends State<_SheetBody>
                         // The footer's own gutter and floor, not the cards':
                         // its button sits where a message sheet's does.
                         if (widget.footer != null)
-                          SafeSides(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                AppSpacing.xxl,
-                                0,
-                                AppSpacing.xxl,
-                                keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: paneSheet
+                                  ? math.max(0, maxHeight - _grabberSeat(sheet) - AppSpacing.xxl)
+                                  : double.infinity,
+                            ),
+                            child: SingleChildScrollView(
+                              physics: paneSheet
+                                  ? const ClampingScrollPhysics()
+                                  : const NeverScrollableScrollPhysics(),
+                              child: SafeSides(
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    AppSpacing.xxl,
+                                    0,
+                                    AppSpacing.xxl,
+                                    keyboard +
+                                        MediaQuery.paddingOf(context).bottom +
+                                        AppSpacing.xxl,
+                                  ),
+                                  child: Builder(builder: widget.footer!),
+                                ),
                               ),
-                              child: Builder(builder: widget.footer!),
                             ),
                           ),
                       ],

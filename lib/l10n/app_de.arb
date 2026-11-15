@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "Vorzeitig beendet. Ein neuer Durchlauf macht dort weiter.",
   "delete": "Löschen",
   "homeSetupChangeEngine": "Engine ändern",
+  "homeDetailEmptyTitle": "Hier beginnt dein Tagebuch",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "Tippe auf die Wellenform, um einen Eintrag aufzunehmen.",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "Ziehen Sie nach unten oder tippen Sie auf die Wellenform, um Ihren ersten Eintrag aufzunehmen.",
   "homeSetupModelLands": "Sie können jetzt aufnehmen. Geschrieben wird, sobald {model} auf diesem iPhone ist.",
   "homeSetupFixFirst": "Beheben Sie, was oben angezeigt wird, oder wählen Sie eine andere Engine.",

@@ -1,17 +1,199 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/models/display_signal.dart';
+import 'package:opentranscribe/core/routes/app_router.dart';
+import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/utils/pane_geometry.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 import '../../support/display_fixtures.dart';
 import '../../support/fake_display_channels.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('only the journal entry selection is a detail root without back', () {
+    final router = AppRouter(onboardingDone: () => true).config;
+    final signal = DisplayWire.decode(DisplayWire.flatWide);
+    final layout = paneLayoutFor(
+      PaneInputs(
+        size: signal.size,
+        padding: signal.padding,
+        signal: signal,
+        bodySize: 17,
+        closedContentWidth: AppDuo.closedContentWidth,
+      ),
+    );
+    final tracker = PaneTouchTracker();
+    final home = router.configuration.findMatch(Uri.parse(Routes.home));
+    final entry = router.configuration.findMatch(Uri.parse('/entry/a'));
+    for (final path in [
+      '/entry/a',
+      Routes.reflections,
+      '${Routes.reflections}?week=2026-11-09',
+      '${Routes.reflections}?period=weekly&week=2026-11-09',
+      Routes.settingsModels,
+      Routes.settingsAppearance,
+      Routes.settingsCache,
+      Routes.settingsBackup,
+      Routes.settingsNotifications,
+    ]) {
+      final page = router.configuration.findMatch(Uri.parse(path));
+      for (final base in [null, home, entry]) {
+        final matches = base == null
+            ? page
+            : base.push(
+                ImperativeRouteMatch(
+                  pageKey: ValueKey('push-$path'),
+                  matches: page,
+                  completer: Completer<Object?>(),
+                ),
+              );
+        tracker.update(
+          layout: layout,
+          media: MediaQueryData(size: signal.size, padding: signal.padding),
+          settled: true,
+          supported: true,
+          cover: false,
+          matches: matches,
+          selectionOnTop: true,
+        );
+        final selection = base == entry
+            ? entry.matches.last.pageKey
+            : base == null && path == '/entry/a'
+            ? page.matches.last.pageKey
+            : null;
+        expect(tracker.journalSelectionKey, selection, reason: '$path over ${base?.uri}');
+        final topKey = matches.matches.last.pageKey;
+        for (final mode in [null, PaneMode.single, PaneMode.split]) {
+          expect(
+            panePageShowsBack(
+              mode: mode,
+              journalSelection: tracker.journalSelectionKey == topKey,
+              canPop: matches.matches.length > 1,
+            ),
+            mode != PaneMode.split || base != null || path != '/entry/a',
+            reason: '$path over ${base?.uri} in $mode',
+          );
+        }
+        if (base != null) {
+          expect(matches.remove(matches.matches.last), base);
+        }
+      }
+    }
+    tracker.dispose();
+    router.dispose();
+  });
+
+  test('split sheets use the source pane with normal margins and the full pane height', () {
+    for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
+      final signal = DisplayWire.decode(wire);
+      final layout = paneLayoutFor(
+        PaneInputs(
+          size: signal.size,
+          padding: signal.padding,
+          signal: signal,
+          bodySize: 17,
+          closedContentWidth: AppDuo.closedContentWidth,
+        ),
+      );
+      for (final source in PaneTouch.values) {
+        final pane = source == PaneTouch.journal ? layout.leading : layout.detail;
+        final rect = sheetPaneRect(layout: layout, source: source)!;
+        expect(rect.left, pane.rect.left + pane.padding.left + AppSpacing.md);
+        expect(rect.right, pane.rect.right - pane.padding.right - AppSpacing.md);
+        expect(rect.top, pane.rect.top);
+        expect(rect.bottom, pane.rect.bottom);
+        expect(rect.overlaps(layout.fold?.rect ?? layout.divider!), isFalse);
+        expect(rect.overlaps(layout.sideColumn!.rect), isFalse);
+        final media = paneMediaData(
+          MediaQueryData(size: signal.size, padding: signal.padding),
+          Pane(rect: rect, padding: paneInsets(signal.padding, rect, signal.size)),
+        );
+        expect(media.size.height, pane.rect.height);
+        expect(media.padding.bottom, signal.padding.bottom);
+      }
+    }
+  });
+
+  test('a wide detail sheet is not narrowed to the closed display width', () {
+    final signal = DisplayWire.decode(DisplayWire.flatWide);
+    final layout = paneLayoutFor(
+      PaneInputs(
+        size: signal.size,
+        padding: signal.padding,
+        signal: signal,
+        bodySize: 17,
+        closedContentWidth: AppDuo.closedContentWidth,
+      ),
+    );
+    expect(
+      sheetPaneRect(layout: layout, source: PaneTouch.detail)!.width,
+      greaterThan(AppDuo.closedContentWidth),
+    );
+    expect(sheetPaneRect(layout: layout, source: null), isNull);
+  });
+
+  test('nested overlays keep the journal sheet source instead of the detail fallback', () {
+    for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
+      final signal = DisplayWire.decode(wire);
+      final layout = paneLayoutFor(
+        PaneInputs(
+          size: signal.size,
+          padding: signal.padding,
+          signal: signal,
+          bodySize: 17,
+          closedContentWidth: AppDuo.closedContentWidth,
+        ),
+      );
+      final sheet = sheetPaneRect(layout: layout, source: PaneTouch.journal)!;
+      final scope = PaneScope(
+        pane: Pane(rect: sheet, padding: paneInsets(signal.padding, sheet, signal.size)),
+        detailRoot: false,
+        touch: PaneTouch.journal,
+        child: const SizedBox(),
+      );
+      expect(sheetPaneRect(layout: layout, source: scope.touch), sheet);
+      expect(modalPaneRect(layout: layout, source: scope.touch, window: signal.size), sheet);
+      expect(modalPaneRect(layout: layout, source: null, window: signal.size), layout.modal);
+      expect(sheet.overlaps(layout.detail.rect), isFalse);
+    }
+  });
+
+  test('phone cover tall and unresolved sheets retain the existing modal geometry', () {
+    for (final wire in [
+      DisplayWire.iphone,
+      DisplayWire.cover,
+      DisplayWire.flatTall,
+      DisplayWire.laptop,
+      DisplayWire.unsupported,
+    ]) {
+      final signal = DisplayWire.decode(wire);
+      final layout = paneLayoutFor(
+        PaneInputs(
+          size: signal.size,
+          padding: signal.padding,
+          signal: signal,
+          bodySize: 17,
+          closedContentWidth: AppDuo.closedContentWidth,
+        ),
+      );
+      for (final source in [null, ...PaneTouch.values]) {
+        expect(sheetPaneRect(layout: layout, source: source), isNull);
+        expect(modalPaneRect(layout: layout, source: source, window: signal.size), layout.modal);
+      }
+    }
+    expect(sheetPaneRect(layout: null, source: PaneTouch.journal), isNull);
+  });
+
   test('settling notifies the tracker and scope even when geometry stays unchanged', () {
     final tracker = PaneTouchTracker();
     final layout = paneLayoutFor(

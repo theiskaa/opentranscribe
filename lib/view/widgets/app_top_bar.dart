@@ -20,6 +20,12 @@ import 'package:opentranscribe/core/models/pane_layout.dart';
 /// control along. One number for both, so the chrome reads as a single rhythm.
 const double _edgeInset = AppSpacing.md;
 
+bool panePageShowsBack({
+  required PaneMode? mode,
+  required bool journalSelection,
+  required bool canPop,
+}) => canPop && !(mode == PaneMode.split && journalSelection);
+
 /// The floating bar every screen shares: a transparent overlay carrying its
 /// title, over a progressive blur that fades to nothing past the content row.
 /// Screens mount it on top of a Stack and let their scrollables run BEHIND
@@ -128,13 +134,21 @@ class AppTopBar extends StatelessWidget {
     final scope = PaneScope.maybeOf(context);
     final panes = PaneLayoutScope.maybeOf(context);
     final layout = panes?.layout;
-    final root = scope?.detailRoot == true && layout?.mode == PaneMode.split;
-    final leading = root && (this.leading == null || this.leading is AppBackButton)
+    final showBack = panePageShowsBack(
+      mode: layout?.mode,
+      journalSelection: scope?.journalSelection == true,
+      canPop: this.leading is AppBackButton || Navigator.of(context).canPop(),
+    );
+    final leading = !showBack && (this.leading == null || this.leading is AppBackButton)
         ? null
-        : this.leading ??
-              (automaticLeading && Navigator.of(context).canPop() ? const AppBackButton() : null);
-    final column = layout?.mode == PaneMode.split && scope?.pane.barToSideColumn == true
-        ? layout?.sideColumn?.upperSlot.shift(-scope!.pane.rect.topLeft)
+        : this.leading ?? (automaticLeading && showBack ? const AppBackButton() : null);
+    final journalColumn =
+        panes != null &&
+        !panes.covered &&
+        journalColumnEnabled(layout: panes.layout, cover: panes.cover);
+    final column =
+        layout?.mode != PaneMode.split && journalColumn && scope?.pane.barToSideColumn == true
+        ? journalColumnSlots(layout!.sideColumn!).detail.shift(-scope!.pane.rect.topLeft)
         : null;
 
     Widget? titleBlock = title;

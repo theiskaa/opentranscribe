@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "Arrêté en cours de route. Relancer reprend là où ça s'est arrêté.",
   "delete": "Supprimer",
   "homeSetupChangeEngine": "Changer de moteur",
+  "homeDetailEmptyTitle": "Votre journal commence ici",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "Touchez la forme d’onde pour enregistrer une entrée.",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "Tirez vers le bas, ou touchez la forme d'onde, pour enregistrer votre première entrée.",
   "homeSetupModelLands": "Vous pouvez enregistrer dès maintenant. Le texte arrive dès que {model} est sur cet iPhone.",
   "homeSetupFixFirst": "Réglez ce qui est indiqué ci-dessus, ou choisissez un autre moteur.",

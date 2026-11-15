@@ -93,6 +93,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeSetupChangeEngine => 'Engine ändern';
 
   @override
+  String get homeDetailEmptyTitle => 'Hier beginnt dein Tagebuch';
+
+  @override
+  String get homeDetailEmptyBody => 'Tippe auf die Wellenform, um einen Eintrag aufzunehmen.';
+
+  @override
   String get homeSetupRecord =>
       'Ziehen Sie nach unten oder tippen Sie auf die Wellenform, um Ihren ersten Eintrag aufzunehmen.';
 

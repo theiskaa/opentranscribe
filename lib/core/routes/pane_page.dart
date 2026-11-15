@@ -9,7 +9,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
-import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
@@ -52,8 +51,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
   bool _instantPop = false;
 
   bool get _split => _mode == PaneMode.split;
-  bool get _journalSelection =>
-      _detailRoot && {Routes.entryName, Routes.reflectionsName}.contains(settings.name);
+  bool get _journalSelection => _panes.journalSelectionKey == (settings as PanePage<T>).key;
 
   bool get _detailRoot => _panes.detailKeys.firstOrNull == (settings as PanePage<T>).key;
 
@@ -161,6 +159,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
         PaneFrame(
           pane: PaneGlide.layoutOf(context).detail,
           detailRoot: _detailRoot,
+          journalSelection: _journalSelection,
           touch: PaneTouch.detail,
           child: FadeTransition(
             opacity: still ? animation : const AlwaysStoppedAnimation(1.0),
@@ -175,7 +174,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
                 position: DecorationPosition.foreground,
                 child: _BackGestureDetector<T>(
                   geometry: panes.layout.detail.rect,
-                  enabledCallback: () => popGestureEnabled && (!split || !_detailRoot),
+                  enabledCallback: () => popGestureEnabled && (!split || !_journalSelection),
                   onStartPopGesture: _startPopGesture,
                   child: child,
                 ),

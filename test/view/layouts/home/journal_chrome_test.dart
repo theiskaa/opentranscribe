@@ -4,6 +4,24 @@ import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/view/layouts/home/components/journal_chrome.dart';
 
 void main() {
+  test('a wide single inner layout shows Record in its column unless Done or a route owns it', () {
+    for (final mode in PaneMode.values) {
+      for (final covered in [false, true]) {
+        for (final editing in [false, true]) {
+          expect(
+            journalRecordVisible(
+              mode: mode,
+              column: true,
+              covered: covered,
+              bottomSlotOccupied: editing,
+            ),
+            !covered && !editing,
+          );
+        }
+      }
+    }
+  });
+
   test('split Record yields to Done even without a software keyboard', () {
     expect(
       journalRecordVisible(mode: PaneMode.split, covered: false, bottomSlotOccupied: true),

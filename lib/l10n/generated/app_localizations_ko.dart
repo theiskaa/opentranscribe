@@ -89,6 +89,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeSetupChangeEngine => '엔진 변경';
 
   @override
+  String get homeDetailEmptyTitle => '여기서 시작하는 나의 일기';
+
+  @override
+  String get homeDetailEmptyBody => '파형을 탭하여 일기를 녹음하세요.';
+
+  @override
   String get homeSetupRecord => '아래로 당기거나 파형을 탭해 첫 기록을 녹음해 보세요.';
 
   @override

@@ -92,6 +92,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSetupChangeEngine => 'Change engine';
 
   @override
+  String get homeDetailEmptyTitle => 'Your journal starts here';
+
+  @override
+  String get homeDetailEmptyBody => 'Tap the waveform to record an entry.';
+
+  @override
   String get homeSetupRecord => 'Pull down, or tap the waveform, to record your first entry.';
 
   @override

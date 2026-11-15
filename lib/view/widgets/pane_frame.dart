@@ -8,11 +8,13 @@ import 'package:go_router/go_router.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 
 class PaneTouchTracker extends ChangeNotifier {
   late PaneLayout layout;
   late MediaQueryData media;
   List<LocalKey> detailKeys = const [];
+  LocalKey? journalSelectionKey;
   Uri? selection;
   final readingSelection = ValueNotifier<PaneSelection?>(null);
   bool covered = false;
@@ -51,6 +53,12 @@ class PaneTouchTracker extends ChangeNotifier {
     );
     detailKeys = details.map((match) => match.pageKey).toList();
     final root = details.firstOrNull;
+    journalSelectionKey =
+        root != null &&
+            root is! ImperativeRouteMatch &&
+            (root.route as GoRoute).name == Routes.entryName
+        ? root.pageKey
+        : null;
     selection = root == null
         ? null
         : root is ImperativeRouteMatch
@@ -167,17 +175,29 @@ class PaneSelectionScope extends InheritedModel<PaneSelection> {
 }
 
 class PaneScope extends InheritedWidget {
-  const PaneScope({required this.pane, required this.detailRoot, required super.child, super.key});
+  const PaneScope({
+    required this.pane,
+    required this.detailRoot,
+    required super.child,
+    this.journalSelection = false,
+    this.touch,
+    super.key,
+  });
 
   final Pane pane;
   final bool detailRoot;
+  final bool journalSelection;
+  final PaneTouch? touch;
 
   static PaneScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<PaneScope>();
 
   @override
   bool updateShouldNotify(PaneScope oldWidget) =>
-      pane != oldWidget.pane || detailRoot != oldWidget.detailRoot;
+      pane != oldWidget.pane ||
+      detailRoot != oldWidget.detailRoot ||
+      journalSelection != oldWidget.journalSelection ||
+      touch != oldWidget.touch;
 }
 
 EdgeInsets paneInsets(EdgeInsets insets, Rect pane, Size window) => EdgeInsets.fromLTRB(
@@ -201,6 +221,7 @@ class PaneFrame extends StatelessWidget {
     required this.child,
     this.touch,
     this.detailRoot = false,
+    this.journalSelection = false,
     super.key,
   });
 
@@ -208,6 +229,7 @@ class PaneFrame extends StatelessWidget {
   final Widget child;
   final PaneTouch? touch;
   final bool detailRoot;
+  final bool journalSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +242,8 @@ class PaneFrame extends StatelessWidget {
           child: PaneScope(
             pane: pane,
             detailRoot: detailRoot,
+            journalSelection: journalSelection,
+            touch: touch,
             child: Listener(
               behavior: HitTestBehavior.translucent,
               onPointerDown: touch == null ? null : (_) => tracker.touch(touch!),
@@ -237,40 +261,71 @@ class PaneFrame extends StatelessWidget {
   }
 }
 
-Rect modalRectOf(BuildContext context) =>
-    PaneLayoutScope.maybeOf(context)?.layout.modal ?? Offset.zero & MediaQuery.sizeOf(context);
+Rect modalRectOf(BuildContext context, {PaneTouch? sourcePane}) {
+  final layout = PaneLayoutScope.maybeOf(context)?.layout;
+  return modalPaneRect(
+    layout: layout,
+    source: sourcePane ?? PaneScope.maybeOf(context)?.touch,
+    window: MediaQuery.sizeOf(context),
+  );
+}
+
+Rect modalPaneRect({
+  required PaneLayout? layout,
+  required PaneTouch? source,
+  required Size window,
+}) => sheetPaneRect(layout: layout, source: source) ?? layout?.modal ?? Offset.zero & window;
 
 class ModalFrame extends StatelessWidget {
-  const ModalFrame({required this.child, this.capWidth, super.key});
+  const ModalFrame({required this.child, this.capWidth, this.sourcePane, super.key});
 
   final Widget child;
   final double? capWidth;
+  final PaneTouch? sourcePane;
 
   @override
   Widget build(BuildContext context) {
     final tracker = PaneLayoutScope.maybeOf(context);
     final media = tracker?.media ?? MediaQuery.of(context);
-    final rect = modalFrameRect(
+    final fallback = modalFrameRect(
       tracker?.cover == true
           ? Offset.zero & media.size
           : tracker?.layout.modal ?? Offset.zero & media.size,
       capWidth: modalWidthCap(tracker?.layout, capWidth),
     );
+    final sourceRect = sheetPaneRect(layout: tracker?.layout, source: sourcePane);
+    final rect = sourceRect ?? fallback;
+    final pane = Pane(rect: rect, padding: paneInsets(media.padding, rect, media.size));
     return Stack(
       children: [
         Positioned.fromRect(
           rect: rect,
           child: MediaQuery(
-            data: paneMediaData(
-              media,
-              Pane(rect: rect, padding: paneInsets(media.padding, rect, media.size)),
+            data: paneMediaData(media, pane),
+            child: ClipRect(
+              clipBehavior: sourcePane != null && tracker?.layout.mode == PaneMode.split
+                  ? Clip.hardEdge
+                  : Clip.none,
+              child: sourcePane == null
+                  ? child
+                  : PaneScope(pane: pane, detailRoot: false, touch: sourcePane, child: child),
             ),
-            child: child,
           ),
         ),
       ],
     );
   }
+}
+
+Rect? sheetPaneRect({required PaneLayout? layout, required PaneTouch? source}) {
+  if (layout == null || layout.mode != PaneMode.split || source == null) return null;
+  final pane = source == PaneTouch.journal ? layout.leading : layout.detail;
+  return Rect.fromLTRB(
+    pane.rect.left + pane.padding.left + AppSpacing.md,
+    pane.rect.top,
+    pane.rect.right - pane.padding.right - AppSpacing.md,
+    pane.rect.bottom,
+  );
 }
 
 double? modalWidthCap(PaneLayout? layout, double? capWidth) =>

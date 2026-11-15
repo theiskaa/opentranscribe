@@ -11,12 +11,15 @@ import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 
 bool journalRecordVisible({
   required PaneMode mode,
   required bool covered,
   required bool bottomSlotOccupied,
-}) => mode == PaneMode.split && !covered && !bottomSlotOccupied;
+  bool column = false,
+}) => (mode == PaneMode.split || column) && !covered && !bottomSlotOccupied;
 
 class JournalChrome extends StatelessWidget {
   const JournalChrome({required this.observer, super.key});
@@ -25,18 +28,32 @@ class JournalChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = PaneLayoutScope.of(context).layout.mode;
+    final panes = PaneLayoutScope.of(context);
+    final layout = panes.layout;
+    final column = journalColumnEnabled(layout: layout, cover: panes.cover);
+    final slots = column ? journalColumnSlots(layout.sideColumn!) : null;
     return ListenableBuilder(
       listenable: observer,
-      builder: (context, child) => Offstage(
-        offstage: !journalRecordVisible(
-          mode: mode,
-          covered: observer.chromeCovered,
-          bottomSlotOccupied: observer.bottomSlotOccupied,
-        ),
-        child: child,
+      builder: (context, child) => Stack(
+        children: [
+          GlassFabPosition(
+            home: true,
+            child: Offstage(
+              offstage: !journalRecordVisible(
+                mode: layout.mode,
+                column: column,
+                covered: observer.chromeCovered,
+                bottomSlotOccupied: observer.bottomSlotOccupied,
+              ),
+              child: const JournalRecordButton(),
+            ),
+          ),
+          Positioned.fromRect(
+            rect: slots?.settings ?? Rect.zero,
+            child: Offstage(offstage: !column || observer.chromeCovered, child: const HomeMenu()),
+          ),
+        ],
       ),
-      child: const Stack(children: [GlassFabPosition(home: true, child: JournalRecordButton())]),
     );
   }
 }

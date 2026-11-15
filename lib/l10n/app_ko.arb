@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "도중에 중지되었습니다. 다시 실행하면 이어서 진행됩니다.",
   "delete": "삭제",
   "homeSetupChangeEngine": "엔진 변경",
+  "homeDetailEmptyTitle": "여기서 시작하는 나의 일기",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "파형을 탭하여 일기를 녹음하세요.",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "아래로 당기거나 파형을 탭해 첫 기록을 녹음해 보세요.",
   "homeSetupModelLands": "지금 녹음할 수 있습니다. {model} 모델이 이 iPhone에 준비되면 전사됩니다.",
   "homeSetupFixFirst": "위에 표시된 문제를 해결하거나 다른 엔진을 고르세요.",

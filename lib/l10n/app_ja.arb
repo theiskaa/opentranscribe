@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "途中で停止しました。再実行すると続きから再開します。",
   "delete": "削除",
   "homeSetupChangeEngine": "エンジンを変更",
+  "homeDetailEmptyTitle": "ここから始まる日記",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "波形をタップして、日記を録音しましょう。",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "下に引くか波形をタップして、最初の録音を始めましょう。",
   "homeSetupModelLands": "今すぐ録音できます。{model} がこの iPhone に入ると文字起こしされます。",
   "homeSetupFixFirst": "上に表示された内容を解決するか、別のエンジンを選んでください。",

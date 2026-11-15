@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/models/reflection_timeline.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/reflections_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -372,9 +373,10 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
           reflectedStartsByPeriod: state.reflectedStartsByPeriod,
         );
 
+    final paneBack = PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split;
     return AppScaffold(
       background: theme.screens.settings,
-      onBack: climb != null
+      onBack: climb != null && !paneBack
           ? () => _drill(
               climb.period,
               climb.start,

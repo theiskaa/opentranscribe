@@ -19,6 +19,9 @@ import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 
 class JournalSplit extends StatelessWidget {
   const JournalSplit({required this.journal, super.key});
@@ -42,6 +45,7 @@ class JournalSplit extends StatelessWidget {
           PaneFrame(
             pane: layout.detail,
             detailRoot: true,
+            journalSelection: true,
             touch: split && panes.detailKeys.isEmpty ? PaneTouch.detail : null,
             child: Offstage(
               offstage: !split || panes.detailKeys.isNotEmpty,
@@ -50,7 +54,10 @@ class JournalSplit extends StatelessWidget {
           ),
           GlassFabPosition(
             home: true,
-            child: Offstage(offstage: split, child: const JournalRecordButton()),
+            child: Offstage(
+              offstage: split || journalColumnEnabled(layout: layout, cover: panes.cover),
+              child: const JournalRecordButton(),
+            ),
           ),
         ],
       ),
@@ -68,9 +75,52 @@ class _ProvisionalDetail extends StatelessWidget {
         final entry = state.entries.firstOrNull;
         return AppScaffold(
           background: context.theme.screens.entryDetail,
-          child: entry == null ? const SizedBox.expand() : _EntryPreview(entry: entry),
+          child: entry == null ? const _EmptyDetail() : _EntryPreview(entry: entry),
         );
       },
+    );
+  }
+}
+
+class _EmptyDetail extends StatelessWidget {
+  const _EmptyDetail();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final l10n = AppLocalizations.of(context)!;
+    return SafeSides(
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.xxxl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: AppIcon(
+                    AppIcons.waveform,
+                    size: AppSizes.barControl,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  l10n.homeDetailEmptyTitle,
+                  textAlign: TextAlign.center,
+                  style: AppType.title.copyWith(color: theme.text),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.homeDetailEmptyBody,
+                  textAlign: TextAlign.center,
+                  style: AppType.subhead.copyWith(color: theme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

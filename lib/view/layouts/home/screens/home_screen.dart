@@ -37,6 +37,8 @@ import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
 /// the journal scrolling under it. The calendar never hides; the scroll drives
@@ -548,6 +550,8 @@ class _HomeChromeState extends State<_HomeChrome> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final locale = localeTag(context);
+    final panes = PaneLayoutScope.of(context);
+    final column = journalColumnEnabled(layout: panes.layout, cover: panes.cover);
     return AppTopBar(
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
@@ -563,7 +567,10 @@ class _HomeChromeState extends State<_HomeChrome> {
       actions: [
         Padding(
           padding: const EdgeInsets.only(top: AppSpacing.md),
-          child: HomeMenu(color: theme.topBar.iconColor),
+          child: Offstage(
+            offstage: column,
+            child: HomeMenu(color: theme.topBar.iconColor),
+          ),
         ),
       ],
       // The top padding settles the block lower in the row, off the status

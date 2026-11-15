@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "Parado a meio. Voltar a executar retoma onde ficou.",
   "delete": "Eliminar",
   "homeSetupChangeEngine": "Alterar motor",
+  "homeDetailEmptyTitle": "Seu diário começa aqui",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "Toque na forma de onda para gravar uma entrada.",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "Puxe para baixo, ou toque na forma de onda, para gravar a sua primeira entrada.",
   "homeSetupModelLands": "Pode gravar já. O texto chega assim que o {model} estiver neste iPhone.",
   "homeSetupFixFirst": "Resolva o que está indicado acima, ou escolha outro motor.",

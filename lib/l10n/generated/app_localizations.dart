@@ -258,6 +258,18 @@ abstract class AppLocalizations {
   /// **'Change engine'**
   String get homeSetupChangeEngine;
 
+  /// Resting headline in the Duo split detail when no entry is available
+  ///
+  /// In en, this message translates to:
+  /// **'Your journal starts here'**
+  String get homeDetailEmptyTitle;
+
+  /// Guidance toward the waveform record button in the Duo status column
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the waveform to record an entry.'**
+  String get homeDetailEmptyBody;
+
   /// The empty journal's last line when recording will work as set
   ///
   /// In en, this message translates to:

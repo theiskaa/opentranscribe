@@ -25,6 +25,14 @@
   "retranscribeCancelledNote": "已提前停止。再次运行会从中断处继续。",
   "delete": "删除",
   "homeSetupChangeEngine": "更换引擎",
+  "homeDetailEmptyTitle": "从这里开始写日记",
+  "@homeDetailEmptyTitle": {
+    "description": "Resting headline in the Duo split detail when no entry is available"
+  },
+  "homeDetailEmptyBody": "轻点波形，录制一篇日记。",
+  "@homeDetailEmptyBody": {
+    "description": "Guidance toward the waveform record button in the Duo status column"
+  },
   "homeSetupRecord": "下拉或点按波形，录下你的第一条记录。",
   "homeSetupModelLands": "现在就可以录制。{model} 下载到这台 iPhone 后即会转写。",
   "homeSetupFixFirst": "请先处理上方提示的问题，或选择其他引擎。",

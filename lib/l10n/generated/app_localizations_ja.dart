@@ -89,6 +89,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeSetupChangeEngine => 'エンジンを変更';
 
   @override
+  String get homeDetailEmptyTitle => 'ここから始まる日記';
+
+  @override
+  String get homeDetailEmptyBody => '波形をタップして、日記を録音しましょう。';
+
+  @override
   String get homeSetupRecord => '下に引くか波形をタップして、最初の録音を始めましょう。';
 
   @override
