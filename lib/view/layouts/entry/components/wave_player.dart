@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
@@ -113,6 +114,7 @@ class _WavePlayerState extends State<WavePlayer> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
+                crossAxisAlignment: inner ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                 children: [
                   if (inner) ...[
                     _DuoPlayButton(
@@ -128,7 +130,8 @@ class _WavePlayerState extends State<WavePlayer> {
                   Expanded(
                     child: _DuoWaveTrack(
                       enabled: inner,
-                      elapsed: '${formatClock(state.position)} / ${formatClock(duration)}',
+                      position: duration * fraction,
+                      duration: duration,
                       child: RepaintBoundary(
                         child: LayoutBuilder(
                           builder: (context, constraints) {
@@ -168,7 +171,9 @@ class _WavePlayerState extends State<WavePlayer> {
                                 context.read<PlayerCubit>().toggle(widget.entry);
                               },
                               child: AnimatedOpacity(
-                                duration: theme.motion.crossfade,
+                                duration: inner && context.reduceMotion
+                                    ? Duration.zero
+                                    : theme.motion.crossfade,
                                 opacity: inner || state.isPlaying ? 1 : _pausedWaveOpacity,
                                 child: _Wave(
                                   peaks: state.peaks,
@@ -419,7 +424,7 @@ class _DuoPlayerSurface extends StatelessWidget {
     if (!enabled) return child;
     return Container(
       constraints: const BoxConstraints(minHeight: AppDuo.playerHeight),
-      padding: const EdgeInsets.all(AppDuo.playerInset),
+      padding: const EdgeInsets.all(DuoTheme.playerInset),
       decoration: SuperellipseDecoration(
         borderRadius: AppDuo.playerRadius,
         color: context.theme.duo.surfaceElevated,
@@ -450,8 +455,8 @@ class _DuoPlayButton extends StatelessWidget {
           dimension: AppSizes.minTarget,
           child: Center(
             child: Container(
-              width: AppDuo.playSize,
-              height: AppDuo.playSize,
+              width: DuoTheme.playerControl,
+              height: DuoTheme.playerControl,
               decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
               child: Center(
                 child: AppIcon(
@@ -464,30 +469,6 @@ class _DuoPlayButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _DuoWaveTrack extends StatelessWidget {
-  const _DuoWaveTrack({required this.enabled, required this.elapsed, required this.child});
-
-  final bool enabled;
-  final String elapsed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!enabled) return child;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        child,
-        Text(
-          elapsed,
-          textAlign: TextAlign.end,
-          style: AppType.digits(AppType.rowNote).copyWith(color: context.theme.textSecondary),
-        ),
-      ],
     );
   }
 }
@@ -519,7 +500,8 @@ class _DuoRateChip extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             decoration: BoxDecoration(
-              color: theme.duo.selectionFill,
+              color: theme.duo.speedSurface,
+              border: Border.all(color: theme.duo.speedBorder, width: AppDuo.separatorWidth),
               borderRadius: BorderRadius.circular(AppDuo.rateSize),
             ),
             child: Stack(
@@ -533,7 +515,7 @@ class _DuoRateChip extends StatelessWidget {
                     maintainState: true,
                     child: Text(
                       rateLabel(option),
-                      style: AppType.digits(DuoTheme.section).copyWith(color: theme.textSecondary),
+                      style: AppType.digits(DuoTheme.section).copyWith(color: theme.text),
                     ),
                   ),
               ],
@@ -541,6 +523,43 @@ class _DuoRateChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DuoWaveTrack extends StatelessWidget {
+  const _DuoWaveTrack({
+    required this.enabled,
+    required this.position,
+    required this.duration,
+    required this.child,
+  });
+
+  final bool enabled;
+  final Duration position;
+  final Duration duration;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    final style = AppType.digits(DuoTheme.rowMetadata).copyWith(color: context.theme.textSecondary);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: AppSizes.minTarget,
+          child: Center(child: child),
+        ),
+        const SizedBox(height: DuoTheme.playerRowGap),
+        Row(
+          children: [
+            Text(formatClock(position), style: style),
+            const Spacer(),
+            Text('-${formatClock(duoRemaining(duration, position))}', style: style),
+          ],
+        ),
+      ],
     );
   }
 }

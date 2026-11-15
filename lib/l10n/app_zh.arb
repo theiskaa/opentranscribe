@@ -462,5 +462,7 @@
   "continueEntryBusy": "此条目仍在转写中。",
   "settingsButton": "设置",
   "appearanceModeButton": "外观模式",
-  "sheetCloseButton": "关闭"
+  "sheetCloseButton": "关闭",
+  "duoJournalToday": "今天",
+  "duoJournalYesterday": "昨天"
 }

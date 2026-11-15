@@ -44,6 +44,11 @@ class JournalSplit extends StatelessWidget {
           color: context.theme.background,
           child: Stack(
             children: [
+              if (duoInnerOf(context))
+                Positioned.fromRect(
+                  rect: layout.leading.rect,
+                  child: ColoredBox(color: context.theme.duo.surfaceGrouped),
+                ),
               PaneFrame(
                 pane: layout.leading,
                 touch: PaneTouch.journal,

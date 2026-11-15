@@ -462,5 +462,7 @@
   "continueEntryBusy": "Esta entrada ainda está a ser transcrita.",
   "settingsButton": "Ajustes",
   "appearanceModeButton": "Modo de aparência",
-  "sheetCloseButton": "Fechar"
+  "sheetCloseButton": "Fechar",
+  "duoJournalToday": "Hoje",
+  "duoJournalYesterday": "Ontem"
 }

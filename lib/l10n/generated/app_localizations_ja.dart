@@ -1554,4 +1554,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get sheetCloseButton => '閉じる';
+
+  @override
+  String get duoJournalToday => '今日';
+
+  @override
+  String get duoJournalYesterday => '昨日';
 }

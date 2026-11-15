@@ -168,7 +168,7 @@ class _DuoEntryFrameState extends State<_DuoEntryFrame> {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppDuo.rowHorizontalInset,
-                    vertical: AppDuo.rowVerticalInset,
+                    vertical: DuoTheme.rowInset,
                   ),
                   child: widget.child,
                 ),
@@ -221,22 +221,11 @@ class EntryRowBody extends StatelessWidget {
     final excerpt = entry.readableText?.trim() ?? '';
     final title = entry.title;
     if (duoJournalOf(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title ?? (excerpt.isEmpty ? l10n.entryUntranscribed : excerpt),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DuoTheme.rowTitle.copyWith(color: tokens.titleColor),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            metaLine(entry.createdAt, entry.duration, localeTag(context)),
-            style: AppType.digits(AppType.rowNote).copyWith(color: tokens.metaColor),
-          ),
-        ],
+      final selected = PaneSelectionScope.isSelected(
+        context,
+        Uri(path: Routes.entry.replaceFirst(':id', entry.id)),
       );
+      return _DuoEntryWords(entry: entry, selected: selected);
     }
 
     return Column(
@@ -313,7 +302,7 @@ class EntryRail extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppDuo.selectionInset + AppDuo.rowHorizontalInset,
-          vertical: AppDuo.rowVerticalInset,
+          vertical: DuoTheme.rowInset,
         ),
         child: child,
       );
@@ -477,4 +466,72 @@ class _RailPainter extends CustomPainter {
       old.railWidth != railWidth ||
       old.nodeSize != nodeSize ||
       old.nodeCenter != nodeCenter;
+}
+
+class _DuoEntryWords extends StatelessWidget {
+  const _DuoEntryWords({required this.entry, required this.selected});
+
+  final Entry entry;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final locale = localeTag(context);
+    final time = formatTime(entry.createdAt, locale);
+    final metadata = selected ? theme.duo.selectedMetadata : theme.textSecondary;
+    final metaStyle = AppType.digits(DuoTheme.rowMetadata).copyWith(color: metadata);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final timeWidth = duoTextWidth(
+          time,
+          style: metaStyle,
+          scaler: MediaQuery.textScalerOf(context),
+        );
+        final words = duoRowText(
+          title: entry.title,
+          text: entry.readableText ?? '',
+          width: (constraints.maxWidth - timeWidth - AppSpacing.sm).clamp(
+            0.0,
+            constraints.maxWidth,
+          ),
+          scaler: MediaQuery.textScalerOf(context),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: Text(
+                    words.title.isEmpty
+                        ? AppLocalizations.of(context)!.entryUntranscribed
+                        : words.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DuoTheme.rowTitle.copyWith(color: theme.text),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(time, style: metaStyle),
+              ],
+            ),
+            if (words.preview.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                words.preview,
+                maxLines: DuoTheme.previewLines,
+                overflow: TextOverflow.ellipsis,
+                style: DuoTheme.preview.copyWith(color: metadata),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xxs),
+            Text(formatDurationCompact(entry.duration), style: metaStyle),
+          ],
+        );
+      },
+    );
+  }
 }

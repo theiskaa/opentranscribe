@@ -205,6 +205,7 @@ final class AppTheme {
             hairline: hairline,
             barrier: barrier,
             player: resolvedPlayer,
+            surface: surface,
           ),
       diff:
           diff ??

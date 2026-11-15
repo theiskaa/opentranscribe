@@ -1553,4 +1553,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get sheetCloseButton => '닫기';
+
+  @override
+  String get duoJournalToday => '오늘';
+
+  @override
+  String get duoJournalYesterday => '어제';
 }

@@ -462,5 +462,7 @@
   "continueEntryBusy": "このエントリはまだ文字起こし中です。",
   "settingsButton": "設定",
   "appearanceModeButton": "外観モード",
-  "sheetCloseButton": "閉じる"
+  "sheetCloseButton": "閉じる",
+  "duoJournalToday": "今日",
+  "duoJournalYesterday": "昨日"
 }

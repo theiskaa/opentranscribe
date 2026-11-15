@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 
 bool duoPolishEnabled({
   required PaneLayout? layout,
@@ -37,14 +38,10 @@ EdgeInsets duoDetailInsets({
   required double bottom,
 }) {
   final left = safe.left + math.max(AppDuo.detailMargin, fold.left);
-  final right = safe.right + math.max(AppDuo.detailMargin, fold.right);
-  final measure = math.max(0.0, width - left - right);
-  return EdgeInsets.fromLTRB(
-    left,
-    safe.top + top,
-    right + math.max(0, measure - AppDuo.detailMeasure),
-    bottom,
-  );
+  final right = safe.right + math.max(DuoTheme.detailTrailing, fold.right);
+  final available = math.max(0.0, width - left - right);
+  final measure = duoContentMeasure(width, EdgeInsets.only(left: left, right: right));
+  return EdgeInsets.fromLTRB(left, safe.top + top, right + available - measure, bottom);
 }
 
 ({double cell, double gap}) duoWeekMetrics(double width) {
@@ -86,7 +83,7 @@ Rect? duoDividerRect(PaneLayout layout, EdgeInsets safe) {
   final divider = layout.divider;
   if (divider == null || layout.fold != null) return null;
   final top = math.max(divider.top, safe.top);
-  final bottom = math.max(top, divider.bottom - safe.bottom);
+  final bottom = math.max(top, divider.bottom);
   return Rect.fromLTRB(divider.left, top, divider.right, bottom);
 }
 
@@ -170,3 +167,149 @@ Object duoDetailIdentity({
         (!inner && location != previousLocation)
     ? location
     : previousIdentity;
+
+typedef DuoReadingGrid = ({
+  double journalTop,
+  double detailTop,
+  double metadataTop,
+  double header,
+  double stripTop,
+  double bodyTop,
+});
+
+DuoReadingGrid duoReadingGrid({
+  required double journalLine,
+  required double journalBaseline,
+  required double detailBaseline,
+  required double metadataLine,
+  required double metadataBaseline,
+  required double dayHeight,
+  required double playerHeight,
+}) {
+  final metaTop = math.max(
+    DuoTheme.metadataBaseline - metadataBaseline,
+    journalLine + AppSpacing.xxs,
+  );
+  final journalTop = math.max(0.0, metaTop - AppSpacing.xxs - journalLine);
+  final header = math.max(DuoTheme.headerHeight, metaTop + metadataLine);
+  final strip = math.max(DuoTheme.stripTop, header + AppSpacing.md);
+  return (
+    journalTop: journalTop,
+    detailTop: journalTop + journalBaseline - detailBaseline,
+    metadataTop: metaTop,
+    header: header,
+    stripTop: strip,
+    bodyTop: math.max(
+      DuoTheme.bodyTop,
+      strip + math.max(dayHeight + AppSpacing.xxl, playerHeight + AppSpacing.md),
+    ),
+  );
+}
+
+double duoContentMeasure(double paneWidth, EdgeInsets insets) =>
+    math.min(AppDuo.detailMeasure, math.max(0.0, paneWidth - insets.horizontal));
+
+Duration duoRemaining(Duration duration, Duration position) =>
+    Duration(microseconds: math.max(0, duration.inMicroseconds - position.inMicroseconds));
+
+({String title, String preview}) duoRowText({
+  required String text,
+  String? title,
+  double? width,
+  TextScaler scaler = TextScaler.noScaling,
+}) {
+  final body = text.trim();
+  if (title != null && title.trim().isNotEmpty) return (title: title, preview: body);
+  if (body.isEmpty) return (title: '', preview: '');
+  final end = RegExp(r'[。！？]|[.!?](?:\s|$)|[\r\n]').firstMatch(body);
+  var split = end == null ? body.length : end.start + (body[end.start].trim().isEmpty ? 0 : 1);
+  if (width != null && width > 0) {
+    final painter = TextPainter(
+      text: TextSpan(text: body, style: DuoTheme.rowTitle),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout(maxWidth: width);
+    final position = painter.getPositionForOffset(Offset(0, painter.preferredLineHeight / 2));
+    split = math.min(split, painter.getLineBoundary(position).end);
+    painter.dispose();
+  }
+  return (title: body.substring(0, split).trim(), preview: body.substring(split).trim());
+}
+
+double duoTextWidth(String text, {required TextStyle style, required TextScaler scaler}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width;
+}
+
+DateTime duoJournalGroup(DateTime day, DateTime now) {
+  return duoJournalIsMonthly(day, now)
+      ? DateTime(day.year, day.month)
+      : DateTime(day.year, day.month, day.day);
+}
+
+double duoParagraphHeight(
+  String text, {
+  required TextStyle style,
+  required TextScaler scaler,
+  required double width,
+  int? maxLines,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+    maxLines: maxLines,
+  )..layout(maxWidth: math.max(0, width));
+  final height = painter.height;
+  painter.dispose();
+  return height;
+}
+
+({double metadata, double player}) duoDocumentGaps({
+  required double titleHeight,
+  required double metadataHeight,
+  required DuoReadingGrid grid,
+  required double top,
+}) {
+  final meta = math.max(AppSpacing.xxs, grid.metadataTop - top - titleHeight);
+  return (
+    metadata: meta,
+    player: math.max(AppSpacing.md, grid.stripTop - top - titleHeight - meta - metadataHeight),
+  );
+}
+
+List<DateTime?> duoJournalHeaders(List<DateTime> days, DateTime now) {
+  if (days.length < 2) return List.filled(days.length, null);
+  DateTime? previous;
+  return [
+    for (final day in days)
+      () {
+        final group = duoJournalGroup(day, now);
+        final header = group == previous ? null : group;
+        previous = group;
+        return header;
+      }(),
+  ];
+}
+
+double duoPlayerHeight(double timeLine) =>
+    DuoTheme.playerInset * 2 + AppSizes.minTarget + DuoTheme.playerRowGap + timeLine;
+
+bool duoJournalIsMonthly(DateTime day, DateTime now) => DateTime(
+  day.year,
+  day.month,
+  day.day,
+).isBefore(DateTime(now.year, now.month, now.day - DuoTheme.recentDays));
+
+DateTime duoJournalHeadingDay({
+  required DateTime? viewed,
+  required DateTime today,
+  required List<DateTime> days,
+  required bool takePending,
+}) => viewed ?? (!takePending && days.length == 1 ? days.single : today);

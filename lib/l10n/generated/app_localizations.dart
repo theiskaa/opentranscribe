@@ -2849,6 +2849,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get sheetCloseButton;
+
+  /// Today heading for the Duo journal column and its pinned day group
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get duoJournalToday;
+
+  /// Yesterday heading for a pinned day group in the Duo journal column
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get duoJournalYesterday;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

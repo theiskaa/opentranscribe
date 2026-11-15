@@ -462,5 +462,7 @@
   "continueEntryBusy": "Dieser Eintrag wird noch transkribiert.",
   "settingsButton": "Einstellungen",
   "appearanceModeButton": "Darstellungsmodus",
-  "sheetCloseButton": "Schließen"
+  "sheetCloseButton": "Schließen",
+  "duoJournalToday": "Heute",
+  "duoJournalYesterday": "Gestern"
 }

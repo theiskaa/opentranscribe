@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
@@ -20,9 +19,7 @@ bool duoInnerOf(BuildContext context) {
 }
 
 bool duoJournalOf(BuildContext context) =>
-    duoInnerOf(context) &&
-    PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split &&
-    PaneScope.maybeOf(context)?.touch == PaneTouch.journal;
+    duoInnerOf(context) && PaneScope.maybeOf(context)?.touch == PaneTouch.journal;
 
 ({double header, double detailTop}) duoHeaderOf(BuildContext context) {
   final scaler = MediaQuery.textScalerOf(context);
@@ -50,5 +47,28 @@ bool duoInnerNow(BuildContext context) {
     cover: panes?.cover ?? true,
     regular: panes?.regular ?? false,
     window: panes?.media.size ?? Size.zero,
+  );
+}
+
+DuoReadingGrid duoReadingGridOf(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  final journal = duoTextMetrics(style: AppType.digits(DuoTheme.journalTitle), scaler: scaler);
+  final detail = duoTextMetrics(style: DuoTheme.detailTitle, scaler: scaler);
+  final meta = duoTextMetrics(style: AppType.digits(DuoTheme.metadata), scaler: scaler);
+  return duoReadingGrid(
+    journalLine: journal.height,
+    journalBaseline: journal.baseline,
+    detailBaseline: detail.baseline,
+    metadataLine: meta.height,
+    metadataBaseline: meta.baseline,
+    playerHeight: duoPlayerHeight(
+      duoTextMetrics(style: AppType.digits(DuoTheme.rowMetadata), scaler: scaler).height,
+    ),
+    dayHeight: duoDayHeight(
+      letterLine:
+          scaler.scale(AppType.caption.fontSize!) *
+          AppType.lineHeightOf(AppType.caption, DefaultTextStyle.of(context).style),
+      numberLine: scaler.scale(AppType.body.fontSize!) * AppType.body.height!,
+    ),
   );
 }

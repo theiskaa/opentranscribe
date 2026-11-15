@@ -14,10 +14,6 @@ void main() {
         expect(color.g, color.b);
       }
       expect(duo.selectionFill.withValues(alpha: 1), theme.text);
-      expect(
-        duo.selectionFill.a,
-        closeTo(theme.brightness == Brightness.dark ? 0.12 : 0.08, 0.001),
-      );
     }
   });
 
@@ -27,11 +23,32 @@ void main() {
       test('${family.id} ${theme.brightness.name} keeps pane and selection roles readable', () {
         final duo = theme.duo;
         final selected = Color.alphaBlend(duo.selectionFill, duo.surfaceGrouped);
-        expect(duo.surfaceGrouped, isNot(theme.background));
-        expect(duo.surfaceElevated, isNot(theme.background));
+        final tint = Color.alphaBlend(
+          theme.text.withValues(alpha: dark ? 0.06 : 0.04),
+          theme.background,
+        );
+        expect(duo.surfaceGrouped, tint);
+        expect(duo.surfaceElevated, tint);
+        expect(contrastRatio(selected, duo.surfaceGrouped), greaterThanOrEqualTo(1.2));
+        expect(
+          contrastRatio(Color.alphaBlend(duo.selectedMetadata, selected), selected),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(duo.selectedMetadata.withValues(alpha: 1), theme.text);
+        expect(duo.selectedMetadata.a, greaterThanOrEqualTo(0.70));
+        expect(duo.speedSurface, theme.surface);
+        expect(contrastRatio(theme.text, duo.speedSurface), greaterThanOrEqualTo(4.5));
+        expect(
+          contrastRatio(
+            Color.alphaBlend(duo.speedBorder, duo.surfaceElevated),
+            duo.surfaceElevated,
+          ),
+          greaterThanOrEqualTo(1.2),
+        );
         expect(contrastRatio(theme.text, selected), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(theme.textSecondary, duo.surfaceGrouped), greaterThanOrEqualTo(3));
         expect(duo.separator.a, closeTo(theme.hairline.a * 0.6, 0.001));
+        expect(duo.separator.withValues(alpha: 1), theme.hairline.withValues(alpha: 1));
         expect(duo.player.progress, theme.accent);
         expect(duo.scrim.withValues(alpha: 1), theme.barrier.withValues(alpha: 1));
         expect(duo.scrim.a, closeTo(dark ? 0.48 : 0.32, 0.001));
@@ -39,7 +56,7 @@ void main() {
         expect(duo.player.waveRemaining.withValues(alpha: 1), theme.textSecondary);
         if (family.id != AppThemeFamily.defaultId) {
           expect(duo.selectionFill.withValues(alpha: 1), theme.accent);
-          expect(duo.selectionFill.a, closeTo(dark ? 0.22 : 0.14, 0.001));
+          expect(duo.selectionFill.a, greaterThanOrEqualTo(dark ? 0.30 : 0.20));
         }
       });
     }

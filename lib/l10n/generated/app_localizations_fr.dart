@@ -1692,4 +1692,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sheetCloseButton => 'Fermer';
+
+  @override
+  String get duoJournalToday => 'Aujourd’hui';
+
+  @override
+  String get duoJournalYesterday => 'Hier';
 }

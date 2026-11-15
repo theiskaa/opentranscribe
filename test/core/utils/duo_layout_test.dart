@@ -87,7 +87,7 @@ void main() {
       );
       expect(1200 - insets.horizontal, AppDuo.detailMeasure);
       expect(insets.left, safe.left + AppDuo.detailMargin);
-      expect(insets.right, greaterThanOrEqualTo(safe.right + AppDuo.detailMargin));
+      expect(insets.right, greaterThanOrEqualTo(safe.right + DuoTheme.detailTrailing));
       expect(insets.top, 16);
       expect(insets.bottom, 34);
     }
@@ -101,8 +101,8 @@ void main() {
       top: 16,
       bottom: 334,
     );
-    expect(insets, const EdgeInsets.fromLTRB(28, 36, 112, 334));
-    expect(455 - insets.horizontal, 315);
+    expect(insets, const EdgeInsets.fromLTRB(28, 36, 104, 334));
+    expect(455 - insets.horizontal, 323);
   });
 
   test('measured book pane edges already clear the division including its margins', () {
@@ -125,7 +125,7 @@ void main() {
         expect(divider, isNull);
       } else {
         expect(divider!.top, signal.padding.top);
-        expect(divider.bottom, signal.size.height - signal.padding.bottom);
+        expect(divider.bottom, signal.size.height);
       }
     }
   });

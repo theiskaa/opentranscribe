@@ -51,11 +51,7 @@ class SettingsList extends StatelessWidget {
                 fold: panes == null
                     ? EdgeInsets.zero
                     : duoFoldInsets(panes.layout, PaneScope.maybeOf(context)?.touch),
-                top:
-                    AppScaffold.topPaddingOf(context) -
-                    MediaQuery.paddingOf(context).top -
-                    AppSpacing.md +
-                    lead,
+                top: duoReadingGridOf(context).stripTop,
                 bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
               )
             : EdgeInsets.fromLTRB(
@@ -817,12 +813,7 @@ class SectionInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: duoInnerOf(context)
-          ? const EdgeInsets.fromLTRB(
-              DuoTheme.groupInset,
-              AppSpacing.sm,
-              DuoTheme.groupInset,
-              AppSpacing.sm,
-            )
+          ? const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.sm)
           : const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
       child: Text(text, style: AppType.note.copyWith(color: context.theme.textSecondary)),
     );
@@ -854,7 +845,7 @@ class SectionInfoLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      padding: EdgeInsets.symmetric(horizontal: duoInnerOf(context) ? 0 : AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -901,7 +892,11 @@ class SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Padding(
-      padding: EdgeInsets.only(left: AppSpacing.sm, top: top, bottom: AppSpacing.sm),
+      padding: EdgeInsets.only(
+        left: duoInnerOf(context) ? 0 : AppSpacing.sm,
+        top: top,
+        bottom: AppSpacing.sm,
+      ),
       child: Text(
         label.toUpperCase(),
         style: AppType.eyebrow.copyWith(color: tokens.sectionLabelColor),

@@ -1543,4 +1543,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sheetCloseButton => '关闭';
+
+  @override
+  String get duoJournalToday => '今天';
+
+  @override
+  String get duoJournalYesterday => '昨天';
 }

@@ -2220,5 +2220,13 @@
   "sheetCloseButton": "Close",
   "@sheetCloseButton": {
     "description": "Close action in the Duo inner-display sheet toolbar"
+  },
+  "duoJournalToday": "Today",
+  "@duoJournalToday": {
+    "description": "Today heading for the Duo journal column and its pinned day group"
+  },
+  "duoJournalYesterday": "Yesterday",
+  "@duoJournalYesterday": {
+    "description": "Yesterday heading for a pinned day group in the Duo journal column"
   }
 }

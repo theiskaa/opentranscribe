@@ -684,8 +684,12 @@ class _DetailViewState extends State<_DetailView> {
             : bottomInset + AppSpacing.xxxl;
         final locale = localeTag(context);
         final meta = [
-          if (!inner) DateFormat.yMMMMd(locale).format(entry.createdAt.toLocal()),
-          formatTime(entry.createdAt, locale),
+          if (inner)
+            DateFormat.MMMMEEEEd(locale).format(entry.createdAt.toLocal())
+          else ...[
+            DateFormat.yMMMMd(locale).format(entry.createdAt.toLocal()),
+            formatTime(entry.createdAt, locale),
+          ],
           formatClock(entry.duration),
           if (language != null) localeDisplayName(language),
           // Hand-written words are never passed off as heard.
@@ -726,7 +730,7 @@ class _DetailViewState extends State<_DetailView> {
                                   safe: MediaQuery.paddingOf(context) + sides,
                                   fold: foldInsets,
                                   top: verticalBar
-                                      ? duoHeaderOf(context).detailTop
+                                      ? duoReadingGridOf(context).detailTop
                                       : theme.topBar.height + theme.topBar.fadeTail,
                                   bottom: keyboard + restingBottom,
                                 )
@@ -745,22 +749,31 @@ class _DetailViewState extends State<_DetailView> {
                             children: [
                               // Fenced out of the reading region like the body
                               // editor: its long press must not contest the field's.
-                              SelectionContainer.disabled(
-                                child: _TitleField(
+                              if (inner)
+                                _DuoDocumentHeading(
                                   entry: entry,
+                                  meta: meta,
                                   focusNode: _titleFocus,
                                   continuity: _titleContinuity,
+                                  verticalBar: verticalBar,
+                                )
+                              else ...[
+                                SelectionContainer.disabled(
+                                  child: _TitleField(
+                                    entry: entry,
+                                    focusNode: _titleFocus,
+                                    continuity: _titleContinuity,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: inner ? AppDuo.detailMetaGap : AppSpacing.sm),
-                              Text(
-                                meta,
-                                style: AppType.digits(
-                                  inner ? DuoTheme.metadata : AppType.footnote,
-                                ).copyWith(color: theme.textSecondary),
-                              ),
-                              if (inner) EntryBarLine(entryId: entry.id),
-                              const SizedBox(height: AppSpacing.xxl),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  meta,
+                                  style: AppType.digits(
+                                    AppType.footnote,
+                                  ).copyWith(color: theme.textSecondary),
+                                ),
+                                const SizedBox(height: AppSpacing.xxl),
+                              ],
                               // Discarded audio: the document flows from the metadata
                               // straight into what it says. Animated, so a discard
                               // landing mid-read collapses the player instead of
@@ -787,7 +800,7 @@ class _DetailViewState extends State<_DetailView> {
                                               entry: entry,
                                             ),
                                             SizedBox(
-                                              height: inner ? AppDuo.detailMargin : AppSpacing.xxl,
+                                              height: inner ? AppSpacing.md : AppSpacing.xxl,
                                             ),
                                           ],
                                         ),
@@ -798,6 +811,12 @@ class _DetailViewState extends State<_DetailView> {
                               // commit; this widget only hands the words over. Fenced
                               // out of the reading region, whose long-press must not
                               // contest the field's own gestures.
+                              if (inner && !entry.hasAudio)
+                                SizedBox(
+                                  height:
+                                      duoReadingGridOf(context).bodyTop -
+                                      duoReadingGridOf(context).stripTop,
+                                ),
                               if (_editing)
                                 SelectionContainer.disabled(
                                   child: EditableProse(
@@ -805,9 +824,8 @@ class _DetailViewState extends State<_DetailView> {
                                     focusNode: _bodyFocus,
                                     continuity: _bodyContinuity,
                                     onBlur: _commitEdit,
-                                    style: (inner ? DuoTheme.body : AppType.body).copyWith(
-                                      color: theme.text,
-                                    ),
+                                    style: (inner ? duoBodyStyle(entry.readableText) : AppType.body)
+                                        .copyWith(color: theme.text),
                                     cursorColor: theme.accent,
                                     backgroundCursorColor: theme.textSecondary,
                                     selectionColor: theme.accent.withValues(alpha: 0.25),
@@ -1116,6 +1134,7 @@ class _TitleField extends StatefulWidget {
 class _TitleFieldState extends State<_TitleField> {
   late final TextEditingController _controller;
   String? _locale;
+  bool _inner = false;
   EntriesCubit? _entries;
   bool _changed = false;
 
@@ -1131,14 +1150,14 @@ class _TitleFieldState extends State<_TitleField> {
     super.didUpdateWidget(oldWidget);
     // Reflect an external change (a commit round-trip) unless mid-edit.
     if (!_changed && !widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
-      _controller.text = entryDisplayTitle(widget.entry, _locale!);
+      _controller.text = duoEntryTitle(widget.entry, _locale!, inner: _inner);
     }
   }
 
   void _commit() {
     _changed = false;
     final trimmed = _controller.text.trim();
-    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), _locale!);
+    final untitledDefault = duoEntryTitle(widget.entry.withTitle(null), _locale!, inner: _inner);
     final cleared = trimmed.isEmpty || trimmed == untitledDefault;
     if (cleared && widget.entry.title == null) {
       // Nothing changed; just restore the default text.
@@ -1161,12 +1180,14 @@ class _TitleFieldState extends State<_TitleField> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final locale = localeTag(context);
+    final inner = duoInnerOf(context);
     if (_locale == null) {
-      _controller = TextEditingController(text: entryDisplayTitle(widget.entry, locale));
-    } else if (_locale != locale && !_changed && !widget.focusNode.hasFocus) {
-      _controller.text = entryDisplayTitle(widget.entry, locale);
+      _controller = TextEditingController(text: duoEntryTitle(widget.entry, locale, inner: inner));
+    } else if ((_locale != locale || _inner != inner) && !_changed && !widget.focusNode.hasFocus) {
+      _controller.text = duoEntryTitle(widget.entry, locale, inner: inner);
     }
     _locale = locale;
+    _inner = inner;
     return EditableProse(
       controller: _controller,
       focusNode: widget.focusNode,
@@ -1217,7 +1238,7 @@ class _TranscriptBody extends StatelessWidget {
       (passes) => passes.state.forEntry(entry.id)?.forecast,
     );
     return TranscriptView(
-      bodyStyle: duoInnerOf(context) ? DuoTheme.body : AppType.body,
+      bodyStyle: duoInnerOf(context) ? duoBodyStyle(entry.readableText) : AppType.body,
       entry: entry,
       busy: busy,
       appending: continuing,
@@ -1226,6 +1247,75 @@ class _TranscriptBody extends StatelessWidget {
       sample: forecast == null
           ? ''
           : fillerSample(localeId: forecast.localeId, journal: [entry, ...journal]),
+    );
+  }
+}
+
+String duoEntryTitle(Entry entry, String locale, {required bool inner}) =>
+    inner ? entry.title ?? formatTime(entry.createdAt, locale) : entryDisplayTitle(entry, locale);
+
+TextStyle duoBodyStyle(String? text) =>
+    (text?.length ?? 0) < DuoTheme.shortBodyLimit ? DuoTheme.shortBody : DuoTheme.body;
+
+class _DuoDocumentHeading extends StatelessWidget {
+  const _DuoDocumentHeading({
+    required this.entry,
+    required this.meta,
+    required this.focusNode,
+    required this.continuity,
+    required this.verticalBar,
+  });
+
+  final Entry entry;
+  final String meta;
+  final FocusNode focusNode;
+  final EditContinuityController continuity;
+  final bool verticalBar;
+
+  @override
+  Widget build(BuildContext context) {
+    final grid = duoReadingGridOf(context);
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final measure = duoContentMeasure(constraints.maxWidth, EdgeInsets.zero);
+        final title = duoParagraphHeight(
+          duoEntryTitle(entry, localeTag(context), inner: true),
+          style: DuoTheme.detailTitle,
+          scaler: scaler,
+          width: measure,
+          maxLines: 2,
+        );
+        final metadata = duoParagraphHeight(
+          meta,
+          style: AppType.digits(DuoTheme.metadata),
+          scaler: scaler,
+          width: measure,
+        );
+        final gaps = duoDocumentGaps(
+          titleHeight: title,
+          metadataHeight: metadata,
+          grid: grid,
+          top: verticalBar
+              ? grid.detailTop
+              : context.theme.topBar.height + context.theme.topBar.fadeTail,
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SelectionContainer.disabled(
+              child: _TitleField(entry: entry, focusNode: focusNode, continuity: continuity),
+            ),
+            SizedBox(height: gaps.metadata),
+            Text(
+              meta,
+              style: AppType.digits(DuoTheme.metadata).copyWith(color: context.theme.textSecondary),
+            ),
+            EntryBarLine(entryId: entry.id),
+            SizedBox(height: gaps.player),
+          ],
+        );
+      },
     );
   }
 }

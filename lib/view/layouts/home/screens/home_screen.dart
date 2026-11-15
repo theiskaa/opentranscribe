@@ -20,6 +20,8 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
 import 'package:opentranscribe/view/layouts/home/components/journal_split.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
@@ -273,11 +275,12 @@ class _HomeScreenState extends State<_Journal> {
     final theme = context.theme;
     // The strip gets a breath under the subtitle; resting content starts
     // fully past the fade tail so the first splitter is never washed.
-    _contentTop =
-        AppTopBar.largeHeightOf(context) +
-        AppSpacing.md +
-        WeekCalendar.heightOf(context) +
-        theme.topBar.fadeTail;
+    _contentTop = duoJournalOf(context)
+        ? MediaQuery.paddingOf(context).top + duoReadingGridOf(context).bodyTop
+        : AppTopBar.largeHeightOf(context) +
+              AppSpacing.md +
+              WeekCalendar.heightOf(context) +
+              theme.topBar.fadeTail;
 
     return ColoredBox(
       color: duoJournalOf(context) ? theme.duo.surfaceGrouped : theme.screens.home,
@@ -479,7 +482,14 @@ class _HomeScreenState extends State<_Journal> {
                           final now = DateTime.now();
                           final today = DateTime(now.year, now.month, now.day);
                           return _HomeChrome(
-                            activeDay: viewed ?? today,
+                            activeDay: duoJournalOf(context)
+                                ? duoJournalHeadingDay(
+                                    viewed: viewed,
+                                    today: today,
+                                    days: [for (final section in state.sections) section.day],
+                                    takePending: state.takePending,
+                                  )
+                                : viewed ?? today,
                             visibleWeek: week,
                             state: state,
                             homeTick: _homeTick,
@@ -556,6 +566,8 @@ class _HomeChromeState extends State<_HomeChrome> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final locale = localeTag(context);
+    final inner = duoJournalOf(context);
+    final grid = inner ? duoReadingGridOf(context) : null;
     return AppTopBar(
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
@@ -563,7 +575,7 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Nothing native scrolls under the home bar, so the drawn fade stands in
       // for the native material and skips its re-stage flicker on return.
       nativeMaterial: false,
-      barHeight: duoJournalOf(context) ? duoHeaderOf(context).header : theme.topBar.largeHeight,
+      barHeight: inner ? grid!.header : theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
       // One trailing menu instead of a row of buttons: the home is the app, and
       // this dropdown is how you leave it (there is no settings screen). Every
@@ -578,28 +590,29 @@ class _HomeChromeState extends State<_HomeChrome> {
       ],
       // The top padding settles the block lower in the row, off the status
       // area.
-      title: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.md),
-        child: RollingText(
-          text: DateFormat.MMMMd(locale).format(widget.activeDay),
-          style: AppType.digits(
-            duoJournalOf(context) ? DuoTheme.journalTitle : AppType.display2,
-          ).copyWith(color: theme.topBar.titleColor),
-          direction: _direction,
-        ),
-      ),
+      title: inner
+          ? _DuoHomeHeading(day: widget.activeDay, direction: _direction)
+          : Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: RollingText(
+                text: DateFormat.MMMMd(locale).format(widget.activeDay),
+                style: AppType.digits(AppType.display2).copyWith(color: theme.topBar.titleColor),
+                direction: _direction,
+              ),
+            ),
       // While a take is being saved the line is its progress instead, since
       // the entry lands only once its pass does.
-      subtitle: BatchProgressLine(
-        style: duoJournalOf(context) ? AppType.rowNote : null,
-        select: (passes) => passes.take,
-        fallback:
-            '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
-            '${DateFormat.yMMMM(locale).format(widget.visibleWeek)}',
-        direction: _direction,
-      ),
+      subtitle: inner
+          ? null
+          : BatchProgressLine(
+              select: (passes) => passes.take,
+              fallback:
+                  '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
+                  '${DateFormat.yMMMM(locale).format(widget.visibleWeek)}',
+              direction: _direction,
+            ),
       bottom: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.md),
+        padding: EdgeInsets.only(top: inner ? grid!.stripTop - grid.header : AppSpacing.md),
         child: WeekCalendar(
           entryDays: widget.state.entryDays,
           firstEntryDay: widget.state.firstEntryDay,
@@ -609,7 +622,8 @@ class _HomeChromeState extends State<_HomeChrome> {
           homeTick: widget.homeTick,
         ),
       ),
-      bottomHeight: AppSpacing.md + WeekCalendar.heightOf(context),
+      bottomHeight:
+          (inner ? grid!.stripTop - grid.header : AppSpacing.md) + WeekCalendar.heightOf(context),
     );
   }
 }
@@ -931,54 +945,55 @@ class _RecordsList extends StatelessWidget {
     // A card group above the splitter supplies the break itself.
     bool gapless(int s) => leads(s) || cards[s] != null;
 
-    return ListView(
-      controller: controller,
-      // A journal shorter than the screen must still overscroll for pull-to-record.
-      physics: const AlwaysScrollableScrollPhysics(),
-      // Materialize everything: with every splitter measured, calendar taps
-      // have exact targets and the title tracker never runs blind. Journal
-      // scale keeps this affordable.
-      scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
-      padding: EdgeInsets.only(top: topPadding, bottom: clearance + tail) + sides,
-      children: [
-        if (takeAlive && takeLeads) ...[
-          _SplitterLabel(day: takeDay!, gapless: true),
-          _TakeSlot(
-            key: const ValueKey('take'),
-            entry: writing,
-            forecast: takeForecast,
-            sample: takeSample,
-            last: true,
-            onWritten: onWritten,
+    final inner = duoJournalOf(context);
+    final groups = duoJournalHeaders(sectionDays, DateTime.now());
+    final children = <Widget>[
+      if (takeAlive && takeLeads) ...[
+        _SplitterLabel(day: takeDay!, gapless: true),
+        _TakeSlot(
+          key: const ValueKey('take'),
+          entry: writing,
+          forecast: takeForecast,
+          sample: takeSample,
+          last: true,
+          onWritten: onWritten,
+        ),
+      ],
+      for (final (s, section) in sections.indexed) ...[
+        for (final (g, day) in ghosts[s].indexed) ...[
+          if (departingCards[day] != null)
+            _DepartingCardGroup(
+              key: ValueKey('departing-cards-${day.toIso8601String()}'),
+              reflections: departingCards[day]!,
+              gapless: !takeLeads && s == 0 && g == 0,
+            ),
+          _DepartingSplitter(
+            key: ValueKey('departing-${day.toIso8601String()}'),
+            day: day,
+            gapless: (!takeLeads && s == 0 && g == 0) || departingCards[day] != null,
+            onEnd: () => onDepartureEnd(day),
           ),
         ],
-        for (final (s, section) in sections.indexed) ...[
-          for (final (g, day) in ghosts[s].indexed) ...[
-            if (departingCards[day] != null)
-              _DepartingCardGroup(
-                key: ValueKey('departing-cards-${day.toIso8601String()}'),
-                reflections: departingCards[day]!,
-                gapless: !takeLeads && s == 0 && g == 0,
-              ),
-            _DepartingSplitter(
-              key: ValueKey('departing-${day.toIso8601String()}'),
-              day: day,
-              gapless: (!takeLeads && s == 0 && g == 0) || departingCards[day] != null,
-              onEnd: () => onDepartureEnd(day),
-            ),
-          ],
-          if (cards[s] != null)
-            // Keyed on the day, not the index: an insert or delete above must
-            // not hand this group's gap to another section's mid-flight.
-            _ReflectionCardGroup(
-              key: ValueKey('cards-${section.day.toIso8601String()}'),
-              reflections: cards[s]!,
-              entered: enteredCards,
-              gapless: leads(s),
-              folding: unseating,
-            ),
-          // Keyed (like the rows) so an insert or delete above cannot
-          // re-inflate the slot at its shifted index and replay the entrance.
+        if (cards[s] != null)
+          // Keyed on the day, not the index: an insert or delete above must
+          // not hand this group's gap to another section's mid-flight.
+          _ReflectionCardGroup(
+            key: ValueKey('cards-${section.day.toIso8601String()}'),
+            reflections: cards[s]!,
+            entered: enteredCards,
+            gapless: leads(s),
+            folding: unseating,
+          ),
+        // Keyed (like the rows) so an insert or delete above cannot
+        // re-inflate the slot at its shifted index and replay the entrance.
+        if (inner)
+          _DuoDayMarker(
+            day: section.day,
+            group: groups[s],
+            labelKey: splitterKeys.putIfAbsent(section.day, GlobalKey.new),
+            folded: allDying(sectionIds[s], dyingIds),
+          )
+        else
           _ArrivalUnfold(
             key: ValueKey(section.day),
             entrance: enteredDays.contains(section.day),
@@ -994,60 +1009,75 @@ class _RecordsList extends StatelessWidget {
               ),
             ),
           ),
-          if (s == takeSection)
-            _TakeSlot(
-              key: const ValueKey('take'),
-              entry: writing,
-              forecast: takeForecast,
-              sample: takeSample,
-              last: allDying(sectionIds[s].where((id) => id != writingId), dyingIds),
-              onWritten: onWritten,
-            ),
-          // The record the take's slot is writing renders THERE, not here:
-          // its row is the same one, and the ink is how it arrives.
-          for (final (i, entry) in section.entries.indexed)
-            if (entry.id != writingId)
-              // Keyed so an entry insert or delete above cannot re-inflate the
-              // slot at its shifted index and replay the entrance.
-              _ArrivalUnfold(
-                key: ValueKey(entry.id),
-                entrance: enteredEntries.contains(entry.id),
-                child: EntryRow(
-                  entry: entry,
-                  nextEntryId: section.entries
-                      .skip(i + 1)
-                      .where((next) => !dyingIds.contains(next.id))
-                      .firstOrNull
-                      ?.id,
-                  // A dying successor is already gone for layout: the gap and
-                  // rail close in step with its exit, and the emit changes
-                  // nothing.
-                  last: allDying(sectionIds[s].skip(i + 1), dyingIds),
-                  openId: openRow,
-                  onDelete: onDelete,
-                  onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
-                  onTap: () {
-                    context.read<EntriesCubit>().load();
-                    context.goNamed(Routes.entryName, pathParameters: {'id': entry.id});
-                  },
-                ),
-              ),
-        ],
-        for (final (g, day) in ghosts[sections.length].indexed) ...[
-          if (departingCards[day] != null)
-            _DepartingCardGroup(
-              key: ValueKey('departing-cards-${day.toIso8601String()}'),
-              reflections: departingCards[day]!,
-              gapless: !takeLeads && sections.isEmpty && g == 0,
-            ),
-          _DepartingSplitter(
-            key: ValueKey('departing-${day.toIso8601String()}'),
-            day: day,
-            gapless: (!takeLeads && sections.isEmpty && g == 0) || departingCards[day] != null,
-            onEnd: () => onDepartureEnd(day),
+        if (s == takeSection)
+          _TakeSlot(
+            key: const ValueKey('take'),
+            entry: writing,
+            forecast: takeForecast,
+            sample: takeSample,
+            last: allDying(sectionIds[s].where((id) => id != writingId), dyingIds),
+            onWritten: onWritten,
           ),
-        ],
+        // The record the take's slot is writing renders THERE, not here:
+        // its row is the same one, and the ink is how it arrives.
+        for (final (i, entry) in section.entries.indexed)
+          if (entry.id != writingId)
+            // Keyed so an entry insert or delete above cannot re-inflate the
+            // slot at its shifted index and replay the entrance.
+            _ArrivalUnfold(
+              key: ValueKey(entry.id),
+              entrance: enteredEntries.contains(entry.id),
+              child: EntryRow(
+                entry: entry,
+                nextEntryId: section.entries
+                    .skip(i + 1)
+                    .where((next) => !dyingIds.contains(next.id))
+                    .firstOrNull
+                    ?.id,
+                // A dying successor is already gone for layout: the gap and
+                // rail close in step with its exit, and the emit changes
+                // nothing.
+                last: allDying(sectionIds[s].skip(i + 1), dyingIds),
+                openId: openRow,
+                onDelete: onDelete,
+                onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
+                onTap: () {
+                  context.read<EntriesCubit>().load();
+                  context.goNamed(Routes.entryName, pathParameters: {'id': entry.id});
+                },
+              ),
+            ),
       ],
+      for (final (g, day) in ghosts[sections.length].indexed) ...[
+        if (departingCards[day] != null)
+          _DepartingCardGroup(
+            key: ValueKey('departing-cards-${day.toIso8601String()}'),
+            reflections: departingCards[day]!,
+            gapless: !takeLeads && sections.isEmpty && g == 0,
+          ),
+        _DepartingSplitter(
+          key: ValueKey('departing-${day.toIso8601String()}'),
+          day: day,
+          gapless: (!takeLeads && sections.isEmpty && g == 0) || departingCards[day] != null,
+          onEnd: () => onDepartureEnd(day),
+        ),
+      ],
+    ];
+    if (inner) {
+      return _DuoJournalScroll(
+        controller: controller,
+        top: topPadding,
+        bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl + tail,
+        sides: sides,
+        children: children,
+      );
+    }
+    return ListView(
+      controller: controller,
+      physics: const AlwaysScrollableScrollPhysics(),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
+      padding: EdgeInsets.only(top: topPadding, bottom: clearance + tail) + sides,
+      children: children,
     );
   }
 }
@@ -1164,4 +1194,171 @@ class _DepartingCardGroup extends StatelessWidget {
       child: _ReflectionCardGroup(reflections: reflections, entered: const {}, gapless: gapless),
     );
   }
+}
+
+class _DuoHomeHeading extends StatelessWidget {
+  const _DuoHomeHeading({required this.day, required this.direction});
+
+  final DateTime day;
+  final int direction;
+
+  @override
+  Widget build(BuildContext context) {
+    final grid = duoReadingGridOf(context);
+    final today = localDayOf(DateTime.now());
+    final locale = localeTag(context);
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned(
+            top: grid.journalTop,
+            left: 0,
+            right: 0,
+            child: RollingText(
+              text: day == today
+                  ? AppLocalizations.of(context)!.duoJournalToday
+                  : DateFormat.MMMMd(locale).format(day),
+              direction: direction,
+              style: AppType.digits(DuoTheme.journalTitle).copyWith(color: context.theme.text),
+            ),
+          ),
+          Positioned(
+            top: grid.metadataTop,
+            left: 0,
+            right: 0,
+            child: BatchProgressLine(
+              select: (passes) => passes.take,
+              fallback: day == today
+                  ? DateFormat.yMMMMd(locale).format(day)
+                  : '${DateFormat.EEEE(locale).format(day)} · ${DateFormat.yMMMM(locale).format(day)}',
+              direction: direction,
+              style: AppType.digits(DuoTheme.metadata),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DuoDayMarker extends StatelessWidget {
+  const _DuoDayMarker({
+    required this.day,
+    required this.group,
+    required this.labelKey,
+    required this.folded,
+  });
+
+  final DateTime day;
+  final DateTime? group;
+  final GlobalKey labelKey;
+  final bool folded;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.shrink(key: labelKey);
+}
+
+class _DuoJournalScroll extends StatelessWidget {
+  const _DuoJournalScroll({
+    required this.controller,
+    required this.top,
+    required this.bottom,
+    required this.sides,
+    required this.children,
+  });
+
+  final ScrollController controller;
+  final double top;
+  final double bottom;
+  final EdgeInsets sides;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final slivers = <Widget>[];
+    var group = <Widget>[];
+    Key groupKey = const ValueKey('leading');
+    for (final child in children) {
+      if (child is _DuoDayMarker && child.group != null && !child.folded) {
+        if (group.isNotEmpty) slivers.add(SliverMainAxisGroup(key: groupKey, slivers: group));
+        groupKey = ValueKey(child.group);
+        group = [
+          SliverToBoxAdapter(child: SizedBox.shrink(key: child.labelKey)),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _DuoDayHeader(
+              day: child.day,
+              group: child.group!,
+              height:
+                  duoTextMetrics(
+                    style: DuoTheme.section,
+                    scaler: MediaQuery.textScalerOf(context),
+                  ).height +
+                  AppSpacing.sm,
+            ),
+          ),
+        ];
+      } else {
+        group.add(SliverToBoxAdapter(key: child.key, child: child));
+      }
+    }
+    if (group.isNotEmpty) slivers.add(SliverMainAxisGroup(key: groupKey, slivers: group));
+    return Padding(
+      padding: EdgeInsets.only(top: top),
+      child: CustomScrollView(
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(),
+        scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
+        slivers: [
+          SliverPadding(
+            padding: sides,
+            sliver: SliverMainAxisGroup(slivers: slivers),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: bottom)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DuoDayHeader extends SliverPersistentHeaderDelegate {
+  _DuoDayHeader({required this.day, required this.group, required this.height});
+
+  final DateTime day;
+  final DateTime group;
+  final double height;
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final today = localDayOf(DateTime.now());
+    final locale = localeTag(context);
+    final l10n = AppLocalizations.of(context)!;
+    final month = duoJournalIsMonthly(day, today);
+    final label = month
+        ? DateFormat.yMMMM(locale).format(group)
+        : day == today
+        ? l10n.duoJournalToday
+        : day == DateTime(today.year, today.month, today.day - 1)
+        ? l10n.duoJournalYesterday
+        : '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}';
+    return ColoredBox(
+      color: context.theme.duo.surfaceGrouped,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppDuo.paneInset),
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          child: Text(label, style: DuoTheme.section.copyWith(color: context.theme.textSecondary)),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_DuoDayHeader oldDelegate) =>
+      day != oldDelegate.day || group != oldDelegate.group || height != oldDelegate.height;
 }

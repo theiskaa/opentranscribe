@@ -1685,4 +1685,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get sheetCloseButton => 'Fechar';
+
+  @override
+  String get duoJournalToday => 'Hoje';
+
+  @override
+  String get duoJournalYesterday => 'Ontem';
 }

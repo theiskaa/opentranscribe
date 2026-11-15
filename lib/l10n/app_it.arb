@@ -462,5 +462,7 @@
   "continueEntryBusy": "Questa voce è ancora in trascrizione.",
   "settingsButton": "Impostazioni",
   "appearanceModeButton": "Modalità aspetto",
-  "sheetCloseButton": "Chiudi"
+  "sheetCloseButton": "Chiudi",
+  "duoJournalToday": "Oggi",
+  "duoJournalYesterday": "Ieri"
 }
