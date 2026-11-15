@@ -19,14 +19,29 @@ class AppDropdownItem {
 
 /// The screen-space rect to grow a dropdown from: [key]'s render box, or a
 /// top-right fallback when it is not laid out yet. Shared by the bar menus that
-/// open a fallback dropdown anchored to their own button.
+/// open a fallback dropdown anchored to their own button. [context] must see
+/// the window's MediaQuery (a bar's, never one under `SafeSides`): the
+/// fallback is in window coordinates.
 Rect dropdownAnchorRect(GlobalKey key, BuildContext context) {
   final box = key.currentContext?.findRenderObject();
   if (box is RenderBox && box.attached) return box.localToGlobal(Offset.zero) & box.size;
-  final screen = MediaQuery.sizeOf(context);
+  return barControlFallbackRect(
+    window: MediaQuery.sizeOf(context),
+    padding: MediaQuery.paddingOf(context),
+    rowHeight: context.theme.topBar.height,
+  );
+}
+
+/// Where a bar's trailing control sits in a [window] whose safe area is
+/// [padding]: the compact row's last seat, inside the right safe inset.
+Rect barControlFallbackRect({
+  required Size window,
+  required EdgeInsets padding,
+  required double rowHeight,
+}) {
   const side = AppSizes.barControl;
-  final left = screen.width - AppTopBar.edgeInset - side;
-  final top = MediaQuery.paddingOf(context).top + (context.theme.topBar.height - side) / 2;
+  final left = window.width - padding.right - AppTopBar.edgeInset - side;
+  final top = padding.top + (rowHeight - side) / 2;
   return Rect.fromLTWH(left, top, side, side);
 }
 
@@ -103,9 +118,11 @@ class _DropdownBodyState extends State<_DropdownBody> {
     final openBelow = roomBelow >= natural || roomBelow >= roomAbove;
     final height = natural.clamp(0.0, openBelow ? roomBelow : roomAbove);
     final top = openBelow ? below : widget.anchor.top - _gap - height;
-    final left = (widget.anchor.right - _width).clamp(
-      AppSpacing.md,
-      screen.width - _width - AppSpacing.md,
+    final left = popupLeft(
+      anchor: widget.anchor,
+      width: _width,
+      windowWidth: screen.width,
+      padding: insets,
     );
 
     return Stack(

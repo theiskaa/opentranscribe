@@ -45,6 +45,7 @@ import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/hint_callout.dart';
 import 'package:opentranscribe/view/widgets/ink_forecast.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 
 /// One entry as a document: its title, when it was made, the recording drawn as
@@ -625,6 +626,15 @@ class _DetailViewState extends State<_DetailView> {
             : dockHeight > 0
             ? bottomInset + AppSpacing.xl + dockHeight + AppSpacing.xxxl
             : bottomInset + AppSpacing.xxxl;
+        final locale = localeTag(context);
+        final meta = [
+          DateFormat.yMMMMd(locale).format(entry.createdAt.toLocal()),
+          formatTime(entry.createdAt, locale),
+          formatClock(entry.duration),
+          if (language != null) localeDisplayName(language),
+          // Hand-written words are never passed off as heard.
+          if (!entry.readsAsTranscript) l10n.editedMarker,
+        ].join(' \u00b7 ');
         return ColoredBox(
           color: theme.screens.entryDetail,
           // The hint leaves on the first touch anywhere, a scroll's included,
@@ -639,104 +649,106 @@ class _DetailViewState extends State<_DetailView> {
                 // than pinning to the floor, so the transcript reads as a page
                 // and not as text squeezed between two bars.
                 Positioned.fill(
-                  child: SelectableProse(
-                    focusNode: _selectionFocus,
-                    // The toolbar's road into the editor: with words selected it
-                    // opens on them; bare, it just opens.
-                    editLabel: entry.readableText == null ? null : l10n.editTranscript,
-                    onEdit: entry.readableText == null
-                        ? null
-                        : (selected) => _editFromSelection(entry, selected),
-                    child: NotificationListener<ScrollUpdateNotification>(
-                      onNotification: _dismissKeyboardOnDrag,
-                      child: SingleChildScrollView(
-                        // A short entry fits its viewport even with the keyboard
-                        // pad; without this no drag exists for the dismiss to hear.
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(
-                          AppSpacing.xl,
-                          // Past the bar AND its fade tail: the material is opaque
-                          // through the row and only melts across the tail, so
-                          // content starting inside it would sit under the wash.
-                          AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                          AppSpacing.xl,
-                          keyboard + restingBottom,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Fenced out of the reading region like the body
-                            // editor: its long press must not contest the field's.
-                            SelectionContainer.disabled(
-                              child: _TitleField(entry: entry, focusNode: _titleFocus),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              '${DateFormat.yMMMMd(localeTag(context)).format(entry.createdAt.toLocal())}'
-                              ' \u00b7 ${formatTime(entry.createdAt, localeTag(context))}'
-                              ' \u00b7 ${formatClock(entry.duration)}'
-                              '${language == null ? '' : ' \u00b7 ${localeDisplayName(language)}'}'
-                              // Hand-written words are never passed off as heard.
-                              '${entry.readsAsTranscript ? '' : ' \u00b7 ${l10n.editedMarker}'}',
-                              style: AppType.digits(
-                                AppType.footnote,
-                              ).copyWith(color: theme.textSecondary),
-                            ),
-                            const SizedBox(height: AppSpacing.xxl),
-                            // Discarded audio: the document flows from the metadata
-                            // straight into what it says. Animated, so a discard
-                            // landing mid-read collapses the player instead of
-                            // snapping ~80px of layout in one frame.
-                            AnimatedSize(
-                              duration: context.reduceMotion
-                                  ? AppMotion.instant
-                                  : context.motionNow.indicator,
-                              curve: context.motionNow.indicatorCurve,
-                              alignment: Alignment.topCenter,
-                              // The switcher fades the wave out while the size eases
-                              // the gap closed, so nothing hard-cuts mid-read.
-                              child: AnimatedSwitcher(
-                                duration: context.reduceMotion
-                                    ? Duration.zero
-                                    : context.motionNow.indicator,
-                                child: !entry.hasAudio
-                                    ? const SizedBox(width: double.infinity)
-                                    : Column(
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: [
-                                          WavePlayer(key: ValueKey(entry.audioPath), entry: entry),
-                                          const SizedBox(height: AppSpacing.xxl),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                            // The edit mode: the same body type in the same seat, so
-                            // entering it moves no text. The service judges the
-                            // commit; this widget only hands the words over. Fenced
-                            // out of the reading region, whose long-press must not
-                            // contest the field's own gestures.
-                            if (_editing)
+                  child: SafeSides.scroll(
+                    builder: (context, sides) => SelectableProse(
+                      focusNode: _selectionFocus,
+                      // The toolbar's road into the editor: with words selected it
+                      // opens on them; bare, it just opens.
+                      editLabel: entry.readableText == null ? null : l10n.editTranscript,
+                      onEdit: entry.readableText == null
+                          ? null
+                          : (selected) => _editFromSelection(entry, selected),
+                      child: NotificationListener<ScrollUpdateNotification>(
+                        onNotification: _dismissKeyboardOnDrag,
+                        child: SingleChildScrollView(
+                          // A short entry fits its viewport even with the keyboard
+                          // pad; without this no drag exists for the dismiss to hear.
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding:
+                              EdgeInsets.fromLTRB(
+                                AppSpacing.xl,
+                                // Past the bar AND its fade tail: the material is opaque
+                                // through the row and only melts across the tail, so
+                                // content starting inside it would sit under the wash.
+                                AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                                AppSpacing.xl,
+                                keyboard + restingBottom,
+                              ) +
+                              sides,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Fenced out of the reading region like the body
+                              // editor: its long press must not contest the field's.
                               SelectionContainer.disabled(
-                                child: EditableProse(
-                                  controller: _bodyController,
-                                  focusNode: _bodyFocus,
-                                  style: AppType.body.copyWith(color: theme.text),
-                                  cursorColor: theme.accent,
-                                  backgroundCursorColor: theme.textSecondary,
-                                  selectionColor: theme.accent.withValues(alpha: 0.25),
-                                  keyboardAppearance: theme.brightness,
-                                  capitalization: TextCapitalization.sentences,
-                                  maxLines: null,
-                                ),
-                              )
-                            else
-                              _TranscriptBody(
-                                entry: entry,
-                                journal: state.entries,
-                                busy: busy,
-                                continuing: continuing,
+                                child: _TitleField(entry: entry, focusNode: _titleFocus),
                               ),
-                          ],
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                meta,
+                                style: AppType.digits(
+                                  AppType.footnote,
+                                ).copyWith(color: theme.textSecondary),
+                              ),
+                              const SizedBox(height: AppSpacing.xxl),
+                              // Discarded audio: the document flows from the metadata
+                              // straight into what it says. Animated, so a discard
+                              // landing mid-read collapses the player instead of
+                              // snapping ~80px of layout in one frame.
+                              AnimatedSize(
+                                duration: context.reduceMotion
+                                    ? AppMotion.instant
+                                    : context.motionNow.indicator,
+                                curve: context.motionNow.indicatorCurve,
+                                alignment: Alignment.topCenter,
+                                // The switcher fades the wave out while the size eases
+                                // the gap closed, so nothing hard-cuts mid-read.
+                                child: AnimatedSwitcher(
+                                  duration: context.reduceMotion
+                                      ? Duration.zero
+                                      : context.motionNow.indicator,
+                                  child: !entry.hasAudio
+                                      ? const SizedBox(width: double.infinity)
+                                      : Column(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            WavePlayer(
+                                              key: ValueKey(entry.audioPath),
+                                              entry: entry,
+                                            ),
+                                            const SizedBox(height: AppSpacing.xxl),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                              // The edit mode: the same body type in the same seat, so
+                              // entering it moves no text. The service judges the
+                              // commit; this widget only hands the words over. Fenced
+                              // out of the reading region, whose long-press must not
+                              // contest the field's own gestures.
+                              if (_editing)
+                                SelectionContainer.disabled(
+                                  child: EditableProse(
+                                    controller: _bodyController,
+                                    focusNode: _bodyFocus,
+                                    style: AppType.body.copyWith(color: theme.text),
+                                    cursorColor: theme.accent,
+                                    backgroundCursorColor: theme.textSecondary,
+                                    selectionColor: theme.accent.withValues(alpha: 0.25),
+                                    keyboardAppearance: theme.brightness,
+                                    capitalization: TextCapitalization.sentences,
+                                    maxLines: null,
+                                  ),
+                                )
+                              else
+                                _TranscriptBody(
+                                  entry: entry,
+                                  journal: state.entries,
+                                  busy: busy,
+                                  continuing: continuing,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -815,7 +827,9 @@ class _DetailViewState extends State<_DetailView> {
                 if (_hintMarked)
                   PositionedDirectional(
                     top: AppTopBar.heightOf(context),
-                    end: AppSpacing.md,
+                    end:
+                        AppSpacing.md +
+                        endInset(MediaQuery.paddingOf(context), Directionality.of(context)),
                     child: ValueListenableBuilder<bool>(
                       valueListenable: _hintArmed,
                       builder: (context, armed, _) => _EntryHint(
@@ -834,7 +848,7 @@ class _DetailViewState extends State<_DetailView> {
                 // size: its ink box is wide for its point size.
                 if (_editing)
                   Positioned(
-                    right: GlassFab.floatInset,
+                    right: GlassFab.rightOf(context),
                     // Continuous as the keyboard moves: padding.bottom falls
                     // to zero by itself as the inset grows.
                     bottom: keyboard + bottomInset + GlassFab.floatInset,
@@ -951,28 +965,30 @@ class _BottomDock extends StatelessWidget {
       left: 0,
       right: 0,
       bottom: 0,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          0,
-          AppSpacing.xl,
-          AppScaffold.bottomControlOf(context),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (kind != null)
-              // Keyed by the tick: a repeat of the same failure remounts the
-              // pill, so its announcing shake plays again.
-              ErrorPill(
-                key: ValueKey(errorTick),
-                message: _pillLabel(kind, l10n),
-                onTap: () => _openDetails(context, kind),
-              ),
-            if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
-            if (showCta) AppButton(label: l10n.transcribe, onPressed: busy ? null : onTranscribe),
-          ],
+      child: SafeSides(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            0,
+            AppSpacing.xl,
+            AppScaffold.bottomControlOf(context),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (kind != null)
+                // Keyed by the tick: a repeat of the same failure remounts the
+                // pill, so its announcing shake plays again.
+                ErrorPill(
+                  key: ValueKey(errorTick),
+                  message: _pillLabel(kind, l10n),
+                  onTap: () => _openDetails(context, kind),
+                ),
+              if (kind != null && showCta) const SizedBox(height: AppSpacing.md),
+              if (showCta) AppButton(label: l10n.transcribe, onPressed: busy ? null : onTranscribe),
+            ],
+          ),
         ),
       ),
     );

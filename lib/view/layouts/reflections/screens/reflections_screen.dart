@@ -26,6 +26,7 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 import 'package:reflections/reflections.dart';
 
@@ -541,37 +542,39 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
               left: 0,
               right: 0,
               bottom: _capsuleSeat(context),
-              child: Center(
-                child: IgnorePointer(
-                  ignoring: !shown,
-                  // Mirrored along one path: a soft rise in, a quicker sink
-                  // out. The fade rides a single fraction into the scrubber
-                  // rather than an Opacity layer: a BackdropFilter inside
-                  // one samples the layer's own empty buffer, so the blur
-                  // would pop instead of fading. Reduce Motion keeps only
-                  // the fade; a fully-hidden capsule builds nothing.
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(end: shown ? 1.0 : 0.0),
-                    duration: shown ? theme.motion.indicator : theme.motion.crossfade,
-                    curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
-                    builder: (context, fade, _) {
-                      if (fade <= 0) return const SizedBox.shrink();
-                      final sink = context.reduceMotion
-                          ? 0.0
-                          : (1 - fade) * theme.scrubber.sinkDistance;
-                      return Transform.translate(
-                        offset: Offset(0, sink),
-                        child: ReflectionScrubber(
-                          controller: controller,
-                          count: timeline.length,
-                          timelineKey: state.viewedPeriod,
-                          restPage: viewedIndex,
-                          fade: fade,
-                          onScrubStart: () => _setScrubbing(value: true, count: timeline.length),
-                          onScrubEnd: () => _setScrubbing(value: false, count: timeline.length),
-                        ),
-                      );
-                    },
+              child: SafeSides(
+                child: Center(
+                  child: IgnorePointer(
+                    ignoring: !shown,
+                    // Mirrored along one path: a soft rise in, a quicker sink
+                    // out. The fade rides a single fraction into the scrubber
+                    // rather than an Opacity layer: a BackdropFilter inside
+                    // one samples the layer's own empty buffer, so the blur
+                    // would pop instead of fading. Reduce Motion keeps only
+                    // the fade; a fully-hidden capsule builds nothing.
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(end: shown ? 1.0 : 0.0),
+                      duration: shown ? theme.motion.indicator : theme.motion.crossfade,
+                      curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
+                      builder: (context, fade, _) {
+                        if (fade <= 0) return const SizedBox.shrink();
+                        final sink = context.reduceMotion
+                            ? 0.0
+                            : (1 - fade) * theme.scrubber.sinkDistance;
+                        return Transform.translate(
+                          offset: Offset(0, sink),
+                          child: ReflectionScrubber(
+                            controller: controller,
+                            count: timeline.length,
+                            timelineKey: state.viewedPeriod,
+                            restPage: viewedIndex,
+                            fade: fade,
+                            onScrubStart: () => _setScrubbing(value: true, count: timeline.length),
+                            onScrubEnd: () => _setScrubbing(value: false, count: timeline.length),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -669,86 +672,90 @@ class _PeriodPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return SelectableProse(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          // Past the bar and its fade tail: the material is opaque through the
-          // row and only melts across the tail, so the title clears the wash.
-          AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-          AppSpacing.xl,
-          // Past the floating capsule too, so a short page's last lines never
-          // rest under it.
-          _capsuleSeat(context) + theme.scrubber.height + AppSpacing.xxl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ONE selection region spans the page so a tap anywhere clears a
-            // standing selection, but only the reflection's prose is content:
-            // the chrome - title, calendar pieces, notices, meta - opts out.
-            SelectionContainer.disabled(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ReflectionsDisabledSlot(disabled: disabled, onEnable: onEnable),
-                  AppNotice(message: notice, onDismiss: onNoticeDismiss),
-                  _PageTitle(
-                    label: periodRangeLabel(period, page.periodStart, localeTag(context)),
-                    rollFrom: rollFrom,
-                    direction: rollDirection,
-                  ),
-                  // The gap rides inside the seat, so a closing seat closes
-                  // it too.
-                  if (departedStrip != null)
-                    _SeatClose(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.lg),
-                        child: departedStrip,
-                      ),
-                    ),
-                  if (strip != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.lg),
-                      child: strip,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _PageBody(
-              page: page,
-              period: period,
-              entering: rollFrom != null,
-              metaRollFrom: metaRollFrom,
-              rollDirection: rollDirection,
-              regenerating: regenerating,
-              held: held,
-              revealed: revealed,
-              length: length,
-              onWriteStarted: onWriteStarted,
-            ),
-            if (departedContents != null || contents != null)
+    return SafeSides.scroll(
+      builder: (context, sides) => SelectableProse(
+        child: SingleChildScrollView(
+          padding:
+              EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                // Past the bar and its fade tail: the material is opaque through the
+                // row and only melts across the tail, so the title clears the wash.
+                AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                AppSpacing.xl,
+                // Past the floating capsule too, so a short page's last lines never
+                // rest under it.
+                _capsuleSeat(context) + theme.scrubber.height + AppSpacing.xxl,
+              ) +
+              sides,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ONE selection region spans the page so a tap anywhere clears a
+              // standing selection, but only the reflection's prose is content:
+              // the chrome - title, calendar pieces, notices, meta - opts out.
               SelectionContainer.disabled(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (departedContents != null)
+                    ReflectionsDisabledSlot(disabled: disabled, onEnable: onEnable),
+                    AppNotice(message: notice, onDismiss: onNoticeDismiss),
+                    _PageTitle(
+                      label: periodRangeLabel(period, page.periodStart, localeTag(context)),
+                      rollFrom: rollFrom,
+                      direction: rollDirection,
+                    ),
+                    // The gap rides inside the seat, so a closing seat closes
+                    // it too.
+                    if (departedStrip != null)
                       _SeatClose(
                         child: Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.xxl),
-                          child: departedContents,
+                          padding: const EdgeInsets.only(top: AppSpacing.lg),
+                          child: departedStrip,
                         ),
                       ),
-                    if (contents != null)
+                    if (strip != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.xxl),
-                        child: contents,
+                        padding: const EdgeInsets.only(top: AppSpacing.lg),
+                        child: strip,
                       ),
                   ],
                 ),
               ),
-          ],
+              const SizedBox(height: AppSpacing.xl),
+              _PageBody(
+                page: page,
+                period: period,
+                entering: rollFrom != null,
+                metaRollFrom: metaRollFrom,
+                rollDirection: rollDirection,
+                regenerating: regenerating,
+                held: held,
+                revealed: revealed,
+                length: length,
+                onWriteStarted: onWriteStarted,
+              ),
+              if (departedContents != null || contents != null)
+                SelectionContainer.disabled(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (departedContents != null)
+                        _SeatClose(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.xxl),
+                            child: departedContents,
+                          ),
+                        ),
+                      if (contents != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.xxl),
+                          child: contents,
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1117,14 +1124,18 @@ class _Editorial extends StatelessWidget {
   Widget build(BuildContext context) {
     // The pager's own seat for its title, so the title holds still when the
     // first reflection replaces this page.
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppTopBar.heightOf(context) + context.theme.topBar.fadeTail,
-        AppSpacing.xl,
-        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+    return SafeSides.scroll(
+      builder: (context, sides) => ListView(
+        padding:
+            EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppTopBar.heightOf(context) + context.theme.topBar.fadeTail,
+              AppSpacing.xl,
+              MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+            ) +
+            sides,
+        children: [ReflectionEditorialBody(copy: copy)],
       ),
-      children: [ReflectionEditorialBody(copy: copy)],
     );
   }
 }

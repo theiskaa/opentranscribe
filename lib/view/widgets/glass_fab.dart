@@ -34,8 +34,15 @@ class GlassFab extends StatelessWidget {
 
   static const double size = AppSizes.fab;
 
-  /// How far the disc floats in from the screen's side.
+  /// How far the disc floats in from the safe edge.
   static const double floatInset = AppSpacing.xl;
+
+  /// The disc's `right` offset in a stack spanning the window: [floatInset]
+  /// past the right safe inset, so a side status column never covers it.
+  static double rightFor(EdgeInsets padding) => floatInset + padding.right;
+
+  /// [rightFor] from [context]'s safe area.
+  static double rightOf(BuildContext context) => rightFor(MediaQuery.paddingOf(context));
 
   /// Where content under a floating disc must end so its last line clears
   /// the disc: the disc's seat, the disc, and a breath above it.

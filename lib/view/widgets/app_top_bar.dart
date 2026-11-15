@@ -9,6 +9,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// Where a bar control sits relative to the screen edge, and to the next
@@ -69,7 +70,8 @@ class AppTopBar extends StatelessWidget {
 
   /// Fixed chrome BELOW the title row, on the same material (home's week
   /// strip): the fade tail runs past it, never over it, and its own taps
-  /// work.
+  /// work. It spans the window and keeps its content in the safe band itself
+  /// ([SafeSides]), so a strip that pages can be swiped from under a column.
   final Widget? bottom;
   final double bottomHeight;
 
@@ -105,14 +107,18 @@ class AppTopBar extends StatelessWidget {
   /// and its inset.
   static const double clearance = _edgeInset * 2 + AppSizes.barControl;
 
-  /// How far a bar control sits from the screen's edge.
+  /// How far a bar control sits from the safe edge.
   static const double edgeInset = _edgeInset;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final bar = theme.topBar;
-    final topInset = MediaQuery.paddingOf(context).top;
+    final padding = MediaQuery.paddingOf(context);
+    final topInset = padding.top;
+    // The row is inset by hand, not with SafeSides: the bar's menus anchor in
+    // window coordinates, so it must keep the window's MediaQuery.
+    final sides = horizontalInsets(padding);
     final rowHeight = barHeight ?? bar.height;
 
     final leading =
@@ -210,7 +216,13 @@ class AppTopBar extends StatelessWidget {
             height: chromeHeight,
             child: const AbsorbPointer(child: SizedBox.expand()),
           ),
-          Positioned(top: topInset, left: 0, right: 0, height: rowHeight, child: titledRow),
+          Positioned(
+            top: topInset,
+            left: sides.left,
+            right: sides.right,
+            height: rowHeight,
+            child: titledRow,
+          ),
           if (bottom != null)
             Positioned(
               top: topInset + rowHeight,

@@ -177,9 +177,11 @@ class _MenuBodyState extends State<_MenuBody> {
     final below = anchor.bottom + _menuGap;
     final fits = below + height + insets.bottom + AppSpacing.md <= screen.height;
     final top = fits ? below : anchor.top - _menuGap - height;
-    final left = (anchor.right - _menuWidth).clamp(
-      AppSpacing.md,
-      screen.width - _menuWidth - AppSpacing.md,
+    final left = popupLeft(
+      anchor: anchor,
+      width: _menuWidth,
+      windowWidth: screen.width,
+      padding: insets,
     );
 
     return Stack(

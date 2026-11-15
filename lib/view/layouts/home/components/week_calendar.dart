@@ -6,6 +6,7 @@ import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/view/widgets/day_face.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The week strip in the home chrome, always visible. The soft border marks
@@ -180,17 +181,21 @@ class _WeekCalendarState extends State<WeekCalendar> {
           final days = [
             for (var i = 0; i < 7; i++) DateTime(start.year, start.month, start.day + i),
           ];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            child: _WeekRow(
-              days: days,
-              entryDays: widget.entryDays,
-              today: _today,
-              cursorDay: widget.cursorDay,
-              onTap: (day) {
-                Haptics.selection();
-                widget.onDayTap(day);
-              },
+          // Inside the page, so the strip pages from the window's edges while
+          // each week keeps clear of a side column.
+          return SafeSides(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: _WeekRow(
+                days: days,
+                entryDays: widget.entryDays,
+                today: _today,
+                cursorDay: widget.cursorDay,
+                onTap: (day) {
+                  Haptics.selection();
+                  widget.onDayTap(day);
+                },
+              ),
             ),
           );
         },

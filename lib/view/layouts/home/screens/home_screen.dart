@@ -36,6 +36,7 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
@@ -362,68 +363,70 @@ class _HomeScreenState extends State<HomeScreen> {
               _departingCards.removeWhere((day, _) => !_departingDays.contains(day));
               _seenSeats = seats;
 
-              final body = state.entries.isEmpty && !state.takePending && writing == null
-                  // A scrollable, not a Center: it overscrolls so the pull-to-record
-                  // gesture works with nothing recorded yet, beside the record button.
-                  ? SingleChildScrollView(
-                      controller: _scroll,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.only(top: _contentTop),
-                        child: const HomeEmpty(),
-                      ),
-                    )
-                  : _RecordsList(
-                      key: _sections.listKey,
-                      state: state,
-                      cards: cards,
-                      departingCards: _departingCards,
-                      enteredCards: _enteredCards,
-                      enteredEntries: _enteredEntries,
-                      enteredDays: _enteredDays,
-                      takePending: state.takePending,
-                      takeForecast: _takeForecast,
-                      writing: writing,
-                      onWritten: () {
-                        if (mounted) setState(() => _writingId = null);
-                      },
-                      departingDays: _departingDays,
-                      onDepartureEnd: (day) {
-                        if (!mounted) return;
-                        setState(() => _departingDays.remove(day));
-                      },
-                      dying: _dying,
-                      onRowDeleteStart: (id, day) {
-                        if (!mounted) return;
-                        setState(() => _dying[id] = day);
-                      },
-                      controller: _scroll,
-                      splitterKeys: _sections.splitterKeys,
-                      topPadding: _contentTop,
-                      tail: _tail,
-                      openRow: _openRow,
-                      onDelete: (entry) async {
-                        try {
-                          await context.read<HomeCubit>().delete(entry);
-                        } finally {
-                          // Resolved either way: a removed row's flag is spent, a
-                          // refused delete's row unfolds its surroundings back.
-                          // Past the frame, never inside it: the emit's build
-                          // diffs departures against this ledger, and a delete
-                          // resolving first would clear the id before that build
-                          // ever sees it - ghosting a title that folded live.
-                          await WidgetsBinding.instance.endOfFrame;
-                          if (mounted) setState(() => _dying.remove(entry.id));
-                        }
-                      },
-                    );
-
               return Stack(
                 children: [
                   Positioned.fill(
-                    child: NotificationListener<ScrollNotification>(
-                      onNotification: _onScroll,
-                      child: body,
+                    child: SafeSides.scroll(
+                      builder: (context, sides) => NotificationListener<ScrollNotification>(
+                        onNotification: _onScroll,
+                        child: state.entries.isEmpty && !state.takePending && writing == null
+                            // A scrollable, not a Center: it overscrolls so the pull-to-record
+                            // gesture works with nothing recorded yet, beside the record button.
+                            ? SingleChildScrollView(
+                                controller: _scroll,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: sides,
+                                child: Padding(
+                                  padding: EdgeInsets.only(top: _contentTop),
+                                  child: const HomeEmpty(),
+                                ),
+                              )
+                            : _RecordsList(
+                                key: _sections.listKey,
+                                state: state,
+                                cards: cards,
+                                departingCards: _departingCards,
+                                enteredCards: _enteredCards,
+                                enteredEntries: _enteredEntries,
+                                enteredDays: _enteredDays,
+                                takePending: state.takePending,
+                                takeForecast: _takeForecast,
+                                writing: writing,
+                                onWritten: () {
+                                  if (mounted) setState(() => _writingId = null);
+                                },
+                                departingDays: _departingDays,
+                                onDepartureEnd: (day) {
+                                  if (!mounted) return;
+                                  setState(() => _departingDays.remove(day));
+                                },
+                                dying: _dying,
+                                onRowDeleteStart: (id, day) {
+                                  if (!mounted) return;
+                                  setState(() => _dying[id] = day);
+                                },
+                                controller: _scroll,
+                                splitterKeys: _sections.splitterKeys,
+                                topPadding: _contentTop,
+                                sides: sides,
+                                tail: _tail,
+                                openRow: _openRow,
+                                onDelete: (entry) async {
+                                  try {
+                                    await context.read<HomeCubit>().delete(entry);
+                                  } finally {
+                                    // Resolved either way: a removed row's flag is spent, a
+                                    // refused delete's row unfolds its surroundings back.
+                                    // Past the frame, never inside it: the emit's build
+                                    // diffs departures against this ledger, and a delete
+                                    // resolving first would clear the id before that build
+                                    // ever sees it - ghosting a title that folded live.
+                                    await WidgetsBinding.instance.endOfFrame;
+                                    if (mounted) setState(() => _dying.remove(entry.id));
+                                  }
+                                },
+                              ),
+                      ),
                     ),
                   ),
                   // Lives in the gap a record pull opens under the chrome.
@@ -431,10 +434,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     top: _contentTop,
                     left: 0,
                     right: 0,
-                    child: Center(
-                      child: PullToRecordHint(
-                        pull: _pullGesture.pull,
-                        threshold: PullToRecordGesture.threshold,
+                    child: SafeSides(
+                      child: Center(
+                        child: PullToRecordHint(
+                          pull: _pullGesture.pull,
+                          threshold: PullToRecordGesture.threshold,
+                        ),
                       ),
                     ),
                   ),
@@ -472,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // A persistent record button floating clear of the home indicator.
                   // Pull-to-record stays; this is the obvious, hard-to-miss way in.
                   Positioned(
-                    right: GlassFab.floatInset,
+                    right: GlassFab.rightOf(context),
                     bottom: AppScaffold.bottomControlOf(context),
                     child: RecordFab(onTap: _openRecorder),
                   ),
@@ -790,6 +795,7 @@ class _RecordsList extends StatelessWidget {
     required this.controller,
     required this.splitterKeys,
     required this.topPadding,
+    required this.sides,
     required this.tail,
     required this.openRow,
     required this.onDelete,
@@ -847,6 +853,9 @@ class _RecordsList extends StatelessWidget {
   /// Tracker-owned keys splitter label positions are read through.
   final Map<DateTime, GlobalKey> splitterKeys;
   final double topPadding;
+
+  /// The window's side insets, carried in the list's padding.
+  final EdgeInsets sides;
 
   /// Measured room under the last day, so it too can be scrolled to the top.
   final double tail;
@@ -906,7 +915,7 @@ class _RecordsList extends StatelessWidget {
       // have exact targets and the title tracker never runs blind. Journal
       // scale keeps this affordable.
       scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
-      padding: EdgeInsets.only(top: topPadding, bottom: clearance + tail),
+      padding: EdgeInsets.only(top: topPadding, bottom: clearance + tail) + sides,
       children: [
         if (takeAlive && takeLeads) ...[
           _SplitterLabel(day: takeDay!, gapless: true),

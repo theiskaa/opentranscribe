@@ -134,22 +134,37 @@ const double _kMinFlingVelocity = 1; // Screen widths per second.
 
 /// How far in from the leading edge the back swipe claims a drag: the grab
 /// area, widened into the safe-area inset on that side.
-double _backGestureEdgeWidth(BuildContext context) {
-  final edgeInset = switch (Directionality.of(context)) {
-    TextDirection.rtl => MediaQuery.paddingOf(context).right,
-    TextDirection.ltr => MediaQuery.paddingOf(context).left,
+double backGestureEdgeWidth(EdgeInsets padding, TextDirection direction) {
+  final edgeInset = switch (direction) {
+    TextDirection.rtl => padding.right,
+    TextDirection.ltr => padding.left,
   };
   return max(edgeInset, _kBackGestureWidth);
 }
 
-/// Whether a drag starting at [global] is the back swipe's. A horizontal
-/// gesture of its own leaves drags starting here to the pop.
-bool inBackGestureEdge(BuildContext context, Offset global) {
-  final edge = _backGestureEdgeWidth(context);
-  return switch (Directionality.of(context)) {
-    TextDirection.ltr => global.dx < edge,
-    TextDirection.rtl => global.dx > MediaQuery.sizeOf(context).width - edge,
-  };
+/// Whether a drag starting at [global] is the back swipe's: inside the strip
+/// of the route [context] sits in while that route can pop, and never without
+/// one. A horizontal gesture of its own leaves drags starting here to the pop.
+bool inBackGestureEdge(BuildContext context, Offset global) =>
+    context.getInheritedWidgetOfExactType<_BackGestureStrip>()?.contains(global) ?? false;
+
+/// Hands the route's back-swipe strip to [inBackGestureEdge], so a gesture
+/// inside the page asks the strip itself where it lies.
+class _BackGestureStrip extends InheritedWidget {
+  const _BackGestureStrip({required this.strip, required this.enabled, required super.child});
+
+  final GlobalKey strip;
+  final ValueGetter<bool> enabled;
+
+  bool contains(Offset global) {
+    if (!enabled()) return false;
+    final box = strip.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    return (box.localToGlobal(Offset.zero) & box.size).contains(global);
+  }
+
+  @override
+  bool updateShouldNotify(_BackGestureStrip oldWidget) => false;
 }
 
 /// A left-edge horizontal-drag detector that drives an interruptible pop.
@@ -176,6 +191,7 @@ class _BackGestureDetector<T> extends StatefulWidget {
 class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
   _BackGestureController<T>? _controller;
   late final HorizontalDragGestureRecognizer _recognizer;
+  final GlobalKey _strip = GlobalKey();
 
   @override
   void initState() {
@@ -233,13 +249,17 @@ class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        widget.child,
+        _BackGestureStrip(strip: _strip, enabled: widget.enabledCallback, child: widget.child),
         PositionedDirectional(
           start: 0,
-          width: _backGestureEdgeWidth(context),
+          width: backGestureEdgeWidth(MediaQuery.paddingOf(context), Directionality.of(context)),
           top: 0,
           bottom: 0,
-          child: Listener(onPointerDown: _handlePointerDown, behavior: HitTestBehavior.translucent),
+          child: Listener(
+            key: _strip,
+            onPointerDown: _handlePointerDown,
+            behavior: HitTestBehavior.translucent,
+          ),
         ),
       ],
     );

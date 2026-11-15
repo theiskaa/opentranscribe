@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 
 /// Whether [context]'s route is still the top one. Every sheet opener asks
 /// first: two pointers landing on two openers in one frame would otherwise
@@ -387,38 +388,44 @@ class _SheetBodyState extends State<_SheetBody>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Flexible(
-                          child: SingleChildScrollView(
-                            controller: _scroll,
-                            // Under the grabber's seat, so content rests where it
-                            // always did yet scrolls on up to the panel's edge.
-                            padding: EdgeInsets.fromLTRB(
-                              widget.inset,
-                              _grabberSeat(sheet) + AppSpacing.xxl,
-                              widget.inset,
-                              // Under a keyboard the framework already zeroes
-                              // padding.bottom, so this clears the IME; without
-                              // one it clears the home indicator. A footer
-                              // takes that job when the sheet has one.
-                              widget.footer != null
-                                  ? AppSpacing.lg
-                                  : keyboard +
-                                        MediaQuery.paddingOf(context).bottom +
-                                        AppSpacing.xxl,
+                          child: SafeSides.scroll(
+                            builder: (context, sides) => SingleChildScrollView(
+                              controller: _scroll,
+                              // Under the grabber's seat, so content rests where it
+                              // always did yet scrolls on up to the panel's edge.
+                              padding:
+                                  EdgeInsets.fromLTRB(
+                                    widget.inset,
+                                    _grabberSeat(sheet) + AppSpacing.xxl,
+                                    widget.inset,
+                                    // Under a keyboard the framework already zeroes
+                                    // padding.bottom, so this clears the IME; without
+                                    // one it clears the home indicator. A footer
+                                    // takes that job when the sheet has one.
+                                    widget.footer != null
+                                        ? AppSpacing.lg
+                                        : keyboard +
+                                              MediaQuery.paddingOf(context).bottom +
+                                              AppSpacing.xxl,
+                                  ) +
+                                  sides,
+                              child: Builder(builder: widget.builder),
                             ),
-                            child: widget.builder(context),
                           ),
                         ),
                         // The footer's own gutter and floor, not the cards':
                         // its button sits where a message sheet's does.
                         if (widget.footer != null)
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              AppSpacing.xxl,
-                              0,
-                              AppSpacing.xxl,
-                              keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                          SafeSides(
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                AppSpacing.xxl,
+                                0,
+                                AppSpacing.xxl,
+                                keyboard + MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                              ),
+                              child: Builder(builder: widget.footer!),
                             ),
-                            child: widget.footer!(context),
                           ),
                       ],
                     ),

@@ -28,6 +28,7 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 
 /// The one margin this screen repeats: the band, the transcript and the
 /// controls all sit on it, so a single edge runs down the page.
@@ -216,97 +217,106 @@ class _RecorderScreenState extends State<RecorderScreen> {
                   if (!denied && !saving) _LanguageAction(sessionTag: state.localeId),
                 ],
               ),
-              if (denied)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
-                    child: Center(
-                      child: EmptyState(
-                        icon: AppIcons.mic,
-                        title: l10n.recordPermissionTitle,
-                        message: l10n.recordPermissionMessage,
-                        actionLabel: l10n.onboardingOpenSettings,
-                        onAction: () => unawaited(openAppSettings()),
-                      ),
-                    ),
-                  ),
-                )
-              else ...[
-                // Mathematical centre reads low; the block settles just above it.
-                const Spacer(flex: 45),
-                // From the route, so it rises with the sheet; gone once a
-                // restart after an interruption made this a fresh take.
-                if (widget.continueEntryId != null && (state.continuing != null || !state.isBusy))
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
-                    child: ContinuingLine(entryId: widget.continueEntryId!),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: _columnInset),
-                  child: Waveform(
-                    // A restart discards the take, and its bars with it; a
-                    // pause keeps both.
-                    key: ValueKey(state.takeId),
-                    levels: context.read<RecorderCubit>().inputLevel,
-                    active: state.isRecording,
-                  ),
+              Expanded(
+                child: SafeSides(
+                  child: denied
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                          child: Center(
+                            child: EmptyState(
+                              icon: AppIcons.mic,
+                              title: l10n.recordPermissionTitle,
+                              message: l10n.recordPermissionMessage,
+                              actionLabel: l10n.onboardingOpenSettings,
+                              onAction: () => unawaited(openAppSettings()),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            // Mathematical centre reads low; the block settles just above it.
+                            const Spacer(flex: 45),
+                            // From the route, so it rises with the sheet; gone once a
+                            // restart after an interruption made this a fresh take.
+                            if (widget.continueEntryId != null &&
+                                (state.continuing != null || !state.isBusy))
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                                child: ContinuingLine(entryId: widget.continueEntryId!),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                              child: Waveform(
+                                // A restart discards the take, and its bars with it; a
+                                // pause keeps both.
+                                key: ValueKey(state.takeId),
+                                levels: context.read<RecorderCubit>().inputLevel,
+                                active: state.isRecording,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: _columnInset),
+                              child: _LiveText(),
+                            ),
+                            const Spacer(flex: 42),
+                            // Eased, not snapped: the spacers above give way to the notice.
+                            AnimatedSize(
+                              duration: context.reduceMotion
+                                  ? AppMotion.instant
+                                  : theme.motion.expand,
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _columnInset),
+                                child: AppNotice(
+                                  message: switch (state.error) {
+                                    RecorderError.generic => l10n.recordErrorMessage,
+                                    RecorderError.entryBusy => l10n.continueEntryBusy,
+                                    _ => state.interrupted ? l10n.recordInterruptedSaved : null,
+                                  },
+                                  onDismiss: () {
+                                    final cubit = context.read<RecorderCubit>();
+                                    state.error != null
+                                        ? cubit.clearError()
+                                        : cubit.clearInterrupted();
+                                    // Nothing to record on a refused base: the sheet leaves
+                                    // with its notice.
+                                    final route = ModalRoute.of(context);
+                                    if (state.error == RecorderError.entryBusy &&
+                                        route != null &&
+                                        route.isCurrent &&
+                                        context.canPop()) {
+                                      context.pop();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                _columnInset,
+                                0,
+                                _columnInset,
+                                AppScaffold.bottomControlOf(context),
+                              ),
+                              child: RecorderControls(
+                                paused: state.isPaused,
+                                saving: saving,
+                                restarting: restarting,
+                                onClose: () => _close(keepSilence: false),
+                                onRestart: () => context.read<RecorderCubit>().restart(),
+                                onComplete: () => _close(keepSilence: true),
+                                onTogglePause: () {
+                                  final cubit = context.read<RecorderCubit>();
+                                  state.isPaused ? cubit.resume() : cubit.pause();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: _columnInset),
-                  child: _LiveText(),
-                ),
-                const Spacer(flex: 42),
-                // Eased, not snapped: the spacers above give way to the notice.
-                AnimatedSize(
-                  duration: context.reduceMotion ? AppMotion.instant : theme.motion.expand,
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: _columnInset),
-                    child: AppNotice(
-                      message: switch (state.error) {
-                        RecorderError.generic => l10n.recordErrorMessage,
-                        RecorderError.entryBusy => l10n.continueEntryBusy,
-                        _ => state.interrupted ? l10n.recordInterruptedSaved : null,
-                      },
-                      onDismiss: () {
-                        final cubit = context.read<RecorderCubit>();
-                        state.error != null ? cubit.clearError() : cubit.clearInterrupted();
-                        // Nothing to record on a refused base: the sheet leaves
-                        // with its notice.
-                        final route = ModalRoute.of(context);
-                        if (state.error == RecorderError.entryBusy &&
-                            route != null &&
-                            route.isCurrent &&
-                            context.canPop()) {
-                          context.pop();
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    _columnInset,
-                    0,
-                    _columnInset,
-                    AppScaffold.bottomControlOf(context),
-                  ),
-                  child: RecorderControls(
-                    paused: state.isPaused,
-                    saving: saving,
-                    restarting: restarting,
-                    onClose: () => _close(keepSilence: false),
-                    onRestart: () => context.read<RecorderCubit>().restart(),
-                    onComplete: () => _close(keepSilence: true),
-                    onTogglePause: () {
-                      final cubit = context.read<RecorderCubit>();
-                      state.isPaused ? cubit.resume() : cubit.pause();
-                    },
-                  ),
-                ),
-              ],
+              ),
             ],
           );
         },

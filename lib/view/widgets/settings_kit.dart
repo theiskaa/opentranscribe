@@ -15,17 +15,18 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
+import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The scroll every settings screen shares: the same insets under the frosted
-/// bar and clear of the home indicator. One place, so the five screens cannot
-/// drift apart (one used to miss the bottom safe-area inset).
+/// bar, clear of the home indicator and of a side column. One place, so the
+/// five screens cannot drift apart.
 class SettingsList extends StatelessWidget {
   const SettingsList({required this.children, super.key});
 
   final List<Widget> children;
 
-  /// The list's side inset, which content that reaches to the screen's edge
+  /// The list's side inset, which content that reaches to the band's edge
   /// must bleed back through.
   static const double gutter = AppSpacing.md;
 
@@ -35,15 +36,19 @@ class SettingsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        gutter,
-        // Tighter than the standard breath: settings sits closer under the bar.
-        AppScaffold.topPaddingOf(context) - AppSpacing.md + lead,
-        gutter,
-        MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+    return SafeSides.scroll(
+      builder: (context, sides) => ListView(
+        padding:
+            EdgeInsets.fromLTRB(
+              gutter,
+              // Tighter than the standard breath: settings sits closer under the bar.
+              AppScaffold.topPaddingOf(context) - AppSpacing.md + lead,
+              gutter,
+              MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+            ) +
+            sides,
+        children: children,
       ),
-      children: children,
     );
   }
 }

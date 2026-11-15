@@ -1,8 +1,24 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
+
+/// The left edge of a popup [width] wide grown from [anchor]: right edges
+/// aligned, held [AppSpacing.md] inside the safe band of a window
+/// [windowWidth] wide, so a side status column never covers it.
+double popupLeft({
+  required Rect anchor,
+  required double width,
+  required double windowWidth,
+  required EdgeInsets padding,
+}) {
+  final min = padding.left + AppSpacing.md;
+  final max = windowWidth - padding.right - width - AppSpacing.md;
+  return (anchor.right - width).clamp(min, math.max(min, max));
+}
 
 /// Opens an anchored popup (the menu, the dropdown) over a transparent barrier
 /// and resolves to the caller's pop value. The one shared transition: a fade,

@@ -9,6 +9,8 @@ import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 /// behind it: scrollables pad their top by [topPaddingOf] and wash out under
 /// the bar's material instead of hitting a band. Screens pass their
 /// `ScreenColors` token as [background]; the base background is a fallback.
+/// The background, the bar's material and [child] span the window; the body
+/// keeps its content in the safe band itself (`SafeSides.scroll`).
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
     required this.child,
