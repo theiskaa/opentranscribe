@@ -2,9 +2,12 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/utils/percent.dart';
 import 'package:opentranscribe/core/utils/week.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:reflections/reflections.dart';
+
+export 'package:opentranscribe/core/utils/percent.dart' show percentOf, shownFraction;
 
 /// The one place display formatting for entries lives, so every surface renders
 /// the same shapes. Date formats take an explicit locale so they render in the
@@ -115,5 +118,7 @@ String formatBytes(int bytes, [String? locale]) {
   return '${decimal.format(bytes / gb)} GB';
 }
 
-/// The whole percent a fraction reads as, clamped to 0..100.
-int percentOf(double? fraction) => ((fraction ?? 0).clamp(0.0, 1.0) * 100).round();
+/// A fraction as the whole percent [percentOf] reads, in the locale's own
+/// shape ("42%", "42 %").
+String formatPercent(double? fraction, [String? locale]) =>
+    NumberFormat.percentPattern(locale).format(shownFraction(fraction));

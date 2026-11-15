@@ -12,6 +12,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/language_sheet.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
@@ -190,13 +191,12 @@ class _DownloadingLine extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final style = AppType.rowNote.copyWith(color: theme.textSecondary);
-    final percent = (fraction.clamp(0.0, 1.0) * 100).round();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('${l10n.transcriptionDownloading} · ', style: style),
         RollingText(
-          text: '$percent%',
+          text: formatPercent(fraction, localeTag(context)),
           style: AppType.digits(AppType.rowNote).copyWith(color: theme.textSecondary),
           // Quiet secondary text: every changed digit moves together.
           stagger: Duration.zero,

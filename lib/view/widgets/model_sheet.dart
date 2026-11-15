@@ -98,7 +98,7 @@ String modelSheetLine(AppLocalizations l10n, ModelRowState row, {required String
   if (!row.installing) return modelLine(l10n, row, localeTag: localeTag);
   if (row.queued) return l10n.modelQueued;
   if (row.preparing) return l10n.modelPreparing;
-  return '${l10n.transcriptionDownloading} · ${percentOf(row.installFraction)}%';
+  return '${l10n.transcriptionDownloading} · ${formatPercent(row.installFraction, localeTag)}';
 }
 
 class _ModelList extends StatelessWidget {
@@ -328,7 +328,7 @@ class _Line extends StatelessWidget {
               children: [
                 Text('${l10n.transcriptionDownloading} · ', style: style),
                 RollingText(
-                  text: '${percentOf(row.installFraction)}%',
+                  text: formatPercent(row.installFraction, localeTag(context)),
                   style: style,
                   // Quiet secondary text: every changed digit moves together.
                   stagger: Duration.zero,

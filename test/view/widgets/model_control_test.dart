@@ -2,7 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/state/models_cubit.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/model_control.dart';
+import 'package:opentranscribe/view/widgets/morph_control.dart';
 import 'package:transcriber/transcriber.dart';
 
 void main() {
@@ -21,6 +23,9 @@ void main() {
     bool selected = false,
     bool heavy = false,
     double? installFraction,
+    bool preparing = false,
+    bool queued = false,
+    bool cancellable = false,
     ModelInstallReason? failure,
   }) => ModelRowState(
     option: option,
@@ -28,6 +33,9 @@ void main() {
     selected: selected,
     heavy: heavy,
     installFraction: installFraction,
+    preparing: preparing,
+    queued: queued,
+    cancellable: cancellable,
     failure: failure,
   );
 
@@ -81,31 +89,174 @@ void main() {
 
   group('progressFace', () {
     test('a download waiting its turn reads as the queue at an empty bar', () {
-      final face = progressFace(l10n, queued: true, preparing: false, fraction: 0.4);
+      final face = progressFace(
+        l10n,
+        queued: true,
+        preparing: false,
+        fraction: 0.4,
+        localeTag: 'en',
+      );
 
       expect(face.fill, 0);
       expect(face.label, l10n.modelQueued);
     });
 
     test('a download unpacking what it fetched reads as preparing at a full bar', () {
-      final face = progressFace(l10n, queued: false, preparing: true, fraction: 0.4);
+      final face = progressFace(
+        l10n,
+        queued: false,
+        preparing: true,
+        fraction: 0.4,
+        localeTag: 'en',
+      );
 
       expect(face.fill, 1);
       expect(face.label, l10n.modelPreparing);
     });
 
-    test('a running download fills to the percent it shows', () {
-      final face = progressFace(l10n, queued: false, preparing: false, fraction: 0.426);
+    test('a running download fills to the percent it shows, in the locale shape', () {
+      final face = progressFace(
+        l10n,
+        queued: false,
+        preparing: false,
+        fraction: 0.426,
+        localeTag: 'en',
+      );
 
       expect(face.label, '43%');
       expect(face.fill, 0.43);
+      final french = progressFace(
+        l10n,
+        queued: false,
+        preparing: false,
+        fraction: 0.426,
+        localeTag: 'fr',
+      );
+      expect(french.label, '43\u00a0%');
+    });
+
+    test('a download a hair short of done never reads 100%', () {
+      final face = progressFace(
+        l10n,
+        queued: false,
+        preparing: false,
+        fraction: 0.998,
+        localeTag: 'en',
+      );
+
+      expect(face.label, '99%');
+      expect(face.fill, 0.99);
     });
 
     test('a download with nothing reported yet is empty, not blank', () {
-      final face = progressFace(l10n, queued: false, preparing: false, fraction: null);
+      final face = progressFace(
+        l10n,
+        queued: false,
+        preparing: false,
+        fraction: null,
+        localeTag: 'en',
+      );
 
       expect(face.fill, 0);
       expect(face.label, '0%');
+    });
+  });
+
+  group('modelControlFace', () {
+    test('a queued or preparing download stays the bar, reading its word', () {
+      final queued =
+          modelControlFace(l10n, row(installFraction: 0, queued: true), localeTag: 'en')
+              as MorphBar;
+      final preparing =
+          modelControlFace(l10n, row(installFraction: 1, preparing: true), localeTag: 'en')
+              as MorphBar;
+
+      expect((queued.fill, queued.label), (0, l10n.modelQueued));
+      expect((preparing.fill, preparing.label), (1, l10n.modelPreparing));
+    });
+
+    test('the download asks in the solid fill, in the caller\'s words when it has them', () {
+      final plain = modelControlFace(l10n, row(), localeTag: 'en') as MorphButton;
+      final sized =
+          modelControlFace(l10n, row(), localeTag: 'en', downloadLabel: 'Download 40 MB')
+              as MorphButton;
+
+      expect(
+        (plain.label, plain.icon, plain.variant),
+        (l10n.modelDownload, AppIcons.icloud, MorphVariant.primary),
+      );
+      expect(sized.label, 'Download 40 MB');
+    });
+
+    test('a retry asks as loudly as the download it repeats', () {
+      final face =
+          modelControlFace(l10n, row(failure: ModelInstallReason.offline), localeTag: 'en')
+              as MorphButton;
+
+      expect(
+        (face.label, face.icon, face.variant),
+        (l10n.retry, AppIcons.arrowCounterclockwise, MorphVariant.primary),
+      );
+    });
+
+    test('a download in flight shows its bar over a failure still standing', () {
+      expect(
+        modelControlFace(
+          l10n,
+          row(installFraction: 0.2, failure: ModelInstallReason.offline),
+          localeTag: 'en',
+        ),
+        isA<MorphBar>(),
+      );
+    });
+  });
+
+  group('modelControlSemanticLabel', () {
+    test('a running download names the model and the percent it shows', () {
+      expect(
+        modelControlSemanticLabel(l10n, row(installFraction: 0.426)),
+        l10n.modelDownloadingLabel('Small', 43),
+      );
+    });
+
+    test('a queued or preparing download says so rather than a percent', () {
+      expect(
+        modelControlSemanticLabel(l10n, row(installFraction: 0, queued: true)),
+        l10n.modelQueuedLabel('Small'),
+      );
+      expect(
+        modelControlSemanticLabel(l10n, row(installFraction: 1, preparing: true)),
+        l10n.modelPreparingLabel('Small'),
+      );
+    });
+
+    test(
+      'the download reads as the caller\'s words when given, else as the model\'s download button',
+      () {
+        expect(modelControlSemanticLabel(l10n, row()), l10n.modelDownloadButton('Small'));
+        expect(modelControlSemanticLabel(l10n, row(), downloadLabel: 'Get it'), 'Get it');
+      },
+    );
+
+    test('a failed download reads as the retry for that model', () {
+      expect(
+        modelControlSemanticLabel(l10n, row(failure: ModelInstallReason.offline)),
+        l10n.modelRetryButton('Small'),
+      );
+    });
+  });
+
+  group('modelControlCancellable', () {
+    test('a download this surface started can be stopped until it is preparing', () {
+      expect(modelControlCancellable(row(installFraction: 0.4, cancellable: true)), isTrue);
+      expect(
+        modelControlCancellable(row(installFraction: 1, cancellable: true, preparing: true)),
+        isFalse,
+      );
+    });
+
+    test('a download a batch started offers no cancel', () {
+      expect(modelControlCancellable(row(installFraction: 0.4)), isFalse);
     });
   });
 }

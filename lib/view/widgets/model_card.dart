@@ -331,12 +331,11 @@ class _Waiting extends StatelessWidget {
           ),
           ModelControl(
             row: row,
-            face: face,
             downloadLabel: l10n.modelDownloadSized(
               name,
               formatBytes(row.option.bytes, localeTag(context)),
             ),
-            onTap: face == ModelRowFace.installing ? null : () => installModel(context, row),
+            onPressed: face == ModelRowFace.installing ? null : () => installModel(context, row),
             onCancel: () => context.read<ModelsCubit>().cancelModelInstallById(row.option.id),
           ),
           _Note(

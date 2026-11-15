@@ -87,4 +87,11 @@ void main() {
     expect(formatElapsed(const Duration(minutes: 5, seconds: 9)), '05:09');
     expect(formatElapsed(const Duration(hours: 1, minutes: 5, seconds: 9)), '1:05:09');
   });
+
+  test('formatPercent reads the same whole percent a bar fills to, in the locale shape', () {
+    expect(formatPercent(0.425, 'en'), '43%');
+    expect(formatPercent(1.2, 'en'), '100%');
+    expect(formatPercent(null, 'en'), '0%');
+    expect(formatPercent(0.07, 'fr'), '7\u00a0%');
+  });
 }
