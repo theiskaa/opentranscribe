@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -115,7 +116,8 @@ class AppTopBar extends StatelessWidget {
 
   /// Status inset + the large title row, for content padding under title bars.
   static double largeHeightOf(BuildContext context) =>
-      MediaQuery.paddingOf(context).top + context.theme.topBar.largeHeight;
+      MediaQuery.paddingOf(context).top +
+      (duoJournalOf(context) ? duoHeaderOf(context).header : context.theme.topBar.largeHeight);
 
   /// The side padding a long centered title takes to clear one bar control
   /// and its inset.
@@ -128,6 +130,7 @@ class AppTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final bar = theme.topBar;
+    final background = duoJournalOf(context) ? theme.duo.surfaceGrouped : bar.background;
     final padding = MediaQuery.paddingOf(context);
     final topInset = padding.top;
     // The row is inset by hand, not with SafeSides: the bar's menus anchor in
@@ -183,13 +186,13 @@ class AppTopBar extends StatelessWidget {
                     // from the midpoint, so content shows through as frost.
                     ? _BarMaterial(
                         chromeHeight: chromeHeight,
-                        color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
+                        color: background.withValues(alpha: TopBarTheme.frostAlpha),
                         sigma: bar.blurSigma,
                         native: nativeMaterial,
                       )
                     : _BarMaterial(
                         chromeHeight: chromeHeight,
-                        color: bar.background,
+                        color: background,
                         sigma: bar.blurSigma,
                         native: nativeMaterial,
                         // Opaque through the whole chrome (title row AND the

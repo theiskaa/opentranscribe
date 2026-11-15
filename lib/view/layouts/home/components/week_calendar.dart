@@ -1,7 +1,10 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/core/utils/week.dart';
@@ -47,7 +50,18 @@ class WeekCalendar extends StatefulWidget {
   final int homeTick;
 
   /// The strip's rendered height, for layouts that slide content under it.
-  static double heightOf(BuildContext context) => context.theme.calendar.cellHeight;
+  static double heightOf(BuildContext context) {
+    if (!duoJournalOf(context)) return context.theme.calendar.cellHeight;
+    final scaler = MediaQuery.textScalerOf(context);
+    final ambient = DefaultTextStyle.of(context).style;
+    return duoDayHeight(
+      letterLine:
+          scaler.scale(AppType.caption.fontSize!) * AppType.lineHeightOf(AppType.caption, ambient),
+      numberLine:
+          scaler.scale(AppType.headline.fontSize!) *
+          AppType.lineHeightOf(AppType.headline, ambient),
+    );
+  }
 
   @override
   State<WeekCalendar> createState() => _WeekCalendarState();
@@ -185,7 +199,9 @@ class _WeekCalendarState extends State<WeekCalendar> {
           // each week keeps clear of a side column.
           return SafeSides(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              padding: EdgeInsets.symmetric(
+                horizontal: duoJournalOf(context) ? AppDuo.paneInset : AppSpacing.xl,
+              ),
               child: _WeekRow(
                 days: days,
                 entryDays: widget.entryDays,
@@ -224,6 +240,30 @@ class _WeekRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (duoJournalOf(context)) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final metrics = duoWeekMetrics(constraints.maxWidth);
+          return Row(
+            children: [
+              for (final (i, day) in days.indexed) ...[
+                if (i > 0) SizedBox(width: metrics.gap),
+                SizedBox(
+                  width: metrics.cell,
+                  child: _DuoDayTile(
+                    day: day,
+                    hasEntries: entryDays.contains(day),
+                    today: day == today,
+                    selected: day == cursorDay,
+                    onTap: onTap,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      );
+    }
     final gap = context.theme.calendar.tileGap;
     return Row(
       children: [
@@ -297,6 +337,53 @@ class _DayTile extends StatelessWidget {
           letterColor: letterColor,
           numberColor: numberColor,
           dot: isToday ? tokens.todayDot : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _DuoDayTile extends StatelessWidget {
+  const _DuoDayTile({
+    required this.day,
+    required this.hasEntries,
+    required this.today,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final DateTime day;
+  final bool hasEntries;
+  final bool today;
+  final bool selected;
+  final ValueChanged<DateTime> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final foreground = selected
+        ? theme.onAccent
+        : today
+        ? theme.accent
+        : theme.textSecondary;
+    return Semantics(
+      selected: selected,
+      child: Touchable(
+        onTap: hasEntries || today ? () => onTap(day) : null,
+        child: AnimatedContainer(
+          duration: context.reduceMotion ? Duration.zero : theme.motion.selectionFade,
+          curve: Curves.easeOut,
+          decoration: SuperellipseDecoration(
+            borderRadius: AppDuo.dayRadius,
+            color: selected ? theme.accent : null,
+          ),
+          child: DayFace(
+            day: day,
+            cellHeight: WeekCalendar.heightOf(context),
+            letterColor: foreground,
+            numberColor: foreground,
+            dot: hasEntries ? (selected ? theme.onAccent : theme.accent) : null,
+          ),
         ),
       ),
     );

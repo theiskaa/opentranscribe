@@ -1,4 +1,9 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
@@ -157,41 +162,6 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
   bool _selected = false;
   bool _revealed = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final reflection = widget.reflection;
-    final selected = PaneSelectionScope.isSelected(
-      context,
-      Uri(
-        path: Routes.reflections,
-        queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
-      ),
-    );
-    if (!selected && PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split) {
-      _revealed = false;
-    }
-    if (selected && !_revealed) {
-      _revealed = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_selected) return;
-        final scroll = Scrollable.maybeOf(context)?.position;
-        final box = context.findRenderObject();
-        if (scroll == null || box == null) return;
-        final theme = context.themeNow;
-        final line =
-            MediaQuery.paddingOf(context).top +
-            theme.topBar.largeHeight +
-            AppSpacing.md +
-            theme.calendar.cellHeight +
-            theme.topBar.fadeTail;
-        final offset = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset - line;
-        scroll.jumpTo(offset.clamp(scroll.minScrollExtent, scroll.maxScrollExtent));
-      });
-    }
-    _selected = selected;
-  }
-
   /// The numbered-calendar glyph that marks a card's period at a glance:
   /// 1.calendar for a day, 7.calendar for a week, the full calendar for a month.
   static IconData _periodIcon(ReflectionPeriod period) => switch (period) {
@@ -213,6 +183,32 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
         queryParameters: {'period': period.wire, 'week': reflection.periodKey},
       ),
     );
+    final inner = duoJournalOf(context);
+    if (!selected && PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split) {
+      _revealed = false;
+    }
+    if (selected && !_revealed) {
+      _revealed = true;
+      final scroll = Scrollable.maybeOf(context)?.position;
+      final line = inner
+          ? AppTopBar.largeHeightOf(context) +
+                AppSpacing.md +
+                WeekCalendar.heightOf(context) +
+                theme.topBar.fadeTail
+          : MediaQuery.paddingOf(context).top +
+                theme.topBar.largeHeight +
+                AppSpacing.md +
+                theme.calendar.cellHeight +
+                theme.topBar.fadeTail;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_selected || scroll == null) return;
+        final box = context.findRenderObject();
+        if (box == null) return;
+        final offset = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset - line;
+        scroll.jumpTo(offset.clamp(scroll.minScrollExtent, scroll.maxScrollExtent));
+      });
+    }
+    _selected = selected;
     if (reflection.isSilent) {
       // The marker reads as text, so it lands on the records' text column.
       return Padding(
@@ -221,14 +217,17 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
       );
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: EdgeInsets.symmetric(horizontal: inner ? AppDuo.selectionInset : AppSpacing.xl),
       child: Semantics(
         selected: PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split ? selected : null,
         child: Touchable(
-          onTap: widget.onTap,
-          child: DitherCard(
-            background: selected ? theme.calendar.tileFill : null,
-            border: selected ? theme.calendar.cursorBorder : null,
+          onTap: () {
+            if (inner) Haptics.selection();
+            widget.onTap();
+          },
+          child: _ReflectionSurface(
+            inner: inner,
+            selected: selected,
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
@@ -295,6 +294,35 @@ class _QuietMarker extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Flexible(child: Text(label, style: style)),
       ],
+    );
+  }
+}
+
+class _ReflectionSurface extends StatelessWidget {
+  const _ReflectionSurface({required this.inner, required this.selected, required this.child});
+
+  final bool inner;
+  final bool selected;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    if (!inner) {
+      return DitherCard(
+        background: selected ? theme.calendar.tileFill : null,
+        border: selected ? theme.calendar.cursorBorder : null,
+        child: child,
+      );
+    }
+    return AnimatedContainer(
+      duration: context.reduceMotion ? Duration.zero : theme.motion.selectionFade,
+      curve: Curves.easeOut,
+      decoration: SuperellipseDecoration(
+        borderRadius: AppDuo.selectionRadius,
+        color: selected ? theme.duo.selectionFill : theme.duo.surfaceElevated,
+      ),
+      child: child,
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
@@ -41,10 +43,32 @@ class JournalSplit extends StatelessWidget {
           color: context.theme.background,
           child: Stack(
             children: [
-              PaneFrame(pane: layout.leading, touch: PaneTouch.journal, child: journal),
+              PaneFrame(
+                pane: layout.leading,
+                touch: PaneTouch.journal,
+                child: ColoredBox(
+                  color: duoInnerOf(context)
+                      ? context.theme.duo.surfaceGrouped
+                      : context.theme.screens.home,
+                  child: Padding(
+                    padding: duoInnerOf(context)
+                        ? duoFoldInsets(layout, PaneTouch.journal)
+                        : EdgeInsets.zero,
+                    child: journal,
+                  ),
+                ),
+              ),
               Positioned.fromRect(
-                rect: layout.divider ?? Rect.zero,
-                child: ColoredBox(color: context.theme.surfaceBorder),
+                rect:
+                    (duoInnerOf(context)
+                        ? duoDividerRect(layout, panes.media.padding)
+                        : layout.divider) ??
+                    Rect.zero,
+                child: ColoredBox(
+                  color: duoInnerOf(context)
+                      ? context.theme.duo.separator
+                      : context.theme.surfaceBorder,
+                ),
               ),
               PaneFrame(
                 pane: layout.detail,

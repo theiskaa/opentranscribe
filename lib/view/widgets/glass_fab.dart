@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:flutter/semantics.dart';
 import 'package:liquid/liquid.dart';
 
@@ -118,7 +119,10 @@ class GlassFabPosition extends StatelessWidget {
     final panes = PaneLayoutScope.maybeOf(context);
     final scope = PaneScope.maybeOf(context);
     if (home && panes != null && journalColumnEnabled(panes.layout)) {
-      final rect = journalRecordSlot(panes.layout.sideColumn!);
+      final rect = journalRecordSlot(
+        panes.layout.sideColumn!,
+        size: duoInnerOf(context) ? AppDuo.barItem : AppSizes.fab,
+      );
       return Positioned.fromRect(
         rect: rect.shift(-(scope?.pane.rect.topLeft ?? Offset.zero)),
         child: Offstage(

@@ -48,6 +48,9 @@ final class AppMotion {
     this.indicator = const Duration(milliseconds: 250),
     this.indicatorCurve = Curves.easeOutCubic,
     this.expand = const Duration(milliseconds: 260),
+    this.selectionFade = const Duration(milliseconds: 120),
+    this.duoPressIn = const Duration(milliseconds: 80),
+    this.duoPressOut = const Duration(milliseconds: 200),
     this.crossfade = const Duration(milliseconds: 200),
     this.pageDash = const Duration(milliseconds: 200),
     this.digitRoll = const Duration(milliseconds: 200),
@@ -127,6 +130,9 @@ final class AppMotion {
   /// Reduce-Motion behavior live in the widgets).
   final Duration expand;
   final Duration crossfade;
+  final Duration selectionFade;
+  final Duration duoPressIn;
+  final Duration duoPressOut;
 
   /// The onboarding dash indicator's color and position glide.
   final Duration pageDash;

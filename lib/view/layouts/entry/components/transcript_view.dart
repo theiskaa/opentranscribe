@@ -58,6 +58,7 @@ class TranscriptView extends StatefulWidget {
   const TranscriptView({
     required this.entry,
     required this.busy,
+    this.bodyStyle = AppType.body,
     this.appending = false,
     this.pendingText = '',
     this.forecast,
@@ -67,6 +68,7 @@ class TranscriptView extends StatefulWidget {
 
   final Entry entry;
   final bool busy;
+  final TextStyle bodyStyle;
 
   /// A take is being added to this entry: the words stay readable, and the
   /// take's own words follow them as its live pass hears them. Without live
@@ -276,7 +278,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // The words that landed differ from the ones the ink was shaped by:
     // reshape first, then dissolve, so the ink never blinks mid-fade. A
     // screen of them is all the ink anyone sees.
-    final style = AppType.boldAware(AppType.body, bold: layout!.bold);
+    final style = AppType.boldAware(layout!.style, bold: layout.bold);
     final shown = appendFillerWithin(
       base: before,
       filler: landed,
@@ -387,6 +389,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       scaler: scaler,
       bold: bold,
       screen: screen,
+      style: widget.bodyStyle,
     );
     if (key == _pendingFor) return _pending;
     _pendingFor = key;
@@ -396,7 +399,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       base: base,
       width: width,
       screenHeight: screen,
-      style: AppType.boldAware(AppType.body, bold: bold),
+      style: AppType.boldAware(widget.bodyStyle, bold: bold),
       textScaler: scaler,
       locale: Localizations.maybeLocaleOf(context),
     );
@@ -414,7 +417,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         base: key.base,
         addition: key.pending,
         width: key.layout.width,
-        style: AppType.boldAware(AppType.body, bold: key.layout.bold),
+        style: AppType.boldAware(key.layout.style, bold: key.layout.bold),
         textScaler: key.layout.scaler,
         pixelRatio: MediaQuery.devicePixelRatioOf(context),
         color: context.themeNow.player.segmentColor,
@@ -514,7 +517,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     if (box is! RenderBox || !box.hasSize) return false;
     final width = box.size.width;
     if (width <= 0) return false;
-    const style = AppType.body;
+    final style = widget.bodyStyle;
     // Scaled like the words that replace it, so the reveal lands on the cloud.
     final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize!);
     final lineHeight = fontSize * style.height!;
@@ -635,7 +638,12 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
         var pending = '';
         if (widget.appending && constraints.hasBoundedWidth && constraints.maxWidth > 0) {
           pending = _pendingAt(constraints.maxWidth, scaler, bold: bold, screen: screen);
-          _ensureAppendInk(pending, (width: constraints.maxWidth, scaler: scaler, bold: bold));
+          _ensureAppendInk(pending, (
+            width: constraints.maxWidth,
+            scaler: scaler,
+            bold: bold,
+            style: widget.bodyStyle,
+          ));
         }
         final points = _appendPoints;
         final size = _appendSize;
@@ -703,7 +711,7 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     final tailStart = _tailStart;
     // One weight in every branch: spans set their own, so Text's Bold Text
     // never reaches them.
-    final body = AppType.boldAware(AppType.body, bold: MediaQuery.boldTextOf(context));
+    final body = AppType.boldAware(widget.bodyStyle, bold: MediaQuery.boldTextOf(context));
     if (live || inking) {
       // Live words follow the entry's as they are. Ink's words hold their
       // room unseen, so the ink over them sits exactly where they will.
@@ -858,7 +866,7 @@ class _TranscriptEmpty extends StatelessWidget {
   }
 }
 
-typedef _AppendLayout = ({double width, TextScaler scaler, bool bold});
+typedef _AppendLayout = ({double width, TextScaler scaler, bool bold, TextStyle style});
 
 typedef _AppendKey = ({String base, String pending, _AppendLayout layout});
 
@@ -870,6 +878,7 @@ typedef _PendingKey = ({
   TextScaler scaler,
   bool bold,
   double screen,
+  TextStyle style,
 });
 
 /// The transcript, or the quiet wait while a first pass has nothing to show.

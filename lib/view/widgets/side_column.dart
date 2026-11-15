@@ -9,7 +9,7 @@ import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 bool journalColumnEnabled(PaneLayout layout) => layout.sideColumn != null;
 
-Rect journalRecordSlot(SideColumn column) {
+Rect journalRecordSlot(SideColumn column, {double size = AppSizes.fab}) {
   final floor = column.lowerSlot;
   final record =
       columnControlSlots(
@@ -19,7 +19,7 @@ Rect journalRecordSlot(SideColumn column) {
           floor.right,
           math.max(floor.top, floor.bottom - AppSpacing.xl),
         ),
-        const [Size.square(AppSizes.fab)],
+        [Size.square(size)],
         occlusions: column.occlusions,
         bottom: true,
       ).firstOrNull ??

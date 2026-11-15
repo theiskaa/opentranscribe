@@ -1,4 +1,6 @@
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -34,13 +36,14 @@ class AppGlassIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onTap = this.onTap;
+    final glyphSize = duoInnerOf(context) ? AppDuo.barGlyph : iconSize;
     if (PlatformCaps.nativeGlass) {
       // The native side draws the glyph itself, from the SF Symbol NAME - our
       // vendored icon font never reaches it. isDark keeps the glass in step
       // with the chosen theme family, not just the system appearance.
       return LiquidIconButton(
         icon: AppIcons.sfSymbolName(icon),
-        iconPointSize: iconSize,
+        iconPointSize: glyphSize,
         tintColor: color,
         semanticLabel: semanticLabel,
         isDark: context.theme.brightness == Brightness.dark,
@@ -54,6 +57,32 @@ class AppGlassIconButton extends StatelessWidget {
               },
         enabled: onTap != null,
         size: size,
+      );
+    }
+    if (duoInnerOf(context)) {
+      final theme = context.theme;
+      return Semantics(
+        button: true,
+        enabled: onTap != null,
+        label: semanticLabel,
+        onTap: onTap,
+        excludeSemantics: true,
+        child: Touchable(
+          onTap: onTap,
+          haptic: true,
+          child: Container(
+            width: AppDuo.barItem,
+            height: AppDuo.barItem,
+            decoration: BoxDecoration(
+              color: theme.duo.controlSurface,
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.duo.separator, width: AppDuo.separatorWidth),
+            ),
+            child: Center(
+              child: AppIcon(icon, size: AppDuo.barGlyph, color: color ?? theme.text),
+            ),
+          ),
+        ),
       );
     }
     return AppIconButton(

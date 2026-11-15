@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -566,6 +569,11 @@ class _DetailViewState extends State<_DetailView> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    final inner = duoInnerOf(context);
+    final panes = PaneLayoutScope.maybeOf(context);
+    final foldInsets = inner && panes != null
+        ? duoFoldInsets(panes.layout, PaneScope.maybeOf(context)?.touch)
+        : EdgeInsets.zero;
     _route = ModalRoute.of(context);
     final current = ModalRoute.isCurrentOf(context) ?? true;
 
@@ -666,7 +674,7 @@ class _DetailViewState extends State<_DetailView> {
             : bottomInset + AppSpacing.xxxl;
         final locale = localeTag(context);
         final meta = [
-          DateFormat.yMMMMd(locale).format(entry.createdAt.toLocal()),
+          if (!inner) DateFormat.yMMMMd(locale).format(entry.createdAt.toLocal()),
           formatTime(entry.createdAt, locale),
           formatClock(entry.duration),
           if (language != null) localeDisplayName(language),
@@ -702,17 +710,26 @@ class _DetailViewState extends State<_DetailView> {
                           // A short entry fits its viewport even with the keyboard
                           // pad; without this no drag exists for the dismiss to hear.
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding:
-                              EdgeInsets.fromLTRB(
-                                AppSpacing.xl,
-                                // Past the bar AND its fade tail: the material is opaque
-                                // through the row and only melts across the tail, so
-                                // content starting inside it would sit under the wash.
-                                AppTopBar.heightOf(context) + theme.topBar.fadeTail,
-                                AppSpacing.xl,
-                                keyboard + restingBottom,
-                              ) +
-                              sides,
+                          padding: inner
+                              ? duoDetailInsets(
+                                  width: MediaQuery.sizeOf(context).width + sides.horizontal,
+                                  safe: MediaQuery.paddingOf(context) + sides,
+                                  fold: foldInsets,
+                                  top: verticalBar
+                                      ? duoHeaderOf(context).detailTop
+                                      : theme.topBar.height + theme.topBar.fadeTail,
+                                  bottom: keyboard + restingBottom,
+                                )
+                              : EdgeInsets.fromLTRB(
+                                      AppSpacing.xl,
+                                      // Past the bar AND its fade tail: the material is opaque
+                                      // through the row and only melts across the tail, so
+                                      // content starting inside it would sit under the wash.
+                                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                                      AppSpacing.xl,
+                                      keyboard + restingBottom,
+                                    ) +
+                                    sides,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -725,13 +742,14 @@ class _DetailViewState extends State<_DetailView> {
                                   continuity: _titleContinuity,
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              SizedBox(height: inner ? AppDuo.detailMetaGap : AppSpacing.sm),
                               Text(
                                 meta,
                                 style: AppType.digits(
-                                  AppType.footnote,
+                                  inner ? DuoTheme.metadata : AppType.footnote,
                                 ).copyWith(color: theme.textSecondary),
                               ),
+                              if (inner) EntryBarLine(entryId: entry.id),
                               const SizedBox(height: AppSpacing.xxl),
                               // Discarded audio: the document flows from the metadata
                               // straight into what it says. Animated, so a discard
@@ -758,7 +776,9 @@ class _DetailViewState extends State<_DetailView> {
                                               key: ValueKey(entry.audioPath),
                                               entry: entry,
                                             ),
-                                            const SizedBox(height: AppSpacing.xxl),
+                                            SizedBox(
+                                              height: inner ? AppDuo.detailMargin : AppSpacing.xxl,
+                                            ),
                                           ],
                                         ),
                                 ),
@@ -775,7 +795,9 @@ class _DetailViewState extends State<_DetailView> {
                                     focusNode: _bodyFocus,
                                     continuity: _bodyContinuity,
                                     onBlur: _commitEdit,
-                                    style: AppType.body.copyWith(color: theme.text),
+                                    style: (inner ? DuoTheme.body : AppType.body).copyWith(
+                                      color: theme.text,
+                                    ),
                                     cursorColor: theme.accent,
                                     backgroundCursorColor: theme.textSecondary,
                                     selectionColor: theme.accent.withValues(alpha: 0.25),
@@ -806,10 +828,12 @@ class _DetailViewState extends State<_DetailView> {
                     // A pass's progress, as home's bar shows a take's: under a
                     // long cloud it would sit below the screen. An export's
                     // wait and failure share the seat.
-                    title: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppTopBar.clearance),
-                      child: EntryBarLine(entryId: entry.id),
-                    ),
+                    title: inner
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppTopBar.clearance),
+                            child: EntryBarLine(entryId: entry.id),
+                          ),
                     centerTitle: true,
                     prominentActions: [
                       if (_editing)
@@ -1137,14 +1161,16 @@ class _TitleFieldState extends State<_TitleField> {
       continuity: widget.continuity,
       onBlur: _commit,
       onChanged: (_) => _changed = true,
-      style: AppType.display2.copyWith(color: theme.text),
+      style: (duoInnerOf(context) ? DuoTheme.detailTitle : AppType.display2).copyWith(
+        color: theme.text,
+      ),
       cursorColor: theme.accent,
       backgroundCursorColor: theme.textSecondary,
       selectionColor: theme.accent.withValues(alpha: 0.25),
       keyboardAppearance: theme.brightness,
       capitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.done,
-      maxLines: null,
+      maxLines: duoInnerOf(context) ? 2 : null,
       onSubmitted: (_) => widget.focusNode.unfocus(),
     );
   }
@@ -1178,6 +1204,7 @@ class _TranscriptBody extends StatelessWidget {
       (passes) => passes.state.forEntry(entry.id)?.forecast,
     );
     return TranscriptView(
+      bodyStyle: duoInnerOf(context) ? DuoTheme.body : AppType.body,
       entry: entry,
       busy: busy,
       appending: continuing,

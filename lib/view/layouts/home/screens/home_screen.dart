@@ -17,6 +17,8 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
 import 'package:opentranscribe/view/layouts/home/components/journal_split.dart';
@@ -273,7 +275,7 @@ class _HomeScreenState extends State<_Journal> {
         theme.topBar.fadeTail;
 
     return ColoredBox(
-      color: theme.screens.home,
+      color: duoJournalOf(context) ? theme.duo.surfaceGrouped : theme.screens.home,
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
@@ -556,7 +558,7 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Nothing native scrolls under the home bar, so the drawn fade stands in
       // for the native material and skips its re-stage flicker on return.
       nativeMaterial: false,
-      barHeight: theme.topBar.largeHeight,
+      barHeight: duoJournalOf(context) ? duoHeaderOf(context).header : theme.topBar.largeHeight,
       onTitleTap: widget.onTitleTap,
       // One trailing menu instead of a row of buttons: the home is the app, and
       // this dropdown is how you leave it (there is no settings screen). Every
@@ -575,13 +577,16 @@ class _HomeChromeState extends State<_HomeChrome> {
         padding: const EdgeInsets.only(top: AppSpacing.md),
         child: RollingText(
           text: DateFormat.MMMMd(locale).format(widget.activeDay),
-          style: AppType.digits(AppType.display2).copyWith(color: theme.topBar.titleColor),
+          style: AppType.digits(
+            duoJournalOf(context) ? DuoTheme.journalTitle : AppType.display2,
+          ).copyWith(color: theme.topBar.titleColor),
           direction: _direction,
         ),
       ),
       // While a take is being saved the line is its progress instead, since
       // the entry lands only once its pass does.
       subtitle: BatchProgressLine(
+        style: duoJournalOf(context) ? AppType.rowNote : null,
         select: (passes) => passes.take,
         fallback:
             '${DateFormat.EEEE(locale).format(widget.activeDay)} · '
@@ -774,15 +779,17 @@ class _SplitterLabel extends StatelessWidget {
     return SeamPadding(
       closing: gapless,
       padding: EdgeInsets.fromLTRB(
-        theme.entryList.textColumnInset,
-        gapless ? 0 : AppSpacing.xxxl,
+        duoJournalOf(context) ? AppDuo.paneInset : theme.entryList.textColumnInset,
+        duoJournalOf(context) ? (gapless ? 0 : AppDuo.sectionTop) : (gapless ? 0 : AppSpacing.xxxl),
         AppSpacing.xl,
-        AppSpacing.sm,
+        duoJournalOf(context) ? AppDuo.sectionBottom : AppSpacing.sm,
       ),
       child: Text(
         '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}',
         key: labelKey,
-        style: AppType.footnote.copyWith(color: theme.entryList.splitterColor),
+        style: (duoJournalOf(context) ? DuoTheme.section : AppType.footnote).copyWith(
+          color: theme.entryList.splitterColor,
+        ),
       ),
     );
   }
@@ -1002,6 +1009,11 @@ class _RecordsList extends StatelessWidget {
                 entrance: enteredEntries.contains(entry.id),
                 child: EntryRow(
                   entry: entry,
+                  nextEntryId: section.entries
+                      .skip(i + 1)
+                      .where((next) => !dyingIds.contains(next.id))
+                      .firstOrNull
+                      ?.id,
                   // A dying successor is already gone for layout: the gap and
                   // rail close in step with its exit, and the emit changes
                   // nothing.

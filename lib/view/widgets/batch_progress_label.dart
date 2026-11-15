@@ -29,10 +29,17 @@ String? batchProgressLabel(AppLocalizations l10n, BatchProgress? progress) {
 /// else [fallback], else nothing. Every changed character moves together,
 /// fast, so a ticking percent reads as one number.
 class BatchProgressLine extends StatelessWidget {
-  const BatchProgressLine({required this.select, this.fallback, this.direction = 1, super.key});
+  const BatchProgressLine({
+    required this.select,
+    this.fallback,
+    this.direction = 1,
+    this.style,
+    super.key,
+  });
 
   final BatchProgress? Function(BatchProgressState passes) select;
   final String? fallback;
+  final TextStyle? style;
 
   /// Which way changed characters roll; see [RollingText.direction].
   final int direction;
@@ -48,7 +55,7 @@ class BatchProgressLine extends StatelessWidget {
         return RollingText(
           text: text,
           // Tabular: a ticking percent keeps its width.
-          style: AppType.digits(AppType.footnote).copyWith(color: theme.textSecondary),
+          style: AppType.digits(style ?? AppType.footnote).copyWith(color: theme.textSecondary),
           direction: direction,
           window: theme.motion.subtitleRoll,
           stagger: Duration.zero,

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/theming/contrast.dart';
@@ -46,6 +47,7 @@ final class AppTheme {
     required this.sheet,
     required this.reflectionCard,
     required this.scrubber,
+    required this.duo,
     this.motion = const AppMotion(),
   });
 
@@ -86,7 +88,16 @@ final class AppTheme {
     ReflectionCardTheme? reflectionCard,
     ScrubberTheme? scrubber,
     AppMotion motion = const AppMotion(),
+    DuoTheme? duo,
   }) {
+    final resolvedPlayer =
+        player ??
+        PlayerTheme(
+          progress: accent,
+          waveRemaining: text.withValues(alpha: 0.16),
+          segmentColor: text,
+          activeSegmentHighlight: text.withValues(alpha: 0.12),
+        );
     return AppTheme(
       brightness: brightness,
       background: background,
@@ -182,15 +193,17 @@ final class AppTheme {
             liveTextColor: textSecondary,
             liveTextFadedColor: fadedAtLeast(textSecondary, 0.45, background: background),
           ),
-      player:
-          player ??
-          PlayerTheme(
-            progress: accent,
-            // Present, not decorative: the unplayed wave has to read as the
-            // same recording as the played half, just not reached yet.
-            waveRemaining: text.withValues(alpha: 0.16),
-            segmentColor: text,
-            activeSegmentHighlight: text.withValues(alpha: 0.12),
+      player: resolvedPlayer,
+      duo:
+          duo ??
+          DuoTheme.fromBase(
+            brightness: brightness,
+            background: background,
+            text: text,
+            textSecondary: textSecondary,
+            accent: accent,
+            hairline: hairline,
+            player: resolvedPlayer,
           ),
       diff:
           diff ??
@@ -324,6 +337,8 @@ final class AppTheme {
   final ReflectionCardTheme reflectionCard;
   final ScrubberTheme scrubber;
   final AppMotion motion;
+
+  final DuoTheme duo;
 
   /// Proper white, neutral grays, ink black.
   static final defaultLight = AppTheme.fromBase(

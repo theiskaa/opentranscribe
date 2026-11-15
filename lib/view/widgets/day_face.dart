@@ -34,6 +34,7 @@ class DayFace extends StatelessWidget {
     required this.letterColor,
     required this.numberColor,
     this.dot,
+    this.cellHeight,
     super.key,
   });
 
@@ -43,6 +44,7 @@ class DayFace extends StatelessWidget {
 
   /// The dot's colour, or null for no dot.
   final Color? dot;
+  final double? cellHeight;
 
   static const _letter = AppType.caption;
   static final _number = AppType.digits(AppType.headline);
@@ -76,7 +78,7 @@ class DayFace extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: dayDotBottom(
-              cell: tokens.cellHeight,
+              cell: cellHeight ?? tokens.cellHeight,
               letterLine: line(_letter),
               numberLine: line(_number),
               numberSize: scaler.scale(_number.fontSize!),

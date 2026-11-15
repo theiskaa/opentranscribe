@@ -1,6 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
@@ -92,7 +97,8 @@ class _WavePlayerState extends State<WavePlayer> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final tokens = theme.player;
+    final inner = duoInnerOf(context);
+    final tokens = inner ? theme.duo.player : theme.player;
     final l10n = AppLocalizations.of(context)!;
 
     return BlocBuilder<PlayerCubit, PlayerState>(
@@ -101,81 +107,107 @@ class _WavePlayerState extends State<WavePlayer> {
         final duration = state.duration == Duration.zero ? widget.entry.duration : state.duration;
         final fraction = _scrub ?? _fractionOf(state.position, duration);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          // Grab and release answer in the hand, as the
-                          // reflections scrubber's do.
-                          onHorizontalDragStart: (_) => Haptics.light(),
-                          onHorizontalDragUpdate: (details) => setState(() {
-                            _scrub = ((_scrub ?? fraction) + details.delta.dx / width).clamp(
-                              0.0,
-                              1.0,
-                            );
-                          }),
-                          onHorizontalDragEnd: (_) {
-                            Haptics.light();
-                            final scrub = _scrub;
-                            if (scrub != null) {
-                              context.read<PlayerCubit>().seek(
-                                duration * scrub,
-                                duration: duration,
-                              );
-                            }
-                            // Cleared only after the seek is on the state, so the
-                            // wave never falls back to where playback was for the
-                            // frames the platform takes to answer.
-                            setState(() => _scrub = null);
-                          },
-                          // A cancelled drag must not leave the wave stuck at
-                          // the last finger position.
-                          onHorizontalDragCancel: () {
-                            if (_scrub != null) setState(() => _scrub = null);
-                          },
-                          onTapUp: (_) {
-                            Haptics.light();
-                            context.read<PlayerCubit>().toggle(widget.entry);
-                          },
-                          child: AnimatedOpacity(
-                            duration: theme.motion.crossfade,
-                            opacity: state.isPlaying ? 1 : _pausedWaveOpacity,
-                            child: _Wave(
-                              peaks: state.peaks,
-                              played: fraction,
-                              // Glide only while self-advancing: a scrub tracks
-                              // the finger 1:1, and a paused wave must not drift
-                              // toward the last reported point.
-                              smooth: state.isPlaying && _scrub == null,
-                              tokens: tokens,
-                            ),
-                          ),
-                        );
+        return _DuoPlayerSurface(
+          enabled: inner,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  if (inner) ...[
+                    _DuoPlayButton(
+                      playing: state.isPlaying,
+                      label: state.isPlaying ? l10n.exportHtmlPause : l10n.exportHtmlPlay,
+                      onTap: () {
+                        Haptics.light();
+                        context.read<PlayerCubit>().toggle(widget.entry);
                       },
                     ),
+                    const SizedBox(width: AppSpacing.md),
+                  ],
+                  Expanded(
+                    child: _DuoWaveTrack(
+                      enabled: inner,
+                      elapsed: '${formatClock(state.position)} / ${formatClock(duration)}',
+                      child: RepaintBoundary(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = constraints.maxWidth;
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              // Grab and release answer in the hand, as the
+                              // reflections scrubber's do.
+                              onHorizontalDragStart: (_) => Haptics.light(),
+                              onHorizontalDragUpdate: (details) => setState(() {
+                                _scrub = ((_scrub ?? fraction) + details.delta.dx / width).clamp(
+                                  0.0,
+                                  1.0,
+                                );
+                              }),
+                              onHorizontalDragEnd: (_) {
+                                Haptics.light();
+                                final scrub = _scrub;
+                                if (scrub != null) {
+                                  context.read<PlayerCubit>().seek(
+                                    duration * scrub,
+                                    duration: duration,
+                                  );
+                                }
+                                // Cleared only after the seek is on the state, so the
+                                // wave never falls back to where playback was for the
+                                // frames the platform takes to answer.
+                                setState(() => _scrub = null);
+                              },
+                              // A cancelled drag must not leave the wave stuck at
+                              // the last finger position.
+                              onHorizontalDragCancel: () {
+                                if (_scrub != null) setState(() => _scrub = null);
+                              },
+                              onTapUp: (_) {
+                                Haptics.light();
+                                context.read<PlayerCubit>().toggle(widget.entry);
+                              },
+                              child: AnimatedOpacity(
+                                duration: theme.motion.crossfade,
+                                opacity: inner || state.isPlaying ? 1 : _pausedWaveOpacity,
+                                child: _Wave(
+                                  peaks: state.peaks,
+                                  played: fraction,
+                                  // Glide only while self-advancing: a scrub tracks
+                                  // the finger 1:1, and a paused wave must not drift
+                                  // toward the last reported point.
+                                  smooth:
+                                      state.isPlaying &&
+                                      _scrub == null &&
+                                      (!inner || !context.reduceMotion),
+                                  playhead: inner,
+                                  tokens: tokens,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  _RateChip(
+                    inner: inner,
+                    rate: state.rate,
+                    onTap: () => context.read<PlayerCubit>().cycleRate(),
+                  ),
+                ],
+              ),
+              if (state.failed)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Text(
+                    l10n.playbackFailed,
+                    style: AppType.footnote.copyWith(color: theme.textSecondary),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                _RateChip(rate: state.rate, onTap: () => context.read<PlayerCubit>().cycleRate()),
-              ],
-            ),
-            if (state.failed)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.md),
-                child: Text(
-                  l10n.playbackFailed,
-                  style: AppType.footnote.copyWith(color: theme.textSecondary),
-                ),
-              ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -198,16 +230,18 @@ String rateLabel(double rate) =>
 /// Playback speed as the number itself. Cycles rather than opening a menu;
 /// normal is never more than three taps away. Off normal it darkens to full ink.
 class _RateChip extends StatelessWidget {
-  const _RateChip({required this.rate, required this.onTap});
+  const _RateChip({required this.rate, required this.onTap, this.inner = false});
 
   final double rate;
+  final bool inner;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    if (inner) return _DuoRateChip(rate: rate, onTap: onTap);
     final style = AppType.digits(
-      AppType.callout,
+      inner ? AppType.footnote : AppType.callout,
     ).copyWith(color: rate == 1 ? theme.textSecondary : theme.text, height: 1);
     return Touchable(
       onTap: onTap,
@@ -246,6 +280,7 @@ class _Wave extends StatefulWidget {
     required this.played,
     required this.smooth,
     required this.tokens,
+    this.playhead = false,
   });
 
   final List<double> peaks;
@@ -256,6 +291,7 @@ class _Wave extends StatefulWidget {
   final bool smooth;
 
   final PlayerTheme tokens;
+  final bool playhead;
 
   @override
   State<_Wave> createState() => _WaveState();
@@ -283,7 +319,9 @@ class _WaveState extends State<_Wave> {
       // Keyed so the growth plays once, when the read lands.
       key: ValueKey(widget.peaks.isEmpty),
       tween: Tween(begin: widget.peaks.isEmpty ? 1 : 0, end: 1),
-      duration: context.theme.motion.crossfade,
+      duration: widget.playhead && context.reduceMotion
+          ? Duration.zero
+          : context.theme.motion.crossfade,
       curve: Curves.easeOut,
       builder: (context, grown, _) => TweenAnimationBuilder<double>(
         // Linearly bridges the gap between position reports. Linear (the
@@ -298,6 +336,7 @@ class _WaveState extends State<_Wave> {
             played: played,
             grown: grown,
             tokens: widget.tokens,
+            playhead: widget.playhead,
           ),
         ),
       ),
@@ -311,12 +350,14 @@ class _WavePainter extends CustomPainter {
     required this.played,
     required this.grown,
     required this.tokens,
+    required this.playhead,
   });
 
   final List<double> Function(int bars) shapeFor;
   final double played;
   final double grown;
   final PlayerTheme tokens;
+  final bool playhead;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -344,6 +385,14 @@ class _WavePainter extends CustomPainter {
       canvas.drawLine(Offset(x, mid - reach), Offset(x, mid + reach), paint);
       x += step;
     }
+    if (playhead) {
+      paint.color = tokens.progress;
+      final head = (played * size.width).clamp(
+        tokens.waveBarWidth / 2,
+        size.width - tokens.waveBarWidth / 2,
+      );
+      canvas.drawLine(Offset(head, 0), Offset(head, size.height), paint);
+    }
   }
 
   @override
@@ -351,9 +400,147 @@ class _WavePainter extends CustomPainter {
       old.played != played ||
       old.grown != grown ||
       old.shapeFor != shapeFor ||
-      old.tokens != tokens;
+      old.tokens != tokens ||
+      old.playhead != playhead;
 }
 
 /// A floor bar's half-length: never zero, since a renderer may drop a
 /// zero-length line where its round caps should still draw a dot.
 const double _dotReach = 0.01;
+
+class _DuoPlayerSurface extends StatelessWidget {
+  const _DuoPlayerSurface({required this.enabled, required this.child});
+
+  final bool enabled;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    return Container(
+      constraints: const BoxConstraints(minHeight: AppDuo.playerHeight),
+      padding: const EdgeInsets.all(AppDuo.playerInset),
+      decoration: SuperellipseDecoration(
+        borderRadius: AppDuo.playerRadius,
+        color: context.theme.duo.surfaceElevated,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _DuoPlayButton extends StatelessWidget {
+  const _DuoPlayButton({required this.playing, required this.label, required this.onTap});
+
+  final bool playing;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Touchable(
+        onTap: onTap,
+        child: SizedBox.square(
+          dimension: AppSizes.minTarget,
+          child: Center(
+            child: Container(
+              width: AppDuo.playSize,
+              height: AppDuo.playSize,
+              decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
+              child: Center(
+                child: AppIcon(
+                  playing ? AppIcons.pauseFill : AppIcons.playFill,
+                  size: AppIconSize.body,
+                  color: theme.onAccent,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DuoWaveTrack extends StatelessWidget {
+  const _DuoWaveTrack({required this.enabled, required this.elapsed, required this.child});
+
+  final bool enabled;
+  final String elapsed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        child,
+        Text(
+          elapsed,
+          textAlign: TextAlign.end,
+          style: AppType.digits(AppType.rowNote).copyWith(color: context.theme.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+class _DuoRateChip extends StatelessWidget {
+  const _DuoRateChip({required this.rate, required this.onTap});
+
+  final double rate;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Touchable(
+      onTap: onTap,
+      haptic: true,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: AppSizes.minTarget,
+          minHeight: AppSizes.minTarget,
+        ),
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: AppDuo.rateSize,
+              minHeight: AppDuo.rateSize,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: theme.duo.selectionFill,
+              borderRadius: BorderRadius.circular(AppDuo.rateSize),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                for (final option in playbackRates)
+                  Visibility(
+                    visible: option == rate,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: Text(
+                      rateLabel(option),
+                      style: AppType.digits(DuoTheme.section).copyWith(color: theme.textSecondary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
