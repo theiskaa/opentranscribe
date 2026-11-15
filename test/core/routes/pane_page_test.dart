@@ -1,10 +1,26 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/routes/pane_page.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 
 import '../../support/display_fixtures.dart';
 
 void main() {
+  test('selecting the provisional entry adds no fade while phone navigation keeps its slide', () {
+    const motion = AppMotion();
+    for (final provisional in [false, true]) {
+      expect(
+        panePageDuration(mode: PaneMode.single, fromProvisional: provisional, motion: motion),
+        motion.routeSlide,
+      );
+      expect(
+        panePageDuration(mode: PaneMode.split, fromProvisional: provisional, motion: motion),
+        provisional ? Duration.zero : motion.crossfade,
+      );
+    }
+  });
+
   test('without a leading inset the back swipe claims the standard grab area', () {
     expect(backGestureEdgeWidth(iphonePadding, TextDirection.ltr), 20);
     expect(backGestureEdgeWidth(iphonePadding, TextDirection.rtl), 20);

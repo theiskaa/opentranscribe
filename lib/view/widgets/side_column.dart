@@ -7,24 +7,65 @@ import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
-bool journalColumnEnabled({required PaneLayout layout, required bool cover}) =>
-    !cover && layout.sideColumn != null;
+bool journalColumnEnabled(PaneLayout layout) => layout.sideColumn != null;
 
-({Rect record, Rect settings, Rect detail}) journalColumnSlots(SideColumn column) {
-  final slots = sideColumnSlots(column.upperSlot, const [
-    Size.square(AppSizes.fab),
-    Size.square(AppSizes.barControl),
-  ]);
-  return (
-    record: slots.first,
-    settings: slots.last,
-    detail: Rect.fromLTRB(
-      column.upperSlot.left,
-      slots.last.bottom,
-      column.upperSlot.right,
-      column.upperSlot.bottom,
-    ),
+Rect journalRecordSlot(SideColumn column) {
+  final floor = column.lowerSlot;
+  final record =
+      columnControlSlots(
+        Rect.fromLTRB(
+          floor.left,
+          floor.top,
+          floor.right,
+          math.max(floor.top, floor.bottom - AppSpacing.xl),
+        ),
+        const [Size.square(AppSizes.fab)],
+        occlusions: column.occlusions,
+        bottom: true,
+      ).firstOrNull ??
+      Rect.zero;
+  return record;
+}
+
+({List<Rect> visible, Rect? overflow}) columnBarSlots(SideColumn column, int count) {
+  final seats = columnControlSlots(
+    column.upperSlot,
+    List.filled(count, const Size.square(AppSizes.barControl)),
+    occlusions: column.occlusions,
   );
+  if (seats.length == count || seats.isEmpty) return (visible: seats, overflow: null);
+  return (visible: seats.sublist(0, seats.length - 1), overflow: seats.last);
+}
+
+List<Rect> columnControlSlots(
+  Rect slot,
+  List<Size> controls, {
+  List<Rect> occlusions = const [],
+  bool bottom = false,
+}) {
+  final result = <Rect>[];
+  var edge = bottom ? slot.bottom : slot.top + AppSpacing.md;
+  for (final size in controls) {
+    if (size.width > slot.width || size.height > slot.height) break;
+    Rect seat;
+    while (true) {
+      seat = Rect.fromLTWH(
+        slot.center.dx - size.width / 2,
+        bottom ? edge - size.height : edge,
+        size.width,
+        size.height,
+      );
+      if (seat.top < slot.top || seat.bottom > slot.bottom) return result;
+      final blocked = occlusions.where((rect) => rect.overlaps(seat)).toList();
+      if (blocked.isEmpty) break;
+      edge = bottom
+          ? blocked.map((rect) => rect.top).reduce(math.min) - AppSpacing.md
+          : blocked.map((rect) => rect.bottom).reduce(math.max) + AppSpacing.md;
+    }
+    result.add(seat);
+    edge = bottom ? seat.top - AppSpacing.md : seat.bottom + AppSpacing.md;
+  }
+  return result;
 }
 
 List<Rect> sideColumnSlots(Rect slot, List<Size> controls, {bool bottom = false}) {
@@ -50,7 +91,6 @@ class TopBarLayout extends MultiChildLayoutDelegate {
     required this.actions,
     required this.centerTitle,
     required this.direction,
-    this.column,
   });
 
   final Rect row;
@@ -58,7 +98,6 @@ class TopBarLayout extends MultiChildLayoutDelegate {
   final int actions;
   final bool centerTitle;
   final TextDirection direction;
-  final Rect? column;
 
   static const leadingId = 'leading';
   static const titleId = 'title';
@@ -66,38 +105,27 @@ class TopBarLayout extends MultiChildLayoutDelegate {
   @override
   void performLayout(Size size) {
     final constraints = BoxConstraints.loose(row.size);
-    final controls = <Object>[];
     final sizes = <Size>[];
     if (leading) {
-      controls.add(leadingId);
       sizes.add(layoutChild(leadingId, constraints));
     }
     for (var i = 0; i < actions; i++) {
-      controls.add(i);
       sizes.add(layoutChild(i, constraints));
     }
-    final slot = column;
-    var start = leading && slot == null ? AppSpacing.md + sizes.first.width : AppSpacing.xl;
-    var end = actions == 0 || slot != null ? AppSpacing.xl : 0.0;
-    if (slot == null) {
-      var right = row.right;
-      for (var i = actions - 1; i >= 0; i--) {
-        final controlSize = sizes[i + (leading ? 1 : 0)];
-        right -= AppSpacing.md + controlSize.width;
-        positionChild(i, _position(right, controlSize));
-        end += AppSpacing.md + controlSize.width;
-      }
-      if (leading) {
-        final x = direction == TextDirection.rtl
-            ? row.right - sizes.first.width
-            : row.left + AppSpacing.md;
-        positionChild(leadingId, Offset(x, row.top + (row.height - sizes.first.height) / 2));
-      }
-    } else {
-      final rects = sideColumnSlots(slot, sizes);
-      for (var i = 0; i < controls.length; i++) {
-        positionChild(controls[i], rects[i].topLeft);
-      }
+    var start = leading ? AppSpacing.md + sizes.first.width : AppSpacing.xl;
+    var end = actions == 0 ? AppSpacing.xl : 0.0;
+    var right = row.right;
+    for (var i = actions - 1; i >= 0; i--) {
+      final controlSize = sizes[i + (leading ? 1 : 0)];
+      right -= AppSpacing.md + controlSize.width;
+      positionChild(i, _position(right, controlSize));
+      end += AppSpacing.md + controlSize.width;
+    }
+    if (leading) {
+      final x = direction == TextDirection.rtl
+          ? row.right - sizes.first.width
+          : row.left + AppSpacing.md;
+      positionChild(leadingId, Offset(x, row.top + (row.height - sizes.first.height) / 2));
     }
     if (hasChild(titleId)) {
       if (centerTitle) start = end = 0;
@@ -116,7 +144,6 @@ class TopBarLayout extends MultiChildLayoutDelegate {
   @override
   bool shouldRelayout(TopBarLayout oldDelegate) =>
       row != oldDelegate.row ||
-      column != oldDelegate.column ||
       leading != oldDelegate.leading ||
       actions != oldDelegate.actions ||
       centerTitle != oldDelegate.centerTitle ||
@@ -135,11 +162,7 @@ class SideColumnGround extends StatelessWidget {
     final scope = PaneScope.maybeOf(context);
     final column = panes?.layout.sideColumn;
     final visible =
-        enabled &&
-        panes?.reduceTransparency == true &&
-        panes?.settled == true &&
-        panes?.cover == false &&
-        column != null;
+        enabled && panes?.reduceTransparency == true && panes?.settled == true && column != null;
     return Positioned.fromRect(
       rect: visible
           ? column.rect.shift(window ? Offset.zero : -(scope?.pane.rect.topLeft ?? Offset.zero))

@@ -8,6 +8,7 @@ import 'package:opentranscribe/core/routes/pane_observer.dart';
 import 'package:opentranscribe/view/layouts/home/components/journal_chrome.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
+import 'package:opentranscribe/view/widgets/page_bar_scope.dart';
 
 class PaneHost extends StatefulWidget {
   const PaneHost({
@@ -107,15 +108,17 @@ class _PaneHostState extends State<PaneHost> {
     }
     return PaneLayoutScope(
       tracker: _tracker,
-      child: PaneGlide(
-        child: ValueListenableBuilder<PaneSelection?>(
-          valueListenable: _tracker.readingSelection,
-          child: widget.child,
-          builder: (context, reading, child) => PaneSelectionScope(
-            selection: widget.layout.mode == PaneMode.split
-                ? reading ?? paneSelection(_tracker.selection)
-                : null,
-            child: child!,
+      child: PageBarScope(
+        child: PaneGlide(
+          child: ValueListenableBuilder<PaneSelection?>(
+            valueListenable: _tracker.readingSelection,
+            child: widget.child,
+            builder: (context, reading, child) => PaneSelectionScope(
+              selection: widget.layout.mode == PaneMode.split
+                  ? reading ?? paneSelection(_tracker.selection)
+                  : null,
+              child: child!,
+            ),
           ),
         ),
       ),

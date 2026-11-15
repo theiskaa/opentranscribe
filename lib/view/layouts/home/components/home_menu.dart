@@ -134,6 +134,7 @@ class _HomeMenuState extends State<HomeMenu> {
     return AppMenuButton(
       key: _anchor,
       icon: AppIcons.gearshape,
+      semanticLabel: l10n.settingsButton,
       color: widget.color,
       items: items,
       onSelectedId: (id) {

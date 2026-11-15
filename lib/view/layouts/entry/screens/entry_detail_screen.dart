@@ -39,6 +39,8 @@ import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/edit_continuity.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/page_bar_scope.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/exporter_marks.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
@@ -48,6 +50,30 @@ import 'package:opentranscribe/view/widgets/hint_callout.dart';
 import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+
+class RoutedEntryDetail extends StatefulWidget {
+  const RoutedEntryDetail({required this.entryId, required this.routeKey, super.key});
+
+  final String entryId;
+  final LocalKey routeKey;
+
+  @override
+  State<RoutedEntryDetail> createState() => _RoutedEntryDetailState();
+}
+
+class _RoutedEntryDetailState extends State<RoutedEntryDetail> {
+  Key? _detailKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final panes = PaneLayoutScope.of(context);
+    _detailKey ??= panes.journalSelectionKey == widget.routeKey
+        ? panes.takeProvisionalKey(widget.entryId) ?? ValueKey(widget.entryId)
+        : ValueKey(widget.entryId);
+    return EntryDetailScreen(key: _detailKey, entryId: widget.entryId);
+  }
+}
 
 /// One entry as a document: its title, when it was made, the recording drawn as
 /// a wave you can scrub, then what was said. Reads [EntriesCubit] so
@@ -164,20 +190,12 @@ class _DetailViewState extends State<_DetailView> {
     // Captured here because dispose() must not look the cubits up via context.
     _player = context.read<PlayerCubit>();
     _entries = context.read<EntriesCubit>();
-    _route = ModalRoute.of(context);
-  }
-
-  @override
-  void deactivate() {
-    // A pop while the body field is focused never delivers the blur
-    // notification; without this, the typed edit would vanish with the screen.
-    if (_editing) _commitEdit(leave: false);
-    super.deactivate();
   }
 
   @override
   void dispose() {
     if (_editing) {
+      _commitEdit(leave: false);
       final observer = Deps.i.router.paneObserver;
       // Disposal can run while Navigator is building, so release after that pass.
       WidgetsBinding.instance.addPostFrameCallback((_) => observer.setBottomSlotOwner(this, null));
@@ -548,6 +566,7 @@ class _DetailViewState extends State<_DetailView> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    _route = ModalRoute.of(context);
     final current = ModalRoute.isCurrentOf(context) ?? true;
 
     return BlocBuilder<EntriesCubit, EntriesState>(
@@ -626,6 +645,7 @@ class _DetailViewState extends State<_DetailView> {
         // The keyboard's height while the edit field is up, so the caret can
         // always scroll clear of it; zero the rest of the time.
         final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+        final verticalBar = PageBarScope.placementOf(context) == PageBarPlacement.vertical;
         // What the scroll must clear so its last line never hides behind the
         // pinned dock: the pill, the CTA, and the gap between them, whichever
         // are present.
@@ -791,6 +811,18 @@ class _DetailViewState extends State<_DetailView> {
                       child: EntryBarLine(entryId: entry.id),
                     ),
                     centerTitle: true,
+                    prominentActions: [
+                      if (_editing)
+                        AppGlassIconButton(
+                          icon: AppIcons.checkmark,
+                          color: theme.topBar.iconColor,
+                          semanticLabel: l10n.done,
+                          onTap: () {
+                            _bodyContinuity.cancel();
+                            _bodyFocus.unfocus();
+                          },
+                        ),
+                    ],
                     actions: [
                       // Settings feed only the menu, so a model install's
                       // progress emits rebuild this button, not the document.
@@ -870,7 +902,7 @@ class _DetailViewState extends State<_DetailView> {
                 // riding the keyboard; unfocusing commits through the blur
                 // listener. The check runs well under the disc's own glyph
                 // size: its ink box is wide for its point size.
-                if (_editing)
+                if (_editing && !verticalBar)
                   GlassFabPosition(
                     keyboard: keyboard,
                     child: GlassFab(
@@ -1046,9 +1078,8 @@ class _TitleField extends StatefulWidget {
 }
 
 class _TitleFieldState extends State<_TitleField> {
-  late final TextEditingController _controller = TextEditingController(
-    text: entryDisplayTitle(widget.entry, localeTag(context)),
-  );
+  late final TextEditingController _controller;
+  String? _locale;
   EntriesCubit? _entries;
   bool _changed = false;
 
@@ -1060,26 +1091,18 @@ class _TitleFieldState extends State<_TitleField> {
   }
 
   @override
-  void deactivate() {
-    // A pop while the field is focused never delivers the blur notification;
-    // without this, the typed title would silently vanish with the screen.
-    if (_changed || widget.focusNode.hasFocus) _commit();
-    super.deactivate();
-  }
-
-  @override
   void didUpdateWidget(_TitleField oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Reflect an external change (a commit round-trip) unless mid-edit.
     if (!_changed && !widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
-      _controller.text = entryDisplayTitle(widget.entry, localeTag(context));
+      _controller.text = entryDisplayTitle(widget.entry, _locale!);
     }
   }
 
   void _commit() {
     _changed = false;
     final trimmed = _controller.text.trim();
-    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), localeTag(context));
+    final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), _locale!);
     final cleared = trimmed.isEmpty || trimmed == untitledDefault;
     if (cleared && widget.entry.title == null) {
       // Nothing changed; just restore the default text.
@@ -1093,6 +1116,7 @@ class _TitleFieldState extends State<_TitleField> {
 
   @override
   void dispose() {
+    if (_changed || widget.focusNode.hasFocus) _commit();
     _controller.dispose();
     super.dispose();
   }
@@ -1100,6 +1124,13 @@ class _TitleFieldState extends State<_TitleField> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final locale = localeTag(context);
+    if (_locale == null) {
+      _controller = TextEditingController(text: entryDisplayTitle(widget.entry, locale));
+    } else if (_locale != locale && !_changed && !widget.focusNode.hasFocus) {
+      _controller.text = entryDisplayTitle(widget.entry, locale);
+    }
+    _locale = locale;
     return EditableProse(
       controller: _controller,
       focusNode: widget.focusNode,

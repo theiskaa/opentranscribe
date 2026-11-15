@@ -12,14 +12,15 @@ import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/side_column.dart';
-import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 
 bool journalRecordVisible({
   required PaneMode mode,
   required bool covered,
   required bool bottomSlotOccupied,
   bool column = false,
-}) => (mode == PaneMode.split || column) && !covered && !bottomSlotOccupied;
+  bool cover = false,
+  bool detail = false,
+}) => (mode == PaneMode.split || column) && !covered && !bottomSlotOccupied && !(cover && detail);
 
 class JournalChrome extends StatelessWidget {
   const JournalChrome({required this.observer, super.key});
@@ -30,8 +31,7 @@ class JournalChrome extends StatelessWidget {
   Widget build(BuildContext context) {
     final panes = PaneLayoutScope.of(context);
     final layout = panes.layout;
-    final column = journalColumnEnabled(layout: layout, cover: panes.cover);
-    final slots = column ? journalColumnSlots(layout.sideColumn!) : null;
+    final column = journalColumnEnabled(layout);
     return ListenableBuilder(
       listenable: observer,
       builder: (context, child) => Stack(
@@ -43,14 +43,12 @@ class JournalChrome extends StatelessWidget {
                 mode: layout.mode,
                 column: column,
                 covered: observer.chromeCovered,
+                cover: panes.cover,
+                detail: observer.selectionOnTop,
                 bottomSlotOccupied: observer.bottomSlotOccupied,
               ),
               child: const JournalRecordButton(),
             ),
-          ),
-          Positioned.fromRect(
-            rect: slots?.settings ?? Rect.zero,
-            child: Offstage(offstage: !column || observer.chromeCovered, child: const HomeMenu()),
           ),
         ],
       ),

@@ -1660,4 +1660,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continueEntryBusy => 'This entry is still being transcribed.';
+
+  @override
+  String get settingsButton => 'Settings';
+
+  @override
+  String get appearanceModeButton => 'Appearance mode';
 }

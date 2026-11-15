@@ -73,6 +73,7 @@ void main() {
           side: BarSide.right,
           upperSlot: Rect.fromLTRB(382, 174, 466, 409),
           lowerSlot: Rect.fromLTRB(382, 409, 466, 644),
+          occlusions: [Rect.fromLTWH(400, 29, 37, 37), Rect.fromLTWH(382, 0, 84, 174)],
         ),
       );
     });
@@ -88,10 +89,10 @@ void main() {
       expect(layout.modal, const Rect.fromLTRB(0, 0, 382, 678));
     });
 
-    test('places the column controls under the token depth when no occlusion is reported', () {
+    test('uses the measured top inset when no occlusion is reported', () {
       final bare = layoutOf({...DisplayWire.cover, 'regions': const <Object?>[]});
 
-      expect(bare.sideColumn!.upperSlot.top, AppDuo.statusCluster);
+      expect(bare.sideColumn!.upperSlot.top, bare.leading.padding.top);
     });
   });
 

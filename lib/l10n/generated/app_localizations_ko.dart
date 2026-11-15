@@ -1544,4 +1544,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get continueEntryBusy => '이 항목은 아직 전사 중입니다.';
+
+  @override
+  String get settingsButton => '설정';
+
+  @override
+  String get appearanceModeButton => '화면 모드';
 }

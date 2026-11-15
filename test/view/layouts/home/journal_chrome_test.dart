@@ -51,4 +51,33 @@ void main() {
       );
     }
   });
+
+  test('the cover shows Record on home and hides it on a detail page', () {
+    for (final detail in [false, true]) {
+      expect(
+        journalRecordVisible(
+          mode: PaneMode.single,
+          column: true,
+          cover: true,
+          detail: detail,
+          covered: false,
+          bottomSlotOccupied: false,
+        ),
+        !detail,
+      );
+    }
+  });
+
+  test('an inner detail keeps Record available when Done has released its slot', () {
+    expect(
+      journalRecordVisible(
+        mode: PaneMode.split,
+        column: true,
+        detail: true,
+        covered: false,
+        bottomSlotOccupied: false,
+      ),
+      isTrue,
+    );
+  });
 }

@@ -18,6 +18,7 @@ import 'package:opentranscribe/view/layouts/settings/screens/backup_screen.dart'
 import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 /// One root navigator. Details are children of home; recorder and onboarding
 /// cover the whole window.
@@ -82,9 +83,13 @@ class AppRouter {
             pageBuilder: (context, state) => PanePage<void>(
               key: state.pageKey,
               name: state.name,
-              child: EntryDetailScreen(
+              fromProvisional: PaneLayoutScope.of(
+                context,
+              ).promotesProvisional(state.pathParameters['id']!),
+              child: RoutedEntryDetail(
                 key: ValueKey(state.uri),
                 entryId: state.pathParameters['id']!,
+                routeKey: state.pageKey,
               ),
             ),
           ),

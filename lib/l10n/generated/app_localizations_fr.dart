@@ -1683,4 +1683,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get continueEntryBusy => 'Cette entrée est encore en cours de transcription.';
+
+  @override
+  String get settingsButton => 'Réglages';
+
+  @override
+  String get appearanceModeButton => 'Mode d’apparence';
 }

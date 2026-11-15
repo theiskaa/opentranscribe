@@ -1676,4 +1676,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get continueEntryBusy => 'Esta entrada ainda está a ser transcrita.';
+
+  @override
+  String get settingsButton => 'Ajustes';
+
+  @override
+  String get appearanceModeButton => 'Modo de aparência';
 }

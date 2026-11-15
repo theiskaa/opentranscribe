@@ -459,5 +459,7 @@
   "continueUntranscribedBody": "La registrazione è cresciuta, ma le parole aggiunte non sono state trascritte. Ritrascrivi per sentirla tutta.",
   "continueSavedSeparatelyLabel": "Salvato come nuova voce",
   "continueSavedSeparatelyBody": "La nuova registrazione non si è potuta unire a questa voce, quindi è stata salvata a parte.",
-  "continueEntryBusy": "Questa voce è ancora in trascrizione."
+  "continueEntryBusy": "Questa voce è ancora in trascrizione.",
+  "settingsButton": "Impostazioni",
+  "appearanceModeButton": "Modalità aspetto"
 }

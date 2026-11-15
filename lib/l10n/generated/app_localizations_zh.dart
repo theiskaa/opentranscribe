@@ -1534,4 +1534,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get continueEntryBusy => '此条目仍在转写中。';
+
+  @override
+  String get settingsButton => '设置';
+
+  @override
+  String get appearanceModeButton => '外观模式';
 }

@@ -137,13 +137,17 @@ SideColumn? _sideColumnOf(Size size, EdgeInsets padding, DisplaySignal signal) {
     cluster = math.max(cluster ?? 0, region.rect.bottom);
   }
   final bottomEdge = size.height - padding.bottom;
-  final topEdge = math.min(math.max(cluster ?? AppDuo.statusCluster, padding.top), bottomEdge);
+  final topEdge = math.min(math.max(cluster ?? padding.top, padding.top), bottomEdge);
   final middle = (topEdge + bottomEdge) / 2;
   return SideColumn(
     rect: rect,
     side: side,
     upperSlot: Rect.fromLTRB(rect.left, topEdge, rect.right, middle),
     lowerSlot: Rect.fromLTRB(rect.left, middle, rect.right, bottomEdge),
+    occlusions: List.unmodifiable([
+      for (final region in signal.regions)
+        if (region.active && region.rect.overlaps(rect)) region.rect.intersect(rect),
+    ]),
   );
 }
 

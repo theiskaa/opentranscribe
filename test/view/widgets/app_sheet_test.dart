@@ -1,8 +1,105 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import '../../support/fake_display_channels.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/utils/pane_geometry.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 
 void main() {
+  test('only the inner display uses a form in every pose and window size', () {
+    for (final wire in [
+      DisplayWire.flatWide,
+      DisplayWire.bookWide,
+      DisplayWire.flatTall,
+      DisplayWire.laptop,
+    ]) {
+      expect(formSheetFor(DisplayWire.decode(wire)), isTrue);
+    }
+    for (final wire in [DisplayWire.cover, DisplayWire.iphone, DisplayWire.unsupported]) {
+      expect(formSheetFor(DisplayWire.decode(wire)), isFalse);
+    }
+    final half = DisplayWire.splitHalf(
+      width: 400,
+      height: 669,
+      insets: DisplayWire.insets(0, 0, 34, 0),
+      division: DisplayWire.region('division', 380, 0, 20, 669),
+    );
+    expect(formSheetFor(DisplayWire.decode(half)), isTrue);
+  });
+
+  test('forms fit both source panes and stay clear of the fold in every pose', () {
+    for (final wire in [
+      DisplayWire.flatWide,
+      DisplayWire.bookWide,
+      DisplayWire.flatTall,
+      DisplayWire.laptop,
+    ]) {
+      final signal = DisplayWire.decode(wire);
+      final layout = paneLayoutFor(
+        PaneInputs(
+          size: signal.size,
+          padding: signal.padding,
+          signal: signal,
+          bodySize: AppType.body.fontSize!,
+          closedContentWidth: AppDuo.closedContentWidth,
+        ),
+      );
+      for (final source in PaneTouch.values) {
+        final pane = modalPaneRect(layout: layout, source: source, window: signal.size);
+        final bounds = formSheetBounds(
+          size: pane.size,
+          padding: paneInsets(signal.padding, pane, signal.size),
+          keyboard: 0,
+        );
+        final card = bounds.shift(pane.topLeft);
+        expect(card.width, lessThanOrEqualTo(AppDuo.formSheetWidth));
+        expect(card.left, greaterThanOrEqualTo(pane.left));
+        expect(card.right, lessThanOrEqualTo(pane.right));
+        expect(card.top, greaterThanOrEqualTo(pane.top));
+        expect(card.bottom, lessThanOrEqualTo(pane.bottom));
+        if (layout.fold != null) expect(card.overlaps(layout.fold!.rect), isFalse);
+      }
+    }
+  });
+
+  test('forms cap their width and center within their available safe band', () {
+    final bounds = formSheetBounds(
+      size: const Size(800, 900),
+      padding: const EdgeInsets.only(top: 40, bottom: 34),
+      keyboard: 0,
+    );
+    expect(bounds.width, AppDuo.formSheetWidth);
+    expect(bounds.center.dx, 400);
+    expect(bounds.top, 40 + AppDuo.formSheetMargin);
+    expect(bounds.bottom, 900 - 34 - AppDuo.formSheetMargin);
+  });
+
+  test('a keyboard reduces the available card height without adding space inside it', () {
+    final bounds = formSheetBounds(
+      size: const Size(400, 669),
+      padding: const EdgeInsets.only(bottom: 34),
+      keyboard: 300,
+    );
+    expect(bounds.width, 400 - 2 * AppDuo.formSheetMargin);
+    expect(bounds.bottom, 369 - AppDuo.formSheetMargin);
+    expect(bounds.height, greaterThan(0));
+  });
+
+  test('tiny available regions never produce negative card constraints', () {
+    final bounds = formSheetBounds(
+      size: const Size(30, 40),
+      padding: EdgeInsets.zero,
+      keyboard: 300,
+    );
+    expect(bounds.width, 0);
+    expect(bounds.height, 0);
+  });
+
   test('a sheet rises with the keyboard as it opens', () {
     expect(heldKeyboardInset(inset: 0, held: 0, settled: false), 0);
     expect(heldKeyboardInset(inset: 180, held: 0, settled: false), 180);

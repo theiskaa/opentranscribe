@@ -1680,4 +1680,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get continueEntryBusy => 'Dieser Eintrag wird noch transkribiert.';
+
+  @override
+  String get settingsButton => 'Einstellungen';
+
+  @override
+  String get appearanceModeButton => 'Darstellungsmodus';
 }

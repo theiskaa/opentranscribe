@@ -117,18 +117,19 @@ class GlassFabPosition extends StatelessWidget {
   Widget build(BuildContext context) {
     final panes = PaneLayoutScope.maybeOf(context);
     final scope = PaneScope.maybeOf(context);
-    if (home && panes != null && journalColumnEnabled(layout: panes.layout, cover: panes.cover)) {
+    if (home && panes != null && journalColumnEnabled(panes.layout)) {
+      final rect = journalRecordSlot(panes.layout.sideColumn!);
       return Positioned.fromRect(
-        rect: journalColumnSlots(
-          panes.layout.sideColumn!,
-        ).record.shift(-(scope?.pane.rect.topLeft ?? Offset.zero)),
-        child: Semantics(container: true, sortKey: const OrdinalSortKey(2), child: child),
+        rect: rect.shift(-(scope?.pane.rect.topLeft ?? Offset.zero)),
+        child: Offstage(
+          offstage: rect.isEmpty,
+          child: Semantics(container: true, sortKey: const OrdinalSortKey(2), child: child),
+        ),
       );
     }
     final column =
         (panes?.layout.mode == PaneMode.split ||
-                (panes != null &&
-                    journalColumnEnabled(layout: panes.layout, cover: panes.cover))) &&
+                (panes != null && journalColumnEnabled(panes.layout))) &&
             (home || scope?.pane.barToSideColumn == true)
         ? panes?.layout.sideColumn
         : null;

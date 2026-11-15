@@ -13,11 +13,28 @@ import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 
+Duration panePageDuration({
+  required PaneMode mode,
+  required bool fromProvisional,
+  required AppMotion motion,
+}) => mode == PaneMode.single
+    ? motion.routeSlide
+    : fromProvisional
+    ? Duration.zero
+    : motion.crossfade;
+
 /// A detail on the root navigator, presented in the pane without moving its tree.
 class PanePage<T> extends Page<T> {
-  const PanePage({required this.child, super.key, super.name, super.arguments});
+  const PanePage({
+    required this.child,
+    this.fromProvisional = false,
+    super.key,
+    super.name,
+    super.arguments,
+  });
 
   final Widget child;
+  final bool fromProvisional;
 
   // The route's duration getters have no context, so the motion is read here,
   // where there is one, and captured for the route's life.
@@ -42,12 +59,14 @@ bool popPaneSelection(NavigatorState navigator) {
 class _PanePageRoute<T> extends PageRoute<T> {
   _PanePageRoute(PanePage<T> page, this._motion, this._panes)
     : _mode = _panes.layout.mode,
+      _fromProvisional = page.fromProvisional,
       super(settings: page) {
     _panes.addListener(_layoutChanged);
   }
 
   final PaneTouchTracker _panes;
   PaneMode _mode;
+  final bool _fromProvisional;
   bool _instantPop = false;
 
   bool get _split => _mode == PaneMode.split;
@@ -104,7 +123,8 @@ class _PanePageRoute<T> extends PageRoute<T> {
   Widget get _child => (settings as PanePage<T>).child;
 
   @override
-  Duration get transitionDuration => _split ? _motion.crossfade : _motion.routeSlide;
+  Duration get transitionDuration =>
+      panePageDuration(mode: _mode, fromProvisional: _fromProvisional, motion: _motion);
 
   @override
   Duration get reverseTransitionDuration => _instantPop ? Duration.zero : transitionDuration;

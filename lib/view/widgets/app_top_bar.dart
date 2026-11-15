@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter/semantics.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -14,6 +13,7 @@ import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/view/widgets/page_bar_scope.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 
 /// Where a bar control sits relative to the screen edge, and to the next
@@ -43,6 +43,7 @@ class AppTopBar extends StatelessWidget {
     this.title,
     this.subtitle,
     this.actions = const [],
+    this.prominentActions = const [],
     this.centerTitle = false,
     this.barHeight,
     this.onTitleTap,
@@ -65,6 +66,9 @@ class AppTopBar extends StatelessWidget {
   /// pass bare buttons and never their own padding, so every bar in the app
   /// lands its controls on the same edge.
   final List<Widget> actions;
+
+  /// Promoted from a page's floating action when its controls use the column.
+  final List<Widget> prominentActions;
 
   /// The recorder centers its timer and the entry screen a pass's progress;
   /// every other title left-aligns. A centered title may span the bar, so one
@@ -142,14 +146,8 @@ class AppTopBar extends StatelessWidget {
     final leading = !showBack && (this.leading == null || this.leading is AppBackButton)
         ? null
         : this.leading ?? (automaticLeading && showBack ? const AppBackButton() : null);
-    final journalColumn =
-        panes != null &&
-        !panes.covered &&
-        journalColumnEnabled(layout: panes.layout, cover: panes.cover);
-    final column =
-        layout?.mode != PaneMode.split && journalColumn && scope?.pane.barToSideColumn == true
-        ? journalColumnSlots(layout!.sideColumn!).detail.shift(-scope!.pane.rect.topLeft)
-        : null;
+    final vertical = PageBarScope.placementOf(context) == PageBarPlacement.vertical;
+    final controls = [?leading, ...prominentActions, ...actions];
 
     Widget? titleBlock = title;
     if (titleBlock != null && subtitle != null) {
@@ -168,78 +166,72 @@ class AppTopBar extends StatelessWidget {
     }
 
     final chromeHeight = topInset + rowHeight + bottomHeight;
-    return SizedBox(
-      height: column == null ? chromeHeight + bar.fadeTail : MediaQuery.sizeOf(context).height,
-      child: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: frosted
-                // reeed's material: a translucent tint over the blur, faded
-                // from the midpoint, so content shows through as frost.
-                ? _BarMaterial(
-                    chromeHeight: chromeHeight,
-                    color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
-                    sigma: bar.blurSigma,
-                    native: nativeMaterial,
-                  )
-                : _BarMaterial(
-                    chromeHeight: chromeHeight,
-                    color: bar.background,
-                    sigma: bar.blurSigma,
-                    native: nativeMaterial,
-                    // Opaque through the whole chrome (title row AND the
-                    // bottom slot); only the tail fades, so nothing stays
-                    // legible under the title and the bottom slot is never
-                    // washed.
-                    fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
-                  ),
-          ),
-          // Content scrolled under the bar is invisible behind the wash; it
-          // must not stay tappable through it. The row and the bottom slot
-          // paint (and hit-test) above this, so the bar's own controls are
-          // unaffected.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: chromeHeight,
-            child: const AbsorbPointer(child: SizedBox.expand()),
-          ),
-          SideColumnGround(enabled: column != null),
-          Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, constraints) => CustomMultiChildLayout(
-                delegate: TopBarLayout(
-                  row: Rect.fromLTWH(
-                    sides.left,
-                    topInset,
-                    constraints.maxWidth - sides.horizontal,
-                    rowHeight,
-                  ),
-                  leading: leading != null,
-                  actions: actions.length,
-                  centerTitle: centerTitle,
-                  direction: Directionality.of(context),
-                  column: column,
-                ),
-                children: [
-                  if (leading != null)
-                    LayoutId(
-                      id: TopBarLayout.leadingId,
-                      child: Semantics(
-                        container: column != null,
-                        sortKey: column == null ? null : const OrdinalSortKey(2),
-                        child: leading,
+    return PageBarControls(
+      controls: controls,
+      vertical: vertical,
+      child: SizedBox(
+        height: chromeHeight + bar.fadeTail,
+        child: Stack(
+          children: [
+            if (!vertical || titleBlock != null || bottom != null)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: frosted
+                    // reeed's material: a translucent tint over the blur, faded
+                    // from the midpoint, so content shows through as frost.
+                    ? _BarMaterial(
+                        chromeHeight: chromeHeight,
+                        color: bar.background.withValues(alpha: TopBarTheme.frostAlpha),
+                        sigma: bar.blurSigma,
+                        native: nativeMaterial,
+                      )
+                    : _BarMaterial(
+                        chromeHeight: chromeHeight,
+                        color: bar.background,
+                        sigma: bar.blurSigma,
+                        native: nativeMaterial,
+                        // Opaque through the whole chrome (title row AND the
+                        // bottom slot); only the tail fades, so nothing stays
+                        // legible under the title and the bottom slot is never
+                        // washed.
+                        fadeFrom: chromeHeight / (chromeHeight + bar.fadeTail),
                       ),
+              ),
+            // Content scrolled under the bar is invisible behind the wash; it
+            // must not stay tappable through it. The row and the bottom slot
+            // paint (and hit-test) above this, so the bar's own controls are
+            // unaffected.
+            if (!vertical || titleBlock != null || bottom != null)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: chromeHeight,
+                child: const AbsorbPointer(child: SizedBox.expand()),
+              ),
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) => CustomMultiChildLayout(
+                  delegate: TopBarLayout(
+                    row: Rect.fromLTWH(
+                      sides.left,
+                      topInset,
+                      constraints.maxWidth - sides.horizontal,
+                      rowHeight,
                     ),
-                  if (titleBlock != null)
-                    LayoutId(
-                      id: TopBarLayout.titleId,
-                      child: Semantics(
-                        sortKey: column == null ? null : const OrdinalSortKey(0),
+                    leading: !vertical && leading != null,
+                    actions: vertical ? 0 : actions.length,
+                    centerTitle: centerTitle,
+                    direction: Directionality.of(context),
+                  ),
+                  children: [
+                    if (!vertical && leading != null)
+                      LayoutId(id: TopBarLayout.leadingId, child: leading),
+                    if (titleBlock != null)
+                      LayoutId(
+                        id: TopBarLayout.titleId,
                         child: Align(
                           alignment: centerTitle
                               ? Alignment.center
@@ -247,29 +239,22 @@ class AppTopBar extends StatelessWidget {
                           child: titleBlock,
                         ),
                       ),
-                    ),
-                  for (final (index, action) in actions.indexed)
-                    LayoutId(
-                      id: index,
-                      child: Semantics(
-                        container: column != null,
-                        sortKey: column == null ? null : const OrdinalSortKey(2),
-                        child: action,
-                      ),
-                    ),
-                ],
+                    for (final (index, action) in (vertical ? <Widget>[] : actions).indexed)
+                      LayoutId(id: index, child: action),
+                  ],
+                ),
               ),
             ),
-          ),
-          if (bottom != null)
-            Positioned(
-              top: topInset + rowHeight,
-              left: 0,
-              right: 0,
-              height: bottomHeight,
-              child: bottom!,
-            ),
-        ],
+            if (bottom != null)
+              Positioned(
+                top: topInset + rowHeight,
+                left: 0,
+                right: 0,
+                height: bottomHeight,
+                child: bottom!,
+              ),
+          ],
+        ),
       ),
     );
   }

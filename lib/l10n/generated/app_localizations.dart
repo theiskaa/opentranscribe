@@ -2831,6 +2831,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This entry is still being transcribed.'**
   String get continueEntryBusy;
+
+  /// Accessibility label for the journal settings gear.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsButton;
+
+  /// Accessibility label for the appearance mode menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance mode'**
+  String get appearanceModeButton;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -100,6 +100,7 @@ final class SideColumn {
     required this.side,
     required this.upperSlot,
     required this.lowerSlot,
+    this.occlusions = const [],
   });
 
   final Rect rect;
@@ -110,6 +111,7 @@ final class SideColumn {
 
   /// Above the bottom inset: the record disc and the floating action.
   final Rect lowerSlot;
+  final List<Rect> occlusions;
 
   @override
   bool operator ==(Object other) =>
@@ -117,10 +119,11 @@ final class SideColumn {
       other.rect == rect &&
       other.side == side &&
       other.upperSlot == upperSlot &&
-      other.lowerSlot == lowerSlot;
+      other.lowerSlot == lowerSlot &&
+      listEquals(other.occlusions, occlusions);
 
   @override
-  int get hashCode => Object.hash(rect, side, upperSlot, lowerSlot);
+  int get hashCode => Object.hash(rect, side, upperSlot, lowerSlot, Object.hashAll(occlusions));
 
   @override
   String toString() => 'SideColumn($rect, ${side.name}, upper: $upperSlot, lower: $lowerSlot)';

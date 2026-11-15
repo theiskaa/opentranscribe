@@ -459,5 +459,7 @@
   "continueUntranscribedBody": "Die Aufnahme ist gewachsen, aber die neuen Worte sind nicht angekommen. Erneut transkribieren, um alles zu hören.",
   "continueSavedSeparatelyLabel": "Als neuer Eintrag gespeichert",
   "continueSavedSeparatelyBody": "Die neue Aufnahme konnte nicht an diesen Eintrag angehängt werden und wurde daher eigenständig gespeichert.",
-  "continueEntryBusy": "Dieser Eintrag wird noch transkribiert."
+  "continueEntryBusy": "Dieser Eintrag wird noch transkribiert.",
+  "settingsButton": "Einstellungen",
+  "appearanceModeButton": "Darstellungsmodus"
 }

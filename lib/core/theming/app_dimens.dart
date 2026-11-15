@@ -110,6 +110,10 @@ abstract final class AppAlpha {
 /// [foldBand] are fallbacks for what the live regions and insets do not
 /// report, measured on the iPhone Duo simulator; the rest are chosen.
 abstract final class AppDuo {
+  static const formSheetWidth = 420.0;
+  static const formSheetMargin = AppSpacing.xxl;
+  static const formSheetRadius = 28.0;
+
   static const onboardingTitleFraction = 0.22;
 
   /// The cover's content width (466 wide, less its 84 side column): what the

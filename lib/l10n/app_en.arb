@@ -2208,5 +2208,13 @@
   "continueEntryBusy": "This entry is still being transcribed.",
   "@continueEntryBusy": {
     "description": "Recorder notice when the entry to continue is mid-transcription"
+  },
+  "settingsButton": "Settings",
+  "appearanceModeButton": "Appearance mode",
+  "@settingsButton": {
+    "description": "Accessibility label for the journal settings gear."
+  },
+  "@appearanceModeButton": {
+    "description": "Accessibility label for the appearance mode menu."
   }
 }

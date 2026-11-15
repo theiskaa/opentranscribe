@@ -9,6 +9,18 @@ import 'package:flutter/widgets.dart';
 
 typedef LiquidMethodCallHandler = Future<void> Function(MethodCall call);
 
+class LiquidRouteVisibility extends InheritedWidget {
+  const LiquidRouteVisibility({required this.covered, required super.child, super.key});
+
+  final bool? covered;
+
+  static bool? coveredOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LiquidRouteVisibility>()?.covered;
+
+  @override
+  bool updateShouldNotify(LiquidRouteVisibility oldWidget) => covered != oldWidget.covered;
+}
+
 class LiquidPlatformView extends StatefulWidget {
   const LiquidPlatformView({
     required this.viewType,
@@ -98,18 +110,6 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
   /// registration and works inside nested navigators.
   Animation<double>? _secondaryAnimation;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final secondary = ModalRoute.of(context)?.secondaryAnimation;
-    if (secondary != _secondaryAnimation) {
-      _secondaryAnimation?.removeStatusListener(_onSecondaryStatusChanged);
-      _secondaryAnimation = secondary;
-      _secondaryAnimation?.addStatusListener(_onSecondaryStatusChanged);
-      _covered = _isCovered(secondary?.status);
-    }
-  }
-
   /// Covered from the moment another route starts animating in until it is
   /// fully gone (`dismissed`), the return transition included: staging a
   /// platform view reallocates the overlay textures the engine composites
@@ -147,10 +147,19 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
 
   @override
   Widget build(BuildContext context) {
+    final secondary = ModalRoute.of(context)?.secondaryAnimation;
+    if (secondary != _secondaryAnimation) {
+      _secondaryAnimation?.removeStatusListener(_onSecondaryStatusChanged);
+      _secondaryAnimation = secondary;
+      _secondaryAnimation?.addStatusListener(_onSecondaryStatusChanged);
+      _covered = _isCovered(secondary?.status);
+    }
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return const SizedBox.shrink();
     }
 
+    final override = LiquidRouteVisibility.coveredOf(context);
+    final covered = override ?? _covered;
     final view = UiKitView(
       viewType: widget.viewType,
       creationParams: widget.creationParams,
@@ -171,13 +180,13 @@ class _LiquidPlatformViewState extends State<LiquidPlatformView> {
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        Offstage(offstage: _covered, child: view),
-        if (_covered || _settling)
+        Offstage(offstage: covered, child: view),
+        if (covered || (_settling && override == null))
           // Riding above the live view, the placeholder must not eat the
           // touches the native view is about to own back.
           IgnorePointer(
             child:
-                (_covered ? widget.placeholderBuilder : _settleStandIn)?.call(context) ??
+                (covered ? widget.placeholderBuilder : _settleStandIn)?.call(context) ??
                 const SizedBox.shrink(),
           ),
       ],

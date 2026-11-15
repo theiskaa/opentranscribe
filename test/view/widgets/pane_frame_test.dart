@@ -20,6 +20,62 @@ import '../../support/fake_display_channels.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('the provisional entry and its explicit selection share one detail identity', () {
+    final tracker = PaneTouchTracker();
+    final provisional = tracker.entryDetailKey('a');
+    expect(tracker.entryDetailKey('a'), same(provisional));
+    expect(tracker.takeProvisionalKey('b'), isNull);
+    expect(tracker.takeProvisionalKey('a'), same(provisional));
+    expect(tracker.takeProvisionalKey('a'), isNull);
+    expect(tracker.entryDetailKey('a'), isNot(same(provisional)));
+    tracker.dispose();
+  });
+
+  test('the provisional journal highlight equals an explicit selection of the same entry', () {
+    final provisional = journalPaneSelection(
+      mode: PaneMode.split,
+      selection: null,
+      hasDetail: false,
+      newestEntryId: 'a',
+    );
+    final explicit = paneSelection(Uri.parse('/entry/a'));
+    expect(provisional, explicit);
+    expect(
+      journalPaneSelection(
+        mode: PaneMode.split,
+        selection: explicit,
+        hasDetail: true,
+        newestEntryId: 'b',
+      ),
+      provisional,
+    );
+  });
+
+  test('the provisional highlight stays out of phone layouts and other detail pages', () {
+    for (final mode in PaneMode.values) {
+      for (final hasDetail in [false, true]) {
+        expect(
+          journalPaneSelection(
+            mode: mode,
+            selection: null,
+            hasDetail: hasDetail,
+            newestEntryId: 'a',
+          ),
+          mode == PaneMode.split && !hasDetail ? paneSelection(Uri.parse('/entry/a')) : null,
+        );
+      }
+    }
+    expect(
+      journalPaneSelection(
+        mode: PaneMode.split,
+        selection: null,
+        hasDetail: false,
+        newestEntryId: null,
+      ),
+      isNull,
+    );
+  });
+
   test('only the journal entry selection is a detail root without back', () {
     final router = AppRouter(onboardingDone: () => true).config;
     final signal = DisplayWire.decode(DisplayWire.flatWide);

@@ -97,6 +97,7 @@ class _ModeMenu extends StatelessWidget {
     return AppMenuButton(
       icon: state.wantDark ? AppIcons.moonFill : AppIcons.sunMax,
       color: color,
+      semanticLabel: l10n.appearanceModeButton,
       items: [
         for (final mode in _modes)
           AppMenuItem(id: mode.name, label: _label(mode, l10n), selected: state.mode == mode),

@@ -29,6 +29,7 @@ import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart
 import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/widgets/page_bar_scope.dart';
 import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
@@ -37,8 +38,6 @@ import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
-import 'package:opentranscribe/view/widgets/pane_frame.dart';
-import 'package:opentranscribe/view/widgets/side_column.dart';
 
 /// Home: fixed chrome (the date bar with the week strip on one material) over
 /// the journal scrolling under it. The calendar never hides; the scroll drives
@@ -550,8 +549,6 @@ class _HomeChromeState extends State<_HomeChrome> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final locale = localeTag(context);
-    final panes = PaneLayoutScope.of(context);
-    final column = journalColumnEnabled(layout: panes.layout, cover: panes.cover);
     return AppTopBar(
       // Home is the base of the stack; never a back chevron, not even the
       // phantom one that flickers in while a pushed route pops off above it.
@@ -566,11 +563,10 @@ class _HomeChromeState extends State<_HomeChrome> {
       // setting is a row or submenu inside it; see [HomeMenu].
       actions: [
         Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.md),
-          child: Offstage(
-            offstage: column,
-            child: HomeMenu(color: theme.topBar.iconColor),
+          padding: EdgeInsets.only(
+            top: PageBarScope.placementOf(context) == PageBarPlacement.vertical ? 0 : AppSpacing.md,
           ),
+          child: HomeMenu(color: theme.topBar.iconColor),
         ),
       ],
       // The top padding settles the block lower in the row, off the status

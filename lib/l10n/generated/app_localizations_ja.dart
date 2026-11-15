@@ -1545,4 +1545,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get continueEntryBusy => 'このエントリはまだ文字起こし中です。';
+
+  @override
+  String get settingsButton => '設定';
+
+  @override
+  String get appearanceModeButton => '外観モード';
 }

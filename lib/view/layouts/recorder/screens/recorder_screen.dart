@@ -182,7 +182,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
           return RecorderPose(
             header: AppTopBar(
               centerTitle: true,
-              leading: const SizedBox.shrink(),
+              automaticLeading: false,
               title: _Timer(paused: state.isPaused),
               subtitle: _StateLine(
                 label: state.isPaused

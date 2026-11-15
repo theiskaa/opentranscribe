@@ -89,6 +89,9 @@ final class AppMotion {
     this.errorBlink = const Duration(milliseconds: 1000),
     this.errorShake = const Duration(milliseconds: 400),
     this.sheetSpring = const SpringDescription(mass: 1, stiffness: 380, damping: 39),
+    this.formSheet = const Duration(milliseconds: 200),
+    this.formSheetScale = 0.96,
+    this.formSheetCurve = Curves.easeOutCubic,
     this.sheetScrim = const Duration(milliseconds: 300),
     this.swipeSpring = const SpringDescription(mass: 1, stiffness: 440, damping: 42),
     this.toggleSpring = const SpringDescription(mass: 1, stiffness: 600, damping: 49),
@@ -265,6 +268,9 @@ final class AppMotion {
   /// The sheet's scrim fading in and out. Also how long a popped sheet has to
   /// finish springing offscreen before the route takes it away.
   final Duration sheetScrim;
+  final Duration formSheet;
+  final double formSheetScale;
+  final Curve formSheetCurve;
 
   /// A row's swipe-action reveal settling open or closed after the finger lifts.
   /// A spring, not a fixed curve, so the settle continues at the finger's release

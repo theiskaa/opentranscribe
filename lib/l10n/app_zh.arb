@@ -459,5 +459,7 @@
   "continueUntranscribedBody": "录音已加长，但刚添加的话没有转写。重新转写即可听到全部内容。",
   "continueSavedSeparatelyLabel": "已保存为新条目",
   "continueSavedSeparatelyBody": "新录音无法合并到此条目，因此已单独保存。",
-  "continueEntryBusy": "此条目仍在转写中。"
+  "continueEntryBusy": "此条目仍在转写中。",
+  "settingsButton": "设置",
+  "appearanceModeButton": "外观模式"
 }

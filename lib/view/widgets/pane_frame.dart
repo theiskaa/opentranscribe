@@ -23,6 +23,28 @@ class PaneTouchTracker extends ChangeNotifier {
   bool cover = false;
   bool reduceTransparency = false;
   bool regular = false;
+  String? provisionalEntryId;
+  GlobalKey? _entryDetailKey;
+
+  GlobalKey entryDetailKey(String entryId) {
+    if (provisionalEntryId != entryId) {
+      provisionalEntryId = entryId;
+      _entryDetailKey = GlobalKey();
+    }
+    return _entryDetailKey!;
+  }
+
+  bool promotesProvisional(String entryId) =>
+      provisionalEntryId == entryId && _entryDetailKey?.currentContext != null;
+
+  GlobalKey? takeProvisionalKey(String entryId) {
+    if (provisionalEntryId != entryId) return null;
+    final key = _entryDetailKey;
+    provisionalEntryId = null;
+    _entryDetailKey = null;
+    return key;
+  }
+
   PaneStack _stack = const PaneStack();
   bool _initialized = false;
 
@@ -120,6 +142,7 @@ class PaneLayoutScope extends InheritedWidget {
       cover = tracker.cover,
       reduceTransparency = tracker.reduceTransparency,
       regular = tracker.regular,
+      covered = tracker.covered,
       detailKeys = List.unmodifiable(tracker.detailKeys);
 
   final PaneTouchTracker tracker;
@@ -130,6 +153,7 @@ class PaneLayoutScope extends InheritedWidget {
   final bool cover;
   final bool reduceTransparency;
   final bool regular;
+  final bool covered;
   final List<LocalKey> detailKeys;
 
   static PaneTouchTracker of(BuildContext context) => maybeOf(context)!;
@@ -146,10 +170,23 @@ class PaneLayoutScope extends InheritedWidget {
       cover != oldWidget.cover ||
       reduceTransparency != oldWidget.reduceTransparency ||
       regular != oldWidget.regular ||
+      covered != oldWidget.covered ||
       !listEquals(detailKeys, oldWidget.detailKeys);
 }
 
 typedef PaneSelection = ({String path, String? period, String? week});
+
+PaneSelection? journalPaneSelection({
+  required PaneMode mode,
+  required PaneSelection? selection,
+  required bool hasDetail,
+  required String? newestEntryId,
+}) => mode != PaneMode.split
+    ? null
+    : selection ??
+          (!hasDetail && newestEntryId != null
+              ? paneSelection(Uri(path: Routes.entry.replaceFirst(':id', newestEntryId)))
+              : null);
 
 PaneSelection? paneSelection(Uri? uri) => uri == null
     ? null
@@ -159,6 +196,9 @@ class PaneSelectionScope extends InheritedModel<PaneSelection> {
   const PaneSelectionScope({required this.selection, required super.child, super.key});
 
   final PaneSelection? selection;
+
+  static PaneSelection? selectionOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PaneSelectionScope>()?.selection;
 
   static bool isSelected(BuildContext context, Uri uri) {
     final aspect = paneSelection(uri)!;
