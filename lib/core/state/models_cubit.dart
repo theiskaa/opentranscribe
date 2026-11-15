@@ -7,6 +7,22 @@ import 'package:opentranscribe/core/services/engine_settings.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:transcriber/transcriber.dart';
 
+/// The engine threw before a flip of its acceleration took: the switch is
+/// back on the engine's own answer, kept for a relaunch when the write
+/// succeeds. An engine that threw after flipping is no refusal; the flip goes
+/// on as if it had not thrown.
+///
+/// Anything else [ModelsCubit.setAccelerated] throws is the persist failing
+/// after the flip took.
+final class AccelerationRefused implements Exception {
+  const AccelerationRefused(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'AccelerationRefused: $cause';
+}
+
 /// One model of an engine's choice as the models surface manages it:
 /// whether its file is present, whether it is the one runs use, any
 /// in-flight download, whether this phone can hold it, and a standing
@@ -181,6 +197,10 @@ class ModelsCubit extends Cubit<ModelsState> {
   final Map<String, bool> _retryTakesChoice = {};
   int _loadGeneration = 0;
 
+  /// Bumped by every flip, so one a newer flip overtook stops before it
+  /// fetches, cancels or persists.
+  int _accelerationTurn = 0;
+
   /// Rebuilds every model row. In-flight download fractions and standing
   /// failures survive the rebuild; only their own flows clear them.
   Future<void> load() async {
@@ -292,31 +312,73 @@ class ModelsCubit extends Cubit<ModelsState> {
   }
 
   /// Turns the engine's acceleration on or off and persists it. On fetches
-  /// the extra file of every installed model as a download on its row; off
-  /// ends those downloads. The switch takes before the persist, so a refused
-  /// write throws after the surfaces moved.
+  /// the extra file of every installed model that lacks one, read from the
+  /// disk rather than the rows, which may predate an off still deleting, and
+  /// skips any a download already fetches; off ends those downloads. The
+  /// switch answers before the engine does and lands on the engine's answer;
+  /// an engine that throws before it flipped throws [AccelerationRefused].
+  /// The engine takes before the persist, so a refused write throws after
+  /// the surfaces moved. A flip a newer one overtook throws nothing and
+  /// leaves the rest to it.
   Future<void> setAccelerated(bool on) async {
-    await _service.setAccelerated(on);
-    if (isClosed) return;
+    final turn = ++_accelerationTurn;
+    final engineId = _service.engineId;
     emit(state.copyWith(accelerated: on));
-    if (on) {
-      for (final row in state.models) {
-        if (row.installed && !row.accelerated && !row.installing) {
-          _accelerationInstalls.add(row.option.id);
-          _trackModelInstall(
-            row.option.id,
-            () => _service.installAcceleration(row.option.id),
-            selectOnLand: false,
-          );
+    try {
+      await _service.setAccelerated(on);
+    } catch (e) {
+      if (turn != _accelerationTurn) {
+        unawaited(load());
+        return;
+      }
+      // The engine's own answer is the truth: one that flipped before it
+      // threw took the flip, and the flip goes on below.
+      final truth = _service.accelerated;
+      if (truth == on) {
+        if (kDebugMode) debugPrint('models: acceleration flipped, then failed: $e');
+      } else {
+        if (!isClosed) emit(state.copyWith(accelerated: truth));
+        unawaited(load());
+        if (_engineSettings.acceleratedFor(engineId) != truth) {
+          try {
+            await _engineSettings.setAccelerated(engineId, truth);
+          } catch (persist) {
+            if (kDebugMode) debugPrint('models: acceleration persist failed: $persist');
+          }
         }
+        throw AccelerationRefused(e);
+      }
+    }
+    if (isClosed) return;
+    if (turn != _accelerationTurn) {
+      unawaited(load());
+      return;
+    }
+    if (on) {
+      final installed = await _service.installedModels();
+      final present = await _service.acceleratedModels();
+      if (isClosed) return;
+      if (turn != _accelerationTurn) {
+        unawaited(load());
+        return;
+      }
+      for (final id in installed.difference(present)) {
+        // A download already fetching it, the picker's or a first-use pass's,
+        // brings the extra file with it.
+        if (_modelInstallSubs.containsKey(id) || id == _pass?.modelId) continue;
+        if (_row(id)?.installing ?? false) continue;
+        _accelerationInstalls.add(id);
+        _trackModelInstall(id, () => _service.installAcceleration(id), selectOnLand: false);
       }
     } else {
       for (final id in _accelerationInstalls.toList()) {
+        if (turn != _accelerationTurn) break;
         await cancelModelInstallById(id);
       }
     }
     unawaited(load());
-    await _engineSettings.setAccelerated(_service.engineId, on);
+    if (turn != _accelerationTurn) return;
+    await _engineSettings.setAccelerated(engineId, on);
   }
 
   /// One download on a model's row, from a picker tap or the acceleration

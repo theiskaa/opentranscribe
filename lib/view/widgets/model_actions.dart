@@ -42,20 +42,22 @@ Future<bool> useModel(BuildContext context, ModelRowState row) async {
   return true;
 }
 
-/// Turns the Neural Engine on or off. The switch takes for the session
-/// either way; only a refused persist is worth a word.
+/// Turns the Neural Engine on or off. The switch moves at once and lands on
+/// the engine's answer; an engine that refused says the switch stayed as it
+/// was, a persist that failed says the choice won't survive a relaunch.
 Future<void> setAcceleration(BuildContext context, bool on) async {
   try {
     await context.read<ModelsCubit>().setAccelerated(on);
-  } catch (_) {
+  } catch (e) {
     if (!context.mounted || !isTopRoute(context)) return;
     final l10n = AppLocalizations.of(context)!;
+    final refused = e is AccelerationRefused;
     await showAppSheet<void>(
       context,
       builder: (context) => SheetMessage(
         icon: AppIcons.internaldrive,
-        title: l10n.engineNotSavedTitle,
-        body: l10n.accelerationNotSavedBody,
+        title: refused ? l10n.accelerationNotSwitchedTitle : l10n.engineNotSavedTitle,
+        body: refused ? l10n.accelerationNotSwitchedBody : l10n.accelerationNotSavedBody,
       ),
     );
   }

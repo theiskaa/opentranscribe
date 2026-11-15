@@ -262,8 +262,13 @@ class TranscriptionService {
   /// persisting it is the caller's job. A no-op for an engine without one.
   Future<void> setAccelerated(bool on) async {
     if (!offersAcceleration) return;
-    await (_engine as AcceleratedModelEngine).setAccelerated(on);
-    _notifyModelStateChanged();
+    try {
+      await (_engine as AcceleratedModelEngine).setAccelerated(on);
+    } finally {
+      // An engine that throws may have flipped first, which the models
+      // surfaces must hear too.
+      _notifyModelStateChanged();
+    }
   }
 
   /// The ids whose extra file is present; empty for an engine without one.

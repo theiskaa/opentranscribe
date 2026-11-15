@@ -49,12 +49,13 @@ void main() {
 
   (ModelsCubit, FakeModelChoiceEngine) buildAccelerating({
     bool accelerated = false,
+    Set<String> installed = const {'small'},
     Set<String> acceleratedModelIds = const {},
     Future<void>? prepareGate,
     Future<void>? installGate,
   }) {
     final accelerating = FakeModelChoiceEngine(
-      installed: {'small'},
+      installed: installed,
       canAccelerate: true,
       accelerated: accelerated,
       acceleratedModelIds: acceleratedModelIds,
@@ -112,6 +113,158 @@ void main() {
       expect(rowOf(cubit, 'large').accelerated, isFalse);
     },
   );
+
+  test('the acceleration switch answers before the engine does', () async {
+    final (cubit, _) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+
+    final turning = cubit.setAccelerated(true);
+
+    expect(cubit.state.accelerated, isTrue);
+    await turning;
+    expect(cubit.state.accelerated, isTrue);
+  });
+
+  test('the acceleration switch goes back when the engine refuses', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failAccelerateWith = StateError('no encoder');
+
+    await expectLater(cubit.setAccelerated(true), throwsA(isA<AccelerationRefused>()));
+
+    expect(cubit.state.accelerated, isFalse);
+    expect(engineSettings.acceleratedFor(accelerating.id), isFalse);
+  });
+
+  test('an engine that throws after flipping on is no refusal: it fetches and persists', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failAccelerateAfterWith = StateError('cleanup failed');
+
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+
+    expect(accelerating.accelerated, isTrue);
+    expect(cubit.state.accelerated, isTrue);
+    expect(accelerating.accelerationInstalls, ['small']);
+    expect(engineSettings.acceleratedFor(accelerating.id), isTrue);
+  });
+
+  test('an engine that throws after flipping off is no refusal: it cancels and persists', () async {
+    final gate = Completer<void>();
+    final (cubit, accelerating) = buildAccelerating(installGate: gate.future);
+    await Future<void>.delayed(Duration.zero);
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'small').installing, isTrue);
+    accelerating.failAccelerateAfterWith = StateError('delete failed');
+
+    await cubit.setAccelerated(false);
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(cubit.state.accelerated, isFalse);
+    expect(rowOf(cubit, 'small').installing, isFalse);
+    expect(engineSettings.acceleratedFor(accelerating.id), isFalse);
+  });
+
+  test('re-enabling skips a model a first-use pass is already fetching', () async {
+    final prepare = Completer<void>();
+    final accelerating = FakeModelChoiceEngine(canAccelerate: true, accelerated: true)
+      ..prepareGate = prepare.future;
+    final scoped = TranscriptionService(
+      recorder: FakeAudioRecorder(),
+      engine: accelerating,
+      store: EntryStore(storage),
+      composer: FakeAudioComposer(),
+    );
+    addTearDown(scoped.dispose);
+    final cubit = buildFor(scoped);
+    await Future<void>.delayed(Duration.zero);
+
+    await scoped.startRecording();
+    final stop = scoped.stopRecording();
+    await pumpEventQueue();
+    expect(accelerating.installed, contains('small'));
+    expect(accelerating.acceleratedIds, isEmpty);
+
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+
+    expect(accelerating.accelerationInstalls, isEmpty);
+    prepare.complete();
+    await stop;
+  });
+
+  test('a refused flip a newer one overtook throws nothing; the newer one answers', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+    accelerating.failAccelerateWith = StateError('busy');
+
+    final first = cubit.setAccelerated(false);
+    final second = cubit.setAccelerated(true);
+
+    await first;
+    await expectLater(second, throwsA(isA<AccelerationRefused>()));
+  });
+
+  test('an on landing on an off still deleting fetches what the off deleted', () async {
+    final (cubit, accelerating) = buildAccelerating(
+      accelerated: true,
+      acceleratedModelIds: {'small'},
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final off = cubit.setAccelerated(false);
+    final on = cubit.setAccelerated(true);
+    await Future.wait([off, on]);
+    await pumpEventQueue();
+
+    expect(cubit.state.accelerated, isTrue);
+    expect(accelerating.accelerationInstalls, ['small']);
+    expect(accelerating.acceleratedIds, {'small'});
+    expect(engineSettings.acceleratedFor(accelerating.id), isTrue);
+  });
+
+  test('an off overtaken mid-cancel by an on leaves the remaining downloads running', () async {
+    final gate = Completer<void>();
+    final (cubit, accelerating) = buildAccelerating(
+      installed: {'small', 'large'},
+      installGate: gate.future,
+    );
+    await Future<void>.delayed(Duration.zero);
+    await cubit.setAccelerated(true);
+    await pumpEventQueue();
+    expect(rowOf(cubit, 'large').installing, isTrue);
+    Future<void>? on;
+    accelerating.onInstallCancel = (id) async {
+      on ??= cubit.setAccelerated(true);
+    };
+
+    await cubit.setAccelerated(false);
+    await on;
+    await pumpEventQueue();
+
+    expect(cubit.state.accelerated, isTrue);
+    expect(rowOf(cubit, 'large').installing, isTrue);
+    expect(accelerating.accelerationInstalls.where((id) => id == 'large'), hasLength(1));
+    gate.complete();
+    await pumpEventQueue();
+  });
+
+  test('a quick on then off ends off, with no downloads and off persisted', () async {
+    final (cubit, accelerating) = buildAccelerating();
+    await Future<void>.delayed(Duration.zero);
+
+    final on = cubit.setAccelerated(true);
+    final off = cubit.setAccelerated(false);
+    await Future.wait([on, off]);
+    await pumpEventQueue();
+
+    expect(cubit.state.accelerated, isFalse);
+    expect(accelerating.accelerationInstalls, isEmpty);
+    expect(engineSettings.acceleratedFor(accelerating.id), isFalse);
+  });
 
   test('a preparing install shows no percent and cannot be cancelled', () async {
     final gate = Completer<void>();
