@@ -4,16 +4,19 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
+import 'package:opentranscribe/view/widgets/animated_reveal.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
+import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
 /// The scroll every settings screen shares: the same insets under the frosted
@@ -271,9 +274,10 @@ class SettingsIconTile extends StatelessWidget {
 }
 
 /// A settings row whose whole width toggles a switch: an icon tile, a label
-/// over an optional [note], and the drawn [AppToggle]. The row is the 44pt
-/// touch target the 31pt switch alone would miss; the knob's own tap wins the
-/// arena and carries the haptic, so the row does not double-fire.
+/// over an optional [note] that eases as it opens, folds and rewords, and the
+/// drawn [AppToggle]. The row is the 44pt touch target the 31pt switch alone
+/// would miss; the knob's own tap wins the arena and carries the haptic, so
+/// the row does not double-fire.
 ///
 /// A null [onChanged] disables the row: it stops responding, the label dims, and
 /// the knob draws at half strength - for a toggle whose precondition is not met
@@ -299,7 +303,7 @@ class SettingsToggleRow extends StatelessWidget {
     final theme = context.theme;
     final tokens = theme.settings;
     final enabled = onChanged != null;
-    final content = enabled ? theme.text : theme.textSecondary;
+    final motion = theme.motion;
     return Touchable(
       onTap: enabled ? () => onChanged!(!value) : null,
       haptic: enabled,
@@ -307,14 +311,22 @@ class SettingsToggleRow extends StatelessWidget {
         padding: tokens.rowPadding,
         child: Row(
           children: [
-            SettingsIconTile(
-              child: AppIcon(icon, size: AppIconSize.tile, color: content),
+            // The ink eases between live and disabled on the indicator clock,
+            // so a row that stops while another control starts moves with it.
+            TweenAnimationBuilder<Color?>(
+              tween: ColorTween(end: enabled ? theme.text : theme.textSecondary),
+              duration: context.reduceMotion ? Duration.zero : motion.indicator,
+              curve: motion.indicatorCurve,
+              builder: (context, content, _) => SettingsIconTile(
+                child: AppIcon(icon, size: AppIconSize.tile, color: content),
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: SettingsLabelAndNote(
                 note: note,
-                label: Text(label, style: AppType.subhead.copyWith(color: content)),
+                eased: true,
+                label: SettingsRowLabel(label, color: enabled ? theme.text : theme.textSecondary),
               ),
             ),
             // A wrapping label or note must keep off the knob's edge.
@@ -327,6 +339,51 @@ class SettingsToggleRow extends StatelessWidget {
   }
 }
 
+/// A row's name in [color] and [weight], easing into a new ink or weight on
+/// the indicator clock, or on [duration] where the row's other marks keep
+/// another one. [oneLine] clips it to a line.
+class SettingsRowLabel extends StatelessWidget {
+  const SettingsRowLabel(
+    this.label, {
+    required this.color,
+    this.weight = FontWeight.w400,
+    this.oneLine = false,
+    this.duration,
+    super.key,
+  });
+
+  final String label;
+  final Color color;
+  final FontWeight weight;
+  final bool oneLine;
+  final Duration? duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = context.theme.motion;
+    return AnimatedDefaultTextStyle(
+      duration: context.reduceMotion ? Duration.zero : (duration ?? motion.indicator),
+      curve: motion.indicatorCurve,
+      // Merged, not replaced: this sets the label's root style, so it must
+      // keep the line height every other row label has.
+      style: DefaultTextStyle.of(
+        context,
+      ).style.merge(AppType.subhead.copyWith(color: color, fontWeight: weight)),
+      child: oneLine ? Text(label, maxLines: 1, overflow: TextOverflow.ellipsis) : Text(label),
+    );
+  }
+}
+
+/// How a note line reads: quiet as a fact, or inked as an outcome.
+enum NoteTone { quiet, positive, negative }
+
+/// A [NoteTone]'s ink, or null for the quiet one, which keeps the note's own.
+Color? noteToneInk(AppTheme theme, NoteTone tone) => switch (tone) {
+  NoteTone.quiet => null,
+  NoteTone.positive => theme.positive,
+  NoteTone.negative => theme.danger,
+};
+
 /// A row's name over its quiet second line, the one stack every settings row
 /// puts in its middle column.
 class SettingsLabelAndNote extends StatelessWidget {
@@ -335,38 +392,101 @@ class SettingsLabelAndNote extends StatelessWidget {
     required this.note,
     this.oneLine = false,
     this.tabular = false,
+    this.noteColor,
+    this.eased = false,
     super.key,
   });
 
   final Widget label;
   final String? note;
 
-  /// Clips the note to one line, for a row inside a popup measured by a fixed
-  /// row height, or a line of figures that must not wrap.
+  /// The note's ink where it tells an outcome; null keeps it quiet.
+  final Color? noteColor;
+
+  /// Clips the note to one line, for a row of fixed height, or a line of
+  /// figures that must not wrap.
   final bool oneLine;
 
   /// Figures in the note line up across rows.
   final bool tabular;
 
+  /// The note opens, folds and rewords on the indicator clock, so a row whose
+  /// note follows its own control never jumps: the centred marks beside it
+  /// ride the height instead of snapping to it. Needs a bounded width: each
+  /// wording fills it, so old and new wrap to the same measure mid-fade.
+  final bool eased;
+
   @override
   Widget build(BuildContext context) {
+    final style = (tabular ? AppType.digits(AppType.rowNote) : AppType.rowNote).copyWith(
+      color: noteColor ?? context.theme.textSecondary,
+    );
+    final maxLines = oneLine ? 1 : null;
+    final overflow = oneLine ? TextOverflow.ellipsis : TextOverflow.clip;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         label,
-        if (note != null) ...[
+        if (eased)
+          _EasedNote(note: note, style: style, maxLines: maxLines, overflow: overflow)
+        else if (note != null) ...[
           SizedBox(height: context.theme.settings.noteGap),
-          Text(
-            note!,
-            maxLines: oneLine ? 1 : null,
-            overflow: oneLine ? TextOverflow.ellipsis : TextOverflow.clip,
-            style: (tabular ? AppType.digits(AppType.rowNote) : AppType.rowNote).copyWith(
-              color: context.theme.textSecondary,
-            ),
-          ),
+          Text(note!, maxLines: maxLines, overflow: overflow, style: style),
         ],
       ],
+    );
+  }
+}
+
+/// A note line that reveals and folds with its gap, and crossfades a new
+/// wording while its height eases to the new line count.
+class _EasedNote extends StatefulWidget {
+  const _EasedNote({
+    required this.note,
+    required this.style,
+    required this.maxLines,
+    required this.overflow,
+  });
+
+  final String? note;
+  final TextStyle style;
+  final int? maxLines;
+  final TextOverflow overflow;
+
+  @override
+  State<_EasedNote> createState() => _EasedNoteState();
+}
+
+class _EasedNoteState extends State<_EasedNote> {
+  // Kept through a fold, so the words leave with the line instead of first.
+  late String? _shown = widget.note;
+
+  @override
+  void didUpdateWidget(_EasedNote old) {
+    super.didUpdateWidget(old);
+    if (widget.note != null) _shown = widget.note;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = _shown;
+    return AnimatedReveal(
+      visible: widget.note != null,
+      child: shown == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: EdgeInsets.only(top: context.theme.settings.noteGap),
+              child: MeltSwap(
+                id: shown,
+                child: Text(
+                  shown,
+                  maxLines: widget.maxLines,
+                  overflow: widget.overflow,
+                  style: widget.style,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -420,7 +540,7 @@ class SettingsActionRow extends StatelessWidget {
         child: Row(
           children: [
             SettingsIconTile(
-              color: tint?.withValues(alpha: 0.14),
+              color: tint?.withValues(alpha: AppAlpha.wash),
               child: leading ?? AppIcon(icon!, size: AppIconSize.tile, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -538,7 +658,7 @@ class ThemeFamilyCard extends StatefulWidget {
   static const defaultRadius = 16.0;
 
   /// The corner seat the check and the club's heart share.
-  static const double _badge = 20;
+  static const double _badge = AppSizes.badge;
   static const double _badgeGlyph = AppIconSize.badge;
 
   final String label;
@@ -586,15 +706,6 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
     _sel.dispose();
     super.dispose();
   }
-
-  Widget _bar(double widthFactor, double height, Color color) => FractionallySizedBox(
-    alignment: Alignment.centerLeft,
-    widthFactor: widthFactor,
-    child: Container(
-      height: height,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(height / 2)),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -649,11 +760,11 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                               children: [
                                 // Title in the ACCENT: the theme's defining hue
                                 // reads as content, no stray chip to look odd.
-                                _bar(0.62, 6, widget.accent),
+                                _MockLine(widthFactor: 0.62, height: 6, color: widget.accent),
                                 const SizedBox(height: 9),
-                                _bar(0.95, 3, faded),
+                                _MockLine(widthFactor: 0.95, height: 3, color: faded),
                                 const SizedBox(height: 5),
-                                _bar(0.7, 3, faded),
+                                _MockLine(widthFactor: 0.7, height: 3, color: faded),
                               ],
                             ),
                           ),
@@ -668,7 +779,7 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
                             child: DecoratedBox(
                               decoration: SuperellipseDecoration(
                                 borderRadius: widget.radius,
-                                border: BorderSide(color: widget.accent, width: 2),
+                                border: BorderSide(color: widget.accent, width: AppStroke.ring),
                               ),
                             ),
                           ),
@@ -729,6 +840,25 @@ class _ThemeFamilyCardState extends State<ThemeFamilyCard> with SingleTickerProv
       ),
     );
   }
+}
+
+/// One rounded line of a [ThemeFamilyCard]'s mock, [widthFactor] of its width.
+class _MockLine extends StatelessWidget {
+  const _MockLine({required this.widthFactor, required this.height, required this.color});
+
+  final double widthFactor;
+  final double height;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => FractionallySizedBox(
+    alignment: Alignment.centerLeft,
+    widthFactor: widthFactor,
+    child: Container(
+      height: height,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(height / 2)),
+    ),
+  );
 }
 
 /// A paragraph of explanation, above or below a card (reeed's description text):

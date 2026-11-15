@@ -186,19 +186,16 @@ class _CacheView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          // The two notes can wrap to different heights.
-          Melt(
-            child: SettingsCard(
-              children: [
-                SettingsToggleRow(
-                  icon: AppIcons.waveform,
-                  label: l10n.cacheKeepAudio,
-                  note: keepAudio ? l10n.cacheKeepOnNote : l10n.cacheKeepOffNote,
-                  value: keepAudio,
-                  onChanged: (keep) => unawaited(context.read<SettingsCubit>().setKeepAudio(keep)),
-                ),
-              ],
-            ),
+          SettingsCard(
+            children: [
+              SettingsToggleRow(
+                icon: AppIcons.waveform,
+                label: l10n.cacheKeepAudio,
+                note: keepAudio ? l10n.cacheKeepOnNote : l10n.cacheKeepOffNote,
+                value: keepAudio,
+                onChanged: (keep) => unawaited(context.read<SettingsCubit>().setKeepAudio(keep)),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           SectionInfo(l10n.cachePendingNote),

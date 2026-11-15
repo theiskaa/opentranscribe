@@ -22,14 +22,11 @@ class TimeField extends StatefulWidget {
     required this.hour,
     required this.minute,
     required this.onChanged,
-    this.indented = false,
     super.key,
   });
 
   final String label;
 
-  /// Starts at a tiled row's label column: an option under that row.
-  final bool indented;
   final int hour;
   final int minute;
   final void Function(int hour, int minute) onChanged;
@@ -70,9 +67,7 @@ class _TimeFieldState extends State<TimeField> {
       onTap: () => _pick(context),
       haptic: true,
       child: Padding(
-        padding: widget.indented
-            ? theme.settings.rowPadding.copyWith(left: theme.settings.dividerInset)
-            : theme.settings.rowPadding,
+        padding: theme.settings.rowPadding,
         child: Row(
           children: [
             Expanded(

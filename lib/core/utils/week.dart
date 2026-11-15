@@ -27,6 +27,11 @@ DateTime startOfWeek(DateTime day, {String? localeId}) {
   return DateTime(day.year, day.month, day.day - delta);
 }
 
+/// The first day of the week for [localeId], as a DateTime weekday
+/// (1=Mon..7=Sun): the boundary the week strip, the reflections and the weekly
+/// nudge all share.
+int weekStartWeekday({String? localeId}) => startOfWeek(DateTime(2024), localeId: localeId).weekday;
+
 /// [d] stripped to its civil date: year/month/day, no time, no timezone.
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 

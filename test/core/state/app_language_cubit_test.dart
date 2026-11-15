@@ -45,7 +45,6 @@ void main() {
       reflectionSettings: ReflectionSettings(storage: local),
       availability: () async => const ReflectionAvailability.available(),
       language: () => AppLanguage.of(local),
-      clock: () => clock,
     );
     return (storage: local, scheduler: scheduler, notifier: notifier);
   }

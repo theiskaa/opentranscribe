@@ -3,12 +3,14 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 
 /// Expands [child] into view when [visible] turns true and collapses it when
-/// false: height and opacity animate together over [AppMotion.expand]. The
-/// child stays mounted the whole time, so a collapse plays the entrance in
-/// reverse and a mid-flight flip is picked up from the current frame rather
-/// than snapping. Height is driven by a top-anchored [Align.heightFactor], so
-/// the content slides down out of its own top edge instead of scaling. Under
-/// Reduce Motion the change is instant.
+/// false: height and opacity animate together on the theme's indicator clock,
+/// its curve opening and its flip folding, so a reveal moves with the control
+/// that opened it. The child stays mounted while any of it shows, so a
+/// collapse plays the entrance in reverse and a mid-flight flip is picked up
+/// from the current frame rather than snapping; it unmounts once fully
+/// collapsed and mounts afresh on the next reveal. Height is driven by a
+/// top-anchored [Align.heightFactor], so the content slides down out of its
+/// own top edge instead of scaling. Under Reduce Motion the change is instant.
 ///
 /// The [child] owns anything that should collapse with it (a leading divider,
 /// its own padding): whatever is passed is what folds away.
@@ -27,21 +29,25 @@ class _AnimatedRevealState extends State<AnimatedReveal> with SingleTickerProvid
     vsync: this,
     value: widget.visible ? 1 : 0,
   );
-  late final Animation<double> _reveal = CurvedAnimation(
+  late final CurvedAnimation _reveal = CurvedAnimation(
     parent: _controller,
-    curve: Curves.easeOutCubic,
-    reverseCurve: Curves.easeInCubic,
+    curve: context.motionNow.indicatorCurve,
+    reverseCurve: context.motionNow.indicatorCurve.flipped,
   );
 
   @override
   void didUpdateWidget(covariant AnimatedReveal old) {
     super.didUpdateWidget(old);
+    final motion = context.motionNow;
+    _reveal
+      ..curve = motion.indicatorCurve
+      ..reverseCurve = motion.indicatorCurve.flipped;
     if (widget.visible == old.visible) return;
     if (context.reduceMotion) {
       _controller.value = widget.visible ? 1 : 0;
       return;
     }
-    _controller.duration = context.motionNow.expand;
+    _controller.duration = motion.indicator;
     if (widget.visible) {
       _controller.forward();
     } else {
@@ -51,6 +57,7 @@ class _AnimatedRevealState extends State<AnimatedReveal> with SingleTickerProvid
 
   @override
   void dispose() {
+    _reveal.dispose();
     _controller.dispose();
     super.dispose();
   }

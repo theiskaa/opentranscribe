@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/glass_scope.dart';
 
@@ -42,12 +45,24 @@ class AppToggle extends StatelessWidget {
         accentColor: theme.settings.toggleActive,
         semanticLabel: semanticLabel,
         isDark: theme.brightness == Brightness.dark,
+        enabledFade: context.reduceMotion ? Duration.zero : theme.motion.indicator,
         onChanged: onChanged,
         placeholderBuilder: (_) => Center(child: drawn),
       ),
     );
   }
 }
+
+/// Whether a tap or a release toward [target] is a change to commit: it is
+/// one when it leaves the value the switch stands for, which is a [held]
+/// commit's while the parent has yet to echo it, else the parent's [value].
+bool toggleCommits({required bool target, required bool? held, required bool value}) =>
+    target != (held ?? value);
+
+/// Whether the knob springs to the parent's [value]: always with no commit
+/// [held], else only once the parent answers anything but the held one. A
+/// slow parent echoing the commit late leaves the knob's own spring be.
+bool toggleFollows({required bool? held, required bool value}) => held == null || value != held;
 
 /// A drawn iOS-style switch: 51x31 pill track, white knob, tap or drag. The knob
 /// and track colour animate together so a drag reads as one object moving. The
@@ -77,27 +92,46 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
     value: widget.value ? 1 : 0,
   );
 
-  /// True between our own commit and the resulting parent rebuild, so
-  /// [didUpdateWidget] does not spring a second time over the one we just began.
-  bool _selfCommit = false;
+  /// Our own commit until the parent echoes it or [AppMotion.toggleHold]
+  /// passes, so a parent that awaits before answering never springs the knob
+  /// back over the spring the commit began.
+  bool? _held;
+  Timer? _hold;
   bool _dragging = false;
 
   bool get _enabled => widget.onChanged != null;
+
+  bool get _standsFor => _held ?? widget.value;
 
   @override
   void didUpdateWidget(_DrawnToggle old) {
     super.didUpdateWidget(old);
     if (old.value == widget.value) return;
-    // An outside flip (a settings load, a linked control): glide to it. Our own
-    // commit already sprang with the release velocity - leave that momentum be.
-    if (_selfCommit || _dragging) return;
-    _spring(widget.value ? 1 : 0);
+    final follows = toggleFollows(held: _held, value: widget.value);
+    _release();
+    // An outside flip (a settings load, a linked control) glides to it; the
+    // echo of our own commit leaves its momentum be.
+    if (follows && !_dragging) _spring(widget.value ? 1 : 0);
   }
 
   @override
   void dispose() {
+    _hold?.cancel();
     _pos.dispose();
     super.dispose();
+  }
+
+  void _release() {
+    _hold?.cancel();
+    _hold = null;
+    _held = null;
+  }
+
+  // A parent that never answered declined: back to its value.
+  void _holdExpired() {
+    final follows = toggleFollows(held: _held, value: widget.value);
+    _release();
+    if (follows && !_dragging) _spring(widget.value ? 1 : 0);
   }
 
   void _spring(double target, {double velocity = 0}) {
@@ -116,18 +150,12 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
     // Spring toward the predicted target at once, so the knob answers the release
     // immediately rather than waiting on the parent to echo the new value back.
     _spring(target ? 1 : 0, velocity: fractionVelocity);
-    if (target == widget.value) return;
+    if (!toggleCommits(target: target, held: _held, value: widget.value)) return;
     Haptics.light();
-    _selfCommit = true;
+    _hold?.cancel();
+    _held = target;
+    _hold = Timer(AppMotion.toggleHold, _holdExpired);
     widget.onChanged!(target);
-    // widget.value is the source of truth. An accepted change lands via
-    // didUpdateWidget (which leaves this momentum spring alone); a declined one
-    // never fires it, so reconcile next frame - snap back to the real value.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _selfCommit = false;
-      if (widget.value != target) _spring(widget.value ? 1 : 0);
-    });
   }
 
   // Guarded: the drag recognizer also cancels on a plain tap, whose spring
@@ -135,7 +163,7 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
   void _onDragCancel() {
     if (!_dragging) return;
     _dragging = false;
-    _spring(widget.value ? 1 : 0);
+    _spring(_standsFor ? 1 : 0);
   }
 
   void _onDragEnd(DragEndDetails details) {
@@ -155,13 +183,13 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
       toggled: widget.value,
       enabled: _enabled,
       label: widget.semanticLabel,
-      onTap: _enabled ? () => _change(!widget.value, 0) : null,
+      onTap: _enabled ? () => _change(!_standsFor, 0) : null,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        // Flip from where the knob ACTUALLY is, not widget.value: the latter only
-        // reconciles a frame after a commit, so a fast double-tap read from it
-        // would resolve both taps to the same target.
+        // Flip from where the knob ACTUALLY is, not widget.value: the latter
+        // lags a commit until the parent echoes it, so a fast double-tap read
+        // from it would resolve both taps to the same target.
         onTap: _enabled ? () => _change(_pos.value <= 0.5, 0) : null,
         onHorizontalDragStart: _enabled
             ? (_) {
@@ -175,8 +203,10 @@ class _DrawnToggleState extends State<_DrawnToggle> with SingleTickerProviderSta
             : null,
         onHorizontalDragEnd: _enabled ? _onDragEnd : null,
         onHorizontalDragCancel: _enabled ? _onDragCancel : null,
-        child: Opacity(
-          opacity: _enabled ? 1 : 0.5,
+        child: AnimatedOpacity(
+          opacity: _enabled ? 1 : theme.button.disabledOpacity,
+          duration: context.reduceMotion ? Duration.zero : theme.motion.indicator,
+          curve: theme.motion.indicatorCurve,
           child: AnimatedBuilder(
             animation: _pos,
             builder: (context, child) {

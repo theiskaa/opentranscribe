@@ -1,4 +1,5 @@
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 
 // The storage is private and named parameters cannot be, so an initializing
 // formal does not apply.
@@ -7,9 +8,13 @@ import 'package:opentranscribe/core/app/local_service.dart';
 /// Persists local-notification preferences, keyed by an opaque notification id
 /// supplied by the caller. Generic: it names no feature, so each notification
 /// type owns its own key (the reflection nudge's lives in [ReflectionNotifier]).
-/// One enabled flag and one fire time per key. LocalService-backed like the
-/// other settings holders; reads are defensive and never throw.
+/// One enabled flag and one fire time per key, plus the [lastPermission]
+/// probe under `notify.lastPermission`, which is the OS's and so shared by
+/// every key. LocalService-backed like the other settings holders; reads are
+/// defensive and never throw.
 class NotificationSettings {
+  static const _lastPermissionKey = 'notify.lastPermission';
+
   NotificationSettings({required LocalService storage}) : _storage = storage;
 
   final LocalService _storage;
@@ -41,6 +46,25 @@ class NotificationSettings {
   Future<void> setTime(String key, {required int hour, required int minute}) async {
     await _storage.write(_hourKey(key), '${hour.clamp(0, 23)}');
     await _storage.write(_minuteKey(key), '${minute.clamp(0, 59)}');
+  }
+
+  /// The OS permission as last probed, or null before any probe: a surface
+  /// opens on it, so a grant that has not changed never re-animates in.
+  NotificationPermission? get lastPermission {
+    final raw = _read(_lastPermissionKey);
+    for (final permission in NotificationPermission.values) {
+      if (permission.name == raw) return permission;
+    }
+    return null;
+  }
+
+  /// Keeps a probe's answer as [lastPermission]: skips one already kept and
+  /// never throws, since a lost write only costs the next open an ease-in.
+  Future<void> rememberPermission(NotificationPermission permission) async {
+    if (permission == lastPermission) return;
+    try {
+      await _storage.write(_lastPermissionKey, permission.name);
+    } catch (_) {}
   }
 
   String _enabledKey(String key) => 'notify.$key.enabled';

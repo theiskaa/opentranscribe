@@ -4,6 +4,8 @@ import 'package:opentranscribe/core/services/reflection_settings.dart';
 import 'package:reflections/reflections.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/counted_writes_storage.dart';
+
 void main() {
   const key = 'test-encryption-key-0123456789ab';
 
@@ -71,6 +73,43 @@ void main() {
 
     expect(settings.enabledFor(ReflectionPeriod.weekly), isTrue);
     expect(settings.voiceFor(ReflectionPeriod.weekly), ReflectionVoice.literary);
+  });
+
+  test('the last availability is unknown until kept, then reads back what was kept', () async {
+    expect(settings.lastAvailable, isNull);
+
+    await settings.rememberAvailable(false);
+    expect(settings.lastAvailable, isFalse);
+
+    await settings.rememberAvailable(true);
+    expect(settings.lastAvailable, isTrue);
+  });
+
+  test('remembering a probe over a failing disk throws nothing', () async {
+    final counted = CountedWritesStorage();
+    await counted.init(legacyKey: key);
+    counted.failing = true;
+
+    await ReflectionSettings(storage: counted).rememberAvailable(false);
+
+    expect(counted.writes, 1);
+  });
+
+  test('remembering the same answer writes nothing', () async {
+    final counted = CountedWritesStorage();
+    await counted.init(legacyKey: key);
+    final kept = ReflectionSettings(storage: counted);
+    await kept.rememberAvailable(false);
+    final before = counted.writes;
+
+    await kept.rememberAvailable(false);
+
+    expect(counted.writes, before);
+  });
+
+  test('the last availability is not mistaken for a period knob', () async {
+    await settings.rememberAvailable(false);
+    expect(settings.anyEnabled, isTrue);
   });
 
   test('by default the week and the month write, the day does not', () {

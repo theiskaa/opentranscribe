@@ -31,20 +31,17 @@ class ReflectionNotifier {
     required ReflectionSettings reflectionSettings,
     required Future<ReflectionAvailability> Function() availability,
     required String Function() language,
-    DateTime Function()? clock,
   }) : _scheduler = scheduler,
        _notifySettings = notifySettings,
        _reflectionSettings = reflectionSettings,
        _availability = availability,
-       _language = language,
-       _clock = clock ?? DateTime.now;
+       _language = language;
 
   final NotificationScheduler _scheduler;
   final NotificationSettings _notifySettings;
   final ReflectionSettings _reflectionSettings;
   final Future<ReflectionAvailability> Function() _availability;
   final String Function() _language;
-  final DateTime Function() _clock;
 
   /// A period's nudge identity: the scheduler's notification identifier (a
   /// reschedule under it replaces rather than stacks) and the key its enabled
@@ -87,21 +84,26 @@ class ReflectionNotifier {
   /// ever selected, every enabled period selected, so a first turn-on delivers
   /// full value in one gesture while a mix picked earlier survives untouched.
   /// Returns once the intent is stored; the [sync] it fires runs on behind,
-  /// so a switch answers at once. Permission is the caller's business: this
-  /// stores what the user asked for, and [sync] decides what the OS may fire.
+  /// so a switch answers at once. A write that throws partway still fires
+  /// [sync] over what landed, then rethrows. Permission is the caller's
+  /// business: this stores what the user asked for, and [sync] decides what
+  /// the OS may fire.
   Future<void> enable() async {
-    await _notifySettings.setEnabled(timeKey, true);
-    final anyStored = ReflectionPeriod.values.any(
-      (p) => _reflectionSettings.enabledFor(p) && _notifySettings.enabled(keyFor(p)),
-    );
-    if (!anyStored) {
-      for (final period in ReflectionPeriod.values) {
-        if (_reflectionSettings.enabledFor(period)) {
-          await _notifySettings.setEnabled(keyFor(period), true);
+    try {
+      await _notifySettings.setEnabled(timeKey, true);
+      final anyStored = ReflectionPeriod.values.any(
+        (p) => _reflectionSettings.enabledFor(p) && _notifySettings.enabled(keyFor(p)),
+      );
+      if (!anyStored) {
+        for (final period in ReflectionPeriod.values) {
+          if (_reflectionSettings.enabledFor(period)) {
+            await _notifySettings.setEnabled(keyFor(period), true);
+          }
         }
       }
+    } finally {
+      unawaited(sync());
     }
-    unawaited(sync());
   }
 
   /// Reconciles the OS's pending nudges with the current settings. Cheap and
@@ -135,7 +137,11 @@ class ReflectionNotifier {
       await _cancelAll();
       return;
     }
-    if (await _scheduler.permissionStatus() != NotificationPermission.authorized) {
+    final permission = await _scheduler.permissionStatus();
+    // Kept for the settings surface to open on, so a grant changed while the
+    // app was away is fresh there before it re-probes.
+    await _notifySettings.rememberPermission(permission);
+    if (permission != NotificationPermission.authorized) {
       await _cancelAll();
       return;
     }
@@ -210,7 +216,7 @@ class ReflectionNotifier {
   /// the app language so the nudge lands on the same boundary the week strip and
   /// the reflection bucketing use. A language change that shifts the first-day
   /// moves the nudge on the next [sync].
-  int _boundaryWeekday() => startOfWeek(dateOnly(_clock()), localeId: _language()).weekday;
+  int _boundaryWeekday() => weekStartWeekday(localeId: _language());
 
   /// The generic notification strings in the app language. Resolved off the UI
   /// tree (this runs on launch and resume, with no BuildContext) via the

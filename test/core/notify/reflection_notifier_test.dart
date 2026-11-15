@@ -13,6 +13,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_notification_scheduler.dart';
 
+class _FailsAfterFirstWrite extends LocalService {
+  bool armed = false;
+  int _writes = 0;
+
+  @override
+  Future<void> write<T>(String key, T value) {
+    if (armed && _writes++ > 0) return Future.error(StateError('no disk'));
+    return super.write(key, value);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -46,9 +57,39 @@ void main() {
       reflectionSettings: reflect,
       availability: () async => availability,
       language: () => language,
-      clock: () => clock,
     );
   }
+
+  test('an enable whose write fails partway still syncs what it stored', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FailsAfterFirstWrite();
+    await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+    final notify = NotificationSettings(storage: storage);
+    final reflect = ReflectionSettings(storage: storage);
+    await reflect.setEnabledFor(ReflectionPeriod.monthly, false);
+    final scheduler = FakeNotificationScheduler();
+    final notifier = await build(scheduler: scheduler, notify: notify, reflect: reflect);
+    storage.armed = true;
+
+    await expectLater(notifier.enable(), throwsStateError);
+    await pumpEventQueue();
+
+    expect(notify.enabled(ReflectionNotifier.timeKey), isTrue);
+    expect(scheduler.scheduled.map((call) => call['id']), [
+      ReflectionNotifier.keyFor(ReflectionPeriod.weekly),
+    ]);
+  });
+
+  test('a reconcile that probes permission keeps it for the settings surface', () async {
+    final scheduler = FakeNotificationScheduler(permission: NotificationPermission.denied);
+    final s = await settings();
+    await s.notify.setEnabled(ReflectionNotifier.keyFor(ReflectionPeriod.weekly), true);
+    final notifier = await build(scheduler: scheduler, notify: s.notify, reflect: s.reflect);
+
+    await notifier.sync();
+
+    expect(s.notify.lastPermission, NotificationPermission.denied);
+  });
 
   group('scheduling', () {
     test('schedules the weekly nudge when everything lines up', () async {

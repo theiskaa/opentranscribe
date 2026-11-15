@@ -7,17 +7,20 @@ import 'package:reflections/reflections.dart';
 // ignore_for_file: prefer_initializing_formals
 
 /// Persists the reflection preferences per period (whether each of daily,
-/// weekly, monthly runs, and its three style knobs) plus one piece of machinery
-/// state: the per-period no-backfill [floorFor] the service records on first
-/// run. Keyed `reflect.<period>.<knob>`. LocalService-backed like the other
-/// settings holders. Reads are defensive: a corrupt or absent value falls back
-/// to its default, never throws.
+/// weekly, monthly runs, and its three style knobs) plus two pieces of
+/// machinery state: the per-period no-backfill [floorFor] the service records
+/// on first run, and the [lastAvailable] probe. Keyed
+/// `reflect.<period>.<knob>`, the probe `reflect.lastAvailable`.
+/// LocalService-backed like the other settings holders. Reads are defensive:
+/// a corrupt or absent value falls back to its default, never throws.
 ///
 /// The week and the month write out of the box, the day does not
 /// ([defaultEnabled]). Each period's style defaults to the literary voice;
 /// length starts one-line for a day and a paragraph for a month, matching how
 /// much each period has to say.
 class ReflectionSettings {
+  static const _lastAvailableKey = 'reflect.lastAvailable';
+
   ReflectionSettings({required LocalService storage}) : _storage = storage;
 
   final LocalService _storage;
@@ -68,6 +71,27 @@ class ReflectionSettings {
 
   Future<void> setFloorFor(ReflectionPeriod period, DateTime start) =>
       _storage.write(_key(period, 'floor'), Reflection.keyFor(start));
+
+  /// Whether the on-device model could reflect when last probed, or null
+  /// before any probe: a surface opens on it rather than on a guess.
+  bool? get lastAvailable => _read<bool?>(
+    _lastAvailableKey,
+    (s) => switch (s) {
+      'true' => true,
+      'false' => false,
+      _ => null,
+    },
+    null,
+  );
+
+  /// Keeps a probe's answer as [lastAvailable]: skips one already kept and
+  /// never throws, since a lost write only costs the next open an ease-in.
+  Future<void> rememberAvailable(bool value) async {
+    if (value == lastAvailable) return;
+    try {
+      await _storage.write(_lastAvailableKey, value ? 'true' : 'false');
+    } catch (_) {}
+  }
 
   Future<void> setEnabledFor(ReflectionPeriod period, bool value) =>
       _storage.write(_key(period, 'enabled'), value ? 'true' : 'false');

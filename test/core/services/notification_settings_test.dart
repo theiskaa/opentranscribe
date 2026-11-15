@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
+import 'package:opentranscribe/core/notify/notification_scheduler.dart';
 import 'package:opentranscribe/core/services/notification_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/counted_writes_storage.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +72,51 @@ void main() {
       await settings.setTime(key, hour: 30, minute: 90);
       expect(settings.hour(key), 23);
       expect(settings.minute(key), 59);
+    });
+  });
+
+  group('last permission', () {
+    test('is unknown until a probe is kept, then reads back what was kept', () async {
+      final settings = (await build()).settings;
+      expect(settings.lastPermission, isNull);
+
+      await settings.rememberPermission(NotificationPermission.denied);
+      expect(settings.lastPermission, NotificationPermission.denied);
+
+      await settings.rememberPermission(NotificationPermission.authorized);
+      expect(settings.lastPermission, NotificationPermission.authorized);
+    });
+
+    test('an unrecognized stored value reads as unknown, not as a guess', () async {
+      final built = await build();
+      await built.storage.write('notify.lastPermission', 'provisional');
+      expect(built.settings.lastPermission, isNull);
+    });
+
+    test('remembering a probe over a failing disk throws nothing', () async {
+      final storage = CountedWritesStorage();
+      SharedPreferences.setMockInitialValues({});
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      storage.failing = true;
+
+      await NotificationSettings(
+        storage: storage,
+      ).rememberPermission(NotificationPermission.denied);
+
+      expect(storage.writes, 1);
+    });
+
+    test('remembering the same answer writes nothing', () async {
+      final storage = CountedWritesStorage();
+      SharedPreferences.setMockInitialValues({});
+      await storage.init(legacyKey: 'test-encryption-key-0123456789ab');
+      final settings = NotificationSettings(storage: storage);
+      await settings.rememberPermission(NotificationPermission.denied);
+      final before = storage.writes;
+
+      await settings.rememberPermission(NotificationPermission.denied);
+
+      expect(storage.writes, before);
     });
   });
 
