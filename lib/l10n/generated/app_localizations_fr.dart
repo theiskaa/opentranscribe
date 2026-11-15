@@ -605,28 +605,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get modelDownload => 'Télécharger';
 
   @override
-  String get modelUse => 'Utiliser';
-
-  @override
-  String get modelInUse => 'Utilisé';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'Les téléchargements ne se font que lorsque l\'app est ouverte. Si vous la quittez, le téléchargement reprend là où il s\'est arrêté à votre retour.';
 
   @override
   String modelDownloadButton(String model) {
     return 'Télécharger $model';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return 'Utiliser $model';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model utilisé';
   }
 
   @override
@@ -637,11 +621,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return 'Téléchargement de $model, $percent %';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model est trop volumineux pour cet iPhone';
   }
 
   @override
@@ -1187,9 +1166,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportEntry => 'Exporter';
 
   @override
-  String get exportEntryTitle => 'Exporter l\'entrée';
-
-  @override
   String get exportEntryPreparing => 'Exportation…';
 
   @override
@@ -1221,9 +1197,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => 'Recherche et lecteur, tout navigateur.';
-
-  @override
-  String get exportFailedTitle => 'Échec de l\'export';
 
   @override
   String get exportFailedBody => 'Impossible de préparer les fichiers. Rien n\'a été partagé.';
@@ -1296,55 +1269,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsBackup => 'Sauvegarde';
 
   @override
-  String get backupInfo =>
-      'Une sauvegarde contient chaque entrée avec son audio et vos réflexions. Si vous la chiffrez, la phrase secrète est la seule clé.';
-
-  @override
-  String get backupInfoEmpty =>
-      'Rien à sauvegarder pour l\'instant. Une sauvegarde contient chaque entrée avec son audio et vos réflexions.';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other:
-          'Une sauvegarde contient vos $count entrées avec leur audio et vos réflexions, environ $size.',
-      one:
-          'Une sauvegarde contient votre unique entrée avec son audio et vos réflexions, environ $size.',
-    );
-    return '$_temp0 Si vous la chiffrez, la phrase secrète est la seule clé.';
-  }
-
-  @override
-  String get backupExportSection => 'Export';
-
-  @override
-  String backupExportAs(String format) {
-    return 'Exporter en $format';
-  }
-
-  @override
-  String get backupExportInfo =>
-      'Écrit chaque entrée dans un format choisi au moment de l\'export, en zip pour la feuille de partage. Une copie pour d\'autres apps ; restaurer demande une sauvegarde.';
-
-  @override
   String get backupSeal => 'Chiffrer avec une phrase secrète';
-
-  @override
-  String get backupSave => 'Exporter la sauvegarde';
 
   @override
   String backupLastBackup(String date) {
     return 'Dernière sauvegarde $date';
   }
-
-  @override
-  String get passphraseCreateTitle => 'Chiffrer la sauvegarde';
-
-  @override
-  String get passphraseCreateBody =>
-      'La phrase secrète est la seule clé. Elle n\'est stockée nulle part ; sans elle, la sauvegarde n\'est que du bruit.';
 
   @override
   String backupEntryCount(int count) {
@@ -1592,101 +1522,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get passphraseHide => 'Masquer';
 
   @override
-  String get importUnlockTitle => 'Sauvegarde chiffrée';
-
-  @override
-  String get importUnlockBody =>
-      'Saisissez la phrase secrète avec laquelle cette sauvegarde a été chiffrée.';
-
-  @override
   String get importUnlock => 'Déverrouiller';
 
   @override
   String get importWrongPassphrase =>
       'Déverrouillage impossible. Phrase secrète erronée, ou fichier endommagé.';
-
-  @override
-  String get importConfirmTitle => 'Restaurer cette sauvegarde ?';
-
-  @override
-  String get importConfirmBody =>
-      'Ajoute ses entrées à votre journal. Une entrée déjà présente reprend la version de la sauvegarde, annulant les modifications faites depuis. Restaurer deux fois la même sauvegarde ne duplique jamais.';
-
-  @override
-  String get importConfirm => 'Restaurer';
-
-  @override
-  String get importSummaryTitle => 'Restauration terminée';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entrées ajoutées.',
-      one: '1 entrée ajoutée.',
-      zero: 'Rien de nouveau à ajouter.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entrées ont été remplacées par la version de la sauvegarde.',
-      one: '1 entrée a été remplacée par la version de la sauvegarde.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entrées étaient déjà dans le journal.',
-      one: '1 entrée était déjà dans le journal.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count enregistrements restaurés.',
-      one: '1 enregistrement restauré.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entrées',
-      one: '1 entrée',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '$audio enregistrements',
-      one: '1 enregistrement',
-      zero: 'aucun enregistrement',
-    );
-    return '$_temp0 · $_temp1';
-  }
-
-  @override
-  String get importFailedTitle => 'Échec de la restauration';
-
-  @override
-  String get importFailedBody =>
-      'La sauvegarde n\'a pas pu être lue. Rien dans le journal n\'a été modifié.';
 
   @override
   String get restoreUnreadable =>
@@ -1736,10 +1576,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get done => 'OK';
-
-  @override
-  String get importFailedMidway =>
-      'La restauration s\'est arrêtée en cours de route. Ce qui a été restauré est conservé ; restaurez à nouveau pour terminer.';
 
   @override
   String get settingsSupport => 'Soutenir';

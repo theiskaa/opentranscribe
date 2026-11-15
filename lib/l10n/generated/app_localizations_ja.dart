@@ -575,28 +575,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get modelDownload => 'ダウンロード';
 
   @override
-  String get modelUse => '使う';
-
-  @override
-  String get modelInUse => '使用中';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'ダウンロードはアプリを開いている間だけ進みます。アプリを離れても、戻ったときに止まったところから再開します。';
 
   @override
   String modelDownloadButton(String model) {
     return '$model をダウンロード';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return '$model を使用';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model を使用中';
   }
 
   @override
@@ -607,11 +591,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return '$model をダウンロード中、$percent%';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model はこの iPhone には大きすぎます';
   }
 
   @override
@@ -1122,9 +1101,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportEntry => '書き出す';
 
   @override
-  String get exportEntryTitle => 'エントリーを書き出す';
-
-  @override
   String get exportEntryPreparing => '書き出し中…';
 
   @override
@@ -1156,9 +1132,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => '検索とプレイヤー、どのブラウザでも。';
-
-  @override
-  String get exportFailedTitle => '書き出しに失敗しました';
 
   @override
   String get exportFailedBody => 'ファイルを準備できませんでした。何も共有されていません。';
@@ -1229,49 +1202,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsBackup => 'バックアップ';
 
   @override
-  String get backupInfo => 'バックアップには全エントリーと音声、振り返りが入ります。暗号化すれば、パスフレーズが唯一の鍵です。';
-
-  @override
-  String get backupInfoEmpty => 'まだバックアップするものがありません。バックアップにはエントリーと音声、振り返りが入ります。';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'バックアップには$count件のエントリーと音声、振り返りが入り、約$sizeです。暗号化すれば、パスフレーズが唯一の鍵です。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get backupExportSection => '書き出し';
-
-  @override
-  String backupExportAs(String format) {
-    return '$formatとして書き出す';
-  }
-
-  @override
-  String get backupExportInfo =>
-      'すべてのエントリーを書き出し時に選んだ形式でzipにまとめ、共有シートへ渡します。他のアプリで読むための複製で、復元にはバックアップが要ります。';
-
-  @override
   String get backupSeal => 'パスフレーズで暗号化';
-
-  @override
-  String get backupSave => 'バックアップを書き出す';
 
   @override
   String backupLastBackup(String date) {
     return '前回のバックアップ $date';
   }
-
-  @override
-  String get passphraseCreateTitle => 'バックアップを暗号化';
-
-  @override
-  String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければバックアップはただのノイズです。';
 
   @override
   String backupEntryCount(int count) {
@@ -1461,84 +1397,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get passphraseHide => '非表示';
 
   @override
-  String get importUnlockTitle => '暗号化されたバックアップ';
-
-  @override
-  String get importUnlockBody => 'このバックアップを暗号化したパスフレーズを入力してください。';
-
-  @override
   String get importUnlock => '解錠';
 
   @override
   String get importWrongPassphrase => '解錠できませんでした。パスフレーズが違うか、ファイルが破損しています。';
-
-  @override
-  String get importConfirmTitle => 'このバックアップを復元しますか？';
-
-  @override
-  String get importConfirmBody =>
-      'そのエントリーをジャーナルに追加します。既にあるエントリーはバックアップの内容に置き換わり、その後の編集は失われます。同じバックアップを二度復元しても重複しません。';
-
-  @override
-  String get importConfirm => '復元';
-
-  @override
-  String get importSummaryTitle => '復元完了';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件のエントリーを追加しました。',
-      zero: '新しく追加するものはありません。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件はバックアップの内容に置き換わりました。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件は既にジャーナルにありました。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件の録音を復元しました。');
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'エントリー$count件');
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '録音$audio件',
-      zero: '録音なし',
-    );
-    return '$_temp0・$_temp1';
-  }
-
-  @override
-  String get importFailedTitle => '復元に失敗しました';
-
-  @override
-  String get importFailedBody => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
 
   @override
   String get restoreUnreadable => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
@@ -1584,9 +1446,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get done => '完了';
-
-  @override
-  String get importFailedMidway => '復元が途中で止まりました。ここまでの復元は残っています。もう一度復元すれば完了します。';
 
   @override
   String get settingsSupport => 'サポート';

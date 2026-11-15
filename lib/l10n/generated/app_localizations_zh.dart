@@ -571,27 +571,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelDownload => '下载';
 
   @override
-  String get modelUse => '使用';
-
-  @override
-  String get modelInUse => '使用中';
-
-  @override
   String get transcriptionDownloadFootnote => '下载只在应用打开时进行。离开后，回来时会从停下的地方继续。';
 
   @override
   String modelDownloadButton(String model) {
     return '下载 $model';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return '使用 $model';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model 使用中';
   }
 
   @override
@@ -602,11 +586,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return '正在下载 $model，$percent%';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model 对这台 iPhone 来说太大了';
   }
 
   @override
@@ -1115,9 +1094,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportEntry => '导出';
 
   @override
-  String get exportEntryTitle => '导出条目';
-
-  @override
   String get exportEntryPreparing => '正在导出…';
 
   @override
@@ -1149,9 +1125,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => '带搜索和播放器，任何浏览器可开。';
-
-  @override
-  String get exportFailedTitle => '导出失败';
 
   @override
   String get exportFailedBody => '无法准备文件。未共享任何内容。';
@@ -1222,48 +1195,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBackup => '备份';
 
   @override
-  String get backupInfo => '备份包含所有记录、音频和回顾。如果加密，口令就是唯一的钥匙。';
-
-  @override
-  String get backupInfoEmpty => '暂时没有可备份的内容。备份包含记录、音频和回顾。';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '备份包含 $count 条记录、音频和回顾，约 $size。如果加密，口令就是唯一的钥匙。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get backupExportSection => '导出';
-
-  @override
-  String backupExportAs(String format) {
-    return '导出为 $format';
-  }
-
-  @override
-  String get backupExportInfo => '以导出时选择的格式写出每条记录，打包成 zip，交给共享面板。这是给其他应用阅读的副本；要恢复得靠备份。';
-
-  @override
   String get backupSeal => '用口令加密';
-
-  @override
-  String get backupSave => '导出备份';
 
   @override
   String backupLastBackup(String date) {
     return '上次备份 $date';
   }
-
-  @override
-  String get passphraseCreateTitle => '加密备份';
-
-  @override
-  String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，备份只是噪音。';
 
   @override
   String backupEntryCount(int count) {
@@ -1449,79 +1386,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passphraseHide => '隐藏';
 
   @override
-  String get importUnlockTitle => '已加密的备份';
-
-  @override
-  String get importUnlockBody => '输入加密这份备份时使用的口令。';
-
-  @override
   String get importUnlock => '解锁';
 
   @override
   String get importWrongPassphrase => '无法解锁。口令错误，或文件已损坏。';
-
-  @override
-  String get importConfirmTitle => '恢复这份备份？';
-
-  @override
-  String get importConfirmBody => '把其中的记录加入你的日记。已有的记录会被备份中的版本替换，之后的编辑将丢失。同一份备份恢复两次也不会重复。';
-
-  @override
-  String get importConfirm => '恢复';
-
-  @override
-  String get importSummaryTitle => '恢复完成';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '已添加 $count 条记录。',
-      zero: '没有新内容可添加。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 条记录已替换为备份中的版本。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录已在日记中。');
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已恢复 $count 段录音。');
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 条记录');
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '$audio 段录音',
-      zero: '无录音',
-    );
-    return '$_temp0 · $_temp1';
-  }
-
-  @override
-  String get importFailedTitle => '恢复失败';
-
-  @override
-  String get importFailedBody => '无法读取备份。日记没有任何改动。';
 
   @override
   String get restoreUnreadable => '无法读取备份。日记没有任何改动。';
@@ -1567,9 +1435,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get done => '完成';
-
-  @override
-  String get importFailedMidway => '恢复中途停止了。已恢复的内容会保留；再次恢复即可完成。';
 
   @override
   String get settingsSupport => '支持';

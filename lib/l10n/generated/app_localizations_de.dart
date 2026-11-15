@@ -603,28 +603,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get modelDownload => 'Laden';
 
   @override
-  String get modelUse => 'Verwenden';
-
-  @override
-  String get modelInUse => 'In Gebrauch';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'Downloads laufen nur, solange die App geöffnet ist. Wenn Sie die App verlassen, wird der Download beim nächsten Öffnen fortgesetzt.';
 
   @override
   String modelDownloadButton(String model) {
     return '$model laden';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return '$model verwenden';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model in Verwendung';
   }
 
   @override
@@ -635,11 +619,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return '$model wird geladen, $percent %';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model ist zu groß für dieses iPhone';
   }
 
   @override
@@ -1188,9 +1167,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportEntry => 'Exportieren';
 
   @override
-  String get exportEntryTitle => 'Eintrag exportieren';
-
-  @override
   String get exportEntryPreparing => 'Wird exportiert…';
 
   @override
@@ -1222,9 +1198,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => 'Suche und Player, in jedem Browser.';
-
-  @override
-  String get exportFailedTitle => 'Export fehlgeschlagen';
 
   @override
   String get exportFailedBody =>
@@ -1298,53 +1271,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsBackup => 'Backup';
 
   @override
-  String get backupInfo =>
-      'Ein Backup enthält jeden Eintrag mit Audio und Rückblicken. Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
-
-  @override
-  String get backupInfoEmpty =>
-      'Noch nichts zu sichern. Ein Backup enthält jeden Eintrag mit Audio und Rückblicken.';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Ein Backup enthält alle $count Einträge mit Audio und Rückblicken, etwa $size.',
-      one: 'Ein Backup enthält deinen einen Eintrag mit Audio und Rückblicken, etwa $size.',
-    );
-    return '$_temp0 Verschlüsselst du es, ist die Passphrase der einzige Schlüssel.';
-  }
-
-  @override
-  String get backupExportSection => 'Export';
-
-  @override
-  String backupExportAs(String format) {
-    return 'Als $format exportieren';
-  }
-
-  @override
-  String get backupExportInfo =>
-      'Schreibt jeden Eintrag in einem beim Export gewählten Format als Zip für das Teilen-Menü. Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
-
-  @override
   String get backupSeal => 'Mit Passphrase verschlüsseln';
-
-  @override
-  String get backupSave => 'Backup exportieren';
 
   @override
   String backupLastBackup(String date) {
     return 'Letztes Backup $date';
   }
-
-  @override
-  String get passphraseCreateTitle => 'Backup verschlüsseln';
-
-  @override
-  String get passphraseCreateBody =>
-      'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Backup Rauschen.';
 
   @override
   String backupEntryCount(int count) {
@@ -1590,101 +1522,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get passphraseHide => 'Ausblenden';
 
   @override
-  String get importUnlockTitle => 'Verschlüsseltes Backup';
-
-  @override
-  String get importUnlockBody =>
-      'Gib die Passphrase ein, mit der dieses Backup verschlüsselt wurde.';
-
-  @override
   String get importUnlock => 'Entsiegeln';
 
   @override
   String get importWrongPassphrase =>
       'Konnte nicht entsiegeln. Falsche Passphrase oder beschädigte Datei.';
-
-  @override
-  String get importConfirmTitle => 'Dieses Backup wiederherstellen?';
-
-  @override
-  String get importConfirmBody =>
-      'Fügt seine Einträge deinem Journal hinzu. Ein bereits vorhandener Eintrag übernimmt die Version aus dem Backup; spätere Bearbeitungen gehen verloren. Dasselbe Backup zweimal wiederherzustellen dupliziert nie.';
-
-  @override
-  String get importConfirm => 'Wiederherstellen';
-
-  @override
-  String get importSummaryTitle => 'Wiederherstellung abgeschlossen';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Einträge hinzugefügt.',
-      one: '1 Eintrag hinzugefügt.',
-      zero: 'Nichts Neues hinzuzufügen.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Einträge wurden durch die Backup-Version ersetzt.',
-      one: '1 Eintrag wurde durch die Backup-Version ersetzt.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Einträge waren bereits im Journal.',
-      one: '1 Eintrag war bereits im Journal.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Aufnahmen wiederhergestellt.',
-      one: '1 Aufnahme wiederhergestellt.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Einträge',
-      one: '1 Eintrag',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '$audio Aufnahmen',
-      one: '1 Aufnahme',
-      zero: 'keine Aufnahmen',
-    );
-    return '$_temp0 · $_temp1';
-  }
-
-  @override
-  String get importFailedTitle => 'Wiederherstellung fehlgeschlagen';
-
-  @override
-  String get importFailedBody =>
-      'Das Backup konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
 
   @override
   String get restoreUnreadable =>
@@ -1733,10 +1575,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get done => 'Fertig';
-
-  @override
-  String get importFailedMidway =>
-      'Die Wiederherstellung brach mittendrin ab. Alles bisher Wiederhergestellte bleibt; stelle erneut wieder her, um abzuschließen.';
 
   @override
   String get settingsSupport => 'Unterstützen';

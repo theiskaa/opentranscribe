@@ -1116,18 +1116,6 @@ abstract class AppLocalizations {
   /// **'Download'**
   String get modelDownload;
 
-  /// Button that makes a downloaded model the one transcription uses
-  ///
-  /// In en, this message translates to:
-  /// **'Use'**
-  String get modelUse;
-
-  /// Label on the pill of the model transcription uses
-  ///
-  /// In en, this message translates to:
-  /// **'In use'**
-  String get modelInUse;
-
   /// Under a model's bar while it downloads: downloads need the app open, and resume on return
   ///
   /// In en, this message translates to:
@@ -1140,18 +1128,6 @@ abstract class AppLocalizations {
   /// **'Download {model}'**
   String modelDownloadButton(String model);
 
-  /// VoiceOver name of a model's Use pill
-  ///
-  /// In en, this message translates to:
-  /// **'Use {model}'**
-  String modelUseButton(String model);
-
-  /// VoiceOver name of a model's In use pill
-  ///
-  /// In en, this message translates to:
-  /// **'{model} in use'**
-  String modelInUseLabel(String model);
-
   /// VoiceOver name of a model's Try again pill
   ///
   /// In en, this message translates to:
@@ -1163,12 +1139,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloading {model}, {percent}%'**
   String modelDownloadingLabel(String model, int percent);
-
-  /// VoiceOver name of a model's disabled pill for a model this iPhone cannot hold
-  ///
-  /// In en, this message translates to:
-  /// **'{model} is too large for this iPhone'**
-  String modelTooHeavyLabel(String model);
 
   /// VoiceOver name of a model's Cancel action
   ///
@@ -2088,12 +2058,6 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get exportEntry;
 
-  /// Entry export sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Export entry'**
-  String get exportEntryTitle;
-
   /// Entry screen bar line while one entry's export files are still being built
   ///
   /// In en, this message translates to:
@@ -2159,12 +2123,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search and a player, in any browser.'**
   String get exportFormatWebNote;
-
-  /// Export failure sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Export failed'**
-  String get exportFailedTitle;
 
   /// Export failure explanation; nothing left the phone
   ///
@@ -2298,71 +2256,17 @@ abstract class AppLocalizations {
   /// **'Backup'**
   String get settingsBackup;
 
-  /// Backup screen intro: what a backup holds and what encryption does
-  ///
-  /// In en, this message translates to:
-  /// **'A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.'**
-  String get backupInfo;
-
-  /// Backup intro when the measured journal is empty
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing to back up yet. A backup holds every entry with its audio and reflections.'**
-  String get backupInfoEmpty;
-
-  /// Backup intro once measured: entry count and approximate size, then the encryption line
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.'**
-  String backupInfoMeasured(int count, String size);
-
-  /// Section label over the audio toggle and the per-format export action rows
-  ///
-  /// In en, this message translates to:
-  /// **'Export'**
-  String get backupExportSection;
-
-  /// Export card action row, one per format; format is the localized format name
-  ///
-  /// In en, this message translates to:
-  /// **'Export as {format}'**
-  String backupExportAs(String format);
-
-  /// Help paragraph under the export card
-  ///
-  /// In en, this message translates to:
-  /// **'Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.'**
-  String get backupExportInfo;
-
   /// Toggle for sealing archives with a passphrase
   ///
   /// In en, this message translates to:
   /// **'Encrypt with passphrase'**
   String get backupSeal;
 
-  /// Backup card row exporting the restorable archive, and the seal sheet action
-  ///
-  /// In en, this message translates to:
-  /// **'Export backup'**
-  String get backupSave;
-
   /// Backup card quiet line part: when the last backup was handed off; date is already formatted
   ///
   /// In en, this message translates to:
   /// **'Last backup {date}'**
   String backupLastBackup(String date);
-
-  /// Sealing passphrase sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypt the backup'**
-  String get passphraseCreateTitle;
-
-  /// Sealing passphrase sheet body: the passphrase is the only key
-  ///
-  /// In en, this message translates to:
-  /// **'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.'**
-  String get passphraseCreateBody;
 
   /// Backup card title: how many entries the journal holds
   ///
@@ -2640,18 +2544,6 @@ abstract class AppLocalizations {
   /// **'Hide'**
   String get passphraseHide;
 
-  /// Unlock sheet title for a sealed archive
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypted backup'**
-  String get importUnlockTitle;
-
-  /// Unlock sheet body asking for the sealing passphrase
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the passphrase this backup was encrypted with.'**
-  String get importUnlockBody;
-
   /// Backup card leading capsule that opens a sealed backup with the passphrase typed under it
   ///
   /// In en, this message translates to:
@@ -2663,72 +2555,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not unlock. Wrong passphrase, or a damaged file.'**
   String get importWrongPassphrase;
-
-  /// Import confirmation sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Restore this backup?'**
-  String get importConfirmTitle;
-
-  /// Import confirmation body: additive, but an existing entry is overwritten by the backup's copy
-  ///
-  /// In en, this message translates to:
-  /// **'Adds its entries to your journal. An entry that already exists takes the backup\'s version, undoing edits made since that backup. Restoring the same backup twice never duplicates.'**
-  String get importConfirmBody;
-
-  /// Import confirmation action button
-  ///
-  /// In en, this message translates to:
-  /// **'Restore'**
-  String get importConfirm;
-
-  /// Import summary sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Restore complete'**
-  String get importSummaryTitle;
-
-  /// Summary line for entries the restore newly added
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}'**
-  String importSummaryAdded(int count);
-
-  /// Summary line for existing entries the restore overwrote, shown only when some were
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 entry was replaced with the backup\'s version.} other {{count} entries were replaced with the backup\'s version.}}'**
-  String importSummaryReplaced(int count);
-
-  /// Summary line for entries already present, shown only when some were
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}'**
-  String importSummarySkipped(int count);
-
-  /// Summary line for recordings the restore put back, shown only when some were
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 recording restored.} other {{count} recordings restored.}}'**
-  String importSummaryAudio(int count);
-
-  /// Restore confirm fact line: what a plain archive's manifest says it holds
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}'**
-  String importConfirmCounts(int count, int audio);
-
-  /// Import failure sheet title
-  ///
-  /// In en, this message translates to:
-  /// **'Restore failed'**
-  String get importFailedTitle;
-
-  /// Generic import failure body; journal unchanged
-  ///
-  /// In en, this message translates to:
-  /// **'The backup could not be read. Nothing in the journal was changed.'**
-  String get importFailedBody;
 
   /// Backup card quiet line when the picked backup could not be read; journal unchanged
   ///
@@ -2819,12 +2645,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get done;
-
-  /// Failure body when adoption already wrote; restored entries are kept
-  ///
-  /// In en, this message translates to:
-  /// **'The restore stopped partway. Everything restored so far is kept; restore again to finish.'**
-  String get importFailedMidway;
 
   /// Home menu row opening the club sheet
   ///

@@ -831,14 +831,6 @@
   "@modelDownload": {
     "description": "Button starting a model download"
   },
-  "modelUse": "Use",
-  "@modelUse": {
-    "description": "Button that makes a downloaded model the one transcription uses"
-  },
-  "modelInUse": "In use",
-  "@modelInUse": {
-    "description": "Label on the pill of the model transcription uses"
-  },
   "transcriptionDownloadFootnote": "Downloads run only while the app is open. If you leave, the download picks up where it stopped when you come back.",
   "@transcriptionDownloadFootnote": {
     "description": "Under a model's bar while it downloads: downloads need the app open, and resume on return"
@@ -846,24 +838,6 @@
   "modelDownloadButton": "Download {model}",
   "@modelDownloadButton": {
     "description": "VoiceOver name of a model's Download pill",
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
-  "modelUseButton": "Use {model}",
-  "@modelUseButton": {
-    "description": "VoiceOver name of a model's Use pill",
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
-  "modelInUseLabel": "{model} in use",
-  "@modelInUseLabel": {
-    "description": "VoiceOver name of a model's In use pill",
     "placeholders": {
       "model": {
         "type": "String"
@@ -888,15 +862,6 @@
       },
       "percent": {
         "type": "int"
-      }
-    }
-  },
-  "modelTooHeavyLabel": "{model} is too large for this iPhone",
-  "@modelTooHeavyLabel": {
-    "description": "VoiceOver name of a model's disabled pill for a model this iPhone cannot hold",
-    "placeholders": {
-      "model": {
-        "type": "String"
       }
     }
   },
@@ -1627,10 +1592,6 @@
   "@exportEntry": {
     "description": "Entry menu row whose submenu lists the export formats"
   },
-  "exportEntryTitle": "Export entry",
-  "@exportEntryTitle": {
-    "description": "Entry export sheet title"
-  },
   "exportEntryPreparing": "Exporting…",
   "@exportEntryPreparing": {
     "description": "Entry screen bar line while one entry's export files are still being built"
@@ -1674,10 +1635,6 @@
   "exportFormatWebNote": "Search and a player, in any browser.",
   "@exportFormatWebNote": {
     "description": "One line under the web page format row saying what it writes"
-  },
-  "exportFailedTitle": "Export failed",
-  "@exportFailedTitle": {
-    "description": "Export failure sheet title"
   },
   "exportFailedBody": "Could not prepare the files. Nothing was shared.",
   "@exportFailedBody": {
@@ -1772,50 +1729,9 @@
   "@settingsBackup": {
     "description": "Home menu row opening the Backup screen"
   },
-  "backupInfo": "A backup holds every entry with its audio and reflections. Encrypt it and your passphrase is the only key.",
-  "@backupInfo": {
-    "description": "Backup screen intro: what a backup holds and what encryption does"
-  },
-  "backupInfoEmpty": "Nothing to back up yet. A backup holds every entry with its audio and reflections.",
-  "@backupInfoEmpty": {
-    "description": "Backup intro when the measured journal is empty"
-  },
-  "backupInfoMeasured": "{count, plural, one {A backup holds your 1 entry with its audio and reflections, about {size}.} other {A backup holds all {count} entries with their audio and reflections, about {size}.}} Encrypt it and your passphrase is the only key.",
-  "@backupInfoMeasured": {
-    "description": "Backup intro once measured: entry count and approximate size, then the encryption line",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "size": {
-        "type": "String"
-      }
-    }
-  },
-  "backupExportSection": "Export",
-  "@backupExportSection": {
-    "description": "Section label over the audio toggle and the per-format export action rows"
-  },
-  "backupExportAs": "Export as {format}",
-  "@backupExportAs": {
-    "description": "Export card action row, one per format; format is the localized format name",
-    "placeholders": {
-      "format": {
-        "type": "String"
-      }
-    }
-  },
-  "backupExportInfo": "Writes every entry in a format you choose at export time, zipped for the share sheet. A copy for other apps; restoring needs a backup.",
-  "@backupExportInfo": {
-    "description": "Help paragraph under the export card"
-  },
   "backupSeal": "Encrypt with passphrase",
   "@backupSeal": {
     "description": "Toggle for sealing archives with a passphrase"
-  },
-  "backupSave": "Export backup",
-  "@backupSave": {
-    "description": "Backup card row exporting the restorable archive, and the seal sheet action"
   },
   "backupLastBackup": "Last backup {date}",
   "@backupLastBackup": {
@@ -1825,14 +1741,6 @@
         "type": "String"
       }
     }
-  },
-  "passphraseCreateTitle": "Encrypt the backup",
-  "@passphraseCreateTitle": {
-    "description": "Sealing passphrase sheet title"
-  },
-  "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the backup is noise.",
-  "@passphraseCreateBody": {
-    "description": "Sealing passphrase sheet body: the passphrase is the only key"
   },
   "backupEntryCount": "{count, plural, =0 {No entries yet} one {1 entry} other {{count} entries}}",
   "@backupEntryCount": {
@@ -2091,14 +1999,6 @@
   "@passphraseHide": {
     "description": "Passphrase field toggle hiding the typed secret again"
   },
-  "importUnlockTitle": "Encrypted backup",
-  "@importUnlockTitle": {
-    "description": "Unlock sheet title for a sealed archive"
-  },
-  "importUnlockBody": "Enter the passphrase this backup was encrypted with.",
-  "@importUnlockBody": {
-    "description": "Unlock sheet body asking for the sealing passphrase"
-  },
   "importUnlock": "Unlock",
   "@importUnlock": {
     "description": "Backup card leading capsule that opens a sealed backup with the passphrase typed under it"
@@ -2106,78 +2006,6 @@
   "importWrongPassphrase": "Could not unlock. Wrong passphrase, or a damaged file.",
   "@importWrongPassphrase": {
     "description": "Unlock retry error; GCM cannot tell wrong passphrase from damage"
-  },
-  "importConfirmTitle": "Restore this backup?",
-  "@importConfirmTitle": {
-    "description": "Import confirmation sheet title"
-  },
-  "importConfirmBody": "Adds its entries to your journal. An entry that already exists takes the backup's version, undoing edits made since that backup. Restoring the same backup twice never duplicates.",
-  "@importConfirmBody": {
-    "description": "Import confirmation body: additive, but an existing entry is overwritten by the backup's copy"
-  },
-  "importConfirm": "Restore",
-  "@importConfirm": {
-    "description": "Import confirmation action button"
-  },
-  "importSummaryTitle": "Restore complete",
-  "@importSummaryTitle": {
-    "description": "Import summary sheet title"
-  },
-  "importSummaryAdded": "{count, plural, =0 {Nothing new to add.} one {Added 1 entry.} other {Added {count} entries.}}",
-  "@importSummaryAdded": {
-    "description": "Summary line for entries the restore newly added",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "importSummaryReplaced": "{count, plural, one {1 entry was replaced with the backup's version.} other {{count} entries were replaced with the backup's version.}}",
-  "@importSummaryReplaced": {
-    "description": "Summary line for existing entries the restore overwrote, shown only when some were",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "importSummarySkipped": "{count, plural, one {1 entry was already in the journal.} other {{count} entries were already in the journal.}}",
-  "@importSummarySkipped": {
-    "description": "Summary line for entries already present, shown only when some were",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "importSummaryAudio": "{count, plural, one {1 recording restored.} other {{count} recordings restored.}}",
-  "@importSummaryAudio": {
-    "description": "Summary line for recordings the restore put back, shown only when some were",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "importConfirmCounts": "{count, plural, one {1 entry} other {{count} entries}} · {audio, plural, =0 {no recordings} one {1 recording} other {{audio} recordings}}",
-  "@importConfirmCounts": {
-    "description": "Restore confirm fact line: what a plain archive's manifest says it holds",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "audio": {
-        "type": "int"
-      }
-    }
-  },
-  "importFailedTitle": "Restore failed",
-  "@importFailedTitle": {
-    "description": "Import failure sheet title"
-  },
-  "importFailedBody": "The backup could not be read. Nothing in the journal was changed.",
-  "@importFailedBody": {
-    "description": "Generic import failure body; journal unchanged"
   },
   "restoreUnreadable": "The backup could not be read. Nothing in the journal was changed.",
   "@restoreUnreadable": {
@@ -2238,10 +2066,6 @@
   "done": "Done",
   "@done": {
     "description": "Generic dismiss button"
-  },
-  "importFailedMidway": "The restore stopped partway. Everything restored so far is kept; restore again to finish.",
-  "@importFailedMidway": {
-    "description": "Failure body when adoption already wrote; restored entries are kept"
   },
   "settingsSupport": "Support",
   "@settingsSupport": {

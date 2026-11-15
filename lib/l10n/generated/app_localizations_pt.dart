@@ -603,28 +603,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get modelDownload => 'Transferir';
 
   @override
-  String get modelUse => 'Usar';
-
-  @override
-  String get modelInUse => 'Em uso';
-
-  @override
   String get transcriptionDownloadFootnote =>
       'As transferências só decorrem com a app aberta. Se sair, a transferência retoma onde parou quando voltar.';
 
   @override
   String modelDownloadButton(String model) {
     return 'Transferir $model';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return 'Usar $model';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model em uso';
   }
 
   @override
@@ -635,11 +619,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return 'A transferir $model, $percent%';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model é demasiado grande para este iPhone';
   }
 
   @override
@@ -1183,9 +1162,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get exportEntry => 'Exportar';
 
   @override
-  String get exportEntryTitle => 'Exportar a entrada';
-
-  @override
   String get exportEntryPreparing => 'A exportar…';
 
   @override
@@ -1217,9 +1193,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => 'Pesquisa e leitor, em qualquer navegador.';
-
-  @override
-  String get exportFailedTitle => 'A exportação falhou';
 
   @override
   String get exportFailedBody => 'Não foi possível preparar os ficheiros. Nada foi partilhado.';
@@ -1292,55 +1265,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsBackup => 'Cópia de segurança';
 
   @override
-  String get backupInfo =>
-      'Uma cópia de segurança guarda cada entrada com o áudio e as reflexões. Se a encriptar, a frase-passe é a única chave.';
-
-  @override
-  String get backupInfoEmpty =>
-      'Ainda não há nada para guardar. Uma cópia de segurança guarda cada entrada com o áudio e as reflexões.';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other:
-          'Uma cópia de segurança guarda as suas $count entradas com o áudio e as reflexões, cerca de $size.',
-      one:
-          'Uma cópia de segurança guarda a sua única entrada com o áudio e as reflexões, cerca de $size.',
-    );
-    return '$_temp0 Se a encriptar, a frase-passe é a única chave.';
-  }
-
-  @override
-  String get backupExportSection => 'Exportação';
-
-  @override
-  String backupExportAs(String format) {
-    return 'Exportar como $format';
-  }
-
-  @override
-  String get backupExportInfo =>
-      'Escreve cada entrada num formato escolhido na altura da exportação, num zip para a folha de partilha. Uma cópia para outras apps; restaurar exige uma cópia de segurança.';
-
-  @override
   String get backupSeal => 'Encriptar com frase-passe';
-
-  @override
-  String get backupSave => 'Exportar cópia de segurança';
 
   @override
   String backupLastBackup(String date) {
     return 'Última cópia $date';
   }
-
-  @override
-  String get passphraseCreateTitle => 'Encriptar a cópia de segurança';
-
-  @override
-  String get passphraseCreateBody =>
-      'A frase-passe é a única chave. Não fica guardada em lado nenhum; sem ela, a cópia é ruído.';
 
   @override
   String backupEntryCount(int count) {
@@ -1587,101 +1517,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get passphraseHide => 'Ocultar';
 
   @override
-  String get importUnlockTitle => 'Cópia de segurança encriptada';
-
-  @override
-  String get importUnlockBody =>
-      'Introduza a frase-passe com que esta cópia de segurança foi encriptada.';
-
-  @override
   String get importUnlock => 'Desbloquear';
 
   @override
   String get importWrongPassphrase =>
       'Não foi possível desbloquear. Frase-passe errada, ou ficheiro danificado.';
-
-  @override
-  String get importConfirmTitle => 'Restaurar esta cópia de segurança?';
-
-  @override
-  String get importConfirmBody =>
-      'Acrescenta as entradas da cópia ao seu diário. Uma entrada que já existe passa a ter a versão da cópia, desfazendo as edições feitas desde então. Restaurar a mesma cópia duas vezes nunca duplica.';
-
-  @override
-  String get importConfirm => 'Restaurar';
-
-  @override
-  String get importSummaryTitle => 'Restauro concluído';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entradas acrescentadas.',
-      one: '1 entrada acrescentada.',
-      zero: 'Nada de novo para acrescentar.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entradas foram substituídas pela versão da cópia.',
-      one: '1 entrada foi substituída pela versão da cópia.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entradas já estavam no diário.',
-      one: '1 entrada já estava no diário.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count gravações restauradas.',
-      one: '1 gravação restaurada.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count entradas',
-      one: '1 entrada',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '$audio gravações',
-      one: '1 gravação',
-      zero: 'sem gravações',
-    );
-    return '$_temp0 · $_temp1';
-  }
-
-  @override
-  String get importFailedTitle => 'O restauro falhou';
-
-  @override
-  String get importFailedBody =>
-      'Não foi possível ler a cópia de segurança. Nada no diário foi alterado.';
 
   @override
   String get restoreUnreadable =>
@@ -1731,10 +1571,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get done => 'Concluído';
-
-  @override
-  String get importFailedMidway =>
-      'O restauro parou a meio. O que já foi restaurado mantém-se; restaure de novo para terminar.';
 
   @override
   String get settingsSupport => 'Apoiar';

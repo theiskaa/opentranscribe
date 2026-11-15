@@ -576,28 +576,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get modelDownload => '다운로드';
 
   @override
-  String get modelUse => '사용';
-
-  @override
-  String get modelInUse => '사용 중';
-
-  @override
   String get transcriptionDownloadFootnote =>
       '다운로드는 앱이 열려 있는 동안에만 진행됩니다. 앱을 떠나도 돌아오면 멈춘 곳에서 이어집니다.';
 
   @override
   String modelDownloadButton(String model) {
     return '$model 다운로드';
-  }
-
-  @override
-  String modelUseButton(String model) {
-    return '$model 사용';
-  }
-
-  @override
-  String modelInUseLabel(String model) {
-    return '$model 사용 중';
   }
 
   @override
@@ -608,11 +592,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String modelDownloadingLabel(String model, int percent) {
     return '$model 다운로드 중, $percent%';
-  }
-
-  @override
-  String modelTooHeavyLabel(String model) {
-    return '$model은(는) 이 iPhone에 너무 큽니다';
   }
 
   @override
@@ -1124,9 +1103,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportEntry => '내보내기';
 
   @override
-  String get exportEntryTitle => '항목 내보내기';
-
-  @override
   String get exportEntryPreparing => '내보내는 중…';
 
   @override
@@ -1158,9 +1134,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exportFormatWebNote => '검색과 플레이어, 어떤 브라우저에서도.';
-
-  @override
-  String get exportFailedTitle => '내보내기 실패';
 
   @override
   String get exportFailedBody => '파일을 준비하지 못했습니다. 아무것도 공유되지 않았습니다.';
@@ -1231,49 +1204,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsBackup => '백업';
 
   @override
-  String get backupInfo => '백업에는 모든 항목과 오디오, 돌아보기가 담깁니다. 암호화하면 암호구가 유일한 열쇠입니다.';
-
-  @override
-  String get backupInfoEmpty => '아직 백업할 것이 없습니다. 백업에는 항목과 오디오, 돌아보기가 담깁니다.';
-
-  @override
-  String backupInfoMeasured(int count, String size) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '백업에는 항목 $count개와 오디오, 돌아보기가 담기며 약 $size입니다. 암호화하면 암호구가 유일한 열쇠입니다.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get backupExportSection => '내보내기';
-
-  @override
-  String backupExportAs(String format) {
-    return '$format 형식으로 내보내기';
-  }
-
-  @override
-  String get backupExportInfo =>
-      '모든 항목을 내보낼 때 선택한 형식으로 zip으로 묶어 공유 시트로 전달합니다. 다른 앱에서 읽기 위한 사본이며, 복원에는 백업이 필요합니다.';
-
-  @override
   String get backupSeal => '암호구로 암호화';
-
-  @override
-  String get backupSave => '백업 내보내기';
 
   @override
   String backupLastBackup(String date) {
     return '마지막 백업 $date';
   }
-
-  @override
-  String get passphraseCreateTitle => '백업 암호화';
-
-  @override
-  String get passphraseCreateBody => '암호구가 유일한 열쇠입니다. 어디에도 저장되지 않으며, 없으면 백업은 잡음일 뿐입니다.';
 
   @override
   String backupEntryCount(int count) {
@@ -1459,84 +1395,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passphraseHide => '숨기기';
 
   @override
-  String get importUnlockTitle => '암호화된 백업';
-
-  @override
-  String get importUnlockBody => '이 백업을 암호화한 암호구를 입력하세요.';
-
-  @override
   String get importUnlock => '잠금 해제';
 
   @override
   String get importWrongPassphrase => '열 수 없습니다. 암호구가 틀렸거나 파일이 손상되었습니다.';
-
-  @override
-  String get importConfirmTitle => '이 백업을 복원할까요?';
-
-  @override
-  String get importConfirmBody =>
-      '그 항목을 저널에 추가합니다. 이미 있는 항목은 백업의 버전으로 교체되어 그 이후의 편집이 사라집니다. 같은 백업을 두 번 복원해도 중복되지 않습니다.';
-
-  @override
-  String get importConfirm => '복원';
-
-  @override
-  String get importSummaryTitle => '복원 완료';
-
-  @override
-  String importSummaryAdded(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '항목 $count개를 추가했습니다.',
-      zero: '새로 추가할 것이 없습니다.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryReplaced(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count개는 백업의 버전으로 교체되었습니다.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummarySkipped(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count개는 이미 저널에 있었습니다.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String importSummaryAudio(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '녹음 $count개를 복원했습니다.');
-    return '$_temp0';
-  }
-
-  @override
-  String importConfirmCounts(int count, int audio) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '항목 $count개');
-    String _temp1 = intl.Intl.pluralLogic(
-      audio,
-      locale: localeName,
-      other: '녹음 $audio개',
-      zero: '녹음 없음',
-    );
-    return '$_temp0 · $_temp1';
-  }
-
-  @override
-  String get importFailedTitle => '복원 실패';
-
-  @override
-  String get importFailedBody => '백업을 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
 
   @override
   String get restoreUnreadable => '백업을 읽을 수 없습니다. 저널은 아무것도 바뀌지 않았습니다.';
@@ -1582,9 +1444,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get done => '완료';
-
-  @override
-  String get importFailedMidway => '복원이 도중에 멈췄습니다. 지금까지 복원된 것은 유지됩니다. 다시 복원하면 마무리됩니다.';
 
   @override
   String get settingsSupport => '후원';
