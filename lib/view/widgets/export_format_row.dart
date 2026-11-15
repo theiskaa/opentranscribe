@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:opentranscribe/core/models/exporter_descriptor.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
@@ -44,7 +44,7 @@ class ExportFormatRow extends StatelessWidget {
       label: label ?? copy.name,
       note: copy.note,
       leading: busy
-          ? AppSpinner(size: ExporterLogo._size, color: context.theme.textSecondary)
+          ? AppLoader(size: ExporterLogo._size, color: context.theme.textSecondary)
           : ExporterLogo(descriptor),
       selected: selected,
       dimmed: dimmed,

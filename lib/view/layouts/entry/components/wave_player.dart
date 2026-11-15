@@ -239,7 +239,7 @@ class _RateChip extends StatelessWidget {
 }
 
 /// The wave, sized in whole bars. Draws its floor until the file's shape
-/// arrives, then grows into it, so nothing jumps and no spinner is needed.
+/// arrives, then grows into it, so nothing jumps and no loader is needed.
 class _Wave extends StatefulWidget {
   const _Wave({
     required this.peaks,

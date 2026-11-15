@@ -4,14 +4,14 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/progress_ring.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
-/// Whether a chip's download shows a spinner rather than its ring: no
+/// Whether a chip's download shows a loader rather than its ring: no
 /// fraction yet, or a preparing tail with none to show, is an indeterminate
 /// wait, and an empty or full ring reads as stalled.
-bool chipProgressSpins(double fraction, {bool preparing = false}) => fraction <= 0 || preparing;
+bool chipProgressWaits(double fraction, {bool preparing = false}) => fraction <= 0 || preparing;
 
 /// One chip of the transcription screen's strips, the languages' and the
 /// models': a surface squircle around whatever [child] says. A null [onTap]
@@ -47,8 +47,8 @@ class StripChip extends StatelessWidget {
   }
 }
 
-/// A downloading chip's trailing mark: its ring, or a spinner while
-/// [chipProgressSpins] says the wait has no fraction to show.
+/// A downloading chip's trailing mark: its ring, or a loader while
+/// [chipProgressWaits] says the wait has no fraction to show.
 class StripChipProgress extends StatelessWidget {
   const StripChipProgress({required this.fraction, this.preparing = false, super.key});
 
@@ -60,8 +60,8 @@ class StripChipProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = context.theme.textSecondary;
-    return chipProgressSpins(fraction, preparing: preparing)
-        ? AppSpinner(size: _size, color: ink)
+    return chipProgressWaits(fraction, preparing: preparing)
+        ? AppLoader(size: _size, color: ink)
         : ProgressRing(fraction: fraction, size: _size);
   }
 }

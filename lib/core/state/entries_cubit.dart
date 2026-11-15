@@ -235,7 +235,7 @@ class EntriesCubit extends Cubit<EntriesState> {
   /// cannot be clobbered.
   Future<void> rename(Entry entry, String? title) async {
     // Deliberately no busyId: a title commit must not flash the transcript
-    // into a spinner, and it must not clear a running retranscribe's busy.
+    // into a loader, and it must not clear a running retranscribe's busy.
     try {
       await _service.renameEntry(entry, title);
     } catch (e) {

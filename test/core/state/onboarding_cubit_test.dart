@@ -96,20 +96,20 @@ void main() {
     await cubit.close();
   });
 
-  test('a throwing mic request resets the spinner and stays retryable', () async {
-    // A channel error is not an answer: the status must stay undetermined so
-    // the next Next tap retries instead of a spinner stuck forever.
-    final cubit = build(micThrows: true);
-    await cubit.requestMic();
-    expect(cubit.state.mic, PermissionStatus.undetermined);
-    expect(cubit.state.requestingMic, isFalse);
-    // The in-flight guard must not eat the retry.
-    await cubit.requestMic();
-    expect(cubit.state.requestingMic, isFalse);
-    await cubit.close();
-  });
+  test(
+    'a throwing mic request is no answer: the status stays undetermined and the next tap retries',
+    () async {
+      final cubit = build(micThrows: true);
+      await cubit.requestMic();
+      expect(cubit.state.mic, PermissionStatus.undetermined);
+      expect(cubit.state.requestingMic, isFalse);
+      await cubit.requestMic();
+      expect(cubit.state.requestingMic, isFalse);
+      await cubit.close();
+    },
+  );
 
-  test('a throwing speech request resets the spinner and stays retryable', () async {
+  test('a throwing speech request resets the loader and stays retryable', () async {
     final cubit = build(speechThrows: true);
     await cubit.requestSpeech();
     expect(cubit.state.speech, SpeechPermission.undetermined);

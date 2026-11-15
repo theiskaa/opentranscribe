@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 
 /// Lays a placeholder cloud's lines out at [width] and the reader's text
@@ -35,7 +35,7 @@ enum InkPhase {
 /// The invisible-ink driver for text that arrives by being written in place:
 /// wraps [child] in a capture boundary, owns the crossfade and the shimmer
 /// clock, and gates the whole effect on Reduce Motion (immediate text; a plain
-/// spinner while pending). [InvisibleInk] itself always shimmers; every
+/// loader while pending). [InvisibleInk] itself always shimmers; every
 /// choreography decision lives here.
 ///
 /// The write-on never shows bare text early: the first frame renders the child
@@ -344,11 +344,11 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
     final boundedChild = RepaintBoundary(key: _textKey, child: widget.child);
 
     if (widget.phase == InkPhase.pending && !_shimmering) {
-      if (reduceMotion) return _PendingSpinner(color: widget.color);
+      if (reduceMotion) return _PendingLoader(color: widget.color);
       // First pending build before didUpdateWidget ran (mounted straight into
       // pending): form the cloud once the first frame exists.
       _schedule(() => _beginDissolve(hadText: false));
-      return _PendingSpinner(color: widget.color);
+      return _PendingLoader(color: widget.color);
     }
 
     final inkSize = _inkSize;
@@ -419,9 +419,9 @@ class _InkRevealState extends State<InkReveal> with TickerProviderStateMixin {
 }
 
 /// The Reduce Motion (and no-cloud) stand-in while work is in flight: the
-/// sanctioned dots, left-aligned like a forming paragraph.
-class _PendingSpinner extends StatelessWidget {
-  const _PendingSpinner({required this.color});
+/// app's loader, left-aligned like a forming paragraph.
+class _PendingLoader extends StatelessWidget {
+  const _PendingLoader({required this.color});
 
   final Color color;
 
@@ -431,7 +431,7 @@ class _PendingSpinner extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: AppSpinner(size: 30, color: color),
+        child: AppLoader(size: AppLoaderSize.prose, color: color),
       ),
     );
   }

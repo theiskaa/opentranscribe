@@ -11,7 +11,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
@@ -277,7 +277,7 @@ class _SheetRow extends StatelessWidget {
       return RowMarkSeat(
         height: seat,
         child: fraction <= 0
-            ? AppSpinner(size: RowMark.circle, color: theme.text)
+            ? AppLoader(size: RowMark.circle, color: theme.text)
             : ProgressRing(fraction: fraction, size: RowMark.circle, strokeWidth: RowMark.stroke),
       );
     }

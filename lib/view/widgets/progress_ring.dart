@@ -6,7 +6,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 
 /// A quiet determinate ring: a hairline track and an accent arc growing
 /// clockwise from twelve o'clock. The app's first fraction-true progress
-/// control (the spinner stays for waits with no known end). The arc EASES
+/// control (the loader stays for waits with no known end). The arc EASES
 /// between reported fractions: downloads report in coarse jumps, and a ring
 /// that snaps between them reads as broken rather than busy. Interruptible by
 /// construction; a new fraction retargets the glide mid-flight.

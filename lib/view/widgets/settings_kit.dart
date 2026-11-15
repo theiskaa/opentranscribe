@@ -10,7 +10,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/app_toggle.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/locale_flag.dart';
@@ -497,7 +497,7 @@ class SettingsBusyRow extends StatelessWidget {
             AnimatedSwitcher(
               duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
               child: busy
-                  ? AppSpinner(size: AppIconSize.tile, color: theme.textSecondary)
+                  ? AppLoader(size: AppIconSize.tile, color: theme.textSecondary)
                   : detail != null
                   ? Text(
                       detail!,

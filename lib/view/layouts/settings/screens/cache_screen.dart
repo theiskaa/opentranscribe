@@ -22,7 +22,7 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -87,7 +87,7 @@ List<double> storageBarWidths(List<double> shares, {required double width, requi
 }
 
 /// What stands where the clear pill does: the pill while there is something
-/// to clear, a spinner while a clear runs, what the last clear freed once
+/// to clear, a loader while a clear runs, what the last clear freed once
 /// nothing is left, else that nothing is.
 enum ClearFace { clear, clearing, freed, nothing }
 
@@ -481,7 +481,7 @@ class _ClearSeat extends StatelessWidget {
     final duration = context.reduceMotion ? Duration.zero : motion.indicator;
     final Widget seat = switch (face) {
       ClearFace.clear => _ClearPill(label: l10n.cacheClearAction, onTap: onClear),
-      ClearFace.clearing => AppSpinner(size: AppIconSize.tile, color: theme.textSecondary),
+      ClearFace.clearing => AppLoader(size: AppIconSize.tile, color: theme.textSecondary),
       ClearFace.freed => Row(
         mainAxisSize: MainAxisSize.min,
         children: [

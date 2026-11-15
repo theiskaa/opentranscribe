@@ -31,7 +31,7 @@ class OnboardingState {
   /// Notification permission for the reflection reminders, as answered here.
   final NotificationPermission reminders;
 
-  /// A prompt is in flight, so the row shows a spinner and ignores a second tap.
+  /// A prompt is in flight, so the row shows a loader and ignores a second tap.
   final bool requestingMic;
   final bool requestingSpeech;
   final bool requestingReminders;

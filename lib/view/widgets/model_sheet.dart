@@ -11,7 +11,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
 import 'package:opentranscribe/view/widgets/model_actions.dart';
@@ -63,7 +63,7 @@ enum ModelSheetMark {
   stop,
 
   /// A wait with nothing to show or stop (the Neural Engine's preparation).
-  spinner,
+  loader,
 
   /// The model in use.
   check,
@@ -83,7 +83,7 @@ enum ModelSheetMark {
 
 ModelSheetMark modelSheetMark(ModelRowState row) => switch (modelRowFace(row)) {
   ModelRowFace.installing =>
-    row.cancellable && !row.preparing ? ModelSheetMark.stop : ModelSheetMark.spinner,
+    row.cancellable && !row.preparing ? ModelSheetMark.stop : ModelSheetMark.loader,
   ModelRowFace.selected => ModelSheetMark.check,
   ModelRowFace.installed => ModelSheetMark.trash,
   // One that downloaded but will not open goes by the trash; the tap retries.
@@ -371,7 +371,7 @@ class _Mark extends StatelessWidget {
         fraction: row.queued ? 0 : row.installFraction ?? 0,
         size: RowMark.circle,
       ),
-      ModelSheetMark.spinner => AppSpinner(size: RowMark.circle, color: theme.text),
+      ModelSheetMark.loader => AppLoader(size: RowMark.circle, color: theme.text),
       ModelSheetMark.check => AppIcon(
         AppIcons.checkmark,
         size: RowMark.glyph,

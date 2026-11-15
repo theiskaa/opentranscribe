@@ -77,7 +77,7 @@ void main() {
     test('the Neural Engine preparation is a wait with nothing to stop', () {
       expect(
         modelSheetMark(row(installFraction: 1, preparing: true, cancellable: true)),
-        ModelSheetMark.spinner,
+        ModelSheetMark.loader,
       );
     });
 

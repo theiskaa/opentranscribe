@@ -263,7 +263,7 @@ class _TakeState extends State<_Take> with TickerProviderStateMixin {
   /// from what the eye had.
   List<double> _carried = const [];
 
-  /// Mounted straight into its cloud, the ink shows a spinner for a frame.
+  /// Mounted straight into its cloud, the ink shows a loader for a frame.
   bool _inkArmed = false;
 
   @override

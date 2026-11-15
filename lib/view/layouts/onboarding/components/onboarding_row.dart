@@ -23,7 +23,7 @@ class OnboardingRow extends StatelessWidget {
   final String? note;
   final Widget trailing;
 
-  /// The seat's floor: a spinner, a checkmark, or nothing must all take the
+  /// The seat's floor: a loader, a checkmark, or nothing must all take the
   /// same room, or the note reflows as the answer lands.
   static const double _seatMinWidth = 28;
 

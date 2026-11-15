@@ -19,7 +19,7 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/export_format_row.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
@@ -434,7 +434,7 @@ class _RestoreFab extends StatelessWidget {
     }
     return SizedBox.square(
       dimension: GlassFab.size,
-      child: Center(child: AppSpinner(size: 24, color: context.theme.textSecondary)),
+      child: Center(child: AppLoader(size: 24, color: context.theme.textSecondary)),
     );
   }
 }

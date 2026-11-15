@@ -84,7 +84,7 @@ final class ReflectionsState {
 
   /// The generate-all backfill is in flight: withdraws the menu action so it
   /// cannot be fired twice while running. The work itself shows through the
-  /// pages appearing (the floors drop, the backlog fills), not a spinner.
+  /// pages appearing (the floors drop, the backlog fills), not a loader.
   final bool generatingAll;
 
   /// The period start whose regenerate is in flight, or null.

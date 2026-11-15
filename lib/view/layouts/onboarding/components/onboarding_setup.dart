@@ -15,7 +15,7 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_pag
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_row.dart';
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_steps.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:reflections/reflections.dart';
@@ -169,9 +169,7 @@ class _PermissionSeat extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     if (granted) return AppIcon(AppIcons.checkmark, size: AppIconSize.bar, color: theme.accent);
-    // theme.text, not textSecondary: the spinner picks its dot color by the
-    // tint's luminance, and dark mode's mid-gray secondary picks black dots.
-    if (requesting) return AppSpinner(size: AppIconSize.bar, color: theme.text);
+    if (requesting) return AppLoader(size: AppIconSize.bar, color: theme.text);
     if (denied) {
       // The prompt only ever shows once; a denied permission can be granted
       // only from the system Settings, so send them there.

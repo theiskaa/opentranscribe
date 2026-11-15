@@ -255,7 +255,7 @@ void main() {
     await cubit.close();
   });
 
-  test('an unexpected regenerate failure still clears the spinner', () async {
+  test('an unexpected regenerate failure still clears the loader', () async {
     entries = [withText('a', DateTime(2026, 7, 22, 12), text: 'work')];
     engine.error = StateError('persist failed');
     final cubit = build();

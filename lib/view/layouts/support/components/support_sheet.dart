@@ -18,7 +18,7 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
-import 'package:opentranscribe/view/widgets/app_spinner.dart';
+import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/club_lockup.dart';
 import 'package:opentranscribe/view/widgets/dither_field.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -329,7 +329,7 @@ class _ClubHalo extends StatelessWidget {
 }
 
 /// The restore action as a quiet centered link. The Touchable hugs the label
-/// inside a stable seat, so the spinner swap never shifts it and a full-width
+/// inside a stable seat, so the loader swap never shifts it and a full-width
 /// strip never fires restore on a stray tap.
 class _RestoreLink extends StatelessWidget {
   const _RestoreLink({required this.onRestore, required this.restoring});
@@ -350,7 +350,7 @@ class _RestoreLink extends StatelessWidget {
           child: AnimatedSwitcher(
             duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
             child: restoring
-                ? AppSpinner(size: 14, color: theme.textSecondary)
+                ? AppLoader(size: AppIconSize.accessory, color: theme.textSecondary)
                 : Text(
                     l10n.supportRestore,
                     key: const ValueKey('restore'),
