@@ -59,3 +59,5 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.config.dart"
     - "lib/l10n/generated/**"
+    - build/**
+    - ios/**

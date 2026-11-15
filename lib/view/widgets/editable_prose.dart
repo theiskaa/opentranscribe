@@ -1,3 +1,5 @@
+// The platform's own selection chrome, until it moves to cupertino_ui.
+// ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart'
     show
         CupertinoAdaptiveTextSelectionToolbar,

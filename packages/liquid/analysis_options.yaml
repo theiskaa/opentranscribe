@@ -5,3 +5,7 @@ include: package:flutter_lints/flutter.yaml
 # it arrived; without it a root `dart format .` rewraps the package to 80.
 formatter:
   page_width: 100
+analyzer:
+  exclude:
+    - build/**
+    - ios/**

@@ -1,4 +1,8 @@
+// The platform's own selection chrome, until it moves to cupertino_ui and
+// material_ui.
+// ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart' show AdaptiveTextSelectionToolbar, SelectionArea;
 import 'package:flutter/rendering.dart' show SelectedContent;
 import 'package:flutter/widgets.dart';
