@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/component_themes.dart';
 
 /// Whether [context]'s route is still the top one. Every sheet opener asks
 /// first: two pointers landing on two openers in one frame would otherwise
@@ -385,24 +386,14 @@ class _SheetBodyState extends State<_SheetBody>
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // The grabber, the one affordance that says this drags down.
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-                          child: Container(
-                            width: sheet.grabberWidth,
-                            height: sheet.grabberHeight,
-                            decoration: BoxDecoration(
-                              color: sheet.grabberColor,
-                              borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
-                            ),
-                          ),
-                        ),
                         Flexible(
                           child: SingleChildScrollView(
                             controller: _scroll,
+                            // Under the grabber's seat, so content rests where it
+                            // always did yet scrolls on up to the panel's edge.
                             padding: EdgeInsets.fromLTRB(
                               widget.inset,
-                              AppSpacing.xxl,
+                              _grabberSeat(sheet) + AppSpacing.xxl,
                               widget.inset,
                               // Under a keyboard the framework already zeroes
                               // padding.bottom, so this clears the IME; without
@@ -431,11 +422,44 @@ class _SheetBodyState extends State<_SheetBody>
                           ),
                       ],
                     ),
+                    // The grabber floats over the content, the one affordance
+                    // that says this drags down, with nothing drawn behind it.
+                    Positioned(
+                      top: AppSpacing.sm,
+                      left: 0,
+                      right: 0,
+                      child: Center(child: _Grabber(sheet: sheet)),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The band the grabber floats in: its top inset, the pill, and the gap the
+/// content first rests below.
+double _grabberSeat(SheetTheme sheet) => AppSpacing.sm + sheet.grabberHeight + AppSpacing.xs;
+
+/// The sheet's grabber: a plain pill, drawn over the content.
+class _Grabber extends StatelessWidget {
+  const _Grabber({required this.sheet});
+
+  final SheetTheme sheet;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: sheet.grabberWidth,
+        height: sheet.grabberHeight,
+        decoration: BoxDecoration(
+          color: sheet.grabberColor,
+          borderRadius: BorderRadius.circular(sheet.grabberHeight / 2),
         ),
       ),
     );
