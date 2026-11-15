@@ -32,6 +32,10 @@ const _zipVersion = 10;
 const _chunkSize = 1 << 20;
 const _maxUint32 = 0xffffffff;
 
+/// The most a zip comment can hold, so the end record sits within this many
+/// bytes, plus its own, of the end of the file.
+const _maxCommentLength = 0xffff;
+
 /// One below the zip64 sentinel 0xffff, so an archive we write can never be
 /// ambiguous to a reader probing for zip64.
 const _maxEntries = 0xfffe;
@@ -248,13 +252,14 @@ final class StoredZipWriter {
   static const _dosEpochDate = (1 << 5) | 1;
 }
 
-/// Reads zips this app wrote: store-only, strict. The end record must sit at
-/// the exact end of the file with no comment, every entry must be method 0
-/// with matching sizes, sane relative names, and non-overlapping data, and
-/// every read verifies the CRC, so damage surfaces as
+/// [open] reads zips this app wrote, store-only and strict: the end record
+/// must sit at the exact end of the file with no comment, every entry must be
+/// method 0 with matching sizes, sane relative names, and non-overlapping
+/// data, and every read verifies the CRC, so damage surfaces as
 /// [StoredZipError.malformed] instead of silently wrong bytes. A deflate or
 /// zip64 archive answers [StoredZipError.unsupported]: a real zip, just not
-/// one of ours.
+/// one of ours. [listNames] only lists any zip's names, and reads nothing
+/// else.
 ///
 /// Reads seek one shared file handle; callers must not read concurrently.
 final class StoredZipReader {
@@ -293,6 +298,85 @@ final class StoredZipReader {
       await file.close();
       rethrow;
     }
+  }
+
+  /// The names a zip's central directory lists, read without the stored-only
+  /// rules [open] enforces: a compressed or commented zip lists its names
+  /// too, so a file can be told apart from a backup before anyone tries to
+  /// read it. The end record is the last one whose comment reaches exactly
+  /// to the end of the file. Throws [StoredZipException]: unsupported for a
+  /// zip64 archive, which this app never writes, malformed when there is no
+  /// directory to list.
+  static Future<List<String>> listNames(File source) async {
+    final file = await source.open();
+    try {
+      final length = await file.length();
+      if (length < _endRecordLength) {
+        throw const StoredZipException(StoredZipError.malformed, 'too short for a zip');
+      }
+      final tailLength = length < _endRecordLength + _maxCommentLength
+          ? length
+          : _endRecordLength + _maxCommentLength;
+      await file.setPosition(length - tailLength);
+      final tail = ByteData.sublistView(await _readExact(file, tailLength));
+      final at = _endRecordIn(tail);
+      if (at == null) {
+        throw const StoredZipException(StoredZipError.malformed, 'zip end record not found');
+      }
+      final count = tail.getUint16(at + 10, Endian.little);
+      final directorySize = tail.getUint32(at + 12, Endian.little);
+      final directoryOffset = tail.getUint32(at + 16, Endian.little);
+      if (count == 0xffff || directorySize == _maxUint32 || directoryOffset == _maxUint32) {
+        throw const StoredZipException(StoredZipError.unsupported, 'zip64 archive');
+      }
+      if (directorySize > _maxDirectoryLength || directoryOffset + directorySize > length) {
+        throw const StoredZipException(StoredZipError.malformed, 'central directory implausible');
+      }
+      await file.setPosition(directoryOffset);
+      final directory = ByteData.sublistView(await _readExact(file, directorySize));
+      final names = <String>[];
+      var cursor = 0;
+      for (var n = 0; n < count; n++) {
+        if (cursor + _centralHeaderLength > directory.lengthInBytes ||
+            directory.getUint32(cursor, Endian.little) != _centralHeaderSignature) {
+          throw const StoredZipException(StoredZipError.malformed, 'central directory damaged');
+        }
+        final nameLength = directory.getUint16(cursor + 28, Endian.little);
+        final skip =
+            nameLength +
+            directory.getUint16(cursor + 30, Endian.little) +
+            directory.getUint16(cursor + 32, Endian.little);
+        if (cursor + _centralHeaderLength + skip > directory.lengthInBytes) {
+          throw const StoredZipException(StoredZipError.malformed, 'central directory damaged');
+        }
+        names.add(
+          utf8.decode(
+            directory.buffer.asUint8List(
+              directory.offsetInBytes + cursor + _centralHeaderLength,
+              nameLength,
+            ),
+            allowMalformed: true,
+          ),
+        );
+        cursor += _centralHeaderLength + skip;
+      }
+      return names;
+    } finally {
+      await file.close();
+    }
+  }
+
+  /// Where in [tail], the last bytes of a file, its end record starts: the
+  /// last signature whose comment length reaches exactly to the end, so a
+  /// comment that happens to hold the signature cannot pose as the record.
+  /// Null when none does.
+  static int? _endRecordIn(ByteData tail) {
+    for (var at = tail.lengthInBytes - _endRecordLength; at >= 0; at--) {
+      if (tail.getUint32(at, Endian.little) != _endSignature) continue;
+      final comment = tail.getUint16(at + 20, Endian.little);
+      if (at + _endRecordLength + comment == tail.lengthInBytes) return at;
+    }
+    return null;
   }
 
   final RandomAccessFile _file;

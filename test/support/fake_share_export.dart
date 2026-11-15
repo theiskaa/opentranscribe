@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:opentranscribe/core/export/share_export.dart';
@@ -11,7 +12,6 @@ class FakeShareExport implements ShareExport {
     this.shareCompletes = true,
     this.pickedPath,
     this.throwOnShare = false,
-    this.throwOnPick = false,
     this.throwOnProtect = false,
     this.captureTo,
   });
@@ -19,10 +19,16 @@ class FakeShareExport implements ShareExport {
   bool shareCompletes;
   String? pickedPath;
   bool throwOnShare;
-  bool throwOnPick;
   bool throwOnProtect;
   Directory? captureTo;
   Duration? shareDelay;
+
+  /// Holds [pickArchive] open until completed, like a picker still on screen.
+  Completer<void>? pickGate;
+
+  /// Thrown by [pickArchive] in place of an answer, for a picker that broke
+  /// in a way the channel did not name.
+  Object? pickError;
 
   final List<String> calls = [];
   final List<List<String>> sharedPaths = [];
@@ -52,12 +58,9 @@ class FakeShareExport implements ShareExport {
   @override
   Future<String?> pickArchive() async {
     calls.add('pickArchive');
-    if (throwOnPick) {
-      throw const ShareExportException(
-        'a share or pick is already presenting',
-        ShareExportException.busy,
-      );
-    }
+    await pickGate?.future;
+    final error = pickError;
+    if (error != null) throw error;
     return pickedPath;
   }
 

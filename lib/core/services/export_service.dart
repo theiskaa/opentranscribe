@@ -22,6 +22,8 @@ final class JournalMeasure {
     required this.entries,
     required this.recordings,
     required this.approxBytes,
+    this.since,
+    this.newSince = 0,
   });
 
   final int entries;
@@ -30,15 +32,23 @@ final class JournalMeasure {
   /// Approximate on purpose; see [ExportService.measure].
   final int approxBytes;
 
+  /// The moment [newSince] counts from; null when measured without one.
+  final DateTime? since;
+
+  /// Entries created after [since]; 0 when there is no [since].
+  final int newSince;
+
   @override
   bool operator ==(Object other) =>
       other is JournalMeasure &&
       other.entries == entries &&
       other.recordings == recordings &&
-      other.approxBytes == approxBytes;
+      other.approxBytes == approxBytes &&
+      other.since == since &&
+      other.newSince == newSince;
 
   @override
-  int get hashCode => Object.hash(entries, recordings, approxBytes);
+  int get hashCode => Object.hash(entries, recordings, approxBytes, since, newSince);
 }
 
 /// Stages export trees and hands them to the share sheet: one entry or the
@@ -110,22 +120,25 @@ class ExportService {
     List<Entry> entries,
     Map<String, String> audioNames,
   ) async {
+    final packed = <String>{};
     return [
       for (final entry in entries)
-        if (audioNames[entry.id] != null)
-          ('audio/${audioNames[entry.id]}', await _transcription.resolveAudioPath(entry)),
+        if (audioNames[entry.id] case final name? when packed.add(name))
+          ('audio/$name', await _transcription.resolveAudioPath(entry)),
     ];
   }
 
   /// Shares one entry in [exporterId]'s format. A single output file with no
   /// audio shares bare (a lone .md shares better than a zip of one); anything
   /// more zips first. [includeAudio] is honored only when the entry still has
-  /// its recording.
+  /// its recording. [onSharing] fires once the files are built, as the share
+  /// sheet is handed them.
   Future<bool> shareEntry(
     String entryId, {
     required String exporterId,
     required bool includeAudio,
     required ExportStrings strings,
+    void Function()? onSharing,
   }) async {
     final entry = _transcription.entries().firstWhere(
       (e) => e.id == entryId,
@@ -162,42 +175,59 @@ class ExportService {
         rethrow;
       }
       return [zip.path];
-    });
+    }, onSharing: onSharing);
   }
 
   /// What a backup or an audio-included export would hold right now: the
   /// entry count, how many kept recordings would ride along, and roughly
   /// what they weigh (audio file bytes plus transcript lengths; audio
   /// dominates, so the number is honest under a "~" label and never exact).
-  Future<JournalMeasure> measure() async {
+  /// With [since], also how many entries were created after it, in the same
+  /// pass.
+  Future<JournalMeasure> measure({DateTime? since}) async {
     final entries = _transcription.entries();
-    var recordings = 0;
+    final files = <String>{};
     var approxBytes = 0;
+    var newSince = 0;
     for (final entry in entries) {
+      if (since != null && entry.createdAt.isAfter(since)) newSince++;
       approxBytes += entry.readableText?.length ?? 0;
       if (entry.audioPath == null) continue;
       try {
-        approxBytes += await File(await _transcription.resolveAudioPath(entry)).length();
-        recordings++;
+        final file = File(await _transcription.resolveAudioPath(entry));
+        final bytes = await file.length();
+        // Weighed once per file, as the backup packs a shared one once.
+        if (files.add(_canonical(file.path))) approxBytes += bytes;
       } catch (_) {
         // A vanished file exports transcript-only; it weighs nothing here.
       }
     }
+    final recordings = files.length;
     return JournalMeasure(
       entries: entries.length,
       recordings: recordings,
       approxBytes: approxBytes,
+      since: since,
+      newSince: newSince,
     );
   }
 
   /// Shares the whole journal in [exporterId]'s format as one zip: every
   /// entry, the stored reflections, and the kept audio when [includeAudio].
+  ///
+  /// The callbacks follow the work, in order: [onProgress] as the pack
+  /// writes, 0 to 1, never for a pack with no files to measure; [onPackDone]
+  /// once, when the pack lands; [onSharing] once, as the built files go to
+  /// the share sheet. A build that throws stops them where it broke: none
+  /// fires after the failure, so [onSharing] never fires for files that do
+  /// not exist.
   Future<bool> shareJournal({
     required String exporterId,
     required bool includeAudio,
     required ExportStrings strings,
     void Function(double fraction)? onProgress,
     void Function()? onPackDone,
+    void Function()? onSharing,
   }) async {
     final exporter = _exporter(exporterId);
     final entries = _transcription.entries();
@@ -232,16 +262,22 @@ class ExportService {
         onPackDone,
       );
       return [zip.path];
-    });
+    }, onSharing: onSharing);
   }
 
   /// Shares the native whole-journal archive: the canonical payload zip
   /// (manifest, entry records verbatim, kept audio, reflections), plain when
   /// [passphrase] is null, else sealed into the opaque container.
+  ///
+  /// The callbacks follow [shareJournal]'s order: [onProgress] while the
+  /// payload packs, [onPackDone] once it lands (sealing, if any, runs after
+  /// it), [onSharing] once the archive goes to the share sheet. None fires
+  /// after a step that throws.
   Future<bool> shareArchive({
     String? passphrase,
     void Function(double fraction)? onProgress,
     void Function()? onPackDone,
+    void Function()? onSharing,
   }) async {
     final entries = _transcription.entries();
     final reflectionArchive = _reflections.archiveSnapshot();
@@ -257,7 +293,7 @@ class ExportService {
       await sealArchiveFile(payload: payload, target: sealed, passphrase: passphrase);
       await payload.delete();
       return [sealed.path];
-    });
+    }, onSharing: onSharing);
   }
 
   Future<void> _writeArchivePayload(
@@ -273,7 +309,7 @@ class ExportService {
       createdAt: _clock(),
       counts: ArchiveCounts(
         entries: entries.length,
-        audio: audioNames.length,
+        audio: audioNames.values.toSet().length,
         reflections: reflections.rows.length,
         tombstones: reflections.tombstones.length,
       ),
@@ -312,25 +348,43 @@ class ExportService {
     );
   }
 
-  /// Bare audio names by entry id, uniqued: basenames are UUID-based and
-  /// unique in practice, but two legacy absolute paths could collide, and one
-  /// overwritten recording in an archive would be silent data loss. Entries
+  /// Bare audio names by entry id, uniqued per file: basenames are UUID-based
+  /// and unique in practice, but two legacy absolute paths could collide, and
+  /// one overwritten recording in an archive would be silent data loss.
+  /// Entries that share one recording share its name, so the file travels
+  /// once and a restore into the same journal finds nothing changed. Entries
   /// whose audio file is missing are left out (exported transcript-only, and
   /// counted in no manifest), so record, manifest and zip always agree.
   Future<Map<String, String>> _uniqueAudioNames(List<Entry> entries) async {
     final names = <String, String>{};
+    final bySource = <String, String>{};
     final taken = <String>{};
     for (final entry in entries) {
       final path = entry.audioPath;
       if (path == null) continue;
-      if (!File(await _transcription.resolveAudioPath(entry)).existsSync()) continue;
-      final name = uniqueFileName(baseName(path), taken);
-      names[entry.id] = name;
+      final source = await _transcription.resolveAudioPath(entry);
+      if (!File(source).existsSync()) continue;
+      names[entry.id] = bySource[_canonical(source)] ??= uniqueFileName(baseName(path), taken);
     }
     return names;
   }
 
-  Future<bool> _stage(Future<List<String>> Function(Directory staging) build) async {
+  /// One spelling per resolved file, so a legacy absolute path, a resolved
+  /// bare name and a symlinked path to one recording key alike.
+  static String _canonical(String path) {
+    try {
+      return File(path).resolveSymbolicLinksSync();
+    } catch (_) {
+      return Uri.file(path).normalizePath().toFilePath();
+    }
+  }
+
+  /// [onSharing] fires once the files are built, as the share sheet is
+  /// handed them: from there the wait is the user's, not the work's.
+  Future<bool> _stage(
+    Future<List<String>> Function(Directory staging) build, {
+    void Function()? onSharing,
+  }) async {
     _staging.begin();
     try {
       final staging = await Directory.systemTemp.createTemp('export-');
@@ -343,7 +397,9 @@ class ExportService {
           // same protection class as a shared file, but a failure to apply it
           // must not block an export the user already asked for.
         }
-        return await _share.shareFiles(await build(staging));
+        final paths = await build(staging);
+        onSharing?.call();
+        return await _share.shareFiles(paths);
       } finally {
         // Cleanup must never turn a finished operation into a failure: a
         // leftover directory is exactly what the launch sweep exists for.

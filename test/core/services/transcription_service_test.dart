@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/app/local_service.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/services/entry_store.dart';
+import 'package:opentranscribe/core/services/import_merge.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
@@ -3025,6 +3026,67 @@ void main() {
     await dir.delete(recursive: true);
     await svc.dispose();
   });
+
+  test('a heal never reads peaks of a recording it believes gone', () async {
+    final dir = await Directory.systemTemp.createTemp('otr-healpeaks');
+    var reads = 0;
+    final svc = build(
+      (_) => FakeBatchEngine(),
+      recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      peaksReader: (path) async {
+        reads++;
+        File(path).writeAsStringSync('audio');
+        return const [0.5];
+      },
+    );
+    await store.save(
+      Entry(
+        id: 'hp1',
+        createdAt: fixedClock,
+        audioPath: 'gone.m4a',
+        duration: const Duration(seconds: 1),
+        transcript: canned('h'),
+      ),
+    );
+
+    expect(await svc.healDanglingAudio(), 1);
+    expect(reads, 0);
+    expect(store.read('hp1')?.audioPath, isNull);
+
+    await dir.delete(recursive: true);
+    await svc.dispose();
+  });
+
+  test(
+    'sweeps stay held until every hold is released, and releasing one twice frees no other',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('otr-healhold');
+      final svc = build(
+        (_) => FakeBatchEngine(),
+        recorder: FakeAudioRecorder(recordingsDir: dir.path),
+      );
+      await store.save(
+        Entry(
+          id: 'hh1',
+          createdAt: fixedClock,
+          audioPath: 'gone.m4a',
+          duration: const Duration(seconds: 1),
+          transcript: canned('h'),
+        ),
+      );
+      final first = svc.holdSweeps();
+      final second = svc.holdSweeps();
+      first.release();
+      first.release();
+      expect(await svc.healDanglingAudio(), 0);
+      expect(await svc.reconcileOrphans(), isNull);
+      second.release();
+      expect(await svc.healDanglingAudio(), 1);
+
+      await dir.delete(recursive: true);
+      await svc.dispose();
+    },
+  );
 
   test('the heal is a no-op while a finalize holds the unreferenced guard', () async {
     final dir = await Directory.systemTemp.createTemp('otr-healgate');

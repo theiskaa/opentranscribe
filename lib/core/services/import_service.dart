@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,22 +13,19 @@ import 'package:opentranscribe/core/export/staging_registry.dart';
 import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/services/import_merge.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 
 /// Restores a native archive into the journal: pick, sniff, decrypt when
-/// sealed, parse EVERYTHING strictly, stage audio, then adopt through the
-/// lifecycle owners. All-validate-before-any-write: until adoption starts,
-/// nothing outside a temp staging directory is touched, so a failed decrypt
-/// or a malformed archive provably changes nothing on disk. Merge is by
-/// entry id and idempotent. Every archive failure surfaces as
-/// [ArchiveException]; three carve-outs are honest exceptions to that: a
-/// missing passphrase for a sealed archive is a caller error (ArgumentError;
-/// the UI probes first), a disk failure once adoption is already writing
-/// surfaces as the underlying FileSystemException, and any other escape
-/// before adoption starts is wrapped as [ImportAbortedException], the
-/// provably-nothing-changed failure. That classification leans on adoption
-/// never throwing ArchiveException or ArgumentError itself.
+/// sealed, parse EVERYTHING strictly, stage audio and plan ([stage]), then
+/// adopt through the lifecycle owners ([adopt]). All-validate-before-any-write:
+/// until adoption starts, nothing outside a temp staging directory is
+/// touched, so a failed decrypt or a malformed archive provably changes
+/// nothing on disk. Merge is by entry id and idempotent. An archive failure
+/// surfaces as [ArchiveException], a sealed archive without its passphrase
+/// as ArgumentError (the UI probes first), and anything else as it was
+/// thrown: before adoption nothing changed, during it the journal may have.
 class ImportService {
   ImportService({
     required this._transcription,
@@ -46,7 +44,7 @@ class ImportService {
 
   /// What the picked file is before any import work: the kind its first bytes
   /// claim, so the UI knows whether to ask for a passphrase, plus the name,
-  /// size, and (for a plain archive) the manifest counts the confirm shows.
+  /// size, and for a plain zip what its directory listing shows.
   Future<ImportProbe> probe(String path) async {
     final file = File(path);
     final kind = await sniffArchive(file);
@@ -54,28 +52,24 @@ class ImportService {
       kind: kind,
       fileName: baseName(path),
       sizeBytes: await file.length(),
-      counts: kind == ArchiveKind.plainZip ? await _peekCounts(file) : null,
+      contents: kind == ArchiveKind.plainZip ? await _peekContents(file) : null,
     );
   }
 
-  /// Real manifests are a few hundred bytes; a crafted zip may declare one
-  /// spanning the whole file, and a probe must stay cheap.
-  static const _maxPeekedManifestBytes = 1 << 20;
-
-  /// Best-effort: null when no readable manifest can be peeked cheaply; a
-  /// damaged archive fails later with its own copy.
-  Future<ArchiveCounts?> _peekCounts(File file) async {
+  /// What the zip's directory lists, read however its entries are stored:
+  /// a manifest marks a backup, worth staging; without one, its layout tells
+  /// a copy for other apps from anything else. A zip with no directory to
+  /// list is unreadable; a zip64 one is foreign, since this app never writes
+  /// zip64.
+  Future<ZipContents> _peekContents(File file) async {
     try {
-      final zip = await StoredZipReader.open(file);
-      try {
-        if (!zip.paths.contains('manifest.json')) return null;
-        if (zip.sizeOf('manifest.json') > _maxPeekedManifestBytes) return null;
-        return ArchiveManifest.fromJson(_decodeJson(await zip.readBytes('manifest.json'))).counts;
-      } finally {
-        await zip.close();
-      }
+      final names = await StoredZipReader.listNames(file);
+      if (names.contains('manifest.json')) return ZipContents.backup;
+      return looksLikeExport(names) ? ZipContents.export : ZipContents.foreign;
+    } on StoredZipException catch (e) {
+      return e.error == StoredZipError.unsupported ? ZipContents.foreign : ZipContents.unreadable;
     } catch (_) {
-      return null;
+      return ZipContents.unreadable;
     }
   }
 
@@ -91,51 +85,91 @@ class ImportService {
     }
   }
 
-  /// Runs the whole import. [passphrase] is required for a sealed archive and
-  /// ignored for a plain one.
-  Future<ImportSummary> importArchive(String path, {String? passphrase}) async {
+  /// The pre-adoption half: unseals when sealed, parses everything strictly,
+  /// stages the audio and plans the merge, writing nothing outside a fresh
+  /// staging directory the handle owns until [discard]. On any throw the
+  /// staging is already gone and the journal provably unchanged.
+  Future<StagedImport> stage(String path, {String? passphrase}) async {
     _staging.begin();
     try {
-      final staging = await _aborting(() => Directory.systemTemp.createTemp('import-'));
+      final staging = await Directory.systemTemp.createTemp('import-');
       _staging.register(staging.path);
       try {
-        final parsed = await _aborting(() => _stagePayload(path, passphrase, staging));
-        final adopted = await _transcription.adoptImportedEntries(parsed.entries);
-        final reflectionChanges = await _reflections.adoptImportedReflections(parsed.reflections);
-        return ImportSummary(
-          entriesAdded: adopted.added,
-          entriesUpdated: adopted.updated,
-          entriesUnchanged: adopted.unchanged,
-          audioRestored: adopted.audioRestored,
-          reflectionChanges: reflectionChanges,
+        final parsed = await _stagePayload(path, passphrase, staging);
+        final entries = await _transcription.planImportedEntries(parsed.entries);
+        final reflections = _reflections.planImportedReflections(parsed.reflections);
+        final plan = entries.withReflections(
+          visible: reflections.visible,
+          state: reflections.state,
         );
-      } finally {
-        // Cleanup must never turn a finished operation into a failure: a
-        // leftover directory is exactly what the launch sweep exists for.
-        try {
-          if (await staging.exists()) await staging.delete(recursive: true);
-        } catch (_) {}
-        _staging.release(staging.path);
+        return StagedImport._(staging, parsed.entries, parsed.reflections, plan);
+      } catch (_) {
+        await _removeStaging(staging);
+        rethrow;
       }
     } finally {
       _staging.end();
     }
   }
 
-  /// Wraps a phase that runs before adoption: any escape that is not an
-  /// archive or caller error becomes [ImportAbortedException], because
-  /// nothing outside staging was written yet and the failure copy must be
-  /// able to say so.
-  Future<T> _aborting<T>(Future<T> Function() phase) async {
+  /// Merges a staged archive into the journal. Anything escaping here broke
+  /// with adoption already writing, so the journal may have changed. Safe to
+  /// call again on the same handle after such a failure: settled items are
+  /// left alone, files an earlier pass moved in are reused, and the entry
+  /// counts cover the whole restore ([StagedImport.adoptedSoFar] holds them
+  /// after a throw too). The sweeps stand down from the first call until
+  /// [discard]. [onProgress] hears (done, total) entries.
+  Future<ImportSummary> adopt(
+    StagedImport staged, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    if (staged._discarded) throw StateError('a discarded import cannot be adopted');
+    if (staged._adopting != null) throw StateError('this import is already adopting');
+    staged._hold ??= _transcription.holdSweeps();
+    final run = Completer<void>();
+    staged._adopting = run.future;
     try {
-      return await phase();
-    } on ArchiveException {
-      rethrow;
-    } on ArgumentError {
-      rethrow;
-    } catch (e, st) {
-      Error.throwWithStackTrace(ImportAbortedException(e), st);
+      await _transcription.adoptImportedEntries(
+        staged._entries,
+        ledger: staged._ledger,
+        onProgress: onProgress,
+      );
+      staged._entriesFinished = true;
+      await _reflections.adoptImportedReflections(
+        staged._reflections,
+        onLanded: () => staged._reflectionsUpdated++,
+      );
+      return staged.adoptedSoFar;
+    } finally {
+      staged._adopting = null;
+      run.complete();
     }
+  }
+
+  /// Deletes the handle's staging, and what an unfinished restore moved in
+  /// without saving a record for, then lets the sweep run again. Idempotent,
+  /// never throws, and safe while an [adopt] on the handle runs: it waits for
+  /// that pass to return.
+  Future<void> discard(StagedImport staged) async {
+    if (staged._discarded) return;
+    staged._discarded = true;
+    await staged._adopting;
+    try {
+      await _transcription.abandonImport(staged._ledger);
+    } catch (_) {
+      // What survives is recovered as an orphan, visible rather than lost.
+    }
+    staged._hold?.release();
+    await _removeStaging(staged._directory);
+  }
+
+  Future<void> _removeStaging(Directory staging) async {
+    // Cleanup must never turn a finished operation into a failure: a
+    // leftover directory is exactly what the launch sweep exists for.
+    try {
+      if (await staging.exists()) await staging.delete(recursive: true);
+    } catch (_) {}
+    _staging.release(staging.path);
   }
 
   /// The pre-adoption half of an import: protect the staging dir, sniff, unseal
@@ -157,7 +191,15 @@ class ImportService {
         'not an opentranscribe archive',
       ),
     };
-    return _parsePayload(payload, staging);
+    final parsed = await _parsePayload(payload, staging);
+    if (payload.path != source.path) {
+      // Adoption needs only the parsed records and per-entry audio; a
+      // plaintext copy of the journal must not wait in tmp for the go-ahead.
+      try {
+        await payload.delete();
+      } catch (_) {}
+    }
+    return parsed;
   }
 
   Future<File> _unseal(File source, String? passphrase, Directory staging) async {
@@ -269,17 +311,6 @@ class ImportService {
   }
 }
 
-/// An import that broke before adoption wrote anything: the journal provably
-/// did not change, and the copy this drives must not claim a partial restore.
-final class ImportAbortedException implements Exception {
-  const ImportAbortedException(this.cause);
-
-  final Object cause;
-
-  @override
-  String toString() => 'ImportAbortedException($cause)';
-}
-
 final class _ParsedPayload {
   const _ParsedPayload({required this.entries, required this.reflections});
 
@@ -287,57 +318,77 @@ final class _ParsedPayload {
   final ReflectionArchive reflections;
 }
 
+/// A parsed, staged archive waiting for the user's go-ahead. Owns its staging
+/// directory, registered with the sweep, until [ImportService.discard].
+final class StagedImport {
+  StagedImport._(this._directory, this._entries, this._reflections, this.plan);
+
+  /// What adopting would do to the journal as it stood when staged.
+  final ImportPlan plan;
+
+  /// What adoption has done so far across every pass, including one that
+  /// broke midway.
+  ImportSummary get adoptedSoFar => _ledger.result.withReflections(_reflectionsUpdated);
+
+  /// Every entry has been through adoption, so what a pass that broke left
+  /// undone is the reflections.
+  bool get entriesFinished => _entriesFinished;
+
+  final Directory _directory;
+  final List<StagedImportEntry> _entries;
+  final ReflectionArchive _reflections;
+  final AdoptLedger _ledger = AdoptLedger();
+
+  /// Summed over every pass, so one that broke partway keeps its count.
+  int _reflectionsUpdated = 0;
+  bool _entriesFinished = false;
+  SweepHold? _hold;
+  Future<void>? _adopting;
+  bool _discarded = false;
+}
+
+/// What a plain zip's directory lists: a manifest ([backup]), none in a zip
+/// laid out like one of the app's own copies for other apps ([export]) or
+/// like anything else ([foreign]), or no directory to list ([unreadable]).
+enum ZipContents { backup, export, foreign, unreadable }
+
+/// Whether a manifest-free zip is laid out like one of the app's own copies
+/// for other apps: notes at the top or under entries/, or a website page at
+/// the top (the journal's, or a single entry's with its audio).
+bool looksLikeExport(Iterable<String> paths) => paths.any(
+  (path) =>
+      (path.endsWith('.html') && !path.contains('/')) ||
+      (path.endsWith('.md') && (!path.contains('/') || path.startsWith('entries/'))),
+);
+
 /// What the picked file looks like before any import work: its kind for the
-/// passphrase decision, and name, size, and counts for the confirm sheet.
+/// passphrase decision, its name and size to show, and for a plain zip what
+/// its directory listing shows.
 @immutable
 final class ImportProbe {
   const ImportProbe({
     required this.kind,
     required this.fileName,
     required this.sizeBytes,
-    this.counts,
+    this.contents,
   });
 
   final ArchiveKind kind;
   final String fileName;
   final int sizeBytes;
 
-  /// Null for a sealed archive (unreadable before its passphrase) and for a
-  /// zip whose manifest could not be peeked.
-  final ArchiveCounts? counts;
-}
-
-/// What an import actually did. The summary sheet shows the entry counts;
-/// [audioRestored] and [reflectionChanges] round out the result for callers
-/// that want the whole picture.
-@immutable
-final class ImportSummary {
-  const ImportSummary({
-    required this.entriesAdded,
-    required this.entriesUpdated,
-    required this.entriesUnchanged,
-    required this.audioRestored,
-    required this.reflectionChanges,
-  });
-
-  final int entriesAdded;
-  final int entriesUpdated;
-  final int entriesUnchanged;
-  final int audioRestored;
-
-  /// Rows, tombstones and floors together; not only reflection texts.
-  final int reflectionChanges;
+  /// Null for anything but a plain zip; a sealed archive cannot be listed
+  /// before its passphrase.
+  final ZipContents? contents;
 
   @override
   bool operator ==(Object other) =>
-      other is ImportSummary &&
-      other.entriesAdded == entriesAdded &&
-      other.entriesUpdated == entriesUpdated &&
-      other.entriesUnchanged == entriesUnchanged &&
-      other.audioRestored == audioRestored &&
-      other.reflectionChanges == reflectionChanges;
+      other is ImportProbe &&
+      other.kind == kind &&
+      other.fileName == fileName &&
+      other.sizeBytes == sizeBytes &&
+      other.contents == contents;
 
   @override
-  int get hashCode =>
-      Object.hash(entriesAdded, entriesUpdated, entriesUnchanged, audioRestored, reflectionChanges);
+  int get hashCode => Object.hash(kind, fileName, sizeBytes, contents);
 }

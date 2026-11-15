@@ -14,12 +14,11 @@ import 'package:opentranscribe/core/export/stored_zip.dart';
 import 'package:opentranscribe/core/export/zip_pack.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
-import 'package:opentranscribe/core/services/entry_store.dart';
 import 'package:opentranscribe/core/services/export_service.dart';
+import 'package:opentranscribe/core/services/import_merge.dart';
 import 'package:opentranscribe/core/services/import_service.dart';
 import 'package:opentranscribe/core/services/reflection_service.dart';
 import 'package:opentranscribe/core/services/reflection_settings.dart';
-import 'package:opentranscribe/core/services/reflection_store.dart';
 import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:reflections/reflections.dart';
 import 'package:reflections/testing.dart';
@@ -27,8 +26,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transcriber/testing.dart';
 import 'package:transcriber/transcriber.dart';
 
+import '../../support/archive_rewrite.dart';
+import '../../support/failing_entry_store.dart';
+import '../../support/failing_reflection_store.dart';
 import '../../support/fake_audio_recorder.dart';
 import '../../support/fake_share_export.dart';
+import '../../support/tracking_staging_registry.dart';
 
 void main() {
   const key = 'test-encryption-key-0123456789ab';
@@ -55,25 +58,40 @@ void main() {
     await temp.delete(recursive: true);
   });
 
-  Future<_World> world(String name) async {
+  ({int added, int replaced, int recordings, int reflections}) countsOf(ImportSummary s) => (
+    added: s.entriesAdded,
+    replaced: s.entriesReplaced,
+    recordings: s.recordingsBroughtBack,
+    reflections: s.reflectionsUpdated,
+  );
+
+  ({int added, int replaced, int recordings, int reflections}) planned(ImportPlan p) =>
+      (added: p.added, replaced: p.replaced, recordings: p.recordings, reflections: p.reflections);
+
+  Future<_World> world(
+    String name, {
+    Duration? Function(String name)? probe,
+    Future<void> Function(File file)? deleter,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = LocalService();
     await storage.init(legacyKey: key);
-    final store = EntryStore(storage);
+    final store = FailingEntryStore(storage);
     final recordings = Directory('${temp.path}/$name-recordings');
     await recordings.create(recursive: true);
     final transcription = TranscriptionService(
       composer: FakeAudioComposer(),
-      recorder: FakeAudioRecorder(recordingsDir: recordings.path),
+      recorder: FakeAudioRecorder(recordingsDir: recordings.path, probe: probe),
       engine: FakeBatchEngine(),
       store: store,
       clock: () => fixedClock,
-      fileDeleter: (f) async => f.deleteSync(),
+      fileDeleter: deleter ?? (f) async => f.deleteSync(),
     );
     final reflectionSettings = ReflectionSettings(storage: storage);
+    final reflectionStore = FailingReflectionStore(storage);
     final reflections = ReflectionService(
       engine: FakeReflectionEngine(),
-      store: ReflectionStore(storage),
+      store: reflectionStore,
       settings: reflectionSettings,
       entries: store.all,
       language: () => 'en-US',
@@ -84,7 +102,7 @@ void main() {
       },
     );
     final share = FakeShareExport(captureTo: temp);
-    final staging = StagingRegistry();
+    final staging = TrackingStagingRegistry();
     final export = ExportService(
       transcription: transcription,
       reflections: reflections,
@@ -107,7 +125,7 @@ void main() {
       recordings: recordings,
       transcription: transcription,
       reflectionSettings: reflectionSettings,
-      reflectionStore: ReflectionStore(storage),
+      reflectionStore: reflectionStore,
       reflections: reflections,
       share: share,
       staging: staging,
@@ -160,7 +178,19 @@ void main() {
     return w.share.captured.last;
   }
 
-  group('shareArchive and importArchive', () {
+  var twins = 0;
+
+  Future<String> withTwinOfE1(String archive) async {
+    final twin = editJson(await archiveEntry(archive, 'entries/e1.json'), (j) => j..['id'] = 'e3');
+    final rebuilt = await rewriteArchive(
+      archive,
+      '${temp.path}/twin-${twins++}.zip',
+      add: {'entries/e3.json': twin},
+    );
+    return rebuilt.path;
+  }
+
+  group('shareArchive, then stage and adopt', () {
     test(
       'a plain archive round-trips entries, audio, reflections, tombstones and floors',
       () async {
@@ -169,11 +199,9 @@ void main() {
         expect(archive, endsWith('.zip'));
 
         final b = await world('b');
-        final summary = await b.import.importArchive(archive);
+        final summary = await restoreAll(b.import, archive);
         expect(summary.entriesAdded, 2);
-        expect(summary.entriesUpdated, 0);
-        expect(summary.audioRestored, 1);
-        expect(summary.reflectionChanges, 3);
+        expect(summary.entriesReplaced, 0);
 
         final restored = {for (final e in b.store.all()) e.id: e};
         expect(restored.keys, containsAll(['e1', 'e2']));
@@ -197,7 +225,7 @@ void main() {
       final archive = await archiveOf(a);
 
       final b = await world('b');
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
 
       final restored = b.store.read('e1')!;
       expect(restored.readableText, 'fixed words');
@@ -209,18 +237,16 @@ void main() {
       final a = await seededWorld();
       final archive = await archiveOf(a);
       final b = await world('b');
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
 
       var notified = 0;
       final sub = b.transcription.entriesChanged.listen((_) => notified++);
-      final summary = await b.import.importArchive(archive);
+      final summary = await restoreAll(b.import, archive);
       await pumpEventQueue();
       await sub.cancel();
 
       expect(summary.entriesAdded, 0);
-      expect(summary.entriesUpdated, 0);
-      expect(summary.entriesUnchanged, 2);
-      expect(summary.reflectionChanges, 0);
+      expect(summary.entriesReplaced, 0);
       expect(notified, 0);
     });
 
@@ -230,7 +256,7 @@ void main() {
       expect(archive, endsWith('.otarchive'));
 
       final b = await world('b');
-      final summary = await b.import.importArchive(archive, passphrase: 'open sesame');
+      final summary = await restoreAll(b.import, archive, passphrase: 'open sesame');
       expect(summary.entriesAdded, 2);
       expect(File('${b.recordings.path}/otr-1.m4a').existsSync(), isTrue);
     });
@@ -240,7 +266,7 @@ void main() {
       final archive = await archiveOf(a, passphrase: 'right');
       final b = await world('b');
       await expectLater(
-        b.import.importArchive(archive, passphrase: 'wrong'),
+        restoreAll(b.import, archive, passphrase: 'wrong'),
         throwsA(
           isA<ArchiveException>().having((e) => e.error, 'error', ArchiveError.cannotDecrypt),
         ),
@@ -253,7 +279,7 @@ void main() {
       final a = await seededWorld();
       final archive = await archiveOf(a, passphrase: 'p');
       final b = await world('b');
-      await expectLater(b.import.importArchive(archive), throwsArgumentError);
+      await expectLater(restoreAll(b.import, archive), throwsArgumentError);
       expect(b.store.all(), isEmpty);
     });
 
@@ -262,8 +288,8 @@ void main() {
       final archive = await archiveOf(a);
       final b = await world('b');
       await b.store.save(entry('e2', title: 'Edited locally'));
-      final summary = await b.import.importArchive(archive);
-      expect(summary.entriesUpdated, 1);
+      final summary = await restoreAll(b.import, archive);
+      expect(summary.entriesReplaced, 1);
       expect(b.store.read('e2')!.title, 'Text only');
     });
 
@@ -274,7 +300,7 @@ void main() {
       await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
       await b.store.save(entry('other', audioPath: 'otr-1.m4a', title: 'Owns the name'));
 
-      final summary = await b.import.importArchive(archive);
+      final summary = await restoreAll(b.import, archive);
       expect(summary.entriesAdded, 2);
       final imported = b.store.read('e1')!;
       expect(imported.audioPath, isNot('otr-1.m4a'));
@@ -289,12 +315,11 @@ void main() {
       await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
       await b.store.save(entry('other', audioPath: 'otr-1.m4a', title: 'Owns the name'));
 
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
       final firstName = b.store.read('e1')!.audioPath;
-      final second = await b.import.importArchive(archive);
+      final second = await restoreAll(b.import, archive);
 
-      expect(second.entriesUpdated, 0);
-      expect(second.entriesUnchanged, 2);
+      expect(second.entriesReplaced, 0);
       expect(b.store.read('e1')!.audioPath, firstName);
       expect(b.recordings.listSync().map((f) => f.path.split('/').last).toSet(), {
         'otr-1.m4a',
@@ -302,19 +327,20 @@ void main() {
       });
     });
 
-    test('a damaged archive fails as unreadable, never as a partial restore', () async {
-      final a = await seededWorld();
-      final archive = await archiveOf(a);
-      final bytes = await File(archive).readAsBytes();
-      // Inside an entry's data, so the central directory and EOCD still parse
-      // and the damage only surfaces on the CRC of a read.
-      bytes[bytes.length ~/ 2] ^= 0xFF;
-      await File(archive).writeAsBytes(bytes);
-      final b = await world('b');
+    test(
+      'damage inside an entry, its directory intact, fails on the read and changes nothing',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final bytes = await File(archive).readAsBytes();
+        bytes[bytes.length ~/ 2] ^= 0xFF;
+        await File(archive).writeAsBytes(bytes);
+        final b = await world('b');
 
-      await expectLater(b.import.importArchive(archive), throwsA(isA<ArchiveException>()));
-      expect(b.store.all(), isEmpty);
-    });
+        await expectLater(restoreAll(b.import, archive), throwsA(isA<ArchiveException>()));
+        expect(b.store.all(), isEmpty);
+      },
+    );
 
     test('the audio file replaced by an import is deleted once unreferenced', () async {
       final a = await seededWorld();
@@ -323,7 +349,7 @@ void main() {
       await writeAudio(b, 'otr-old.m4a', [1, 2, 3]);
       await b.store.save(entry('e1', audioPath: 'otr-old.m4a', title: 'Old shape'));
 
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
       expect(b.store.read('e1')!.audioPath, 'otr-1.m4a');
       expect(File('${b.recordings.path}/otr-old.m4a').existsSync(), isFalse);
     });
@@ -334,7 +360,7 @@ void main() {
       final archive = await archiveOf(a);
 
       final b = await world('b');
-      final summary = await b.import.importArchive(archive);
+      final summary = await restoreAll(b.import, archive);
       expect(summary.entriesAdded, 1);
       expect(b.store.read('e1'), isNotNull);
     });
@@ -344,28 +370,28 @@ void main() {
       final noise = File('${temp.path}/noise.bin');
       await noise.writeAsBytes(List<int>.generate(64, (i) => i * 3 % 256));
       await expectLater(
-        b.import.importArchive(noise.path),
+        restoreAll(b.import, noise.path),
         throwsA(isA<ArchiveException>().having((e) => e.error, 'error', ArchiveError.malformed)),
       );
       expect(b.store.all(), isEmpty);
     });
 
-    test('an unreadable source aborts as nothing-changed, not as a raw error', () async {
+    test('a source that cannot be read fails before anything in the journal changes', () async {
       final b = await world('b');
       await b.store.save(entry('kept'));
       await expectLater(
-        b.import.importArchive('${temp.path}/missing.zip'),
-        throwsA(isA<ImportAbortedException>()),
+        restoreAll(b.import, '${temp.path}/missing.zip'),
+        throwsA(isA<FileSystemException>()),
       );
       expect(b.store.all().map((e) => e.id), ['kept']);
     });
 
-    test('a failure once adoption is writing escapes raw, never as aborted', () async {
+    test('a failure once adoption is writing escapes as the disk error it was', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
       final b = await world('b');
       await b.recordings.delete(recursive: true);
-      await expectLater(b.import.importArchive(archive), throwsA(isA<FileSystemException>()));
+      await expectLater(restoreAll(b.import, archive), throwsA(isA<FileSystemException>()));
     });
 
     test('a compressed zip is refused as re-zipped, not corrupt', () async {
@@ -381,7 +407,7 @@ void main() {
 
       final b = await world('b');
       await expectLater(
-        b.import.importArchive(rezipped.path),
+        restoreAll(b.import, rezipped.path),
         throwsA(
           isA<ArchiveException>().having((e) => e.error, 'error', ArchiveError.unsupportedZip),
         ),
@@ -391,22 +417,15 @@ void main() {
     test('a damaged entry record aborts the whole import', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
-      final rebuilt = File('${temp.path}/damaged.zip');
-      final reader = await StoredZipReader.open(File(archive));
-      final writer = await StoredZipWriter.create(rebuilt);
-      for (final path in reader.paths) {
-        if (path == 'entries/e2.json') {
-          await writer.addBytes(path, utf8.encode('{"id": 42}'));
-        } else {
-          await writer.addBytes(path, await reader.readBytes(path));
-        }
-      }
-      await writer.close();
-      await reader.close();
+      final rebuilt = await rewriteArchive(
+        archive,
+        '${temp.path}/damaged.zip',
+        edit: (path, bytes) => path == 'entries/e2.json' ? utf8.encode('{"id": 42}') : bytes,
+      );
 
       final b = await world('b');
       await expectLater(
-        b.import.importArchive(rebuilt.path),
+        restoreAll(b.import, rebuilt.path),
         throwsA(isA<ArchiveException>().having((e) => e.error, 'error', ArchiveError.malformed)),
       );
       expect(b.store.all(), isEmpty);
@@ -416,18 +435,14 @@ void main() {
     test('an entry whose audio the archive lacks lands transcript-only', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
-      final rebuilt = File('${temp.path}/no-audio.zip');
-      final reader = await StoredZipReader.open(File(archive));
-      final writer = await StoredZipWriter.create(rebuilt);
-      for (final path in reader.paths) {
-        if (path.startsWith('audio/')) continue;
-        await writer.addBytes(path, await reader.readBytes(path));
-      }
-      await writer.close();
-      await reader.close();
+      final rebuilt = await rewriteArchive(
+        archive,
+        '${temp.path}/no-audio.zip',
+        edit: (path, bytes) => path.startsWith('audio/') ? null : bytes,
+      );
 
       final b = await world('b');
-      await b.import.importArchive(rebuilt.path);
+      await restoreAll(b.import, rebuilt.path);
       expect(b.store.read('e1')!.hasAudio, isFalse);
     });
 
@@ -436,7 +451,7 @@ void main() {
       final archive = await archiveOf(a);
       final b = await world('b');
       await b.reflectionSettings.setFloorFor(ReflectionPeriod.weekly, DateTime(2026, 6));
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
       expect(b.reflectionSettings.floorFor(ReflectionPeriod.weekly), DateTime(2026, 6));
     });
 
@@ -444,28 +459,27 @@ void main() {
       final a = await seededWorld();
       final archive = await archiveOf(a, passphrase: 'p');
       final b = await world('b');
-      await b.import.importArchive(archive, passphrase: 'p');
+      await restoreAll(b.import, archive, passphrase: 'p');
       await expectLater(
-        b.import.importArchive(archive, passphrase: 'nope'),
+        restoreAll(b.import, archive, passphrase: 'nope'),
         throwsA(isA<ArchiveException>()),
       );
-      final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
-        (d) => d.path.split('/').last.startsWith('import-'),
-      );
-      expect(leftovers, isEmpty);
+      final imports = b.staging.imports;
+      expect(imports, hasLength(2));
+      expect(imports.where((p) => Directory(p).existsSync() || b.staging.owns(p)), isEmpty);
     });
 
     test('an import protects its staging directory before parsing', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
       final b = await world('b');
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
       expect(b.share.protectedPaths, isNotEmpty);
     });
 
     test('an import releases its staging registration even on failure', () async {
       final b = await world('b');
-      final tracking = _TrackingStagingRegistry();
+      final tracking = TrackingStagingRegistry();
       final trackedImport = ImportService(
         transcription: b.transcription,
         reflections: b.reflections,
@@ -474,7 +488,7 @@ void main() {
       );
       final noise = File('${temp.path}/noise-tracked.bin');
       await noise.writeAsBytes(List<int>.generate(64, (i) => i * 3 % 256));
-      await expectLater(trackedImport.importArchive(noise.path), throwsA(isA<ArchiveException>()));
+      await expectLater(restoreAll(trackedImport, noise.path), throwsA(isA<ArchiveException>()));
       expect(tracking.registered, isNotEmpty);
       expect(tracking.owns(tracking.registered.last), isFalse);
     });
@@ -482,48 +496,39 @@ void main() {
     test('an archive row beats a tombstone for the same period start', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
-      final rebuilt = File('${temp.path}/row-and-tombstone.zip');
-      final reader = await StoredZipReader.open(File(archive));
-      final writer = await StoredZipWriter.create(rebuilt);
-      for (final path in reader.paths) {
-        var bytes = await reader.readBytes(path);
-        if (path == 'manifest.json') {
-          final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-          (json['tombstones'] as List).add({'period': 'weekly', 'start': '2026-08-03'});
-          bytes = utf8.encode(jsonEncode(json));
-        }
-        await writer.addBytes(path, bytes);
-      }
-      await writer.close();
-      await reader.close();
+      final rebuilt = await rewriteArchive(
+        archive,
+        '${temp.path}/row-and-tombstone.zip',
+        edit: (path, bytes) => path == 'manifest.json'
+            ? editJson(
+                bytes,
+                (json) => json..['tombstones'].add({'period': 'weekly', 'start': '2026-08-03'}),
+              )
+            : bytes,
+      );
 
       final b = await world('b');
-      await b.import.importArchive(rebuilt.path);
+      await restoreAll(b.import, rebuilt.path);
       expect(b.reflectionStore.read(DateTime(2026, 8, 3))?.text, 'A steady week.');
     });
 
     test('a transcript-only archive record never deletes the local recording', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
-      final rebuilt = File('${temp.path}/stripped.zip');
-      final reader = await StoredZipReader.open(File(archive));
-      final writer = await StoredZipWriter.create(rebuilt);
-      for (final path in reader.paths) {
-        if (path.startsWith('audio/')) continue;
-        var bytes = await reader.readBytes(path);
-        if (path == 'entries/e1.json') {
-          final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>..remove('audioPath');
-          bytes = utf8.encode(jsonEncode(json));
-        }
-        await writer.addBytes(path, bytes);
-      }
-      await writer.close();
-      await reader.close();
+      final rebuilt = await rewriteArchive(
+        archive,
+        '${temp.path}/stripped.zip',
+        edit: (path, bytes) => path.startsWith('audio/')
+            ? null
+            : path == 'entries/e1.json'
+            ? editJson(bytes, (json) => json..remove('audioPath'))
+            : bytes,
+      );
 
       final b = await world('b');
       await writeAudio(b, 'otr-1.m4a', [7, 7, 7]);
       await b.store.save(entry('e1', audioPath: 'otr-1.m4a', title: 'Local with audio'));
-      await b.import.importArchive(rebuilt.path);
+      await restoreAll(b.import, rebuilt.path);
       expect(b.store.read('e1')!.hasAudio, isFalse);
       expect(File('${b.recordings.path}/otr-1.m4a').existsSync(), isTrue);
     });
@@ -531,21 +536,10 @@ void main() {
     test('two records referencing one archived recording both restore', () async {
       final a = await seededWorld();
       final archive = await archiveOf(a);
-      final rebuilt = File('${temp.path}/shared-audio.zip');
-      final reader = await StoredZipReader.open(File(archive));
-      final writer = await StoredZipWriter.create(rebuilt);
-      for (final path in reader.paths) {
-        await writer.addBytes(path, await reader.readBytes(path));
-      }
-      final twin =
-          jsonDecode(utf8.decode(await reader.readBytes('entries/e1.json'))) as Map<String, dynamic>
-            ..['id'] = 'e3';
-      await writer.addBytes('entries/e3.json', utf8.encode(jsonEncode(twin)));
-      await writer.close();
-      await reader.close();
+      final rebuilt = await withTwinOfE1(archive);
 
       final b = await world('b');
-      final summary = await b.import.importArchive(rebuilt.path);
+      final summary = await restoreAll(b.import, rebuilt);
       expect(summary.entriesAdded, 3);
       final one = b.store.read('e1')!;
       final other = b.store.read('e3')!;
@@ -578,10 +572,634 @@ void main() {
       await a.store.save(entry('e8', audioPath: legacy.path, title: 'Old container'));
       final archive = await archiveOf(a);
       final b = await world('b');
-      await b.import.importArchive(archive);
+      await restoreAll(b.import, archive);
       final restored = b.store.read('e8')!;
       expect(restored.audioPath, 'legacy-take.m4a');
       expect(File('${b.recordings.path}/legacy-take.m4a').existsSync(), isTrue);
+    });
+  });
+
+  group('stage, adopt and discard', () {
+    Set<String> recordingNames(_World w) =>
+        w.recordings.listSync().map((f) => f.path.split('/').last).toSet();
+
+    test(
+      'staging writes nothing outside its own directory, which it owns until discarded',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a, passphrase: 'p');
+        final b = await world('b');
+
+        final staged = await b.import.stage(archive, passphrase: 'p');
+        final staging = b.staging.imports.last;
+        expect(b.store.all(), isEmpty);
+        expect(b.recordings.listSync(), isEmpty);
+        expect(b.reflectionStore.read(DateTime(2026, 8, 3)), isNull);
+        expect(Directory(staging).existsSync(), isTrue);
+        expect(
+          Directory(staging).listSync(recursive: true).where((f) => f.path.endsWith('.zip')),
+          isEmpty,
+        );
+        expect(b.staging.owns(staging), isTrue);
+
+        await b.import.discard(staged);
+        expect(Directory(staging).existsSync(), isFalse);
+        expect(b.staging.owns(staging), isFalse);
+        expect(b.store.all(), isEmpty);
+      },
+    );
+
+    test('a failed stage leaves no staging behind and nothing owned', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a, passphrase: 'right');
+      final b = await world('b');
+      await expectLater(
+        b.import.stage(archive, passphrase: 'wrong'),
+        throwsA(isA<ArchiveException>()),
+      );
+      final staging = b.staging.imports.last;
+      expect(Directory(staging).existsSync(), isFalse);
+      expect(b.staging.owns(staging), isFalse);
+    });
+
+    test('a journal that holds every entry but lost a reflection plans to bring it back', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await restoreAll(b.import, archive);
+      await b.reflectionStore.delete(DateTime(2026, 8, 3));
+
+      final staged = await b.import.stage(archive);
+      expect(staged.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 2, reflections: 1));
+      expect(staged.plan.isEmpty, isFalse);
+      await b.import.adopt(staged);
+      await b.import.discard(staged);
+      expect(b.reflectionStore.read(DateTime(2026, 8, 3))?.text, 'A steady week.');
+
+      final again = await b.import.stage(archive);
+      expect(again.plan.isEmpty, isTrue);
+      await b.import.discard(again);
+    });
+
+    test('a recording missing here plans to come back, lands, and then plans nothing', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await restoreAll(b.import, archive);
+      await File('${b.recordings.path}/otr-1.m4a').delete();
+
+      final staged = await b.import.stage(archive);
+      expect(staged.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 1, recordings: 1));
+      expect(staged.plan.changesNothingSeen, isFalse);
+      final summary = await b.import.adopt(staged);
+      await b.import.discard(staged);
+      expect(countsOf(summary), planned(staged.plan));
+      expect(File('${b.recordings.path}/otr-1.m4a').existsSync(), isTrue);
+      expect(b.store.read('e1')!.audioPath, 'otr-1.m4a');
+
+      final again = await b.import.stage(archive);
+      expect(again.plan.isEmpty, isTrue);
+      await b.import.discard(again);
+    });
+
+    test(
+      'a reflection the backup erased but this journal still holds is erased and counted',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await restoreAll(b.import, archive);
+        await b.reflectionStore.save(
+          Reflection(
+            periodStart: DateTime(2026, 7, 27),
+            generatedAt: fixedClock,
+            text: 'Kept here.',
+          ),
+        );
+
+        final staged = await b.import.stage(archive);
+        expect(staged.plan.reflections, 1);
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+        expect(summary.reflectionsUpdated, 1);
+        expect(b.reflectionStore.read(DateTime(2026, 7, 27)), isNull);
+
+        final again = await b.import.stage(archive);
+        expect(again.plan.isEmpty, isTrue);
+        await b.import.discard(again);
+      },
+    );
+
+    test('a tombstone the archive carries twice counts once', () async {
+      final b = await world('b');
+      await b.reflectionStore.save(
+        Reflection(periodStart: DateTime(2026, 7, 27), generatedAt: fixedClock, text: 'Here.'),
+      );
+      final twice = ReflectionArchive(
+        rows: const [],
+        tombstones: [
+          (period: ReflectionPeriod.weekly, start: DateTime(2026, 7, 27)),
+          (period: ReflectionPeriod.weekly, start: DateTime(2026, 7, 27)),
+        ],
+        floors: const {},
+      );
+      expect(b.reflections.planImportedReflections(twice), (visible: 1, state: 0));
+    });
+
+    test(
+      'reflections that break partway keep their count, and the resume reports the whole',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await b.reflectionStore.save(
+          Reflection(
+            periodStart: DateTime(2026, 7, 27),
+            generatedAt: fixedClock,
+            text: 'Kept here.',
+          ),
+        );
+        b.reflectionStore.failNextDelete = true;
+        var signals = 0;
+        final sub = b.reflections.reflectionsChanged.listen((_) => signals++);
+
+        final staged = await b.import.stage(archive);
+        expect(staged.plan.reflections, 2);
+        await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+        await pumpEventQueue();
+        expect(signals, 1);
+        expect(staged.adoptedSoFar.reflectionsUpdated, 1);
+        expect(staged.entriesFinished, isTrue);
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+        await sub.cancel();
+        expect(summary.reflectionsUpdated, 2);
+        expect(summary.entriesAdded, 2);
+        expect(b.reflectionStore.read(DateTime(2026, 7, 27)), isNull);
+
+        final again = await b.import.stage(archive);
+        expect(again.plan.isEmpty, isTrue);
+        await b.import.discard(again);
+      },
+    );
+
+    test('a row that saved before its save threw still counts as updated', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      b.reflectionStore.failNextSaveAfterRow = true;
+
+      final staged = await b.import.stage(archive);
+      await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+      expect(staged.adoptedSoFar.reflectionsUpdated, 1);
+      expect(b.reflectionStore.read(DateTime(2026, 8, 3))?.text, 'A steady week.');
+      final summary = await b.import.adopt(staged);
+      await b.import.discard(staged);
+      expect(summary.reflectionsUpdated, 1);
+    });
+
+    for (final firstLater in [true, false]) {
+      test('two records sharing a missing recording bring it back once, '
+          '${firstLater ? 'the first' : 'the second'} newer in the store', () async {
+        final a = await world('a');
+        await writeAudio(a, 'otr-1.m4a', List<int>.generate(256, (i) => i % 200));
+        Entry sharer(String id, int hour) => Entry(
+          id: id,
+          createdAt: DateTime.utc(2026, 8, 5, hour),
+          audioPath: 'otr-1.m4a',
+          duration: const Duration(seconds: 30),
+        );
+        await a.store.save(sharer('e1', firstLater ? 10 : 9));
+        await a.store.save(sharer('e3', firstLater ? 9 : 10));
+        final archive = await archiveOf(a);
+        await File('${a.recordings.path}/otr-1.m4a').delete();
+
+        final staged = await a.import.stage(archive);
+        expect(staged.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 1, recordings: 1));
+        final summary = await a.import.adopt(staged);
+        await a.import.discard(staged);
+        expect(countsOf(summary), planned(staged.plan));
+        expect(recordingNames(a), {'otr-1.m4a'});
+        expect(a.store.read('e1')!.audioPath, 'otr-1.m4a');
+        expect(a.store.read('e3')!.audioPath, 'otr-1.m4a');
+      });
+    }
+
+    test(
+      'two records sharing one recording travel with one file and restore as unchanged',
+      () async {
+        final a = await world('a');
+        await writeAudio(a, 'otr-1.m4a', List<int>.generate(512, (i) => i % 200));
+        await a.store.save(entry('e1', audioPath: 'otr-1.m4a', title: 'First'));
+        await a.store.save(entry('e3', audioPath: 'otr-1.m4a', title: 'Shares it'));
+        final archive = await archiveOf(a);
+
+        final reader = await StoredZipReader.open(File(archive));
+        expect(reader.paths.where((p) => p.startsWith('audio/')), ['audio/otr-1.m4a']);
+        await reader.close();
+        for (final id in ['e1', 'e3']) {
+          final record = jsonDecode(utf8.decode(await archiveEntry(archive, 'entries/$id.json')));
+          expect((record as Map<String, dynamic>)['audioPath'], 'otr-1.m4a');
+        }
+
+        final staged = await a.import.stage(archive);
+        expect(staged.plan.isEmpty, isTrue);
+        await a.import.discard(staged);
+      },
+    );
+
+    test('the plan of an archive into an empty journal adds every entry', () async {
+      final a = await seededWorld();
+      final b = await world('b');
+      final staged = await b.import.stage(await archiveOf(a));
+      expect(
+        staged.plan,
+        const ImportPlan(added: 2, replaced: 0, unchanged: 0, reflections: 1, reflectionState: 2),
+      );
+      await b.import.discard(staged);
+    });
+
+    test(
+      'the plan counts what adoption reports for new, identical, edited and renamed records',
+      () async {
+        final a = await seededWorld();
+        await a.store.save(entry('e3', title: 'Third'));
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
+        await b.store.save(entry('other', audioPath: 'otr-1.m4a', title: 'Owns the name'));
+        await b.store.save(entry('e2', title: 'Text only'));
+        await b.store.save(entry('e3', title: 'Edited here'));
+
+        final first = await b.import.stage(archive);
+        expect(
+          first.plan,
+          const ImportPlan(added: 1, replaced: 1, unchanged: 1, reflections: 1, reflectionState: 2),
+        );
+        final summary = await b.import.adopt(first);
+        await b.import.discard(first);
+        expect(countsOf(summary), planned(first.plan));
+
+        final again = await b.import.stage(archive);
+        expect(again.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 3));
+        final repeat = await b.import.adopt(again);
+        await b.import.discard(again);
+        expect(countsOf(repeat), planned(again.plan));
+      },
+    );
+
+    test('a re-import stays a no-op once the stray that forced a rename has gone', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await writeAudio(b, 'otr-1.m4a', [7, 7, 7]);
+      await restoreAll(b.import, archive);
+      final renamed = b.store.read('e1')!.audioPath!;
+      expect(renamed, startsWith(importAudioPrefix));
+      await File('${b.recordings.path}/otr-1.m4a').delete();
+
+      final again = await b.import.stage(archive);
+      expect(again.plan.isEmpty, isTrue);
+      await b.import.discard(again);
+      expect(b.store.read('e1')!.audioPath, renamed);
+    });
+
+    test(
+      'a record at a legacy absolute path restores once onto its bare name, keeping its file',
+      () async {
+        final a = await world('a');
+        await writeAudio(a, 'otr-1.m4a', List<int>.generate(256, (i) => i % 200));
+        await a.store.save(
+          entry('e3', audioPath: '${a.recordings.path}/otr-1.m4a', title: 'Legacy'),
+        );
+        final archive = await archiveOf(a);
+
+        final first = await a.import.stage(archive);
+        expect(first.plan.replaced, 1);
+        expect(first.plan.recordings, 0);
+        await a.import.adopt(first);
+        await a.import.discard(first);
+        expect(a.store.read('e3')!.audioPath, 'otr-1.m4a');
+        expect(File('${a.recordings.path}/otr-1.m4a').existsSync(), isTrue);
+
+        final again = await a.import.stage(archive);
+        expect(again.plan.isEmpty, isTrue);
+        await a.import.discard(again);
+      },
+    );
+
+    test('a record whose only difference is its kept audio reads as replaced', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await writeAudio(b, 'otr-old.m4a', [1, 2, 3]);
+      await b.store.save(entry('e1', audioPath: 'otr-old.m4a', title: 'With audio'));
+
+      final staged = await b.import.stage(archive);
+      expect(
+        staged.plan,
+        const ImportPlan(added: 1, replaced: 1, unchanged: 0, reflections: 1, reflectionState: 2),
+      );
+      final summary = await b.import.adopt(staged);
+      await b.import.discard(staged);
+      expect(countsOf(summary), planned(staged.plan));
+    });
+
+    test(
+      'the plan of two records sharing one recording matches adoption, then reads unchanged',
+      () async {
+        final a = await seededWorld();
+        final archive = await withTwinOfE1(await archiveOf(a));
+        final b = await world('b');
+
+        final first = await b.import.stage(archive);
+        expect(
+          first.plan,
+          const ImportPlan(added: 3, replaced: 0, unchanged: 0, reflections: 1, reflectionState: 2),
+        );
+        final summary = await b.import.adopt(first);
+        await b.import.discard(first);
+        expect(countsOf(summary), planned(first.plan));
+        expect(recordingNames(b), hasLength(2));
+
+        final again = await b.import.stage(archive);
+        expect(again.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 3));
+        final repeat = await b.import.adopt(again);
+        await b.import.discard(again);
+        expect(countsOf(repeat), planned(again.plan));
+      },
+    );
+
+    test(
+      'a stray file at the archive name sends the audio to a fresh name a re-import keeps',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
+
+        final staged = await b.import.stage(archive);
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+        expect(countsOf(summary), planned(staged.plan));
+        final restored = b.store.read('e1')!.audioPath!;
+        expect(restored, isNot('otr-1.m4a'));
+        expect(File('${b.recordings.path}/$restored').lengthSync(), 5000);
+        expect(await File('${b.recordings.path}/otr-1.m4a').readAsBytes(), [9, 9, 9]);
+
+        final again = await b.import.stage(archive);
+        expect(again.plan, const ImportPlan(added: 0, replaced: 0, unchanged: 2));
+        final repeat = await b.import.adopt(again);
+        await b.import.discard(again);
+        expect(countsOf(repeat), planned(again.plan));
+        expect(b.store.read('e1')!.audioPath, restored);
+      },
+    );
+
+    test(
+      'an entry continued onto a newer recording since the backup gets the archive audio anew',
+      () async {
+        final a = await world('a');
+        await writeAudio(a, 'o.m4a', [1, 1, 1]);
+        await a.store.save(entry('e1', audioPath: 'o.m4a', title: 'Before'));
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await writeAudio(b, 'o.m4a', [3, 3]);
+        await writeAudio(b, 'y.m4a', [2, 2]);
+        await b.store.save(entry('e1', audioPath: 'y.m4a', title: 'Continued'));
+
+        final staged = await b.import.stage(archive);
+        expect(staged.plan, const ImportPlan(added: 0, replaced: 1, unchanged: 0));
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+        expect(countsOf(summary), planned(staged.plan));
+        final restored = b.store.read('e1')!;
+        expect(restored.title, 'Before');
+        expect(restored.audioPath, isNot(anyOf('o.m4a', 'y.m4a')));
+        expect(await File('${b.recordings.path}/${restored.audioPath}').readAsBytes(), [1, 1, 1]);
+        expect(await File('${b.recordings.path}/o.m4a').readAsBytes(), [3, 3]);
+      },
+    );
+
+    test('a replaced recording whose delete fails is never adopted by a later record', () async {
+      final a = await world('a');
+      await writeAudio(a, 'z.m4a', [1]);
+      await writeAudio(a, 'y.m4a', [2]);
+      await a.store.save(entry('b', audioPath: 'z.m4a', title: 'B'));
+      await a.store.save(entry('c', audioPath: 'y.m4a', title: 'C'));
+      final archive = await archiveOf(a);
+      final b = await world(
+        'b',
+        deleter: (f) async {
+          if (f.path.endsWith('/y.m4a')) throw const FileSystemException('busy');
+          f.deleteSync();
+        },
+      );
+      await writeAudio(b, 'y.m4a', [3]);
+      await writeAudio(b, '${importAudioPrefix}k.m4a', [4]);
+      await b.store.save(entry('b', audioPath: 'y.m4a', title: 'B'));
+      await b.store.save(entry('c', audioPath: '${importAudioPrefix}k.m4a', title: 'C'));
+
+      await restoreAll(b.import, archive);
+      expect(b.store.read('b')!.audioPath, 'z.m4a');
+      expect(b.store.read('c')!.audioPath, '${importAudioPrefix}k.m4a');
+      expect(await File('${b.recordings.path}/y.m4a').readAsBytes(), [3]);
+    });
+
+    test('adoption reports its progress after every entry', () async {
+      final a = await seededWorld();
+      final b = await world('b');
+      final staged = await b.import.stage(await archiveOf(a));
+      final progress = <(int, int)>[];
+      await b.import.adopt(staged, onProgress: (done, total) => progress.add((done, total)));
+      await b.import.discard(staged);
+      expect(progress, [(1, 2), (2, 2)]);
+    });
+
+    test(
+      'adopting again after a midway failure lands the same journal a clean restore does',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final clean = await world('clean');
+        final expected = await restoreAll(clean.import, archive);
+
+        final b = await world('b');
+        b.store.failOnce.add('e1');
+        final staged = await b.import.stage(archive);
+        await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+
+        expect(summary, expected);
+        expect(b.store.all(), clean.store.all());
+        expect(recordingNames(b), recordingNames(clean));
+      },
+    );
+
+    test(
+      'adopting again after a midway failure keeps the fresh name its audio already landed under',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        await writeAudio(b, 'otr-1.m4a', [9, 9, 9]);
+        await b.store.save(entry('other', audioPath: 'otr-1.m4a', title: 'Owns the name'));
+        b.store.failOnce.add('e1');
+
+        final staged = await b.import.stage(archive);
+        await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+
+        expect(summary.entriesAdded, 2);
+        final renamed = b.store.read('e1')!.audioPath!;
+        expect(renamed, isNot('otr-1.m4a'));
+        expect(recordingNames(b), {'otr-1.m4a', renamed});
+        expect(await File('${b.recordings.path}/otr-1.m4a').readAsBytes(), [9, 9, 9]);
+      },
+    );
+
+    test(
+      'an entry settled before a midway failure keeps an edit made before the restore runs again',
+      () async {
+        final a = await seededWorld();
+        final archive = await archiveOf(a);
+        final b = await world('b');
+        b.store.failOnce.add('e2');
+
+        final staged = await b.import.stage(archive);
+        await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+        final settled = b.store.read('e1')!;
+        expect(staged.adoptedSoFar.entriesAdded, 1);
+        expect(File('${b.recordings.path}/otr-1.m4a').existsSync(), isTrue);
+        await b.store.save(settled.withTitle('Edited between passes'));
+
+        final summary = await b.import.adopt(staged);
+        await b.import.discard(staged);
+        expect(b.store.read('e1')!.title, 'Edited between passes');
+        expect(b.store.read('e2'), isNotNull);
+        expect(summary.entriesAdded, 2);
+      },
+    );
+
+    test('a recording that vanished between passes leaves the stored record as it was', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b');
+      await writeAudio(b, 'otr-old.m4a', [1, 2, 3]);
+      final local = entry('e1', audioPath: 'otr-old.m4a', title: 'Local take');
+      await b.store.save(local);
+      b.store.failOnce.add('e1');
+
+      final staged = await b.import.stage(archive);
+      await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+      await File('${b.recordings.path}/otr-1.m4a').delete();
+      final summary = await b.import.adopt(staged);
+      await b.import.discard(staged);
+
+      expect(b.store.read('e1'), local);
+      expect(File('${b.recordings.path}/otr-old.m4a').existsSync(), isTrue);
+      expect(countsOf(summary), (added: 1, replaced: 0, recordings: 0, reflections: 1));
+    });
+
+    test('the orphan sweep stands down from the first adoption until the discard', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b', probe: (_) => const Duration(seconds: 30));
+      b.store.failOnce.add('e1');
+
+      final staged = await b.import.stage(archive);
+      expect(await b.transcription.reconcileOrphans(), 0);
+      await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+      expect(await b.transcription.reconcileOrphans(), isNull);
+      expect(b.store.all().every((e) => e.id == 'e1' || e.id == 'e2'), isTrue);
+
+      final summary = await b.import.adopt(staged);
+      expect(summary.entriesAdded, 2);
+      expect(await b.transcription.reconcileOrphans(), isNull);
+      await b.import.discard(staged);
+      expect(await b.transcription.reconcileOrphans(), 0);
+      expect(b.store.all().map((e) => e.id).toSet(), {'e1', 'e2'});
+      expect(b.store.read('e1')!.audioPath, 'otr-1.m4a');
+    });
+
+    test('an orphan sweep that sees a sweep hold taken during its probe saves nothing', () async {
+      late _World b;
+      SweepHold? hold;
+      b = await world(
+        'b',
+        probe: (_) {
+          hold ??= b.transcription.holdSweeps();
+          return const Duration(seconds: 30);
+        },
+      );
+      await writeAudio(b, 'otr-orphan.m4a', [4, 5, 6]);
+
+      expect(await b.transcription.reconcileOrphans(), isNull);
+      expect(b.store.all(), isEmpty);
+      expect(File('${b.recordings.path}/otr-orphan.m4a').existsSync(), isTrue);
+      hold!.release();
+    });
+
+    test(
+      'an orphan sweep that sees a sweep hold taken and released during its probe saves nothing',
+      () async {
+        late _World b;
+        b = await world(
+          'b',
+          probe: (_) {
+            b.transcription.holdSweeps().release();
+            return const Duration(seconds: 30);
+          },
+        );
+        await writeAudio(b, 'otr-orphan.m4a', [4, 5, 6]);
+
+        expect(await b.transcription.reconcileOrphans(), isNull);
+        expect(b.store.all(), isEmpty);
+      },
+    );
+
+    test('discarding an abandoned restore deletes what it moved in without a record', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final b = await world('b', probe: (_) => const Duration(seconds: 30));
+      b.store.failOnce.add('e1');
+
+      final staged = await b.import.stage(archive);
+      await expectLater(b.import.adopt(staged), throwsA(isA<FileSystemException>()));
+      expect(recordingNames(b), contains('otr-1.m4a'));
+      await b.import.discard(staged);
+
+      expect(recordingNames(b), isNot(contains('otr-1.m4a')));
+      expect(await b.transcription.reconcileOrphans(), 0);
+      expect(b.store.read('e1'), isNull);
+    });
+
+    test('a discard while an adoption runs on the same handle waits for it to land', () async {
+      final a = await seededWorld();
+      final b = await world('b');
+      final staged = await b.import.stage(await archiveOf(a));
+      final staging = b.staging.imports.last;
+
+      final adopting = b.import.adopt(staged);
+      await b.import.discard(staged);
+      final summary = await adopting;
+      expect(summary.entriesAdded, 2);
+      expect(b.store.read('e1')!.audioPath, 'otr-1.m4a');
+      expect(File('${b.recordings.path}/otr-1.m4a').existsSync(), isTrue);
+      expect(Directory(staging).existsSync(), isFalse);
+      expect(b.staging.owns(staging), isFalse);
+    });
+
+    test('a discarded import refuses adoption and discards again quietly', () async {
+      final a = await seededWorld();
+      final b = await world('b');
+      final staged = await b.import.stage(await archiveOf(a));
+      await b.import.discard(staged);
+      await b.import.discard(staged);
+      await expectLater(b.import.adopt(staged), throwsStateError);
+      expect(b.store.all(), isEmpty);
     });
   });
 
@@ -596,6 +1214,20 @@ void main() {
       );
       expect(done, isTrue);
       expect(a.share.sharedPaths.single.single, endsWith('Text only.md'));
+    });
+
+    test('an entry export says its files are built only as the share sheet takes them', () async {
+      final a = await seededWorld();
+      var sharesAtSignal = -1;
+      await a.export.shareEntry(
+        'e1',
+        exporterId: 'obsidian',
+        includeAudio: true,
+        strings: strings,
+        onSharing: () => sharesAtSignal = a.share.sharedPaths.length,
+      );
+      expect(sharesAtSignal, 0);
+      expect(a.share.sharedPaths, hasLength(1));
     });
 
     test('include audio on a transcript-only entry still shares bare', () async {
@@ -647,6 +1279,25 @@ void main() {
       await reader.close();
     });
 
+    test(
+      'a journal export reports its pack, then its landing, then the share, the last two once',
+      () async {
+        final a = await seededWorld();
+        final events = <String>[];
+        await a.export.shareJournal(
+          exporterId: 'markdown',
+          includeAudio: true,
+          strings: strings,
+          onProgress: (_) => events.add('progress'),
+          onPackDone: () => events.add('packed'),
+          onSharing: () =>
+              events.add(a.share.calls.contains('shareFiles') ? 'after the sheet' : 'sharing'),
+        );
+        expect(events.first, 'progress');
+        expect(events.skipWhile((e) => e == 'progress').toList(), ['packed', 'sharing']);
+      },
+    );
+
     test('staging is deleted after a completed and a cancelled share', () async {
       final a = await seededWorld();
       await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings);
@@ -655,10 +1306,9 @@ void main() {
         await a.export.shareJournal(exporterId: 'markdown', includeAudio: true, strings: strings),
         isFalse,
       );
-      final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
-        (d) => d.path.split('/').last.startsWith('export-'),
-      );
-      expect(leftovers, isEmpty);
+      final exports = a.staging.exports;
+      expect(exports, hasLength(2));
+      expect(exports.where((p) => Directory(p).existsSync() || a.staging.owns(p)), isEmpty);
     });
 
     test('an unknown exporter id is refused', () async {
@@ -701,6 +1351,45 @@ void main() {
       },
     );
 
+    test('the measure counts how many entries were created after a given moment', () async {
+      final a = await seededWorld();
+      await a.store.save(
+        Entry(
+          id: 'later',
+          createdAt: DateTime.utc(2026, 8, 6),
+          audioPath: null,
+          duration: Duration.zero,
+        ),
+      );
+      final measure = await a.export.measure(since: DateTime.utc(2026, 8, 5, 12));
+      expect(measure.newSince, 1);
+      expect(measure.since, DateTime.utc(2026, 8, 5, 12));
+      expect((await a.export.measure()).since, isNull);
+    });
+
+    test(
+      'a recording two records share, one by a legacy absolute path, is counted and packed once',
+      () async {
+        final a = await world('a');
+        await writeAudio(a, 'otr-1.m4a', List<int>.generate(4000, (i) => i % 200));
+        await a.store.save(entry('e1', audioPath: 'otr-1.m4a', text: null));
+        await a.store.save(entry('e3', audioPath: '${a.recordings.path}/otr-1.m4a', text: null));
+
+        final measure = await a.export.measure();
+        expect(measure.recordings, 1);
+        expect(measure.approxBytes, lessThan(8000));
+
+        final archive = await archiveOf(a);
+        final reader = await StoredZipReader.open(File(archive));
+        expect(reader.paths.where((p) => p.startsWith('audio/')), ['audio/otr-1.m4a']);
+        await reader.close();
+        for (final id in ['e1', 'e3']) {
+          final record = jsonDecode(utf8.decode(await archiveEntry(archive, 'entries/$id.json')));
+          expect((record as Map<String, dynamic>)['audioPath'], 'otr-1.m4a');
+        }
+      },
+    );
+
     test('a vanished recording leaves the measure, not just the archive', () async {
       final a = await seededWorld();
       await File('${a.recordings.path}/otr-1.m4a').delete();
@@ -724,21 +1413,96 @@ void main() {
         ),
         throwsA(isA<ZipPackAborted>()),
       );
-      final leftovers = Directory.systemTemp.listSync().whereType<Directory>().where(
-        (d) => d.path.split('/').last.startsWith('export-'),
-      );
-      expect(leftovers, isEmpty);
+      final exports = a.staging.exports;
+      expect(exports, isNotEmpty);
+      expect(exports.where((p) => Directory(p).existsSync() || a.staging.owns(p)), isEmpty);
       expect(a.share.captured, isEmpty);
     });
+  });
 
-    test('a plain archive probes with its manifest counts, a sealed one with none', () async {
+  group('probing a picked file', () {
+    test('a plain backup probes as a backup, a sealed one goes unpeeked', () async {
       final a = await seededWorld();
-      final plainProbe = await a.import.probe(await archiveOf(a));
-      expect(plainProbe.counts?.entries, 2);
-      expect(plainProbe.counts?.audio, 1);
+      expect((await a.import.probe(await archiveOf(a))).contents, ZipContents.backup);
       final sealedProbe = await a.import.probe(await archiveOf(a, passphrase: 'open sesame'));
-      expect(sealedProbe.counts, isNull);
+      expect(sealedProbe.contents, isNull);
     });
+
+    test('a copy for other apps probes as an export, not a backup', () async {
+      final a = await seededWorld();
+      await a.export.shareJournal(exporterId: 'markdown', includeAudio: false, strings: strings);
+      final probe = await a.import.probe(a.share.captured.last);
+      expect(probe.kind, ArchiveKind.plainZip);
+      expect(probe.contents, ZipContents.export);
+    });
+
+    test('a zip of something else probes as foreign', () async {
+      final a = await world('a');
+      final zip = File('${temp.path}/photos.zip');
+      final writer = await StoredZipWriter.create(zip);
+      await writer.addBytes('holiday.jpg', [1, 2, 3]);
+      await writer.close();
+      expect((await a.import.probe(zip.path)).contents, ZipContents.foreign);
+    });
+
+    test('a truncated zip probes as unreadable, never as a copy for other apps', () async {
+      final a = await seededWorld();
+      final archive = await archiveOf(a);
+      final bytes = await File(archive).readAsBytes();
+      final truncated = File('${temp.path}/truncated.zip');
+      await truncated.writeAsBytes(bytes.sublist(0, bytes.length - 64));
+      expect((await a.import.probe(truncated.path)).contents, ZipContents.unreadable);
+    });
+
+    test('a garbled manifest still marks a backup, which then fails as one when staged', () async {
+      final a = await seededWorld();
+      final garbled = await rewriteArchive(
+        await archiveOf(a),
+        '${temp.path}/garbled.zip',
+        edit: (path, bytes) => path == 'manifest.json' ? utf8.encode('{not json') : bytes,
+      );
+      expect((await a.import.probe(garbled.path)).contents, ZipContents.backup);
+    });
+
+    test('a zip64 zip, which this app never writes, probes as foreign', () async {
+      final a = await world('a');
+      final zip = File('${temp.path}/big.zip');
+      final writer = await StoredZipWriter.create(zip);
+      await writer.addBytes('manifest.json', utf8.encode('{}'));
+      await writer.close();
+      final bytes = await zip.readAsBytes();
+      ByteData.sublistView(bytes).setUint32(bytes.length - 6, 0xffffffff, Endian.little);
+      await zip.writeAsBytes(bytes);
+      expect((await a.import.probe(zip.path)).contents, ZipContents.foreign);
+    });
+
+    test('a compressed zip lists its names, so its manifest decides what it is', () async {
+      final a = await world('a');
+      final photos = await writeDeflatedZip('${temp.path}/photos.zip', {
+        'holiday.jpg': [1, 2, 3],
+      });
+      expect((await a.import.probe(photos.path)).contents, ZipContents.foreign);
+      final notes = await writeDeflatedZip('${temp.path}/notes.zip', {
+        'entries/walk.md': utf8.encode('# Walk'),
+      });
+      expect((await a.import.probe(notes.path)).contents, ZipContents.export);
+      final backup = await writeDeflatedZip('${temp.path}/rezipped.zip', {
+        'manifest.json': utf8.encode('{}'),
+      });
+      expect((await a.import.probe(backup.path)).contents, ZipContents.backup);
+    });
+
+    test(
+      'notes at the top or under entries, or a page at the top, are laid out like an export',
+      () {
+        expect(looksLikeExport(['2026-08-05 Walk.md']), isTrue);
+        expect(looksLikeExport(['Walk after the rain.html', 'audio/otr-1.m4a']), isTrue);
+        expect(looksLikeExport(['entries/2026-08-05-Walk.md', 'journal.json']), isTrue);
+        expect(looksLikeExport(['index.html', 'style.css']), isTrue);
+        expect(looksLikeExport(['docs/readme.md']), isFalse);
+        expect(looksLikeExport(['holiday.jpg']), isFalse);
+      },
+    );
   });
 
   group('the staging sweep', () {
@@ -813,24 +1577,23 @@ final class _World {
     required this.import,
   });
 
-  final EntryStore store;
+  final FailingEntryStore store;
   final Directory recordings;
   final TranscriptionService transcription;
   final ReflectionSettings reflectionSettings;
-  final ReflectionStore reflectionStore;
+  final FailingReflectionStore reflectionStore;
   final ReflectionService reflections;
   final FakeShareExport share;
-  final StagingRegistry staging;
+  final TrackingStagingRegistry staging;
   final ExportService export;
   final ImportService import;
 }
 
-final class _TrackingStagingRegistry extends StagingRegistry {
-  final List<String> registered = [];
-
-  @override
-  void register(String path) {
-    registered.add(path);
-    super.register(path);
+Future<ImportSummary> restoreAll(ImportService import, String path, {String? passphrase}) async {
+  final staged = await import.stage(path, passphrase: passphrase);
+  try {
+    return await import.adopt(staged);
+  } finally {
+    await import.discard(staged);
   }
 }

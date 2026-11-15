@@ -29,6 +29,56 @@ void main() {
     return file;
   }
 
+  test('a written zip lists its names', () async {
+    final zip = await writeZip({
+      'manifest.json': utf8.encode('{}'),
+      'entries/one.json': utf8.encode('{}'),
+    });
+    expect(await StoredZipReader.listNames(zip), ['manifest.json', 'entries/one.json']);
+  });
+
+  test(
+    'a commented zip lists its names even past a signature in its comment; open refuses it',
+    () async {
+      final zip = await writeZip({'manifest.json': utf8.encode('{}')});
+      final bytes = await zip.readAsBytes();
+      final comment = [
+        ...utf8.encode('made by '),
+        0x50,
+        0x4b,
+        0x05,
+        0x06,
+        ...utf8.encode(' a tool'),
+      ];
+      final commented = Uint8List.fromList([...bytes, ...comment]);
+      ByteData.sublistView(commented).setUint16(bytes.length - 2, comment.length, Endian.little);
+      await zip.writeAsBytes(commented);
+
+      expect(await StoredZipReader.listNames(zip), ['manifest.json']);
+      await expectLater(StoredZipReader.open(zip), throwsA(_zipError(StoredZipError.malformed)));
+    },
+  );
+
+  test('a zip marked zip64 lists as unsupported, never as names', () async {
+    final zip = await writeZip({'manifest.json': utf8.encode('{}')});
+    final bytes = await zip.readAsBytes();
+    ByteData.sublistView(bytes).setUint16(bytes.length - 12, 0xffff, Endian.little);
+    await zip.writeAsBytes(bytes);
+    await expectLater(
+      StoredZipReader.listNames(zip),
+      throwsA(_zipError(StoredZipError.unsupported)),
+    );
+  });
+
+  test('a file with no end record has no names to list', () async {
+    final file = target('noise.bin');
+    await file.writeAsBytes(List<int>.generate(200, (i) => i % 7));
+    await expectLater(
+      StoredZipReader.listNames(file),
+      throwsA(_zipError(StoredZipError.malformed)),
+    );
+  });
+
   test('a written zip reads back byte-identical files', () async {
     final files = {
       'manifest.json': utf8.encode('{"a":1}'),

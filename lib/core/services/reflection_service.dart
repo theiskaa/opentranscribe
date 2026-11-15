@@ -108,35 +108,95 @@ class ReflectionService {
   /// floor is more history legitimately reflectable and a later one would
   /// silently orphan reflectable periods. Idempotent: re-applying the same
   /// archive changes nothing. Fires [reflectionsChanged] once when anything
-  /// changed; returns how many rows, tombstones and floors were applied.
-  Future<int> adoptImportedReflections(ReflectionArchive archive) async {
-    var applied = 0;
-    final rowKeys = {for (final row in archive.rows) (row.period, row.periodKey)};
+  /// was due to change, even when a write breaks partway. [onLanded] hears
+  /// each write a reader would see (a row saved, a local row erased) as it
+  /// lands, so a pass that breaks keeps count of what it did.
+  Future<void> adoptImportedReflections(
+    ReflectionArchive archive, {
+    void Function()? onLanded,
+  }) async {
+    final changes = _changesOf(archive);
+    try {
+      for (final row in changes.rows) {
+        try {
+          await _store.save(row);
+        } catch (_) {
+          // A save writes the row before it clears the erasure marker; a
+          // failure after the row landed still changed what a reader sees.
+          if (_store.read(row.periodStart, period: row.period) == row) onLanded?.call();
+          rethrow;
+        }
+        onLanded?.call();
+      }
+      for (final tombstone in changes.erasing) {
+        await _store.delete(tombstone.start, period: tombstone.period);
+        onLanded?.call();
+      }
+      for (final tombstone in changes.bookkeeping) {
+        await _store.delete(tombstone.start, period: tombstone.period);
+      }
+      for (final floor in changes.floors.entries) {
+        await _settings.setFloorFor(floor.key, floor.value);
+      }
+    } finally {
+      if (changes.visible + changes.state > 0 && !_changed.isClosed) _changed.add(null);
+    }
+  }
+
+  /// What [adoptImportedReflections] would apply to the journal as it stands,
+  /// read without writing anything: the reflections a reader would see change
+  /// ([visible]: rows saved, local rows erased), and the state only the app
+  /// keeps ([state]: floors moved, erasures recorded where no row stands).
+  ({int visible, int state}) planImportedReflections(ReflectionArchive archive) {
+    final changes = _changesOf(archive);
+    return (visible: changes.visible, state: changes.state);
+  }
+
+  /// The one reading of what an archive changes, for the plan and the adoption
+  /// alike. Read up front: rows only touch keys no applied tombstone has, and
+  /// floors stand apart, so no write here alters a later decision. A key the
+  /// archive carries twice counts once, its last row or tombstone kept.
+  _ReflectionChanges _changesOf(ReflectionArchive archive) {
+    final rowsByKey = <(ReflectionPeriod, String), Reflection>{};
     for (final row in archive.rows) {
+      rowsByKey[(row.period, row.periodKey)] = row;
+    }
+    final rows = <Reflection>[];
+    for (final row in rowsByKey.values) {
       if (_store.read(row.periodStart, period: row.period) == row) continue;
-      await _store.save(row);
-      applied++;
+      rows.add(row);
     }
     final erased = {
       for (final ref in _store.deletedRefs()) (ref.period, Reflection.keyFor(ref.start)),
     };
+    final tombstonesByKey =
+        <(ReflectionPeriod, String), ({ReflectionPeriod period, DateTime start})>{};
     for (final tombstone in archive.tombstones) {
-      final key = (tombstone.period, Reflection.keyFor(tombstone.start));
-      if (rowKeys.contains(key)) continue;
-      final hasRow = _store.read(tombstone.start, period: tombstone.period) != null;
-      if (!hasRow && erased.contains(key)) continue;
-      await _store.delete(tombstone.start, period: tombstone.period);
-      applied++;
+      tombstonesByKey[(tombstone.period, Reflection.keyFor(tombstone.start))] = tombstone;
     }
-    for (final floor in archive.floors.entries) {
-      final local = _settings.floorFor(floor.key);
-      final recorded = _settings.floorRecordedFor(floor.key);
-      if (recorded && local != null && !floor.value.isBefore(local)) continue;
-      await _settings.setFloorFor(floor.key, floor.value);
-      applied++;
+    final erasing = <({ReflectionPeriod period, DateTime start})>[];
+    final bookkeeping = <({ReflectionPeriod period, DateTime start})>[];
+    for (final MapEntry(:key, value: tombstone) in tombstonesByKey.entries) {
+      if (rowsByKey.containsKey(key)) continue;
+      if (_store.read(tombstone.start, period: tombstone.period) != null) {
+        erasing.add(tombstone);
+        continue;
+      }
+      if (erased.contains(key)) continue;
+      bookkeeping.add(tombstone);
     }
-    if (applied > 0 && !_changed.isClosed) _changed.add(null);
-    return applied;
+    final floors = <ReflectionPeriod, DateTime>{};
+    for (final MapEntry(key: period, value: floor) in archive.floors.entries) {
+      final local = _settings.floorFor(period);
+      if (_settings.floorRecordedFor(period) && local != null && !floor.isBefore(local)) continue;
+      floors[period] = floor;
+    }
+    return _ReflectionChanges(
+      rows: rows,
+      erasing: erasing,
+      bookkeeping: bookkeeping,
+      floors: floors,
+    );
   }
 
   /// Single-flights [catchUp]: a resume racing the launch kick must not run
@@ -635,6 +695,24 @@ final class ReflectionArchive {
   final List<Reflection> rows;
   final List<({ReflectionPeriod period, DateTime start})> tombstones;
   final Map<ReflectionPeriod, DateTime> floors;
+}
+
+/// What adopting an archive would apply, split by whether a reader sees it.
+final class _ReflectionChanges {
+  const _ReflectionChanges({
+    required this.rows,
+    required this.erasing,
+    required this.bookkeeping,
+    required this.floors,
+  });
+
+  final List<Reflection> rows;
+  final List<({ReflectionPeriod period, DateTime start})> erasing;
+  final List<({ReflectionPeriod period, DateTime start})> bookkeeping;
+  final Map<ReflectionPeriod, DateTime> floors;
+
+  int get visible => rows.length + erasing.length;
+  int get state => bookkeeping.length + floors.length;
 }
 
 /// One period's starts, sorted, answering "does anything overlap this start"

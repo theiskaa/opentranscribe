@@ -467,10 +467,7 @@ class Deps {
       for (final e in const <JournalExporter>[defaultExporter, obsidianExporter, htmlExporter])
         e.id: e,
     };
-    final backupSettings = BackupSettings(
-      storage: localService,
-      fallbackFormatId: defaultExporter.id,
-    );
+    final backupSettings = BackupSettings(storage: localService);
     String? appVersion;
     final stagingRegistry = StagingRegistry();
     final exportService = ExportService(

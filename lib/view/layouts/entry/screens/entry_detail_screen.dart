@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,6 +14,7 @@ import 'package:opentranscribe/core/models/take_forecast.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
+import 'package:opentranscribe/core/state/entry_export_cubit.dart';
 import 'package:opentranscribe/core/state/player_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
@@ -22,7 +24,8 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
-import 'package:opentranscribe/view/layouts/entry/components/entry_export_sheet.dart';
+import 'package:opentranscribe/view/layouts/entry/components/entry_bar_line.dart';
+import 'package:opentranscribe/view/layouts/entry/components/entry_export_menu.dart';
 import 'package:opentranscribe/view/layouts/entry/components/revision_history_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
@@ -35,7 +38,8 @@ import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/editable_prose.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
-import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
+import 'package:opentranscribe/view/widgets/export_l10n.dart';
+import 'package:opentranscribe/view/widgets/exporter_marks.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
@@ -54,8 +58,19 @@ class EntryDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => PlayerCubit(player: Deps.i.audioPlayer, service: Deps.i.transcriptionService),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              PlayerCubit(player: Deps.i.audioPlayer, service: Deps.i.transcriptionService),
+        ),
+        BlocProvider(
+          create: (_) => EntryExportCubit(
+            export: Deps.i.exportService,
+            descriptors: Deps.i.exporterDescriptors,
+          ),
+        ),
+      ],
       child: _DetailView(entryId: entryId),
     );
   }
@@ -100,6 +115,10 @@ class _DetailViewState extends State<_DetailView> {
   );
   bool _hintMarked = false;
 
+  /// The format marks the Export submenu wears, empty until rasterized. A
+  /// notifier so their landing rebuilds the menu button alone.
+  late final ValueNotifier<Map<String, Uint8List>> _marks;
+
   /// Any touch on the screen, or a pick from the menu it points at: either
   /// way it has been read.
   void _dismissHint() {
@@ -123,6 +142,16 @@ class _DetailViewState extends State<_DetailView> {
   void initState() {
     super.initState();
     _bodyFocus.addListener(_onBodyFocusChange);
+    final descriptors = context.read<EntryExportCubit>().descriptors;
+    final ready = exporterMarksNow(descriptors);
+    _marks = ValueNotifier(ready ?? const {});
+    if (ready == null) {
+      unawaited(
+        exporterMarks(descriptors).then((marks) {
+          if (mounted) _marks.value = marks;
+        }),
+      );
+    }
   }
 
   @override
@@ -148,6 +177,7 @@ class _DetailViewState extends State<_DetailView> {
     _titleFocus.dispose();
     _selectionFocus.dispose();
     _hintArmed.dispose();
+    _marks.dispose();
     _bodyFocus.removeListener(_onBodyFocusChange);
     _bodyFocus.dispose();
     _bodyController.dispose();
@@ -247,12 +277,12 @@ class _DetailViewState extends State<_DetailView> {
   /// Action row ids: the list shrinks when an entry loses its audio, and a
   /// menu opened before that rebuild still shows the old rows, so a position
   /// can land on the wrong action. An id names the choice itself; only the
-  /// Transcribe-in parent answers by position (a parent with children never
-  /// answers by id), and the dispatcher checks it is really the parent.
+  /// Transcribe-in parent answers by position (it carries no id), and the
+  /// dispatcher checks it is really the parent.
   static const _actRename = 'act:rename';
   static const _actEdit = 'act:edit';
   static const _actHistory = 'act:history';
-  static const _actExport = 'act:export';
+  static const _actExport = entryExportId;
   static const _actContinue = 'act:continue';
   static const _actRetranscribe = 'act:retranscribe';
   static const _actDelete = 'act:delete';
@@ -287,6 +317,56 @@ class _DetailViewState extends State<_DetailView> {
     if (picked != null && mounted) unawaited(entries.restore(entry, picked));
   }
 
+  /// The Export row and its submenu, for the bar's menu and the fallback's
+  /// follow-up alike.
+  AppMenuItem _exportItem(
+    Entry entry,
+    AppLocalizations l10n, {
+    required bool includeAudio,
+    required Map<String, Uint8List> marks,
+  }) => entryExportMenuItem(
+    descriptors: context.read<EntryExportCubit>().descriptors,
+    nameOf: (format) => exportFormatCopy(l10n, format).name,
+    marks: marks,
+    hasAudio: entry.hasAudio,
+    includeAudio: includeAudio,
+    label: l10n.exportEntry,
+    includeAudioLabel: l10n.exportIncludeAudio,
+  );
+
+  /// The fallback's Export: the formats as a follow-up menu out of the bar's
+  /// button, its Include audio check flipping in place as on native.
+  Future<void> _exportFromFallback(Entry entry) async {
+    final export = context.read<EntryExportCubit>();
+    final items = _exportItem(
+      entry,
+      AppLocalizations.of(context)!,
+      includeAudio: export.state.includeAudio,
+      marks: _marks.value,
+    ).children;
+    final index = await showAppMenu(
+      context,
+      anchor: dropdownAnchorRect(_menuAnchor, context),
+      items: items,
+      onToggle: (i) {
+        final id = items[i].id;
+        if (id != null) _onMenuId(id, entry);
+      },
+    );
+    if (index == null || !mounted) return;
+    final id = items[index].id;
+    if (id != null) _onMenuId(id, entry);
+  }
+
+  /// Packs the entry in [exporterId]'s format for the share sheet; the bar's
+  /// line tells the wait and a failure.
+  void _export(Entry entry, String exporterId) {
+    final strings = exportStringsOf(AppLocalizations.of(context)!);
+    unawaited(
+      context.read<EntryExportCubit>().export(entry, exporterId: exporterId, strings: strings),
+    );
+  }
+
   List<AppMenuItem> _menuItems(
     Entry entry,
     AppLocalizations l10n,
@@ -295,6 +375,7 @@ class _DetailViewState extends State<_DetailView> {
     required bool anyAction,
     required bool canContinue,
     required bool editing,
+    required AppMenuItem exportItem,
   }) => [
     AppMenuItem(id: _actRename, label: l10n.rename, icon: AppIcons.textformat),
     // Editing corrects words that exist; a never-transcribed entry has none
@@ -311,7 +392,7 @@ class _DetailViewState extends State<_DetailView> {
     // date the open sheet.
     if ((entry.readableText?.trim().isNotEmpty ?? false) && !editing && !anyAction)
       AppMenuItem(id: _actHistory, label: l10n.revisionHistory, icon: AppIcons.clockHistory),
-    AppMenuItem(id: _actExport, label: l10n.exportEntry, icon: AppIcons.squareAndArrowUp),
+    exportItem,
     if (continueRowVisible(editing: editing, busy: !canContinue))
       AppMenuItem(id: _actContinue, label: l10n.continueRecording, icon: AppIcons.mic),
     // Hidden while editing: the Edit gate's shadowing, other direction (the
@@ -348,6 +429,15 @@ class _DetailViewState extends State<_DetailView> {
   /// open menu (the discard landed while it was up) is a no-op, never a wrong
   /// action on a transcript-only entry.
   void _onMenuId(String id, Entry entry) {
+    if (id == entryExportAudioId) {
+      context.read<EntryExportCubit>().toggleAudio();
+      return;
+    }
+    final exporterId = entryExportFormatOf(id);
+    if (exporterId != null) {
+      _export(entry, exporterId);
+      return;
+    }
     // Anything act:-prefixed is an action row; an unknown one must never fall
     // through to the language branch and re-transcribe with a bogus locale.
     if (id.startsWith('act:') && !_actionIds.contains(id)) return;
@@ -371,7 +461,8 @@ class _DetailViewState extends State<_DetailView> {
           unawaited(_openHistory(entry));
         }
       case _actExport:
-        unawaited(showEntryExportSheet(context, entry));
+        // Reached on the fallback only: a native parent never fires.
+        unawaited(_exportFromFallback(entry));
       case _actContinue:
         _startContinuation(entry);
       case _actRetranscribe:
@@ -657,13 +748,11 @@ class _DetailViewState extends State<_DetailView> {
                   right: 0,
                   child: AppTopBar(
                     // A pass's progress, as home's bar shows a take's: under a
-                    // long cloud it would sit below the screen. Shrunk to fit.
+                    // long cloud it would sit below the screen. An export's
+                    // wait and failure share the seat.
                     title: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppTopBar.clearance),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: BatchProgressLine(select: (passes) => passes.forEntry(entry.id)),
-                      ),
+                      child: EntryBarLine(entryId: entry.id),
                     ),
                     centerTitle: true,
                     actions: [
@@ -673,32 +762,46 @@ class _DetailViewState extends State<_DetailView> {
                         builder: (context, settings) {
                           final transcribeTags = _transcribeTags(entry, settings);
                           final preselected = language ?? settings.localeId;
-                          final menu = _menuItems(
-                            entry,
-                            l10n,
-                            transcribeTags,
-                            preselected,
-                            anyAction: state.busyId == entry.id,
-                            canContinue: context.read<EntriesCubit>().canContinue(entry),
-                            editing: _editing,
+                          final includeAudio = context.select<EntryExportCubit, bool>(
+                            (export) => export.state.includeAudio,
                           );
-                          return AppMenuButton(
-                            key: _menuAnchor,
-                            icon: AppIcons.ellipsis,
-                            color: theme.topBar.iconColor,
-                            items: menu,
-                            // Only the Transcribe-in parent answers by position; a
-                            // stale index from a menu that outlived a rebuild is
-                            // dropped rather than landing on another row.
-                            onSelected: (index) {
-                              _dismissHint();
-                              if (index < 0 || index >= menu.length) return;
-                              if (menu[index].children.isEmpty) return;
-                              unawaited(_transcribeIn(entry));
-                            },
-                            onSelectedId: (id) {
-                              _dismissHint();
-                              _onMenuId(id, entry);
+                          return ValueListenableBuilder<Map<String, Uint8List>>(
+                            valueListenable: _marks,
+                            builder: (context, marks, _) {
+                              final menu = _menuItems(
+                                entry,
+                                l10n,
+                                transcribeTags,
+                                preselected,
+                                anyAction: state.busyId == entry.id,
+                                canContinue: context.read<EntriesCubit>().canContinue(entry),
+                                editing: _editing,
+                                exportItem: _exportItem(
+                                  entry,
+                                  l10n,
+                                  includeAudio: includeAudio,
+                                  marks: marks,
+                                ),
+                              );
+                              return AppMenuButton(
+                                key: _menuAnchor,
+                                icon: AppIcons.ellipsis,
+                                color: theme.topBar.iconColor,
+                                items: menu,
+                                // Only the Transcribe-in parent answers by position; a
+                                // stale index from a menu that outlived a rebuild is
+                                // dropped rather than landing on another row.
+                                onSelected: (index) {
+                                  _dismissHint();
+                                  if (index < 0 || index >= menu.length) return;
+                                  if (menu[index].children.isEmpty) return;
+                                  unawaited(_transcribeIn(entry));
+                                },
+                                onSelectedId: (id) {
+                                  _dismissHint();
+                                  _onMenuId(id, entry);
+                                },
+                              );
                             },
                           );
                         },
