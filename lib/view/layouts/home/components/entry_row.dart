@@ -145,41 +145,43 @@ class _DuoEntryFrameState extends State<_DuoEntryFrame> {
         onPointerUp: (_) => setState(() => _pressed = false),
         onPointerCancel: (_) => setState(() => _pressed = false),
         child: AnimatedContainer(
-          duration: context.reduceMotion
-              ? Duration.zero
-              : widget.selected
-              ? theme.motion.selectionFade
-              : _pressed
-              ? theme.motion.duoPressIn
-              : theme.motion.duoPressOut,
+          duration: context.reduceMotion ? Duration.zero : theme.motion.selectionFade,
           curve: Curves.easeOut,
-          constraints: const BoxConstraints(minHeight: AppDuo.rowHeight),
           decoration: SuperellipseDecoration(
             borderRadius: AppDuo.selectionRadius,
-            color: widget.selected
-                ? duo.selectionFill
-                : _pressed
-                ? duo.pressedFill
-                : null,
+            color: widget.selected ? duo.selectionFill : null,
           ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDuo.rowHorizontalInset,
-                  vertical: AppDuo.rowVerticalInset,
+          child: AnimatedContainer(
+            duration: context.reduceMotion
+                ? Duration.zero
+                : _pressed
+                ? theme.motion.duoPressIn
+                : theme.motion.duoPressOut,
+            curve: Curves.easeOut,
+            constraints: const BoxConstraints(minHeight: AppDuo.rowHeight),
+            decoration: SuperellipseDecoration(
+              borderRadius: AppDuo.selectionRadius,
+              color: !widget.selected && _pressed ? duo.pressedFill : null,
+            ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDuo.rowHorizontalInset,
+                    vertical: AppDuo.rowVerticalInset,
+                  ),
+                  child: widget.child,
                 ),
-                child: widget.child,
-              ),
-              if (widget.separator)
-                Positioned(
-                  left: AppDuo.rowHorizontalInset,
-                  right: AppDuo.rowHorizontalInset,
-                  bottom: 0,
-                  height: AppDuo.separatorWidth,
-                  child: ColoredBox(color: duo.separator),
-                ),
-            ],
+                if (widget.separator)
+                  Positioned(
+                    left: AppDuo.rowHorizontalInset,
+                    right: AppDuo.rowHorizontalInset,
+                    bottom: 0,
+                    height: AppDuo.separatorWidth,
+                    child: ColoredBox(color: duo.separator),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

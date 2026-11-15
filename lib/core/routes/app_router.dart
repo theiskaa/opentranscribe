@@ -19,6 +19,7 @@ import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/duo_detail_swap.dart';
 
 /// One root navigator. Details are children of home; recorder and onboarding
 /// cover the whole window.
@@ -86,10 +87,13 @@ class AppRouter {
               fromProvisional: PaneLayoutScope.of(
                 context,
               ).promotesProvisional(state.pathParameters['id']!),
-              child: RoutedEntryDetail(
-                key: ValueKey(state.uri),
+              child: DuoDetailSwap(
                 entryId: state.pathParameters['id']!,
-                routeKey: state.pageKey,
+                location: state.uri,
+                child: RoutedEntryDetail(
+                  entryId: state.pathParameters['id']!,
+                  routeKey: state.pageKey,
+                ),
               ),
             ),
           ),

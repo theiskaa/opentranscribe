@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/duo_detail_swap.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -162,6 +163,7 @@ class _DetailViewState extends State<_DetailView> {
   /// menu that offered the action grew from the same spot).
   final GlobalKey _menuAnchor = GlobalKey();
   PlayerCubit? _player;
+  bool _playerDetached = false;
   EntriesCubit? _entries;
   ModalRoute<dynamic>? _route;
 
@@ -204,7 +206,7 @@ class _DetailViewState extends State<_DetailView> {
       WidgetsBinding.instance.addPostFrameCallback((_) => observer.setBottomSlotOwner(this, null));
     }
     // Leaving the screen silences playback; the cubit closes with the provider.
-    _player?.stopAndDetach();
+    _detachPlayer();
     _titleContinuity.dispose();
     _bodyContinuity.dispose();
     _titleFocus.dispose();
@@ -214,6 +216,12 @@ class _DetailViewState extends State<_DetailView> {
     _bodyFocus.dispose();
     _bodyController.dispose();
     super.dispose();
+  }
+
+  void _detachPlayer() {
+    if (_playerDetached) return;
+    _playerDetached = true;
+    unawaited(_player?.stopAndDetach());
   }
 
   /// Enters the edit mode over the current readable text; the field takes
@@ -570,6 +578,8 @@ class _DetailViewState extends State<_DetailView> {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final inner = duoInnerOf(context);
+    final activeDetail = DuoDetailSelection.isActive(context, widget.entryId);
+    if (inner && !activeDetail) _detachPlayer();
     final panes = PaneLayoutScope.maybeOf(context);
     final foldInsets = inner && panes != null
         ? duoFoldInsets(panes.layout, PaneScope.maybeOf(context)?.touch)
@@ -807,11 +817,13 @@ class _DetailViewState extends State<_DetailView> {
                                   ),
                                 )
                               else
-                                _TranscriptBody(
-                                  entry: entry,
-                                  journal: state.entries,
-                                  busy: busy,
-                                  continuing: continuing,
+                                DuoDetailRise(
+                                  child: _TranscriptBody(
+                                    entry: entry,
+                                    journal: state.entries,
+                                    busy: busy,
+                                    continuing: continuing,
+                                  ),
                                 ),
                             ],
                           ),
@@ -1171,6 +1183,7 @@ class _TitleFieldState extends State<_TitleField> {
       capitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.done,
       maxLines: duoInnerOf(context) ? 2 : null,
+      minLines: duoInnerOf(context) ? 1 : null,
       onSubmitted: (_) => widget.focusNode.unfocus(),
     );
   }

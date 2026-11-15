@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import '../../support/fake_display_channels.dart';
@@ -98,6 +99,40 @@ void main() {
     );
     expect(bounds.width, 0);
     expect(bounds.height, 0);
+  });
+
+  test('polished sheets keep the full window center despite an asymmetric status column', () {
+    for (final padding in [const EdgeInsets.only(right: 84), const EdgeInsets.only(left: 84)]) {
+      final bounds = formSheetBounds(
+        size: const Size(951, 669),
+        padding: padding,
+        keyboard: 0,
+        polished: true,
+        centerOnWindow: true,
+      );
+      expect(bounds.center.dx, 951 / 2);
+      expect(bounds.center.dy, closeTo(669 / 2, 0.0001));
+      expect(bounds.width, DuoTheme.sheetWidth);
+      expect(bounds.height, lessThanOrEqualTo(669 * DuoTheme.sheetHeightFraction + 0.0001));
+    }
+  });
+
+  test('polished forms fit narrow source panes and tiny keyboard regions', () {
+    for (final size in [const Size(455, 669), const Size(30, 40)]) {
+      for (final keyboard in [0.0, 300.0, 1000.0]) {
+        final bounds = formSheetBounds(
+          size: size,
+          padding: const EdgeInsets.only(right: 84),
+          keyboard: keyboard,
+          polished: true,
+        );
+        expect(bounds.width, inInclusiveRange(0, DuoTheme.sheetWidth));
+        expect(
+          bounds.height,
+          inInclusiveRange(0, size.height * DuoTheme.sheetHeightFraction + 0.0001),
+        );
+      }
+    }
   });
 
   test('a sheet rises with the keyboard as it opens', () {

@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -60,11 +62,13 @@ class _AppButtonState extends State<AppButton> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final button = theme.button;
+    final inner = duoInnerOf(context);
+    final primary = inner && widget.variant == AppButtonVariant.primary;
     final (background, pressed, foreground, border) = switch (widget.variant) {
       AppButtonVariant.primary => (
-        button.background,
-        button.pressed,
-        button.foreground,
+        primary ? theme.accent : button.background,
+        primary ? theme.accent : button.pressed,
+        primary ? theme.onAccent : button.foreground,
         BorderSide.none,
       ),
       AppButtonVariant.secondary => (
@@ -78,7 +82,7 @@ class _AppButtonState extends State<AppButton> {
     final disabled = widget.onPressed == null && !widget.isLoading;
     final fill = widget.isLoading ? background : (_pressed ? pressed : background);
     // Ink pills get the machined treatment; light fills stay flat.
-    final inkFill = fill.computeLuminance() < button.inkLuminance;
+    final inkFill = !inner && fill.computeLuminance() < button.inkLuminance;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -86,18 +90,22 @@ class _AppButtonState extends State<AppButton> {
       onTapCancel: _release,
       onTap: _interactive ? widget.onPressed : null,
       child: AnimatedScale(
-        scale: _pressed ? theme.motion.pressScale : 1.0,
+        scale: inner && context.reduceMotion
+            ? 1
+            : _pressed
+            ? theme.motion.pressScale
+            : 1.0,
         duration: theme.motion.press,
         curve: Curves.easeOut,
         child: AnimatedOpacity(
           duration: theme.motion.press,
           opacity: disabled ? button.disabledOpacity : 1,
           child: Container(
-            height: widget.height ?? button.height,
+            height: widget.height ?? (inner ? DuoTheme.buttonHeight : button.height),
             width: widget.expand ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             decoration: SuperellipseDecoration(
-              borderRadius: button.radius,
+              borderRadius: inner ? DuoTheme.buttonRadius : button.radius,
               color: inkFill ? null : fill,
               gradient: inkFill
                   ? LinearGradient(
@@ -138,7 +146,10 @@ class _AppButtonState extends State<AppButton> {
                           child: Text(
                             widget.label,
                             key: ValueKey(widget.label),
-                            style: AppType.callout.copyWith(color: foreground, height: 1),
+                            style: (inner ? DuoTheme.primaryLabel : AppType.callout).copyWith(
+                              color: foreground,
+                              height: 1,
+                            ),
                           ),
                         ),
                       ],

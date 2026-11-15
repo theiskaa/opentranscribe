@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
@@ -21,6 +23,24 @@ class ClubLockup extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tag = AppLocalizations.of(context)!.supporterTag;
+    if (duoInnerOf(context)) {
+      return Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('OpenTranscribe', style: DuoTheme.sheetTitle.copyWith(color: theme.text)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(tag, style: DuoTheme.sheetSubtitle.copyWith(color: theme.textSecondary)),
+              ],
+            ),
+          ),
+          if (member) const _MemberHeart(),
+        ],
+      );
+    }
     return Row(
       children: [
         WaveGlyph(color: theme.text),

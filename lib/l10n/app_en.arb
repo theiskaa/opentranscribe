@@ -2216,5 +2216,9 @@
   },
   "@appearanceModeButton": {
     "description": "Accessibility label for the appearance mode menu."
+  },
+  "sheetCloseButton": "Close",
+  "@sheetCloseButton": {
+    "description": "Close action in the Duo inner-display sheet toolbar"
   }
 }

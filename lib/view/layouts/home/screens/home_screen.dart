@@ -196,6 +196,7 @@ class _HomeScreenState extends State<_Journal> {
   void _glideTo(double offset) {
     final motion = context.motionNow;
     final reduce = context.reduceMotion;
+    final inner = duoInnerNow(context);
     _gliding = true;
     final id = ++_glideId;
     // Outside any notification dispatch; starting an activity from within it
@@ -210,7 +211,11 @@ class _HomeScreenState extends State<_Journal> {
       if (reduce) {
         _scroll.jumpTo(target);
       } else {
-        await _scroll.animateTo(target, duration: motion.dayGlide, curve: motion.dayGlideCurve);
+        await _scroll.animateTo(
+          target,
+          duration: inner ? motion.duoDay : motion.dayGlide,
+          curve: inner ? motion.duoDayCurve : motion.dayGlideCurve,
+        );
       }
       // A later glide superseded this one: it owns the guard now.
       if (id != _glideId) return;

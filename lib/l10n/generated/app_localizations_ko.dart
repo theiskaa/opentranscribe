@@ -1550,4 +1550,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get appearanceModeButton => '화면 모드';
+
+  @override
+  String get sheetCloseButton => '닫기';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
 
@@ -45,5 +46,17 @@ void main() {
 
   test('a row hairline starts under the label, past the padding, the tile and its gap', () {
     expect(tokens.dividerInset, 60);
+  });
+  test('Duo dropdown placement uses the actual inner display tile size', () {
+    expect(
+      selectableRowHeight(
+        tokens,
+        scaler: TextScaler.noScaling,
+        ambientHeight: ambient,
+        tile: true,
+        inner: true,
+      ),
+      DuoTheme.groupIcon + tokens.rowPadding.vertical,
+    );
   });
 }

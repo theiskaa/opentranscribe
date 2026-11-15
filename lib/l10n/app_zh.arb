@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "新录音无法合并到此条目，因此已单独保存。",
   "continueEntryBusy": "此条目仍在转写中。",
   "settingsButton": "设置",
-  "appearanceModeButton": "外观模式"
+  "appearanceModeButton": "外观模式",
+  "sheetCloseButton": "关闭"
 }

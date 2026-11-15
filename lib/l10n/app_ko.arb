@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "새 녹음을 이 항목에 합칠 수 없어 따로 저장했습니다.",
   "continueEntryBusy": "이 항목은 아직 전사 중입니다.",
   "settingsButton": "설정",
-  "appearanceModeButton": "화면 모드"
+  "appearanceModeButton": "화면 모드",
+  "sheetCloseButton": "닫기"
 }

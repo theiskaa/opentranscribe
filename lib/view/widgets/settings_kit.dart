@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_theme.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
@@ -36,17 +40,32 @@ class SettingsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inner = duoInnerOf(context);
+    final panes = PaneLayoutScope.maybeOf(context);
     return SafeSides.scroll(
       builder: (context, sides) => ListView(
-        padding:
-            EdgeInsets.fromLTRB(
-              gutter,
-              // Tighter than the standard breath: settings sits closer under the bar.
-              AppScaffold.topPaddingOf(context) - AppSpacing.md + lead,
-              gutter,
-              MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
-            ) +
-            sides,
+        padding: inner
+            ? duoDetailInsets(
+                width: MediaQuery.sizeOf(context).width + sides.horizontal,
+                safe: MediaQuery.paddingOf(context) + sides,
+                fold: panes == null
+                    ? EdgeInsets.zero
+                    : duoFoldInsets(panes.layout, PaneScope.maybeOf(context)?.touch),
+                top:
+                    AppScaffold.topPaddingOf(context) -
+                    MediaQuery.paddingOf(context).top -
+                    AppSpacing.md +
+                    lead,
+                bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+              )
+            : EdgeInsets.fromLTRB(
+                    gutter,
+                    // Tighter than the standard breath: settings sits closer under the bar.
+                    AppScaffold.topPaddingOf(context) - AppSpacing.md + lead,
+                    gutter,
+                    MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                  ) +
+                  sides,
         children: children,
       ),
     );
@@ -68,11 +87,12 @@ class SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
+    final inner = duoInnerOf(context);
     return DecoratedBox(
       decoration: SuperellipseDecoration(
-        borderRadius: tokens.cardRadius,
-        color: tokens.cardBackground,
-        border: BorderSide(color: tokens.cardBorder),
+        borderRadius: inner ? DuoTheme.groupRadius : tokens.cardRadius,
+        color: inner ? context.theme.duo.surfaceGrouped : tokens.cardBackground,
+        border: inner ? BorderSide.none : BorderSide(color: tokens.cardBorder),
       ),
       child: Column(
         children: [
@@ -99,8 +119,18 @@ class SettingsDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Padding(
-      padding: EdgeInsets.only(left: inset ?? tokens.dividerInset),
-      child: Container(height: 1, color: tokens.dividerColor),
+      padding: EdgeInsets.only(
+        left:
+            inset ??
+            (duoInnerOf(context)
+                ? DuoTheme.groupInset + DuoTheme.groupIcon + AppSpacing.md
+                : tokens.dividerInset),
+        right: duoInnerOf(context) ? DuoTheme.groupInset : 0,
+      ),
+      child: Container(
+        height: duoInnerOf(context) ? AppDuo.separatorWidth : 1,
+        color: duoInnerOf(context) ? context.theme.duo.separator : tokens.dividerColor,
+      ),
     );
   }
 }
@@ -113,11 +143,12 @@ double selectableRowHeight(
   required TextScaler scaler,
   required double? ambientHeight,
   required bool tile,
+  bool inner = false,
 }) {
   final label =
       scaler.scale(AppType.subhead.fontSize!) *
       AppType.lineHeightOf(AppType.subhead, TextStyle(height: ambientHeight));
-  final content = tile ? math.max(tokens.iconTileSize, label) : label;
+  final content = tile ? math.max(inner ? DuoTheme.groupIcon : tokens.iconTileSize, label) : label;
   return content + tokens.rowPadding.vertical;
 }
 
@@ -225,21 +256,24 @@ class RowMarkSeat extends StatelessWidget {
 /// The square a settings row leads with: a glyph, a flag, or a drawn mark on
 /// the neutral tile, or on [color] for a row that must not read as neutral.
 class SettingsIconTile extends StatelessWidget {
-  const SettingsIconTile({required this.child, this.color, super.key});
+  const SettingsIconTile({required this.child, this.color, this.accent = false, super.key});
 
   final Widget child;
   final Color? color;
+  final bool accent;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.theme.settings;
     return Container(
-      width: tokens.iconTileSize,
-      height: tokens.iconTileSize,
+      width: duoInnerOf(context) ? DuoTheme.groupIcon : tokens.iconTileSize,
+      height: duoInnerOf(context) ? DuoTheme.groupIcon : tokens.iconTileSize,
       alignment: Alignment.center,
       decoration: SuperellipseDecoration(
-        borderRadius: tokens.iconTileRadius,
-        color: color ?? tokens.iconTileBackground,
+        borderRadius: duoInnerOf(context) ? DuoTheme.groupIconRadius : tokens.iconTileRadius,
+        color: duoInnerOf(context) && accent
+            ? (color ?? context.theme.accent)
+            : color ?? tokens.iconTileBackground,
       ),
       child: child,
     );
@@ -280,17 +314,24 @@ class SettingsToggleRow extends StatelessWidget {
     return Touchable(
       onTap: enabled ? () => onChanged!(!value) : null,
       haptic: enabled,
-      child: Padding(
+      child: _SettingsRowFrame(
         padding: tokens.rowPadding,
         child: Row(
           children: [
             // The ink eases between live and disabled on the indicator clock,
             // so a row that stops while another control starts moves with it.
             TweenAnimationBuilder<Color?>(
-              tween: ColorTween(end: enabled ? theme.text : theme.textSecondary),
+              tween: ColorTween(
+                end: duoInnerOf(context)
+                    ? (enabled ? theme.onAccent : theme.textSecondary)
+                    : enabled
+                    ? theme.text
+                    : theme.textSecondary,
+              ),
               duration: context.reduceMotion ? Duration.zero : motion.indicator,
               curve: motion.indicatorCurve,
               builder: (context, content, _) => SettingsIconTile(
+                accent: true,
                 child: AppIcon(icon, size: AppIconSize.tile, color: content),
               ),
             ),
@@ -504,16 +545,18 @@ class SettingsActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.settings;
-    final accent = tint ?? theme.text;
+    final inner = duoInnerOf(context);
+    final accent = inner ? (tint == null ? theme.onAccent : theme.onDanger) : tint ?? theme.text;
     return Touchable(
       onTap: onTap,
       haptic: true,
-      child: Padding(
+      child: _SettingsRowFrame(
         padding: tokens.rowPadding,
         child: Row(
           children: [
             SettingsIconTile(
-              color: tint?.withValues(alpha: AppAlpha.wash),
+              accent: true,
+              color: inner ? tint : tint?.withValues(alpha: AppAlpha.wash),
               child: leading ?? AppIcon(icon!, size: AppIconSize.tile, color: accent),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -773,7 +816,14 @@ class SectionInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
+      padding: duoInnerOf(context)
+          ? const EdgeInsets.fromLTRB(
+              DuoTheme.groupInset,
+              AppSpacing.sm,
+              DuoTheme.groupInset,
+              AppSpacing.sm,
+            )
+          : const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
       child: Text(text, style: AppType.note.copyWith(color: context.theme.textSecondary)),
     );
   }
@@ -855,6 +905,25 @@ class SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: AppType.eyebrow.copyWith(color: tokens.sectionLabelColor),
+      ),
+    );
+  }
+}
+
+class _SettingsRowFrame extends StatelessWidget {
+  const _SettingsRowFrame({required this.padding, required this.child});
+
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final inner = duoInnerOf(context);
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: inner ? DuoTheme.groupRowHeight : 0),
+      child: Padding(
+        padding: inner ? const EdgeInsets.all(DuoTheme.groupInset) : padding,
+        child: child,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
@@ -132,6 +133,7 @@ class _DropdownBodyState extends State<_DropdownBody> {
         scaler: MediaQuery.textScalerOf(context),
         ambientHeight: DefaultTextStyle.of(context).style.height,
         tile: items.any((item) => item.flag != null),
+        inner: duoInnerNow(context),
       );
 
   @override

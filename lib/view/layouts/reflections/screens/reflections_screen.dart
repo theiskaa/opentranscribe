@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_empty_state.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -1147,6 +1150,9 @@ class _Editorial extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (duoInnerOf(context)) {
+      return DuoEmptyState(title: copy.$1, body: copy.$2, icon: AppIcons.sparkles);
+    }
     // The pager's own seat for its title, so the title holds still when the
     // first reflection replaces this page.
     return SafeSides.scroll(

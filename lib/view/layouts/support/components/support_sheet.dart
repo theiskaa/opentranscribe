@@ -16,6 +16,7 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 import 'package:opentranscribe/view/widgets/app_loader.dart';
@@ -403,7 +404,7 @@ class _PerksCard extends StatelessWidget {
                 'assets/brand/wave.svg',
                 width: 16,
                 height: 16,
-                theme: SvgTheme(currentColor: theme.text),
+                theme: SvgTheme(currentColor: duoInnerOf(context) ? theme.onAccent : theme.text),
               ),
               label: l10n.supportPerkIcons,
               note: l10n.supportPerkIconsNote,

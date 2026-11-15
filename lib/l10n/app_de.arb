@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "Die neue Aufnahme konnte nicht an diesen Eintrag angehängt werden und wurde daher eigenständig gespeichert.",
   "continueEntryBusy": "Dieser Eintrag wird noch transkribiert.",
   "settingsButton": "Einstellungen",
-  "appearanceModeButton": "Darstellungsmodus"
+  "appearanceModeButton": "Darstellungsmodus",
+  "sheetCloseButton": "Schließen"
 }

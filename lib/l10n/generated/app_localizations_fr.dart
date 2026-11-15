@@ -1689,4 +1689,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get appearanceModeButton => 'Mode d’apparence';
+
+  @override
+  String get sheetCloseButton => 'Fermer';
 }

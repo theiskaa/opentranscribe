@@ -244,21 +244,44 @@ class _WeekRow extends StatelessWidget {
       return LayoutBuilder(
         builder: (context, constraints) {
           final metrics = duoWeekMetrics(constraints.maxWidth);
-          return Row(
+          final selection = duoDaySelection(
+            days: days,
+            selected: cursorDay,
+            direction: Directionality.of(context),
+            width: constraints.maxWidth,
+            height: WeekCalendar.heightOf(context),
+          );
+          return Stack(
             children: [
-              for (final (i, day) in days.indexed) ...[
-                if (i > 0) SizedBox(width: metrics.gap),
-                SizedBox(
-                  width: metrics.cell,
-                  child: _DuoDayTile(
-                    day: day,
-                    hasEntries: entryDays.contains(day),
-                    today: day == today,
-                    selected: day == cursorDay,
-                    onTap: onTap,
+              if (selection != null)
+                AnimatedPositioned.fromRect(
+                  rect: selection,
+                  duration: context.reduceMotion ? Duration.zero : context.theme.motion.duoDay,
+                  curve: context.theme.motion.duoDayCurve,
+                  child: DecoratedBox(
+                    decoration: SuperellipseDecoration(
+                      borderRadius: AppDuo.dayRadius,
+                      color: context.theme.accent,
+                    ),
                   ),
                 ),
-              ],
+              Row(
+                children: [
+                  for (final (i, day) in days.indexed) ...[
+                    if (i > 0) SizedBox(width: metrics.gap),
+                    SizedBox(
+                      width: metrics.cell,
+                      child: _DuoDayTile(
+                        day: day,
+                        hasEntries: entryDays.contains(day),
+                        today: day == today,
+                        selected: day == cursorDay,
+                        onTap: onTap,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           );
         },
@@ -370,20 +393,12 @@ class _DuoDayTile extends StatelessWidget {
       selected: selected,
       child: Touchable(
         onTap: hasEntries || today ? () => onTap(day) : null,
-        child: AnimatedContainer(
-          duration: context.reduceMotion ? Duration.zero : theme.motion.selectionFade,
-          curve: Curves.easeOut,
-          decoration: SuperellipseDecoration(
-            borderRadius: AppDuo.dayRadius,
-            color: selected ? theme.accent : null,
-          ),
-          child: DayFace(
-            day: day,
-            cellHeight: WeekCalendar.heightOf(context),
-            letterColor: foreground,
-            numberColor: foreground,
-            dot: hasEntries ? (selected ? theme.onAccent : theme.accent) : null,
-          ),
+        child: DayFace(
+          day: day,
+          cellHeight: WeekCalendar.heightOf(context),
+          letterColor: foreground,
+          numberColor: foreground,
+          dot: hasEntries ? (selected ? theme.onAccent : theme.accent) : null,
         ),
       ),
     );

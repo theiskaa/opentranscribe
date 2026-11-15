@@ -317,10 +317,11 @@ Rect modalPaneRect({
 }) => sheetPaneRect(layout: layout, source: source) ?? layout?.modal ?? Offset.zero & window;
 
 class ModalFrame extends StatelessWidget {
-  const ModalFrame({required this.child, this.capWidth, this.sourcePane, super.key});
+  const ModalFrame({required this.child, this.capWidth, this.sourcePane, this.region, super.key});
 
   final Widget child;
   final double? capWidth;
+  final Rect? region;
   final PaneTouch? sourcePane;
 
   @override
@@ -334,7 +335,7 @@ class ModalFrame extends StatelessWidget {
       capWidth: modalWidthCap(tracker?.layout, capWidth),
     );
     final sourceRect = sheetPaneRect(layout: tracker?.layout, source: sourcePane);
-    final rect = sourceRect ?? fallback;
+    final rect = region ?? sourceRect ?? fallback;
     final pane = Pane(rect: rect, padding: paneInsets(media.padding, rect, media.size));
     return Stack(
       children: [

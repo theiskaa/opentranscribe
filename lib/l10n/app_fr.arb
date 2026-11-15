@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "La nouvelle prise n'a pas pu être jointe à cette entrée, elle a donc été enregistrée à part.",
   "continueEntryBusy": "Cette entrée est encore en cours de transcription.",
   "settingsButton": "Réglages",
-  "appearanceModeButton": "Mode d’apparence"
+  "appearanceModeButton": "Mode d’apparence",
+  "sheetCloseButton": "Fermer"
 }

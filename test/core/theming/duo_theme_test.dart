@@ -33,6 +33,9 @@ void main() {
         expect(contrastRatio(theme.textSecondary, duo.surfaceGrouped), greaterThanOrEqualTo(3));
         expect(duo.separator.a, closeTo(theme.hairline.a * 0.6, 0.001));
         expect(duo.player.progress, theme.accent);
+        expect(duo.scrim.withValues(alpha: 1), theme.barrier.withValues(alpha: 1));
+        expect(duo.scrim.a, closeTo(dark ? 0.48 : 0.32, 0.001));
+        expect(contrastRatio(theme.onAccent, theme.accent), greaterThanOrEqualTo(4.5));
         expect(duo.player.waveRemaining.withValues(alpha: 1), theme.textSecondary);
         if (family.id != AppThemeFamily.defaultId) {
           expect(duo.selectionFill.withValues(alpha: 1), theme.accent);

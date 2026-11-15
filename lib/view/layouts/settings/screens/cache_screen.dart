@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -441,7 +442,12 @@ class _KindRow extends StatelessWidget {
       child: Row(
         children: [
           SettingsIconTile(
-            child: AppIcon(icon, size: AppIconSize.tile, color: theme.text),
+            accent: true,
+            child: AppIcon(
+              icon,
+              size: AppIconSize.tile,
+              color: duoInnerOf(context) ? theme.onAccent : theme.text,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

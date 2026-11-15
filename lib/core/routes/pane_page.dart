@@ -7,6 +7,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
@@ -17,10 +19,14 @@ Duration panePageDuration({
   required PaneMode mode,
   required bool fromProvisional,
   required AppMotion motion,
+  bool inner = false,
+  bool reduce = false,
 }) => mode == PaneMode.single
     ? motion.routeSlide
     : fromProvisional
     ? Duration.zero
+    : inner
+    ? (reduce ? motion.duoDetailReduced : motion.duoDetailFade)
     : motion.crossfade;
 
 /// A detail on the root navigator, presented in the pane without moving its tree.
@@ -123,8 +129,19 @@ class _PanePageRoute<T> extends PageRoute<T> {
   Widget get _child => (settings as PanePage<T>).child;
 
   @override
-  Duration get transitionDuration =>
-      panePageDuration(mode: _mode, fromProvisional: _fromProvisional, motion: _motion);
+  Duration get transitionDuration => panePageDuration(
+    mode: _mode,
+    fromProvisional: _fromProvisional,
+    motion: _motion,
+    inner: duoPolishEnabled(
+      layout: _panes.layout,
+      supported: _panes.supported,
+      cover: _panes.cover,
+      regular: _panes.regular,
+      window: _panes.media.size,
+    ),
+    reduce: _panes.media.disableAnimations,
+  );
 
   @override
   Duration get reverseTransitionDuration => _instantPop ? Duration.zero : transitionDuration;
@@ -182,7 +199,11 @@ class _PanePageRoute<T> extends PageRoute<T> {
           journalSelection: _journalSelection,
           touch: PaneTouch.detail,
           child: FadeTransition(
-            opacity: still ? animation : const AlwaysStoppedAnimation(1.0),
+            opacity: still
+                ? (duoInnerOf(context)
+                      ? animation.drive(CurveTween(curve: _motion.duoDetailCurve))
+                      : animation)
+                : const AlwaysStoppedAnimation(1.0),
             child: SlideTransition(
               position: still
                   ? const AlwaysStoppedAnimation(Offset.zero)

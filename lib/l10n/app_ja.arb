@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "新しい録音はこのエントリに結合できなかったため、単独で保存しました。",
   "continueEntryBusy": "このエントリはまだ文字起こし中です。",
   "settingsButton": "設定",
-  "appearanceModeButton": "外観モード"
+  "appearanceModeButton": "外観モード",
+  "sheetCloseButton": "閉じる"
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/duo_empty_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
@@ -132,6 +133,13 @@ class _EmptyDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    if (duoInnerOf(context)) {
+      return DuoEmptyState(
+        title: l10n.homeDetailEmptyTitle,
+        body: l10n.homeDetailEmptyBody,
+        icon: AppIcons.waveform,
+      );
+    }
     return SafeSides(
       child: SafeArea(
         child: Center(

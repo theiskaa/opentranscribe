@@ -41,6 +41,7 @@ class EditableProse extends StatefulWidget {
     this.secret = false,
     this.capitalization = TextCapitalization.none,
     this.maxLines = 1,
+    this.minLines,
     this.textInputAction,
     this.onChanged,
     this.onBlur,
@@ -68,6 +69,7 @@ class EditableProse extends StatefulWidget {
 
   /// Null grows without bound, as [EditableText.maxLines] reads it.
   final int? maxLines;
+  final int? minLines;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onBlur;
@@ -226,6 +228,7 @@ class EditableProseState extends State<EditableProse>
               autofillHints: null,
               textCapitalization: widget.capitalization,
               maxLines: widget.maxLines,
+              minLines: widget.minLines,
               textInputAction: widget.textInputAction,
               onChanged: widget.onChanged,
               onSubmitted: (value) {

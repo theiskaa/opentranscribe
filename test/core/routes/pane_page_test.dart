@@ -21,6 +21,41 @@ void main() {
     }
   });
 
+  test('inner detail navigation fades briefly and preserves a promoted entry without motion', () {
+    const motion = AppMotion();
+    for (final reduce in [false, true]) {
+      expect(
+        panePageDuration(
+          mode: PaneMode.split,
+          fromProvisional: false,
+          motion: motion,
+          inner: true,
+          reduce: reduce,
+        ),
+        reduce ? motion.duoDetailReduced : motion.duoDetailFade,
+      );
+      expect(
+        panePageDuration(
+          mode: PaneMode.split,
+          fromProvisional: true,
+          motion: motion,
+          inner: true,
+          reduce: reduce,
+        ),
+        Duration.zero,
+      );
+      expect(
+        panePageDuration(
+          mode: PaneMode.single,
+          fromProvisional: false,
+          motion: motion,
+          reduce: reduce,
+        ),
+        motion.routeSlide,
+      );
+    }
+  });
+
   test('without a leading inset the back swipe claims the standard grab area', () {
     expect(backGestureEdgeWidth(iphonePadding, TextDirection.ltr), 20);
     expect(backGestureEdgeWidth(iphonePadding, TextDirection.rtl), 20);

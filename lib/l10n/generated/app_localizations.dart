@@ -2843,6 +2843,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Appearance mode'**
   String get appearanceModeButton;
+
+  /// Close action in the Duo inner-display sheet toolbar
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get sheetCloseButton;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

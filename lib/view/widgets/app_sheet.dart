@@ -7,6 +7,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/models/display_signal.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/app_button.dart';
+import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/core/state/display_cubit.dart';
 
 import 'package:opentranscribe/core/routes/pane_stack.dart';
@@ -33,7 +39,8 @@ Future<T?> showAppSheet<T>(
   bool tall = false,
 }) {
   final motion = context.motionNow;
-  final barrier = context.themeNow.barrier;
+  final polished = duoInnerNow(context);
+  final barrier = polished ? context.themeNow.duo.scrim : context.themeNow.barrier;
   final reduce =
       context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false;
   final sourcePane = context.getInheritedWidgetOfExactType<PaneScope>()?.touch;
@@ -46,7 +53,11 @@ Future<T?> showAppSheet<T>(
     // The route only fades the scrim; the sheet drives its own travel and
     // rides this duration out when popped mid-flight. Under Reduce Motion the
     // sheet joins the fade instead of travelling.
-    transitionDuration: form ? motion.formSheet : motion.sheetScrim,
+    transitionDuration: polished
+        ? motion.duoSheet
+        : form
+        ? motion.formSheet
+        : motion.sheetScrim,
     pageBuilder: (context, animation, secondaryAnimation) => _AppSheetFrame(
       sourcePane: sourcePane,
       child: _SheetBody(
@@ -65,16 +76,39 @@ Future<T?> showAppSheet<T>(
 
 bool formSheetFor(DisplaySignal signal) => signal.supported && signal.division != null;
 
-Rect formSheetBounds({required Size size, required EdgeInsets padding, required double keyboard}) {
-  final left = math.min(size.width, padding.left + AppDuo.formSheetMargin);
-  final top = math.min(size.height, padding.top + AppDuo.formSheetMargin);
-  final right = math.max(left, size.width - padding.right - AppDuo.formSheetMargin);
+Rect formSheetBounds({
+  required Size size,
+  required EdgeInsets padding,
+  required double keyboard,
+  bool polished = false,
+  bool centerOnWindow = false,
+}) {
+  final horizontal = centerOnWindow ? math.max(padding.left, padding.right) : padding.left;
+  final left = math.min(size.width, horizontal + AppDuo.formSheetMargin);
+  final vertical = centerOnWindow && keyboard == 0
+      ? math.max(padding.top, padding.bottom)
+      : padding.top;
+  final top = math.min(size.height, vertical + AppDuo.formSheetMargin);
+  final right = math.max(
+    left,
+    size.width - (centerOnWindow ? horizontal : padding.right) - AppDuo.formSheetMargin,
+  );
   final bottom = math.max(
     top,
-    size.height - math.max(padding.bottom, keyboard) - AppDuo.formSheetMargin,
+    size.height -
+        (centerOnWindow && keyboard == 0 ? vertical : math.max(padding.bottom, keyboard)) -
+        AppDuo.formSheetMargin,
   );
-  final width = math.min(AppDuo.formSheetWidth, right - left);
-  return Rect.fromLTWH((left + right - width) / 2, top, width, bottom - top);
+  final width = math.min(polished ? DuoTheme.sheetWidth : AppDuo.formSheetWidth, right - left);
+  final height = polished
+      ? math.min(bottom - top, size.height * DuoTheme.sheetHeightFraction)
+      : bottom - top;
+  return Rect.fromLTWH(
+    (left + right - width) / 2,
+    top + (bottom - top - height) / 2,
+    width,
+    height,
+  );
 }
 
 class _AppSheetFrame extends StatelessWidget {
@@ -86,7 +120,11 @@ class _AppSheetFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final form = context.select<DisplayCubit, bool>((cubit) => formSheetFor(cubit.state.signal));
+    final panes = PaneLayoutScope.maybeOf(context);
     return ModalFrame(
+      region: duoInnerOf(context) && panes != null
+          ? duoSheetRegion(layout: panes.layout, source: sourcePane, window: panes.media.size)
+          : null,
       capWidth: form ? null : AppDuo.closedContentWidth,
       sourcePane: sourcePane,
       child: child,
@@ -290,6 +328,7 @@ class _SheetBodyState extends State<_SheetBody>
   bool _entered = false;
   bool _leaving = false;
   bool _form = false;
+  bool _polished = false;
 
   /// The inset the panel last laid out for, and the timer that lets a lasting
   /// drop below it through once it has outlasted an input view teardown.
@@ -309,7 +348,8 @@ class _SheetBodyState extends State<_SheetBody>
     super.didChangeDependencies();
     if (_entered) return;
     _entered = true;
-    if (context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false) {
+    if (duoInnerNow(context) ||
+        (context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false)) {
       _frac.value = 0;
     } else {
       _spring(to: 0);
@@ -323,7 +363,8 @@ class _SheetBodyState extends State<_SheetBody>
   void _onRouteStatus(AnimationStatus status) {
     if (status != AnimationStatus.reverse || _leaving || !mounted) return;
     _leaving = true;
-    if (!(context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false)) {
+    if (!_polished &&
+        !(context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false)) {
       _spring(to: _exitTarget);
     }
   }
@@ -347,19 +388,19 @@ class _SheetBodyState extends State<_SheetBody>
   double get offset => _frac.value * (_height ?? 0);
 
   @override
-  bool get draggable => !_form;
+  bool get draggable => !_form || _polished;
 
   @override
   void dragBy(double delta) {
     final height = _height;
-    if (_form || _leaving || height == null) return;
+    if (!draggable || _leaving || height == null) return;
     _frac.value = (_frac.value + delta / height).clamp(0.0, double.infinity);
   }
 
   @override
   void release(double velocity) {
     final height = _height;
-    if (_form || _leaving || height == null) return;
+    if (!draggable || _leaving || height == null) return;
     final sheet = context.themeNow.sheet;
     if (_frac.value * height > sheet.dismissDrag || velocity > sheet.flingVelocity) {
       // Pop now so the scrim fades while the sheet springs away at the
@@ -400,13 +441,15 @@ class _SheetBodyState extends State<_SheetBody>
 
   @override
   Widget build(BuildContext context) {
+    final polished = duoInnerOf(context);
+    _polished = polished;
     final sheet = context.theme.sheet;
     final motion = context.theme.motion;
     final reduce = context.reduceMotion;
     final form = context.select<DisplayCubit, bool>((cubit) => formSheetFor(cubit.state.signal));
     _form = form;
     final radius = form
-        ? BorderRadius.circular(AppDuo.formSheetRadius)
+        ? BorderRadius.circular(polished ? DuoTheme.sheetRadius : AppDuo.formSheetRadius)
         : BorderRadius.vertical(top: Radius.circular(sheet.radius));
     final screenHeight = MediaQuery.sizeOf(context).height;
     final paneSheet =
@@ -434,6 +477,8 @@ class _SheetBodyState extends State<_SheetBody>
       size: MediaQuery.sizeOf(context),
       padding: MediaQuery.paddingOf(context),
       keyboard: keyboard,
+      polished: polished,
+      centerOnWindow: polished && PaneLayoutScope.maybeOf(context)?.layout.fold == null,
     );
     final maxHeight = form
         ? bounds.height
@@ -465,15 +510,15 @@ class _SheetBodyState extends State<_SheetBody>
                     ? motion.formSheetScale + (1 - motion.formSheetScale) * progress
                     : 1,
                 child: FractionalTranslation(
-                  translation: Offset(0, form ? 0 : _frac.value),
+                  translation: Offset(0, form && !polished || polished && reduce ? 0 : _frac.value),
                   child: child,
                 ),
               ),
             );
           },
           child: GestureDetector(
-            onVerticalDragUpdate: form ? null : (d) => dragBy(d.primaryDelta!),
-            onVerticalDragEnd: form ? null : (d) => release(d.primaryVelocity ?? 0),
+            onVerticalDragUpdate: !draggable ? null : (d) => dragBy(d.primaryDelta!),
+            onVerticalDragEnd: !draggable ? null : (d) => release(d.primaryVelocity ?? 0),
             child: ConstrainedBox(
               key: _panel,
               constraints: BoxConstraints(
@@ -483,10 +528,14 @@ class _SheetBodyState extends State<_SheetBody>
                 // otherwise open under it. The visible part above the
                 // keyboard is still capped at the fraction.
                 maxHeight: maxHeight,
+                minHeight: polished ? math.min(DuoTheme.sheetMinHeight, maxHeight) : 0,
               ),
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(color: sheet.background, borderRadius: radius),
+                decoration: BoxDecoration(
+                  color: polished ? context.theme.duo.surfaceElevated : sheet.background,
+                  borderRadius: radius,
+                ),
                 child: ClipRRect(
                   borderRadius: radius,
                   // Passthrough, so the column still takes the panel's tight
@@ -494,11 +543,16 @@ class _SheetBodyState extends State<_SheetBody>
                   child: Stack(
                     fit: StackFit.passthrough,
                     children: [
-                      if (widget.backdrop != null)
+                      if (widget.backdrop != null && !polished)
                         Positioned.fill(child: IgnorePointer(child: widget.backdrop)),
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (polished)
+                            SizedBox(
+                              height: math.min(DuoTheme.sheetToolbarHeight, maxHeight),
+                              child: const _DuoSheetToolbar(),
+                            ),
                           Flexible(
                             child: SafeSides.scroll(
                               builder: (context, sides) => SingleChildScrollView(
@@ -536,6 +590,7 @@ class _SheetBodyState extends State<_SheetBody>
                                     ? math.max(
                                         0,
                                         maxHeight -
+                                            (polished ? DuoTheme.sheetToolbarHeight : 0) -
                                             (form ? 0 : _grabberSeat(sheet)) -
                                             AppSpacing.xxl,
                                       )
@@ -605,4 +660,24 @@ class _Grabber extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DuoSheetToolbar extends StatelessWidget {
+  const _DuoSheetToolbar();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: DuoTheme.sheetToolbarHeight,
+    child: Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        child: AppIconButton(
+          icon: AppIcons.xmark,
+          semanticLabel: AppLocalizations.of(context)!.sheetCloseButton,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      ),
+    ),
+  );
 }

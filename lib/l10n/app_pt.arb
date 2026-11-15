@@ -461,5 +461,6 @@
   "continueSavedSeparatelyBody": "A nova gravação não pôde ser junta a esta entrada, por isso foi guardada à parte.",
   "continueEntryBusy": "Esta entrada ainda está a ser transcrita.",
   "settingsButton": "Ajustes",
-  "appearanceModeButton": "Modo de aparência"
+  "appearanceModeButton": "Modo de aparência",
+  "sheetCloseButton": "Fechar"
 }

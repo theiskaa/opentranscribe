@@ -1551,4 +1551,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get appearanceModeButton => '外観モード';
+
+  @override
+  String get sheetCloseButton => '閉じる';
 }

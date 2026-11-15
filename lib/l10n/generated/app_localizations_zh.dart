@@ -1540,4 +1540,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get appearanceModeButton => '外观模式';
+
+  @override
+  String get sheetCloseButton => '关闭';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/physics.dart';
 
 /// Motion tokens. Themed so a theme can quiet the app, but the defaults are
 /// the app's voice: one gentle entrance and ease-out feedback. Every token
@@ -49,6 +50,15 @@ final class AppMotion {
     this.indicatorCurve = Curves.easeOutCubic,
     this.expand = const Duration(milliseconds: 260),
     this.selectionFade = const Duration(milliseconds: 120),
+    this.duoDetailFade = const Duration(milliseconds: 180),
+    this.duoDetailEnter = const Duration(milliseconds: 220),
+    this.duoDetailReduced = const Duration(milliseconds: 100),
+    this.duoDetailRise = 4.0,
+    this.duoDetailCurve = Curves.easeInOut,
+    this.duoEnterCurve = Curves.easeOutCubic,
+    this.duoSheet = const Duration(milliseconds: 250),
+    this.duoDay = const Duration(milliseconds: 220),
+    this.duoDayCurve = const _DuoDayCurve(),
     this.duoPressIn = const Duration(milliseconds: 80),
     this.duoPressOut = const Duration(milliseconds: 200),
     this.crossfade = const Duration(milliseconds: 200),
@@ -131,6 +141,15 @@ final class AppMotion {
   final Duration expand;
   final Duration crossfade;
   final Duration selectionFade;
+  final Duration duoDetailFade;
+  final Duration duoDetailEnter;
+  final Duration duoDetailReduced;
+  final double duoDetailRise;
+  final Curve duoDetailCurve;
+  final Curve duoEnterCurve;
+  final Duration duoSheet;
+  final Duration duoDay;
+  final Curve duoDayCurve;
   final Duration duoPressIn;
   final Duration duoPressOut;
 
@@ -315,4 +334,20 @@ final class AppMotion {
   /// most of all: one spring for both, so the bar and the figures never part.
   /// Slower than [paneSpring] (0.6s response) so the space can be seen going.
   final SpringDescription storageSpring;
+}
+
+class _DuoDayCurve extends Curve {
+  const _DuoDayCurve();
+
+  @override
+  double transformInternal(double t) {
+    final spring = SpringSimulation(
+      const SpringDescription(mass: 1, stiffness: 900, damping: 60),
+      0,
+      1,
+      0,
+    );
+    const seconds = 0.22;
+    return spring.x(t * seconds) / spring.x(seconds);
+  }
 }

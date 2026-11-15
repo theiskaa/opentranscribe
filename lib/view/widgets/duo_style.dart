@@ -28,12 +28,27 @@ bool duoJournalOf(BuildContext context) =>
   final scaler = MediaQuery.textScalerOf(context);
   final title = DuoTheme.journalTitle;
   final detail = DuoTheme.detailTitle;
+  final journalMetrics = duoTextMetrics(style: AppType.digits(title), scaler: scaler);
+  final detailMetrics = duoTextMetrics(style: detail, scaler: scaler);
   return duoHeaderMetrics(
     minimum: context.theme.topBar.largeHeight,
-    titleLine: scaler.scale(title.fontSize!) * title.height!,
+    titleLine: journalMetrics.height,
     titleSize: scaler.scale(title.fontSize!),
     subtitleLine: scaler.scale(AppType.rowNote.fontSize!) * AppType.rowNote.height!,
-    detailLine: scaler.scale(detail.fontSize!) * detail.height!,
+    detailLine: detailMetrics.height,
+    titleBaseline: journalMetrics.baseline,
+    detailBaseline: detailMetrics.baseline,
     detailSize: scaler.scale(detail.fontSize!),
+  );
+}
+
+bool duoInnerNow(BuildContext context) {
+  final panes = context.getInheritedWidgetOfExactType<PaneLayoutScope>()?.tracker;
+  return duoPolishEnabled(
+    layout: panes?.layout,
+    supported: panes?.supported ?? false,
+    cover: panes?.cover ?? true,
+    regular: panes?.regular ?? false,
+    window: panes?.media.size ?? Size.zero,
   );
 }
