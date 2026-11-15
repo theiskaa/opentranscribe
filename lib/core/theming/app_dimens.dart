@@ -133,3 +133,9 @@ abstract final class AppDuo {
   /// the app keeps between neighbouring blocks, as the fold is one more.
   static const recorderFoldOffset = AppSpacing.md;
 }
+
+abstract final class AppRecorderLayout {
+  static const columnInset = AppSpacing.xxxl + AppSpacing.sm;
+  static const upperSpace = 45.0;
+  static const lowerSpace = 42.0;
+}

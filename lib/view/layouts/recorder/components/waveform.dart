@@ -28,6 +28,13 @@ double waveformLevel(double raw) {
   return math.pow(windowed, 0.75).toDouble();
 }
 
+int waveformHistoryCount({
+  required double width,
+  required double barWidth,
+  required double gap,
+  required int samples,
+}) => math.min(samples, math.max(0, (width / (barWidth + gap)).floor()));
+
 /// The live waveform, symmetric around the midline: the band is full from the
 /// first frame (seeded with silence, so it rests as a dotted line on its
 /// spine) and scrolls left at ONE rate for the whole take, newest at the right
@@ -258,7 +265,12 @@ class _WaveformPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final step = barWidth + gap;
-    final capacity = (size.width / step).floor();
+    final capacity = waveformHistoryCount(
+      width: size.width,
+      barWidth: barWidth,
+      gap: gap,
+      samples: samples.length,
+    );
     if (capacity <= 0) return;
     final mid = size.height / 2;
     final live = activity();
@@ -280,7 +292,7 @@ class _WaveformPainter extends CustomPainter {
     }
 
     if (samples.isEmpty) return;
-    final visible = math.min(samples.length, capacity);
+    final visible = capacity;
 
     // ONE behaviour, from the first frame to the last: newest at the right
     // edge, everything sliding left by a step per sample, interpolated between
