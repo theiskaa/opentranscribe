@@ -582,7 +582,7 @@ final class SheetTheme {
   final double tallMaxHeightFraction;
 }
 
-/// Depth cues for a horizontal page push (the SlidePage transition): a dim over
+/// Depth cues for a horizontal page push (the single-pane transition): a dim over
 /// the page below and a shadow off the arriving page's leading edge. Tuned per
 /// brightness in `AppTheme.fromBase`, because a dark scrim over a dark page
 /// needs more presence to read than over a light one.

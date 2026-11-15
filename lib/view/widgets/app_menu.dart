@@ -171,15 +171,18 @@ class _MenuBodyState extends State<_MenuBody> {
     final items = widget.items;
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
+    final bounds = popupBounds(context);
+    final width = _menuWidth.clamp(0.0, bounds.width - AppSpacing.md * 2);
     final (:dividers, :height) = appMenuLayout(items);
 
     // Below the trigger when there is room, above it when there is not.
     final below = anchor.bottom + _menuGap;
-    final fits = below + height + insets.bottom + AppSpacing.md <= screen.height;
+    final fits = below + height + AppSpacing.md <= bounds.bottom;
     final top = fits ? below : anchor.top - _menuGap - height;
     final left = popupLeft(
       anchor: anchor,
-      width: _menuWidth,
+      width: width,
+      modal: bounds,
       windowWidth: screen.width,
       padding: insets,
     );
@@ -188,24 +191,30 @@ class _MenuBodyState extends State<_MenuBody> {
       children: [
         Positioned(
           left: left,
-          top: top.clamp(insets.top + AppSpacing.md, screen.height - height),
-          width: _menuWidth,
+          top: top.clamp(
+            bounds.top + AppSpacing.md,
+            (bounds.bottom - height).clamp(bounds.top + AppSpacing.md, bounds.bottom),
+          ),
+          width: width,
+          height: height.clamp(0.0, bounds.height - AppSpacing.md * 2),
           child: PopupSurface(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final (index, item) in items.indexed)
-                    if (!item.isDivider)
-                      _MenuRow(
-                        item: item,
-                        checked: item.selected != _flipped.contains(index),
-                        onTap: () => _tap(index),
-                      )
-                    else if (dividers.contains(index))
-                      const _MenuDivider(),
-                ],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (index, item) in items.indexed)
+                      if (!item.isDivider)
+                        _MenuRow(
+                          item: item,
+                          checked: item.selected != _flipped.contains(index),
+                          onTap: () => _tap(index),
+                        )
+                      else if (dividers.contains(index))
+                        const _MenuDivider(),
+                  ],
+                ),
               ),
             ),
           ),

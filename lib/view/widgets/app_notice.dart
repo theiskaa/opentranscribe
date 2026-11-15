@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/semantics.dart' show SemanticsService;
 import 'package:flutter/widgets.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 /// How long a notice stays: its own [duration], or three times that when a
 /// screen reader is driving, so the words are reached before they go.
@@ -91,15 +93,48 @@ class _AppNoticeState extends State<AppNotice> {
             textAlign: TextAlign.center,
             style: AppType.note.copyWith(color: theme.textSecondary),
           );
-    return AnimatedSwitcher(
-      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-      child: text == null
-          ? const SizedBox(width: double.infinity)
-          : Padding(
-              key: ValueKey(message),
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: widget.oneLine ? FittedBox(fit: BoxFit.scaleDown, child: text) : text,
+    final panes = PaneLayoutScope.maybeOf(context);
+    final inWindow =
+        PaneScope.maybeOf(context) == null && panes?.supported == true && panes?.cover != true;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = inWindow
+            ? noticeModalWidth(
+                modalWidth: modalRectOf(context).width,
+                mediaWidth: MediaQuery.sizeOf(context).width,
+                availableWidth: constraints.maxWidth,
+              )
+            : null;
+        return Align(
+          heightFactor: 1,
+          widthFactor: inWindow ? null : 1,
+          alignment: inWindow ? Alignment.centerRight : Alignment.center,
+          child: SizedBox(
+            width: width,
+            child: AnimatedSwitcher(
+              duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+              child: text == null
+                  ? const SizedBox(width: double.infinity)
+                  : Padding(
+                      key: ValueKey(message),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: modalRectOf(context).width),
+                        child: widget.oneLine
+                            ? FittedBox(fit: BoxFit.scaleDown, child: text)
+                            : text,
+                      ),
+                    ),
             ),
+          ),
+        );
+      },
     );
   }
 }
+
+double noticeModalWidth({
+  required double modalWidth,
+  required double mediaWidth,
+  required double availableWidth,
+}) => math.min(availableWidth, math.max(0, modalWidth - (mediaWidth - availableWidth)));

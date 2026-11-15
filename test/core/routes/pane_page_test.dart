@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/routes/slide_page.dart';
+import 'package:opentranscribe/core/routes/pane_page.dart';
 
 import '../../support/display_fixtures.dart';
 

@@ -9,6 +9,7 @@ import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 /// Whether [context]'s route is still the top one. Every sheet opener asks
 /// first: two pointers landing on two openers in one frame would otherwise
@@ -47,8 +48,16 @@ Future<T?> showAppSheet<T>(
     // rides this duration out when popped mid-flight. Under Reduce Motion the
     // sheet joins the fade instead of travelling.
     transitionDuration: motion.sheetScrim,
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        _SheetBody(builder: builder, inset: inset, backdrop: backdrop, footer: footer, tall: tall),
+    pageBuilder: (context, animation, secondaryAnimation) => ModalFrame(
+      capWidth: AppDuo.closedContentWidth,
+      child: _SheetBody(
+        builder: builder,
+        inset: inset,
+        backdrop: backdrop,
+        footer: footer,
+        tall: tall,
+      ),
+    ),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
         reduce ? FadeTransition(opacity: animation, child: child) : child,
   );

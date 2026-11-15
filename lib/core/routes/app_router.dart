@@ -5,7 +5,8 @@ import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
-import 'package:opentranscribe/core/routes/slide_page.dart';
+import 'package:opentranscribe/core/routes/pane_page.dart';
+import 'package:opentranscribe/core/routes/pane_observer.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/layouts/entry/screens/entry_detail_screen.dart';
 import 'package:opentranscribe/view/layouts/home/screens/home_screen.dart';
@@ -18,15 +19,15 @@ import 'package:opentranscribe/view/layouts/settings/screens/cache_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/models_screen.dart';
 import 'package:opentranscribe/view/layouts/settings/screens/notifications_screen.dart';
 
-/// Owns the app's [GoRouter] instance.
-///
-/// Built once and held in [Deps]. Add new routes to [config] and their paths
-/// to [Routes]. Home IS the app; everything else (settings, recorder, entry
-/// detail) pushes over it on the one root navigator with a base transition.
-/// There is no shell and no bottom navigation - settings and recording hang off
-/// home's trailing bar actions.
+/// One root navigator. Details are children of home; recorder and onboarding
+/// cover the whole window.
 class AppRouter {
-  AppRouter();
+  AppRouter({bool Function()? onboardingDone})
+    : _onboardingDone = onboardingDone ?? (() => Onboarding.isDone(Deps.i.localService));
+
+  final bool Function() _onboardingDone;
+
+  final PaneObserver paneObserver = PaneObserver();
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,20 +37,19 @@ class AppRouter {
     stack: config.routerDelegate.currentConfiguration.matches
         .map((match) => match.matchedLocation)
         .toList(),
-    onboardingDone: Onboarding.isDone(Deps.i.localService),
+    onboardingDone: _onboardingDone(),
   );
 
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,
+    observers: [paneObserver],
     initialLocation: Routes.home,
     // A synchronous storage read, so it is cheap on every navigation.
-    redirect: (context, state) => resolveRedirect(
-      onboardingDone: Onboarding.isDone(Deps.i.localService),
-      matchedLocation: state.matchedLocation,
-    ),
+    redirect: (context, state) =>
+        resolveRedirect(onboardingDone: _onboardingDone(), matchedLocation: state.matchedLocation),
     // The app has no deep-link surface, so an unroutable location is never
     // something the user asked for: iOS handed it to us. Home instead, quietly.
-    onException: (context, state, router) => router.go(Routes.home),
+    onException: (context, state, router) => router.goNamed(Routes.homeName),
     routes: [
       GoRoute(
         path: Routes.home,
@@ -62,6 +62,61 @@ class AppRouter {
           key: state.pageKey,
           child: const HomeScreen(),
         ),
+        routes: [
+          GoRoute(
+            path: Routes.reflections.substring(1),
+            name: Routes.reflectionsName,
+            pageBuilder: (context, state) => PanePage<void>(
+              key: state.pageKey,
+              child: ReflectionsScreen(
+                key: ValueKey(state.uri),
+                initialPeriod: state.uri.queryParameters['period'],
+                initialStartKey: state.uri.queryParameters['week'],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: Routes.entry.substring(1),
+            name: Routes.entryName,
+            pageBuilder: (context, state) => PanePage<void>(
+              key: state.pageKey,
+              child: EntryDetailScreen(
+                key: ValueKey(state.uri),
+                entryId: state.pathParameters['id']!,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: Routes.settingsModels.substring(1),
+            name: Routes.settingsModelsName,
+            pageBuilder: (context, state) =>
+                PanePage<void>(key: state.pageKey, child: const ModelsScreen()),
+          ),
+          GoRoute(
+            path: Routes.settingsAppearance.substring(1),
+            name: Routes.settingsAppearanceName,
+            pageBuilder: (context, state) =>
+                PanePage<void>(key: state.pageKey, child: const AppearanceScreen()),
+          ),
+          GoRoute(
+            path: Routes.settingsCache.substring(1),
+            name: Routes.settingsCacheName,
+            pageBuilder: (context, state) =>
+                PanePage<void>(key: state.pageKey, child: const CacheScreen()),
+          ),
+          GoRoute(
+            path: Routes.settingsBackup.substring(1),
+            name: Routes.settingsBackupName,
+            pageBuilder: (context, state) =>
+                PanePage<void>(key: state.pageKey, child: const BackupScreen()),
+          ),
+          GoRoute(
+            path: Routes.settingsNotifications.substring(1),
+            name: Routes.settingsNotificationsName,
+            pageBuilder: (context, state) =>
+                PanePage<void>(key: state.pageKey, child: const NotificationsScreen()),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.onboarding,
@@ -70,55 +125,6 @@ class AppRouter {
         // cold launch.
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const OnboardingScreen()),
-      ),
-      GoRoute(
-        path: Routes.reflections,
-        name: Routes.reflectionsName,
-        pageBuilder: (context, state) => SlidePage<void>(
-          key: state.pageKey,
-          child: ReflectionsScreen(
-            initialPeriod: state.uri.queryParameters['period'],
-            initialStartKey: state.uri.queryParameters['week'],
-          ),
-        ),
-      ),
-      GoRoute(
-        path: Routes.entry,
-        name: Routes.entryName,
-        pageBuilder: (context, state) => SlidePage<void>(
-          key: state.pageKey,
-          child: EntryDetailScreen(entryId: state.pathParameters['id']!),
-        ),
-      ),
-      GoRoute(
-        path: Routes.settingsModels,
-        name: Routes.settingsModelsName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const ModelsScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsAppearance,
-        name: Routes.settingsAppearanceName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const AppearanceScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsCache,
-        name: Routes.settingsCacheName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const CacheScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsBackup,
-        name: Routes.settingsBackupName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const BackupScreen()),
-      ),
-      GoRoute(
-        path: Routes.settingsNotifications,
-        name: Routes.settingsNotificationsName,
-        pageBuilder: (context, state) =>
-            SlidePage<void>(key: state.pageKey, child: const NotificationsScreen()),
       ),
       GoRoute(
         path: Routes.record,

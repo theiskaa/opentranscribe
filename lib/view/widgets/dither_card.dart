@@ -12,21 +12,25 @@ class DitherCard extends StatelessWidget {
     required this.child,
     this.patch = const Size(150, 96),
     this.corner = DitherCorner.bottomRight,
+    this.background,
+    this.border,
     super.key,
   });
 
   final Widget child;
   final Size patch;
   final DitherCorner corner;
+  final Color? background;
+  final Color? border;
 
   @override
   Widget build(BuildContext context) {
     final card = context.theme.reflectionCard;
     return DecoratedBox(
       decoration: SuperellipseDecoration(
-        color: card.background,
+        color: background ?? card.background,
         borderRadius: AppRadius.card,
-        border: BorderSide(color: card.border),
+        border: BorderSide(color: border ?? card.border),
       ),
       child: ClipPath(
         clipper: const ShapeBorderClipper(shape: Superellipse(radius: AppRadius.card)),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -5,6 +7,9 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/view/widgets/anchored_popup.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 
 /// One choice in a dropdown: a selectable row (see [SelectableRow]). [flag] is
 /// the leading flag chip for a language row; null for a plain choice (a
@@ -25,11 +30,21 @@ class AppDropdownItem {
 Rect dropdownAnchorRect(GlobalKey key, BuildContext context) {
   final box = key.currentContext?.findRenderObject();
   if (box is RenderBox && box.attached) return box.localToGlobal(Offset.zero) & box.size;
+  final scope = PaneScope.maybeOf(context);
+  final layout = PaneLayoutScope.maybeOf(context)?.layout;
+  if (layout?.mode == PaneMode.split && scope?.pane.barToSideColumn == true) {
+    final column = layout!.sideColumn!;
+    final controls = [
+      if (!scope!.detailRoot) const Size.square(AppSizes.barControl),
+      const Size.square(AppSizes.barControl),
+    ];
+    return sideColumnSlots(column.upperSlot, controls).last;
+  }
   return barControlFallbackRect(
     window: MediaQuery.sizeOf(context),
     padding: MediaQuery.paddingOf(context),
     rowHeight: context.theme.topBar.height,
-  );
+  ).shift(scope?.pane.rect.topLeft ?? Offset.zero);
 }
 
 /// Where a bar's trailing control sits in a [window] whose safe area is
@@ -63,6 +78,27 @@ Future<int?> showAppDropdown(
   anchor: anchor,
   builder: (_) => _DropdownBody(anchor: anchor, items: items),
 );
+
+Rect dropdownRect({required Rect anchor, required Rect bounds, required double naturalHeight}) {
+  final horizontalMargin = math.min(AppSpacing.md, bounds.width / 2);
+  final verticalMargin = math.min(AppSpacing.md, bounds.height / 2);
+  final available = Rect.fromLTRB(
+    bounds.left + horizontalMargin,
+    bounds.top + verticalMargin,
+    bounds.right - horizontalMargin,
+    bounds.bottom - verticalMargin,
+  );
+  final below = anchor.bottom + _gap;
+  final above = anchor.top - _gap;
+  final roomBelow = (available.bottom - below).clamp(0.0, available.height);
+  final roomAbove = (above - available.top).clamp(0.0, available.height);
+  final openBelow = roomBelow >= naturalHeight || roomBelow >= roomAbove;
+  final height = naturalHeight.clamp(0.0, openBelow ? roomBelow : roomAbove);
+  final width = _width.clamp(0.0, available.width);
+  final top = (openBelow ? below : above - height).clamp(available.top, available.bottom - height);
+  final left = (anchor.right - width).clamp(available.left, available.right - width);
+  return Rect.fromLTWH(left, top, width, height);
+}
 
 class _DropdownBody extends StatefulWidget {
   const _DropdownBody({required this.anchor, required this.items});
@@ -106,32 +142,17 @@ class _DropdownBodyState extends State<_DropdownBody> {
 
   @override
   Widget build(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context);
-    final insets = MediaQuery.paddingOf(context);
-
+    final bounds = popupBounds(context);
     final natural = widget.items.length * _rowHeight(context, widget.items) + AppSpacing.sm * 2;
-    final below = widget.anchor.bottom + _gap;
-    final roomBelow = screen.height - insets.bottom - AppSpacing.md - below;
-    final roomAbove = widget.anchor.top - _gap - insets.top - AppSpacing.md;
-    // Below when there is reasonable room, above when it is the better half;
-    // either way the height caps to the room on that side.
-    final openBelow = roomBelow >= natural || roomBelow >= roomAbove;
-    final height = natural.clamp(0.0, openBelow ? roomBelow : roomAbove);
-    final top = openBelow ? below : widget.anchor.top - _gap - height;
-    final left = popupLeft(
-      anchor: widget.anchor,
-      width: _width,
-      windowWidth: screen.width,
-      padding: insets,
-    );
+    final rect = dropdownRect(anchor: widget.anchor, bounds: bounds, naturalHeight: natural);
 
     return Stack(
       children: [
         Positioned(
-          left: left,
-          top: top,
-          width: _width,
-          height: height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
           child: PopupSurface(
             child: SingleChildScrollView(
               controller: _scroll,

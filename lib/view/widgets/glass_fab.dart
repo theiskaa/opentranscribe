@@ -7,6 +7,9 @@ import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 
 /// The floating action disc: home's record button and the entry screen's edit
 /// exit wear the same one. On iOS 26 it is the native Liquid Glass circle so
@@ -98,6 +101,43 @@ class GlassFab extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class GlassFabPosition extends StatelessWidget {
+  const GlassFabPosition({required this.child, this.keyboard = 0, this.home = false, super.key});
+
+  final Widget child;
+  final double keyboard;
+  final bool home;
+
+  @override
+  Widget build(BuildContext context) {
+    final panes = PaneLayoutScope.maybeOf(context);
+    final scope = PaneScope.maybeOf(context);
+    final column =
+        panes?.layout.mode == PaneMode.split && (home || scope?.pane.barToSideColumn == true)
+        ? panes?.layout.sideColumn
+        : null;
+    if (column != null && column.lowerSlot.height - keyboard - AppSpacing.xl >= GlassFab.size) {
+      var slot = column.lowerSlot;
+      slot = Rect.fromLTRB(
+        slot.left,
+        slot.top,
+        slot.right,
+        (slot.bottom - keyboard - AppSpacing.xl).clamp(slot.top, slot.bottom),
+      );
+      final rect = sideColumnSlots(slot, const [Size.square(GlassFab.size)], bottom: true).single;
+      return Positioned.fromRect(
+        rect: rect.shift(-(scope?.pane.rect.topLeft ?? Offset.zero)),
+        child: child,
+      );
+    }
+    return Positioned(
+      right: GlassFab.rightOf(context),
+      bottom: keyboard + AppScaffold.bottomControlOf(context),
+      child: child,
     );
   }
 }

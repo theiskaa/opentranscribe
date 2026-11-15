@@ -25,7 +25,7 @@ PaneLayout paneLayoutFor(PaneInputs inputs) {
   final safe = padding.deflateRect(window);
   final largeText = inputs.bodySize >= AppType.largeTextBody;
 
-  if (!signal.supported || !_describes(signal, size)) {
+  if (!signal.supported || !displaySignalDescribes(signal, size)) {
     final pane = Pane(rect: window, padding: padding);
     return PaneLayout(
       mode: PaneMode.single,
@@ -86,7 +86,7 @@ PaneLayout paneLayoutFor(PaneInputs inputs) {
   );
 }
 
-bool _describes(DisplaySignal signal, Size size) =>
+bool displaySignalDescribes(DisplaySignal signal, Size size) =>
     (signal.size.width - size.width).abs() <= _sizeSlack &&
     (signal.size.height - size.height).abs() <= _sizeSlack;
 

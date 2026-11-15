@@ -7,31 +7,84 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 
-/// A push that slides in from the trailing edge; popping mirrors it, so
-/// navigation keeps a sense of direction. It also carries the native iOS edge
-/// swipe-back: drag from the left edge to pop, interruptibly.
-///
-/// This is a hand-rolled [Page]/[PageRoute] rather than a go_router
-/// `CustomTransitionPage` because the swipe gesture is not part of a transition:
-/// Flutter welds it to `CupertinoPageRoute` and keeps the two gesture widgets
-/// private. The gesture only drives the route's animation controller, and the
-/// [SlideTransition] below is bound to that same controller, so re-authoring the
-/// gesture (see [_BackGestureDetector]) drives our existing slide unchanged.
-class SlidePage<T> extends Page<T> {
-  const SlidePage({required this.child, super.key, super.name, super.arguments});
+/// A detail on the root navigator, presented in the pane without moving its tree.
+class PanePage<T> extends Page<T> {
+  const PanePage({required this.child, super.key, super.name, super.arguments});
 
   final Widget child;
 
   // The route's duration getters have no context, so the motion is read here,
   // where there is one, and captured for the route's life.
   @override
-  Route<T> createRoute(BuildContext context) => _SlidePageRoute<T>(this, context.motionNow);
+  Route<T> createRoute(BuildContext context) =>
+      _PanePageRoute<T>(this, context.motionNow, PaneLayoutScope.of(context));
 }
 
-class _SlidePageRoute<T> extends PageRoute<T> {
-  _SlidePageRoute(SlidePage<T> page, this._motion) : super(settings: page);
+bool popPaneSelection(NavigatorState navigator) {
+  var detail = false;
+  navigator.popUntil((route) {
+    if (route is _PanePageRoute) {
+      route._instantPop = true;
+      detail = true;
+    }
+    return true;
+  });
+  if (detail) navigator.pop();
+  return detail;
+}
+
+class _PanePageRoute<T> extends PageRoute<T> {
+  _PanePageRoute(PanePage<T> page, this._motion, this._panes)
+    : _mode = _panes.layout.mode,
+      super(settings: page) {
+    _panes.addListener(_layoutChanged);
+  }
+
+  final PaneTouchTracker _panes;
+  PaneMode _mode;
+  bool _instantPop = false;
+
+  bool get _split => _mode == PaneMode.split;
+  bool get _detailRoot => _panes.detailKeys.firstOrNull == (settings as PanePage<T>).key;
+
+  void _layoutChanged() {
+    final next = _panes.layout.mode;
+    if (next == _mode) return;
+    _mode = next;
+    final active = isActive;
+    final animation = controller;
+    if (animation != null) {
+      animation.duration = transitionDuration;
+      animation.reverseDuration = reverseTransitionDuration;
+      animation.value = active ? 1 : 0;
+    }
+    if (!active) return;
+    if (overlayEntries.isNotEmpty) {
+      overlayEntries.first.opaque = opaque;
+      overlayEntries.first.markNeedsBuild();
+    }
+    changedInternalState();
+  }
+
+  @override
+  void dispose() {
+    _panes.removeListener(_layoutChanged);
+    super.dispose();
+  }
+
+  @override
+  bool didPop(T? result) {
+    if (_instantPop) controller!.value = 0;
+    return super.didPop(result);
+  }
+
+  @override
+  Widget buildModalBarrier() => _split ? const SizedBox.shrink() : super.buildModalBarrier();
 
   final AppMotion _motion;
 
@@ -45,16 +98,16 @@ class _SlidePageRoute<T> extends PageRoute<T> {
     CurveTween(curve: _motion.routeSlideCurve),
   );
 
-  Widget get _child => (settings as SlidePage<T>).child;
+  Widget get _child => (settings as PanePage<T>).child;
 
   @override
-  Duration get transitionDuration => _motion.routeSlide;
+  Duration get transitionDuration => _split ? _motion.crossfade : _motion.routeSlide;
 
   @override
-  Duration get reverseTransitionDuration => _motion.routeSlide;
+  Duration get reverseTransitionDuration => _instantPop ? Duration.zero : transitionDuration;
 
   @override
-  bool get opaque => true;
+  bool get opaque => !_split;
 
   @override
   bool get maintainState => true;
@@ -86,32 +139,38 @@ class _SlidePageRoute<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    // Reduce Motion stills the travel and fades instead; the back swipe keeps
-    // its 1:1 slide (direct manipulation, latch-held through the settle). Only
-    // the animation objects swap between the modes: reshaping the tree when a
-    // drag starts would re-inflate the detector and drop the live pointer.
-    final still = context.reduceMotion && !popGestureInProgress;
+    final panes = PaneLayoutScope.of(context);
+    final split = panes.layout.mode == PaneMode.split;
+    final still = (context.reduceMotion || split) && !popGestureInProgress;
     final edge = context.read<ThemeCubit>().state.resolved.navigation.edgeShadow;
-    return FadeTransition(
-      opacity: still ? animation : const AlwaysStoppedAnimation(1.0),
-      child: SlideTransition(
-        position: still
-            ? const AlwaysStoppedAnimation(Offset.zero)
-            : animation.drive(popGestureInProgress ? _offset : _easedOffset),
-        // A soft shadow cast off the leading edge onto the page below, so the two
-        // read as stacked rather than abutting. Strengthens as the page arrives.
-        child: DecoratedBoxTransition(
-          decoration: still
-              ? const AlwaysStoppedAnimation<Decoration>(_EdgeShadowDecoration())
-              : animation.drive(_EdgeShadowDecoration.tween(edge)),
-          position: DecorationPosition.foreground,
-          child: _BackGestureDetector<T>(
-            enabledCallback: () => popGestureEnabled,
-            onStartPopGesture: _startPopGesture,
-            child: child,
+    return Stack(
+      children: [
+        PaneFrame(
+          pane: panes.layout.detail,
+          detailRoot: _detailRoot,
+          touch: PaneTouch.detail,
+          child: FadeTransition(
+            opacity: still ? animation : const AlwaysStoppedAnimation(1.0),
+            child: SlideTransition(
+              position: still
+                  ? const AlwaysStoppedAnimation(Offset.zero)
+                  : animation.drive(popGestureInProgress ? _offset : _easedOffset),
+              child: DecoratedBoxTransition(
+                decoration: still
+                    ? const AlwaysStoppedAnimation<Decoration>(_EdgeShadowDecoration())
+                    : animation.drive(_EdgeShadowDecoration.tween(edge)),
+                position: DecorationPosition.foreground,
+                child: _BackGestureDetector<T>(
+                  geometry: panes.layout.detail.rect,
+                  enabledCallback: () => popGestureEnabled && (!split || !_detailRoot),
+                  onStartPopGesture: _startPopGesture,
+                  child: child,
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -175,12 +234,14 @@ class _BackGestureStrip extends InheritedWidget {
 /// that moves the route's own animation.
 class _BackGestureDetector<T> extends StatefulWidget {
   const _BackGestureDetector({
+    required this.geometry,
     required this.enabledCallback,
     required this.onStartPopGesture,
     required this.child,
   });
 
   final Widget child;
+  final Rect geometry;
   final ValueGetter<bool> enabledCallback;
   final ValueGetter<_BackGestureController<T>> onStartPopGesture;
 
@@ -190,17 +251,32 @@ class _BackGestureDetector<T> extends StatefulWidget {
 
 class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
   _BackGestureController<T>? _controller;
-  late final HorizontalDragGestureRecognizer _recognizer;
+  late HorizontalDragGestureRecognizer _recognizer;
   final GlobalKey _strip = GlobalKey();
 
   @override
   void initState() {
     super.initState();
+    _createRecognizer();
+  }
+
+  void _createRecognizer() {
     _recognizer = HorizontalDragGestureRecognizer(debugOwner: this)
       ..onStart = _handleDragStart
       ..onUpdate = _handleDragUpdate
       ..onEnd = _handleDragEnd
       ..onCancel = _handleDragCancel;
+  }
+
+  @override
+  void didUpdateWidget(_BackGestureDetector<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.geometry != widget.geometry) {
+      _controller?.cancelForResize();
+      _controller = null;
+      _recognizer.dispose();
+      _createRecognizer();
+    }
   }
 
   @override
@@ -292,6 +368,11 @@ class _BackGestureController<T> {
   final Curve curve;
 
   void dragUpdate(double delta) => controller.value -= delta;
+
+  void cancelForResize() {
+    controller.value = getIsActive() ? 1 : 0;
+    navigator.didStopUserGesture();
+  }
 
   void dragEnd(double velocity) {
     final bool isCurrent = getIsCurrent();

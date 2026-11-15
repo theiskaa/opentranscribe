@@ -131,6 +131,7 @@ class _DetailViewState extends State<_DetailView> {
   final GlobalKey _menuAnchor = GlobalKey();
   PlayerCubit? _player;
   EntriesCubit? _entries;
+  ModalRoute<dynamic>? _route;
 
   /// Set once the entry loses its audio while this screen is open, so the
   /// stop below fires exactly once.
@@ -161,6 +162,7 @@ class _DetailViewState extends State<_DetailView> {
     // Captured here because dispose() must not look the cubits up via context.
     _player = context.read<PlayerCubit>();
     _entries = context.read<EntriesCubit>();
+    _route = ModalRoute.of(context);
   }
 
   @override
@@ -173,6 +175,11 @@ class _DetailViewState extends State<_DetailView> {
 
   @override
   void dispose() {
+    if (_editing) {
+      final observer = Deps.i.router.paneObserver;
+      // Disposal can run while Navigator is building, so release after that pass.
+      WidgetsBinding.instance.addPostFrameCallback((_) => observer.setBottomSlotOwner(this, null));
+    }
     // Leaving the screen silences playback; the cubit closes with the provider.
     _player?.stopAndDetach();
     _titleFocus.dispose();
@@ -202,10 +209,15 @@ class _DetailViewState extends State<_DetailView> {
         );
       }
     }
-    setState(() => _editing = true);
+    _setEditing(true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _bodyFocus.requestFocus();
     });
+  }
+
+  void _setEditing(bool editing) {
+    setState(() => _editing = editing);
+    Deps.i.router.paneObserver.setBottomSlotOwner(this, editing ? _route : null);
   }
 
   /// The selection toolbar's Edit: the same gate as the menu row, walked at
@@ -256,7 +268,7 @@ class _DetailViewState extends State<_DetailView> {
     // never sees the pre-edit words flash between the two.
     unawaited(
       write.whenComplete(() {
-        if (mounted) setState(() => _editing = false);
+        if (mounted) _setEditing(false);
       }),
     );
   }
@@ -535,6 +547,7 @@ class _DetailViewState extends State<_DetailView> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    final current = ModalRoute.isCurrentOf(context) ?? true;
 
     return BlocBuilder<EntriesCubit, EntriesState>(
       builder: (context, state) {
@@ -542,9 +555,13 @@ class _DetailViewState extends State<_DetailView> {
         final entry = matches.isEmpty ? null : matches.first;
         // Deleted from under us: leave the screen.
         if (entry == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted && context.canPop()) context.pop();
-          });
+          if (current) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted && ModalRoute.isCurrentOf(context) == true && context.canPop()) {
+                context.pop();
+              }
+            });
+          }
           return ColoredBox(color: theme.screens.entryDetail, child: const SizedBox.expand());
         }
 
@@ -847,11 +864,8 @@ class _DetailViewState extends State<_DetailView> {
                 // listener. The check runs well under the disc's own glyph
                 // size: its ink box is wide for its point size.
                 if (_editing)
-                  Positioned(
-                    right: GlassFab.rightOf(context),
-                    // Continuous as the keyboard moves: padding.bottom falls
-                    // to zero by itself as the inset grows.
-                    bottom: keyboard + bottomInset + GlassFab.floatInset,
+                  GlassFabPosition(
+                    keyboard: keyboard,
                     child: GlassFab(
                       icon: AppIcons.checkmark,
                       iconSize: AppIconSize.bar,

@@ -13,6 +13,8 @@ import 'package:opentranscribe/view/widgets/dither_card.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 import 'package:reflections/reflections.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 
 /// A card's identity in the home timeline: its period and start, so a day, its
 /// week, and its month are distinct even when they share a start date.
@@ -158,6 +160,13 @@ class ReflectionHomeCard extends StatelessWidget {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
     final period = reflection.period;
+    final selected = PaneSelectionScope.isSelected(
+      context,
+      Uri(
+        path: Routes.reflections,
+        queryParameters: {'period': period.wire, 'week': reflection.periodKey},
+      ),
+    );
     if (reflection.isSilent) {
       // The marker reads as text, so it lands on the records' text column.
       return Padding(
@@ -170,6 +179,8 @@ class ReflectionHomeCard extends StatelessWidget {
       child: Touchable(
         onTap: onTap,
         child: DitherCard(
+          background: selected ? theme.calendar.tileFill : null,
+          border: selected ? theme.textSecondary : null,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(

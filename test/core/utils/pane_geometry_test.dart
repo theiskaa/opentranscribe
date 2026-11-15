@@ -29,6 +29,26 @@ PaneLayout layoutOf(
 }
 
 void main() {
+  group('modal rects', () {
+    test('flat and book modal rects follow the detail safe band', () {
+      for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
+        final layout = layoutOf(wire);
+        expect(layout.modal.left, layout.detail.rect.left + layout.detail.padding.left);
+        expect(layout.modal.right, layout.detail.rect.right - layout.detail.padding.right);
+        expect(layout.modal.width, greaterThan(0));
+      }
+    });
+
+    test('a stale signal cannot supply a fold or a modal half to the new window', () {
+      final signal = DisplayWire.decode(DisplayWire.bookWide);
+      expect(displaySignalDescribes(signal, coverSize), isFalse);
+      expect(displaySignalDescribes(signal, wideSize), isTrue);
+      final layout = layoutOf(DisplayWire.bookWide, size: coverSize, padding: coverPadding);
+      expect(layout.modal, const Rect.fromLTRB(0, 0, 382, 678));
+      expect(layout.fold, isNull);
+    });
+  });
+
   group('the cover', () {
     final layout = layoutOf(DisplayWire.cover);
 

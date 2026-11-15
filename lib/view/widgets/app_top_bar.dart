@@ -11,6 +11,9 @@ import 'package:opentranscribe/view/widgets/edge_fade.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 
 /// Where a bar control sits relative to the screen edge, and to the next
 /// control along. One number for both, so the chrome reads as a single rhythm.
@@ -121,9 +124,16 @@ class AppTopBar extends StatelessWidget {
     final sides = horizontalInsets(padding);
     final rowHeight = barHeight ?? bar.height;
 
-    final leading =
-        this.leading ??
-        (automaticLeading && Navigator.of(context).canPop() ? const AppBackButton() : null);
+    final scope = PaneScope.maybeOf(context);
+    final layout = PaneLayoutScope.maybeOf(context)?.layout;
+    final root = scope?.detailRoot == true && layout?.mode == PaneMode.split;
+    final leading = root && (this.leading == null || this.leading is AppBackButton)
+        ? null
+        : this.leading ??
+              (automaticLeading && Navigator.of(context).canPop() ? const AppBackButton() : null);
+    final column = layout?.mode == PaneMode.split && scope?.pane.barToSideColumn == true
+        ? layout?.sideColumn?.upperSlot.shift(-scope!.pane.rect.topLeft)
+        : null;
 
     Widget? titleBlock = title;
     if (titleBlock != null && subtitle != null) {
@@ -141,43 +151,9 @@ class AppTopBar extends StatelessWidget {
       titleBlock = Touchable(onTap: onTitleTap, child: titleBlock);
     }
 
-    final row = Row(
-      children: [
-        // A control sits on the bar's own edge; a bare title aligns with the
-        // screen's content inset instead, so it lines up with what is under it.
-        if (leading != null)
-          Padding(
-            padding: const EdgeInsets.only(left: _edgeInset),
-            child: leading,
-          )
-        else
-          const SizedBox(width: AppSpacing.xl),
-        if (!centerTitle && titleBlock != null)
-          Expanded(
-            child: Align(alignment: AlignmentDirectional.centerStart, child: titleBlock),
-          )
-        else
-          const Spacer(),
-        if (actions.isEmpty)
-          const SizedBox(width: AppSpacing.xl)
-        else
-          for (final action in actions) ...[action, const SizedBox(width: _edgeInset)],
-      ],
-    );
-
-    final titledRow = centerTitle && titleBlock != null
-        ? Stack(
-            alignment: Alignment.center,
-            children: [
-              row,
-              Center(child: titleBlock),
-            ],
-          )
-        : row;
-
     final chromeHeight = topInset + rowHeight + bottomHeight;
     return SizedBox(
-      height: chromeHeight + bar.fadeTail,
+      height: column == null ? chromeHeight + bar.fadeTail : MediaQuery.sizeOf(context).height,
       child: Stack(
         children: [
           Positioned(
@@ -216,12 +192,38 @@ class AppTopBar extends StatelessWidget {
             height: chromeHeight,
             child: const AbsorbPointer(child: SizedBox.expand()),
           ),
-          Positioned(
-            top: topInset,
-            left: sides.left,
-            right: sides.right,
-            height: rowHeight,
-            child: titledRow,
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) => CustomMultiChildLayout(
+                delegate: TopBarLayout(
+                  row: Rect.fromLTWH(
+                    sides.left,
+                    topInset,
+                    constraints.maxWidth - sides.horizontal,
+                    rowHeight,
+                  ),
+                  leading: leading != null,
+                  actions: actions.length,
+                  centerTitle: centerTitle,
+                  direction: Directionality.of(context),
+                  column: column,
+                ),
+                children: [
+                  if (leading != null) LayoutId(id: TopBarLayout.leadingId, child: leading),
+                  if (titleBlock != null)
+                    LayoutId(
+                      id: TopBarLayout.titleId,
+                      child: Align(
+                        alignment: centerTitle
+                            ? Alignment.center
+                            : AlignmentDirectional.centerStart,
+                        child: titleBlock,
+                      ),
+                    ),
+                  for (final (index, action) in actions.indexed) LayoutId(id: index, child: action),
+                ],
+              ),
+            ),
           ),
           if (bottom != null)
             Positioned(

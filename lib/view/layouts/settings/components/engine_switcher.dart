@@ -8,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:opentranscribe/core/routes/slide_page.dart';
+import 'package:opentranscribe/core/routes/pane_page.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';

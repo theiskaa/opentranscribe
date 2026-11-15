@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/superellipse.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 /// The left edge of a popup [width] wide grown from [anchor]: right edges
 /// aligned, held [AppSpacing.md] inside the safe band of a window
@@ -14,9 +15,10 @@ double popupLeft({
   required double width,
   required double windowWidth,
   required EdgeInsets padding,
+  Rect? modal,
 }) {
-  final min = padding.left + AppSpacing.md;
-  final max = windowWidth - padding.right - width - AppSpacing.md;
+  final min = (modal?.left ?? padding.left) + AppSpacing.md;
+  final max = (modal?.right ?? windowWidth - padding.right) - width - AppSpacing.md;
   return (anchor.right - width).clamp(min, math.max(min, max));
 }
 
@@ -46,9 +48,13 @@ Future<T?> showAnchoredPopup<T>(
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
-          alignment: anchor.center.dx > MediaQuery.sizeOf(context).width / 2
-              ? Alignment.topRight
-              : Alignment.topLeft,
+          alignment: popupOrigin(
+            anchor: anchor,
+            modal: PaneLayoutScope.maybeOf(context)?.cover == true
+                ? Offset.zero & MediaQuery.sizeOf(context)
+                : modalRectOf(context),
+            window: MediaQuery.sizeOf(context),
+          ),
           scale: Tween<double>(begin: 0.88, end: 1).animate(curved),
           child: child,
         ),
@@ -83,4 +89,21 @@ class PopupSurface extends StatelessWidget {
       child: child,
     );
   }
+}
+
+Rect popupBounds(BuildContext context) {
+  final modal = modalRectOf(context);
+  final tracker = PaneLayoutScope.maybeOf(context);
+  final media = tracker?.media ?? MediaQuery.of(context);
+  return Rect.fromLTRB(
+    modal.left,
+    math.max(modal.top, media.padding.top),
+    modal.right,
+    math.min(modal.bottom, media.size.height - media.padding.bottom),
+  );
+}
+
+Alignment popupOrigin({required Rect anchor, required Rect modal, required Size window}) {
+  final x = anchor.center.dx > modal.center.dx ? modal.right : modal.left;
+  return Alignment(2 * x / window.width - 1, 2 * modal.top / window.height - 1);
 }

@@ -133,7 +133,7 @@ class _HomeMenuState extends State<HomeMenu> {
 
     return AppMenuButton(
       key: _anchor,
-      icon: AppIcons.ellipsis,
+      icon: AppIcons.gearshape,
       color: widget.color,
       items: items,
       onSelectedId: (id) {

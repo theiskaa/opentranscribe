@@ -8,6 +8,8 @@ import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/seam_padding.dart';
 import 'package:opentranscribe/view/widgets/delete_swipe.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 
 /// One record in the home list. There is no card and no border: a day's records
 /// hang off a single hairline RAIL in the left gutter, each marked by a node on
@@ -53,6 +55,10 @@ class EntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final selected = PaneSelectionScope.isSelected(
+      context,
+      Uri(path: Routes.entry.replaceFirst(':id', entry.id)),
+    );
     return DeleteSwipe(
       id: entry.id,
       openId: openId,
@@ -64,8 +70,13 @@ class EntryRow extends StatelessWidget {
       // they hold still while the record slides. The swipe wraps only the text
       // column (right of the gutter), so the record never reaches the rail;
       // the frame ties rail, gutter and day gap to the row's exit.
-      frame: (context, swipe) =>
-          EntryRail(last: last, leadStyle: EntryRowBody.leadStyleOf(entry), child: swipe),
+      frame: (context, swipe) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? context.theme.calendar.tileFill : null,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: EntryRail(last: last, leadStyle: EntryRowBody.leadStyleOf(entry), child: swipe),
+      ),
       child: EntryRowBody(entry: entry),
     );
   }

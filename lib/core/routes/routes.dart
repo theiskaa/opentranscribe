@@ -1,10 +1,16 @@
-/// Route paths and names, kept in one place so navigation call sites and the
-/// router agree on a single source of truth.
-///
-/// There is no single settings screen: the home menu ([HomeMenu]) is the
-/// settings surface, and each `settings*` route below is pushed straight
-/// from it.
+/// Full paths stay stable while details nest under home on one navigator.
+/// Journal selections use goNamed; menus and links within details use pushNamed.
 abstract final class Routes {
+  static const detailNames = {
+    entryName,
+    reflectionsName,
+    settingsModelsName,
+    settingsAppearanceName,
+    settingsCacheName,
+    settingsBackupName,
+    settingsNotificationsName,
+  };
+
   static const home = '/';
   static const homeName = 'home';
 
@@ -47,7 +53,7 @@ abstract final class Routes {
   static const reflections = '/reflections';
   static const reflectionsName = 'reflections';
 
-  /// Entry detail. Navigate by name with an `id` param; pushes over the shell.
+  /// Entry detail. Journal selections replace the detail with an `id` parameter.
   static const entry = '/entry/:id';
   static const entryName = 'entry';
 

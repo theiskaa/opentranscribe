@@ -6,6 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/utils/pane_geometry.dart';
+import 'package:opentranscribe/view/widgets/pane_host.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
 import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
 import 'package:opentranscribe/core/state/display_cubit.dart';
@@ -222,17 +225,38 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                 final reduceMotion =
                     media.disableAnimations ||
                     WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.reduceMotion;
-                return MediaQuery(
-                  data: media.copyWith(disableAnimations: reduceMotion),
-                  // Above the router's navigator, so it also tints the text
-                  // selection handles and menu, which render in the root
-                  // overlay.
-                  child: SelectionTheme(
-                    accent: theme.accent,
-                    brightness: theme.brightness,
-                    child: DefaultTextStyle(
-                      style: AppType.body.copyWith(color: theme.text),
-                      child: child ?? const SizedBox.shrink(),
+                final display = context.watch<DisplayCubit>().state;
+                final layout = paneLayoutFor(
+                  PaneInputs(
+                    size: media.size,
+                    padding: media.padding,
+                    signal: display.signal,
+                    bodySize: media.textScaler.scale(AppType.body.fontSize!),
+                    closedContentWidth: display.closedContentWidth,
+                  ),
+                );
+                return PaneHost(
+                  layout: layout,
+                  media: media.copyWith(disableAnimations: reduceMotion),
+                  settled: displaySignalDescribes(display.signal, media.size),
+                  supported: display.signal.supported,
+                  cover:
+                      DisplayCubit.closedContentWidthOf(display.signal) != null &&
+                      displaySignalDescribes(display.signal, media.size),
+                  router: Deps.i.router.config,
+                  observer: Deps.i.router.paneObserver,
+                  child: MediaQuery(
+                    data: media.copyWith(disableAnimations: reduceMotion),
+                    // Above the router's navigator, so it also tints the text
+                    // selection handles and menu, which render in the root
+                    // overlay.
+                    child: SelectionTheme(
+                      accent: theme.accent,
+                      brightness: theme.brightness,
+                      child: DefaultTextStyle(
+                        style: AppType.body.copyWith(color: theme.text),
+                        child: child ?? const SizedBox.shrink(),
+                      ),
                     ),
                   ),
                 );

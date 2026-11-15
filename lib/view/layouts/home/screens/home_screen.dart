@@ -19,16 +19,15 @@ import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/home/components/day_glide.dart';
+import 'package:opentranscribe/view/layouts/home/components/journal_split.dart';
 import 'package:opentranscribe/view/layouts/home/components/entry_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_empty.dart';
 import 'package:opentranscribe/view/layouts/home/components/home_menu.dart';
 import 'package:opentranscribe/view/layouts/home/components/pull_to_record.dart';
-import 'package:opentranscribe/view/layouts/home/components/record_fab.dart';
 import 'package:opentranscribe/view/layouts/home/components/reflection_home_card.dart';
 import 'package:opentranscribe/view/layouts/home/components/section_tracker.dart';
 import 'package:opentranscribe/view/layouts/home/components/take_row.dart';
 import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
-import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/batch_progress_label.dart';
 import 'package:opentranscribe/view/widgets/entrance_rise.dart';
@@ -46,14 +45,25 @@ import 'package:opentranscribe/view/widgets/seam_padding.dart';
 /// glides home, and pulling down past the threshold opens the recorder.
 /// [HomeCubit] is provided at the root, so the shell can refresh it after a
 /// recording.
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) => BlocListener<EntriesCubit, EntriesState>(
+    listenWhen: (previous, current) => !listEquals(previous.entries, current.entries),
+    listener: (context, state) => context.read<HomeCubit>().load(),
+    child: const JournalSplit(journal: _Journal()),
+  );
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _Journal extends StatefulWidget {
+  const _Journal();
+
+  @override
+  State<_Journal> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<_Journal> {
   /// First day of the calendar's visible week, feeding the bar's month.
   final ValueNotifier<DateTime> _visibleWeek = ValueNotifier(DateTime.now());
 
@@ -173,7 +183,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Haptics.medium();
     final home = context.read<HomeCubit>();
     // Refresh on return: the sheet saves a new entry.
-    context.pushNamed(Routes.recordName).then((_) => home.load());
+    final entries = context.read<EntriesCubit>();
+    context.pushNamed(Routes.recordName).then((_) {
+      entries.load();
+      home.load();
+    });
   }
 
   void _glideTo(double offset) {
@@ -412,9 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 tail: _tail,
                                 openRow: _openRow,
                                 onDelete: (entry) async {
+                                  final entries = context.read<EntriesCubit>();
                                   try {
                                     await context.read<HomeCubit>().delete(entry);
                                   } finally {
+                                    entries.load();
                                     // Resolved either way: a removed row's flag is spent, a
                                     // refused delete's row unfolds its surroundings back.
                                     // Past the frame, never inside it: the emit's build
@@ -473,13 +489,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     ),
-                  ),
-                  // A persistent record button floating clear of the home indicator.
-                  // Pull-to-record stays; this is the obvious, hard-to-miss way in.
-                  Positioned(
-                    right: GlassFab.rightOf(context),
-                    bottom: AppScaffold.bottomControlOf(context),
-                    child: RecordFab(onTap: _openRecorder),
                   ),
                 ],
               );
@@ -605,7 +614,7 @@ class _ReflectionCardSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = ReflectionHomeCard(
       reflection: reflection,
-      onTap: () => context.pushNamed(
+      onTap: () => context.goNamed(
         Routes.reflectionsName,
         queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
       ),
@@ -998,13 +1007,8 @@ class _RecordsList extends StatelessWidget {
                   onDelete: onDelete,
                   onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
                   onTap: () {
-                    final home = context.read<HomeCubit>();
-                    // The detail screen reads EntriesCubit; refresh it before the
-                    // push, and refresh home on return (delete or rename).
                     context.read<EntriesCubit>().load();
-                    context
-                        .pushNamed(Routes.entryName, pathParameters: {'id': entry.id})
-                        .then((_) => home.load());
+                    context.goNamed(Routes.entryName, pathParameters: {'id': entry.id});
                   },
                 ),
               ),
