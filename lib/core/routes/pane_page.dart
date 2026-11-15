@@ -9,7 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 
 /// A detail on the root navigator, presented in the pane without moving its tree.
@@ -50,6 +52,9 @@ class _PanePageRoute<T> extends PageRoute<T> {
   bool _instantPop = false;
 
   bool get _split => _mode == PaneMode.split;
+  bool get _journalSelection =>
+      _detailRoot && {Routes.entryName, Routes.reflectionsName}.contains(settings.name);
+
   bool get _detailRoot => _panes.detailKeys.firstOrNull == (settings as PanePage<T>).key;
 
   void _layoutChanged() {
@@ -113,6 +118,9 @@ class _PanePageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
+  bool get requestFocus => !(_split && _journalSelection) && super.requestFocus;
+
+  @override
   bool get barrierDismissible => false;
 
   // No dim on the page below: darkening a screen that isn't moving read as off.
@@ -129,7 +137,12 @@ class _PanePageRoute<T> extends PageRoute<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
   ) {
-    return Semantics(scopesRoute: true, explicitChildNodes: true, child: _child);
+    final split = PaneLayoutScope.of(context).layout.mode == PaneMode.split;
+    return Semantics(
+      scopesRoute: !(split && _journalSelection),
+      explicitChildNodes: true,
+      child: _child,
+    );
   }
 
   @override
@@ -146,7 +159,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
     return Stack(
       children: [
         PaneFrame(
-          pane: panes.layout.detail,
+          pane: PaneGlide.layoutOf(context).detail,
           detailRoot: _detailRoot,
           touch: PaneTouch.detail,
           child: FadeTransition(

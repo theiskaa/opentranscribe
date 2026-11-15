@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/semantics.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/side_column.dart';
 
@@ -121,46 +123,58 @@ class RecorderPose extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tracker = PaneLayoutScope.of(context);
-    final layout = tracker.layout;
+    final layout = PaneGlide.layoutOf(context);
     final media = tracker.media;
     final column = layout.recorder.arrangement == RecorderArrangement.column;
     final headerMedia = column
         ? media
         : paneMediaData(media, Pane(rect: layout.recorder.first, padding: EdgeInsets.zero));
     final bodyMedia = column ? safeSidesData(media) : headerMedia;
-    return CustomMultiChildLayout(
-      delegate: _RecorderPoseLayout(
-        layout: layout,
-        barHeight: context.theme.topBar.height,
-        direction: Directionality.of(context),
-      ),
-      // The slots stay mounted through stale signals and every pose, preserving bars and scroll.
+    return Stack(
       children: [
-        LayoutId(
-          id: RecorderBlock.header,
-          child: MediaQuery(data: headerMedia, child: header),
+        const SideColumnGround(window: true),
+        CustomMultiChildLayout(
+          delegate: _RecorderPoseLayout(
+            layout: layout,
+            barHeight: context.theme.topBar.height,
+            direction: Directionality.of(context),
+          ),
+          // The slots stay mounted through stale signals and every pose, preserving bars and scroll.
+          children: [
+            LayoutId(
+              id: RecorderBlock.header,
+              child: MediaQuery(data: headerMedia, child: header),
+            ),
+            LayoutId(
+              id: RecorderBlock.continuing,
+              child: MediaQuery(data: bodyMedia, child: continuing),
+            ),
+            LayoutId(
+              id: RecorderBlock.wave,
+              child: MediaQuery(data: bodyMedia, child: wave),
+            ),
+            LayoutId(
+              id: RecorderBlock.words,
+              child: MediaQuery(data: bodyMedia, child: words),
+            ),
+            LayoutId(
+              id: RecorderBlock.notice,
+              child: MediaQuery(data: bodyMedia, child: notice),
+            ),
+            LayoutId(
+              id: RecorderBlock.controls,
+              child: MediaQuery(data: bodyMedia, child: controls),
+            ),
+            LayoutId(
+              id: RecorderBlock.language,
+              child: Semantics(
+                container: !column && layout.sideColumn != null,
+                sortKey: !column && layout.sideColumn != null ? const OrdinalSortKey(2) : null,
+                child: language,
+              ),
+            ),
+          ],
         ),
-        LayoutId(
-          id: RecorderBlock.continuing,
-          child: MediaQuery(data: bodyMedia, child: continuing),
-        ),
-        LayoutId(
-          id: RecorderBlock.wave,
-          child: MediaQuery(data: bodyMedia, child: wave),
-        ),
-        LayoutId(
-          id: RecorderBlock.words,
-          child: MediaQuery(data: bodyMedia, child: words),
-        ),
-        LayoutId(
-          id: RecorderBlock.notice,
-          child: MediaQuery(data: bodyMedia, child: notice),
-        ),
-        LayoutId(
-          id: RecorderBlock.controls,
-          child: MediaQuery(data: bodyMedia, child: controls),
-        ),
-        LayoutId(id: RecorderBlock.language, child: language),
       ],
     );
   }

@@ -9,6 +9,8 @@ import 'package:flutter/gestures.dart' show TapDragEndDetails;
 import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/view/widgets/edit_continuity.dart';
+
 /// The app's editable text, the platform way: tap places the caret, a long
 /// press raises the magnifier and the edit menu, a drag selects, the iOS
 /// handles show, and the keyboard capitalizes as asked. Built on
@@ -41,6 +43,8 @@ class EditableProse extends StatefulWidget {
     this.maxLines = 1,
     this.textInputAction,
     this.onChanged,
+    this.onBlur,
+    this.continuity,
     this.onSubmitted,
     this.scrollPadding = const EdgeInsets.all(20),
     super.key,
@@ -66,6 +70,8 @@ class EditableProse extends StatefulWidget {
   final int? maxLines;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
+  final VoidCallback? onBlur;
+  final EditContinuityController? continuity;
   final ValueChanged<String>? onSubmitted;
   final EdgeInsets scrollPadding;
 
@@ -103,6 +109,9 @@ class EditableProseState extends State<EditableProse>
 
   late final _ProseGestureBuilder _gestures = _ProseGestureBuilder(state: this);
   bool _showHandles = false;
+  final EditContinuityController _ownedContinuity = EditContinuityController();
+
+  EditContinuityController get _continuity => widget.continuity ?? _ownedContinuity;
 
   /// One [TextMagnifierConfiguration] for every field: the Cupertino loupe.
   static final TextMagnifierConfiguration _magnifier = TextMagnifierConfiguration(
@@ -137,6 +146,7 @@ class EditableProseState extends State<EditableProse>
   @override
   void dispose() {
     widget.focusNode.removeListener(_onFocusChanged);
+    _ownedContinuity.dispose();
     super.dispose();
   }
 
@@ -184,48 +194,58 @@ class EditableProseState extends State<EditableProse>
   @override
   Widget build(BuildContext context) {
     final focused = widget.focusNode.hasFocus;
-    return Semantics(
-      onTap: _onSemanticsTap,
-      onFocus: _onSemanticsFocus,
-      child: _gestures.buildGestureDetector(
-        behavior: HitTestBehavior.translucent,
-        child: RepaintBoundary(
-          child: EditableText(
-            key: editableTextKey,
-            controller: widget.controller,
-            focusNode: widget.focusNode,
-            style: widget.style,
-            cursorColor: widget.cursorColor,
-            backgroundCursorColor: widget.backgroundCursorColor,
-            selectionColor: focused ? widget.selectionColor : null,
-            autocorrectionTextRectColor: widget.selectionColor,
-            keyboardAppearance: widget.keyboardAppearance,
-            autofocus: widget.autofocus,
-            obscureText: widget.obscureText,
-            autocorrect: !widget.secret,
-            enableSuggestions: !widget.secret,
-            enableIMEPersonalizedLearning: !widget.secret,
-            // Null, not the empty-list default: an empty list still opts the
-            // field into autofill and lets the platform guess.
-            autofillHints: null,
-            textCapitalization: widget.capitalization,
-            maxLines: widget.maxLines,
-            textInputAction: widget.textInputAction,
-            onChanged: widget.onChanged,
-            onSubmitted: widget.onSubmitted,
-            onSelectionChanged: _onSelectionChanged,
-            scrollPadding: widget.scrollPadding,
-            showSelectionHandles: _showHandles,
-            selectionControls: cupertinoTextSelectionHandleControls,
-            contextMenuBuilder: _contextMenu,
-            magnifierConfiguration: _magnifier,
-            // The gesture detector above owns every pointer; the renderer must
-            // not answer them a second time.
-            rendererIgnoresPointer: true,
-            cursorOpacityAnimates: true,
-            cursorRadius: const Radius.circular(2),
-            cursorOffset: Offset(_cursorOffsetPixels / MediaQuery.devicePixelRatioOf(context), 0),
-            paintCursorAboveText: true,
+    return EditContinuity(
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      requestKeyboard: requestKeyboard,
+      onBlur: widget.onBlur,
+      continuity: _continuity,
+      child: Semantics(
+        onTap: _onSemanticsTap,
+        onFocus: _onSemanticsFocus,
+        child: _gestures.buildGestureDetector(
+          behavior: HitTestBehavior.translucent,
+          child: RepaintBoundary(
+            child: EditableText(
+              key: editableTextKey,
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              style: widget.style,
+              cursorColor: widget.cursorColor,
+              backgroundCursorColor: widget.backgroundCursorColor,
+              selectionColor: focused ? widget.selectionColor : null,
+              autocorrectionTextRectColor: widget.selectionColor,
+              keyboardAppearance: widget.keyboardAppearance,
+              autofocus: widget.autofocus,
+              obscureText: widget.obscureText,
+              autocorrect: !widget.secret,
+              enableSuggestions: !widget.secret,
+              enableIMEPersonalizedLearning: !widget.secret,
+              // Null, not the empty-list default: an empty list still opts the
+              // field into autofill and lets the platform guess.
+              autofillHints: null,
+              textCapitalization: widget.capitalization,
+              maxLines: widget.maxLines,
+              textInputAction: widget.textInputAction,
+              onChanged: widget.onChanged,
+              onSubmitted: (value) {
+                _continuity.cancel();
+                widget.onSubmitted?.call(value);
+              },
+              onSelectionChanged: _onSelectionChanged,
+              scrollPadding: widget.scrollPadding,
+              showSelectionHandles: _showHandles,
+              selectionControls: cupertinoTextSelectionHandleControls,
+              contextMenuBuilder: _contextMenu,
+              magnifierConfiguration: _magnifier,
+              // The gesture detector above owns every pointer; the renderer must
+              // not answer them a second time.
+              rendererIgnoresPointer: true,
+              cursorOpacityAnimates: true,
+              cursorRadius: const Radius.circular(2),
+              cursorOffset: Offset(_cursorOffsetPixels / MediaQuery.devicePixelRatioOf(context), 0),
+              paintCursorAboveText: true,
+            ),
           ),
         ),
       ),

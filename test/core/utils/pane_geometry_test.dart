@@ -294,6 +294,21 @@ void main() {
       expect(layout.modal, const Rect.fromLTRB(496, 0, 867, 669));
     });
 
+    test('every inner pose stays a column above the accessibility threshold', () {
+      for (final wire in [
+        DisplayWire.flatWide,
+        DisplayWire.bookWide,
+        DisplayWire.flatTall,
+        DisplayWire.laptop,
+      ]) {
+        for (final bodySize in [AppType.largeTextBody, AppType.largeTextBody + 10]) {
+          final layout = layoutOf(wire, bodySize: bodySize);
+          expect(layout.mode, PaneMode.single);
+          expect(layout.recorder.arrangement, RecorderArrangement.column);
+        }
+      }
+    });
+
     test('keeps the cover a column', () {
       final layout = layoutOf(DisplayWire.cover, bodySize: AppType.largeTextBody);
 

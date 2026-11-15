@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/models/entry.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -59,25 +60,28 @@ class EntryRow extends StatelessWidget {
       context,
       Uri(path: Routes.entry.replaceFirst(':id', entry.id)),
     );
-    return DeleteSwipe(
-      id: entry.id,
-      openId: openId,
-      onTap: onTap,
-      onDelete: () => onDelete(entry),
-      onExitStart: onDeleteStart,
-      label: l10n.delete,
-      // Behind the record: the rail and its node are the list's structure, so
-      // they hold still while the record slides. The swipe wraps only the text
-      // column (right of the gutter), so the record never reaches the rail;
-      // the frame ties rail, gutter and day gap to the row's exit.
-      frame: (context, swipe) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? context.theme.calendar.tileFill : null,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+    return Semantics(
+      selected: PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split ? selected : null,
+      child: DeleteSwipe(
+        id: entry.id,
+        openId: openId,
+        onTap: onTap,
+        onDelete: () => onDelete(entry),
+        onExitStart: onDeleteStart,
+        label: l10n.delete,
+        // Behind the record: the rail and its node are the list's structure, so
+        // they hold still while the record slides. The swipe wraps only the text
+        // column (right of the gutter), so the record never reaches the rail;
+        // the frame ties rail, gutter and day gap to the row's exit.
+        frame: (context, swipe) => DecoratedBox(
+          decoration: BoxDecoration(
+            color: selected ? context.theme.calendar.tileFill : null,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: EntryRail(last: last, leadStyle: EntryRowBody.leadStyleOf(entry), child: swipe),
         ),
-        child: EntryRail(last: last, leadStyle: EntryRowBody.leadStyleOf(entry), child: swipe),
+        child: EntryRowBody(entry: entry),
       ),
-      child: EntryRowBody(entry: entry),
     );
   }
 }

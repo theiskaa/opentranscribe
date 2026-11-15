@@ -16,6 +16,7 @@ import 'package:opentranscribe/view/widgets/app_scaffold.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_fab.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
 
@@ -27,7 +28,7 @@ class JournalSplit extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final panes = PaneLayoutScope.of(context);
-    final layout = panes.layout;
+    final layout = PaneGlide.layoutOf(context);
     final split = layout.mode == PaneMode.split;
     return ColoredBox(
       color: context.theme.background,

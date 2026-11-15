@@ -37,6 +37,7 @@ import 'package:opentranscribe/view/widgets/error_pill.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/editable_prose.dart';
+import 'package:opentranscribe/view/widgets/edit_continuity.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/export_l10n.dart';
 import 'package:opentranscribe/view/widgets/exporter_marks.dart';
@@ -96,6 +97,8 @@ class _DetailView extends StatefulWidget {
 
 class _DetailViewState extends State<_DetailView> {
   final FocusNode _titleFocus = FocusNode();
+  final EditContinuityController _titleContinuity = EditContinuityController();
+  final EditContinuityController _bodyContinuity = EditContinuityController();
 
   /// The reading region's selection focus. Unfocusing it clears a live
   /// selection, so a re-transcribe can drop one before the ink capture.
@@ -143,7 +146,6 @@ class _DetailViewState extends State<_DetailView> {
   @override
   void initState() {
     super.initState();
-    _bodyFocus.addListener(_onBodyFocusChange);
     final descriptors = context.read<EntryExportCubit>().descriptors;
     final ready = exporterMarksNow(descriptors);
     _marks = ValueNotifier(ready ?? const {});
@@ -169,7 +171,7 @@ class _DetailViewState extends State<_DetailView> {
   void deactivate() {
     // A pop while the body field is focused never delivers the blur
     // notification; without this, the typed edit would vanish with the screen.
-    if (_bodyFocus.hasFocus) _commitEdit(leave: false);
+    if (_editing) _commitEdit(leave: false);
     super.deactivate();
   }
 
@@ -182,11 +184,12 @@ class _DetailViewState extends State<_DetailView> {
     }
     // Leaving the screen silences playback; the cubit closes with the provider.
     _player?.stopAndDetach();
+    _titleContinuity.dispose();
+    _bodyContinuity.dispose();
     _titleFocus.dispose();
     _selectionFocus.dispose();
     _hintArmed.dispose();
     _marks.dispose();
-    _bodyFocus.removeListener(_onBodyFocusChange);
     _bodyFocus.dispose();
     _bodyController.dispose();
     super.dispose();
@@ -236,15 +239,13 @@ class _DetailViewState extends State<_DetailView> {
       (state.busyAction == EntriesAction.transcribe ||
           state.busyAction == EntriesAction.continueRecording);
 
-  void _onBodyFocusChange() {
-    if (!_bodyFocus.hasFocus) _commitEdit();
-  }
-
   /// Drops the keyboard on a scroll drag; the blur commits the edit and the
   /// title. Only these two: the reading selection holds focus too and must
   /// outlive a scroll.
   bool _dismissKeyboardOnDrag(ScrollUpdateNotification notification) {
     if (notification.dragDetails == null) return false;
+    _titleContinuity.cancel();
+    _bodyContinuity.cancel();
     if (_titleFocus.hasFocus) _titleFocus.unfocus();
     if (_bodyFocus.hasFocus) _bodyFocus.unfocus();
     return false;
@@ -698,7 +699,11 @@ class _DetailViewState extends State<_DetailView> {
                               // Fenced out of the reading region like the body
                               // editor: its long press must not contest the field's.
                               SelectionContainer.disabled(
-                                child: _TitleField(entry: entry, focusNode: _titleFocus),
+                                child: _TitleField(
+                                  entry: entry,
+                                  focusNode: _titleFocus,
+                                  continuity: _titleContinuity,
+                                ),
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Text(
@@ -748,6 +753,8 @@ class _DetailViewState extends State<_DetailView> {
                                   child: EditableProse(
                                     controller: _bodyController,
                                     focusNode: _bodyFocus,
+                                    continuity: _bodyContinuity,
+                                    onBlur: _commitEdit,
                                     style: AppType.body.copyWith(color: theme.text),
                                     cursorColor: theme.accent,
                                     backgroundCursorColor: theme.textSecondary,
@@ -872,6 +879,7 @@ class _DetailViewState extends State<_DetailView> {
                       semanticLabel: l10n.done,
                       onTap: () {
                         Haptics.light();
+                        _bodyContinuity.cancel();
                         _bodyFocus.unfocus();
                       },
                     ),
@@ -1027,10 +1035,11 @@ String _pillLabel(EntriesError kind, AppLocalizations l10n) => switch (kind) {
 /// commits, and clearing it (or typing the date default back) resets to
 /// untitled.
 class _TitleField extends StatefulWidget {
-  const _TitleField({required this.entry, required this.focusNode});
+  const _TitleField({required this.entry, required this.focusNode, required this.continuity});
 
   final Entry entry;
   final FocusNode focusNode;
+  final EditContinuityController continuity;
 
   @override
   State<_TitleField> createState() => _TitleFieldState();
@@ -1041,12 +1050,7 @@ class _TitleFieldState extends State<_TitleField> {
     text: entryDisplayTitle(widget.entry, localeTag(context)),
   );
   EntriesCubit? _entries;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.focusNode.addListener(_onFocusChange);
-  }
+  bool _changed = false;
 
   @override
   void didChangeDependencies() {
@@ -1059,7 +1063,7 @@ class _TitleFieldState extends State<_TitleField> {
   void deactivate() {
     // A pop while the field is focused never delivers the blur notification;
     // without this, the typed title would silently vanish with the screen.
-    if (widget.focusNode.hasFocus) _commit();
+    if (_changed || widget.focusNode.hasFocus) _commit();
     super.deactivate();
   }
 
@@ -1067,16 +1071,13 @@ class _TitleFieldState extends State<_TitleField> {
   void didUpdateWidget(_TitleField oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Reflect an external change (a commit round-trip) unless mid-edit.
-    if (!widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
+    if (!_changed && !widget.focusNode.hasFocus && oldWidget.entry != widget.entry) {
       _controller.text = entryDisplayTitle(widget.entry, localeTag(context));
     }
   }
 
-  void _onFocusChange() {
-    if (!widget.focusNode.hasFocus) _commit();
-  }
-
   void _commit() {
+    _changed = false;
     final trimmed = _controller.text.trim();
     final untitledDefault = entryDisplayTitle(widget.entry.withTitle(null), localeTag(context));
     final cleared = trimmed.isEmpty || trimmed == untitledDefault;
@@ -1092,7 +1093,6 @@ class _TitleFieldState extends State<_TitleField> {
 
   @override
   void dispose() {
-    widget.focusNode.removeListener(_onFocusChange);
     _controller.dispose();
     super.dispose();
   }
@@ -1103,6 +1103,9 @@ class _TitleFieldState extends State<_TitleField> {
     return EditableProse(
       controller: _controller,
       focusNode: widget.focusNode,
+      continuity: widget.continuity,
+      onBlur: _commit,
+      onChanged: (_) => _changed = true,
       style: AppType.display2.copyWith(color: theme.text),
       cursorColor: theme.accent,
       backgroundCursorColor: theme.textSecondary,

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/semantics.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
@@ -18,6 +19,8 @@ class PaneTouchTracker extends ChangeNotifier {
   bool supported = false;
   bool settled = false;
   bool cover = false;
+  bool reduceTransparency = false;
+  bool regular = false;
   PaneStack _stack = const PaneStack();
   bool _initialized = false;
 
@@ -29,6 +32,8 @@ class PaneTouchTracker extends ChangeNotifier {
     required bool cover,
     required RouteMatchList matches,
     required bool selectionOnTop,
+    bool reduceTransparency = false,
+    bool regular = false,
   }) {
     final oldLayout = supported == this.supported && cover == this.cover && _initialized
         ? this.layout
@@ -38,6 +43,8 @@ class PaneTouchTracker extends ChangeNotifier {
     final oldSelection = selection;
     final oldCovered = covered;
     final oldSettled = this.settled;
+    final oldTransparency = this.reduceTransparency;
+    final oldRegular = this.regular;
     final details = matches.matches.where(
       (match) =>
           match.route is GoRoute && Routes.detailNames.contains((match.route as GoRoute).name),
@@ -67,6 +74,8 @@ class PaneTouchTracker extends ChangeNotifier {
     this.supported = supported;
     this.settled = settled;
     this.cover = cover;
+    this.reduceTransparency = reduceTransparency;
+    this.regular = regular;
     this.layout = layout;
     this.media = media;
     _initialized = true;
@@ -75,7 +84,9 @@ class PaneTouchTracker extends ChangeNotifier {
         !listEquals(oldKeys, detailKeys) ||
         oldSelection != selection ||
         oldCovered != covered ||
-        oldSettled != settled) {
+        oldSettled != settled ||
+        oldTransparency != reduceTransparency ||
+        oldRegular != regular) {
       notifyListeners();
     }
     return result.popSelection;
@@ -99,6 +110,8 @@ class PaneLayoutScope extends InheritedWidget {
       supported = tracker.supported,
       settled = tracker.settled,
       cover = tracker.cover,
+      reduceTransparency = tracker.reduceTransparency,
+      regular = tracker.regular,
       detailKeys = List.unmodifiable(tracker.detailKeys);
 
   final PaneTouchTracker tracker;
@@ -107,6 +120,8 @@ class PaneLayoutScope extends InheritedWidget {
   final bool supported;
   final bool settled;
   final bool cover;
+  final bool reduceTransparency;
+  final bool regular;
   final List<LocalKey> detailKeys;
 
   static PaneTouchTracker of(BuildContext context) => maybeOf(context)!;
@@ -121,6 +136,8 @@ class PaneLayoutScope extends InheritedWidget {
       supported != oldWidget.supported ||
       settled != oldWidget.settled ||
       cover != oldWidget.cover ||
+      reduceTransparency != oldWidget.reduceTransparency ||
+      regular != oldWidget.regular ||
       !listEquals(detailKeys, oldWidget.detailKeys);
 }
 
@@ -206,7 +223,12 @@ class PaneFrame extends StatelessWidget {
             child: Listener(
               behavior: HitTestBehavior.translucent,
               onPointerDown: touch == null ? null : (_) => tracker.touch(touch!),
-              child: child,
+              child: Semantics(
+                container: true,
+                explicitChildNodes: true,
+                sortKey: OrdinalSortKey(touch == PaneTouch.journal ? 0 : 1),
+                child: Stack(fit: StackFit.expand, children: [child]),
+              ),
             ),
           ),
         ),

@@ -68,6 +68,7 @@ class AppRouter {
             name: Routes.reflectionsName,
             pageBuilder: (context, state) => PanePage<void>(
               key: state.pageKey,
+              name: state.name,
               child: ReflectionsScreen(
                 key: ValueKey(state.uri),
                 initialPeriod: state.uri.queryParameters['period'],
@@ -80,6 +81,7 @@ class AppRouter {
             name: Routes.entryName,
             pageBuilder: (context, state) => PanePage<void>(
               key: state.pageKey,
+              name: state.name,
               child: EntryDetailScreen(
                 key: ValueKey(state.uri),
                 entryId: state.pathParameters['id']!,

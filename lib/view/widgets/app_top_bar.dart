@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/semantics.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -125,7 +126,8 @@ class AppTopBar extends StatelessWidget {
     final rowHeight = barHeight ?? bar.height;
 
     final scope = PaneScope.maybeOf(context);
-    final layout = PaneLayoutScope.maybeOf(context)?.layout;
+    final panes = PaneLayoutScope.maybeOf(context);
+    final layout = panes?.layout;
     final root = scope?.detailRoot == true && layout?.mode == PaneMode.split;
     final leading = root && (this.leading == null || this.leading is AppBackButton)
         ? null
@@ -192,6 +194,7 @@ class AppTopBar extends StatelessWidget {
             height: chromeHeight,
             child: const AbsorbPointer(child: SizedBox.expand()),
           ),
+          SideColumnGround(enabled: column != null),
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) => CustomMultiChildLayout(
@@ -209,18 +212,37 @@ class AppTopBar extends StatelessWidget {
                   column: column,
                 ),
                 children: [
-                  if (leading != null) LayoutId(id: TopBarLayout.leadingId, child: leading),
+                  if (leading != null)
+                    LayoutId(
+                      id: TopBarLayout.leadingId,
+                      child: Semantics(
+                        container: column != null,
+                        sortKey: column == null ? null : const OrdinalSortKey(2),
+                        child: leading,
+                      ),
+                    ),
                   if (titleBlock != null)
                     LayoutId(
                       id: TopBarLayout.titleId,
-                      child: Align(
-                        alignment: centerTitle
-                            ? Alignment.center
-                            : AlignmentDirectional.centerStart,
-                        child: titleBlock,
+                      child: Semantics(
+                        sortKey: column == null ? null : const OrdinalSortKey(0),
+                        child: Align(
+                          alignment: centerTitle
+                              ? Alignment.center
+                              : AlignmentDirectional.centerStart,
+                          child: titleBlock,
+                        ),
                       ),
                     ),
-                  for (final (index, action) in actions.indexed) LayoutId(id: index, child: action),
+                  for (final (index, action) in actions.indexed)
+                    LayoutId(
+                      id: index,
+                      child: Semantics(
+                        container: column != null,
+                        sortKey: column == null ? null : const OrdinalSortKey(2),
+                        child: action,
+                      ),
+                    ),
                 ],
               ),
             ),

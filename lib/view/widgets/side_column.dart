@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
 List<Rect> sideColumnSlots(Rect slot, List<Size> controls, {bool bottom = false}) {
   final result = <Rect>[];
@@ -98,4 +100,30 @@ class TopBarLayout extends MultiChildLayoutDelegate {
       actions != oldDelegate.actions ||
       centerTitle != oldDelegate.centerTitle ||
       direction != oldDelegate.direction;
+}
+
+class SideColumnGround extends StatelessWidget {
+  const SideColumnGround({this.enabled = true, this.window = false, super.key});
+
+  final bool enabled;
+  final bool window;
+
+  @override
+  Widget build(BuildContext context) {
+    final panes = PaneLayoutScope.maybeOf(context);
+    final scope = PaneScope.maybeOf(context);
+    final column = panes?.layout.sideColumn;
+    final visible =
+        enabled &&
+        panes?.reduceTransparency == true &&
+        panes?.settled == true &&
+        panes?.cover == false &&
+        column != null;
+    return Positioned.fromRect(
+      rect: visible
+          ? column.rect.shift(window ? Offset.zero : -(scope?.pane.rect.topLeft ?? Offset.zero))
+          : Rect.zero,
+      child: IgnorePointer(child: ColoredBox(color: context.theme.surface)),
+    );
+  }
 }

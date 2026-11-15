@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/semantics.dart';
 import 'package:liquid/liquid.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -131,13 +132,13 @@ class GlassFabPosition extends StatelessWidget {
       final rect = sideColumnSlots(slot, const [Size.square(GlassFab.size)], bottom: true).single;
       return Positioned.fromRect(
         rect: rect.shift(-(scope?.pane.rect.topLeft ?? Offset.zero)),
-        child: child,
+        child: Semantics(container: true, sortKey: const OrdinalSortKey(2), child: child),
       );
     }
     return Positioned(
       right: GlassFab.rightOf(context),
       bottom: keyboard + AppScaffold.bottomControlOf(context),
-      child: child,
+      child: Semantics(child: child),
     );
   }
 }

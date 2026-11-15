@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/models/display_signal.dart';
 import 'package:opentranscribe/core/utils/pane_geometry.dart';
 import 'package:opentranscribe/view/widgets/pane_host.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
@@ -240,6 +241,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                   media: media.copyWith(disableAnimations: reduceMotion),
                   settled: displaySignalDescribes(display.signal, media.size),
                   supported: display.signal.supported,
+                  reduceTransparency: display.signal.reduceTransparency,
+                  regular: display.signal.horizontal == SizeClass.regular,
                   cover:
                       DisplayCubit.closedContentWidthOf(display.signal) != null &&
                       displaySignalDescribes(display.signal, media.size),

@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
-import 'package:opentranscribe/view/widgets/app_top_bar.dart';
-import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
@@ -180,11 +178,13 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
         final scroll = Scrollable.maybeOf(context)?.position;
         final box = context.findRenderObject();
         if (scroll == null || box == null) return;
+        final theme = context.themeNow;
         final line =
-            AppTopBar.largeHeightOf(context) +
+            MediaQuery.paddingOf(context).top +
+            theme.topBar.largeHeight +
             AppSpacing.md +
-            WeekCalendar.heightOf(context) +
-            context.theme.topBar.fadeTail;
+            theme.calendar.cellHeight +
+            theme.topBar.fadeTail;
         final offset = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset - line;
         scroll.jumpTo(offset.clamp(scroll.minScrollExtent, scroll.maxScrollExtent));
       });
@@ -222,49 +222,52 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: Touchable(
-        onTap: widget.onTap,
-        child: DitherCard(
-          background: selected ? theme.calendar.tileFill : null,
-          border: selected ? theme.calendar.cursorBorder : null,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Laid out at the glyph's own width, so the gap is exactly sm.
-                    AppIcon(
-                      _periodIcon(period),
-                      size: AppType.headline.fontSize!,
-                      color: theme.textSecondary,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        l10n.reflectionOfPeriod(
-                          periodRangeLabel(period, reflection.periodStart, localeTag(context)),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.headline.copyWith(color: theme.text),
+      child: Semantics(
+        selected: PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split ? selected : null,
+        child: Touchable(
+          onTap: widget.onTap,
+          child: DitherCard(
+            background: selected ? theme.calendar.tileFill : null,
+            border: selected ? theme.calendar.cursorBorder : null,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // Laid out at the glyph's own width, so the gap is exactly sm.
+                      AppIcon(
+                        _periodIcon(period),
+                        size: AppType.headline.fontSize!,
+                        color: theme.textSecondary,
                       ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.reflectionOfPeriod(
+                            periodRangeLabel(period, reflection.periodStart, localeTag(context)),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.headline.copyWith(color: theme.text),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // A day card is its title alone; a week or a month carries a
+                  // short two-line excerpt beneath it.
+                  if (period != ReflectionPeriod.daily) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      reflection.text!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.body.copyWith(color: theme.textSecondary),
                     ),
                   ],
-                ),
-                // A day card is its title alone; a week or a month carries a
-                // short two-line excerpt beneath it.
-                if (period != ReflectionPeriod.daily) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    reflection.text!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.body.copyWith(color: theme.textSecondary),
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
