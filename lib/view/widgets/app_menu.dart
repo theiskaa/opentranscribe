@@ -26,9 +26,9 @@ class AppMenuItem {
     this.children = const [],
   }) : isDivider = false;
 
-  /// A group separator. The NATIVE menu draws a real divider between the groups
-  /// it splits; the fallback menu drops it (item order is preserved and indices
-  /// are unaffected, since it is simply not rendered). Carries nothing.
+  /// A group separator, drawn between the groups it splits, at the top level
+  /// and inside a submenu, by both menus (see [appMenuLayout]). Indices are
+  /// unaffected. Carries nothing.
   const AppMenuItem.divider()
     : label = '',
       id = null,
@@ -63,21 +63,23 @@ class AppMenuItem {
   final bool destructive;
 
   /// Renders a selection checkmark on the NATIVE menu (UIMenu state). The
-  /// fallback menu ignores it; selection lists there run through the app's
-  /// own dropdown instead.
+  /// fallback menu shows it only on a [keepsPresented] row; selection lists
+  /// there run through the app's own dropdown instead.
   final bool selected;
 
   /// Keeps the NATIVE menu presented when this item is selected - a toggle
   /// row likely to be tapped again in the same visit - with its checkmark
   /// refreshing in place. On native such a row's leading image IS its mark
   /// (a checkmark, or a spacer when off), so any [icon] it carries is
-  /// discarded there. The fallback's surfaces are modal and still close.
+  /// discarded there. The fallback marks it the same way, and stays open on
+  /// it only when [showAppMenu] is given an `onToggle`.
   final bool keepsPresented;
 
   /// Nested choices. NATIVE menus render a real submenu whose children answer
   /// through [AppMenuButton.onSelectedId] (each needs an [id]); the fallback
-  /// menu ignores children and fires the parent's index as a plain action, so
-  /// the caller opens its own follow-up surface there. One level only.
+  /// menu ignores children and fires the parent as a plain action (its id, or
+  /// its index without one), so the caller opens its own follow-up surface
+  /// there. One level only.
   final List<AppMenuItem> children;
 }
 
@@ -85,6 +87,7 @@ class AppMenuItem {
 const double _menuWidth = AppPopup.width;
 const double _rowHeight = AppSizes.minTarget;
 const double _menuGap = AppSpacing.sm;
+const double _dividerHeight = AppSpacing.sm;
 
 /// A row's glyph: the native menu's size (its label's), in a fixed column.
 final double _iconSize = AppType.callout.fontSize!;
@@ -94,30 +97,81 @@ const double _iconSlot = AppSpacing.xxl;
 /// bounds) and resolves to the chosen index, or null if it was dismissed. It
 /// grows out of the trigger rather than up from the bottom of the screen: a
 /// menu belongs to the control that opened it.
+///
+/// With [onToggle], a [AppMenuItem.keepsPresented] row flips its check in
+/// place and reports its index there, leaving the menu open as the native one
+/// stays; the menu shows the flip itself, never waiting on the caller.
 Future<int?> showAppMenu(
   BuildContext context, {
   required Rect anchor,
   required List<AppMenuItem> items,
+  ValueChanged<int>? onToggle,
 }) => showAnchoredPopup<int>(
   context,
   anchor: anchor,
-  builder: (_) => _MenuBody(anchor: anchor, items: items),
+  builder: (_) => _MenuBody(anchor: anchor, items: items, onToggle: onToggle),
 );
 
-class _MenuBody extends StatelessWidget {
-  const _MenuBody({required this.anchor, required this.items});
+/// The drawn menu's layout: the dividers that draw, by index, and the menu's
+/// height. A divider draws only between two non-empty groups, as the native
+/// menu groups them, so a leading, trailing or doubled one adds nothing.
+({Set<int> dividers, double height}) appMenuLayout(List<AppMenuItem> items) {
+  final dividers = <int>{};
+  var rows = 0;
+  int? pending;
+  var groupHasRows = false;
+  for (final (index, item) in items.indexed) {
+    if (item.isDivider) {
+      if (groupHasRows) pending ??= index;
+      groupHasRows = false;
+      continue;
+    }
+    if (pending != null) dividers.add(pending);
+    pending = null;
+    groupHasRows = true;
+    rows++;
+  }
+  return (
+    dividers: dividers,
+    height: rows * _rowHeight + dividers.length * _dividerHeight + AppSpacing.sm * 2,
+  );
+}
+
+class _MenuBody extends StatefulWidget {
+  const _MenuBody({required this.anchor, required this.items, required this.onToggle});
 
   final Rect anchor;
   final List<AppMenuItem> items;
+  final ValueChanged<int>? onToggle;
+
+  @override
+  State<_MenuBody> createState() => _MenuBodyState();
+}
+
+class _MenuBodyState extends State<_MenuBody> {
+  /// The toggle rows flipped since the menu opened, against the snapshot it
+  /// shows.
+  final Set<int> _flipped = {};
+
+  void _tap(int index) {
+    final toggle = widget.onToggle;
+    if (toggle != null && widget.items[index].keepsPresented) {
+      setState(() {
+        if (!_flipped.remove(index)) _flipped.add(index);
+      });
+      toggle(index);
+      return;
+    }
+    Navigator.of(context).pop(index);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final anchor = widget.anchor;
+    final items = widget.items;
     final screen = MediaQuery.sizeOf(context);
     final insets = MediaQuery.paddingOf(context);
-    // Dividers are not rendered on the fallback (order is what matters here),
-    // so only real rows count toward the menu's height.
-    final rowCount = items.where((i) => !i.isDivider).length;
-    final height = rowCount * _rowHeight + AppSpacing.sm * 2;
+    final (:dividers, :height) = appMenuLayout(items);
 
     // Below the trigger when there is room, above it when there is not.
     final below = anchor.bottom + _menuGap;
@@ -142,7 +196,13 @@ class _MenuBody extends StatelessWidget {
                 children: [
                   for (final (index, item) in items.indexed)
                     if (!item.isDivider)
-                      _MenuRow(item: item, onTap: () => Navigator.of(context).pop(index)),
+                      _MenuRow(
+                        item: item,
+                        checked: item.selected != _flipped.contains(index),
+                        onTap: () => _tap(index),
+                      )
+                    else if (dividers.contains(index))
+                      const _MenuDivider(),
                 ],
               ),
             ),
@@ -153,10 +213,26 @@ class _MenuBody extends StatelessWidget {
   }
 }
 
+/// A drawn divider: a hairline centred in its own band.
+class _MenuDivider extends StatelessWidget {
+  const _MenuDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _dividerHeight,
+      child: Center(child: Container(height: 1, color: context.theme.hairline)),
+    );
+  }
+}
+
 class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.item, required this.onTap});
+  const _MenuRow({required this.item, required this.checked, required this.onTap});
 
   final AppMenuItem item;
+
+  /// A toggle row's state as the menu shows it; read only on such a row.
+  final bool checked;
   final VoidCallback onTap;
 
   @override
@@ -166,43 +242,58 @@ class _MenuRow extends StatelessWidget {
     // same way, or a pre-glass user meets an unmarked irreversible action.
     final color = item.destructive ? theme.danger : theme.text;
     final iconColor = item.destructive ? theme.danger : theme.textSecondary;
-    return Touchable(
-      onTap: () {
-        if (item.destructive) {
-          Haptics.medium();
-        } else {
-          Haptics.selection();
-        }
-        onTap();
-      },
-      child: SizedBox(
-        height: _rowHeight,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(item.label, style: AppType.callout.copyWith(color: color)),
-              ),
-              if (item.iconBytes != null || item.icon != null) ...[
-                const SizedBox(width: AppSpacing.md),
-                // A fixed slot, so glyphs of different widths share one column.
-                SizedBox.square(
-                  dimension: _iconSlot,
-                  child: Center(
-                    child: item.iconBytes != null
-                        ? Image.memory(
-                            item.iconBytes!,
-                            width: _iconSize,
-                            height: _iconSize,
-                            color: iconColor,
-                            colorBlendMode: BlendMode.srcIn,
-                          )
-                        : AppIcon(item.icon!, size: _iconSize, color: iconColor),
-                  ),
+    return Semantics(
+      checked: item.keepsPresented ? checked : null,
+      child: Touchable(
+        onTap: () {
+          if (item.destructive) {
+            Haptics.medium();
+          } else {
+            Haptics.selection();
+          }
+          onTap();
+        },
+        child: SizedBox(
+          height: _rowHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(item.label, style: AppType.callout.copyWith(color: color)),
                 ),
+                // A toggle's mark is its state, as on native: a check, or the
+                // bare slot when off.
+                if (item.keepsPresented) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  SizedBox.square(
+                    dimension: _iconSlot,
+                    child: Center(
+                      child: checked
+                          ? AppIcon(AppIcons.checkmark, size: AppIconSize.accessory, color: color)
+                          : null,
+                    ),
+                  ),
+                ] else if (item.iconBytes != null || item.icon != null) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  // A fixed slot, so glyphs of different widths share one column.
+                  SizedBox.square(
+                    dimension: _iconSlot,
+                    child: Center(
+                      child: item.iconBytes != null
+                          ? Image.memory(
+                              item.iconBytes!,
+                              width: _iconSize,
+                              height: _iconSize,
+                              color: iconColor,
+                              colorBlendMode: BlendMode.srcIn,
+                            )
+                          : AppIcon(item.icon!, size: _iconSize, color: iconColor),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -251,7 +342,7 @@ class AppMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     assert(
-      items.every((item) => item.children.every((child) => child.id != null)),
+      items.every((item) => item.children.every((child) => child.isDivider || child.id != null)),
       'Submenu children answer through ids; id-less ones collide on one value.',
     );
     final label = semanticLabel ?? AppLocalizations.of(context)!.menuButton;
@@ -295,14 +386,17 @@ class AppMenuButton extends StatelessWidget {
                     icon: _symbol(item.icon),
                     children: [
                       for (final child in item.children)
-                        LiquidPopupButtonEntry(
-                          value: '#${child.id ?? ''}',
-                          label: child.label,
-                          icon: _symbol(child.icon),
-                          isDestructive: child.destructive,
-                          isSelected: child.selected,
-                          keepsPresented: child.keepsPresented,
-                        ),
+                        child.isDivider
+                            ? const LiquidPopupButtonEntry.divider()
+                            : LiquidPopupButtonEntry(
+                                value: '#${child.id ?? ''}',
+                                label: child.label,
+                                icon: _symbol(child.icon),
+                                iconBytes: child.iconBytes,
+                                isDestructive: child.destructive,
+                                isSelected: child.selected,
+                                keepsPresented: child.keepsPresented,
+                              ),
                     ],
                   ),
         ],

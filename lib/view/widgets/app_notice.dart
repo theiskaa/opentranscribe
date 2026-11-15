@@ -22,12 +22,17 @@ class AppNotice extends StatefulWidget {
     required this.message,
     required this.onDismiss,
     this.duration = const Duration(seconds: 4),
+    this.oneLine = false,
     super.key,
   });
 
   final String? message;
   final VoidCallback onDismiss;
   final Duration duration;
+
+  /// Shrinks a long message to one line instead of wrapping it, for a seat of
+  /// fixed height such as a bar's row.
+  final bool oneLine;
 
   @override
   State<AppNotice> createState() => _AppNoticeState();
@@ -79,18 +84,21 @@ class _AppNoticeState extends State<AppNotice> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final message = widget.message;
+    final text = message == null
+        ? null
+        : Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppType.note.copyWith(color: theme.textSecondary),
+          );
     return AnimatedSwitcher(
-      duration: theme.motion.crossfade,
-      child: message == null
+      duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+      child: text == null
           ? const SizedBox(width: double.infinity)
           : Padding(
               key: ValueKey(message),
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: AppType.note.copyWith(color: theme.textSecondary),
-              ),
+              child: widget.oneLine ? FittedBox(fit: BoxFit.scaleDown, child: text) : text,
             ),
     );
   }
