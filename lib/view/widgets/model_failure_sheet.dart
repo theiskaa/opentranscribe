@@ -155,7 +155,7 @@ class _EvictRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Row(
           children: [
-            SettingsIconTile(child: LocaleFlag(localeFlag(tag), size: 18)),
+            SettingsIconTile(child: LocaleFlag(localeFlag(tag), size: AppIconSize.flag)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(

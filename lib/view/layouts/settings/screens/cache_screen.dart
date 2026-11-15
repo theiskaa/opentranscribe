@@ -554,7 +554,7 @@ class _ClearPill extends StatelessWidget {
           alignment: Alignment.center,
           decoration: SuperellipseDecoration(
             borderRadius: height / 2,
-            color: theme.settings.dangerIconTint,
+            color: theme.button.dangerTint,
           ),
           child: Text(
             label,

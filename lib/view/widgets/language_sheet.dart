@@ -205,8 +205,10 @@ class _SheetRow extends StatelessWidget {
             Opacity(
               opacity: _unready ? 0.45 : 1,
               child: SettingsIconTile(
-                color: row.isDefault && !_unready ? theme.accent.withValues(alpha: 0.14) : null,
-                child: LocaleFlag(localeFlag(row.tag), size: 18),
+                color: row.isDefault && !_unready
+                    ? theme.accent.withValues(alpha: AppAlpha.wash)
+                    : null,
+                child: LocaleFlag(localeFlag(row.tag), size: AppIconSize.flag),
               ),
             ),
             const SizedBox(width: AppSpacing.md),

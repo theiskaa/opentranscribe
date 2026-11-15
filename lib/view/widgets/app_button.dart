@@ -71,14 +71,14 @@ class _AppButtonState extends State<AppButton> {
         button.secondaryBackground,
         button.secondaryPressed,
         button.secondaryForeground,
-        BorderSide(color: button.secondaryBorder),
+        BorderSide(color: button.secondaryBorder, width: button.borderWidth),
       ),
       AppButtonVariant.danger => (theme.danger, theme.danger, theme.onDanger, BorderSide.none),
     };
     final disabled = widget.onPressed == null && !widget.isLoading;
     final fill = widget.isLoading ? background : (_pressed ? pressed : background);
     // Ink pills get the machined treatment; light fills stay flat.
-    final inkFill = fill.computeLuminance() < 0.35;
+    final inkFill = fill.computeLuminance() < button.inkLuminance;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -103,7 +103,7 @@ class _AppButtonState extends State<AppButton> {
                   ? LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      stops: const [0, 0.25],
+                      stops: button.sheenStops,
                       colors: [Color.alphaBlend(button.sheen, fill), fill],
                     )
                   : null,
@@ -117,7 +117,7 @@ class _AppButtonState extends State<AppButton> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (widget.icon != null) ...[
-                          AppIcon(widget.icon!, size: 18, color: foreground),
+                          AppIcon(widget.icon!, size: AppIconSize.bar, color: foreground),
                           const SizedBox(width: AppSpacing.sm),
                         ],
                         // A changed label transforms in place (rise + fade)
@@ -198,7 +198,10 @@ class AppIconButton extends StatelessWidget {
             // No shadow. A filled circle with a hairline is already a defined
             // object; a cast under it only makes the page look lit, and the app
             // is flat everywhere else.
-            border: Border.all(color: theme.button.secondaryBorder),
+            border: Border.all(
+              color: theme.button.secondaryBorder,
+              width: theme.button.borderWidth,
+            ),
           ),
           child: Center(
             child: AppIcon(icon, size: iconSize, color: foreground ?? theme.text),

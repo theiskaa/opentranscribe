@@ -43,7 +43,7 @@ final class TopBarTheme {
   final double backChevronSize;
 
   /// Tap target for a bar action, and the seat anything standing in for one
-  /// (a spinner) must fill so the bar's layout does not shift.
+  /// (a loader) must fill so the bar's layout does not shift.
   final double actionSize;
 }
 
@@ -61,6 +61,10 @@ final class ButtonTheme {
     required this.secondaryPressed,
     required this.secondaryForeground,
     required this.secondaryBorder,
+    required this.dangerTint,
+    this.inkLuminance = 0.35,
+    this.sheenStops = const [0, 0.25],
+    this.borderWidth = 1.0,
     this.disabledOpacity = 0.5,
     this.height = AppSizes.control,
     this.compactHeight = AppSizes.chip,
@@ -72,13 +76,26 @@ final class ButtonTheme {
   final Color pressed;
   final Color foreground;
 
-  /// Blended over the top quarter of dark fills for the machined look.
+  /// Blended down from the top edge of fills under [inkLuminance], out to
+  /// [sheenStops].
   final Color sheen;
   final BoxShadow shadow;
   final Color secondaryBackground;
   final Color secondaryPressed;
   final Color secondaryForeground;
   final Color secondaryBorder;
+
+  /// The wash behind danger ink on a control that stops or removes something.
+  final Color dangerTint;
+
+  /// A fill with luminance under this is ink and gets the sheen and shadow.
+  final double inkLuminance;
+
+  /// The sheen's two stops: full sheen at the top edge, none from the second.
+  final List<double> sheenStops;
+
+  /// The width of every button's hairline.
+  final double borderWidth;
   final double disabledOpacity;
   final double height;
 
@@ -413,7 +430,6 @@ final class SettingsTheme {
     required this.cardBorder,
     required this.iconTileBackground,
     required this.iconColor,
-    required this.dangerIconTint,
     required this.chevronColor,
     required this.dividerColor,
     required this.sectionLabelColor,
@@ -437,9 +453,6 @@ final class SettingsTheme {
   final Color iconTileBackground;
   final Color iconColor;
 
-  /// Tile tint behind a destructive row's icon; the icon itself uses the base
-  /// `danger` color.
-  final Color dangerIconTint;
   final Color chevronColor;
   final Color dividerColor;
   final Color sectionLabelColor;

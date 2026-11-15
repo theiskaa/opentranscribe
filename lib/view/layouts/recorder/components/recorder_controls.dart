@@ -160,7 +160,7 @@ class _CompleteButton extends StatelessWidget {
     final theme = context.theme;
     final button = theme.button;
     final fill = button.background;
-    final ink = fill.computeLuminance() < 0.35;
+    final ink = fill.computeLuminance() < button.inkLuminance;
 
     return Semantics(
       button: true,
@@ -182,7 +182,7 @@ class _CompleteButton extends StatelessWidget {
                 ? LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0, 0.25],
+                    stops: button.sheenStops,
                     colors: [Color.alphaBlend(button.sheen, fill), fill],
                   )
                 : null,

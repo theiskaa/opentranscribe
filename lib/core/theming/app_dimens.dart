@@ -28,9 +28,19 @@ abstract final class AppSizes {
 
   /// The floating action disc.
   static const fab = 58.0;
+
+  /// A selected card's check seat in its corner.
+  static const badge = 20.0;
 }
 
-/// Glyph sizes, tied to the text they sit beside. A spinner or ring takes the
+/// Stroke widths. A card's outline is a hairline; a selection rings it.
+abstract final class AppStroke {
+  /// A border side's own default width, so a card's outline leaves it unsaid.
+  static const hairline = 1.0;
+  static const ring = 2.0;
+}
+
+/// Glyph sizes, tied to the text they sit beside. A loader or ring takes the
 /// size of the glyph whose seat it fills, so swapping them never shifts a row.
 abstract final class AppIconSize {
   /// A badge's mark: the club's heart, a selected card's check.
@@ -45,6 +55,10 @@ abstract final class AppIconSize {
   /// Beside body or headline text: menu rows, a card's leading glyph.
   static const body = 17.0;
 
+  /// A language's flag inside a settings icon tile: an emoji carries less ink
+  /// than a glyph of its size, so it runs larger.
+  static const flag = 18.0;
+
   /// On a bar control.
   static const bar = 18.0;
 
@@ -53,6 +67,16 @@ abstract final class AppIconSize {
 
   /// On the floating action disc.
   static const fab = 26.0;
+}
+
+/// Loader sizes where no glyph seat sets one.
+abstract final class AppLoaderSize {
+  /// A button's or a disc's wait, where the label or mark it replaces sets no
+  /// glyph size.
+  static const control = 20.0;
+
+  /// A wait standing in the page's flow where a paragraph will land.
+  static const prose = 30.0;
 }
 
 /// Popup surfaces: the drawn menu and the dropdown grow from the same bar
@@ -73,4 +97,11 @@ abstract final class AppRadius {
   /// The radius of a shape inset [inset] inside a corner of radius [outer], so
   /// the two curves stay concentric.
   static double inner(double outer, double inset) => (outer - inset).clamp(0, outer).toDouble();
+}
+
+/// Opacities a theme ink is laid at, as a wash behind itself.
+abstract final class AppAlpha {
+  /// A wash of an ink's own hue behind it, so a tile, pill or row reads as
+  /// that ink without shouting it.
+  static const wash = 0.14;
 }

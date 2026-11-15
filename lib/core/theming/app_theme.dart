@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/core/theming/contrast.dart';
@@ -135,6 +136,7 @@ final class AppTheme {
             secondaryPressed: hairline,
             secondaryForeground: text,
             secondaryBorder: surfaceBorder,
+            dangerTint: danger.withValues(alpha: AppAlpha.wash),
           ),
       pageIndicator:
           pageIndicator ??
@@ -196,7 +198,7 @@ final class AppTheme {
             removed: danger,
             removedWash: danger.withValues(alpha: 0.10),
             added: positive,
-            addedWash: positive.withValues(alpha: 0.14),
+            addedWash: positive.withValues(alpha: AppAlpha.wash),
           ),
       settings:
           settings ??
@@ -205,7 +207,6 @@ final class AppTheme {
             cardBorder: surfaceBorder,
             iconTileBackground: text.withValues(alpha: 0.06),
             iconColor: textSecondary,
-            dangerIconTint: danger.withValues(alpha: 0.12),
             chevronColor: textSecondary.withValues(alpha: 0.7),
             dividerColor: hairline,
             sectionLabelColor: textSecondary,

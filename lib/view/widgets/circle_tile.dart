@@ -20,7 +20,7 @@ class CircleTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.button.secondaryBackground,
         shape: BoxShape.circle,
-        border: Border.all(color: theme.button.secondaryBorder),
+        border: Border.all(color: theme.button.secondaryBorder, width: theme.button.borderWidth),
       ),
       child: child,
     );

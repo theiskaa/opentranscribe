@@ -14,6 +14,12 @@ final class AppMotion {
   /// set it back to zero.
   static const Duration instant = Duration(milliseconds: 1);
 
+  /// How long a drawn switch holds its own commit for the parent to echo:
+  /// past a parent's awaited write, short enough that a declined change
+  /// still reads as the switch refusing. Static: it times the parent, not the
+  /// motion, so a theme has no say in it.
+  static const Duration toggleHold = Duration(milliseconds: 300);
+
   /// Fraction of the swipe exit spent fading before the emptied slot's height
   /// starts to move (the clip's slack tightens away over the same span).
   static const double swipeExitHold = 0.25;
@@ -106,12 +112,16 @@ final class AppMotion {
   /// A grabbable control swelling under the finger (the scrubber capsule):
   /// growth, where a press shrinks, because the grip holds rather than pushes.
   final double grabScale;
+
+  /// The shared clock for a control's state change and anything it opens.
   final Duration indicator;
+
+  /// The curve on [indicator]'s clock; what folds away runs it flipped.
   final Curve indicatorCurve;
 
-  /// How long a piece takes to grow into or out of its seat: the settings
-  /// sub-rows in AnimatedReveal, the reflections drill unfolds, the scrubber
-  /// strip's morph (curves and Reduce-Motion behavior live in the widgets).
+  /// How long a piece takes to grow into or out of its seat, such as the
+  /// reflections drill unfolding or the scrubber strip's morph (curves and
+  /// Reduce-Motion behavior live in the widgets).
   final Duration expand;
   final Duration crossfade;
 
@@ -239,7 +249,7 @@ final class AppMotion {
   final Duration inkLoop;
 
   /// One breath of the inline error indicator's dot, looped to draw the eye
-  /// without a spinner or a shout. Slow, so it reads as a pulse, not a flash.
+  /// without a loader or a shout. Slow, so it reads as a pulse, not a flash.
   final Duration errorBlink;
 
   /// The error pill announcing itself: a small damped shake as it lands, the
