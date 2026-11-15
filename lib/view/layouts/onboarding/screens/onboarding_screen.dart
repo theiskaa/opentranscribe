@@ -24,6 +24,8 @@ import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_sha
 import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_steps.dart';
 import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/page_indicator.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/layouts/onboarding/components/onboarding_arrangement.dart';
 
 /// First-launch onboarding: four or five pages over one bottom button, then
 /// into the app. Shown once - the router's redirect gates it on
@@ -176,48 +178,65 @@ class _OnboardingViewState extends State<_OnboardingView> {
     return ColoredBox(
       color: theme.background,
       child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: NotificationListener<ScrollEndNotification>(
-                onNotification: (n) {
-                  if (n.depth == 0) {
-                    _reach = restingReach(
-                      pixels: n.metrics.pixels,
-                      viewportDimension: n.metrics.viewportDimension,
-                    );
-                  }
-                  return false;
-                },
-                child: PageView(
-                  controller: _controller,
-                  physics: BackOnlyPagePhysics(reach: () => _reach),
-                  onPageChanged: (i) => setState(() => _index = i),
+        child: OnboardingColumns(
+          layout: PaneLayoutScope.maybeOf(context)?.layout,
+          child: CustomMultiChildLayout(
+            delegate: OnboardingFrameLayout(layout: PaneLayoutScope.maybeOf(context)?.layout),
+            children: [
+              LayoutId(
+                id: 'pages',
+                child: NotificationListener<ScrollEndNotification>(
+                  onNotification: (n) {
+                    if (n.depth == 0) {
+                      _reach = restingReach(
+                        pixels: n.metrics.pixels,
+                        viewportDimension: n.metrics.viewportDimension,
+                      );
+                    }
+                    return false;
+                  },
+                  child: PageView(
+                    controller: _controller,
+                    physics: BackOnlyPagePhysics(reach: () => _reach),
+                    onPageChanged: (i) => setState(() => _index = i),
+                    children: [
+                      for (final step in steps)
+                        switch (step) {
+                          OnboardingStep.record => const OnboardingRecord(),
+                          OnboardingStep.engine => const OnboardingEngine(),
+                          OnboardingStep.reflect => const OnboardingReflect(),
+                          OnboardingStep.shape => const OnboardingShape(),
+                          OnboardingStep.setup => const OnboardingSetup(),
+                        },
+                    ],
+                  ),
+                ),
+              ),
+              LayoutId(
+                id: 'controls',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final step in steps)
-                      switch (step) {
-                        OnboardingStep.record => const OnboardingRecord(),
-                        OnboardingStep.engine => const OnboardingEngine(),
-                        OnboardingStep.reflect => const OnboardingReflect(),
-                        OnboardingStep.shape => const OnboardingShape(),
-                        OnboardingStep.setup => const OnboardingSetup(),
-                      },
+                    PageIndicator(
+                      count: steps.length,
+                      index: _index,
+                      onTap: (i) => _back(i, slide),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: OnboardingPage.gutter),
+                      child: AppButton(
+                        label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
+                        isLoading: _requesting || _finishing,
+                        onPressed: () => unawaited(_next(steps, slide)),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
-            ),
-            PageIndicator(count: steps.length, index: _index, onTap: (i) => _back(i, slide)),
-            const SizedBox(height: AppSpacing.lg),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: OnboardingPage.gutter),
-              child: AppButton(
-                label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
-                isLoading: _requesting || _finishing,
-                onPressed: () => unawaited(_next(steps, slide)),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
+            ],
+          ),
         ),
       ),
     );

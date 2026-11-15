@@ -13,8 +13,10 @@ class PaneTouchTracker extends ChangeNotifier {
   late MediaQueryData media;
   List<LocalKey> detailKeys = const [];
   Uri? selection;
+  final readingSelection = ValueNotifier<PaneSelection?>(null);
   bool covered = false;
   bool supported = false;
+  bool settled = false;
   bool cover = false;
   PaneStack _stack = const PaneStack();
   bool _initialized = false;
@@ -35,6 +37,7 @@ class PaneTouchTracker extends ChangeNotifier {
     final oldKeys = detailKeys;
     final oldSelection = selection;
     final oldCovered = covered;
+    final oldSettled = this.settled;
     final details = matches.matches.where(
       (match) =>
           match.route is GoRoute && Routes.detailNames.contains((match.route as GoRoute).name),
@@ -46,6 +49,7 @@ class PaneTouchTracker extends ChangeNotifier {
         : root is ImperativeRouteMatch
         ? root.matches.uri
         : matches.uri;
+    if (oldSelection != selection) readingSelection.value = null;
     covered = matches.matches.any(
       (match) =>
           match.route is GoRoute &&
@@ -61,6 +65,7 @@ class PaneTouchTracker extends ChangeNotifier {
     );
     _stack = result.stack;
     this.supported = supported;
+    this.settled = settled;
     this.cover = cover;
     this.layout = layout;
     this.media = media;
@@ -69,7 +74,8 @@ class PaneTouchTracker extends ChangeNotifier {
         oldMedia != media ||
         !listEquals(oldKeys, detailKeys) ||
         oldSelection != selection ||
-        oldCovered != covered) {
+        oldCovered != covered ||
+        oldSettled != settled) {
       notifyListeners();
     }
     return result.popSelection;
@@ -78,6 +84,12 @@ class PaneTouchTracker extends ChangeNotifier {
   void consumeCollapse() => _stack = _stack.consumeCollapse();
 
   void touch(PaneTouch pane) => _stack = _stack.touch(pane);
+
+  @override
+  void dispose() {
+    readingSelection.dispose();
+    super.dispose();
+  }
 }
 
 class PaneLayoutScope extends InheritedWidget {
@@ -85,6 +97,7 @@ class PaneLayoutScope extends InheritedWidget {
     : layout = tracker.layout,
       media = tracker.media,
       supported = tracker.supported,
+      settled = tracker.settled,
       cover = tracker.cover,
       detailKeys = List.unmodifiable(tracker.detailKeys);
 
@@ -92,6 +105,7 @@ class PaneLayoutScope extends InheritedWidget {
   final PaneLayout layout;
   final MediaQueryData media;
   final bool supported;
+  final bool settled;
   final bool cover;
   final List<LocalKey> detailKeys;
 
@@ -105,6 +119,7 @@ class PaneLayoutScope extends InheritedWidget {
       layout != oldWidget.layout ||
       media != oldWidget.media ||
       supported != oldWidget.supported ||
+      settled != oldWidget.settled ||
       cover != oldWidget.cover ||
       !listEquals(detailKeys, oldWidget.detailKeys);
 }

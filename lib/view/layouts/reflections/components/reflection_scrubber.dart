@@ -9,6 +9,36 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/layouts/reflections/components/reflection_page_logic.dart';
 import 'package:opentranscribe/view/widgets/glass_capsule.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+
+double reflectionScrubberCenter(Pane pane) =>
+    (pane.rect.width + pane.padding.left - pane.padding.right) / 2;
+
+class ReflectionScrubberSeat extends StatelessWidget {
+  const ReflectionScrubberSeat({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final pane =
+        PaneScope.maybeOf(context)?.pane ??
+        Pane(
+          rect: Offset.zero & MediaQuery.sizeOf(context),
+          padding: MediaQuery.paddingOf(context),
+        );
+    final center = reflectionScrubberCenter(pane);
+    final width = (pane.rect.width - pane.padding.horizontal).clamp(0.0, pane.rect.width);
+    return Padding(
+      padding: EdgeInsets.only(
+        left: center - width / 2,
+        right: pane.rect.width - center - width / 2,
+      ),
+      child: Center(child: child),
+    );
+  }
+}
 
 /// The pager's floating position capsule: a frosted pill holding the ink dot
 /// strip, scrubbable - a drag flies through pages at one page per dot of

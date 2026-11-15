@@ -15,6 +15,7 @@ import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_loader.dart';
+import 'package:opentranscribe/view/widgets/reflow_anchor.dart';
 import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/invisible_ink.dart';
 import 'package:opentranscribe/view/widgets/melt_stack.dart';
@@ -709,45 +710,51 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
       final style = body.copyWith(color: theme.text);
       final shown = _paragraphText(widget.entry);
       final tail = live ? liveWords : pending.trim();
-      return RepaintBoundary(
-        key: _textKey,
-        child: Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: shown, style: style),
-              TextSpan(
-                text: shown.isEmpty ? tail : ' $tail',
-                style: live ? style : style.copyWith(color: theme.text.withValues(alpha: 0)),
-              ),
-            ],
+      return ReflowAnchor(
+        child: RepaintBoundary(
+          key: _textKey,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: shown, style: style),
+                TextSpan(
+                  text: shown.isEmpty ? tail : ' $tail',
+                  style: live ? style : style.copyWith(color: theme.text.withValues(alpha: 0)),
+                ),
+              ],
+            ),
+            // Ink's reserve may be filler: only the words on screen are read out.
+            semanticsLabel: live ? null : shown,
           ),
-          // Ink's reserve may be filler: only the words on screen are read out.
-          semanticsLabel: live ? null : shown,
         ),
       );
     }
     if (segments.isEmpty || !widget.entry.readsAsTranscript) {
       if (tailStart == null || tailStart >= text.length) {
-        return RepaintBoundary(
-          key: _textKey,
-          child: Text(text, style: body.copyWith(color: theme.text)),
+        return ReflowAnchor(
+          child: RepaintBoundary(
+            key: _textKey,
+            child: Text(text, style: body.copyWith(color: theme.text)),
+          ),
         );
       }
       // The landed words fade in after the old ones, in one paragraph.
       final style = body.copyWith(color: theme.text);
-      return RepaintBoundary(
-        key: _textKey,
-        child: AnimatedBuilder(
-          animation: _appendEase,
-          builder: (context, _) => Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(text: text.substring(0, tailStart), style: style),
-                TextSpan(
-                  text: text.substring(tailStart),
-                  style: style.copyWith(color: theme.text.withValues(alpha: _appendEase.value)),
-                ),
-              ],
+      return ReflowAnchor(
+        child: RepaintBoundary(
+          key: _textKey,
+          child: AnimatedBuilder(
+            animation: _appendEase,
+            builder: (context, _) => Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: text.substring(0, tailStart), style: style),
+                  TextSpan(
+                    text: text.substring(tailStart),
+                    style: style.copyWith(color: theme.text.withValues(alpha: _appendEase.value)),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -758,43 +765,45 @@ class _TranscriptViewState extends State<TranscriptView> with TickerProviderStat
     // times a second, and the paragraph only changes when the LIT SEGMENT does.
     // Rebuilding every span on every tick was re-laying out the whole
     // transcript four times out of five for nothing.
-    return RepaintBoundary(
-      key: _textKey,
-      child: BlocSelector<PlayerCubit, PlayerState, int?>(
-        selector: (player) => player.status == PlaybackStatus.stopped
-            ? null
-            : activeSegmentIndex(segments, player.position),
-        builder: (context, active) {
-          final tailIndex = _tailIndex;
-          return AnimatedBuilder(
-            animation: _appendEase,
-            builder: (context, _) => Text.rich(
-              TextSpan(
-                children: [
-                  for (final (i, segment) in segments.indexed)
-                    TextSpan(
-                      text: i == segments.length - 1 ? segment.text : '${segment.text} ',
-                      style: body.copyWith(
-                        // The landed words fade in where the ink stood.
-                        color: tailIndex != null && i >= tailIndex
-                            ? theme.player.segmentColor.withValues(alpha: _appendEase.value)
-                            : theme.player.segmentColor,
-                        // The rest of the transcript is NOT dimmed. Reading is the
-                        // point of this screen, and dimming everything you are not
-                        // hearing makes the page worse at it; the lit segment
-                        // carries a mark instead, so following the audio costs the
-                        // rest of the text nothing.
-                        // backgroundColor, not a background Paint: a Paint counts
-                        // as a layout change and would rebuild the selectables each
-                        // tick, dropping any active selection mid-playback.
-                        backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
+    return ReflowAnchor(
+      child: RepaintBoundary(
+        key: _textKey,
+        child: BlocSelector<PlayerCubit, PlayerState, int?>(
+          selector: (player) => player.status == PlaybackStatus.stopped
+              ? null
+              : activeSegmentIndex(segments, player.position),
+          builder: (context, active) {
+            final tailIndex = _tailIndex;
+            return AnimatedBuilder(
+              animation: _appendEase,
+              builder: (context, _) => Text.rich(
+                TextSpan(
+                  children: [
+                    for (final (i, segment) in segments.indexed)
+                      TextSpan(
+                        text: i == segments.length - 1 ? segment.text : '${segment.text} ',
+                        style: body.copyWith(
+                          // The landed words fade in where the ink stood.
+                          color: tailIndex != null && i >= tailIndex
+                              ? theme.player.segmentColor.withValues(alpha: _appendEase.value)
+                              : theme.player.segmentColor,
+                          // The rest of the transcript is NOT dimmed. Reading is the
+                          // point of this screen, and dimming everything you are not
+                          // hearing makes the page worse at it; the lit segment
+                          // carries a mark instead, so following the audio costs the
+                          // rest of the text nothing.
+                          // backgroundColor, not a background Paint: a Paint counts
+                          // as a layout change and would rebuild the selectables each
+                          // tick, dropping any active selection mid-playback.
+                          backgroundColor: i == active ? theme.player.activeSegmentHighlight : null,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

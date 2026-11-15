@@ -12,6 +12,42 @@ import '../../support/display_fixtures.dart';
 import '../../support/fake_display_channels.dart';
 
 void main() {
+  test('settling notifies the tracker and scope even when geometry stays unchanged', () {
+    final tracker = PaneTouchTracker();
+    final layout = paneLayoutFor(
+      const PaneInputs(
+        size: iphoneSize,
+        padding: iphonePadding,
+        signal: DisplaySignal.unsupported,
+        bodySize: 17,
+        closedContentWidth: 382,
+      ),
+    );
+    var notifications = 0;
+    tracker.addListener(() => notifications++);
+    PaneLayoutScope? before;
+    for (final settled in [false, true]) {
+      tracker.update(
+        layout: layout,
+        media: iphoneMedia,
+        settled: settled,
+        supported: true,
+        cover: false,
+        matches: RouteMatchList.empty,
+        selectionOnTop: false,
+      );
+      final scope = PaneLayoutScope(tracker: tracker, child: const SizedBox());
+      if (before == null) {
+        before = scope;
+      } else {
+        expect(scope.settled, isTrue);
+        expect(scope.updateShouldNotify(before), isTrue);
+      }
+    }
+    expect(notifications, 2);
+    tracker.dispose();
+  });
+
   test('unchanged route and geometry values do not notify tracker listeners', () {
     final tracker = PaneTouchTracker();
     final layout = paneLayoutFor(

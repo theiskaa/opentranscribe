@@ -1,6 +1,10 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart';
+import 'package:opentranscribe/view/widgets/app_top_bar.dart';
+import 'package:opentranscribe/view/layouts/home/components/week_calendar.dart';
 
 import 'package:opentranscribe/core/models/reflection.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
@@ -141,11 +145,52 @@ Set<ReflectionCardKey> newlyReflected(List<Reflection> previous, List<Reflection
 /// two-line excerpt. A silent period is a minimal marker instead. The panel
 /// starts at the content margin, flush with the records' rail; horizontal
 /// insets only, the list owns the vertical spacing around it.
-class ReflectionHomeCard extends StatelessWidget {
+class ReflectionHomeCard extends StatefulWidget {
   const ReflectionHomeCard({required this.reflection, required this.onTap, super.key});
 
   final Reflection reflection;
   final VoidCallback onTap;
+
+  @override
+  State<ReflectionHomeCard> createState() => _ReflectionHomeCardState();
+}
+
+class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
+  bool _selected = false;
+  bool _revealed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reflection = widget.reflection;
+    final selected = PaneSelectionScope.isSelected(
+      context,
+      Uri(
+        path: Routes.reflections,
+        queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
+      ),
+    );
+    if (!selected && PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split) {
+      _revealed = false;
+    }
+    if (selected && !_revealed) {
+      _revealed = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_selected) return;
+        final scroll = Scrollable.maybeOf(context)?.position;
+        final box = context.findRenderObject();
+        if (scroll == null || box == null) return;
+        final line =
+            AppTopBar.largeHeightOf(context) +
+            AppSpacing.md +
+            WeekCalendar.heightOf(context) +
+            context.theme.topBar.fadeTail;
+        final offset = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset - line;
+        scroll.jumpTo(offset.clamp(scroll.minScrollExtent, scroll.maxScrollExtent));
+      });
+    }
+    _selected = selected;
+  }
 
   /// The numbered-calendar glyph that marks a card's period at a glance:
   /// 1.calendar for a day, 7.calendar for a week, the full calendar for a month.
@@ -159,6 +204,7 @@ class ReflectionHomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final l10n = AppLocalizations.of(context)!;
+    final reflection = widget.reflection;
     final period = reflection.period;
     final selected = PaneSelectionScope.isSelected(
       context,
@@ -177,10 +223,10 @@ class ReflectionHomeCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Touchable(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: DitherCard(
           background: selected ? theme.calendar.tileFill : null,
-          border: selected ? theme.textSecondary : null,
+          border: selected ? theme.calendar.cursorBorder : null,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(

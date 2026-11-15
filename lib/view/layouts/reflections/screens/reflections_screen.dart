@@ -28,6 +28,10 @@ import 'package:opentranscribe/view/widgets/ink_reveal.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
+import 'package:opentranscribe/view/widgets/reflow_anchor.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:reflections/reflections.dart';
 
 /// The reflections pager: each closed period is a full reading page - its
@@ -283,6 +287,24 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
     super.dispose();
   }
 
+  void _syncSelection(ReflectionPeriod period, DateTime start) {
+    final tracker = PaneLayoutScope.maybeOf(context);
+    if (tracker == null || ModalRoute.of(context)?.isCurrent != true) return;
+    final selection = (
+      path: Routes.reflections,
+      period: period.wire,
+      week: Reflection.keyFor(start),
+    );
+    if (tracker.readingSelection.value == selection) return;
+    final route = tracker.selection;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || tracker.selection != route || ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      tracker.readingSelection.value = selection;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -328,6 +350,7 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
     // Recomputed every build so a fresh timeline (a 1-page history) lands
     // right without waiting for a scroll tick; notifications only setState
     // when this flips.
+    _syncSelection(state.viewedPeriod, viewed.periodStart);
     final shown = _visibleFor(timeline.length);
     _scrubberShown = shown;
     // ONE smart back, resolved by the VIEWED page: with a stored ancestor
@@ -542,39 +565,37 @@ class _PeriodPagerViewState extends State<_PeriodPagerView> {
               left: 0,
               right: 0,
               bottom: _capsuleSeat(context),
-              child: SafeSides(
-                child: Center(
-                  child: IgnorePointer(
-                    ignoring: !shown,
-                    // Mirrored along one path: a soft rise in, a quicker sink
-                    // out. The fade rides a single fraction into the scrubber
-                    // rather than an Opacity layer: a BackdropFilter inside
-                    // one samples the layer's own empty buffer, so the blur
-                    // would pop instead of fading. Reduce Motion keeps only
-                    // the fade; a fully-hidden capsule builds nothing.
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(end: shown ? 1.0 : 0.0),
-                      duration: shown ? theme.motion.indicator : theme.motion.crossfade,
-                      curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
-                      builder: (context, fade, _) {
-                        if (fade <= 0) return const SizedBox.shrink();
-                        final sink = context.reduceMotion
-                            ? 0.0
-                            : (1 - fade) * theme.scrubber.sinkDistance;
-                        return Transform.translate(
-                          offset: Offset(0, sink),
-                          child: ReflectionScrubber(
-                            controller: controller,
-                            count: timeline.length,
-                            timelineKey: state.viewedPeriod,
-                            restPage: viewedIndex,
-                            fade: fade,
-                            onScrubStart: () => _setScrubbing(value: true, count: timeline.length),
-                            onScrubEnd: () => _setScrubbing(value: false, count: timeline.length),
-                          ),
-                        );
-                      },
-                    ),
+              child: ReflectionScrubberSeat(
+                child: IgnorePointer(
+                  ignoring: !shown,
+                  // Mirrored along one path: a soft rise in, a quicker sink
+                  // out. The fade rides a single fraction into the scrubber
+                  // rather than an Opacity layer: a BackdropFilter inside
+                  // one samples the layer's own empty buffer, so the blur
+                  // would pop instead of fading. Reduce Motion keeps only
+                  // the fade; a fully-hidden capsule builds nothing.
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: shown ? 1.0 : 0.0),
+                    duration: shown ? theme.motion.indicator : theme.motion.crossfade,
+                    curve: shown ? theme.motion.indicatorCurve : Curves.easeIn,
+                    builder: (context, fade, _) {
+                      if (fade <= 0) return const SizedBox.shrink();
+                      final sink = context.reduceMotion
+                          ? 0.0
+                          : (1 - fade) * theme.scrubber.sinkDistance;
+                      return Transform.translate(
+                        offset: Offset(0, sink),
+                        child: ReflectionScrubber(
+                          controller: controller,
+                          count: timeline.length,
+                          timelineKey: state.viewedPeriod,
+                          restPage: viewedIndex,
+                          fade: fade,
+                          onScrubStart: () => _setScrubbing(value: true, count: timeline.length),
+                          onScrubEnd: () => _setScrubbing(value: false, count: timeline.length),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1074,7 +1095,9 @@ class _PageBody extends StatelessWidget {
               length: length,
             ),
             onWriteStarted: onWriteStarted,
-            child: Text(reflection?.text ?? '', style: AppType.body.copyWith(color: theme.text)),
+            child: ReflowAnchor(
+              child: Text(reflection?.text ?? '', style: AppType.body.copyWith(color: theme.text)),
+            ),
           ),
           // The reading meta rides under the settled words; while a
           // regenerate is in flight it would date the dissolving text, so

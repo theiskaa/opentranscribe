@@ -100,9 +100,15 @@ class _PaneHostState extends State<PaneHost> {
     }
     return PaneLayoutScope(
       tracker: _tracker,
-      child: PaneSelectionScope(
-        selection: widget.layout.mode == PaneMode.split ? paneSelection(_tracker.selection) : null,
+      child: ValueListenableBuilder<PaneSelection?>(
+        valueListenable: _tracker.readingSelection,
         child: widget.child,
+        builder: (context, reading, child) => PaneSelectionScope(
+          selection: widget.layout.mode == PaneMode.split
+              ? reading ?? paneSelection(_tracker.selection)
+              : null,
+          child: child!,
+        ),
       ),
     );
   }
