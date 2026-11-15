@@ -1268,6 +1268,45 @@ void main() {
       expect(await e.acceleratedModels(), isEmpty);
     });
 
+    test(
+      'acceleration switched back on while the off closes the session keeps the encoder',
+      () async {
+        final e = accelerated();
+        await install(e);
+        await e.transcribeFile(audio, localeId: 'en-US');
+
+        final off = e.setAccelerated(false);
+        await e.setAccelerated(true);
+        await off;
+
+        expect(e.accelerated, isTrue);
+        expect(encoderDir().existsSync(), isTrue);
+      },
+    );
+
+    test('an on landing on an off returns with the disk settled and nothing deleted', () async {
+      final e = accelerated();
+      await install(e);
+
+      final off = e.setAccelerated(false);
+      await e.setAccelerated(true);
+      final seen = await e.acceleratedModels();
+      await off;
+
+      expect(e.accelerated, isTrue);
+      expect(seen, {tiny.id});
+      expect(encoderDir().existsSync(), isTrue);
+    });
+
+    test('two offs at once leave no encoder and throw nothing', () async {
+      final e = accelerated();
+      await install(e);
+
+      await Future.wait([e.setAccelerated(false), e.setAccelerated(false)]);
+
+      expect(encoderDir().existsSync(), isFalse);
+    });
+
     test('turning acceleration off under a run keeps its encoder until the run ends', () async {
       final e = accelerated();
       await install(e);
@@ -1429,6 +1468,73 @@ void main() {
 
       expect((await e.transcribeFile(audio, localeId: 'en-US')).fullText, 'hello');
     });
+
+    test('an off during the warm-up load drops the encoder once the load is done', () async {
+      final loadGate = Completer<void>();
+      runtime.loadGate = loadGate.future;
+      final e = accelerated();
+      final installing = install(e, tiny.id);
+      await until(() => runtime.loads.isNotEmpty);
+
+      await e.setAccelerated(false);
+      runtime.loadGate = null;
+      loadGate.complete();
+      await installing;
+
+      expect(fileOf(tiny.id).existsSync(), isTrue);
+      expect(encoderDir().existsSync(), isFalse);
+      expect(await e.acceleratedModels(), isEmpty);
+    });
+
+    test(
+      'with acceleration off, a cancel mid warm-up keeps the encoder until the load is done',
+      () async {
+        final loadGate = Completer<void>();
+        runtime.loadGate = loadGate.future;
+        final e = accelerated();
+        final sub = e.installModelById(tiny.id).listen(null);
+        await until(() => runtime.loads.isNotEmpty);
+
+        await e.setAccelerated(false);
+        await sub.cancel();
+        expect(encoderDir().existsSync(), isTrue);
+
+        runtime.loadGate = null;
+        loadGate.complete();
+        await until(() => !encoderDir().existsSync());
+
+        expect(await e.acceleratedModels(), isEmpty);
+      },
+    );
+
+    test(
+      'an off during a warm-up load that fails drops the encoder, then fails the install',
+      () async {
+        final loadGate = Completer<void>();
+        runtime.loadGate = loadGate.future;
+        runtime.failLoad = true;
+        final e = accelerated();
+        final installing = install(e, tiny.id);
+        await until(() => runtime.loads.isNotEmpty);
+
+        await e.setAccelerated(false);
+        runtime.loadGate = null;
+        loadGate.complete();
+
+        await expectLater(
+          installing,
+          throwsA(
+            isA<ModelInstallFailed>().having(
+              (f) => f.reason,
+              'reason',
+              ModelInstallReason.loadFailed,
+            ),
+          ),
+        );
+        expect(fileOf(tiny.id).existsSync(), isTrue);
+        expect(encoderDir().existsSync(), isFalse);
+      },
+    );
 
     test('a warm-up of a model other than the choice closes it again', () async {
       final e = accelerated();

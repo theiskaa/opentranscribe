@@ -371,7 +371,11 @@ abstract interface class LanguageOddsEngine implements TranscriptionEngine {
 /// own until it ends; [installAcceleration] fetches one model's extra file
 /// under the install rules of [installModelById] and ends only once a run
 /// can use it, or at once while the switch is off; [acceleratedModels]
-/// never throws.
+/// never throws. A [setAccelerated] on returns only once every delete an
+/// earlier off started has settled, and deletes nothing more, so the
+/// [acceleratedModels] read after it is what stays on disk. After
+/// [setAccelerated] throws, [accelerated] reads the state the engine is
+/// actually in, which may already be the asked one.
 abstract interface class AcceleratedModelEngine implements ModelChoiceEngine {
   bool get canAccelerate;
 

@@ -87,6 +87,12 @@ class WhisperEngine
   WhisperSession? _session;
   String? _sessionModelId;
   Future<void> _closing = Future<void>.value();
+
+  // Every encoder delete but _remove's runs here in order; an on and any load
+  // wait for it, so neither reads a half-deleted encoder.
+  Future<void> _dropping = Future<void>.value();
+  // Models a warm-up is loading; their encoder stays until the load is done.
+  final Set<String> _warming = {};
   int _releases = 0;
   bool _sweptScratch = false;
   Future<void> _batches = Future<void>.value();
@@ -143,7 +149,12 @@ class WhisperEngine
       _encoderZip(model),
       File('${_encoderZip(model).path}$modelPartSuffix'),
     ]) {
-      if (await leftover.exists()) await leftover.delete(recursive: true);
+      if (!await leftover.exists()) continue;
+      try {
+        await leftover.delete(recursive: true);
+      } on PathNotFoundException {
+        // A model removal, the one delete that can race this queue, got there first.
+      }
     }
   }
 
@@ -344,12 +355,13 @@ class WhisperEngine
   Future<void> _runEnded(WhisperModel model) async {
     _running = false;
     _runningModelId = null;
-    // The encoder a turn-off left for this run goes now; one an install is
-    // fetching is that install's to drop.
-    if (!_accelerated && !_installing.containsKey(model.id) && await _acceleratedFor(model)) {
-      await _closeSession();
-      await _deleteEncoder(model);
-    }
+    // A failed cleanup must not replace the transcript; the next off or load
+    // retries it.
+    try {
+      if (!_accelerated && await _acceleratedFor(model)) {
+        await _queueDrop(() => _dropEncoder(model));
+      }
+    } catch (_) {}
   }
 
   /// [from] to [to] of [audio], longer than [chunkLength], heard one chunk at a
@@ -534,6 +546,7 @@ class WhisperEngine
   }
 
   Future<WhisperSession> _sessionFor(WhisperModel model) async {
+    await _dropping;
     await _closing;
     final open = _session;
     if (open != null && _sessionModelId == model.id) return open;
@@ -541,7 +554,11 @@ class WhisperEngine
     // whisper.cpp takes any encoder it finds beside the model, so off means
     // gone; a run that held it kept it until now, and an install fetching
     // one drops it itself.
-    if (!_accelerated && !_installing.containsKey(model.id)) await _deleteEncoder(model);
+    if (!_accelerated && !_installing.containsKey(model.id)) {
+      await _queueDrop(() async {
+        if (!_accelerated && !_installing.containsKey(model.id)) await _deleteEncoder(model);
+      });
+    }
     final releases = _releases;
     try {
       final session = await _runtime.load(_file(model));
@@ -618,18 +635,42 @@ class WhisperEngine
   Future<void> setAccelerated(bool on) async {
     if (!canAccelerate) return;
     _accelerated = on;
-    if (on) return;
-    for (final model in whisperCatalog) {
-      await _dropEncoder(model);
+    if (on) {
+      // Returns once an off still deleting is done, so a caller asking which
+      // encoders are present then gets the settled answer.
+      await _dropping;
+      return;
     }
+    await _queueDrop(() async {
+      // One model's failed delete must not keep the others' encoders.
+      (Object, StackTrace)? first;
+      for (final model in whisperCatalog) {
+        try {
+          await _dropEncoder(model);
+        } catch (e, stack) {
+          first ??= (e, stack);
+        }
+      }
+      if (first case (final error, final stack)) Error.throwWithStackTrace(error, stack);
+    });
+  }
+
+  Future<void> _queueDrop(Future<void> Function() drop) {
+    final next = _dropping.then((_) => drop());
+    _dropping = next.catchError((Object _) {});
+    return next;
   }
 
   /// Off means gone, except an encoder a run holds (the run's end drops it)
-  /// or an install is fetching (its landing or its cancel drops it).
+  /// or an install is fetching or warming up (its landing or its cancel drops
+  /// it). On again means kept, so a quick off-and-on deletes nothing.
   Future<void> _dropEncoder(WhisperModel model) async {
+    if (_accelerated) return;
     if (_running && (model.id == _runningModelId || model.id == _sessionModelId)) return;
-    if (_installing.containsKey(model.id)) return;
+    if (_installing.containsKey(model.id) || _warming.contains(model.id)) return;
     if (_sessionModelId == model.id) await _closeSession();
+    // The switch may have gone back on while the session closed.
+    if (_accelerated) return;
     await _deleteEncoder(model);
   }
 
@@ -663,6 +704,26 @@ class WhisperEngine
       if (released) return;
       released = true;
       _decrement(_installing, id);
+    }
+
+    // A turn ending with the switch off drops any encoder left to it, its own
+    // after a warm-up or an earlier turn's; a failed cleanup must not fail it.
+    Future<void> settleOff() async {
+      if (_accelerated) return;
+      release();
+      try {
+        await _queueDrop(() => _dropEncoder(model));
+      } catch (_) {}
+    }
+
+    // This turn's own encoder, dropped in queue order. [onlyIfOff] spares one
+    // an on claimed back while it waited; a failed cleanup must not fail it.
+    Future<void> scrap({bool onlyIfOff = true}) async {
+      try {
+        await _queueDrop(() async {
+          if (!onlyIfOff || !_accelerated) await _deleteEncoder(model);
+        });
+      } catch (_) {}
     }
 
     Future<void> finish() async {
@@ -723,7 +784,10 @@ class WhisperEngine
       if (!withModel && !await _installed(model)) return finish();
       final needModel = withModel && !await _installed(model);
       var needEncoder = _accelerated && !await _acceleratedFor(model);
-      if (!needModel && !needEncoder) return finish();
+      if (!needModel && !needEncoder) {
+        await settleOff();
+        return finish();
+      }
       if (gone()) return release();
       // The turn's first word, so a waiting consumer knows the queue moved.
       report(0);
@@ -748,38 +812,45 @@ class WhisperEngine
         needEncoder = _accelerated && !await _acceleratedFor(model);
         if (needEncoder && from >= 1) from = 0;
       }
-      if (!needEncoder) return finish();
+      if (!needEncoder) {
+        await settleOff();
+        return finish();
+      }
       final zip = _encoderZip(model);
       final failure = await fetch(model.encoder, zip, from, 1 - from);
       if (failure != null) return fail(failure.$1, failure.$2);
       if (gone()) return release();
       // A switch flipped off during the download leaves nothing behind.
       if (!_accelerated) {
-        await _deleteEncoder(model);
+        await scrap();
         return finish();
       }
       report(1, preparing: true);
       try {
         await _unpackEncoder(model, zip);
       } catch (e, stack) {
-        await _deleteEncoder(model);
+        await scrap(onlyIfOff: false);
         return fail(
           e is ModelInstallFailed ? e : ModelInstallFailed('$e', reason: _installReason(e)),
           stack,
         );
       }
       if (!_accelerated) {
-        await _deleteEncoder(model);
+        await scrap();
         return finish();
       }
       if (await _installed(model)) {
+        (Object, StackTrace)? failure;
         try {
           await _warmUp(model);
         } on ModelInstallFailed catch (e, stack) {
-          return fail(e, stack);
+          failure = (e, stack);
         } on TranscriptionFailed {
           // A release during the load; the next run loads again.
         }
+        // An off during the load left the encoder to this turn, failed or not.
+        await settleOff();
+        if (failure case (final error, final stack)) return fail(error, stack);
       }
       await finish();
     }
@@ -794,7 +865,7 @@ class WhisperEngine
       onCancel: () async {
         release();
         await fetching?.cancel();
-        if (!_accelerated) await _dropEncoder(model);
+        await _queueDrop(() => _dropEncoder(model));
       },
     );
     return controller.stream;
@@ -833,9 +904,15 @@ class WhisperEngine
     if (_running || !_accelerated) return Future.value();
     final load = _batches.then((_) async {
       if (_running || !_accelerated) return;
-      await _closeSession();
-      await _sessionFor(model);
-      if (model.id != _selectedId) await _closeSession();
+      _warming.add(model.id);
+      try {
+        await _closeSession();
+        if (!_accelerated) return;
+        await _sessionFor(model);
+        if (model.id != _selectedId) await _closeSession();
+      } finally {
+        _warming.remove(model.id);
+      }
     });
     _batches = load.then((_) {}, onError: (Object _) {});
     return load;

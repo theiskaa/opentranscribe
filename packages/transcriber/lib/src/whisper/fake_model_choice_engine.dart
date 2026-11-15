@@ -87,8 +87,19 @@ class FakeModelChoiceEngine
   /// taxonomy.
   Object? failInstallWith;
 
+  /// Thrown by [setAccelerated] when set, before anything changes.
+  Object? failAccelerateWith;
+
+  /// Thrown by [setAccelerated] when set, after the switch has changed: an
+  /// engine whose cleanup fails past the flip.
+  Object? failAccelerateAfterWith;
+
   /// Holds an install open after its steps, for tests interleaving other work.
   Future<void>? installGate;
+
+  /// Run when a listener cancels an install, before the cancel completes, for
+  /// tests acting in the middle of one.
+  Future<void> Function(String id)? onInstallCancel;
 
   /// Holds an install open while it reads as preparing, after its bytes.
   Future<void>? prepareGate;
@@ -285,7 +296,10 @@ class FakeModelChoiceEngine
         }
         await controller.close();
       },
-      onCancel: () => cancelled = true,
+      onCancel: () async {
+        cancelled = true;
+        await onInstallCancel?.call(id);
+      },
     );
     return controller.stream;
   }
@@ -304,8 +318,10 @@ class FakeModelChoiceEngine
 
   @override
   Future<void> setAccelerated(bool on) async {
+    if (failAccelerateWith case final error?) throw error;
     if (!canAccelerate) return;
     _accelerated = on;
+    if (failAccelerateAfterWith case final error?) throw error;
     if (!on) acceleratedIds.clear();
   }
 
