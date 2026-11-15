@@ -639,6 +639,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accelerationNotSavedBody => 'Neural Engine 的选择未能保存，重新启动后不会保留。';
 
   @override
+  String get accelerationNotSwitchedTitle => '无法切换';
+
+  @override
+  String get accelerationNotSwitchedBody => '无法切换 Neural Engine，已保持原样。';
+
+  @override
   String get modelPreparing => '正在准备…';
 
   @override
@@ -1070,6 +1076,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifyReflectionsUnavailable => '此设备无法生成回顾，因此没有提醒可发送。';
 
   @override
+  String get notifyPeriodsLabel => '要提醒的回顾';
+
+  @override
+  String get notifyEveryDay => '每天';
+
+  @override
+  String notifyEveryWeekday(String weekday) {
+    return '每$weekday';
+  }
+
+  @override
+  String get notifyOnTheFirst => '每月1日';
+
+  @override
+  String notifyNextToday(String time) {
+    return '下次提醒：今天 $time';
+  }
+
+  @override
+  String notifyNextTomorrow(String time) {
+    return '下次提醒：明天 $time';
+  }
+
+  @override
+  String notifyNextOn(String day, String time) {
+    return '下次提醒：$day $time';
+  }
+
+  @override
   String get themeRequestInfo =>
       '想要这里没有的主题吗？在 GitHub 上创建一个 issue，我们会在后续版本中添加。新增的主题仅面向 OpenTranscribe Club 会员。';
 
@@ -1081,6 +1116,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportEntryTitle => '导出条目';
+
+  @override
+  String get exportEntryPreparing => '正在导出…';
+
+  @override
+  String get exportEntryFailed => '导出失败';
+
+  @override
+  String get exportEntryTooLarge => '文件过大，无法导出';
+
+  @override
+  String get exportEntryNoSpace => '空间不足，无法导出';
 
   @override
   String get exportIncludeAudio => '包含音频';
@@ -1219,6 +1266,171 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passphraseCreateBody => '口令是唯一的钥匙。它不会被保存在任何地方；没有它，备份只是噪音。';
 
   @override
+  String backupEntryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条记录',
+      zero: '还没有记录',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupRecordingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count 段录音');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNoBackupYet => '还没有备份';
+
+  @override
+  String get backupToday => '今天已备份';
+
+  @override
+  String get backupEncrypting => '正在加密…';
+
+  @override
+  String get backupReadyToShare => '可以共享了';
+
+  @override
+  String get exportChooseWhereNote => '选择要发送到哪里';
+
+  @override
+  String backupNewSince(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '此后新增 $count 条');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNothingYet => '暂时没有可备份的内容。';
+
+  @override
+  String get backupBackUp => '备份';
+
+  @override
+  String get backupRestore => '恢复';
+
+  @override
+  String get backupBackingUp => '正在备份';
+
+  @override
+  String backupBackingUpPercent(String percent) {
+    return '正在备份，$percent';
+  }
+
+  @override
+  String get backupDoneNote => '刚刚已备份';
+
+  @override
+  String get backupDoneSealedNote => '刚刚已备份，已加密';
+
+  @override
+  String get restoreChecking => '正在检查…';
+
+  @override
+  String get restoreUnlocking => '正在解锁…';
+
+  @override
+  String restoreRunningPercent(String percent) {
+    return '正在恢复，$percent';
+  }
+
+  @override
+  String get restoreAgain => '再次恢复';
+
+  @override
+  String restorePlanAdds(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '添加 $count 条记录');
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanReplaces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '用备份中的版本替换 $count 条');
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '找回 $count 段录音');
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '更新 $count 条回顾');
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreNoSpace => '这台 iPhone 空间不足，无法恢复。日记没有任何改动。';
+
+  @override
+  String get restorePlanNothing => '这份备份里的内容都已经在了。';
+
+  @override
+  String restoreDoneAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已添加 $count 条记录');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已替换 $count 条');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已找回 $count 段录音');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '已更新 $count 条回顾');
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreDoneNothing => '已恢复。所有内容都已经在了。';
+
+  @override
+  String get restorePartialGeneric => '中途停止。再次恢复即可完成。';
+
+  @override
+  String get restoreKeepOpen => '完成前请保持应用打开。';
+
+  @override
+  String restorePartialNote(int done, int total) {
+    String _temp0 = intl.Intl.pluralLogic(total, locale: localeName, other: ' $total 条中的');
+    return '中途停止：已恢复$_temp0 $done 条。再次恢复即可完成。';
+  }
+
+  @override
+  String get restorePartialReflections => '记录已恢复，回顾尚未完成。再次恢复即可完成。';
+
+  @override
+  String get restoreUnopenable => '无法打开该文件。日记没有任何改动。';
+
+  @override
+  String get restoreRunning => '正在恢复';
+
+  @override
+  String get restoreExportNotBackup => '这是给其他应用的副本。只有备份才能恢复。日记没有任何改动。';
+
+  @override
+  String get exportSharedNote => '刚刚已共享';
+
+  @override
+  String get backupCopiesSection => '给其他应用的副本';
+
+  @override
+  String get backupCopiesInfo => '这是给其他应用阅读的副本；要恢复得靠备份。';
+
+  @override
   String get passphrasePlaceholder => '口令';
 
   @override
@@ -1310,6 +1522,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importFailedBody => '无法读取备份。日记没有任何改动。';
+
+  @override
+  String get restoreUnreadable => '无法读取备份。日记没有任何改动。';
 
   @override
   String get importNotArchive => '这不是 OpenTranscribe 备份。日记没有任何改动。';

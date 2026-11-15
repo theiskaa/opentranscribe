@@ -673,6 +673,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Neural-Engine-Einstellung konnte nicht gespeichert werden und geht beim nächsten Start verloren.';
 
   @override
+  String get accelerationNotSwitchedTitle => 'Einstellung nicht geändert';
+
+  @override
+  String get accelerationNotSwitchedBody =>
+      'Die Neural-Engine-Einstellung konnte nicht geändert werden. Sie bleibt, wie sie war.';
+
+  @override
   String get modelPreparing => 'Wird vorbereitet…';
 
   @override
@@ -1142,6 +1149,35 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieses Gerät kann keine Rückblicke erstellen, daher gibt es keinen Hinweis.';
 
   @override
+  String get notifyPeriodsLabel => 'Erinnerungen für';
+
+  @override
+  String get notifyEveryDay => 'Jeden Tag';
+
+  @override
+  String notifyEveryWeekday(String weekday) {
+    return 'Jeden $weekday';
+  }
+
+  @override
+  String get notifyOnTheFirst => 'Jeden 1.';
+
+  @override
+  String notifyNextToday(String time) {
+    return 'Als Nächstes heute um $time';
+  }
+
+  @override
+  String notifyNextTomorrow(String time) {
+    return 'Als Nächstes morgen um $time';
+  }
+
+  @override
+  String notifyNextOn(String day, String time) {
+    return 'Als Nächstes am $day um $time';
+  }
+
+  @override
   String get themeRequestInfo =>
       'Möchtest du OpenTranscribe in einem Theme, das hier fehlt? Öffne ein Issue auf GitHub, und wir fügen es in einer kommenden Version hinzu. Hinzugefügte Themes sind für Mitglieder des OpenTranscribe Club.';
 
@@ -1153,6 +1189,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportEntryTitle => 'Eintrag exportieren';
+
+  @override
+  String get exportEntryPreparing => 'Wird exportiert…';
+
+  @override
+  String get exportEntryFailed => 'Export fehlgeschlagen';
+
+  @override
+  String get exportEntryTooLarge => 'Zu groß für den Export';
+
+  @override
+  String get exportEntryNoSpace => 'Zu wenig Speicher für den Export';
 
   @override
   String get exportIncludeAudio => 'Audio einschließen';
@@ -1299,6 +1347,231 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Passphrase ist der einzige Schlüssel. Sie wird nirgends gespeichert; ohne sie ist das Backup Rauschen.';
 
   @override
+  String backupEntryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: 'Noch keine Einträge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupRecordingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufnahmen',
+      one: '1 Aufnahme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNoBackupYet => 'Noch kein Backup';
+
+  @override
+  String get backupToday => 'Heute gesichert';
+
+  @override
+  String get backupEncrypting => 'Wird verschlüsselt…';
+
+  @override
+  String get backupReadyToShare => 'Bereit zum Teilen';
+
+  @override
+  String get exportChooseWhereNote => 'Wählen Sie das Ziel';
+
+  @override
+  String backupNewSince(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count neue Einträge seitdem',
+      one: '1 neuer Eintrag seitdem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNothingYet => 'Noch nichts zu sichern.';
+
+  @override
+  String get backupBackUp => 'Sichern';
+
+  @override
+  String get backupRestore => 'Wiederherstellen';
+
+  @override
+  String get backupBackingUp => 'Backup läuft';
+
+  @override
+  String backupBackingUpPercent(String percent) {
+    return 'Backup läuft, $percent';
+  }
+
+  @override
+  String get backupDoneNote => 'Gerade gesichert';
+
+  @override
+  String get backupDoneSealedNote => 'Gerade gesichert, verschlüsselt';
+
+  @override
+  String get restoreChecking => 'Wird geprüft…';
+
+  @override
+  String get restoreUnlocking => 'Wird entsiegelt…';
+
+  @override
+  String restoreRunningPercent(String percent) {
+    return 'Wird wiederhergestellt, $percent';
+  }
+
+  @override
+  String get restoreAgain => 'Erneut wiederherstellen';
+
+  @override
+  String restorePlanAdds(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+    );
+    return 'Fügt $_temp0 hinzu';
+  }
+
+  @override
+  String restorePlanReplaces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ersetzt $count durch die Backup-Version',
+      one: 'Ersetzt 1 durch die Backup-Version',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Holt $count Aufnahmen zurück',
+      one: 'Holt 1 Aufnahme zurück',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Aktualisiert $count Rückblicke',
+      one: 'Aktualisiert 1 Rückblick',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreNoSpace =>
+      'Nicht genug Speicher auf diesem iPhone für die Wiederherstellung. Nichts im Journal wurde verändert.';
+
+  @override
+  String get restorePlanNothing => 'Alles aus diesem Backup ist schon da.';
+
+  @override
+  String restoreDoneAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge hinzugefügt',
+      one: '1 Eintrag hinzugefügt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ersetzt',
+      one: '1 ersetzt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufnahmen zurück',
+      one: '1 Aufnahme zurück',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Rückblicke aktualisiert',
+      one: '1 Rückblick aktualisiert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreDoneNothing => 'Wiederhergestellt. Alles war schon da.';
+
+  @override
+  String get restorePartialGeneric => 'Unterbrochen. Zum Abschließen erneut wiederherstellen.';
+
+  @override
+  String get restoreKeepOpen => 'Lassen Sie die App geöffnet, bis es fertig ist.';
+
+  @override
+  String restorePartialNote(int done, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Einträgen',
+      one: '1 Eintrag',
+    );
+    return 'Unterbrochen: $done von $_temp0 wiederhergestellt. Zum Abschließen erneut wiederherstellen.';
+  }
+
+  @override
+  String get restorePartialReflections =>
+      'Einträge wiederhergestellt; die Rückblicke wurden nicht fertig. Zum Abschließen erneut wiederherstellen.';
+
+  @override
+  String get restoreUnopenable =>
+      'Die Datei ließ sich nicht öffnen. Nichts im Journal wurde verändert.';
+
+  @override
+  String get restoreRunning => 'Wird wiederhergestellt';
+
+  @override
+  String get restoreExportNotBackup =>
+      'Das ist eine Kopie für andere Apps. Wiederherstellen lässt sich nur ein Backup. Nichts im Journal wurde verändert.';
+
+  @override
+  String get exportSharedNote => 'Gerade geteilt';
+
+  @override
+  String get backupCopiesSection => 'Kopie für andere Apps';
+
+  @override
+  String get backupCopiesInfo => 'Eine Kopie für andere Apps; Wiederherstellen braucht ein Backup.';
+
+  @override
   String get passphrasePlaceholder => 'Passphrase';
 
   @override
@@ -1414,15 +1687,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das Backup konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
 
   @override
+  String get restoreUnreadable =>
+      'Das Backup konnte nicht gelesen werden. Nichts im Journal wurde verändert.';
+
+  @override
   String get importNotArchive => 'Kein OpenTranscribe-Backup. Nichts im Journal wurde verändert.';
 
   @override
   String get importNewerVersion =>
-      'Von einer neueren Version der App erstellt. Aktualisiere, um es zu importieren.';
+      'Von einer neueren Version der App erstellt. Aktualisieren Sie die App, um es zu importieren.';
 
   @override
   String get importRezipped =>
-      'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichere ein frisches und stelle das wieder her.';
+      'Dieses Backup wurde von einem anderen Tool neu gezippt. Sichern Sie ein frisches und stellen Sie das wieder her.';
 
   @override
   String get backButton => 'Zurück';

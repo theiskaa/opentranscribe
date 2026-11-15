@@ -1212,6 +1212,18 @@ abstract class AppLocalizations {
   /// **'The Neural Engine choice couldn\'t be saved and won\'t survive a relaunch.'**
   String get accelerationNotSavedBody;
 
+  /// Sheet title when the engine refused to switch acceleration
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t switch'**
+  String get accelerationNotSwitchedTitle;
+
+  /// Sheet body when the engine refused to switch acceleration and the switch went back
+  ///
+  /// In en, this message translates to:
+  /// **'The Neural Engine couldn\'t be switched. It\'s left as it was.'**
+  String get accelerationNotSwitchedBody;
+
   /// A model's control while an install unpacks or compiles after its download
   ///
   /// In en, this message translates to:
@@ -2016,6 +2028,48 @@ abstract class AppLocalizations {
   /// **'This device can\'t generate reflections, so there\'s no nudge to send.'**
   String get notifyReflectionsUnavailable;
 
+  /// Section label over the period tiles on the notifications screen
+  ///
+  /// In en, this message translates to:
+  /// **'Nudge me for'**
+  String get notifyPeriodsLabel;
+
+  /// A period tile's line: the daily nudge fires every day
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get notifyEveryDay;
+
+  /// A period tile's line: the weekly nudge fires on this weekday (the locale's first day of the week)
+  ///
+  /// In en, this message translates to:
+  /// **'Every {weekday}'**
+  String notifyEveryWeekday(String weekday);
+
+  /// A period tile's line: the monthly nudge fires on the 1st of every month
+  ///
+  /// In en, this message translates to:
+  /// **'On the 1st'**
+  String get notifyOnTheFirst;
+
+  /// Note under the reminders switch: the next nudge lands later today
+  ///
+  /// In en, this message translates to:
+  /// **'Next today at {time}'**
+  String notifyNextToday(String time);
+
+  /// Note under the reminders switch: the next nudge lands tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Next tomorrow at {time}'**
+  String notifyNextTomorrow(String time);
+
+  /// Note under the reminders switch: the next nudge lands on this day
+  ///
+  /// In en, this message translates to:
+  /// **'Next {day} at {time}'**
+  String notifyNextOn(String day, String time);
+
   /// Footer under the theme grid on the appearance screen; precedes the request-a-theme link
   ///
   /// In en, this message translates to:
@@ -2028,7 +2082,7 @@ abstract class AppLocalizations {
   /// **'Request a theme on GitHub'**
   String get themeRequestLink;
 
-  /// Export entry sheet action button
+  /// Entry menu row whose submenu lists the export formats
   ///
   /// In en, this message translates to:
   /// **'Export'**
@@ -2039,6 +2093,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export entry'**
   String get exportEntryTitle;
+
+  /// Entry screen bar line while one entry's export files are still being built
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting…'**
+  String get exportEntryPreparing;
+
+  /// Entry screen bar notice when an entry export failed; nothing was shared
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export'**
+  String get exportEntryFailed;
+
+  /// Entry screen bar notice when an entry export overflowed the zip format's 4 GB cap
+  ///
+  /// In en, this message translates to:
+  /// **'Too large to export'**
+  String get exportEntryTooLarge;
+
+  /// Entry screen bar notice when the device ran out of space building an entry export
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space to export'**
+  String get exportEntryNoSpace;
 
   /// Toggle for bundling the recording with an export
   ///
@@ -2106,7 +2184,7 @@ abstract class AppLocalizations {
   /// **'Not enough free space to prepare the files. Nothing was shared.'**
   String get exportNoSpaceBody;
 
-  /// Row calling off the pack phase of a running backup or export; nothing is shared
+  /// Cancel: the backup and export cancel discs, and the Backup card's trailing capsule that closes the backup's passphrase ask or a restore waiting on the user
   ///
   /// In en, this message translates to:
   /// **'Cancel'**
@@ -2268,7 +2346,7 @@ abstract class AppLocalizations {
   /// **'Export backup'**
   String get backupSave;
 
-  /// Detail under Save backup showing when the last backup was handed off
+  /// Backup card quiet line part: when the last backup was handed off; date is already formatted
   ///
   /// In en, this message translates to:
   /// **'Last backup {date}'**
@@ -2285,6 +2363,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The passphrase is the only key. It is not stored anywhere; without it the backup is noise.'**
   String get passphraseCreateBody;
+
+  /// Backup card title: how many entries the journal holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {No entries yet} one {1 entry} other {{count} entries}}'**
+  String backupEntryCount(int count);
+
+  /// Backup card quiet line part: how many recordings the journal keeps
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording} other {{count} recordings}}'**
+  String backupRecordingCount(int count);
+
+  /// Backup card quiet line part when no backup was ever made
+  ///
+  /// In en, this message translates to:
+  /// **'No backup yet'**
+  String get backupNoBackupYet;
+
+  /// Backup card quiet line part in place of the date when the last backup was made today
+  ///
+  /// In en, this message translates to:
+  /// **'Backed up today'**
+  String get backupToday;
+
+  /// Backup card bar, full and still, while the packed backup is sealed under its passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypting…'**
+  String get backupEncrypting;
+
+  /// Backup card bar, full and still, while the share sheet waits on the user
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to share'**
+  String get backupReadyToShare;
+
+  /// Export format row note while the share sheet waits on the user to pick a destination
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where it goes'**
+  String get exportChooseWhereNote;
+
+  /// Backup card quiet line part: entries created after the last backup
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 new since} other {{count} new since}}'**
+  String backupNewSince(int count);
+
+  /// Backup card quiet line for an empty journal
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to back up yet.'**
+  String get backupNothingYet;
+
+  /// Backup card primary button that makes a backup, and submits its passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Back up'**
+  String get backupBackUp;
+
+  /// Backup card trailing capsule that starts a restore, and the leading one that confirms a planned restore
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestore;
+
+  /// Spoken label of the backup progress bar before its percent shows
+  ///
+  /// In en, this message translates to:
+  /// **'Backing up'**
+  String get backupBackingUp;
+
+  /// Spoken label of the backup progress bar; percent is already formatted
+  ///
+  /// In en, this message translates to:
+  /// **'Backing up, {percent}'**
+  String backupBackingUpPercent(String percent);
+
+  /// Backup card quiet line after a backup was shared
+  ///
+  /// In en, this message translates to:
+  /// **'Backed up just now'**
+  String get backupDoneNote;
+
+  /// Backup card quiet line after an encrypted backup was shared
+  ///
+  /// In en, this message translates to:
+  /// **'Backed up just now, encrypted'**
+  String get backupDoneSealedNote;
+
+  /// Backup card bar while an unsealed backup is read and planned
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get restoreChecking;
+
+  /// Backup card bar while a sealed backup is opened with its passphrase
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocking…'**
+  String get restoreUnlocking;
+
+  /// Spoken label of the restore progress bar; percent is already formatted
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring, {percent}'**
+  String restoreRunningPercent(String percent);
+
+  /// Backup card capsule that resumes a restore that stopped partway
+  ///
+  /// In en, this message translates to:
+  /// **'Restore again'**
+  String get restoreAgain;
+
+  /// Backup card quiet line part before a restore: entries it would add
+  ///
+  /// In en, this message translates to:
+  /// **'Adds {count, plural, one {1 entry} other {{count} entries}}'**
+  String restorePlanAdds(int count);
+
+  /// Backup card quiet line part before a restore: entries that would take the backup's version, undoing edits made since
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Replaces 1 with the backup\'s version} other {Replaces {count} with the backup\'s version}}'**
+  String restorePlanReplaces(int count);
+
+  /// Backup card quiet line part before a restore: recordings missing here that the backup brings back
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Brings back 1 recording} other {Brings back {count} recordings}}'**
+  String restorePlanRecordings(int count);
+
+  /// Backup card quiet line part before a restore: reflections a reader would see saved or erased
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Updates 1 reflection} other {Updates {count} reflections}}'**
+  String restorePlanReflections(int count);
+
+  /// Backup card quiet line when the phone ran out of space before a restore wrote anything
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space on this iPhone to restore. Nothing in the journal was changed.'**
+  String get restoreNoSpace;
+
+  /// Backup card quiet line before a restore that would change nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Everything in this backup is already here.'**
+  String get restorePlanNothing;
+
+  /// Backup card result part after a restore: entries it added
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 entry added} other {{count} entries added}}'**
+  String restoreDoneAdded(int count);
+
+  /// Backup card result part after a restore: entries it replaced with the backup's version
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 replaced} other {{count} replaced}}'**
+  String restoreDoneReplaced(int count);
+
+  /// Backup card result part after a restore: missing recordings it brought back
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 recording back} other {{count} recordings back}}'**
+  String restoreDoneRecordings(int count);
+
+  /// Backup card result part after a restore: reflections it saved or erased
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {1 reflection updated} other {{count} reflections updated}}'**
+  String restoreDoneReflections(int count);
+
+  /// Backup card result after a restore that changed nothing a reader would see
+  ///
+  /// In en, this message translates to:
+  /// **'Restored. Everything was already here.'**
+  String get restoreDoneNothing;
+
+  /// Backup card quiet line after a restore stopped partway with no entry or recording to count
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped partway. Restore again to finish.'**
+  String get restorePartialGeneric;
+
+  /// Backup card quiet line while a restore writes into the journal
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the app open until it finishes.'**
+  String get restoreKeepOpen;
+
+  /// Backup card quiet line after a restore stopped partway: done of total entries and recordings it planned
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped partway: {done} of {total, plural, one {1 entry} other {{total} entries}} restored. Restore again to finish.'**
+  String restorePartialNote(int done, int total);
+
+  /// Backup card quiet line after a restore whose entries all landed but whose reflections did not
+  ///
+  /// In en, this message translates to:
+  /// **'Entries restored; reflections did not finish. Restore again to finish.'**
+  String get restorePartialReflections;
+
+  /// Backup card quiet line when the picked file could not be read at all
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open that file. Nothing in the journal was changed.'**
+  String get restoreUnopenable;
+
+  /// Spoken label of the restore progress bar before its percent shows
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring'**
+  String get restoreRunning;
+
+  /// Backup card quiet line when the picked file is a copy for other apps (a zip with no backup manifest)
+  ///
+  /// In en, this message translates to:
+  /// **'This is a copy for other apps. Only a backup can be restored. Nothing in the journal was changed.'**
+  String get restoreExportNotBackup;
+
+  /// Export format row note after its export was shared
+  ///
+  /// In en, this message translates to:
+  /// **'Shared just now'**
+  String get exportSharedNote;
+
+  /// Section label over the per-format export rows
+  ///
+  /// In en, this message translates to:
+  /// **'Copy for other apps'**
+  String get backupCopiesSection;
+
+  /// Footnote under the export rows
+  ///
+  /// In en, this message translates to:
+  /// **'A copy for other apps; restoring needs a backup.'**
+  String get backupCopiesInfo;
 
   /// Passphrase field placeholder
   ///
@@ -2334,7 +2652,7 @@ abstract class AppLocalizations {
   /// **'Enter the passphrase this backup was encrypted with.'**
   String get importUnlockBody;
 
-  /// Unlock sheet action button
+  /// Backup card leading capsule that opens a sealed backup with the passphrase typed under it
   ///
   /// In en, this message translates to:
   /// **'Unlock'**
@@ -2412,19 +2730,25 @@ abstract class AppLocalizations {
   /// **'The backup could not be read. Nothing in the journal was changed.'**
   String get importFailedBody;
 
-  /// Failure body for a file that is not an archive
+  /// Backup card quiet line when the picked backup could not be read; journal unchanged
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be read. Nothing in the journal was changed.'**
+  String get restoreUnreadable;
+
+  /// Backup card quiet line when the picked file is no OpenTranscribe backup; journal unchanged
   ///
   /// In en, this message translates to:
   /// **'Not an OpenTranscribe backup. Nothing in the journal was changed.'**
   String get importNotArchive;
 
-  /// Failure body for an archive from a newer app version
+  /// Backup card quiet line when the picked backup was made by a newer app version
   ///
   /// In en, this message translates to:
   /// **'Made by a newer version of the app. Update to import it.'**
   String get importNewerVersion;
 
-  /// Failure body for an archive re-compressed by another tool
+  /// Backup card quiet line when the picked backup was re-compressed by another tool
   ///
   /// In en, this message translates to:
   /// **'This backup was re-zipped by another tool. Save a fresh one and restore that.'**
@@ -2484,7 +2808,7 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get recordCompleteButton;
 
-  /// VoiceOver name of the floating restore disc on the backup screen
+  /// VoiceOver name of the Backup card's Restore capsule
   ///
   /// In en, this message translates to:
   /// **'Restore backup'**

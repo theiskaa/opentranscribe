@@ -951,6 +951,14 @@
   "@accelerationNotSavedBody": {
     "description": "Sheet body when the acceleration choice failed to persist"
   },
+  "accelerationNotSwitchedTitle": "Couldn't switch",
+  "@accelerationNotSwitchedTitle": {
+    "description": "Sheet title when the engine refused to switch acceleration"
+  },
+  "accelerationNotSwitchedBody": "The Neural Engine couldn't be switched. It's left as it was.",
+  "@accelerationNotSwitchedBody": {
+    "description": "Sheet body when the engine refused to switch acceleration and the switch went back"
+  },
   "modelPreparing": "Preparing…",
   "@modelPreparing": {
     "description": "A model's control while an install unpacks or compiles after its download"
@@ -1551,6 +1559,62 @@
   "@notifyReflectionsUnavailable": {
     "description": "Footer on the notifications screen when the on-device model cannot produce reflections; informational, no action"
   },
+  "notifyPeriodsLabel": "Nudge me for",
+  "@notifyPeriodsLabel": {
+    "description": "Section label over the period tiles on the notifications screen"
+  },
+  "notifyEveryDay": "Every day",
+  "@notifyEveryDay": {
+    "description": "A period tile's line: the daily nudge fires every day"
+  },
+  "notifyEveryWeekday": "Every {weekday}",
+  "@notifyEveryWeekday": {
+    "description": "A period tile's line: the weekly nudge fires on this weekday (the locale's first day of the week)",
+    "placeholders": {
+      "weekday": {
+        "type": "String",
+        "example": "Monday"
+      }
+    }
+  },
+  "notifyOnTheFirst": "On the 1st",
+  "@notifyOnTheFirst": {
+    "description": "A period tile's line: the monthly nudge fires on the 1st of every month"
+  },
+  "notifyNextToday": "Next today at {time}",
+  "@notifyNextToday": {
+    "description": "Note under the reminders switch: the next nudge lands later today",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "21:00"
+      }
+    }
+  },
+  "notifyNextTomorrow": "Next tomorrow at {time}",
+  "@notifyNextTomorrow": {
+    "description": "Note under the reminders switch: the next nudge lands tomorrow",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "09:00"
+      }
+    }
+  },
+  "notifyNextOn": "Next {day} at {time}",
+  "@notifyNextOn": {
+    "description": "Note under the reminders switch: the next nudge lands on this day",
+    "placeholders": {
+      "day": {
+        "type": "String",
+        "example": "Mon, Nov 23"
+      },
+      "time": {
+        "type": "String",
+        "example": "09:00"
+      }
+    }
+  },
   "themeRequestInfo": "Want OpenTranscribe in a theme that isn't here? Open an issue on GitHub and we'll add it in an upcoming release. Added themes are for OpenTranscribe Club members.",
   "@themeRequestInfo": {
     "description": "Footer under the theme grid on the appearance screen; precedes the request-a-theme link"
@@ -1561,11 +1625,27 @@
   },
   "exportEntry": "Export",
   "@exportEntry": {
-    "description": "Export entry sheet action button"
+    "description": "Entry menu row whose submenu lists the export formats"
   },
   "exportEntryTitle": "Export entry",
   "@exportEntryTitle": {
     "description": "Entry export sheet title"
+  },
+  "exportEntryPreparing": "Exporting…",
+  "@exportEntryPreparing": {
+    "description": "Entry screen bar line while one entry's export files are still being built"
+  },
+  "exportEntryFailed": "Couldn't export",
+  "@exportEntryFailed": {
+    "description": "Entry screen bar notice when an entry export failed; nothing was shared"
+  },
+  "exportEntryTooLarge": "Too large to export",
+  "@exportEntryTooLarge": {
+    "description": "Entry screen bar notice when an entry export overflowed the zip format's 4 GB cap"
+  },
+  "exportEntryNoSpace": "Not enough space to export",
+  "@exportEntryNoSpace": {
+    "description": "Entry screen bar notice when the device ran out of space building an entry export"
   },
   "exportIncludeAudio": "Include audio",
   "@exportIncludeAudio": {
@@ -1613,7 +1693,7 @@
   },
   "exportCancel": "Cancel",
   "@exportCancel": {
-    "description": "Row calling off the pack phase of a running backup or export; nothing is shared"
+    "description": "Cancel: the backup and export cancel discs, and the Backup card's trailing capsule that closes the backup's passphrase ask or a restore waiting on the user"
   },
   "exportUntitled": "Untitled",
   "@exportUntitled": {
@@ -1739,7 +1819,7 @@
   },
   "backupLastBackup": "Last backup {date}",
   "@backupLastBackup": {
-    "description": "Detail under Save backup showing when the last backup was handed off",
+    "description": "Backup card quiet line part: when the last backup was handed off; date is already formatted",
     "placeholders": {
       "date": {
         "type": "String"
@@ -1753,6 +1833,239 @@
   "passphraseCreateBody": "The passphrase is the only key. It is not stored anywhere; without it the backup is noise.",
   "@passphraseCreateBody": {
     "description": "Sealing passphrase sheet body: the passphrase is the only key"
+  },
+  "backupEntryCount": "{count, plural, =0 {No entries yet} one {1 entry} other {{count} entries}}",
+  "@backupEntryCount": {
+    "description": "Backup card title: how many entries the journal holds",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRecordingCount": "{count, plural, one {1 recording} other {{count} recordings}}",
+  "@backupRecordingCount": {
+    "description": "Backup card quiet line part: how many recordings the journal keeps",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupNoBackupYet": "No backup yet",
+  "@backupNoBackupYet": {
+    "description": "Backup card quiet line part when no backup was ever made"
+  },
+  "backupToday": "Backed up today",
+  "@backupToday": {
+    "description": "Backup card quiet line part in place of the date when the last backup was made today"
+  },
+  "backupEncrypting": "Encrypting…",
+  "@backupEncrypting": {
+    "description": "Backup card bar, full and still, while the packed backup is sealed under its passphrase"
+  },
+  "backupReadyToShare": "Ready to share",
+  "@backupReadyToShare": {
+    "description": "Backup card bar, full and still, while the share sheet waits on the user"
+  },
+  "exportChooseWhereNote": "Choose where it goes",
+  "@exportChooseWhereNote": {
+    "description": "Export format row note while the share sheet waits on the user to pick a destination"
+  },
+  "backupNewSince": "{count, plural, one {1 new since} other {{count} new since}}",
+  "@backupNewSince": {
+    "description": "Backup card quiet line part: entries created after the last backup",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupNothingYet": "Nothing to back up yet.",
+  "@backupNothingYet": {
+    "description": "Backup card quiet line for an empty journal"
+  },
+  "backupBackUp": "Back up",
+  "@backupBackUp": {
+    "description": "Backup card primary button that makes a backup, and submits its passphrase"
+  },
+  "backupRestore": "Restore",
+  "@backupRestore": {
+    "description": "Backup card trailing capsule that starts a restore, and the leading one that confirms a planned restore"
+  },
+  "backupBackingUp": "Backing up",
+  "@backupBackingUp": {
+    "description": "Spoken label of the backup progress bar before its percent shows"
+  },
+  "backupBackingUpPercent": "Backing up, {percent}",
+  "@backupBackingUpPercent": {
+    "description": "Spoken label of the backup progress bar; percent is already formatted",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDoneNote": "Backed up just now",
+  "@backupDoneNote": {
+    "description": "Backup card quiet line after a backup was shared"
+  },
+  "backupDoneSealedNote": "Backed up just now, encrypted",
+  "@backupDoneSealedNote": {
+    "description": "Backup card quiet line after an encrypted backup was shared"
+  },
+  "restoreChecking": "Checking…",
+  "@restoreChecking": {
+    "description": "Backup card bar while an unsealed backup is read and planned"
+  },
+  "restoreUnlocking": "Unlocking…",
+  "@restoreUnlocking": {
+    "description": "Backup card bar while a sealed backup is opened with its passphrase"
+  },
+  "restoreRunningPercent": "Restoring, {percent}",
+  "@restoreRunningPercent": {
+    "description": "Spoken label of the restore progress bar; percent is already formatted",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreAgain": "Restore again",
+  "@restoreAgain": {
+    "description": "Backup card capsule that resumes a restore that stopped partway"
+  },
+  "restorePlanAdds": "Adds {count, plural, one {1 entry} other {{count} entries}}",
+  "@restorePlanAdds": {
+    "description": "Backup card quiet line part before a restore: entries it would add",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restorePlanReplaces": "{count, plural, one {Replaces 1 with the backup's version} other {Replaces {count} with the backup's version}}",
+  "@restorePlanReplaces": {
+    "description": "Backup card quiet line part before a restore: entries that would take the backup's version, undoing edits made since",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restorePlanRecordings": "{count, plural, one {Brings back 1 recording} other {Brings back {count} recordings}}",
+  "@restorePlanRecordings": {
+    "description": "Backup card quiet line part before a restore: recordings missing here that the backup brings back",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restorePlanReflections": "{count, plural, one {Updates 1 reflection} other {Updates {count} reflections}}",
+  "@restorePlanReflections": {
+    "description": "Backup card quiet line part before a restore: reflections a reader would see saved or erased",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreNoSpace": "Not enough space on this iPhone to restore. Nothing in the journal was changed.",
+  "@restoreNoSpace": {
+    "description": "Backup card quiet line when the phone ran out of space before a restore wrote anything"
+  },
+  "restorePlanNothing": "Everything in this backup is already here.",
+  "@restorePlanNothing": {
+    "description": "Backup card quiet line before a restore that would change nothing"
+  },
+  "restoreDoneAdded": "{count, plural, one {1 entry added} other {{count} entries added}}",
+  "@restoreDoneAdded": {
+    "description": "Backup card result part after a restore: entries it added",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreDoneReplaced": "{count, plural, one {1 replaced} other {{count} replaced}}",
+  "@restoreDoneReplaced": {
+    "description": "Backup card result part after a restore: entries it replaced with the backup's version",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreDoneRecordings": "{count, plural, one {1 recording back} other {{count} recordings back}}",
+  "@restoreDoneRecordings": {
+    "description": "Backup card result part after a restore: missing recordings it brought back",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreDoneReflections": "{count, plural, one {1 reflection updated} other {{count} reflections updated}}",
+  "@restoreDoneReflections": {
+    "description": "Backup card result part after a restore: reflections it saved or erased",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreDoneNothing": "Restored. Everything was already here.",
+  "@restoreDoneNothing": {
+    "description": "Backup card result after a restore that changed nothing a reader would see"
+  },
+  "restorePartialGeneric": "Stopped partway. Restore again to finish.",
+  "@restorePartialGeneric": {
+    "description": "Backup card quiet line after a restore stopped partway with no entry or recording to count"
+  },
+  "restoreKeepOpen": "Keep the app open until it finishes.",
+  "@restoreKeepOpen": {
+    "description": "Backup card quiet line while a restore writes into the journal"
+  },
+  "restorePartialNote": "Stopped partway: {done} of {total, plural, one {1 entry} other {{total} entries}} restored. Restore again to finish.",
+  "@restorePartialNote": {
+    "description": "Backup card quiet line after a restore stopped partway: done of total entries and recordings it planned",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "restorePartialReflections": "Entries restored; reflections did not finish. Restore again to finish.",
+  "@restorePartialReflections": {
+    "description": "Backup card quiet line after a restore whose entries all landed but whose reflections did not"
+  },
+  "restoreUnopenable": "Could not open that file. Nothing in the journal was changed.",
+  "@restoreUnopenable": {
+    "description": "Backup card quiet line when the picked file could not be read at all"
+  },
+  "restoreRunning": "Restoring",
+  "@restoreRunning": {
+    "description": "Spoken label of the restore progress bar before its percent shows"
+  },
+  "restoreExportNotBackup": "This is a copy for other apps. Only a backup can be restored. Nothing in the journal was changed.",
+  "@restoreExportNotBackup": {
+    "description": "Backup card quiet line when the picked file is a copy for other apps (a zip with no backup manifest)"
+  },
+  "exportSharedNote": "Shared just now",
+  "@exportSharedNote": {
+    "description": "Export format row note after its export was shared"
+  },
+  "backupCopiesSection": "Copy for other apps",
+  "@backupCopiesSection": {
+    "description": "Section label over the per-format export rows"
+  },
+  "backupCopiesInfo": "A copy for other apps; restoring needs a backup.",
+  "@backupCopiesInfo": {
+    "description": "Footnote under the export rows"
   },
   "passphrasePlaceholder": "Passphrase",
   "@passphrasePlaceholder": {
@@ -1788,7 +2101,7 @@
   },
   "importUnlock": "Unlock",
   "@importUnlock": {
-    "description": "Unlock sheet action button"
+    "description": "Backup card leading capsule that opens a sealed backup with the passphrase typed under it"
   },
   "importWrongPassphrase": "Could not unlock. Wrong passphrase, or a damaged file.",
   "@importWrongPassphrase": {
@@ -1866,17 +2179,21 @@
   "@importFailedBody": {
     "description": "Generic import failure body; journal unchanged"
   },
+  "restoreUnreadable": "The backup could not be read. Nothing in the journal was changed.",
+  "@restoreUnreadable": {
+    "description": "Backup card quiet line when the picked backup could not be read; journal unchanged"
+  },
   "importNotArchive": "Not an OpenTranscribe backup. Nothing in the journal was changed.",
   "@importNotArchive": {
-    "description": "Failure body for a file that is not an archive"
+    "description": "Backup card quiet line when the picked file is no OpenTranscribe backup; journal unchanged"
   },
   "importNewerVersion": "Made by a newer version of the app. Update to import it.",
   "@importNewerVersion": {
-    "description": "Failure body for an archive from a newer app version"
+    "description": "Backup card quiet line when the picked backup was made by a newer app version"
   },
   "importRezipped": "This backup was re-zipped by another tool. Save a fresh one and restore that.",
   "@importRezipped": {
-    "description": "Failure body for an archive re-compressed by another tool"
+    "description": "Backup card quiet line when the picked backup was re-compressed by another tool"
   },
   "backButton": "Back",
   "@backButton": {
@@ -1916,7 +2233,7 @@
   },
   "restoreBackupButton": "Restore backup",
   "@restoreBackupButton": {
-    "description": "VoiceOver name of the floating restore disc on the backup screen"
+    "description": "VoiceOver name of the Backup card's Restore capsule"
   },
   "done": "Done",
   "@done": {

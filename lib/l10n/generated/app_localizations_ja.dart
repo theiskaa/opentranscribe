@@ -644,6 +644,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accelerationNotSavedBody => 'Neural Engine の設定を保存できず、再起動後には残りません。';
 
   @override
+  String get accelerationNotSwitchedTitle => '切り替えられませんでした';
+
+  @override
+  String get accelerationNotSwitchedBody => 'Neural Engine を切り替えられませんでした。設定は元のままです。';
+
+  @override
   String get modelPreparing => '準備中…';
 
   @override
@@ -1077,6 +1083,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notifyReflectionsUnavailable => 'このデバイスは振り返りを生成できないため、送信する通知はありません。';
 
   @override
+  String get notifyPeriodsLabel => '通知する振り返り';
+
+  @override
+  String get notifyEveryDay => '毎日';
+
+  @override
+  String notifyEveryWeekday(String weekday) {
+    return '毎週$weekday';
+  }
+
+  @override
+  String get notifyOnTheFirst => '毎月1日';
+
+  @override
+  String notifyNextToday(String time) {
+    return '次回：今日 $time';
+  }
+
+  @override
+  String notifyNextTomorrow(String time) {
+    return '次回：明日 $time';
+  }
+
+  @override
+  String notifyNextOn(String day, String time) {
+    return '次回：$day $time';
+  }
+
+  @override
   String get themeRequestInfo =>
       'ここにないテーマで OpenTranscribe を使いたいですか？GitHub で issue を作成していただければ、今後のリリースで追加します。追加されたテーマは OpenTranscribe Club のメンバー向けです。';
 
@@ -1088,6 +1123,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportEntryTitle => 'エントリーを書き出す';
+
+  @override
+  String get exportEntryPreparing => '書き出し中…';
+
+  @override
+  String get exportEntryFailed => '書き出せませんでした';
+
+  @override
+  String get exportEntryTooLarge => '大きすぎて書き出せません';
+
+  @override
+  String get exportEntryNoSpace => '空き容量が足りず書き出せません';
 
   @override
   String get exportIncludeAudio => '音声を含める';
@@ -1227,6 +1274,175 @@ class AppLocalizationsJa extends AppLocalizations {
   String get passphraseCreateBody => 'パスフレーズが唯一の鍵です。どこにも保存されません。なければバックアップはただのノイズです。';
 
   @override
+  String backupEntryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'エントリー$count件',
+      zero: 'まだエントリーはありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupRecordingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '録音$count件');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNoBackupYet => 'まだバックアップはありません';
+
+  @override
+  String get backupToday => '今日バックアップしました';
+
+  @override
+  String get backupEncrypting => '暗号化中…';
+
+  @override
+  String get backupReadyToShare => '共有の準備ができました';
+
+  @override
+  String get exportChooseWhereNote => '送り先を選んでください';
+
+  @override
+  String backupNewSince(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '以降の新規$count件');
+    return '$_temp0';
+  }
+
+  @override
+  String get backupNothingYet => 'まだバックアップするものがありません。';
+
+  @override
+  String get backupBackUp => 'バックアップ';
+
+  @override
+  String get backupRestore => '復元';
+
+  @override
+  String get backupBackingUp => 'バックアップ中';
+
+  @override
+  String backupBackingUpPercent(String percent) {
+    return 'バックアップ中、$percent';
+  }
+
+  @override
+  String get backupDoneNote => 'たった今バックアップしました';
+
+  @override
+  String get backupDoneSealedNote => 'たった今バックアップしました（暗号化済み）';
+
+  @override
+  String get restoreChecking => '確認中…';
+
+  @override
+  String get restoreUnlocking => '解錠中…';
+
+  @override
+  String restoreRunningPercent(String percent) {
+    return '復元中、$percent';
+  }
+
+  @override
+  String get restoreAgain => 'もう一度復元';
+
+  @override
+  String restorePlanAdds(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'エントリー$count件を追加');
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanReplaces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件をバックアップの内容に置き換え',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '録音$count件を取り戻し');
+    return '$_temp0';
+  }
+
+  @override
+  String restorePlanReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '振り返り$count件を更新');
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreNoSpace => 'この iPhone に復元するための空き容量が足りません。ジャーナルは何も変わっていません。';
+
+  @override
+  String get restorePlanNothing => 'このバックアップの内容はすべてそろっています。';
+
+  @override
+  String restoreDoneAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'エントリー$count件を追加済み');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReplaced(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count件を置き換え済み');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneRecordings(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '録音$count件を取り戻し済み');
+    return '$_temp0';
+  }
+
+  @override
+  String restoreDoneReflections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '振り返り$count件を更新済み');
+    return '$_temp0';
+  }
+
+  @override
+  String get restoreDoneNothing => '復元しました。すべてそろっていました。';
+
+  @override
+  String get restorePartialGeneric => '途中で止まりました。もう一度復元すると完了します。';
+
+  @override
+  String get restoreKeepOpen => '終わるまでアプリを開いたままにしてください。';
+
+  @override
+  String restorePartialNote(int done, int total) {
+    String _temp0 = intl.Intl.pluralLogic(total, locale: localeName, other: '$total件中');
+    return '途中で止まりました。$_temp0$done件を復元しました。もう一度復元すると完了します。';
+  }
+
+  @override
+  String get restorePartialReflections => 'エントリーは復元しました。振り返りは完了していません。もう一度復元すると完了します。';
+
+  @override
+  String get restoreUnopenable => 'そのファイルを開けませんでした。ジャーナルは何も変わっていません。';
+
+  @override
+  String get restoreRunning => '復元中';
+
+  @override
+  String get restoreExportNotBackup => 'これは他のアプリ用の複製です。復元できるのはバックアップだけです。ジャーナルは何も変わっていません。';
+
+  @override
+  String get exportSharedNote => 'たった今共有しました';
+
+  @override
+  String get backupCopiesSection => '他のアプリ用の複製';
+
+  @override
+  String get backupCopiesInfo => '他のアプリで読むための複製で、復元にはバックアップが要ります。';
+
+  @override
   String get passphrasePlaceholder => 'パスフレーズ';
 
   @override
@@ -1323,6 +1539,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importFailedBody => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
+
+  @override
+  String get restoreUnreadable => 'バックアップを読めませんでした。ジャーナルは何も変わっていません。';
 
   @override
   String get importNotArchive => 'OpenTranscribeのバックアップではありません。ジャーナルは何も変わっていません。';
