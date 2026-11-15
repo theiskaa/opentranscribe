@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
 import 'package:opentranscribe/core/state/batch_progress_cubit.dart';
+import 'package:opentranscribe/core/state/display_cubit.dart';
 import 'package:opentranscribe/core/state/engines_cubit.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -186,6 +187,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // Root-scoped so the Reflections screen and the home card (separate
         // routes) read one source.
         BlocProvider.value(value: _reflectionsCubit),
+        // Eager so the closed device's width is learned from launch on, before
+        // anything reads it; the constructor only subscribes.
+        BlocProvider(lazy: false, create: (_) => DisplayCubit(monitor: Deps.i.displayMonitor)),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         // The app-level chrome only depends on the resolved theme; skip

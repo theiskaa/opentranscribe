@@ -105,3 +105,29 @@ abstract final class AppAlpha {
   /// that ink without shouting it.
   static const wash = 0.14;
 }
+
+/// The two-display geometry. [closedContentWidth], [statusCluster] and
+/// [foldBand] are fallbacks for what the live regions and insets do not
+/// report, measured on the iPhone Duo simulator; the rest are chosen.
+abstract final class AppDuo {
+  /// The cover's content width (466 wide, less its 84 side column): what the
+  /// journal pane keeps when the device opens.
+  static const closedContentWidth = 382.0;
+
+  /// The band a remembered cover width must fall in. A reading outside it is
+  /// not this device's closed window, so it is pulled back inside.
+  static const closedContentWidthMin = 320.0;
+  static const closedContentWidthMax = 440.0;
+
+  /// The status cluster's depth atop the side column, when no occlusion says;
+  /// the cover's, the deeper of the two displays.
+  static const statusCluster = 174.0;
+
+  /// The fold's band when a tall window reports no division: the measured
+  /// division is 40 across, wide and tall alike.
+  static const foldBand = 40.0;
+
+  /// How far the recorder's instrument stands off an active fold: the gap
+  /// the app keeps between neighbouring blocks, as the fold is one more.
+  static const recorderFoldOffset = AppSpacing.md;
+}

@@ -43,6 +43,11 @@ abstract final class AppType {
     letterSpacing: -0.4,
     height: 1.45,
   );
+
+  /// [body]'s size at the first accessibility text size: Dynamic Type sets
+  /// it at 17 at Large and 28 at AX1. From here on the window holds one pane.
+  static const largeTextBody = 28.0;
+
   static const callout = TextStyle(
     leadingDistribution: _even,
     fontSize: 16,

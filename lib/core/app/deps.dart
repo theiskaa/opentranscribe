@@ -43,6 +43,7 @@ import 'package:opentranscribe/core/services/transcription_service.dart';
 import 'package:opentranscribe/core/services/transcription_settings.dart';
 import 'package:opentranscribe/core/support/support_store.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/utils/display_regions.dart';
 import 'package:opentranscribe/core/utils/thermal.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reflections/reflections.dart';
@@ -103,6 +104,7 @@ class Deps {
     required this.supportService,
     required this.appIconStore,
     required this.appIconDescriptors,
+    required this.displayMonitor,
   });
 
   /// The singleton instance. Valid only after [init] has completed.
@@ -211,6 +213,10 @@ class Deps {
   /// club's. Named here and nowhere else, like [exporterDescriptors].
   final List<AppIconDescriptor> appIconDescriptors;
 
+  /// What the display reserves around the window: the fold, the side bar,
+  /// the occlusions. Started in [init] at the cost of a channel listen.
+  final DisplayRegionsMonitor displayMonitor;
+
   /// How long any ONE platform-channel round trip below may take before
   /// startup gives up on it.
   ///
@@ -300,6 +306,9 @@ class Deps {
     // Costs the launch a channel listen; whisper's thread count and the bulk
     // re-transcribe queue read the cached answer.
     final thermalMonitor = ThermalMonitor()..start();
+    // Started before runApp, so its answer usually lands before the first
+    // layout.
+    final displayMonitor = DisplayRegionsMonitor()..start();
     // A models directory the platform cannot provide leaves Whisper
     // unavailable for this launch; it must not kill a launch on the Apple engines.
     final modelStorage = PlatformModelStorage();
@@ -518,6 +527,7 @@ class Deps {
       launchBackdrop: LaunchBackdrop(),
       supportService: supportService,
       appIconStore: AppIconStore(),
+      displayMonitor: displayMonitor,
       appIconDescriptors: [
         AppIconDescriptor(
           id: 'default',
