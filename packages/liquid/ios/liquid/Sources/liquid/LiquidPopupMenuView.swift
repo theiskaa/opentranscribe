@@ -224,22 +224,25 @@ final class LiquidPopupMenuView: LiquidNativeView {
   }
 
   private func buildMenuElements() -> [UIMenuElement] {
-    // Group items by dividers to create visual separation
-    let groups = groupItemsByDividers(items)
+    buildSections(items, scope: "liquid.group")
+  }
+
+  /// One level, each divider-separated group an inline section. [scope] keeps
+  /// every level's section ids distinct, so the held-open refresh never matches the wrong level.
+  private func buildSections(_ level: [[String: Any]], scope: String) -> [UIMenuElement] {
+    let groups = groupItemsByDividers(level)
 
     if groups.count == 1 {
-      // No dividers, just build children directly
       return groups[0].compactMap(buildMenuElement)
     }
 
-    // Multiple groups - wrap each in an inline menu for visual separation
     var menuChildren: [UIMenuElement] = []
     for (index, group) in groups.enumerated() {
       let groupElements = group.compactMap(buildMenuElement)
       if !groupElements.isEmpty {
         let inlineMenu = UIMenu(
           title: "",
-          identifier: UIMenu.Identifier("liquid.group.\(index)"),
+          identifier: UIMenu.Identifier("\(scope).\(index)"),
           options: .displayInline,
           children: groupElements
         )
@@ -325,11 +328,12 @@ final class LiquidPopupMenuView: LiquidNativeView {
     let isDestructive = boolValue(from: item, key: "isDestructive") ?? false
 
     if let nested = item["children"] as? [[String: Any]], !nested.isEmpty {
-      let submenuChildren = nested.compactMap(buildMenuElement)
+      let value = item["value"] as? String
+      let submenuChildren = buildSections(nested, scope: "liquid.group.\(value ?? "")")
       return UIMenu(
         title: title,
         image: image,
-        identifier: (item["value"] as? String).map { UIMenu.Identifier("liquid.menu.\($0)") },
+        identifier: value.map { UIMenu.Identifier("liquid.menu.\($0)") },
         options: [],
         children: submenuChildren)
     }

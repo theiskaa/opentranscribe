@@ -41,35 +41,52 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   private func apply(_ params: [String: Any]) {
-    applyStyle(from: params)
-    applyEnabled(from: params)
-    applyAccent(from: params)
+    let restyled = applyStyle(from: params)
+    let retinted = applyAccent(from: params)
     applyLabel(from: params)
+    let flips = pendingValue(params) != nil
+    // A crossfade blends whatever else changes in the same pass: a flip would
+    // show two knobs and a restyle would fade with it, so those snap the dim.
+    applyEnabled(from: params, fade: !(restyled || retinted || flips))
     applyValue(from: params)
   }
 
-  private func applyStyle(from params: [String: Any]) {
+  private func applyStyle(from params: [String: Any]) -> Bool {
     guard let isDark = boolValue(from: params, key: "isDark"), isDark != appliedIsDark else {
-      return
+      return false
     }
     appliedIsDark = isDark
     toggle.overrideUserInterfaceStyle = isDark ? .dark : .light
+    return true
   }
 
-  private func applyEnabled(from params: [String: Any]) {
+  private func applyEnabled(from params: [String: Any], fade: Bool) {
     let enabled = params["enabled"] as? Bool ?? true
     guard enabled != appliedEnabled else { return }
+    let initial = appliedEnabled == nil
     appliedEnabled = enabled
-    toggle.isEnabled = enabled
+    let duration = TimeInterval(params["enabledFadeMs"] as? Int ?? 0) / 1000
+    if initial || !fade || duration <= 0 || toggle.window == nil {
+      toggle.isEnabled = enabled
+      return
+    }
+    // isEnabled is not animatable, so a crossfade catches however UIKit draws the dim.
+    UIView.transition(
+      with: toggle,
+      duration: duration,
+      options: [.transitionCrossDissolve, .allowUserInteraction],
+      animations: { self.toggle.isEnabled = enabled }
+    )
   }
 
-  private func applyAccent(from params: [String: Any]) {
+  private func applyAccent(from params: [String: Any]) -> Bool {
     guard let accentColor = UIColor(flutterARGBValue: params["accentColor"]),
       !accentColor.isEqual(appliedAccent)
-    else { return }
+    else { return false }
     appliedAccent = accentColor
 
     toggle.onTintColor = accentColor
+    return true
   }
 
   private func applyLabel(from params: [String: Any]) {
@@ -80,8 +97,16 @@ final class LiquidToggleView: LiquidNativeView {
   }
 
   private func applyValue(from params: [String: Any]) {
-    guard let value = boolValue(from: params, key: "value"), currentValue() != value else { return }
+    guard let value = pendingValue(params) else { return }
     setOn(value, animated: toggle.window != nil)
+  }
+
+  /// The value [params] asks for, only when it differs from the switch's own.
+  private func pendingValue(_ params: [String: Any]) -> Bool? {
+    guard let value = boolValue(from: params, key: "value"), value != currentValue() else {
+      return nil
+    }
+    return value
   }
 
   /// A programmatic flip (a row tap round-tripping back, or a declined change

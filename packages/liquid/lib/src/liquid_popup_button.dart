@@ -24,7 +24,8 @@ class LiquidPopupButtonEntry {
       isSelected = false,
       keepsPresented = false;
 
-  /// Creates a divider entry that visually separates menu items.
+  /// Creates a divider entry that visually separates menu items, at the top
+  /// level or inside a submenu.
   const LiquidPopupButtonEntry.divider()
     : value = '__divider__',
       label = '',

@@ -17,6 +17,7 @@ class LiquidToggle extends StatefulWidget {
     this.accentColor,
     this.semanticLabel,
     this.isDark,
+    this.enabledFade = Duration.zero,
     this.placeholderBuilder,
     super.key,
   });
@@ -33,6 +34,11 @@ class LiquidToggle extends StatefulWidget {
   /// This ensures the native component matches Flutter's theme.
   final bool? isDark;
 
+  /// How long a change of [enabled] fades, so the switch can ease with what
+  /// surrounds it. Zero snaps, as do the first build and a change that lands
+  /// with a flip of [value] or a new [isDark] or [accentColor].
+  final Duration enabledFade;
+
   /// Built in place of the native view while this route is covered by another.
   final WidgetBuilder? placeholderBuilder;
 
@@ -47,6 +53,7 @@ class _LiquidToggleState extends State<LiquidToggle> {
     if (widget.accentColor != null) 'accentColor': widget.accentColor!.toARGB32(),
     if (widget.semanticLabel != null) 'semanticLabel': widget.semanticLabel,
     if (widget.isDark != null) 'isDark': widget.isDark,
+    'enabledFadeMs': widget.enabledFade.inMilliseconds,
   };
 
   @override
