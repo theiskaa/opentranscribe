@@ -1442,7 +1442,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recordButton => '新しいエントリー';
 
   @override
-  String get recordCloseButton => 'キャンセル';
+  String get recordCloseButton => '閉じる';
 
   @override
   String get recordRestartButton => 'やり直す';

@@ -1440,7 +1440,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get recordButton => '새 항목';
 
   @override
-  String get recordCloseButton => '취소';
+  String get recordCloseButton => '닫기';
 
   @override
   String get recordRestartButton => '다시 시작';

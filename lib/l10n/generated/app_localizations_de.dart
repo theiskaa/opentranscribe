@@ -1572,7 +1572,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get recordButton => 'Neuer Eintrag';
 
   @override
-  String get recordCloseButton => 'Abbrechen';
+  String get recordCloseButton => 'Schließen';
 
   @override
   String get recordRestartButton => 'Neu beginnen';

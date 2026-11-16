@@ -2637,7 +2637,7 @@ abstract class AppLocalizations {
   /// VoiceOver name of the recorder control that leaves the take
   ///
   /// In en, this message translates to:
-  /// **'Cancel'**
+  /// **'Close'**
   String get recordCloseButton;
 
   /// VoiceOver name of the recorder control that discards the take for a fresh one

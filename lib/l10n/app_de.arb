@@ -427,7 +427,7 @@
   "menuButton": "Mehr",
   "languageMenuButton": "Sprache",
   "recordButton": "Neuer Eintrag",
-  "recordCloseButton": "Abbrechen",
+  "recordCloseButton": "Schließen",
   "recordRestartButton": "Neu beginnen",
   "recordPauseButton": "Pause",
   "recordResumeButton": "Fortsetzen",

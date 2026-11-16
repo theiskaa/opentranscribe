@@ -1568,7 +1568,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get recordButton => 'Nuova voce';
 
   @override
-  String get recordCloseButton => 'Annulla';
+  String get recordCloseButton => 'Chiudi';
 
   @override
   String get recordRestartButton => 'Ricomincia';

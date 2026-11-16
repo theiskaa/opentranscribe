@@ -427,7 +427,7 @@
   "menuButton": "その他",
   "languageMenuButton": "言語",
   "recordButton": "新しいエントリー",
-  "recordCloseButton": "キャンセル",
+  "recordCloseButton": "閉じる",
   "recordRestartButton": "やり直す",
   "recordPauseButton": "一時停止",
   "recordResumeButton": "再開",

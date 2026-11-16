@@ -2053,7 +2053,7 @@
   "@recordButton": {
     "description": "VoiceOver name of the floating record disc on home"
   },
-  "recordCloseButton": "Cancel",
+  "recordCloseButton": "Close",
   "@recordCloseButton": {
     "description": "VoiceOver name of the recorder control that leaves the take"
   },

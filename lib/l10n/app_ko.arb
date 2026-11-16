@@ -427,7 +427,7 @@
   "menuButton": "더 보기",
   "languageMenuButton": "언어",
   "recordButton": "새 항목",
-  "recordCloseButton": "취소",
+  "recordCloseButton": "닫기",
   "recordRestartButton": "다시 시작",
   "recordPauseButton": "일시 정지",
   "recordResumeButton": "재개",

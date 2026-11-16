@@ -1431,7 +1431,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recordButton => '新条目';
 
   @override
-  String get recordCloseButton => '取消';
+  String get recordCloseButton => '关闭';
 
   @override
   String get recordRestartButton => '重新开始';
