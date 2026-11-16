@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 
 /// How deep each edge of the window dissolves, in lines. Under half a line the
 /// cut is still a cut; much over one and the window loses a line to softness.
@@ -243,7 +245,9 @@ class _LiveTranscriptState extends State<LiveTranscript> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.recorder;
-    final style = AppType.body.copyWith(color: tokens.liveTextColor);
+    final inner = duoInnerOf(context);
+    final ink = inner ? context.theme.text : tokens.liveTextColor;
+    final style = (inner ? DuoTheme.body : AppType.body).copyWith(color: ink);
     final scaler = MediaQuery.textScalerOf(context);
     if (_measuredWith != style || _measuredAt != scaler) {
       _widths.clear();
@@ -364,11 +368,11 @@ class _LiveTranscriptState extends State<LiveTranscript> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        tokens.liveTextColor.withValues(alpha: 0),
-                        context.highContrast ? tokens.liveTextColor : tokens.liveTextFadedColor,
-                        tokens.liveTextColor,
-                        tokens.liveTextColor,
-                        tokens.liveTextColor.withValues(alpha: 0),
+                        ink.withValues(alpha: 0),
+                        context.highContrast ? ink : tokens.liveTextFadedColor,
+                        ink,
+                        ink,
+                        ink.withValues(alpha: 0),
                       ],
                       stops: [0, top / 2, top, 1 - bottom, 1],
                     ).createShader(rect),

@@ -25,6 +25,7 @@ Map<RecorderBlock, Rect> blocksFor(
   PaneLayout layout, {
   double continuing = 0,
   double notice = 0,
+  bool instrumentHeading = false,
   TextDirection direction = TextDirection.ltr,
 }) => recorderBlockRects(
   layout,
@@ -43,6 +44,7 @@ Map<RecorderBlock, Rect> blocksFor(
   barHeight: 52,
   direction: direction,
   languageSize: const Size(44, 44),
+  instrumentHeading: instrumentHeading,
 );
 
 void main() {
@@ -128,6 +130,63 @@ void main() {
     expect(blocks[RecorderBlock.wave]!.width, 353.5);
     expect(blocks[RecorderBlock.language]!.top, 136);
     expect(blocks[RecorderBlock.language]!.center.dx, 909);
+  });
+
+  test('the paired clock belongs to the waveform without shifting words or controls', () {
+    for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
+      final layout = layoutFor(wire);
+      final resting = blocksFor(layout, continuing: 30, notice: 40);
+      final grouped = blocksFor(layout, continuing: 30, notice: 40, instrumentHeading: true);
+      expect(grouped[RecorderBlock.header]!.top, greaterThan(layout.recorder.first.top));
+      expect(grouped[RecorderBlock.header]!.bottom, grouped[RecorderBlock.continuing]!.top);
+      expect(grouped[RecorderBlock.continuing]!.bottom, grouped[RecorderBlock.wave]!.top);
+      expect(grouped[RecorderBlock.wave]!.bottom, lessThan(grouped[RecorderBlock.notice]!.top));
+      expect(grouped[RecorderBlock.header]!.center.dx, grouped[RecorderBlock.wave]!.center.dx);
+      for (final block in [RecorderBlock.words, RecorderBlock.controls, RecorderBlock.language]) {
+        expect(grouped[block], resting[block]);
+      }
+      if (layout.fold != null) {
+        for (final rect in grouped.values) {
+          expect(rect.overlaps(layout.fold!.rect), isFalse);
+        }
+      }
+    }
+  });
+
+  test('phone and stacked layouts ignore the paired instrument heading', () {
+    for (final wire in [DisplayWire.iphone, DisplayWire.cover, DisplayWire.laptop]) {
+      final layout = layoutFor(wire);
+      expect(blocksFor(layout, instrumentHeading: true), blocksFor(layout));
+    }
+  });
+
+  test('the paired instrument clears controls as its heading grows', () {
+    final layout = layoutFor(DisplayWire.flatWide);
+    for (final scale in [1.0, 1.3, 1.6]) {
+      final blocks = recorderBlockRects(
+        layout,
+        heights: {
+          RecorderBlock.header: 100 * scale,
+          RecorderBlock.continuing: 30 * scale,
+          RecorderBlock.wave: 96,
+          RecorderBlock.words: 110 * scale,
+          RecorderBlock.notice: 40 * scale,
+          RecorderBlock.controls: 52,
+        },
+        barHeight: 52,
+        direction: TextDirection.ltr,
+        instrumentHeading: true,
+      );
+      expect(blocks[RecorderBlock.header]!.top, greaterThanOrEqualTo(layout.recorder.first.top));
+      expect(
+        blocks[RecorderBlock.wave]!.bottom,
+        lessThanOrEqualTo(blocks[RecorderBlock.notice]!.top),
+      );
+      expect(
+        blocks[RecorderBlock.controls]!.bottom,
+        lessThanOrEqualTo(layout.recorder.first.bottom),
+      );
+    }
   });
 
   test('book blocks and every control stay on their own side of the reserved fold', () {

@@ -4,7 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
 import 'package:opentranscribe/core/state/recorder_cubit.dart';
 import 'package:opentranscribe/core/state/settings_cubit.dart';
@@ -28,6 +30,8 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/pane_glide.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 
@@ -179,17 +183,32 @@ class _RecorderScreenState extends State<RecorderScreen> {
           final restarting = state.status == RecorderStatus.restarting;
           final denied = state.error == RecorderError.permissionDenied;
           if (denied) return _RecorderDenied(onClose: () => _close(keepSilence: false));
+          final instrumentHeading =
+              duoInnerOf(context) &&
+              PaneGlide.layoutOf(context).recorder.arrangement == RecorderArrangement.sideBySide;
+          final stateLabel = state.isPaused
+              ? l10n.recordStatePaused
+              : (state.live ? l10n.recordStateRecording : null);
           return RecorderPose(
-            header: AppTopBar(
-              centerTitle: true,
-              automaticLeading: false,
-              title: _Timer(paused: state.isPaused),
-              subtitle: _StateLine(
-                label: state.isPaused
-                    ? l10n.recordStatePaused
-                    : (state.live ? l10n.recordStateRecording : null),
-              ),
-            ),
+            instrumentHeading: instrumentHeading,
+            header: instrumentHeading
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _Timer(paused: state.isPaused, prominent: true),
+                        const SizedBox(height: AppSpacing.sm),
+                        _StateLine(label: stateLabel, prominent: true),
+                      ],
+                    ),
+                  )
+                : AppTopBar(
+                    centerTitle: true,
+                    automaticLeading: false,
+                    title: _Timer(paused: state.isPaused),
+                    subtitle: _StateLine(label: stateLabel),
+                  ),
             continuing:
                 widget.continueEntryId != null && (state.continuing != null || !state.isBusy)
                 ? ContinuingLine(entryId: widget.continueEntryId!)
@@ -314,9 +333,10 @@ class _PermissionContent extends StatelessWidget {
 /// to zero. Paused, it dims: a clock that merely stopped is indistinguishable
 /// from one that hung.
 class _Timer extends StatefulWidget {
-  const _Timer({required this.paused});
+  const _Timer({required this.paused, this.prominent = false});
 
   final bool paused;
+  final bool prominent;
 
   @override
   State<_Timer> createState() => _TimerState();
@@ -341,10 +361,17 @@ class _TimerState extends State<_Timer> {
             _direction = elapsed > _last ? 1 : -1;
             _last = elapsed;
           }
-          return RollingText(
-            text: formatElapsed(elapsed),
-            style: AppType.timer.copyWith(color: theme.recorder.timerColor),
-            direction: _direction,
+          final text = formatElapsed(elapsed);
+          return Semantics(
+            label: text,
+            excludeSemantics: true,
+            child: RollingText(
+              text: text,
+              style: (widget.prominent ? DuoTheme.recorderTimer : AppType.timer).copyWith(
+                color: theme.recorder.timerColor,
+              ),
+              direction: _direction,
+            ),
           );
         },
       ),
@@ -357,16 +384,18 @@ class _TimerState extends State<_Timer> {
 /// before it is; its line is reserved either way, so nothing jumps when the
 /// word arrives.
 class _StateLine extends StatelessWidget {
-  const _StateLine({required this.label});
+  const _StateLine({required this.label, this.prominent = false});
 
   final String? label;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     // The eyebrow's line as Text sets it, reserved whether or not a word is in it.
-    final lineHeight = AppType.lineHeightOf(AppType.eyebrow, DefaultTextStyle.of(context).style);
-    final height = MediaQuery.textScalerOf(context).scale(AppType.eyebrow.fontSize!) * lineHeight;
+    final style = prominent ? DuoTheme.sheetSubtitle : AppType.eyebrow;
+    final lineHeight = AppType.lineHeightOf(style, DefaultTextStyle.of(context).style);
+    final height = MediaQuery.textScalerOf(context).scale(style.fontSize!) * lineHeight;
     return SizedBox(
       height: height,
       child: AnimatedSwitcher(
@@ -374,9 +403,9 @@ class _StateLine extends StatelessWidget {
         child: label == null
             ? const SizedBox.shrink()
             : Text(
-                label!.toUpperCase(),
+                prominent ? label! : label!.toUpperCase(),
                 key: ValueKey(label),
-                style: AppType.eyebrow.copyWith(color: theme.textSecondary),
+                style: style.copyWith(color: theme.textSecondary),
               ),
       ),
     );

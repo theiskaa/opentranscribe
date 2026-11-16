@@ -7,6 +7,8 @@ import 'package:opentranscribe/view/widgets/app_button.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
 import 'package:opentranscribe/view/widgets/app_loader.dart';
 import 'package:opentranscribe/view/widgets/touchable.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 
 /// The recorder's controls: four circles of one size, split into what you do
 /// to the take and what ENDS it. Close, restart and pause group at the left;
@@ -134,7 +136,9 @@ class _Flank extends StatelessWidget {
     return AnimatedOpacity(
       duration: theme.motion.crossfade,
       opacity: dimmed ? theme.button.disabledOpacity : 1,
-      child: AppIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label),
+      child: duoInnerOf(context)
+          ? AppGlassIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label)
+          : AppIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label),
     );
   }
 }

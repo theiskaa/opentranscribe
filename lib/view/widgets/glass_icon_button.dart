@@ -71,8 +71,8 @@ class AppGlassIconButton extends StatelessWidget {
           onTap: onTap,
           haptic: true,
           child: Container(
-            width: AppDuo.barItem,
-            height: AppDuo.barItem,
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               color: theme.duo.controlSurface,
               shape: BoxShape.circle,

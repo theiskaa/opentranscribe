@@ -24,6 +24,7 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   required double barHeight,
   required TextDirection direction,
   Size languageSize = Size.zero,
+  bool instrumentHeading = false,
 }) {
   final recorder = layout.recorder;
   final column = recorder.arrangement == RecorderArrangement.column;
@@ -31,7 +32,8 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   final first = recorder.first;
   final second = recorder.second ?? first;
   final window = layout.leading.rect.expandToInclude(layout.detail.rect);
-  final header = Rect.fromLTWH(
+  final grouped = instrumentHeading && recorder.arrangement == RecorderArrangement.sideBySide;
+  var header = Rect.fromLTWH(
     column ? window.left : first.left,
     column ? window.top : first.top,
     column ? window.width : first.width,
@@ -44,8 +46,9 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   Rect block(RecorderBlock id, Rect region, double top) =>
       Rect.fromLTWH(region.left + inset, top, math.max(0, region.width - inset * 2), height(id));
 
-  final instrumentTop = stacked ? instrument.top : header.bottom;
+  final instrumentTop = stacked || grouped ? instrument.top : header.bottom;
   final contentHeight =
+      (grouped ? header.height : 0) +
       height(RecorderBlock.continuing) +
       height(RecorderBlock.wave) +
       (column ? AppSpacing.lg + height(RecorderBlock.words) : 0);
@@ -61,13 +64,16 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   );
   final controls = block(RecorderBlock.controls, instrument, notice.bottom);
   final free = math.max(0, notice.top - instrumentTop - contentHeight);
+  final groupTop =
+      instrumentTop +
+      free *
+          AppRecorderLayout.upperSpace /
+          (AppRecorderLayout.upperSpace + AppRecorderLayout.lowerSpace);
+  if (grouped) header = Rect.fromLTWH(first.left, groupTop, first.width, header.height);
   final continuing = block(
     RecorderBlock.continuing,
     instrument,
-    instrumentTop +
-        free *
-            AppRecorderLayout.upperSpace /
-            (AppRecorderLayout.upperSpace + AppRecorderLayout.lowerSpace),
+    grouped ? header.bottom : groupTop,
   );
   final wave = block(RecorderBlock.wave, instrument, continuing.bottom);
   final wordsTop = column
@@ -109,6 +115,7 @@ class RecorderPose extends StatelessWidget {
     required this.notice,
     required this.controls,
     required this.language,
+    this.instrumentHeading = false,
     super.key,
   });
 
@@ -119,6 +126,7 @@ class RecorderPose extends StatelessWidget {
   final Widget notice;
   final Widget controls;
   final Widget language;
+  final bool instrumentHeading;
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +146,7 @@ class RecorderPose extends StatelessWidget {
             layout: layout,
             barHeight: context.theme.topBar.height,
             direction: Directionality.of(context),
+            instrumentHeading: instrumentHeading,
           ),
           // The slots stay mounted through stale signals and every pose, preserving bars and scroll.
           children: [
@@ -181,11 +190,17 @@ class RecorderPose extends StatelessWidget {
 }
 
 class _RecorderPoseLayout extends MultiChildLayoutDelegate {
-  _RecorderPoseLayout({required this.layout, required this.barHeight, required this.direction});
+  _RecorderPoseLayout({
+    required this.layout,
+    required this.barHeight,
+    required this.direction,
+    required this.instrumentHeading,
+  });
 
   final PaneLayout layout;
   final double barHeight;
   final TextDirection direction;
+  final bool instrumentHeading;
 
   @override
   void performLayout(Size size) {
@@ -194,6 +209,7 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
       heights: const {},
       barHeight: barHeight,
       direction: direction,
+      instrumentHeading: instrumentHeading,
     );
     final heights = <RecorderBlock, double>{};
     for (final block in RecorderBlock.values) {
@@ -213,6 +229,7 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
       barHeight: barHeight,
       direction: direction,
       languageSize: language,
+      instrumentHeading: instrumentHeading,
     );
     for (final block in RecorderBlock.values) {
       positionChild(block, rects[block]!.topLeft);
@@ -223,5 +240,6 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
   bool shouldRelayout(_RecorderPoseLayout oldDelegate) =>
       layout != oldDelegate.layout ||
       barHeight != oldDelegate.barHeight ||
-      direction != oldDelegate.direction;
+      direction != oldDelegate.direction ||
+      instrumentHeading != oldDelegate.instrumentHeading;
 }

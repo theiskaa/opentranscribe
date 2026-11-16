@@ -103,6 +103,12 @@ final class DuoTheme {
     letterSpacing: -0.3,
     height: 1.15,
   );
+  static final recorderTimer = AppType.timer.copyWith(
+    fontSize: 40,
+    fontWeight: FontWeight.w500,
+    letterSpacing: -1,
+    height: 1.15,
+  );
   static final body = AppType.body.copyWith(fontSize: 19, height: 1.45);
   static final shortBody = AppType.body.copyWith(fontSize: 22, height: 1.5);
   static final rowTitle = AppType.body.copyWith(fontSize: 17, height: 1.2);
