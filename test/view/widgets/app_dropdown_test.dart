@@ -10,6 +10,16 @@ void main() {
   const row = 56.0;
   const side = AppSizes.barControl;
 
+  test('the first dropdown choices never start above the scrollable range', () {
+    for (final selected in [-1, 0, 1, 2]) {
+      expect(dropdownInitialOffset(selected: selected, rowHeight: row), 0);
+    }
+  });
+
+  test('a later dropdown choice opens with two rows of context above it', () {
+    expect(dropdownInitialOffset(selected: 5, rowHeight: row), row * 3);
+  });
+
   test('a long dropdown anchored above the laptop fold fits below it', () {
     const bounds = Rect.fromLTRB(0, 496, 669, 917);
     final rect = dropdownRect(

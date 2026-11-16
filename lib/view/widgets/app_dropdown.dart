@@ -5,6 +5,7 @@ import 'package:opentranscribe/view/widgets/duo_style.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/component_themes.dart';
 import 'package:opentranscribe/view/widgets/anchored_popup.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 import 'package:opentranscribe/view/widgets/settings_kit.dart';
@@ -101,6 +102,9 @@ Rect dropdownRect({required Rect anchor, required Rect bounds, required double n
   return Rect.fromLTWH(left, top, width, height);
 }
 
+double dropdownInitialOffset({required int selected, required double rowHeight}) =>
+    math.max(0, selected - 2) * rowHeight;
+
 class _DropdownBody extends StatefulWidget {
   const _DropdownBody({required this.anchor, required this.items});
 
@@ -121,20 +125,26 @@ class _DropdownBodyState extends State<_DropdownBody> {
     // A long list opens AT the selection, not at the top of the alphabet.
     final selected = widget.items.indexWhere((item) => item.selected);
     _scrollOrNull ??= ScrollController(
-      initialScrollOffset: selected <= 0 ? 0 : (selected - 2) * _rowHeight(context, widget.items),
+      initialScrollOffset: dropdownInitialOffset(
+        selected: selected,
+        rowHeight: _rowHeight(context, context.themeNow.settings, widget.items),
+      ),
     );
   }
 
   /// One row's height, exactly as [SelectableRow] lays it out: a dropdown's
   /// rows are all flagged or all plain.
-  static double _rowHeight(BuildContext context, List<AppDropdownItem> items) =>
-      selectableRowHeight(
-        context.theme.settings,
-        scaler: MediaQuery.textScalerOf(context),
-        ambientHeight: DefaultTextStyle.of(context).style.height,
-        tile: items.any((item) => item.flag != null),
-        inner: duoInnerNow(context),
-      );
+  static double _rowHeight(
+    BuildContext context,
+    SettingsTheme settings,
+    List<AppDropdownItem> items,
+  ) => selectableRowHeight(
+    settings,
+    scaler: MediaQuery.textScalerOf(context),
+    ambientHeight: DefaultTextStyle.of(context).style.height,
+    tile: items.any((item) => item.flag != null),
+    inner: duoInnerNow(context),
+  );
 
   @override
   void dispose() {
@@ -145,7 +155,9 @@ class _DropdownBodyState extends State<_DropdownBody> {
   @override
   Widget build(BuildContext context) {
     final bounds = popupBounds(context);
-    final natural = widget.items.length * _rowHeight(context, widget.items) + AppSpacing.sm * 2;
+    final natural =
+        widget.items.length * _rowHeight(context, context.theme.settings, widget.items) +
+        AppSpacing.sm * 2;
     final rect = dropdownRect(anchor: widget.anchor, bounds: bounds, naturalHeight: natural);
 
     return Stack(
