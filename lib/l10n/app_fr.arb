@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "Arrêté en cours de route. Relancer reprend là où ça s'est arrêté.",
   "delete": "Supprimer",
   "homeSetupChangeEngine": "Changer de moteur",
+  "homeNavigation": "Accueil",
+  "homeDetailSelectTitle": "Votre journal",
+  "homeDetailSelectBody": "Choisissez une entrée ou une réflexion à gauche pour l’ouvrir ici.",
   "homeDetailEmptyTitle": "Votre journal commence ici",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

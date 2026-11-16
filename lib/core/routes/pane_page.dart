@@ -11,6 +11,7 @@ import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/core/routes/routes.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/core/theming/app_motion.dart';
@@ -76,7 +77,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
   bool _instantPop = false;
 
   bool get _split => _mode == PaneMode.split;
-  bool get _journalSelection => _panes.journalSelectionKey == (settings as PanePage<T>).key;
+  bool get _journalSelection => (settings as PanePage<T>).name == Routes.entryName;
 
   bool get _detailRoot => _panes.detailKeys.firstOrNull == (settings as PanePage<T>).key;
 
@@ -153,9 +154,6 @@ class _PanePageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  bool get requestFocus => !(_split && _journalSelection) && super.requestFocus;
-
-  @override
   bool get barrierDismissible => false;
 
   // No dim on the page below: darkening a screen that isn't moving read as off.
@@ -172,12 +170,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
   ) {
-    final split = PaneLayoutScope.of(context).layout.mode == PaneMode.split;
-    return Semantics(
-      scopesRoute: !(split && _journalSelection),
-      explicitChildNodes: true,
-      child: _child,
-    );
+    return Semantics(scopesRoute: true, explicitChildNodes: true, child: _child);
   }
 
   @override
@@ -215,7 +208,7 @@ class _PanePageRoute<T> extends PageRoute<T> {
                 position: DecorationPosition.foreground,
                 child: _BackGestureDetector<T>(
                   geometry: panes.layout.detail.rect,
-                  enabledCallback: () => popGestureEnabled && (!split || !_journalSelection),
+                  enabledCallback: () => popGestureEnabled,
                   onStartPopGesture: _startPopGesture,
                   child: child,
                 ),

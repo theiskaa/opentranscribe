@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "途中で停止しました。再実行すると続きから再開します。",
   "delete": "削除",
   "homeSetupChangeEngine": "エンジンを変更",
+  "homeNavigation": "ホーム",
+  "homeDetailSelectTitle": "あなたの日記",
+  "homeDetailSelectBody": "左側の記録や振り返りを選ぶと、ここに表示されます。",
   "homeDetailEmptyTitle": "ここから始まる日記",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

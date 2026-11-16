@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/theming/component_themes.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/contrast.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 
@@ -75,11 +76,10 @@ final class DuoTheme {
   final PlayerTheme player;
   final Color scrim;
 
-  static const sheetWidth = 540.0;
-  static const sheetRadius = 28.0;
-  static const sheetMinHeight = 320.0;
+  static const sheetWidth = 420.0;
+  static const sheetRadius = 20.0;
   static const sheetHeightFraction = 0.85;
-  static const sheetToolbarHeight = 56.0;
+  static const sheetToolbarHeight = AppSizes.minTarget + AppSpacing.lg;
   static const buttonHeight = 50.0;
   static const buttonRadius = 25.0;
   static const groupRadius = 14.0;
@@ -107,11 +107,12 @@ final class DuoTheme {
   static final shortBody = AppType.body.copyWith(fontSize: 22, height: 1.5);
   static final rowTitle = AppType.body.copyWith(fontSize: 17, height: 1.2);
   static final metadata = AppType.footnote.copyWith(fontSize: 14, height: 1.3);
+  static const pageTop = AppSpacing.xxxl;
   static const headerHeight = 72.0;
   static const metadataBaseline = 60.0;
   static const stripTop = 84.0;
   static const bodyTop = 172.0;
-  static const detailTrailing = 20.0;
+  static const detailTrailing = AppSpacing.xxl;
   static const playerInset = 16.0;
   static const playerRowGap = 12.0;
   static const playerControl = 36.0;

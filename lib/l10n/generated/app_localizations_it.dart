@@ -94,6 +94,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get homeSetupChangeEngine => 'Cambia motore';
 
   @override
+  String get homeNavigation => 'Home';
+
+  @override
+  String get homeDetailSelectTitle => 'Il tuo diario';
+
+  @override
+  String get homeDetailSelectBody =>
+      'Scegli una voce o una riflessione a sinistra per aprirla qui.';
+
+  @override
   String get homeDetailEmptyTitle => 'Il tuo diario inizia qui';
 
   @override

@@ -14,6 +14,13 @@ class PaneObserver extends NavigatorObserver with ChangeNotifier {
 
   bool get selectionOnTop => _top?.settings is PanePage;
 
+  bool get detailNavigationBlocked => _routes.any(
+    (route) =>
+        route.isActive &&
+        route.settings is PanePage &&
+        route.popDisposition == RoutePopDisposition.doNotPop,
+  );
+
   bool get chromeCovered =>
       _routes.any((route) => route.settings is SlideUpPage || route.settings is NoTransitionPage);
 

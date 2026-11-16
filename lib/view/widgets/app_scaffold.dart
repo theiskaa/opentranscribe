@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_top_bar.dart';
 
@@ -34,7 +36,8 @@ class AppScaffold extends StatelessWidget {
   /// plus a breath. Content peeks under the frosted tail as it scrolls, which is
   /// the point; nothing under the bar is a platform view, so the blur composites
   /// it cleanly.
-  static double topPaddingOf(BuildContext context) => AppTopBar.heightOf(context) + AppSpacing.lg;
+  static double topPaddingOf(BuildContext context) =>
+      AppTopBar.heightOf(context) + (duoInnerOf(context) ? DuoTheme.pageTop : AppSpacing.lg);
 
   /// Where a control anchored to the screen's bottom rests: xl above the safe
   /// area, the same for every one of them (a floating disc, a dock, a capsule,

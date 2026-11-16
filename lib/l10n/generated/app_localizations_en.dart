@@ -92,6 +92,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSetupChangeEngine => 'Change engine';
 
   @override
+  String get homeNavigation => 'Home';
+
+  @override
+  String get homeDetailSelectTitle => 'Your journal';
+
+  @override
+  String get homeDetailSelectBody => 'Choose an entry or reflection on the left to open it here.';
+
+  @override
   String get homeDetailEmptyTitle => 'Your journal starts here';
 
   @override

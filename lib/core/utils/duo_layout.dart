@@ -51,9 +51,6 @@ EdgeInsets duoDetailInsets({
   return (cell: cell, gap: math.max(gap, (available - cell * 7) / 6));
 }
 
-bool duoRowSeparator({required bool last, required bool selected, required bool nextSelected}) =>
-    !last && !selected && !nextSelected;
-
 ({double header, double detailTop}) duoHeaderMetrics({
   required double minimum,
   required double titleLine,
@@ -76,6 +73,16 @@ bool duoRowSeparator({required bool last, required bool selected, required bool 
   );
 }
 
+double duoHeadingTop({
+  required double navigationLine,
+  required double navigationBaseline,
+  required double headingBaseline,
+}) {
+  final rowHeight = math.max(AppSizes.minTarget, navigationLine + AppSpacing.sm * 2);
+  final baseline = DuoTheme.pageTop + (rowHeight - navigationLine) / 2 + navigationBaseline;
+  return math.max(0, baseline - headingBaseline);
+}
+
 double duoDayHeight({required double letterLine, required double numberLine}) =>
     math.max(AppDuo.dayHeight, letterLine + AppSpacing.xxs + numberLine + AppDuo.dayDotClearance);
 
@@ -92,9 +99,10 @@ Rect duoSheetRegion({
   required PaneTouch? source,
   required Size window,
 }) {
-  if (layout.fold == null) return Offset.zero & window;
-  if (layout.mode != PaneMode.split || source == null) return layout.modal;
-  return source == PaneTouch.journal ? layout.leading.rect : layout.detail.rect;
+  if (layout.mode == PaneMode.split && source != null) {
+    return source == PaneTouch.journal ? layout.leading.rect : layout.detail.rect;
+  }
+  return layout.fold == null ? Offset.zero & window : layout.modal;
 }
 
 Rect? duoDaySelection({

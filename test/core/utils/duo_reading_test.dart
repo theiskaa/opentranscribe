@@ -6,6 +6,32 @@ import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 
 void main() {
+  test('journal and record headings share the sidebar text baseline as type grows', () {
+    for (final scale in [1.0, 1.15, 1.3, 1.6]) {
+      final line = 24 * scale;
+      final baseline = 19 * scale;
+      final row = line + AppSpacing.sm * 2 < AppSizes.minTarget
+          ? AppSizes.minTarget
+          : line + AppSpacing.sm * 2;
+      final target = DuoTheme.pageTop + (row - line) / 2 + baseline;
+      for (final heading in [23 * scale, 38 * scale]) {
+        expect(
+          duoHeadingTop(
+                navigationLine: line,
+                navigationBaseline: baseline,
+                headingBaseline: heading,
+              ) +
+              heading,
+          closeTo(target, 0.001),
+        );
+      }
+    }
+  });
+
+  test('an oversized heading never receives a negative top inset', () {
+    expect(duoHeadingTop(navigationLine: 60, navigationBaseline: 48, headingBaseline: 100), 0);
+  });
+
   test('the detail measure uses the actual pane and clears its side column', () {
     for (final width in [0.0, 320.0, 540.0, 1200.0]) {
       for (final safe in [const EdgeInsets.only(left: 64), const EdgeInsets.only(right: 64)]) {

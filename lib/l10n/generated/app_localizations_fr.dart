@@ -94,6 +94,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeSetupChangeEngine => 'Changer de moteur';
 
   @override
+  String get homeNavigation => 'Accueil';
+
+  @override
+  String get homeDetailSelectTitle => 'Votre journal';
+
+  @override
+  String get homeDetailSelectBody =>
+      'Choisissez une entrée ou une réflexion à gauche pour l’ouvrir ici.';
+
+  @override
   String get homeDetailEmptyTitle => 'Votre journal commence ici';
 
   @override

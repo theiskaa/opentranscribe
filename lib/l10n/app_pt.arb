@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "Parado a meio. Voltar a executar retoma onde ficou.",
   "delete": "Eliminar",
   "homeSetupChangeEngine": "Alterar motor",
+  "homeNavigation": "Início",
+  "homeDetailSelectTitle": "Seu diário",
+  "homeDetailSelectBody": "Escolha uma entrada ou reflexão à esquerda para abri-la aqui.",
   "homeDetailEmptyTitle": "Seu diário começa aqui",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

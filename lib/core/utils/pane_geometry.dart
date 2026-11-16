@@ -165,7 +165,7 @@ SideColumn? _sideColumnOf(Size size, EdgeInsets padding, DisplaySignal signal) {
     leading = Rect.fromLTRB(0, 0, fold!.rect.left, size.height);
     detail = Rect.fromLTRB(fold.rect.right, 0, size.width, size.height);
   } else {
-    final edge = padding.left + closed;
+    final edge = padding.left + math.min(closed, AppDuo.navigationWidth);
     leading = Rect.fromLTRB(0, 0, edge, size.height);
     divider = Rect.fromLTWH(edge, 0, AppStroke.hairline, size.height);
     detail = Rect.fromLTRB(edge + AppStroke.hairline, 0, size.width, size.height);

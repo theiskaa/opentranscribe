@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "已提前停止。再次运行会从中断处继续。",
   "delete": "删除",
   "homeSetupChangeEngine": "更换引擎",
+  "homeNavigation": "首页",
+  "homeDetailSelectTitle": "你的日记",
+  "homeDetailSelectBody": "选择左侧的记录或回顾，即可在此查看。",
   "homeDetailEmptyTitle": "从这里开始写日记",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

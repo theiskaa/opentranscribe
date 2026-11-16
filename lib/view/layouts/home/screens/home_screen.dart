@@ -6,6 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/models/reflection.dart';
 import 'package:opentranscribe/core/models/take_forecast.dart';
@@ -276,14 +279,16 @@ class _HomeScreenState extends State<_Journal> {
     // The strip gets a breath under the subtitle; resting content starts
     // fully past the fade tail so the first splitter is never washed.
     _contentTop = duoJournalOf(context)
-        ? MediaQuery.paddingOf(context).top + duoReadingGridOf(context).bodyTop
+        ? MediaQuery.paddingOf(context).top +
+              duoJournalTopInsetOf(context) +
+              duoReadingGridOf(context).bodyTop
         : AppTopBar.largeHeightOf(context) +
               AppSpacing.md +
               WeekCalendar.heightOf(context) +
               theme.topBar.fadeTail;
 
     return ColoredBox(
-      color: duoJournalOf(context) ? theme.duo.surfaceGrouped : theme.screens.home,
+      color: theme.screens.home,
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           _sections.prune(state.entryDays);
@@ -576,17 +581,18 @@ class _HomeChromeState extends State<_HomeChrome> {
       // for the native material and skips its re-stage flicker on return.
       nativeMaterial: false,
       barHeight: inner ? grid!.header : theme.topBar.largeHeight,
+      contentTopInset: inner ? duoJournalTopInsetOf(context) : 0,
       onTitleTap: widget.onTitleTap,
-      // One trailing menu instead of a row of buttons: the home is the app, and
-      // this dropdown is how you leave it (there is no settings screen). Every
-      // setting is a row or submenu inside it; see [HomeMenu].
       actions: [
-        Padding(
-          padding: EdgeInsets.only(
-            top: PageBarScope.placementOf(context) == PageBarPlacement.vertical ? 0 : AppSpacing.md,
+        if (PaneLayoutScope.of(context).layout.mode != PaneMode.split)
+          Padding(
+            padding: EdgeInsets.only(
+              top: PageBarScope.placementOf(context) == PageBarPlacement.vertical
+                  ? 0
+                  : AppSpacing.md,
+            ),
+            child: HomeMenu(color: theme.topBar.iconColor),
           ),
-          child: HomeMenu(color: theme.topBar.iconColor),
-        ),
       ],
       // The top padding settles the block lower in the row, off the status
       // area.
@@ -641,7 +647,7 @@ class _ReflectionCardSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = ReflectionHomeCard(
       reflection: reflection,
-      onTap: () => context.goNamed(
+      onTap: () => Deps.i.router.selectHomeDetail(
         Routes.reflectionsName,
         queryParameters: {'period': reflection.period.wire, 'week': reflection.periodKey},
       ),
@@ -1029,11 +1035,6 @@ class _RecordsList extends StatelessWidget {
               entrance: enteredEntries.contains(entry.id),
               child: EntryRow(
                 entry: entry,
-                nextEntryId: section.entries
-                    .skip(i + 1)
-                    .where((next) => !dyingIds.contains(next.id))
-                    .firstOrNull
-                    ?.id,
                 // A dying successor is already gone for layout: the gap and
                 // rail close in step with its exit, and the emit changes
                 // nothing.
@@ -1043,7 +1044,10 @@ class _RecordsList extends StatelessWidget {
                 onDeleteStart: () => onRowDeleteStart(entry.id, section.day),
                 onTap: () {
                   context.read<EntriesCubit>().load();
-                  context.goNamed(Routes.entryName, pathParameters: {'id': entry.id});
+                  Deps.i.router.selectHomeDetail(
+                    Routes.entryName,
+                    pathParameters: {'id': entry.id},
+                  );
                 },
               ),
             ),
@@ -1303,20 +1307,18 @@ class _DuoJournalScroll extends StatelessWidget {
       }
     }
     if (group.isNotEmpty) slivers.add(SliverMainAxisGroup(key: groupKey, slivers: group));
-    return Padding(
-      padding: EdgeInsets.only(top: top),
-      child: CustomScrollView(
-        controller: controller,
-        physics: const AlwaysScrollableScrollPhysics(),
-        scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
-        slivers: [
-          SliverPadding(
-            padding: sides,
-            sliver: SliverMainAxisGroup(slivers: slivers),
-          ),
-          SliverToBoxAdapter(child: SizedBox(height: bottom)),
-        ],
-      ),
+    return CustomScrollView(
+      controller: controller,
+      physics: const AlwaysScrollableScrollPhysics(),
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1e5),
+      slivers: [
+        SliverToBoxAdapter(child: SizedBox(height: top)),
+        SliverPadding(
+          padding: sides,
+          sliver: SliverMainAxisGroup(slivers: slivers),
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: bottom)),
+      ],
     );
   }
 }
@@ -1334,29 +1336,34 @@ class _DuoDayHeader extends SliverPersistentHeaderDelegate {
   double get maxExtent => height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final today = localDayOf(DateTime.now());
-    final locale = localeTag(context);
-    final l10n = AppLocalizations.of(context)!;
-    final month = duoJournalIsMonthly(day, today);
-    final label = month
-        ? DateFormat.yMMMM(locale).format(group)
-        : day == today
-        ? l10n.duoJournalToday
-        : day == DateTime(today.year, today.month, today.day - 1)
-        ? l10n.duoJournalYesterday
-        : '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}';
-    return ColoredBox(
-      color: context.theme.duo.surfaceGrouped,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDuo.paneInset),
-        child: Align(
-          alignment: AlignmentDirectional.topStart,
-          child: Text(label, style: DuoTheme.section.copyWith(color: context.theme.textSecondary)),
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Builder(
+    builder: (context) {
+      final today = localDayOf(DateTime.now());
+      final locale = localeTag(context);
+      final l10n = AppLocalizations.of(context)!;
+      final month = duoJournalIsMonthly(day, today);
+      final label = month
+          ? DateFormat.yMMMM(locale).format(group)
+          : day == today
+          ? l10n.duoJournalToday
+          : day == DateTime(today.year, today.month, today.day - 1)
+          ? l10n.duoJournalYesterday
+          : '${DateFormat.EEEE(locale).format(day)}, ${DateFormat.MMMd(locale).format(day)}';
+      return ColoredBox(
+        color: context.theme.screens.home,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDuo.paneInset),
+          child: Align(
+            alignment: AlignmentDirectional.topStart,
+            child: Text(
+              label,
+              style: DuoTheme.section.copyWith(color: context.theme.textSecondary),
+            ),
+          ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
 
   @override
   bool shouldRebuild(_DuoDayHeader oldDelegate) =>

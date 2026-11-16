@@ -10,8 +10,8 @@ import 'package:opentranscribe/core/models/display_signal.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
-import 'package:opentranscribe/view/widgets/app_button.dart';
-import 'package:opentranscribe/view/widgets/app_icon.dart';
+import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/core/state/display_cubit.dart';
 
@@ -43,7 +43,9 @@ Future<T?> showAppSheet<T>(
   final barrier = polished ? context.themeNow.duo.scrim : context.themeNow.barrier;
   final reduce =
       context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false;
-  final sourcePane = context.getInheritedWidgetOfExactType<PaneScope>()?.touch;
+  final sourcePane = polished
+      ? PaneTouch.detail
+      : context.getInheritedWidgetOfExactType<PaneScope>()?.touch;
   final form = formSheetFor(context.read<DisplayCubit>().state.signal);
   return showGeneralDialog<T>(
     context: context,
@@ -75,6 +77,10 @@ Future<T?> showAppSheet<T>(
 }
 
 bool formSheetFor(DisplaySignal signal) => signal.supported && signal.division != null;
+
+MediaQueryData sheetContentMedia(MediaQueryData media, {required bool form}) => form
+    ? media.removePadding(removeLeft: true, removeTop: true, removeRight: true, removeBottom: true)
+    : media;
 
 Rect formSheetBounds({
   required Size size,
@@ -528,7 +534,7 @@ class _SheetBodyState extends State<_SheetBody>
                 // otherwise open under it. The visible part above the
                 // keyboard is still capped at the fraction.
                 maxHeight: maxHeight,
-                minHeight: polished ? math.min(DuoTheme.sheetMinHeight, maxHeight) : 0,
+                minHeight: 0,
               ),
               child: Container(
                 width: double.infinity,
@@ -536,96 +542,103 @@ class _SheetBodyState extends State<_SheetBody>
                   color: polished ? context.theme.duo.surfaceElevated : sheet.background,
                   borderRadius: radius,
                 ),
-                child: ClipRRect(
-                  borderRadius: radius,
-                  // Passthrough, so the column still takes the panel's tight
-                  // width: a stack's own loose constraints would shrink-wrap it.
-                  child: Stack(
-                    fit: StackFit.passthrough,
-                    children: [
-                      if (widget.backdrop != null && !polished)
-                        Positioned.fill(child: IgnorePointer(child: widget.backdrop)),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (polished)
-                            SizedBox(
-                              height: math.min(DuoTheme.sheetToolbarHeight, maxHeight),
-                              child: const _DuoSheetToolbar(),
-                            ),
-                          Flexible(
-                            child: SafeSides.scroll(
-                              builder: (context, sides) => SingleChildScrollView(
-                                controller: _scroll,
-                                // Under the grabber's seat, so content rests where it
-                                // always did yet scrolls on up to the panel's edge.
-                                padding:
-                                    EdgeInsets.fromLTRB(
-                                      widget.inset,
-                                      (form ? 0 : _grabberSeat(sheet)) + AppSpacing.xxl,
-                                      widget.inset,
-                                      // Under a keyboard the framework already zeroes
-                                      // padding.bottom, so this clears the IME; without
-                                      // one it clears the home indicator. A footer
-                                      // takes that job when the sheet has one.
-                                      widget.footer != null
-                                          ? AppSpacing.lg
-                                          : (form
-                                                    ? 0
-                                                    : keyboard +
-                                                          MediaQuery.paddingOf(context).bottom) +
-                                                AppSpacing.xxl,
-                                    ) +
-                                    sides,
-                                child: Builder(builder: widget.builder),
+                child: MediaQuery(
+                  data: sheetContentMedia(MediaQuery.of(context), form: form),
+                  child: ClipRRect(
+                    borderRadius: radius,
+                    // Passthrough, so the column still takes the panel's tight
+                    // width: a stack's own loose constraints would shrink-wrap it.
+                    child: Stack(
+                      fit: StackFit.passthrough,
+                      children: [
+                        if (widget.backdrop != null && !polished)
+                          Positioned.fill(child: IgnorePointer(child: widget.backdrop)),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (polished)
+                              SizedBox(
+                                height: math.min(DuoTheme.sheetToolbarHeight, maxHeight),
+                                child: const _DuoSheetToolbar(),
                               ),
-                            ),
-                          ),
-                          // The footer's own gutter and floor, not the cards':
-                          // its button sits where a message sheet's does.
-                          if (widget.footer != null)
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: form || paneSheet
-                                    ? math.max(
-                                        0,
-                                        maxHeight -
-                                            (polished ? DuoTheme.sheetToolbarHeight : 0) -
-                                            (form ? 0 : _grabberSeat(sheet)) -
-                                            AppSpacing.xxl,
-                                      )
-                                    : double.infinity,
-                              ),
-                              child: SingleChildScrollView(
-                                physics: form || paneSheet
-                                    ? const ClampingScrollPhysics()
-                                    : const NeverScrollableScrollPhysics(),
-                                child: SafeSides(
-                                  child: Padding(
-                                    padding: EdgeInsets.fromLTRB(
-                                      AppSpacing.xxl,
-                                      0,
-                                      AppSpacing.xxl,
-                                      (form ? 0 : keyboard + MediaQuery.paddingOf(context).bottom) +
-                                          AppSpacing.xxl,
-                                    ),
-                                    child: Builder(builder: widget.footer!),
-                                  ),
+                            Flexible(
+                              child: SafeSides.scroll(
+                                builder: (context, sides) => SingleChildScrollView(
+                                  controller: _scroll,
+                                  // Under the grabber's seat, so content rests where it
+                                  // always did yet scrolls on up to the panel's edge.
+                                  padding:
+                                      EdgeInsets.fromLTRB(
+                                        polished ? AppSpacing.xxl : widget.inset,
+                                        polished
+                                            ? 0
+                                            : (form ? 0 : _grabberSeat(sheet)) + AppSpacing.xxl,
+                                        polished ? AppSpacing.xxl : widget.inset,
+                                        // Under a keyboard the framework already zeroes
+                                        // padding.bottom, so this clears the IME; without
+                                        // one it clears the home indicator. A footer
+                                        // takes that job when the sheet has one.
+                                        widget.footer != null
+                                            ? AppSpacing.lg
+                                            : (form
+                                                      ? 0
+                                                      : keyboard +
+                                                            MediaQuery.paddingOf(context).bottom) +
+                                                  AppSpacing.xxl,
+                                      ) +
+                                      sides,
+                                  child: Builder(builder: widget.builder),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                      // The grabber floats over the content, the one affordance
-                      // that says this drags down, with nothing drawn behind it.
-                      if (!form)
-                        Positioned(
-                          top: AppSpacing.sm,
-                          left: 0,
-                          right: 0,
-                          child: Center(child: _Grabber(sheet: sheet)),
+                            // The footer's own gutter and floor, not the cards':
+                            // its button sits where a message sheet's does.
+                            if (widget.footer != null)
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: form || paneSheet
+                                      ? math.max(
+                                          0,
+                                          maxHeight -
+                                              (polished ? DuoTheme.sheetToolbarHeight : 0) -
+                                              (form ? 0 : _grabberSeat(sheet)) -
+                                              AppSpacing.xxl,
+                                        )
+                                      : double.infinity,
+                                ),
+                                child: SingleChildScrollView(
+                                  physics: form || paneSheet
+                                      ? const ClampingScrollPhysics()
+                                      : const NeverScrollableScrollPhysics(),
+                                  child: SafeSides(
+                                    child: Padding(
+                                      padding: EdgeInsets.fromLTRB(
+                                        AppSpacing.xxl,
+                                        0,
+                                        AppSpacing.xxl,
+                                        (form
+                                                ? 0
+                                                : keyboard + MediaQuery.paddingOf(context).bottom) +
+                                            AppSpacing.xxl,
+                                      ),
+                                      child: Builder(builder: widget.footer!),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
+                        // The grabber floats over the content, the one affordance
+                        // that says this drags down, with nothing drawn behind it.
+                        if (!form)
+                          Positioned(
+                            top: AppSpacing.sm,
+                            left: 0,
+                            right: 0,
+                            child: Center(child: _Grabber(sheet: sheet)),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -669,10 +682,10 @@ class _DuoSheetToolbar extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: DuoTheme.sheetToolbarHeight,
     child: Align(
-      alignment: AlignmentDirectional.centerStart,
+      alignment: AlignmentDirectional.centerEnd,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        child: AppIconButton(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: AppGlassIconButton(
           icon: AppIcons.xmark,
           semanticLabel: AppLocalizations.of(context)!.sheetCloseButton,
           onTap: () => Navigator.of(context).maybePop(),

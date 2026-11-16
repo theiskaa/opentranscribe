@@ -89,6 +89,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeSetupChangeEngine => '엔진 변경';
 
   @override
+  String get homeNavigation => '홈';
+
+  @override
+  String get homeDetailSelectTitle => '나의 일기';
+
+  @override
+  String get homeDetailSelectBody => '왼쪽에서 기록이나 돌아보기를 선택하면 여기에 표시됩니다.';
+
+  @override
   String get homeDetailEmptyTitle => '여기서 시작하는 나의 일기';
 
   @override

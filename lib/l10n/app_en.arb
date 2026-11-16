@@ -113,6 +113,12 @@
   "@homeSetupChangeEngine": {
     "description": "The link under the empty journal's Speaking card that opens the engine picker"
   },
+  "homeNavigation": "Home",
+  "@homeNavigation": {"description": "Permanent navigation action returning to the main journal without a selected detail."},
+  "homeDetailSelectTitle": "Your journal",
+  "@homeDetailSelectTitle": {"description": "Title in the detail pane when Home is selected and journal entries exist."},
+  "homeDetailSelectBody": "Choose an entry or reflection on the left to open it here.",
+  "@homeDetailSelectBody": {"description": "Guidance in the detail pane when Home has no selection."},
   "homeDetailEmptyTitle": "Your journal starts here",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

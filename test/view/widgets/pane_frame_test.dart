@@ -31,52 +31,23 @@ void main() {
     tracker.dispose();
   });
 
-  test('the provisional journal highlight equals an explicit selection of the same entry', () {
-    final provisional = journalPaneSelection(
-      mode: PaneMode.split,
-      selection: null,
-      hasDetail: false,
-      newestEntryId: 'a',
-    );
-    final explicit = paneSelection(Uri.parse('/entry/a'));
-    expect(provisional, explicit);
-    expect(
-      journalPaneSelection(
-        mode: PaneMode.split,
-        selection: explicit,
-        hasDetail: true,
-        newestEntryId: 'b',
-      ),
-      provisional,
-    );
-  });
-
-  test('the provisional highlight stays out of phone layouts and other detail pages', () {
+  test('Home never invents a journal selection in any layout', () {
     for (final mode in PaneMode.values) {
-      for (final hasDetail in [false, true]) {
-        expect(
-          journalPaneSelection(
-            mode: mode,
-            selection: null,
-            hasDetail: hasDetail,
-            newestEntryId: 'a',
-          ),
-          mode == PaneMode.split && !hasDetail ? paneSelection(Uri.parse('/entry/a')) : null,
-        );
-      }
+      expect(journalPaneSelection(mode: mode, selection: null), isNull);
     }
-    expect(
-      journalPaneSelection(
-        mode: PaneMode.split,
-        selection: null,
-        hasDetail: false,
-        newestEntryId: null,
-      ),
-      isNull,
-    );
   });
 
-  test('only the journal entry selection is a detail root without back', () {
+  test('an explicit journal highlight appears only in the split layout', () {
+    final selection = paneSelection(Uri.parse('/entry/a'));
+    for (final mode in PaneMode.values) {
+      expect(
+        journalPaneSelection(mode: mode, selection: selection),
+        mode == PaneMode.split ? selection : null,
+      );
+    }
+  });
+
+  test('record roots and nested pages retain Back while sidebar destinations omit it', () {
     final router = AppRouter(onboardingDone: () => true).config;
     final signal = DisplayWire.decode(DisplayWire.flatWide);
     final layout = paneLayoutFor(
@@ -133,10 +104,13 @@ void main() {
           expect(
             panePageShowsBack(
               mode: mode,
-              journalSelection: tracker.journalSelectionKey == topKey,
+              journalSelection: path == '/entry/a',
+              detailRoot: tracker.detailKeys.firstOrNull == topKey,
               canPop: matches.matches.length > 1,
             ),
-            mode != PaneMode.split || base != null || path != '/entry/a',
+            mode != PaneMode.split ||
+                tracker.detailKeys.firstOrNull != topKey ||
+                path == '/entry/a',
             reason: '$path over ${base?.uri} in $mode',
           );
         }

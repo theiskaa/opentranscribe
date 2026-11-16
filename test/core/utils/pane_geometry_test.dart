@@ -146,22 +146,22 @@ void main() {
   group('the inner display, flat wide', () {
     final layout = layoutOf(DisplayWire.flatWide);
 
-    test('splits at the closed content width with a hairline before the detail', () {
+    test('keeps navigation compact with a hairline before the main content', () {
       expect(layout.mode, PaneMode.split);
       expect(layout.fold, isNull);
-      expect(layout.leading.rect, const Rect.fromLTRB(0, 0, 382, 669));
-      expect(layout.divider, const Rect.fromLTWH(382, 0, 1, 669));
-      expect(layout.detail.rect, const Rect.fromLTRB(383, 0, 951, 669));
+      expect(layout.leading.rect, const Rect.fromLTRB(0, 0, 280, 669));
+      expect(layout.divider, const Rect.fromLTWH(280, 0, 1, 669));
+      expect(layout.detail.rect, const Rect.fromLTRB(281, 0, 951, 669));
       expect(layout.detail.barToSideColumn, isTrue);
       expect(layout.leading.barToSideColumn, isFalse);
-      expect(layout.modal, const Rect.fromLTRB(383, 0, 867, 669));
+      expect(layout.modal, const Rect.fromLTRB(281, 0, 867, 669));
     });
 
-    test('gives the leading pane the width the cubit last saw on the cover', () {
+    test('a wider remembered cover does not inflate the navigation sidebar', () {
       final remembered = layoutOf(DisplayWire.flatWide, closedContentWidth: 390);
 
-      expect(remembered.leading.rect.right, 390);
-      expect(remembered.detail.rect.left, 391);
+      expect(remembered.leading.rect.right, 280);
+      expect(remembered.detail.rect.left, 281);
     });
 
     test('splits the recorder at the content centre while the division is inactive', () {
@@ -520,18 +520,18 @@ void main() {
       'regions': [DisplayWire.region('occlusion', 0, 0, widePadding.right, 124)],
     });
 
-    test('insets the leading pane, which keeps its closed width past the bar', () {
+    test('insets compact navigation past the status column', () {
       expect(
         layout.leading,
-        const Pane(rect: Rect.fromLTRB(0, 0, 466, 669), padding: EdgeInsets.fromLTRB(84, 0, 0, 34)),
+        const Pane(rect: Rect.fromLTRB(0, 0, 364, 669), padding: EdgeInsets.fromLTRB(84, 0, 0, 34)),
       );
-      expect(layout.divider, const Rect.fromLTWH(466, 0, 1, 669));
+      expect(layout.divider, const Rect.fromLTWH(364, 0, 1, 669));
     });
 
     test('leaves the detail its horizontal bar', () {
       expect(
         layout.detail,
-        const Pane(rect: Rect.fromLTRB(467, 0, 951, 669), padding: EdgeInsets.only(bottom: 34)),
+        const Pane(rect: Rect.fromLTRB(365, 0, 951, 669), padding: EdgeInsets.only(bottom: 34)),
       );
     });
 

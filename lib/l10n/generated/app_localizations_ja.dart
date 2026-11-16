@@ -89,6 +89,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeSetupChangeEngine => 'エンジンを変更';
 
   @override
+  String get homeNavigation => 'ホーム';
+
+  @override
+  String get homeDetailSelectTitle => 'あなたの日記';
+
+  @override
+  String get homeDetailSelectBody => '左側の記録や振り返りを選ぶと、ここに表示されます。';
+
+  @override
   String get homeDetailEmptyTitle => 'ここから始まる日記';
 
   @override

@@ -93,6 +93,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeSetupChangeEngine => 'Alterar motor';
 
   @override
+  String get homeNavigation => 'Início';
+
+  @override
+  String get homeDetailSelectTitle => 'Seu diário';
+
+  @override
+  String get homeDetailSelectBody =>
+      'Escolha uma entrada ou reflexão à esquerda para abri-la aqui.';
+
+  @override
   String get homeDetailEmptyTitle => 'Seu diário começa aqui';
 
   @override

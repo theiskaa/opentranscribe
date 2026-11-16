@@ -101,9 +101,13 @@ class _AppButtonState extends State<AppButton> {
           duration: theme.motion.press,
           opacity: disabled ? button.disabledOpacity : 1,
           child: Container(
-            height: widget.height ?? (inner ? DuoTheme.buttonHeight : button.height),
+            height: widget.height ?? (inner ? null : button.height),
+            constraints: inner ? const BoxConstraints(minHeight: DuoTheme.buttonHeight) : null,
             width: widget.expand ? double.infinity : null,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxl,
+              vertical: inner ? AppSpacing.sm : 0,
+            ),
             decoration: SuperellipseDecoration(
               borderRadius: inner ? DuoTheme.buttonRadius : button.radius,
               color: inkFill ? null : fill,
@@ -131,24 +135,27 @@ class _AppButtonState extends State<AppButton> {
                         // A changed label transforms in place (rise + fade)
                         // rather than snapping, so a button that reuses its slot
                         // for a new action reads as the same button, changed.
-                        AnimatedSwitcher(
-                          duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
-                          transitionBuilder: (child, animation) => FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween(
-                                begin: const Offset(0, 0.4),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
+                        Flexible(
+                          child: AnimatedSwitcher(
+                            duration: context.reduceMotion ? Duration.zero : theme.motion.crossfade,
+                            transitionBuilder: (child, animation) => FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween(
+                                  begin: const Offset(0, 0.4),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            widget.label,
-                            key: ValueKey(widget.label),
-                            style: (inner ? DuoTheme.primaryLabel : AppType.callout).copyWith(
-                              color: foreground,
-                              height: 1,
+                            child: Text(
+                              widget.label,
+                              key: ValueKey(widget.label),
+                              textAlign: TextAlign.center,
+                              style: (inner ? DuoTheme.primaryLabel : AppType.callout).copyWith(
+                                color: foreground,
+                                height: 1,
+                              ),
                             ),
                           ),
                         ),

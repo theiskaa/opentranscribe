@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "Vorzeitig beendet. Ein neuer Durchlauf macht dort weiter.",
   "delete": "Löschen",
   "homeSetupChangeEngine": "Engine ändern",
+  "homeNavigation": "Startseite",
+  "homeDetailSelectTitle": "Dein Tagebuch",
+  "homeDetailSelectBody": "Wähle links einen Eintrag oder Rückblick aus, um ihn hier zu öffnen.",
   "homeDetailEmptyTitle": "Hier beginnt dein Tagebuch",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

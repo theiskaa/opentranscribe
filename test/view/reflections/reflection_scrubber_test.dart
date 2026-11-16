@@ -11,7 +11,7 @@ void main() {
   for (final (name, wire, center) in [
     ('regular iPhone', DisplayWire.iphone, 201.0),
     ('cover', DisplayWire.cover, 191.0),
-    ('flat wide detail', DisplayWire.flatWide, 242.0),
+    ('flat wide detail', DisplayWire.flatWide, 293.0),
     ('book detail', DisplayWire.bookWide, 185.5),
     ('flat tall', DisplayWire.flatTall, 334.5),
     ('laptop', DisplayWire.laptop, 334.5),

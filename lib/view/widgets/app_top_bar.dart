@@ -25,7 +25,8 @@ bool panePageShowsBack({
   required PaneMode? mode,
   required bool journalSelection,
   required bool canPop,
-}) => canPop && !(mode == PaneMode.split && journalSelection);
+  bool detailRoot = false,
+}) => canPop && !(mode == PaneMode.split && detailRoot && !journalSelection);
 
 /// The floating bar every screen shares: a transparent overlay carrying its
 /// title, over a progressive blur that fades to nothing past the content row.
@@ -47,6 +48,7 @@ class AppTopBar extends StatelessWidget {
     this.prominentActions = const [],
     this.centerTitle = false,
     this.barHeight,
+    this.contentTopInset = 0,
     this.onTitleTap,
     this.bottom,
     this.bottomHeight = 0,
@@ -79,6 +81,7 @@ class AppTopBar extends StatelessWidget {
   /// Content row height override; defaults to the compact `TopBarTheme.height`.
   /// Title bars pass `TopBarTheme.largeHeight`.
   final double? barHeight;
+  final double contentTopInset;
 
   /// Makes the title block tappable (home: scroll back to the top).
   final VoidCallback? onTitleTap;
@@ -112,7 +115,10 @@ class AppTopBar extends StatelessWidget {
 
   /// Status inset + the default compact row, for content padding.
   static double heightOf(BuildContext context) =>
-      MediaQuery.paddingOf(context).top + context.theme.topBar.height;
+      MediaQuery.paddingOf(context).top +
+      (duoInnerOf(context) && PageBarScope.placementOf(context) == PageBarPlacement.vertical
+          ? 0
+          : context.theme.topBar.height);
 
   /// Status inset + the large title row, for content padding under title bars.
   static double largeHeightOf(BuildContext context) =>
@@ -130,9 +136,9 @@ class AppTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final bar = theme.topBar;
-    final background = duoJournalOf(context) ? theme.duo.surfaceGrouped : bar.background;
+    final background = duoJournalOf(context) ? theme.screens.home : bar.background;
     final padding = MediaQuery.paddingOf(context);
-    final topInset = padding.top;
+    final topInset = padding.top + contentTopInset;
     // The row is inset by hand, not with SafeSides: the bar's menus anchor in
     // window coordinates, so it must keep the window's MediaQuery.
     final sides = horizontalInsets(padding);
@@ -144,6 +150,7 @@ class AppTopBar extends StatelessWidget {
     final showBack = panePageShowsBack(
       mode: layout?.mode,
       journalSelection: scope?.journalSelection == true,
+      detailRoot: scope?.detailRoot == true,
       canPop: this.leading is AppBackButton || Navigator.of(context).canPop(),
     );
     final leading = !showBack && (this.leading == null || this.leading is AppBackButton)
@@ -228,6 +235,7 @@ class AppTopBar extends StatelessWidget {
                     actions: vertical ? 0 : actions.length,
                     centerTitle: centerTitle,
                     direction: Directionality.of(context),
+                    titleInset: duoJournalOf(context) ? AppDuo.paneInset : AppSpacing.xl,
                   ),
                   children: [
                     if (!vertical && leading != null)

@@ -51,7 +51,7 @@ class SettingsList extends StatelessWidget {
                 fold: panes == null
                     ? EdgeInsets.zero
                     : duoFoldInsets(panes.layout, PaneScope.maybeOf(context)?.touch),
-                top: duoReadingGridOf(context).stripTop,
+                top: AppScaffold.topPaddingOf(context) - MediaQuery.paddingOf(context).top,
                 bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
               )
             : EdgeInsets.fromLTRB(

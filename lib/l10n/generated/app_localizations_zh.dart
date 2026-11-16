@@ -88,6 +88,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeSetupChangeEngine => '更换引擎';
 
   @override
+  String get homeNavigation => '首页';
+
+  @override
+  String get homeDetailSelectTitle => '你的日记';
+
+  @override
+  String get homeDetailSelectBody => '选择左侧的记录或回顾，即可在此查看。';
+
+  @override
   String get homeDetailEmptyTitle => '从这里开始写日记';
 
   @override

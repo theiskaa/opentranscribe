@@ -5,6 +5,7 @@ import 'package:opentranscribe/core/app/deps.dart';
 import 'package:opentranscribe/core/app/onboarding.dart';
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/core/routes/home_destination.dart';
 import 'package:opentranscribe/core/routes/pane_page.dart';
 import 'package:opentranscribe/core/routes/pane_observer.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
@@ -41,6 +42,28 @@ class AppRouter {
         .toList(),
     onboardingDone: _onboardingDone(),
   );
+
+  void selectHomeDetail(
+    String name, {
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
+  }) {
+    final target = Uri.parse(
+      config.namedLocation(name, pathParameters: pathParameters, queryParameters: queryParameters),
+    );
+    final matches = config.routerDelegate.currentConfiguration;
+    final last = matches.lastOrNull;
+    final current = last is ImperativeRouteMatch ? last.matches.uri : matches.uri;
+    if (!canChangeHomeSelection(
+      covered: paneObserver.chromeCovered,
+      blocked: paneObserver.detailNavigationBlocked,
+      current: current,
+      target: target,
+    )) {
+      return;
+    }
+    config.goNamed(name, pathParameters: pathParameters, queryParameters: queryParameters);
+  }
 
   late final GoRouter config = GoRouter(
     navigatorKey: navigatorKey,

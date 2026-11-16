@@ -93,6 +93,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeSetupChangeEngine => 'Engine ändern';
 
   @override
+  String get homeNavigation => 'Startseite';
+
+  @override
+  String get homeDetailSelectTitle => 'Dein Tagebuch';
+
+  @override
+  String get homeDetailSelectBody =>
+      'Wähle links einen Eintrag oder Rückblick aus, um ihn hier zu öffnen.';
+
+  @override
   String get homeDetailEmptyTitle => 'Hier beginnt dein Tagebuch';
 
   @override

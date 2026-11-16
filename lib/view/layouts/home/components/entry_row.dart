@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/core/models/entry.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
-import 'package:opentranscribe/core/theming/superellipse.dart';
 import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
@@ -36,12 +35,10 @@ class EntryRow extends StatelessWidget {
     required this.openId,
     required this.onDelete,
     this.onDeleteStart,
-    this.nextEntryId,
     super.key,
   });
 
   final Entry entry;
-  final String? nextEntryId;
 
   /// The day's last LIVING record (a dying successor is already gone for
   /// layout). The rail runs the full height of every row, gap included, so a
@@ -68,12 +65,6 @@ class EntryRow extends StatelessWidget {
       Uri(path: Routes.entry.replaceFirst(':id', entry.id)),
     );
     final inner = duoJournalOf(context);
-    final nextSelected =
-        nextEntryId != null &&
-        PaneSelectionScope.isSelected(
-          context,
-          Uri(path: Routes.entry.replaceFirst(':id', nextEntryId!)),
-        );
     return Semantics(
       selected: PaneLayoutScope.maybeOf(context)?.layout.mode == PaneMode.split ? selected : null,
       child: DeleteSwipe(
@@ -91,15 +82,7 @@ class EntryRow extends StatelessWidget {
         // column (right of the gutter), so the record never reaches the rail;
         // the frame ties rail, gutter and day gap to the row's exit.
         frame: (context, swipe) => inner
-            ? _DuoEntryFrame(
-                selected: selected,
-                separator: duoRowSeparator(
-                  last: last,
-                  selected: selected,
-                  nextSelected: nextSelected,
-                ),
-                child: swipe,
-              )
+            ? _DuoEntryFrame(separator: !last, child: swipe)
             : DecoratedBox(
                 decoration: BoxDecoration(
                   color: selected ? context.theme.calendar.tileFill : null,
@@ -117,73 +100,37 @@ class EntryRow extends StatelessWidget {
   }
 }
 
-class _DuoEntryFrame extends StatefulWidget {
-  const _DuoEntryFrame({required this.selected, required this.separator, required this.child});
+class _DuoEntryFrame extends StatelessWidget {
+  const _DuoEntryFrame({required this.separator, required this.child});
 
-  final bool selected;
   final bool separator;
   final Widget child;
 
   @override
-  State<_DuoEntryFrame> createState() => _DuoEntryFrameState();
-}
-
-class _DuoEntryFrameState extends State<_DuoEntryFrame> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final duo = theme.duo;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDuo.selectionInset,
         vertical: AppDuo.selectionVerticalInset,
       ),
-      child: Listener(
-        onPointerDown: (_) => setState(() => _pressed = true),
-        onPointerUp: (_) => setState(() => _pressed = false),
-        onPointerCancel: (_) => setState(() => _pressed = false),
-        child: AnimatedContainer(
-          duration: context.reduceMotion ? Duration.zero : theme.motion.selectionFade,
-          curve: Curves.easeOut,
-          decoration: SuperellipseDecoration(
-            borderRadius: AppDuo.selectionRadius,
-            color: widget.selected ? duo.selectionFill : null,
-          ),
-          child: AnimatedContainer(
-            duration: context.reduceMotion
-                ? Duration.zero
-                : _pressed
-                ? theme.motion.duoPressIn
-                : theme.motion.duoPressOut,
-            curve: Curves.easeOut,
-            constraints: const BoxConstraints(minHeight: AppDuo.rowHeight),
-            decoration: SuperellipseDecoration(
-              borderRadius: AppDuo.selectionRadius,
-              color: !widget.selected && _pressed ? duo.pressedFill : null,
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDuo.rowHorizontalInset,
+              vertical: AppDuo.rowVerticalInset,
             ),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDuo.rowHorizontalInset,
-                    vertical: DuoTheme.rowInset,
-                  ),
-                  child: widget.child,
-                ),
-                if (widget.separator)
-                  Positioned(
-                    left: AppDuo.rowHorizontalInset,
-                    right: AppDuo.rowHorizontalInset,
-                    bottom: 0,
-                    height: AppDuo.separatorWidth,
-                    child: ColoredBox(color: duo.separator),
-                  ),
-              ],
-            ),
+            child: child,
           ),
-        ),
+          if (separator)
+            Positioned(
+              left: AppDuo.rowHorizontalInset,
+              right: AppDuo.rowHorizontalInset,
+              bottom: 0,
+              height: AppDuo.separatorWidth,
+              child: ColoredBox(color: context.theme.duo.separator),
+            ),
+        ],
       ),
     );
   }
@@ -221,11 +168,7 @@ class EntryRowBody extends StatelessWidget {
     final excerpt = entry.readableText?.trim() ?? '';
     final title = entry.title;
     if (duoJournalOf(context)) {
-      final selected = PaneSelectionScope.isSelected(
-        context,
-        Uri(path: Routes.entry.replaceFirst(':id', entry.id)),
-      );
-      return _DuoEntryWords(entry: entry, selected: selected);
+      return _DuoEntryWords(entry: entry);
     }
 
     return Column(
@@ -469,17 +412,16 @@ class _RailPainter extends CustomPainter {
 }
 
 class _DuoEntryWords extends StatelessWidget {
-  const _DuoEntryWords({required this.entry, required this.selected});
+  const _DuoEntryWords({required this.entry});
 
   final Entry entry;
-  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final locale = localeTag(context);
     final time = formatTime(entry.createdAt, locale);
-    final metadata = selected ? theme.duo.selectedMetadata : theme.textSecondary;
+    final metadata = theme.textSecondary;
     final metaStyle = AppType.digits(DuoTheme.rowMetadata).copyWith(color: metadata);
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -101,7 +101,7 @@ void main() {
       top: 16,
       bottom: 334,
     );
-    expect(insets, const EdgeInsets.fromLTRB(28, 36, 104, 334));
+    expect(insets, const EdgeInsets.fromLTRB(24, 36, 108, 334));
     expect(455 - insets.horizontal, 323);
   });
 
@@ -173,20 +173,7 @@ void main() {
     }
   });
 
-  test('separators never touch a selected halo or the last row', () {
-    for (final last in [false, true]) {
-      for (final selected in [false, true]) {
-        for (final nextSelected in [false, true]) {
-          expect(
-            duoRowSeparator(last: last, selected: selected, nextSelected: nextSelected),
-            !last && !selected && !nextSelected,
-          );
-        }
-      }
-    }
-  });
-
-  test('flat sheets center on the window while book sheets remain in their source pane', () {
+  test('split display sheets stay within one pane with or without a fold', () {
     for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
       final signal = DisplayWire.decode(wire);
       final layout = paneLayoutFor(
@@ -200,12 +187,8 @@ void main() {
       );
       for (final source in PaneTouch.values) {
         final region = duoSheetRegion(layout: layout, source: source, window: signal.size);
-        if (layout.fold == null) {
-          expect(region, Offset.zero & signal.size);
-        } else {
-          expect(region, source == PaneTouch.journal ? layout.leading.rect : layout.detail.rect);
-          expect(region.overlaps(layout.fold!.rect), isFalse);
-        }
+        expect(region, source == PaneTouch.journal ? layout.leading.rect : layout.detail.rect);
+        if (layout.fold != null) expect(region.overlaps(layout.fold!.rect), isFalse);
       }
     }
   });

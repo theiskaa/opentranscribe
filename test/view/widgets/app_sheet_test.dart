@@ -12,6 +12,21 @@ import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
 
 void main() {
+  test('form content does not reserve the status column already cleared by its bounds', () {
+    const media = MediaQueryData(
+      size: Size(670, 669),
+      padding: EdgeInsets.fromLTRB(0, 24, 84, 34),
+      viewPadding: EdgeInsets.fromLTRB(0, 24, 84, 34),
+      viewInsets: EdgeInsets.only(bottom: 280),
+    );
+    final content = sheetContentMedia(media, form: true);
+    expect(content.padding, EdgeInsets.zero);
+    expect(content.viewPadding, EdgeInsets.zero);
+    expect(content.viewInsets, media.viewInsets);
+    expect(content.size, media.size);
+    expect(sheetContentMedia(media, form: false), same(media));
+  });
+
   test('only the inner display uses a form in every pose and window size', () {
     for (final wire in [
       DisplayWire.flatWide,

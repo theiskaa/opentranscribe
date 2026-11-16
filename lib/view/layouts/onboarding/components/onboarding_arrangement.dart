@@ -18,10 +18,13 @@ OnboardingRegions onboardingRegions(PaneLayout layout, double controlsHeight) {
     detail.rect.bottom - detail.padding.bottom,
   );
   final split = layout.mode == PaneMode.split;
+  final wordsRight = split && layout.fold == null
+      ? math.min(safe.left + AppDuo.closedContentWidth, safe.center.dx)
+      : leading.rect.right - leading.padding.right;
   final controls = Rect.fromLTRB(
     safe.left,
     math.max(safe.top, safe.bottom - controlsHeight),
-    split ? leading.rect.right - leading.padding.right : safe.right,
+    split ? wordsRight : safe.right,
     safe.bottom,
   );
   final laptop = layout.fold?.axis == FoldAxis.horizontal;
@@ -37,7 +40,14 @@ OnboardingRegions onboardingRegions(PaneLayout layout, double controlsHeight) {
     controls: controls,
     words: split ? Rect.fromLTRB(safe.left, pages.top, controls.right, pages.bottom) : pages,
     scene: split
-        ? Rect.fromLTRB(detail.rect.left + detail.padding.left, pages.top, safe.right, pages.bottom)
+        ? Rect.fromLTRB(
+            layout.fold == null
+                ? wordsRight + (layout.divider?.width ?? 0)
+                : detail.rect.left + detail.padding.left,
+            pages.top,
+            safe.right,
+            pages.bottom,
+          )
         : pages,
   );
 }

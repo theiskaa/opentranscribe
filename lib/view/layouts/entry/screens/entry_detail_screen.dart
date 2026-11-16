@@ -730,8 +730,9 @@ class _DetailViewState extends State<_DetailView> {
                                   safe: MediaQuery.paddingOf(context) + sides,
                                   fold: foldInsets,
                                   top: verticalBar
-                                      ? duoReadingGridOf(context).detailTop
-                                      : theme.topBar.height + theme.topBar.fadeTail,
+                                      ? duoHeadingTopOf(context, DuoTheme.detailTitle)
+                                      : AppScaffold.topPaddingOf(context) -
+                                            MediaQuery.paddingOf(context).top,
                                   bottom: keyboard + restingBottom,
                                 )
                               : EdgeInsets.fromLTRB(
@@ -755,7 +756,6 @@ class _DetailViewState extends State<_DetailView> {
                                   meta: meta,
                                   focusNode: _titleFocus,
                                   continuity: _titleContinuity,
-                                  verticalBar: verticalBar,
                                 )
                               else ...[
                                 SelectionContainer.disabled(
@@ -811,12 +811,7 @@ class _DetailViewState extends State<_DetailView> {
                               // commit; this widget only hands the words over. Fenced
                               // out of the reading region, whose long-press must not
                               // contest the field's own gestures.
-                              if (inner && !entry.hasAudio)
-                                SizedBox(
-                                  height:
-                                      duoReadingGridOf(context).bodyTop -
-                                      duoReadingGridOf(context).stripTop,
-                                ),
+
                               if (_editing)
                                 SelectionContainer.disabled(
                                   child: EditableProse(
@@ -1263,59 +1258,29 @@ class _DuoDocumentHeading extends StatelessWidget {
     required this.meta,
     required this.focusNode,
     required this.continuity,
-    required this.verticalBar,
   });
 
   final Entry entry;
   final String meta;
   final FocusNode focusNode;
   final EditContinuityController continuity;
-  final bool verticalBar;
 
   @override
   Widget build(BuildContext context) {
-    final grid = duoReadingGridOf(context);
-    final scaler = MediaQuery.textScalerOf(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final measure = duoContentMeasure(constraints.maxWidth, EdgeInsets.zero);
-        final title = duoParagraphHeight(
-          duoEntryTitle(entry, localeTag(context), inner: true),
-          style: DuoTheme.detailTitle,
-          scaler: scaler,
-          width: measure,
-          maxLines: 2,
-        );
-        final metadata = duoParagraphHeight(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SelectionContainer.disabled(
+          child: _TitleField(entry: entry, focusNode: focusNode, continuity: continuity),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
           meta,
-          style: AppType.digits(DuoTheme.metadata),
-          scaler: scaler,
-          width: measure,
-        );
-        final gaps = duoDocumentGaps(
-          titleHeight: title,
-          metadataHeight: metadata,
-          grid: grid,
-          top: verticalBar
-              ? grid.detailTop
-              : context.theme.topBar.height + context.theme.topBar.fadeTail,
-        );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SelectionContainer.disabled(
-              child: _TitleField(entry: entry, focusNode: focusNode, continuity: continuity),
-            ),
-            SizedBox(height: gaps.metadata),
-            Text(
-              meta,
-              style: AppType.digits(DuoTheme.metadata).copyWith(color: context.theme.textSecondary),
-            ),
-            EntryBarLine(entryId: entry.id),
-            SizedBox(height: gaps.player),
-          ],
-        );
-      },
+          style: AppType.digits(DuoTheme.metadata).copyWith(color: context.theme.textSecondary),
+        ),
+        EntryBarLine(entryId: entry.id),
+        const SizedBox(height: AppSpacing.xxl),
+      ],
     );
   }
 }

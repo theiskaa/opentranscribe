@@ -258,6 +258,24 @@ abstract class AppLocalizations {
   /// **'Change engine'**
   String get homeSetupChangeEngine;
 
+  /// Permanent navigation action returning to the main journal without a selected detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeNavigation;
+
+  /// Title in the detail pane when Home is selected and journal entries exist.
+  ///
+  /// In en, this message translates to:
+  /// **'Your journal'**
+  String get homeDetailSelectTitle;
+
+  /// Guidance in the detail pane when Home has no selection.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an entry or reflection on the left to open it here.'**
+  String get homeDetailSelectBody;
+
   /// Resting headline in the Duo split detail when no entry is available
   ///
   /// In en, this message translates to:

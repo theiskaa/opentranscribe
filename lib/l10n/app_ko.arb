@@ -25,6 +25,9 @@
   "retranscribeCancelledNote": "도중에 중지되었습니다. 다시 실행하면 이어서 진행됩니다.",
   "delete": "삭제",
   "homeSetupChangeEngine": "엔진 변경",
+  "homeNavigation": "홈",
+  "homeDetailSelectTitle": "나의 일기",
+  "homeDetailSelectBody": "왼쪽에서 기록이나 돌아보기를 선택하면 여기에 표시됩니다.",
   "homeDetailEmptyTitle": "여기서 시작하는 나의 일기",
   "@homeDetailEmptyTitle": {
     "description": "Resting headline in the Duo split detail when no entry is available"

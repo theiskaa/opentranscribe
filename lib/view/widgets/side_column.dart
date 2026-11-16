@@ -91,6 +91,7 @@ class TopBarLayout extends MultiChildLayoutDelegate {
     required this.actions,
     required this.centerTitle,
     required this.direction,
+    this.titleInset = AppSpacing.xl,
   });
 
   final Rect row;
@@ -98,6 +99,7 @@ class TopBarLayout extends MultiChildLayoutDelegate {
   final int actions;
   final bool centerTitle;
   final TextDirection direction;
+  final double titleInset;
 
   static const leadingId = 'leading';
   static const titleId = 'title';
@@ -112,8 +114,8 @@ class TopBarLayout extends MultiChildLayoutDelegate {
     for (var i = 0; i < actions; i++) {
       sizes.add(layoutChild(i, constraints));
     }
-    var start = leading ? AppSpacing.md + sizes.first.width : AppSpacing.xl;
-    var end = actions == 0 ? AppSpacing.xl : 0.0;
+    var start = leading ? AppSpacing.md + sizes.first.width : titleInset;
+    var end = actions == 0 ? titleInset : 0.0;
     var right = row.right;
     for (var i = actions - 1; i >= 0; i--) {
       final controlSize = sizes[i + (leading ? 1 : 0)];
@@ -147,7 +149,8 @@ class TopBarLayout extends MultiChildLayoutDelegate {
       leading != oldDelegate.leading ||
       actions != oldDelegate.actions ||
       centerTitle != oldDelegate.centerTitle ||
-      direction != oldDelegate.direction;
+      direction != oldDelegate.direction ||
+      titleInset != oldDelegate.titleInset;
 }
 
 class SideColumnGround extends StatelessWidget {

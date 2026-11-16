@@ -110,18 +110,19 @@ abstract final class AppAlpha {
 /// [foldBand] are fallbacks for what the live regions and insets do not
 /// report, measured on the iPhone Duo simulator; the rest are chosen.
 abstract final class AppDuo {
-  static const selectionInset = 10.0;
+  static const navigationWidth = 280.0;
+  static const selectionInset = AppSpacing.sm;
   static const selectionVerticalInset = 2.0;
-  static const selectionRadius = 12.0;
+  static const selectionRadius = 8.0;
   static const rowHeight = 64.0;
   static const rowHorizontalInset = 16.0;
   static const rowVerticalInset = 12.0;
   static const separatorWidth = 0.5;
-  static const paneInset = 20.0;
+  static const paneInset = AppSpacing.xxl;
   static const sectionTop = 18.0;
   static const sectionBottom = 6.0;
   static const detailMeasure = 640.0;
-  static const detailMargin = 28.0;
+  static const detailMargin = AppSpacing.xxl;
   static const baselineEm = 0.3555;
   static const dayDotClearance = 8.0;
   static const detailMetaGap = 6.0;

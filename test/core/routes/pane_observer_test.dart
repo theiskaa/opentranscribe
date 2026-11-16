@@ -2,8 +2,30 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opentranscribe/core/routes/pane_observer.dart';
+import 'package:opentranscribe/core/routes/pane_page.dart';
 
 void main() {
+  test('a live protected detail blocks replacement until its exit guard releases', () {
+    final observer = PaneObserver();
+    final route = _ProtectedRoute();
+    observer.didPush(route, null);
+    expect(observer.detailNavigationBlocked, isTrue);
+    route.blocked = false;
+    expect(observer.detailNavigationBlocked, isFalse);
+    observer.didRemove(route, null);
+    observer.dispose();
+  });
+
+  test('a removed protected detail cannot block Home', () {
+    final observer = PaneObserver();
+    final route = _ProtectedRoute();
+    observer.didPush(route, null);
+    route.active = false;
+    expect(observer.detailNavigationBlocked, isFalse);
+    observer.didRemove(route, null);
+    observer.dispose();
+  });
+
   test('the active editor owns the bottom slot until it releases it', () {
     final observer = PaneObserver();
     final route = _TestRoute();
@@ -150,6 +172,20 @@ void main() {
 }
 
 class _TestRoute extends Route<void> {}
+
+class _ProtectedRoute extends Route<void> {
+  _ProtectedRoute() : super(settings: const PanePage<void>(child: SizedBox.shrink()));
+
+  bool blocked = true;
+  bool active = true;
+
+  @override
+  bool get isActive => active;
+
+  @override
+  RoutePopDisposition get popDisposition =>
+      blocked ? RoutePopDisposition.doNotPop : RoutePopDisposition.pop;
+}
 
 ({bool coversChrome, bool active, AnimationStatus? transition, Iterable<String> entries})
 _overlayRoute(

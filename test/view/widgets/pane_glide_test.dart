@@ -44,11 +44,11 @@ void main() {
   final flat = layout(DisplayWire.flatWide);
   final wider = layout(DisplayWire.flatWide, width: 390);
 
-  test('settled pane widths glide without changing the mode', () {
+  test('remembered cover widths do not disturb compact navigation while settled', () {
     expect(glides(flat, wider), isTrue);
     final middle = interpolatePanes(flat, wider, 0.5);
-    expect(middle.leading.rect.right, 386);
-    expect(middle.detail.rect.left, 387);
+    expect(middle.leading.rect.right, 280);
+    expect(middle.detail.rect.left, 281);
     expect(middle.mode, PaneMode.split);
     expect(middle.modal, wider.modal);
   });

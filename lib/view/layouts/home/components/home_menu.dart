@@ -5,11 +5,20 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liquid/liquid.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'package:opentranscribe/core/app/deps.dart';
+import 'package:opentranscribe/core/routes/home_destination.dart';
 import 'package:opentranscribe/core/routes/routes.dart';
+import 'package:opentranscribe/view/layouts/home/components/home_navigation_row.dart';
+import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/core/state/app_language_cubit.dart';
+import 'package:opentranscribe/core/state/theme_cubit.dart';
+import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/core/theming/app_icons.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/utils/url.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/support/components/support_sheet.dart';
@@ -17,16 +26,11 @@ import 'package:opentranscribe/view/widgets/app_dropdown.dart';
 import 'package:opentranscribe/view/widgets/app_menu.dart';
 import 'package:opentranscribe/view/widgets/locale_names.dart';
 
-/// The one door out of home. It replaces the settings screen: every setting
-/// that used to live there is a row here (or a submenu, for the app-language
-/// picker), so leaving home is never more than one tap plus a choice. The
-/// transcription default lives on the Transcription screen, not here. The
-/// GitHub row is the only thing that points outward; see the one rule in
-/// CLAUDE.md.
 class HomeMenu extends StatefulWidget {
-  const HomeMenu({this.color, super.key});
+  const HomeMenu({this.color, this.sidebar = false, super.key});
 
   final Color? color;
+  final bool sidebar;
 
   @override
   State<HomeMenu> createState() => _HomeMenuState();
@@ -131,38 +135,97 @@ class _HomeMenuState extends State<HomeMenu> {
       AppMenuItem(id: 'act:source', label: sourceLabel, iconBytes: _githubBytes),
     ];
 
+    if (widget.sidebar) {
+      final selection = PaneSelectionScope.selectionOf(context);
+      return ListView(
+        primary: false,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: DuoTheme.pageTop),
+        children: [
+          HomeNavigationRow(
+            label: l10n.homeNavigation,
+            icon: AppIcons.houseFill,
+            selected: HomeDestination.home.selectedBy(
+              selection == null ? null : Uri(path: selection.path),
+            ),
+            onTap: () => Deps.i.router.selectHomeDetail(Routes.homeName),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          for (final item in items)
+            if (item.isDivider)
+              const SizedBox(height: AppSpacing.xxl)
+            else
+              _sidebarItem(item, appLang, selection),
+        ],
+      );
+    }
+
     return AppMenuButton(
       key: _anchor,
       icon: AppIcons.gearshape,
       semanticLabel: l10n.settingsButton,
       color: widget.color,
       items: items,
-      onSelectedId: (id) {
-        if (id.startsWith('app:')) {
-          unawaited(context.read<AppLanguageCubit>().setLanguage(id.substring(4)));
-          return;
-        }
-        switch (id) {
-          case 'act:applang':
-            _pickAppLanguage(appLang);
-          case 'act:models':
-            context.pushNamed(Routes.settingsModelsName);
-          case 'act:appearance':
-            context.pushNamed(Routes.settingsAppearanceName);
-          case 'act:reflections':
-            context.pushNamed(Routes.reflectionsName);
-          case 'act:cache':
-            context.pushNamed(Routes.settingsCacheName);
-          case 'act:backup':
-            context.pushNamed(Routes.settingsBackupName);
-          case 'act:notifications':
-            context.pushNamed(Routes.settingsNotificationsName);
-          case 'act:support':
-            unawaited(showSupportSheet(context));
-          case 'act:source':
-            unawaited(openLink(kRepoUrl));
-        }
-      },
+      onSelectedId: (id) => _select(id, appLang),
     );
+  }
+
+  Widget _sidebarItem(AppMenuItem item, String appLang, PaneSelection? selection) {
+    final row = HomeNavigationRow(
+      key: item.id == 'act:applang' ? _anchor : ValueKey(item.id),
+      label: item.label,
+      icon: item.icon,
+      selected:
+          HomeDestination.forAction(
+            item.id!,
+          )?.selectedBy(selection == null ? null : Uri(path: selection.path)) ??
+          false,
+      onTap: () => _select(item.id!, appLang),
+    );
+    if (item.id != 'act:applang' || !PlatformCaps.nativeGlass) return row;
+    return Stack(
+      children: [
+        ExcludeSemantics(child: IgnorePointer(child: row)),
+        Positioned.fill(
+          child: LiquidPopupButton(
+            bare: true,
+            semanticLabel: item.label,
+            isDark: context.theme.brightness == Brightness.dark,
+            items: [
+              for (final language in item.children)
+                LiquidPopupButtonEntry(
+                  value: language.id!,
+                  label: language.label,
+                  isSelected: language.selected,
+                ),
+            ],
+            onSelected: (id) => _select(id, appLang),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _select(String id, String appLang) {
+    final destination = HomeDestination.forAction(id);
+    if (destination != null) {
+      if (widget.sidebar) {
+        Deps.i.router.selectHomeDetail(destination.routeName);
+      } else {
+        context.pushNamed(destination.routeName);
+      }
+      return;
+    }
+    if (id.startsWith('app:')) {
+      unawaited(context.read<AppLanguageCubit>().setLanguage(id.substring(4)));
+      return;
+    }
+    switch (id) {
+      case 'act:applang':
+        _pickAppLanguage(appLang);
+      case 'act:support':
+        unawaited(showSupportSheet(context));
+      case 'act:source':
+        unawaited(openLink(kRepoUrl));
+    }
   }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:opentranscribe/core/routes/pane_stack.dart';
 import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 
@@ -19,7 +19,7 @@ bool duoInnerOf(BuildContext context) {
 }
 
 bool duoJournalOf(BuildContext context) =>
-    duoInnerOf(context) && PaneScope.maybeOf(context)?.touch == PaneTouch.journal;
+    duoInnerOf(context) && PaneScope.maybeOf(context)?.journalContent == true;
 
 ({double header, double detailTop}) duoHeaderOf(BuildContext context) {
   final scaler = MediaQuery.textScalerOf(context);
@@ -38,6 +38,28 @@ bool duoJournalOf(BuildContext context) =>
     detailSize: scaler.scale(detail.fontSize!),
   );
 }
+
+double duoHeadingTopOf(BuildContext context, TextStyle heading, {double offset = 0}) {
+  final scaler = MediaQuery.textScalerOf(context);
+  final navigation = duoTextMetrics(
+    style: AppType.body.copyWith(fontWeight: FontWeight.w600),
+    scaler: scaler,
+  );
+  return duoHeadingTop(
+    navigationLine: navigation.height,
+    navigationBaseline: navigation.baseline,
+    headingBaseline: offset + duoTextMetrics(style: heading, scaler: scaler).baseline,
+  );
+}
+
+double duoJournalTopInsetOf(BuildContext context) =>
+    PaneLayoutScope.of(context).layout.mode == PaneMode.split
+    ? duoHeadingTopOf(
+        context,
+        AppType.digits(DuoTheme.journalTitle),
+        offset: duoReadingGridOf(context).journalTop,
+      )
+    : 0;
 
 bool duoInnerNow(BuildContext context) {
   final panes = context.getInheritedWidgetOfExactType<PaneLayoutScope>()?.tracker;

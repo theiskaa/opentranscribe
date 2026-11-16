@@ -176,17 +176,8 @@ class PaneLayoutScope extends InheritedWidget {
 
 typedef PaneSelection = ({String path, String? period, String? week});
 
-PaneSelection? journalPaneSelection({
-  required PaneMode mode,
-  required PaneSelection? selection,
-  required bool hasDetail,
-  required String? newestEntryId,
-}) => mode != PaneMode.split
-    ? null
-    : selection ??
-          (!hasDetail && newestEntryId != null
-              ? paneSelection(Uri(path: Routes.entry.replaceFirst(':id', newestEntryId)))
-              : null);
+PaneSelection? journalPaneSelection({required PaneMode mode, required PaneSelection? selection}) =>
+    mode == PaneMode.split ? selection : null;
 
 PaneSelection? paneSelection(Uri? uri) => uri == null
     ? null
@@ -220,6 +211,7 @@ class PaneScope extends InheritedWidget {
     required this.detailRoot,
     required super.child,
     this.journalSelection = false,
+    this.journalContent = false,
     this.touch,
     super.key,
   });
@@ -227,6 +219,7 @@ class PaneScope extends InheritedWidget {
   final Pane pane;
   final bool detailRoot;
   final bool journalSelection;
+  final bool journalContent;
   final PaneTouch? touch;
 
   static PaneScope? maybeOf(BuildContext context) =>
@@ -237,6 +230,7 @@ class PaneScope extends InheritedWidget {
       pane != oldWidget.pane ||
       detailRoot != oldWidget.detailRoot ||
       journalSelection != oldWidget.journalSelection ||
+      journalContent != oldWidget.journalContent ||
       touch != oldWidget.touch;
 }
 
@@ -262,6 +256,7 @@ class PaneFrame extends StatelessWidget {
     this.touch,
     this.detailRoot = false,
     this.journalSelection = false,
+    this.journalContent = false,
     super.key,
   });
 
@@ -270,6 +265,7 @@ class PaneFrame extends StatelessWidget {
   final PaneTouch? touch;
   final bool detailRoot;
   final bool journalSelection;
+  final bool journalContent;
 
   @override
   Widget build(BuildContext context) {
@@ -283,6 +279,7 @@ class PaneFrame extends StatelessWidget {
             pane: pane,
             detailRoot: detailRoot,
             journalSelection: journalSelection,
+            journalContent: journalContent,
             touch: touch,
             child: Listener(
               behavior: HitTestBehavior.translucent,
