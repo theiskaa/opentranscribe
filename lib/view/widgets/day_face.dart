@@ -63,14 +63,27 @@ class DayFace extends StatelessWidget {
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              // The locale's own narrow weekday: a first letter reads 周 for
-              // every day in Chinese.
-              DateFormat('EEEEE', localeTag(context)).format(day).toUpperCase(),
-              style: _letter.copyWith(color: letterColor),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                // The locale's own narrow weekday: a first letter reads 周 for
+                // every day in Chinese.
+                DateFormat('EEEEE', localeTag(context)).format(day).toUpperCase(),
+                style: _letter.copyWith(color: letterColor),
+                maxLines: 1,
+                softWrap: false,
+              ),
             ),
             const SizedBox(height: AppSpacing.xxs),
-            Text('${day.day}', style: _number.copyWith(color: numberColor)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${day.day}',
+                style: _number.copyWith(color: numberColor),
+                maxLines: 1,
+                softWrap: false,
+              ),
+            ),
           ],
         ),
         if (dot != null)
