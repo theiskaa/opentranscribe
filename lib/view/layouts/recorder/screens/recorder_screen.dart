@@ -4,7 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/entries_cubit.dart';
 import 'package:opentranscribe/core/theming/duo_theme.dart';
 import 'package:opentranscribe/core/state/home_cubit.dart';
@@ -30,7 +29,6 @@ import 'package:opentranscribe/view/widgets/formatting.dart';
 import 'package:opentranscribe/view/widgets/glass_icon_button.dart';
 import 'package:opentranscribe/view/widgets/language_menu_button.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
-import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:opentranscribe/view/widgets/rolling_text.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
@@ -183,15 +181,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
           final restarting = state.status == RecorderStatus.restarting;
           final denied = state.error == RecorderError.permissionDenied;
           if (denied) return _RecorderDenied(onClose: () => _close(keepSilence: false));
-          final instrumentHeading =
-              duoInnerOf(context) &&
-              PaneGlide.layoutOf(context).recorder.arrangement == RecorderArrangement.sideBySide;
+          final centered = duoRecorderOf(context);
           final stateLabel = state.isPaused
               ? l10n.recordStatePaused
               : (state.live ? l10n.recordStateRecording : null);
           return RecorderPose(
-            instrumentHeading: instrumentHeading,
-            header: instrumentHeading
+            centered: centered,
+            header: centered
                 ? Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
                     child: Column(
@@ -308,9 +304,9 @@ class _PermissionContent extends StatelessWidget {
         ),
         Expanded(
           child: SafeSides(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppRecorderLayout.columnInset),
-              child: Center(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AppRecorderLayout.columnInset),
                 child: EmptyState(
                   icon: AppIcons.mic,
                   title: l10n.recordPermissionTitle,
@@ -365,12 +361,15 @@ class _TimerState extends State<_Timer> {
           return Semantics(
             label: text,
             excludeSemantics: true,
-            child: RollingText(
-              text: text,
-              style: (widget.prominent ? DuoTheme.recorderTimer : AppType.timer).copyWith(
-                color: theme.recorder.timerColor,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: RollingText(
+                text: text,
+                style: (widget.prominent ? DuoTheme.recorderTimer : AppType.timer).copyWith(
+                  color: theme.recorder.timerColor,
+                ),
+                direction: _direction,
               ),
-              direction: _direction,
             ),
           );
         },

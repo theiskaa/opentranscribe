@@ -136,7 +136,7 @@ class _Flank extends StatelessWidget {
     return AnimatedOpacity(
       duration: theme.motion.crossfade,
       opacity: dimmed ? theme.button.disabledOpacity : 1,
-      child: duoInnerOf(context)
+      child: duoRecorderOf(context)
           ? AppGlassIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label)
           : AppIconButton(icon: icon, onTap: onTap, size: size, semanticLabel: label),
     );

@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/utils/pane_geometry.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
 import 'package:opentranscribe/view/widgets/pane_glide.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
@@ -14,9 +15,9 @@ import 'package:opentranscribe/view/widgets/side_column.dart';
 enum RecorderBlock { header, continuing, wave, words, notice, controls, language }
 
 Pane recorderPermissionPane(PaneLayout layout) =>
-    layout.recorder.arrangement == RecorderArrangement.column
+    layout.recorder.arrangement == RecorderArrangement.column && layout.fold == null
     ? layout.leading
-    : Pane(rect: layout.recorder.first, padding: EdgeInsets.zero);
+    : Pane(rect: centeredRecorderRegion(layout), padding: EdgeInsets.zero);
 
 Map<RecorderBlock, Rect> recorderBlockRects(
   PaneLayout layout, {
@@ -24,7 +25,6 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   required double barHeight,
   required TextDirection direction,
   Size languageSize = Size.zero,
-  bool instrumentHeading = false,
 }) {
   final recorder = layout.recorder;
   final column = recorder.arrangement == RecorderArrangement.column;
@@ -32,8 +32,7 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   final first = recorder.first;
   final second = recorder.second ?? first;
   final window = layout.leading.rect.expandToInclude(layout.detail.rect);
-  final grouped = instrumentHeading && recorder.arrangement == RecorderArrangement.sideBySide;
-  var header = Rect.fromLTWH(
+  final header = Rect.fromLTWH(
     column ? window.left : first.left,
     column ? window.top : first.top,
     column ? window.width : first.width,
@@ -46,9 +45,8 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   Rect block(RecorderBlock id, Rect region, double top) =>
       Rect.fromLTWH(region.left + inset, top, math.max(0, region.width - inset * 2), height(id));
 
-  final instrumentTop = stacked || grouped ? instrument.top : header.bottom;
+  final instrumentTop = stacked ? instrument.top : header.bottom;
   final contentHeight =
-      (grouped ? header.height : 0) +
       height(RecorderBlock.continuing) +
       height(RecorderBlock.wave) +
       (column ? AppSpacing.lg + height(RecorderBlock.words) : 0);
@@ -64,16 +62,13 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   );
   final controls = block(RecorderBlock.controls, instrument, notice.bottom);
   final free = math.max(0, notice.top - instrumentTop - contentHeight);
-  final groupTop =
-      instrumentTop +
-      free *
-          AppRecorderLayout.upperSpace /
-          (AppRecorderLayout.upperSpace + AppRecorderLayout.lowerSpace);
-  if (grouped) header = Rect.fromLTWH(first.left, groupTop, first.width, header.height);
   final continuing = block(
     RecorderBlock.continuing,
     instrument,
-    grouped ? header.bottom : groupTop,
+    instrumentTop +
+        free *
+            AppRecorderLayout.upperSpace /
+            (AppRecorderLayout.upperSpace + AppRecorderLayout.lowerSpace),
   );
   final wave = block(RecorderBlock.wave, instrument, continuing.bottom);
   final wordsTop = column
@@ -106,7 +101,7 @@ Map<RecorderBlock, Rect> recorderBlockRects(
   };
 }
 
-class RecorderPose extends StatelessWidget {
+class RecorderPose extends StatefulWidget {
   const RecorderPose({
     required this.header,
     required this.continuing,
@@ -115,7 +110,7 @@ class RecorderPose extends StatelessWidget {
     required this.notice,
     required this.controls,
     required this.language,
-    this.instrumentHeading = false,
+    this.centered = false,
     super.key,
   });
 
@@ -126,7 +121,15 @@ class RecorderPose extends StatelessWidget {
   final Widget notice;
   final Widget controls;
   final Widget language;
-  final bool instrumentHeading;
+  final bool centered;
+
+  @override
+  State<RecorderPose> createState() => _RecorderPoseState();
+}
+
+class _RecorderPoseState extends State<RecorderPose> {
+  // Reparent the existing waveform and word window when the cover changes the layout.
+  final _keys = {for (final block in RecorderBlock.values) block: GlobalKey()};
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +141,74 @@ class RecorderPose extends StatelessWidget {
         ? media
         : paneMediaData(media, Pane(rect: layout.recorder.first, padding: EdgeInsets.zero));
     final bodyMedia = column ? safeSidesData(media) : headerMedia;
+    final blocks = {
+      RecorderBlock.header: widget.header,
+      RecorderBlock.continuing: widget.continuing,
+      RecorderBlock.wave: widget.wave,
+      RecorderBlock.words: widget.words,
+      RecorderBlock.notice: widget.notice,
+      RecorderBlock.controls: widget.controls,
+      RecorderBlock.language: widget.language,
+    };
+    Widget child(RecorderBlock block, MediaQueryData data) => KeyedSubtree(
+      key: _keys[block],
+      child: MediaQuery(data: data, child: blocks[block]!),
+    );
+    if (widget.centered) {
+      final region = PaneGlide.recorderRegionOf(context);
+      final contentMedia = paneMediaData(media, Pane(rect: region, padding: EdgeInsets.zero));
+      final language = recorderBlockRects(
+        layout,
+        heights: const {},
+        barHeight: context.theme.topBar.height,
+        direction: Directionality.of(context),
+        languageSize: const Size.square(AppSizes.barControl),
+      )[RecorderBlock.language]!;
+      return Stack(
+        children: [
+          const SideColumnGround(window: true),
+          Positioned.fromRect(
+            rect: region,
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxxl,
+                  vertical: AppRecorderLayout.verticalInset,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: math.max(
+                      0,
+                      constraints.maxHeight - AppRecorderLayout.verticalInset * 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: AppRecorderLayout.contentWidth),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          child(RecorderBlock.header, contentMedia),
+                          child(RecorderBlock.continuing, contentMedia),
+                          child(RecorderBlock.wave, contentMedia),
+                          const SizedBox(height: AppSpacing.lg),
+                          child(RecorderBlock.words, contentMedia),
+                          const SizedBox(height: AppSpacing.xxxl),
+                          child(RecorderBlock.notice, contentMedia),
+                          child(RecorderBlock.controls, contentMedia),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fromRect(rect: language, child: child(RecorderBlock.language, media)),
+        ],
+      );
+    }
     return Stack(
       children: [
         const SideColumnGround(window: true),
@@ -146,42 +217,21 @@ class RecorderPose extends StatelessWidget {
             layout: layout,
             barHeight: context.theme.topBar.height,
             direction: Directionality.of(context),
-            instrumentHeading: instrumentHeading,
           ),
-          // The slots stay mounted through stale signals and every pose, preserving bars and scroll.
           children: [
-            LayoutId(
-              id: RecorderBlock.header,
-              child: MediaQuery(data: headerMedia, child: header),
-            ),
-            LayoutId(
-              id: RecorderBlock.continuing,
-              child: MediaQuery(data: bodyMedia, child: continuing),
-            ),
-            LayoutId(
-              id: RecorderBlock.wave,
-              child: MediaQuery(data: bodyMedia, child: wave),
-            ),
-            LayoutId(
-              id: RecorderBlock.words,
-              child: MediaQuery(data: bodyMedia, child: words),
-            ),
-            LayoutId(
-              id: RecorderBlock.notice,
-              child: MediaQuery(data: bodyMedia, child: notice),
-            ),
-            LayoutId(
-              id: RecorderBlock.controls,
-              child: MediaQuery(data: bodyMedia, child: controls),
-            ),
-            LayoutId(
-              id: RecorderBlock.language,
-              child: Semantics(
-                container: !column && layout.sideColumn != null,
-                sortKey: !column && layout.sideColumn != null ? const OrdinalSortKey(2) : null,
-                child: language,
+            for (final block in RecorderBlock.values)
+              LayoutId(
+                id: block,
+                child: block == RecorderBlock.language
+                    ? Semantics(
+                        container: !column && layout.sideColumn != null,
+                        sortKey: !column && layout.sideColumn != null
+                            ? const OrdinalSortKey(2)
+                            : null,
+                        child: child(block, media),
+                      )
+                    : child(block, block == RecorderBlock.header ? headerMedia : bodyMedia),
               ),
-            ),
           ],
         ),
       ],
@@ -190,17 +240,11 @@ class RecorderPose extends StatelessWidget {
 }
 
 class _RecorderPoseLayout extends MultiChildLayoutDelegate {
-  _RecorderPoseLayout({
-    required this.layout,
-    required this.barHeight,
-    required this.direction,
-    required this.instrumentHeading,
-  });
+  _RecorderPoseLayout({required this.layout, required this.barHeight, required this.direction});
 
   final PaneLayout layout;
   final double barHeight;
   final TextDirection direction;
-  final bool instrumentHeading;
 
   @override
   void performLayout(Size size) {
@@ -209,7 +253,6 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
       heights: const {},
       barHeight: barHeight,
       direction: direction,
-      instrumentHeading: instrumentHeading,
     );
     final heights = <RecorderBlock, double>{};
     for (final block in RecorderBlock.values) {
@@ -229,7 +272,6 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
       barHeight: barHeight,
       direction: direction,
       languageSize: language,
-      instrumentHeading: instrumentHeading,
     );
     for (final block in RecorderBlock.values) {
       positionChild(block, rects[block]!.topLeft);
@@ -240,6 +282,5 @@ class _RecorderPoseLayout extends MultiChildLayoutDelegate {
   bool shouldRelayout(_RecorderPoseLayout oldDelegate) =>
       layout != oldDelegate.layout ||
       barHeight != oldDelegate.barHeight ||
-      direction != oldDelegate.direction ||
-      instrumentHeading != oldDelegate.instrumentHeading;
+      direction != oldDelegate.direction;
 }

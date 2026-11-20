@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/app_theme.dart';
+import 'package:opentranscribe/core/theming/duo_theme.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
 import 'package:opentranscribe/core/utils/pane_geometry.dart';
 import 'package:opentranscribe/view/layouts/recorder/components/recorder_pose.dart';
 
@@ -25,7 +28,6 @@ Map<RecorderBlock, Rect> blocksFor(
   PaneLayout layout, {
   double continuing = 0,
   double notice = 0,
-  bool instrumentHeading = false,
   TextDirection direction = TextDirection.ltr,
 }) => recorderBlockRects(
   layout,
@@ -44,7 +46,6 @@ Map<RecorderBlock, Rect> blocksFor(
   barHeight: 52,
   direction: direction,
   languageSize: const Size(44, 44),
-  instrumentHeading: instrumentHeading,
 );
 
 void main() {
@@ -64,7 +65,7 @@ void main() {
       final layout = layoutFor(wire);
       final pane = recorderPermissionPane(layout);
       expect(pane.rect.overlaps(layout.fold!.rect), isFalse);
-      expect(pane.rect, layout.recorder.first);
+      expect(pane.rect, centeredRecorderRegion(layout));
       expect(pane.padding, EdgeInsets.zero);
     });
   }
@@ -132,60 +133,74 @@ void main() {
     expect(blocks[RecorderBlock.language]!.center.dx, 909);
   });
 
-  test('the paired clock belongs to the waveform without shifting words or controls', () {
-    for (final wire in [DisplayWire.flatWide, DisplayWire.bookWide]) {
+  test('flat recording uses one centered region across both safe halves', () {
+    for (final wire in [DisplayWire.flatWide, DisplayWire.flatTall]) {
       final layout = layoutFor(wire);
-      final resting = blocksFor(layout, continuing: 30, notice: 40);
-      final grouped = blocksFor(layout, continuing: 30, notice: 40, instrumentHeading: true);
-      expect(grouped[RecorderBlock.header]!.top, greaterThan(layout.recorder.first.top));
-      expect(grouped[RecorderBlock.header]!.bottom, grouped[RecorderBlock.continuing]!.top);
-      expect(grouped[RecorderBlock.continuing]!.bottom, grouped[RecorderBlock.wave]!.top);
-      expect(grouped[RecorderBlock.wave]!.bottom, lessThan(grouped[RecorderBlock.notice]!.top));
-      expect(grouped[RecorderBlock.header]!.center.dx, grouped[RecorderBlock.wave]!.center.dx);
-      for (final block in [RecorderBlock.words, RecorderBlock.controls, RecorderBlock.language]) {
-        expect(grouped[block], resting[block]);
-      }
-      if (layout.fold != null) {
-        for (final rect in grouped.values) {
-          expect(rect.overlaps(layout.fold!.rect), isFalse);
-        }
-      }
+      final region = centeredRecorderRegion(layout);
+      expect(region, layout.recorder.first.expandToInclude(layout.recorder.second!));
+      final side = layout.sideColumn;
+      if (side != null) expect(region.overlaps(side.rect), isFalse);
     }
   });
 
-  test('phone and stacked layouts ignore the paired instrument heading', () {
-    for (final wire in [DisplayWire.iphone, DisplayWire.cover, DisplayWire.laptop]) {
+  test('a physical fold keeps the whole recording stack within one usable panel', () {
+    for (final wire in [DisplayWire.bookWide, DisplayWire.laptop]) {
       final layout = layoutFor(wire);
-      expect(blocksFor(layout, instrumentHeading: true), blocksFor(layout));
+      final region = centeredRecorderRegion(layout);
+      expect(region.overlaps(layout.fold!.rect), isFalse);
+      expect([layout.recorder.first, layout.recorder.second], contains(region));
     }
   });
 
-  test('the paired instrument clears controls as its heading grows', () {
-    final layout = layoutFor(DisplayWire.flatWide);
-    for (final scale in [1.0, 1.3, 1.6]) {
-      final blocks = recorderBlockRects(
-        layout,
-        heights: {
-          RecorderBlock.header: 100 * scale,
-          RecorderBlock.continuing: 30 * scale,
-          RecorderBlock.wave: 96,
-          RecorderBlock.words: 110 * scale,
-          RecorderBlock.notice: 40 * scale,
-          RecorderBlock.controls: 52,
-        },
-        barHeight: 52,
-        direction: TextDirection.ltr,
-        instrumentHeading: true,
-      );
-      expect(blocks[RecorderBlock.header]!.top, greaterThanOrEqualTo(layout.recorder.first.top));
+  test('large text keeps recording and permission content in one fold-free panel', () {
+    for (final wire in [DisplayWire.bookWide, DisplayWire.laptop]) {
+      final normal = layoutFor(wire);
+      final large = layoutFor(wire, body: 40);
+      final region = centeredRecorderRegion(large);
+      expect(region, centeredRecorderRegion(normal));
+      expect(region.overlaps(large.fold!.rect), isFalse);
+      expect(recorderPermissionPane(large).rect, region);
+    }
+  });
+
+  test('the ordinary live composition fits every control above the folded portrait floor', () {
+    final region = centeredRecorderRegion(layoutFor(DisplayWire.laptop));
+    final recorder = AppTheme.defaultLight.recorder;
+    double line(TextStyle style) => style.fontSize! * AppType.lineHeightOf(style, AppType.body);
+    final content =
+        line(DuoTheme.recorderTimer) +
+        AppSpacing.sm +
+        line(DuoTheme.sheetSubtitle) +
+        AppSpacing.xxl +
+        recorder.waveformHeight +
+        AppSpacing.lg +
+        line(DuoTheme.body) * 4 +
+        AppSpacing.xxxl +
+        recorder.controlSize;
+    expect(content + AppRecorderLayout.verticalInset, lessThanOrEqualTo(region.height));
+  });
+
+  test('the reading column fits at the same width before and after unfolding', () {
+    for (final wire in [
+      DisplayWire.bookWide,
+      DisplayWire.flatWide,
+      DisplayWire.laptop,
+      DisplayWire.flatTall,
+    ]) {
+      final region = centeredRecorderRegion(layoutFor(wire));
       expect(
-        blocks[RecorderBlock.wave]!.bottom,
-        lessThanOrEqualTo(blocks[RecorderBlock.notice]!.top),
+        region.width - AppSpacing.xxxl * 2,
+        greaterThanOrEqualTo(AppRecorderLayout.contentWidth),
       );
-      expect(
-        blocks[RecorderBlock.controls]!.bottom,
-        lessThanOrEqualTo(layout.recorder.first.bottom),
-      );
+    }
+  });
+
+  test('a cover or large-text column retains its complete recording region', () {
+    for (final layout in [
+      layoutFor(DisplayWire.cover),
+      layoutFor(DisplayWire.flatWide, body: 40),
+    ]) {
+      expect(centeredRecorderRegion(layout), layout.recorder.first);
     }
   });
 

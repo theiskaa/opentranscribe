@@ -18,6 +18,11 @@ bool duoInnerOf(BuildContext context) {
   );
 }
 
+bool duoRecorderOf(BuildContext context) {
+  final panes = PaneLayoutScope.maybeOf(context);
+  return panes != null && panes.supported && !panes.cover && panes.regular && panes.settled;
+}
+
 bool duoJournalOf(BuildContext context) =>
     duoInnerOf(context) && PaneScope.maybeOf(context)?.journalContent == true;
 

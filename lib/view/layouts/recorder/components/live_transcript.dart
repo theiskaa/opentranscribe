@@ -245,7 +245,7 @@ class _LiveTranscriptState extends State<LiveTranscript> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final tokens = theme.recorder;
-    final inner = duoInnerOf(context);
+    final inner = duoRecorderOf(context);
     final ink = inner ? context.theme.text : tokens.liveTextColor;
     final style = (inner ? DuoTheme.body : AppType.body).copyWith(color: ink);
     final scaler = MediaQuery.textScalerOf(context);
