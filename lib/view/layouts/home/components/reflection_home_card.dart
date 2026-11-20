@@ -190,16 +190,11 @@ class _ReflectionHomeCardState extends State<ReflectionHomeCard> {
     if (selected && !_revealed) {
       _revealed = true;
       final scroll = Scrollable.maybeOf(context)?.position;
-      final line = inner
-          ? AppTopBar.largeHeightOf(context) +
-                AppSpacing.md +
-                WeekCalendar.heightOf(context) +
-                theme.topBar.fadeTail
-          : MediaQuery.paddingOf(context).top +
-                theme.topBar.largeHeight +
-                AppSpacing.md +
-                theme.calendar.cellHeight +
-                theme.topBar.fadeTail;
+      final line =
+          AppTopBar.largeHeightOf(context) +
+          AppSpacing.md +
+          WeekCalendar.heightOf(context) +
+          theme.topBar.fadeTail;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_selected || scroll == null) return;
         final box = context.findRenderObject();

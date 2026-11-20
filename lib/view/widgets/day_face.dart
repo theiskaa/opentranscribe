@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/view/widgets/formatting.dart';
 
 /// How far above the cell's bottom a day's dot sits: midway between the
@@ -24,6 +27,23 @@ double dayDotBottom({
 /// SF Pro's baseline below the middle of an evenly-led line, in ems: half of
 /// the iOS system font's ascent (0.952) less its descent (0.241).
 const double baselineEm = 0.3555;
+
+double phoneDayHeight({
+  required double minimum,
+  required TextScaler scaler,
+  required TextStyle ambient,
+  required double dotSize,
+  bool bold = false,
+}) {
+  double line(TextStyle style) => duoTextMetrics(
+    style: AppType.boldAware(ambient.merge(style), bold: bold),
+    scaler: scaler,
+  ).height;
+  return math.max(
+    minimum,
+    line(DayFace._letter) + AppSpacing.xxs + line(DayFace._number) + 2 * dotSize,
+  );
+}
 
 /// A day's face in a week strip, the home calendar's and the reflections'
 /// alike: the weekday letter over the day number, centred in the cell, and a
@@ -48,6 +68,17 @@ class DayFace extends StatelessWidget {
 
   static const _letter = AppType.caption;
   static final _number = AppType.digits(AppType.headline);
+
+  static double heightOf(BuildContext context) {
+    final calendar = context.theme.calendar;
+    return phoneDayHeight(
+      minimum: calendar.cellHeight,
+      scaler: MediaQuery.textScalerOf(context),
+      ambient: DefaultTextStyle.of(context).style,
+      dotSize: calendar.dotSize,
+      bold: MediaQuery.boldTextOf(context),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +122,7 @@ class DayFace extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: dayDotBottom(
-              cell: cellHeight ?? tokens.cellHeight,
+              cell: cellHeight ?? heightOf(context),
               letterLine: line(_letter),
               numberLine: line(_number),
               numberSize: scaler.scale(_number.fontSize!),

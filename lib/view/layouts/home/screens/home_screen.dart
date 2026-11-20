@@ -580,7 +580,7 @@ class _HomeChromeState extends State<_HomeChrome> {
       // Nothing native scrolls under the home bar, so the drawn fade stands in
       // for the native material and skips its re-stage flicker on return.
       nativeMaterial: false,
-      barHeight: inner ? grid!.header : theme.topBar.largeHeight,
+      barHeight: inner ? grid!.header : AppTopBar.largeRowHeightOf(context),
       contentTopInset: inner ? duoJournalTopInsetOf(context) : 0,
       onTitleTap: widget.onTitleTap,
       actions: [

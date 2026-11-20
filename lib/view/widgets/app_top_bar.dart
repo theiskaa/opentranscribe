@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:opentranscribe/view/widgets/duo_style.dart';
 import 'package:liquid/liquid.dart';
@@ -5,6 +7,8 @@ import 'package:liquid/liquid.dart';
 import 'package:opentranscribe/core/state/theme_cubit.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/component_themes.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
 import 'package:opentranscribe/core/utils/platform_caps.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/widgets/app_icon.dart';
@@ -27,6 +31,21 @@ bool panePageShowsBack({
   required bool canPop,
   bool detailRoot = false,
 }) => canPop && !(mode == PaneMode.split && detailRoot && !journalSelection);
+
+double phoneLargeTitleHeight({
+  required double minimum,
+  required TextScaler scaler,
+  bool bold = false,
+}) {
+  double line(TextStyle style) => duoTextMetrics(
+    style: AppType.boldAware(AppType.digits(style), bold: bold),
+    scaler: scaler,
+  ).height;
+  return math.max(
+    minimum,
+    AppSpacing.md + line(AppType.display2) + AppSpacing.xxs + line(AppType.footnote),
+  );
+}
 
 /// The floating bar every screen shares: a transparent overlay carrying its
 /// title, over a progressive blur that fades to nothing past the content row.
@@ -79,7 +98,7 @@ class AppTopBar extends StatelessWidget {
   final bool centerTitle;
 
   /// Content row height override; defaults to the compact `TopBarTheme.height`.
-  /// Title bars pass `TopBarTheme.largeHeight`.
+  /// Title bars pass [largeRowHeightOf].
   final double? barHeight;
   final double contentTopInset;
 
@@ -122,8 +141,25 @@ class AppTopBar extends StatelessWidget {
 
   /// Status inset + the large title row, for content padding under title bars.
   static double largeHeightOf(BuildContext context) =>
-      MediaQuery.paddingOf(context).top +
-      (duoJournalOf(context) ? duoHeaderOf(context).header : context.theme.topBar.largeHeight);
+      MediaQuery.paddingOf(context).top + largeRowHeightOf(context);
+
+  static double largeRowHeightOf(BuildContext context) => duoJournalOf(context)
+      ? duoHeaderOf(context).header
+      : phoneLargeTitleHeight(
+          minimum: context.theme.topBar.largeHeight,
+          scaler: MediaQuery.textScalerOf(context),
+          bold: MediaQuery.boldTextOf(context),
+        );
+
+  static bool showsBackOf(BuildContext context, {bool explicit = false}) {
+    final scope = PaneScope.maybeOf(context);
+    return panePageShowsBack(
+      mode: PaneLayoutScope.maybeOf(context)?.layout.mode,
+      journalSelection: scope?.journalSelection == true,
+      detailRoot: scope?.detailRoot == true,
+      canPop: explicit || Navigator.of(context).canPop(),
+    );
+  }
 
   /// The side padding a long centered title takes to clear one bar control
   /// and its inset.
@@ -144,15 +180,7 @@ class AppTopBar extends StatelessWidget {
     final sides = horizontalInsets(padding);
     final rowHeight = barHeight ?? bar.height;
 
-    final scope = PaneScope.maybeOf(context);
-    final panes = PaneLayoutScope.maybeOf(context);
-    final layout = panes?.layout;
-    final showBack = panePageShowsBack(
-      mode: layout?.mode,
-      journalSelection: scope?.journalSelection == true,
-      detailRoot: scope?.detailRoot == true,
-      canPop: this.leading is AppBackButton || Navigator.of(context).canPop(),
-    );
+    final showBack = showsBackOf(context, explicit: this.leading is AppBackButton);
     final leading = !showBack && (this.leading == null || this.leading is AppBackButton)
         ? null
         : this.leading ?? (automaticLeading && showBack ? const AppBackButton() : null);

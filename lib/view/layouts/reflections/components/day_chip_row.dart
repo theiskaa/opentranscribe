@@ -27,7 +27,7 @@ class DayChipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: context.theme.calendar.cellHeight,
+      height: DayFace.heightOf(context),
       child: Row(
         children: [
           for (final (index, day) in days.indexed) ...[

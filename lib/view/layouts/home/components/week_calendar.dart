@@ -51,7 +51,7 @@ class WeekCalendar extends StatefulWidget {
 
   /// The strip's rendered height, for layouts that slide content under it.
   static double heightOf(BuildContext context) {
-    if (!duoJournalOf(context)) return context.theme.calendar.cellHeight;
+    if (!duoJournalOf(context)) return DayFace.heightOf(context);
     final scaler = MediaQuery.textScalerOf(context);
     final ambient = DefaultTextStyle.of(context).style;
     return duoDayHeight(
@@ -244,20 +244,25 @@ class _WeekRow extends StatelessWidget {
       return LayoutBuilder(
         builder: (context, constraints) {
           final metrics = duoWeekMetrics(constraints.maxWidth);
-          final selection = duoDaySelection(
-            days: days,
-            selected: cursorDay,
-            direction: Directionality.of(context),
-            width: constraints.maxWidth,
-            height: WeekCalendar.heightOf(context),
-          );
+          final index = days.indexOf(cursorDay);
           return Stack(
             children: [
-              if (selection != null)
-                AnimatedPositioned.fromRect(
-                  rect: selection,
+              if (index >= 0)
+                // Travels by slot, not by rect: a resize moves the pill with
+                // the tiles instead of animating it after them.
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: index.toDouble(), end: index.toDouble()),
                   duration: context.reduceMotion ? Duration.zero : context.theme.motion.duoDay,
                   curve: context.theme.motion.duoDayCurve,
+                  builder: (context, slot, child) => Positioned.fromRect(
+                    rect: duoDaySlot(
+                      slot: slot,
+                      width: constraints.maxWidth,
+                      height: WeekCalendar.heightOf(context),
+                      direction: Directionality.of(context),
+                    ),
+                    child: child!,
+                  ),
                   child: DecoratedBox(
                     decoration: SuperellipseDecoration(
                       borderRadius: AppDuo.dayRadius,
