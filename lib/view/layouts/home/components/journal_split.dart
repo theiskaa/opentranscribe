@@ -61,7 +61,8 @@ class JournalSplit extends StatelessWidget {
           GlassFabPosition(
             home: true,
             child: Offstage(
-              offstage: split || journalColumnEnabled(layout),
+              offstage:
+                  split || journalColumnEnabled(layout) || ModalRoute.isCurrentOf(context) == false,
               child: const JournalRecordButton(),
             ),
           ),

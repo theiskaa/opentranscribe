@@ -81,6 +81,17 @@ void main() {
     );
   });
 
+  test('persistent chrome hides below a popup and returns when the popup leaves', () {
+    final observer = PaneObserver();
+    final popup = _PopupRoute();
+    expect(observer.chromeCovered, isFalse);
+    observer.didPush(popup, null);
+    expect(observer.chromeCovered, isTrue);
+    observer.didRemove(popup, null);
+    expect(observer.chromeCovered, isFalse);
+    observer.dispose();
+  });
+
   test('recorder and onboarding cover persistent chrome', () {
     for (final cover in ['recorder', 'onboarding']) {
       expect(
@@ -172,6 +183,18 @@ void main() {
 }
 
 class _TestRoute extends Route<void> {}
+
+class _PopupRoute extends RawDialogRoute<void> {
+  _PopupRoute() : super(pageBuilder: (_, _, _) => const SizedBox.shrink());
+
+  late final _entries = createOverlayEntries().toList();
+
+  @override
+  bool get isActive => true;
+
+  @override
+  List<OverlayEntry> get overlayEntries => _entries;
+}
 
 class _ProtectedRoute extends Route<void> {
   _ProtectedRoute() : super(settings: const PanePage<void>(child: SizedBox.shrink()));

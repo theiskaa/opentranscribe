@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:opentranscribe/core/routes/app_pages.dart';
 import 'package:opentranscribe/core/routes/pane_page.dart';
@@ -21,8 +20,18 @@ class PaneObserver extends NavigatorObserver with ChangeNotifier {
         route.popDisposition == RoutePopDisposition.doNotPop,
   );
 
-  bool get chromeCovered =>
-      _routes.any((route) => route.settings is SlideUpPage || route.settings is NoTransitionPage);
+  bool get chromeCovered => _chromeAnchor != null;
+
+  OverlayEntry? get _chromeAnchor => paneChromeAnchor(
+    _routes.map(
+      (route) => (
+        coversChrome: route.settings is! ArrivalPage && route.settings is! PanePage,
+        active: route.isActive,
+        transition: route is TransitionRoute ? route.animation?.status : null,
+        entries: route.overlayEntries,
+      ),
+    ),
+  );
 
   bool get bottomSlotOccupied => _top != null && _bottomSlotOwners.containsValue(_top);
 
@@ -100,16 +109,7 @@ class PaneObserver extends NavigatorObserver with ChangeNotifier {
       final chrome = _chrome;
       final overlay = navigator?.overlay;
       if (chrome == null || overlay == null) return;
-      final below = paneChromeAnchor(
-        _routes.map(
-          (route) => (
-            coversChrome: route.settings is! ArrivalPage && route.settings is! PanePage,
-            active: route.isActive,
-            transition: route is TransitionRoute ? route.animation?.status : null,
-            entries: route.overlayEntries,
-          ),
-        ),
-      );
+      final below = _chromeAnchor;
       // Route completion follows overlay removal, so the observer's route list
       // can still contain removed entries. Only Navigator may insert those.
       if (_chromeInserted) chrome.remove();
