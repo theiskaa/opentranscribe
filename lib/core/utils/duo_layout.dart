@@ -105,6 +105,13 @@ Rect duoSheetRegion({
   return layout.fold == null ? Offset.zero & window : layout.modal;
 }
 
+Rect duoSheetFrame({required Rect region, required EdgeInsets padding}) {
+  final left = math.min(region.left + padding.left, region.right);
+  final right = math.max(left, region.right - padding.right);
+  final width = math.min(AppDuo.paneSheetWidth, right - left);
+  return Rect.fromLTWH((left + right - width) / 2, region.top, width, region.height);
+}
+
 Rect? duoDaySelection({
   required List<DateTime> days,
   required DateTime selected,
@@ -114,8 +121,19 @@ Rect? duoDaySelection({
 }) {
   final index = days.indexOf(selected);
   if (index < 0) return null;
+  return duoDaySlot(slot: index.toDouble(), width: width, height: height, direction: direction);
+}
+
+/// The day pill's rect at a fractional [slot], so the pill can travel between
+/// days by index while its geometry follows the strip's current width.
+Rect duoDaySlot({
+  required double slot,
+  required double width,
+  required double height,
+  TextDirection direction = TextDirection.ltr,
+}) {
   final metrics = duoWeekMetrics(width);
-  final left = index * (metrics.cell + metrics.gap);
+  final left = slot * (metrics.cell + metrics.gap);
   return Rect.fromLTWH(
     direction == TextDirection.rtl ? width - left - metrics.cell : left,
     0,

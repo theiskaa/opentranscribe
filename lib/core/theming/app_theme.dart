@@ -203,7 +203,6 @@ final class AppTheme {
             textSecondary: textSecondary,
             accent: accent,
             hairline: hairline,
-            barrier: barrier,
             player: resolvedPlayer,
             surface: surface,
           ),

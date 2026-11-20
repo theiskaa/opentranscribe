@@ -7,6 +7,48 @@ import 'package:opentranscribe/core/models/pane_layout.dart';
 import 'package:opentranscribe/core/theming/app_dimens.dart';
 import 'package:opentranscribe/core/theming/type_scale.dart';
 
+Rect centeredRecorderRegion(PaneLayout layout) {
+  final first = layout.recorder.first;
+  final second = layout.recorder.second;
+  final fold = layout.fold;
+  if (second != null) {
+    if (fold == null) return first.expandToInclude(second);
+    return first.width * first.height > second.width * second.height ? first : second;
+  }
+  if (fold == null) return first;
+  final (leading, trailing) = switch (fold.axis) {
+    FoldAxis.vertical => (
+      Rect.fromLTRB(
+        first.left,
+        first.top,
+        math.max(first.left, math.min(first.right, fold.rect.left - AppDuo.recorderFoldOffset)),
+        first.bottom,
+      ),
+      Rect.fromLTRB(
+        math.min(first.right, math.max(first.left, fold.rect.right)),
+        first.top,
+        first.right,
+        first.bottom,
+      ),
+    ),
+    FoldAxis.horizontal => (
+      Rect.fromLTRB(
+        first.left,
+        first.top,
+        first.right,
+        math.max(first.top, math.min(first.bottom, fold.rect.top)),
+      ),
+      Rect.fromLTRB(
+        first.left,
+        math.min(first.bottom, math.max(first.top, fold.rect.bottom)),
+        first.right,
+        first.bottom,
+      ),
+    ),
+  };
+  return leading.width * leading.height > trailing.width * trailing.height ? leading : trailing;
+}
+
 /// How far the signal's size may sit from the window's and still describe it.
 const _sizeSlack = 0.5;
 

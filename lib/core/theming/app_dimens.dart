@@ -139,9 +139,8 @@ abstract final class AppDuo {
   static const playSize = 36.0;
   static const rateSize = 28.0;
 
-  static const formSheetWidth = 420.0;
-  static const formSheetMargin = AppSpacing.xxl;
-  static const formSheetRadius = 28.0;
+  /// The maximum width of a bottom sheet on the inner display.
+  static const paneSheetWidth = 440.0;
 
   static const onboardingTitleFraction = 0.22;
 
@@ -168,6 +167,8 @@ abstract final class AppDuo {
 }
 
 abstract final class AppRecorderLayout {
+  static const contentWidth = 360.0;
+  static const verticalInset = AppSpacing.sm;
   static const columnInset = AppSpacing.xxxl + AppSpacing.sm;
   static const upperSpace = 45.0;
   static const lowerSpace = 42.0;

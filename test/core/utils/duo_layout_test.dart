@@ -220,6 +220,17 @@ void main() {
     );
   });
 
+  test('a day pill between two slots sits between their cells at whatever width the strip has', () {
+    for (final width in [280.0, 344.0, 600.0]) {
+      final from = duoDaySlot(slot: 2, width: width, height: 56);
+      final to = duoDaySlot(slot: 3, width: width, height: 56);
+      final half = duoDaySlot(slot: 2.5, width: width, height: 56);
+      expect(half.left, closeTo((from.left + to.left) / 2, 0.001));
+      expect(half.width, closeTo(from.width, 0.001));
+      expect(to.left, closeTo(3 * (duoWeekMetrics(width).cell + duoWeekMetrics(width).gap), 0.001));
+    }
+  });
+
   test('measured title baselines align independently of font ascent and text size', () {
     for (final scale in [1.0, 1.3, 1.6, 2.5]) {
       final metrics = duoHeaderMetrics(

@@ -1,151 +1,113 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opentranscribe/core/theming/app_dimens.dart';
-import 'package:opentranscribe/core/theming/duo_theme.dart';
-import 'package:opentranscribe/core/routes/pane_stack.dart';
-import 'package:opentranscribe/view/widgets/pane_frame.dart';
-import '../../support/fake_display_channels.dart';
-import 'package:opentranscribe/core/models/pane_layout.dart';
-import 'package:opentranscribe/core/utils/pane_geometry.dart';
-import 'package:opentranscribe/core/theming/type_scale.dart';
 
+import 'package:opentranscribe/core/models/pane_layout.dart';
+import 'package:opentranscribe/core/routes/pane_stack.dart';
+import 'package:opentranscribe/core/theming/app_dimens.dart';
+import 'package:opentranscribe/core/theming/type_scale.dart';
+import 'package:opentranscribe/core/utils/duo_layout.dart';
+import 'package:opentranscribe/core/utils/pane_geometry.dart';
 import 'package:opentranscribe/view/widgets/app_sheet.dart';
+import 'package:opentranscribe/view/widgets/pane_glide.dart';
+
+import '../../support/fake_display_channels.dart';
+
+PaneReflow reflowFor(Map<String, Object?> wire) {
+  final signal = DisplayWire.decode(wire);
+  final layout = paneLayoutFor(
+    PaneInputs(
+      size: signal.size,
+      padding: signal.padding,
+      signal: signal,
+      bodySize: AppType.body.fontSize!,
+      closedContentWidth: AppDuo.closedContentWidth,
+    ),
+  );
+  return PaneReflow.fromLayout(layout, window: signal.size, padding: signal.padding);
+}
+
+Rect frameFor(PaneReflow reflow, PaneTouch? source) {
+  final sheet = reflow.sheetFor(source);
+  return duoSheetFrame(region: sheet.region, padding: sheet.padding);
+}
 
 void main() {
-  test('form content does not reserve the status column already cleared by its bounds', () {
-    const media = MediaQueryData(
-      size: Size(670, 669),
-      padding: EdgeInsets.fromLTRB(0, 24, 84, 34),
-      viewPadding: EdgeInsets.fromLTRB(0, 24, 84, 34),
-      viewInsets: EdgeInsets.only(bottom: 280),
-    );
-    final content = sheetContentMedia(media, form: true);
-    expect(content.padding, EdgeInsets.zero);
-    expect(content.viewPadding, EdgeInsets.zero);
-    expect(content.viewInsets, media.viewInsets);
-    expect(content.size, media.size);
-    expect(sheetContentMedia(media, form: false), same(media));
+  test('a wide detail sheet is capped and centered in the safe width of its pane', () {
+    final reflow = reflowFor(DisplayWire.flatWide);
+    final detail = reflow.layout.detail;
+    final frame = frameFor(reflow, PaneTouch.detail);
+    expect(frame.width, AppDuo.paneSheetWidth);
+    expect(frame.center.dx, detail.padding.deflateRect(detail.rect).center.dx);
+    expect(frame.top, detail.rect.top);
+    expect(frame.bottom, detail.rect.bottom);
   });
 
-  test('only the inner display uses a form in every pose and window size', () {
-    for (final wire in [
-      DisplayWire.flatWide,
-      DisplayWire.bookWide,
-      DisplayWire.flatTall,
-      DisplayWire.laptop,
-    ]) {
-      expect(formSheetFor(DisplayWire.decode(wire)), isTrue);
-    }
-    for (final wire in [DisplayWire.cover, DisplayWire.iphone, DisplayWire.unsupported]) {
-      expect(formSheetFor(DisplayWire.decode(wire)), isFalse);
-    }
-    final half = DisplayWire.splitHalf(
-      width: 400,
-      height: 669,
-      insets: DisplayWire.insets(0, 0, 34, 0),
-      division: DisplayWire.region('division', 380, 0, 20, 669),
-    );
-    expect(formSheetFor(DisplayWire.decode(half)), isTrue);
-  });
-
-  test('forms fit both source panes and stay clear of the fold in every pose', () {
-    for (final wire in [
-      DisplayWire.flatWide,
-      DisplayWire.bookWide,
-      DisplayWire.flatTall,
-      DisplayWire.laptop,
-    ]) {
-      final signal = DisplayWire.decode(wire);
-      final layout = paneLayoutFor(
-        PaneInputs(
-          size: signal.size,
-          padding: signal.padding,
-          signal: signal,
-          bodySize: AppType.body.fontSize!,
-          closedContentWidth: AppDuo.closedContentWidth,
-        ),
-      );
-      for (final source in PaneTouch.values) {
-        final pane = modalPaneRect(layout: layout, source: source, window: signal.size);
-        final bounds = formSheetBounds(
-          size: pane.size,
-          padding: paneInsets(signal.padding, pane, signal.size),
-          keyboard: 0,
-        );
-        final card = bounds.shift(pane.topLeft);
-        expect(card.width, lessThanOrEqualTo(AppDuo.formSheetWidth));
-        expect(card.left, greaterThanOrEqualTo(pane.left));
-        expect(card.right, lessThanOrEqualTo(pane.right));
-        expect(card.top, greaterThanOrEqualTo(pane.top));
-        expect(card.bottom, lessThanOrEqualTo(pane.bottom));
-        if (layout.fold != null) expect(card.overlaps(layout.fold!.rect), isFalse);
+  test('every source gets a bottom-attached sheet clear of the fold in book and laptop poses', () {
+    for (final wire in [DisplayWire.bookWide, DisplayWire.laptop]) {
+      final reflow = reflowFor(wire);
+      for (final source in <PaneTouch?>[null, ...PaneTouch.values]) {
+        final region = reflow.sheetFor(source).region;
+        final frame = frameFor(reflow, source);
+        expect(frame.width, greaterThan(0));
+        expect(frame.top, region.top);
+        expect(frame.bottom, region.bottom);
+        expect(frame.overlaps(reflow.layout.fold!.rect), isFalse);
       }
     }
   });
 
-  test('forms cap their width and center within their available safe band', () {
-    final bounds = formSheetBounds(
-      size: const Size(800, 900),
-      padding: const EdgeInsets.only(top: 40, bottom: 34),
-      keyboard: 0,
-    );
-    expect(bounds.width, AppDuo.formSheetWidth);
-    expect(bounds.center.dx, 400);
-    expect(bounds.top, 40 + AppDuo.formSheetMargin);
-    expect(bounds.bottom, 900 - 34 - AppDuo.formSheetMargin);
-  });
-
-  test('a keyboard reduces the available card height without adding space inside it', () {
-    final bounds = formSheetBounds(
-      size: const Size(400, 669),
-      padding: const EdgeInsets.only(bottom: 34),
-      keyboard: 300,
-    );
-    expect(bounds.width, 400 - 2 * AppDuo.formSheetMargin);
-    expect(bounds.bottom, 369 - AppDuo.formSheetMargin);
-    expect(bounds.height, greaterThan(0));
-  });
-
-  test('tiny available regions never produce negative card constraints', () {
-    final bounds = formSheetBounds(
-      size: const Size(30, 40),
-      padding: EdgeInsets.zero,
-      keyboard: 300,
-    );
-    expect(bounds.width, 0);
-    expect(bounds.height, 0);
-  });
-
-  test('polished sheets keep the full window center despite an asymmetric status column', () {
-    for (final padding in [const EdgeInsets.only(right: 84), const EdgeInsets.only(left: 84)]) {
-      final bounds = formSheetBounds(
-        size: const Size(951, 669),
-        padding: padding,
-        keyboard: 0,
-        polished: true,
-        centerOnWindow: true,
-      );
-      expect(bounds.center.dx, 951 / 2);
-      expect(bounds.center.dy, closeTo(669 / 2, 0.0001));
-      expect(bounds.width, DuoTheme.sheetWidth);
-      expect(bounds.height, lessThanOrEqualTo(669 * DuoTheme.sheetHeightFraction + 0.0001));
+  test('the cover and iPhone sheet regions fill the window and their safe widths fit the cap', () {
+    for (final wire in [DisplayWire.cover, DisplayWire.iphone]) {
+      final signal = DisplayWire.decode(wire);
+      final reflow = reflowFor(wire);
+      final window = Offset.zero & signal.size;
+      final safe = signal.padding.deflateRect(window);
+      for (final source in <PaneTouch?>[null, ...PaneTouch.values]) {
+        expect(reflow.sheetFor(source).region, window);
+        expect(frameFor(reflow, source), Rect.fromLTRB(safe.left, 0, safe.right, window.bottom));
+      }
     }
   });
 
-  test('polished forms fit narrow source panes and tiny keyboard regions', () {
-    for (final size in [const Size(455, 669), const Size(30, 40)]) {
-      for (final keyboard in [0.0, 300.0, 1000.0]) {
-        final bounds = formSheetBounds(
-          size: size,
-          padding: const EdgeInsets.only(right: 84),
-          keyboard: keyboard,
-          polished: true,
-        );
-        expect(bounds.width, inInclusiveRange(0, DuoTheme.sheetWidth));
-        expect(
-          bounds.height,
-          inInclusiveRange(0, size.height * DuoTheme.sheetHeightFraction + 0.0001),
-        );
+  test('an inner sheet clears a status column on either side of its region', () {
+    final reflow = reflowFor(DisplayWire.bookWide);
+    final details = reflow.sheetFor(PaneTouch.detail);
+    final frame = frameFor(reflow, PaneTouch.detail);
+    expect(frame.overlaps(reflow.layout.sideColumn!.rect), isFalse);
+    expect(frame.right, details.region.right - details.padding.right);
+    final leftInset = duoSheetFrame(
+      region: details.region,
+      padding: EdgeInsets.only(left: details.padding.right),
+    );
+    expect(leftInset.left, details.region.left + details.padding.right);
+  });
+
+  test('a sheet never extends outside its source when side insets consume the region', () {
+    const region = Rect.fromLTWH(20, 10, 30, 40);
+    final frame = duoSheetFrame(region: region, padding: const EdgeInsets.only(left: 84));
+    expect(frame, Rect.fromLTRB(region.right, region.top, region.right, region.bottom));
+  });
+
+  test('a reflowing sheet travels within the union of its endpoint frames', () {
+    for (final (folded, flat) in [
+      (DisplayWire.bookWide, DisplayWire.flatWide),
+      (DisplayWire.laptop, DisplayWire.flatTall),
+    ]) {
+      final from = reflowFor(folded);
+      final to = reflowFor(flat);
+      for (final source in <PaneTouch?>[null, ...PaneTouch.values]) {
+        final start = frameFor(from, source);
+        final end = frameFor(to, source);
+        final union = start.expandToInclude(end);
+        var previous = start;
+        for (var step = 0; step <= 120; step++) {
+          final frame = frameFor(interpolateReflow(from, to, step / 120), source);
+          expect(frame.intersect(union.inflate(0.0001)), frame);
+          expect(frame.width, lessThanOrEqualTo(AppDuo.paneSheetWidth + 0.0001));
+          expect((frame.center - previous.center).distance, lessThan(5));
+          previous = frame;
+        }
+        expect(previous, end);
       }
     }
   });

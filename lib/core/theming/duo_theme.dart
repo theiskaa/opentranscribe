@@ -17,7 +17,6 @@ final class DuoTheme {
     required this.separator,
     required this.controlSurface,
     required this.player,
-    required this.scrim,
   });
 
   factory DuoTheme.fromBase({
@@ -28,7 +27,6 @@ final class DuoTheme {
     required Color surface,
     required Color accent,
     required Color hairline,
-    required Color barrier,
     required PlayerTheme player,
   }) {
     final dark = brightness == Brightness.dark;
@@ -43,7 +41,6 @@ final class DuoTheme {
     final selected = Color.alphaBlend(selection, grouped);
     return DuoTheme(
       surfaceGrouped: grouped,
-      scrim: barrier.withValues(alpha: dark ? 0.48 : 0.32),
       surfaceElevated: Color.alphaBlend(text.withValues(alpha: dark ? 0.06 : 0.04), background),
       selectionFill: selection,
       selectedMetadata: fadedAtLeast(text, 0.70, background: selected, floor: 4.5),
@@ -74,12 +71,7 @@ final class DuoTheme {
   final Color separator;
   final Color controlSurface;
   final PlayerTheme player;
-  final Color scrim;
 
-  static const sheetWidth = 420.0;
-  static const sheetRadius = 20.0;
-  static const sheetHeightFraction = 0.85;
-  static const sheetToolbarHeight = AppSizes.minTarget + AppSpacing.lg;
   static const buttonHeight = 50.0;
   static const buttonRadius = 25.0;
   static const groupRadius = 14.0;
