@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/services.dart' show TextCapitalization, TextInputAction;
@@ -30,6 +31,7 @@ import 'package:opentranscribe/core/utils/haptics.dart';
 import 'package:opentranscribe/l10n/generated/app_localizations.dart';
 import 'package:opentranscribe/view/layouts/entry/components/entry_bar_line.dart';
 import 'package:opentranscribe/view/layouts/entry/components/entry_export_menu.dart';
+import 'package:opentranscribe/view/layouts/entry/components/entry_hint_placement.dart';
 import 'package:opentranscribe/view/layouts/entry/components/revision_history_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/transcribe_error_sheet.dart';
 import 'package:opentranscribe/view/layouts/entry/components/wave_player.dart';
@@ -55,6 +57,7 @@ import 'package:opentranscribe/view/widgets/ink_forecast.dart';
 import 'package:opentranscribe/view/widgets/safe_sides.dart';
 import 'package:opentranscribe/view/widgets/selectable_prose.dart';
 import 'package:opentranscribe/view/widgets/pane_frame.dart';
+import 'package:opentranscribe/view/widgets/side_column.dart';
 
 class RoutedEntryDetail extends StatefulWidget {
   const RoutedEntryDetail({required this.entryId, required this.routeKey, super.key});
@@ -633,10 +636,6 @@ class _DetailViewState extends State<_DetailView> {
           editing: _editing,
           busy: state.busyId == entry.id,
         );
-        if (showHint && !_hintMarked) {
-          _hintMarked = true;
-          unawaited(Hints.markSeen(Deps.i.localService, Hints.entryMenu).catchError((_) {}));
-        }
         // A take extending this entry, live or landing: the words stay and a
         // quiet wait sits under them.
         final continuing =
@@ -664,6 +663,19 @@ class _DetailViewState extends State<_DetailView> {
         // always scroll clear of it; zero the rest of the time.
         final keyboard = MediaQuery.viewInsetsOf(context).bottom;
         final verticalBar = PageBarScope.placementOf(context) == PageBarPlacement.vertical;
+        final topInset = MediaQuery.paddingOf(context).top;
+        final documentTop = inner
+            ? verticalBar
+                  ? topInset + duoHeadingTopOf(context, DuoTheme.detailTitle)
+                  : AppScaffold.topPaddingOf(context)
+            : AppTopBar.heightOf(context) + theme.topBar.fadeTail;
+        final hint = showHint || _hintMarked
+            ? _entryHintOf(context, verticalBar: verticalBar, foldInsets: foldInsets)
+            : null;
+        if (showHint && hint != null && !_hintMarked) {
+          _hintMarked = true;
+          unawaited(Hints.markSeen(Deps.i.localService, Hints.entryMenu).catchError((_) {}));
+        }
         // What the scroll must clear so its last line never hides behind the
         // pinned dock: the pill, the CTA, and the gap between them, whichever
         // are present.
@@ -729,18 +741,12 @@ class _DetailViewState extends State<_DetailView> {
                                   width: MediaQuery.sizeOf(context).width + sides.horizontal,
                                   safe: MediaQuery.paddingOf(context) + sides,
                                   fold: foldInsets,
-                                  top: verticalBar
-                                      ? duoHeadingTopOf(context, DuoTheme.detailTitle)
-                                      : AppScaffold.topPaddingOf(context) -
-                                            MediaQuery.paddingOf(context).top,
+                                  top: documentTop - topInset,
                                   bottom: keyboard + restingBottom,
                                 )
                               : EdgeInsets.fromLTRB(
                                       AppSpacing.xl,
-                                      // Past the bar AND its fade tail: the material is opaque
-                                      // through the row and only melts across the tail, so
-                                      // content starting inside it would sit under the wash.
-                                      AppTopBar.heightOf(context) + theme.topBar.fadeTail,
+                                      documentTop,
                                       AppSpacing.xl,
                                       keyboard + restingBottom,
                                     ) +
@@ -900,7 +906,7 @@ class _DetailViewState extends State<_DetailView> {
                                   marks: marks,
                                 ),
                               );
-                              return AppMenuButton(
+                              final button = AppMenuButton(
                                 key: _menuAnchor,
                                 icon: AppIcons.ellipsis,
                                 color: theme.topBar.iconColor,
@@ -919,6 +925,7 @@ class _DetailViewState extends State<_DetailView> {
                                   _onMenuId(id, entry);
                                 },
                               );
+                              return Listener(onPointerDown: (_) => _dismissHint(), child: button);
                             },
                           );
                         },
@@ -926,25 +933,28 @@ class _DetailViewState extends State<_DetailView> {
                     ],
                   ),
                 ),
-                // Above the bar, not under it: seated on the fade tail, the hint
-                // would otherwise be washed by the material. Mounted once it has
-                // shown and kept, so it animates itself out and back.
-                if (_hintMarked)
-                  PositionedDirectional(
-                    top: AppTopBar.heightOf(context),
-                    end:
-                        AppSpacing.md +
-                        endInset(MediaQuery.paddingOf(context), Directionality.of(context)),
+                if (_hintMarked && hint != null)
+                  Positioned.fromRect(
+                    rect: hint.bounds,
                     child: ValueListenableBuilder<bool>(
                       valueListenable: _hintArmed,
-                      builder: (context, armed, _) => _EntryHint(
-                        visible: shouldShowEntryHint(
+                      builder: (context, armed, _) {
+                        final visible = shouldShowEntryHint(
                           seen: !armed,
                           editing: _editing,
                           busy: state.busyId == entry.id,
-                        ),
-                        onDismiss: _dismissHint,
-                      ),
+                        );
+                        final callout = HintCallout(
+                          message: l10n.hintEntryMenu,
+                          visible: visible,
+                          onDismiss: _dismissHint,
+                          caretInset: hint.caretInset,
+                          caretDirection: hint.caret,
+                        );
+                        return verticalBar
+                            ? callout
+                            : Align(alignment: AlignmentDirectional.topEnd, child: callout);
+                      },
                     ),
                   ),
                 // The edit mode's save floats where home's record button does,
@@ -991,24 +1001,55 @@ class _DetailViewState extends State<_DetailView> {
   }
 }
 
-/// The first-entry hint, seated below the bar's row with its caret on the menu
-/// button (the bar's edge inset plus half an action).
-class _EntryHint extends StatelessWidget {
-  const _EntryHint({required this.visible, required this.onDismiss});
+EntryHintPlacement? _entryHintOf(
+  BuildContext context, {
+  required bool verticalBar,
+  required EdgeInsets foldInsets,
+}) {
+  final pane = PaneScope.maybeOf(context)?.pane.rect ?? Offset.zero & MediaQuery.sizeOf(context);
+  final padding = MediaQuery.paddingOf(context) + (verticalBar ? foldInsets : EdgeInsets.zero);
+  final direction = Directionality.of(context);
+  final theme = context.theme;
+  ({Rect menuSlot, Size callout, double caretSize})? column;
+  if (verticalBar) {
+    final sideColumn = PaneLayoutScope.maybeOf(context)?.layout.sideColumn;
+    if (sideColumn == null) return null;
+    final slots = columnBarSlots(sideColumn, AppTopBar.showsBackOf(context) ? 2 : 1);
+    final menuSlot = slots.overflow ?? slots.visible.lastOrNull;
+    if (menuSlot == null) return null;
 
-  final bool visible;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    return HintCallout(
-      message: AppLocalizations.of(context)!.hintEntryMenu,
-      visible: visible,
-      onDismiss: onDismiss,
-      caretInset: theme.topBar.actionSize / 2,
+    final tokens = theme.callout;
+    final width = math.min(tokens.maxWidth, pane.width - padding.horizontal - 2 * AppSpacing.md);
+    const contentPadding = HintCallout.contentPadding;
+    final textWidth = width - tokens.caretSize - contentPadding.horizontal;
+    if (textWidth <= 0) return null;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: AppLocalizations.of(context)!.hintEntryMenu,
+        style: AppType.boldAware(
+          DefaultTextStyle.of(context).style.merge(AppType.note),
+          bold: MediaQuery.boldTextOf(context),
+        ),
+      ),
+      textDirection: direction,
+      textScaler: MediaQuery.textScalerOf(context),
+      locale: Localizations.maybeLocaleOf(context),
+    )..layout(maxWidth: textWidth);
+    column = (
+      menuSlot: menuSlot,
+      callout: Size(width, painter.height + contentPadding.vertical),
+      caretSize: tokens.caretSize,
     );
+    painter.dispose();
   }
+  return entryHintPlacement(
+    pane: pane,
+    padding: padding,
+    direction: direction,
+    phoneTop: AppTopBar.heightOf(context),
+    actionSize: theme.topBar.actionSize,
+    column: column,
+  );
 }
 
 /// The screen's floor: a failure indicator that opens its details on tap, over

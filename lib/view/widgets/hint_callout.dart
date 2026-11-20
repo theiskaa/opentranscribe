@@ -10,21 +10,29 @@ import 'package:opentranscribe/view/widgets/touchable.dart';
 /// explains. Not [AppNotice], which clears itself: a hint waits to be read,
 /// and its owner says when it has been ([visible] false). It rises in like
 /// every entrance and leaves the way it came, quicker; hidden, it takes no
-/// touches. [caretInset] is the caret's centre measured from the trailing
-/// edge.
+/// touches.
 class HintCallout extends StatefulWidget {
   const HintCallout({
     required this.message,
     required this.visible,
     required this.onDismiss,
     required this.caretInset,
+    this.caretDirection = AxisDirection.up,
     super.key,
   });
 
   final String message;
   final bool visible;
   final VoidCallback onDismiss;
+
+  /// Measured from the trailing edge for an up caret, or from the top for a side caret.
   final double caretInset;
+  final AxisDirection caretDirection;
+
+  static const contentPadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+    vertical: AppSpacing.md,
+  );
 
   @override
   State<HintCallout> createState() => _HintCalloutState();
@@ -90,29 +98,43 @@ class _HintCalloutState extends State<HintCallout> with SingleTickerProviderStat
     final theme = context.theme;
     final tokens = theme.callout;
     final border = BorderSide(color: tokens.border);
+    final direction = widget.caretDirection;
+    final inset = widget.caretInset - tokens.caretSize;
+    final caret = CustomPaint(
+      size: Size(tokens.caretSize * 2, tokens.caretSize),
+      painter: _CaretPainter(
+        fill: tokens.background,
+        stroke: tokens.border,
+        strokeWidth: border.width,
+      ),
+    );
     return IgnorePointer(
       ignoring: !widget.visible,
       child: AnimatedBuilder(
         animation: _curve,
         builder: (context, child) => Opacity(
           opacity: _curve.value,
-          child: Transform.translate(offset: Offset(0, (1 - _curve.value) * _rise), child: child),
+          child: Transform.translate(
+            offset: Offset(0, direction == AxisDirection.up ? (1 - _curve.value) * _rise : 0),
+            child: child,
+          ),
         ),
         child: Touchable(
           onTap: widget.onDismiss,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: tokens.maxWidth),
-            // The caret paints after the card so its fill covers the card's top
-            // border under its base, and the outline reads as one shape.
+            // The caret paints last so its fill covers the card's border at its base.
             child: Stack(
+              fit: direction == AxisDirection.up ? StackFit.loose : StackFit.passthrough,
               children: [
                 Padding(
-                  padding: EdgeInsets.only(top: tokens.caretSize),
+                  padding: EdgeInsets.only(
+                    top: direction == AxisDirection.up ? tokens.caretSize : 0,
+                    left: direction == AxisDirection.left ? tokens.caretSize : 0,
+                    right: direction == AxisDirection.right ? tokens.caretSize : 0,
+                  ),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.md,
-                    ),
+                    padding: HintCallout.contentPadding,
                     decoration: SuperellipseDecoration(
                       borderRadius: tokens.radius,
                       color: tokens.background,
@@ -121,18 +143,18 @@ class _HintCalloutState extends State<HintCallout> with SingleTickerProviderStat
                     child: Text(widget.message, style: AppType.note.copyWith(color: tokens.text)),
                   ),
                 ),
-                PositionedDirectional(
-                  top: 0,
-                  end: widget.caretInset - tokens.caretSize,
-                  child: CustomPaint(
-                    size: Size(tokens.caretSize * 2, tokens.caretSize),
-                    painter: _CaretPainter(
-                      fill: tokens.background,
-                      stroke: tokens.border,
-                      strokeWidth: border.width,
+                if (direction == AxisDirection.up)
+                  PositionedDirectional(top: 0, end: inset, child: caret)
+                else
+                  Positioned(
+                    top: inset,
+                    left: direction == AxisDirection.left ? 0 : null,
+                    right: direction == AxisDirection.right ? 0 : null,
+                    child: RotatedBox(
+                      quarterTurns: direction == AxisDirection.left ? 3 : 1,
+                      child: caret,
                     ),
                   ),
-                ),
               ],
             ),
           ),
